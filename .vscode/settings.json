@@ -1,0 +1,14 @@
+{
+  "editor.formatOnSave": true,
+  "files.autoSave": "afterDelay",
+  "editor.formatOnType": true,
+  "prettier.printWidth": 120,
+  "prettier.jsxSingleQuote": true,
+  "prettier.proseWrap": "never",
+  "prettier.singleQuote": true,
+  "prettier.htmlWhitespaceSensitivity": "ignore",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true
+  },
+  "debug.node.autoAttach": "off"
+}
