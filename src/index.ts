@@ -8,7 +8,8 @@ import { ValidationPipe } from './app/validation.pipe';
 async function bootstrap() {
   const fAdapt = new FastifyAdapter();
   fAdapt.register(require('fastify-multipart'));
-  fAdapt.enableCors({ origin: '*' });
+  fAdapt.enableCors({ origin: '*', methods: ['GET', 'PUT', 'POST', 'DELETE'] });
+
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, fAdapt);
 
   const options = new DocumentBuilder()

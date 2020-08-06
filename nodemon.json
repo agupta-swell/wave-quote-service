@@ -5,7 +5,7 @@
   "execMap": {
     "ts": "node -r ts-node/register -r tsconfig-paths/register -r dotenv/config"
   },
-  "watch": ["src/"],
+  "watch": ["src/", ".env"],
   "env": {
     "NODE_ENV": "development",
     "DOTENV_CONFIG_PATH": "./.env"

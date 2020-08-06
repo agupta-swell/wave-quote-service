@@ -1,13 +1,12 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { UserModule } from 'src/users/user.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import { SolarPanelModule } from 'src/solar-panels/solar-panel.module';
 
 @Global()
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), UserModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), MongooseModule.forRoot(process.env.MONGO_URL), SolarPanelModule],
 })
 export class AppModule {
-  constructor() {
-    console.log('>>>>>>>>>>>>>>>>', process.env);
-  }
+  constructor() {}
 }
