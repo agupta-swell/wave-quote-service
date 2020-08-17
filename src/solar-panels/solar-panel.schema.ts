@@ -14,7 +14,6 @@ export class SolarPanel extends Document {
 
   @Prop()
   unit: string;
-
 }
 
 export const SolarPanelSchema = SchemaFactory.createForClass(SolarPanel);

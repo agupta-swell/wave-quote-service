@@ -13,10 +13,13 @@ export class RolesGuard extends JwtAuthGuard {
     for (const role of user.roles) {
       hashRoles[role] = true;
     }
+
     const isAuthorized = this.roles.every(role => hashRoles[role]);
+
     if (err || !user) {
       throw err || new UnauthorizedException();
     }
+    
     if (!isAuthorized) {
       throw ApplicationException.NoPermission();
     }
