@@ -5,6 +5,7 @@ import { AuthencationModule } from 'src/authentication/authentication.module';
 import { RoleModule } from 'src/roles/role.module';
 import { SolarPanelModule } from 'src/solar-panels/solar-panel.module';
 import { UserModule } from 'src/users/user.module';
+import { QuotingModule } from '../quotings/quoting.module';
 
 @Global()
 @Module({
@@ -15,6 +16,7 @@ import { UserModule } from 'src/users/user.module';
     UserModule,
     RoleModule,
     AuthencationModule,
+    QuotingModule,
   ],
 })
 export class AppModule {

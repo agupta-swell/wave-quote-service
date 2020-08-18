@@ -1,19 +1,21 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema } from 'mongoose';
 
-@Schema({})
-export class SolarPanel extends Document {
-  @Prop()
-  name: string;
+export const SOLAR_PANEL = Symbol('SolarPanel').toString();
 
-  @Prop()
-  width: number;
-
-  @Prop()
-  length: number;
-
-  @Prop()
-  unit: string;
+export interface SolarPanel extends Document {
+  readonly name: string;
+  readonly width: number;
+  readonly length: number;
+  readonly unit: string;
+  readonly created_at: Date;
+  readonly updated_at: Date;
 }
 
-export const SolarPanelSchema = SchemaFactory.createForClass(SolarPanel);
+export const SolarPanelSchema = new Schema({
+  name: String,
+  width: Number,
+  length: Number,
+  unit: String,
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+});

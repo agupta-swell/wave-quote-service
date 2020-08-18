@@ -5,11 +5,11 @@ import { ApplicationException, OperationResult, Pagination } from 'src/app/commo
 import { CreateSolarPanelDto } from './req/create-solar-panel.dto';
 import { UpdateSolarPanelDto } from './req/update-solar-panel.dto';
 import { SolarPanelDto } from './res/solar-panel.dto';
-import { SolarPanel } from './solar-panel.schema';
+import { SolarPanel, SOLAR_PANEL } from './solar-panel.schema';
 
 @Injectable()
 export class SolarPanelService {
-  constructor(@InjectModel(SolarPanel.name) private solarPanelModel: Model<SolarPanel>) {}
+  constructor(@InjectModel(SOLAR_PANEL) private solarPanelModel: Model<SolarPanel>) {}
 
   async create(solarPanelDto: CreateSolarPanelDto): Promise<OperationResult<{ id: string }>> {
     const createdSolarPanel = new this.solarPanelModel(solarPanelDto);
@@ -46,5 +46,10 @@ export class SolarPanelService {
       total,
     };
     return OperationResult.ok(result);
+  }
+
+  async getDetails(id: string) {
+    const solarPanel = (await this.solarPanelModel.findById(id)) || null;
+    return new SolarPanelDto(solarPanel);
   }
 }
