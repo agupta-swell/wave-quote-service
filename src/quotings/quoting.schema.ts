@@ -8,10 +8,11 @@ type LatLng = {
 export const QUOTING = Symbol('Quoting').toString();
 
 export interface Polygon {
+  _id: Schema.Types.ObjectId;
   readonly polygon: [LatLng];
   readonly side: number;
   readonly azimuth: number;
-  readonly panel: any;
+  readonly panel_id: any;
   readonly total_panels: number;
   readonly panels: any;
 }
@@ -28,6 +29,7 @@ export const QuotingSchema = new Schema({
   name: String,
   polygons: [
     {
+      _id: Schema.Types.ObjectId,
       polygon: [
         {
           lat: Number,
@@ -36,7 +38,7 @@ export const QuotingSchema = new Schema({
       ],
       side: Number,
       azimuth: Number,
-      panel: { type: Schema.Types.ObjectId, ref: 'SolarPanel', required: true },
+      panel_id: { type: Schema.Types.ObjectId, ref: 'SolarPanel', required: true },
       total_panels: Number,
       // FIXME: need to declare type in this
       panels: Schema.Types.Mixed,
