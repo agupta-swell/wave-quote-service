@@ -2560,9 +2560,9 @@ data-urls@^2.0.0:
     whatwg-url "^8.0.0"
 
 dayjs@^1.8.33:
-  version "1.8.33"
-  resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.8.33.tgz#18bc4a2b6c1c6f4d67b4c4f2536c0b97e5b766f7"
-  integrity sha512-881TDLZCdpJFKbraWRHcUG8zfMLLX400ENf9rFZDuWc5zYMss6xifo2PhlDX0ftOmR2NRmaIY47bAa4gKQfXqw==
+  version "1.8.34"
+  resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.8.34.tgz#d3ad33cc43d6b0f24cb8686b90aad2c653708069"
+  integrity sha512-Olb+E6EoMvdPmAMq2QoucuyZycKHjTlBXmRx8Ada+wGtq4SIXuDCdtoaX4KkK0yjf1fJLnwXQURr8gQKWKaybw==
 
 debug@2.6.9, debug@^2.2.0, debug@^2.3.3, debug@^2.6.9:
   version "2.6.9"
@@ -3434,9 +3434,9 @@ fastify-multipart@^2.0.3:
     fastify-plugin "^2.0.0"
 
 fastify-plugin@^2.0.0, fastify-plugin@^2.3.0:
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/fastify-plugin/-/fastify-plugin-2.3.0.tgz#ef09432fd099e7cbd45f9612efc22da1da213fea"
-  integrity sha512-FOfgK3ORSXMl9AbXmkADH2gZ4qiegcYuJfDxKNlL0jQKLndbXYoBjifinYkSi2mTewDwu/LMlAGe4PVyhLpSXA==
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/fastify-plugin/-/fastify-plugin-2.3.1.tgz#3e2dd4d82830cbadea86d92f06dba15da073ffa3"
+  integrity sha512-Cj3a3ooZcAtlS8bSSqwijwpNfvgE2Ek+VwvCvnLK3zEsyqgEL+YmEHKL2lFgdrGJu4WPqbXBdaHBashxEBxrFA==
   dependencies:
     semver "^7.3.2"
 
@@ -5858,11 +5858,6 @@ node-pre-gyp@0.15.0:
     semver "^5.3.0"
     tar "^4.4.2"
 
-nodemailer@^6.4.11:
-  version "6.4.11"
-  resolved "https://registry.yarnpkg.com/nodemailer/-/nodemailer-6.4.11.tgz#1f00b4ffd106403f17c03f3d43d5945b2677046c"
-  integrity sha512-BVZBDi+aJV4O38rxsUh164Dk1NCqgh6Cm0rQSb9SK/DHGll/DrCMnycVDD7msJgZCnmVa8ASo8EZzR7jsgTukQ==
-
 nodemon@^2.0.4:
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/nodemon/-/nodemon-2.0.4.tgz#55b09319eb488d6394aa9818148c0c2d1c04c416"
@@ -7710,9 +7705,9 @@ supports-hyperlinks@^2.0.0:
     supports-color "^7.0.0"
 
 swagger-ui-dist@^3.18.1:
-  version "3.32.2"
-  resolved "https://registry.yarnpkg.com/swagger-ui-dist/-/swagger-ui-dist-3.32.2.tgz#2995b096a841fdf1e9f7b7cb8a52af11c4d84f30"
-  integrity sha512-pRPXJG6CNVLU+erT+UB+TcJ/RsdBsK0CeL3WRdWFlkZZz3tkMu/y8/+craQKOhontFBhp5/8fbKIMXLIAj/YTA==
+  version "3.32.3"
+  resolved "https://registry.yarnpkg.com/swagger-ui-dist/-/swagger-ui-dist-3.32.3.tgz#45c89c7aa9ceb122cc08a4e1bfe7f64b20e01fb0"
+  integrity sha512-nyroLJLlj3Gz0gle1Em6SG61hIMZyOJghkYh36fvNAS2Bzjpxwy40tFnWwYRJlUeS9ujtoqz+/xDT4d6ALzCww==
 
 swagger-ui-express@^4.1.4:
   version "4.1.4"

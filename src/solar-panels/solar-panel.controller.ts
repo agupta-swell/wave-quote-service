@@ -46,8 +46,8 @@ export class SolarPanelController {
   @Get()
   @ApiOperation({ summary: 'Get all solar panels' })
   @ApiOkResponse({ type: SolarPanelDto, isArray: true })
-  @PreAuthenticate()
-  @HasRole([ROLES.ADMIN, ROLES.SUPER_MANAGER])
+  // @PreAuthenticate()
+  // @HasRole([ROLES.ADMIN, ROLES.SUPER_MANAGER])
   async getSolarPanels(): Promise<ServiceResponse<Pagination<SolarPanelDto>>> {
     const result = await this.solarPanelService.getAllSolarPanels();
     return ServiceResponse.fromResult(result);
