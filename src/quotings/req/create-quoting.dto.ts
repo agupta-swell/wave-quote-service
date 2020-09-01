@@ -1,6 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested } from 'class-validator';
+import { ORIENTATION } from '../constants';
 
 export class LatLng {
   @ApiProperty()
@@ -60,6 +61,29 @@ export class Polygon {
   @ValidateNested({ each: true })
   @Type(() => LatLng)
   panels: [LatLng][];
+
+  @ApiPropertyOptional({ isArray: true, type: LatLng })
+  @ValidateNested({ each: true })
+  @Type(() => LatLng)
+  keepouts: LatLng[][];
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  @IsPositive()
+  roofPitch: number;
+
+  @ApiPropertyOptional()
+  @IsNumber()
+  rowSpacing: number;
+
+  @ApiProperty({ enum: [ORIENTATION.LANDSCAPE, ORIENTATION.PORTRAIT] })
+  @IsNotEmpty()
+  orientation: ORIENTATION;
+
+  @ApiPropertyOptional()
+  @IsNotEmpty()
+  setbacks: Map<string, number>;
 }
 
 export class CreateQuotingDto {

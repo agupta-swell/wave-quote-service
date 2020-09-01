@@ -36,7 +36,6 @@ export class QuotingService {
     transformData.polygons.forEach((polygon: any) => {
       polygon._id = polygon.id || mongoose.Types.ObjectId();
     });
-    console.log('>>>>>>>>>>>>>>>>>>>transformData', transformData);
     await quoting.updateOne(transformData);
     return OperationResult.ok(quoting._id);
   }

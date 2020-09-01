@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { toCamelCase } from '../../utils/transformProperties';
 import { Quoting } from '../quoting.schema';
 
@@ -24,13 +24,28 @@ class PolygonDto {
   panel: any;
 
   @ApiProperty()
-  panelId: any;
+  panelId: string;
 
   @ApiProperty()
   totalPanels: number;
 
   @ApiProperty()
   panels: [LatLng][];
+
+  @ApiPropertyOptional({ isArray: true, type: LatLng })
+  keepouts: LatLng[][];
+
+  @ApiProperty()
+  roofPitch: number;
+
+  @ApiPropertyOptional()
+  rowSpacing: number;
+
+  @ApiProperty()
+  orientation: string;
+
+  @ApiPropertyOptional()
+  setbacks: Map<string, number>;
 }
 
 export class QuotingDto {

@@ -9,20 +9,30 @@ export const QUOTING = Symbol('Quoting').toString();
 
 export interface Polygon {
   _id: Schema.Types.ObjectId;
-  readonly polygon: [LatLng];
-  readonly side: number;
-  readonly azimuth: number;
-  readonly panel_id: any;
-  readonly total_panels: number;
-  readonly panels: any;
+  polygon: LatLng[];
+  side: number;
+  azimuth: number;
+  panel_id: string;
+  total_panels: number;
+  panels: LatLng[][];
+  keepouts: LatLng[][];
+  roof_pitch: Number;
+  row_spacing: Number;
+  orientation: String;
+  setbacks: Object;
+}
+
+export interface ILocation {
+  address: string;
+  latlng: LatLng;
 }
 
 export interface Quoting extends Document {
-  readonly name: string;
-  readonly polygons: Polygon[];
-  readonly location: any;
-  readonly created_at: Date;
-  readonly updated_at: Date;
+  name: string;
+  polygons: Polygon[];
+  location: ILocation;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export const QuotingSchema = new Schema({
@@ -42,6 +52,18 @@ export const QuotingSchema = new Schema({
       total_panels: Number,
       // FIXME: need to declare type in this
       panels: Schema.Types.Mixed,
+      keepouts: [
+        [
+          {
+            lat: Number,
+            lng: Number,
+          },
+        ],
+      ],
+      roof_pitch: Number,
+      row_spacing: Number,
+      orientation: String,
+      setbacks: Object,
     },
   ],
   location: {
