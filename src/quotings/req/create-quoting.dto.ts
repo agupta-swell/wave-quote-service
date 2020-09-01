@@ -82,8 +82,10 @@ export class Polygon {
   orientation: ORIENTATION;
 
   @ApiPropertyOptional()
-  // @IsNotEmpty()
   setbacks: Map<string, number>;
+
+  @ApiPropertyOptional()
+  polygonSetbacks: LatLng[];
 }
 
 export class CreateQuotingDto {

@@ -18,7 +18,7 @@ class PolygonDto {
   azimuth: number;
 
   @ApiProperty()
-  polygon: [LatLng];
+  polygon: LatLng[];
 
   @ApiProperty()
   panel: any;
@@ -30,7 +30,7 @@ class PolygonDto {
   totalPanels: number;
 
   @ApiProperty()
-  panels: [LatLng][];
+  panels: LatLng[][];
 
   @ApiPropertyOptional({ isArray: true, type: LatLng })
   keepouts: LatLng[][];
@@ -46,6 +46,9 @@ class PolygonDto {
 
   @ApiPropertyOptional()
   setbacks: Map<string, number>;
+
+  @ApiPropertyOptional()
+  polygonSetbacks: LatLng[];
 }
 
 export class QuotingDto {

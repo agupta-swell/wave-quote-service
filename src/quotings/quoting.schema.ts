@@ -64,6 +64,12 @@ export const QuotingSchema = new Schema({
       row_spacing: Number,
       orientation: String,
       setbacks: Object,
+      polygon_setbacks: [
+        {
+          lat: Number,
+          lng: Number,
+        },
+      ],
     },
   ],
   location: {
