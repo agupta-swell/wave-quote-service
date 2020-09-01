@@ -82,7 +82,7 @@ export class Polygon {
   orientation: ORIENTATION;
 
   @ApiPropertyOptional()
-  @IsNotEmpty()
+  // @IsNotEmpty()
   setbacks: Map<string, number>;
 }
 
