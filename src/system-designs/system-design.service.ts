@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ApplicationException, OperationResult, Pagination } from 'src/app/common';
-import { ExternalService } from '../external-services/external-service.service';
 import { ProductService } from './../products/product.service';
 import { DESIGN_MODE } from './constants';
 import { CreateSystemDesignDto } from './req/create-system-design.dto';
 import { UpdateSystemDesignDto } from './req/update-system-design.dto';
 import { SystemDesignDto } from './res/system-design.dto';
+import { SystemProductService } from './sub-services/system-product.service';
 import { SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class SystemDesignService {
   constructor(
     @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
     private readonly productService: ProductService,
-    private readonly externalService: ExternalService,
+    private readonly systemProductService: SystemProductService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -38,8 +38,8 @@ export class SystemDesignService {
         const data = { ...panelModelData, part_number: panelModelData.partNumber };
         systemDesign.addPanelModelDataSnapshot(data, index);
         //FIXME: need to verify the value of capacity
-        const capacity = item.number_of_panels * (panelModelData as any).capacity;
-        const acAnnual = await this.externalService.calculateSystemProduction({
+        const capacity = item.number_of_panels * panelModelData.sizeW;
+        const acAnnual = await this.systemProductService.pvWatCalculation({
           lat: systemDesign.latitude,
           lon: systemDesign.longtitude,
           azimuth: item.azimuth,
@@ -51,11 +51,11 @@ export class SystemDesignService {
         cumulativeCapacityKW += capacity;
       });
 
-      //  systemDesign.system_production_data.capacityKW = capacity;
+      systemDesign.system_production_data.capacityKW = cumulativeCapacityKW;
       systemDesign.system_production_data.generationKWh = cumulativeGenerationKWh;
       systemDesign.system_production_data.productivity = cumulativeGenerationKWh / cumulativeCapacityKW;
-      //  systemDesign.system_production_data.annualUsageKWh =  From utility and usage ;
-      //  systemDesign.system_production_data.offsetPercentage =  generationKWh /  annualUsageKWh  ;
+      //  systemDesign.system_production_data.annual_usageKWh =  From utility and usage ;
+      //  systemDesign.system_production_data.offset_percentage =  cumulativeGenerationKWh /  annualUsageKWh  ;
     }
 
     const createdSystemDesign = new this.systemDesignModel(systemDesign);
@@ -85,8 +85,8 @@ export class SystemDesignService {
         const data = { ...panelModelData, part_number: panelModelData.partNumber };
         systemDesign.addPanelModelDataSnapshot(data, index);
         //FIXME: need to verify the value of capacity
-        const capacity = item.number_of_panels * (panelModelData as any).capacity;
-        const acAnnual = await this.externalService.calculateSystemProduction({
+        const capacity = item.number_of_panels * panelModelData.sizeW;
+        const acAnnual = await this.systemProductService.pvWatCalculation({
           lat: systemDesign.latitude,
           lon: systemDesign.longtitude,
           azimuth: item.azimuth,
@@ -98,7 +98,7 @@ export class SystemDesignService {
         cumulativeCapacityKW += capacity;
       });
 
-      //  systemDesign.system_production_data.capacityKW = capacity;
+      systemDesign.system_production_data.capacityKW = cumulativeCapacityKW;
       systemDesign.system_production_data.generationKWh = cumulativeGenerationKWh;
       systemDesign.system_production_data.productivity = cumulativeGenerationKWh / cumulativeCapacityKW;
       //  systemDesign.system_production_data.annualUsageKWh =  From utility and usage ;

@@ -12,8 +12,6 @@ interface IcalculateSystemProduction {
 
 @Injectable()
 export class ExternalService {
-  constructor() {}
-
   async calculateSystemProduction({
     lat,
     lon,
