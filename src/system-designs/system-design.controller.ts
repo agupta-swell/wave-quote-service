@@ -44,7 +44,7 @@ export class SystemDesignController {
     @Query('limit') limit: string,
     @Query('skip') skip: string,
   ): Promise<ServiceResponse<Pagination<SystemDesignDto>>> {
-    const result = await this.systemDesignService.getAllQuotings(Number(limit), Number(skip));
+    const result = await this.systemDesignService.getAllSystemDesigns(Number(limit), Number(skip));
     return ServiceResponse.fromResult(result);
   }
 

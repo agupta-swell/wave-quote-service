@@ -2,7 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ProductService } from './product.service';
-import { ProductDto } from './res/producct.dto';
+import { ProductDto } from './res/product.dto';
 
 @ApiTags('Products')
 @Controller('/products')

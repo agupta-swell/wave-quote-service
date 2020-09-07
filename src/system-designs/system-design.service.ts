@@ -118,7 +118,7 @@ export class SystemDesignService {
     return OperationResult.ok('Deleted Successfully');
   }
 
-  async getAllQuotings(limit: number, skip: number): Promise<OperationResult<Pagination<SystemDesignDto>>> {
+  async getAllSystemDesigns(limit: number, skip: number): Promise<OperationResult<Pagination<SystemDesignDto>>> {
     const [systemDesigns, total] = await Promise.all([
       this.systemDesignModel.find().limit(limit).skip(skip).exec(),
       this.systemDesignModel.estimatedDocumentCount(),

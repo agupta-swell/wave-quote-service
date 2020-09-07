@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Product } from './../product.schema';
+import { Product } from '../product.schema';
 
 export class ProductDto {
   @ApiProperty()
@@ -30,7 +30,8 @@ export class ProductDto {
   };
 
   constructor(props: Product) {
-    this.id = props._id;
+    console.log('>>>>>>>>>>>>>>>>>>>', 'props', props._id, props.id);
+    this.id = props.id;
     this.name = props.name;
     this.type = props.type;
     this.price = props.price;

@@ -1,4 +1,4 @@
-import { Document, Schema } from 'mongoose';
+import { Document, Schema, Types } from 'mongoose';
 
 export const PRODUCT = Symbol('Product').toString();
 
@@ -18,6 +18,7 @@ export interface Product extends Document {
 }
 
 export const ProductSchema = new Schema<Product>({
+  _id: String || Types.ObjectId,
   name: String,
   type: String,
   price: Number,
