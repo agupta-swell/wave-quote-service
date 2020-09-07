@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { toCamelCase } from '../../utils/transformProperties';
 import { SystemDesign } from '../system-design.schema';
-import { IRoofTopSchema } from './../system-design.schema';
+import { IRoofTopSchema, ISystemProductionSchema } from './../system-design.schema';
 import { CapacityProductionDataDto } from './capacity-production.dto';
 import { RoofTopDataDto } from './roof-top-data.dto';
 
@@ -11,6 +11,23 @@ export class LatLng {
 
   @ApiProperty()
   lng: Number;
+}
+
+export class ISystemProductionDto {
+  @ApiProperty()
+  capacityKW: number;
+
+  @ApiProperty()
+  generationKWh: number;
+
+  @ApiProperty()
+  productivity: number;
+
+  @ApiProperty()
+  annualUsageKWh: number;
+
+  @ApiProperty()
+  offsetPercentage: number;
 }
 
 export class SystemDesignDto {
@@ -33,6 +50,9 @@ export class SystemDesignDto {
   capacityProductionDesignData: CapacityProductionDataDto;
 
   @ApiProperty()
+  systemProductionData: ISystemProductionDto;
+
+  @ApiProperty()
   latitude: number;
 
   @ApiProperty()
@@ -45,6 +65,7 @@ export class SystemDesignDto {
     this.name = props.name;
     this.latitude = props.latitude;
     this.longtitude = props.longtitude;
+    this.systemProductionData = this.transformSystemProductionData(props.system_production_data);
     this.roofTopDesignData = this.transformRoofTopData(props.roof_top_design_data);
     this.capacityProductionDesignData = (null ||
       this.transformCapacityProductionData(props.capacity_production_design_data || '')) as any;
@@ -57,6 +78,16 @@ export class SystemDesignDto {
       panelArray: panel_array.map(item => toCamelCase(item)),
       inverters: inverters.map(item => toCamelCase(item)),
       storage: storage.map(item => toCamelCase(item)),
+    };
+  };
+
+  transformSystemProductionData = (systemProduction: ISystemProductionSchema): ISystemProductionDto => {
+    return {
+      capacityKW: systemProduction.annual_usageKWh,
+      generationKWh: systemProduction.generationKWh,
+      productivity: systemProduction.productivity,
+      annualUsageKWh: systemProduction.annual_usageKWh,
+      offsetPercentage: systemProduction.offset_percentage,
     };
   };
 
