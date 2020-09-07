@@ -6,7 +6,7 @@ import { SystemDesignDto } from './res/system-design.dto';
 import { SystemDesignService } from './system-design.service';
 
 @ApiTags('System Design')
-@Controller('/system-design')
+@Controller('/system-designs')
 export class SystemDesignController {
   constructor(private systemDesignService: SystemDesignService) {}
 

@@ -30,7 +30,6 @@ export class ProductDto {
   };
 
   constructor(props: Product) {
-    console.log('>>>>>>>>>>>>>>>>>>>', 'props', props._id, props.id);
     this.id = props.id;
     this.name = props.name;
     this.type = props.type;
