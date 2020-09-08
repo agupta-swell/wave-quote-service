@@ -7,7 +7,7 @@ import { DESIGN_MODE } from './constants';
 import { CreateSystemDesignDto } from './req/create-system-design.dto';
 import { UpdateSystemDesignDto } from './req/update-system-design.dto';
 import { SystemDesignDto } from './res/system-design.dto';
-import { SystemProductService } from './sub-services/system-product.service';
+import { SystemProductService, UploadImageService } from './sub-services';
 import { SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
 @Injectable()
@@ -16,14 +16,16 @@ export class SystemDesignService {
     @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
     private readonly productService: ProductService,
     private readonly systemProductService: SystemProductService,
+    private readonly uploadImageService: UploadImageService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (systemDesignDto.roofTopDesignData && systemDesignDto.capacityProductionDesignData) {
       throw new Error('Please put your data in body');
     }
-
+    const thumbnail = await this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail);
     const systemDesign = new SystemDesignModel(systemDesignDto);
+    systemDesign.setThumnail(thumbnail);
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -69,8 +71,9 @@ export class SystemDesignService {
     if (!foundSystemDesign) {
       throw ApplicationException.EnitityNotFound(id);
     }
-
+    const thumbnail = await this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail);
     const systemDesign = new SystemDesignModel(systemDesignDto);
+    systemDesign.setThumnail(thumbnail);
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;

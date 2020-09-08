@@ -128,15 +128,11 @@ const SystemProductionSchema = new Schema<ISystemProductionSchema>({
 
 export const SystemDesignSchema = new Schema<SystemDesign>({
   name: String,
-  location: {
-    address: String,
-    latlng: {
-      lat: Number,
-      lng: Number,
-    },
-  },
+  latitude: Number,
+  longtitude: Number,
   opportunity_id: { type: Schema.Types.ObjectId, required: true },
   design_mode: String,
+  thumnail: String,
   roof_top_design_data: RoofTopSchema,
   // TODO: implement later
   capacity_production_design_data: String,
@@ -156,6 +152,7 @@ export interface SystemDesign extends Document {
   name: string;
   opportunity_id: string;
   design_mode: string;
+  thumnail: string;
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: '';
   system_production_data: ISystemProductionSchema;
@@ -173,6 +170,7 @@ export class SystemDesignModel {
   longtitude: number;
   opportunity_id: string;
   design_mode: string;
+  thumnail: string;
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: string;
   system_production_data: ISystemProductionSchema;
@@ -204,4 +202,8 @@ export class SystemDesignModel {
     this.roof_top_design_data.panel_array[index].panel_model_data_snapshot = panelModelData;
     return this;
   };
+
+  setThumnail(link: string) {
+    this.thumnail = link;
+  }
 }

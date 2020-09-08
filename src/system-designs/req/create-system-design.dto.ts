@@ -31,6 +31,10 @@ export class CreateSystemDesignDto {
   longtitude: number;
 
   @ApiPropertyOptional()
+  @IsString()
+  thumbnail: string;
+
+  @ApiPropertyOptional()
   @IsOptional()
   @ValidateNested()
   @Type(() => RoofTopDataDto)

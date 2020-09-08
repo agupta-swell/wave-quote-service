@@ -30,6 +30,10 @@ export class UpdateSystemDesignDto {
   @IsNumber()
   longtitude: number;
 
+  @ApiPropertyOptional()
+  @IsString()
+  thumbnail: string;
+
   @ApiPropertyOptional({ type: RoofTopDataDto })
   @IsOptional()
   @ValidateNested({ each: true })
