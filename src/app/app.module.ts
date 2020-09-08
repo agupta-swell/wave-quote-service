@@ -5,6 +5,7 @@ import { AuthencationModule } from 'src/authentication/authentication.module';
 import { RoleModule } from 'src/roles/role.module';
 import { UserModule } from 'src/users/user.module';
 import { SystemDesignModule } from '../system-designs/system-design.module';
+import { UtilityModule } from './../utilities/utility.module';
 import { ExternalServiceModule } from './../external-services/external-service.module';
 import { ProductModule } from './../products/product.module';
 
@@ -19,6 +20,7 @@ import { ProductModule } from './../products/product.module';
     SystemDesignModule,
     ProductModule,
     ExternalServiceModule,
+    UtilityModule,
   ],
 })
 export class AppModule {
