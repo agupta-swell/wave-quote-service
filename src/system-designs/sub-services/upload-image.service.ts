@@ -17,16 +17,12 @@ export class UploadImageService {
     // Getting the file type, ie: jpeg, png or gif
     const type = imageData.split(';')[0].split('/')[1];
 
-    // Generally we'd have an userId associated with the image
-    // For this example, we'll simulate one
-    const userId = 802195124683;
-
     // With this setup, each time your user uploads an image, will be overwritten.
     // To prevent this, use a different Key each time.
     // This won't be needed if they're uploading their avatar, hence the filename, userAvatar.js.
     const params = {
       Bucket: S3_BUCKET,
-      Key: `${userId}.${type}`, // type is not required
+      Key: `${new Date().getTime()}.${type}`, // type is not required
       Body: base64Data,
       ACL: 'public-read',
       ContentEncoding: 'base64', // required
