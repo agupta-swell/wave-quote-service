@@ -65,7 +65,7 @@ export class SystemDesignService {
     const createdSystemDesign = new this.systemDesignModel(systemDesign);
     await createdSystemDesign.save();
 
-    return OperationResult.ok(new SystemDesignDto(createdSystemDesign));
+    return OperationResult.ok(new SystemDesignDto(createdSystemDesign.toObject()));
   }
 
   async update(id: string, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -113,7 +113,7 @@ export class SystemDesignService {
     }
 
     await foundSystemDesign.updateOne(systemDesign);
-    return OperationResult.ok(new SystemDesignDto(foundSystemDesign));
+    return OperationResult.ok(new SystemDesignDto(foundSystemDesign.toObject()));
   }
 
   async delete(id: string): Promise<OperationResult<string>> {
