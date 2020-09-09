@@ -25,7 +25,7 @@ export class SystemDesignService {
     }
     const thumbnail = await this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail);
     const systemDesign = new SystemDesignModel(systemDesignDto);
-    systemDesign.setThumnail(thumbnail);
+    systemDesign.setThumbnail(thumbnail);
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -53,11 +53,13 @@ export class SystemDesignService {
         cumulativeCapacityKW += capacity;
       });
 
-      systemDesign.system_production_data.capacityKW = cumulativeCapacityKW;
-      systemDesign.system_production_data.generationKWh = cumulativeGenerationKWh;
-      systemDesign.system_production_data.productivity = cumulativeGenerationKWh / cumulativeCapacityKW;
-      //  systemDesign.system_production_data.annual_usageKWh =  From utility and usage ;
-      //  systemDesign.system_production_data.offset_percentage =  cumulativeGenerationKWh /  annualUsageKWh  ;
+      systemDesign.setSystemProductionData({
+        capacityKW: cumulativeCapacityKW,
+        generationKWh: cumulativeGenerationKWh,
+        productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
+        annual_usageKWh: 0,
+        offset_percentage: 0,
+      });
     }
 
     const createdSystemDesign = new this.systemDesignModel(systemDesign);
@@ -73,7 +75,7 @@ export class SystemDesignService {
     }
     const thumbnail = await this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail);
     const systemDesign = new SystemDesignModel(systemDesignDto);
-    systemDesign.setThumnail(thumbnail);
+    systemDesign.setThumbnail(thumbnail);
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -101,11 +103,13 @@ export class SystemDesignService {
         cumulativeCapacityKW += capacity;
       });
 
-      systemDesign.system_production_data.capacityKW = cumulativeCapacityKW;
-      systemDesign.system_production_data.generationKWh = cumulativeGenerationKWh;
-      systemDesign.system_production_data.productivity = cumulativeGenerationKWh / cumulativeCapacityKW;
-      //  systemDesign.system_production_data.annualUsageKWh =  From utility and usage ;
-      //  systemDesign.system_production_data.offsetPercentage =  generationKWh /  annualUsageKWh  ;
+      systemDesign.setSystemProductionData({
+        capacityKW: cumulativeCapacityKW,
+        generationKWh: cumulativeGenerationKWh,
+        productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
+        annual_usageKWh: 0,
+        offset_percentage: 0,
+      });
     }
 
     await foundSystemDesign.updateOne(systemDesign);
@@ -126,7 +130,7 @@ export class SystemDesignService {
       this.systemDesignModel.find().limit(limit).skip(skip).exec(),
       this.systemDesignModel.estimatedDocumentCount(),
     ]);
-    const data = systemDesigns.map(item => new SystemDesignDto(item));
+    const data = systemDesigns.map(item => new SystemDesignDto(item.toObject()));
     const result = {
       data,
       total,
@@ -136,6 +140,6 @@ export class SystemDesignService {
 
   async getDetails(id: string): Promise<OperationResult<SystemDesignDto>> {
     const systemDesign = await this.systemDesignModel.findById(id);
-    return OperationResult.ok(new SystemDesignDto(systemDesign));
+    return OperationResult.ok(new SystemDesignDto(systemDesign.toObject()));
   }
 }

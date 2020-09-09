@@ -130,9 +130,9 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   name: String,
   latitude: Number,
   longtitude: Number,
-  opportunity_id: { type: Schema.Types.ObjectId, required: true },
+  opportunity_id: String,
   design_mode: String,
-  thumnail: String,
+  thumbnail: String,
   roof_top_design_data: RoofTopSchema,
   // TODO: implement later
   capacity_production_design_data: String,
@@ -152,7 +152,7 @@ export interface SystemDesign extends Document {
   name: string;
   opportunity_id: string;
   design_mode: string;
-  thumnail: string;
+  thumbnail: string;
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: '';
   system_production_data: ISystemProductionSchema;
@@ -170,7 +170,7 @@ export class SystemDesignModel {
   longtitude: number;
   opportunity_id: string;
   design_mode: string;
-  thumnail: string;
+  thumbnail: string;
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: string;
   system_production_data: ISystemProductionSchema;
@@ -203,7 +203,11 @@ export class SystemDesignModel {
     return this;
   };
 
-  setThumnail(link: string) {
-    this.thumnail = link;
+  setThumbnail(link: string) {
+    this.thumbnail = link;
+  }
+
+  setSystemProductionData(data: ISystemProductionSchema) {
+    this.system_production_data = data;
   }
 }

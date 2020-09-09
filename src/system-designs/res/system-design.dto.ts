@@ -58,6 +58,9 @@ export class SystemDesignDto {
   @ApiProperty()
   longtitude: number;
 
+  @ApiProperty()
+  thumbnail: string;
+
   constructor(props: SystemDesign) {
     this.id = props._id;
     this.opportunityId = props.opportunity_id;
@@ -65,6 +68,7 @@ export class SystemDesignDto {
     this.name = props.name;
     this.latitude = props.latitude;
     this.longtitude = props.longtitude;
+    this.thumbnail = props.thumbnail;
     this.systemProductionData = this.transformSystemProductionData(props.system_production_data);
     this.roofTopDesignData = this.transformRoofTopData(props.roof_top_design_data);
     this.capacityProductionDesignData = (null ||
@@ -83,11 +87,11 @@ export class SystemDesignDto {
 
   transformSystemProductionData = (systemProduction: ISystemProductionSchema): ISystemProductionDto => {
     return {
-      capacityKW: systemProduction.annual_usageKWh,
-      generationKWh: systemProduction.generationKWh,
-      productivity: systemProduction.productivity,
-      annualUsageKWh: systemProduction.annual_usageKWh,
-      offsetPercentage: systemProduction.offset_percentage,
+      capacityKW: systemProduction?.annual_usageKWh || 0,
+      generationKWh: systemProduction?.generationKWh || 0,
+      productivity: systemProduction?.productivity || 0,
+      annualUsageKWh: systemProduction?.annual_usageKWh || 0,
+      offsetPercentage: systemProduction?.offset_percentage || 0,
     };
   };
 
