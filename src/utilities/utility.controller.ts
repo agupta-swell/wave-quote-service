@@ -14,4 +14,10 @@ export class UtilityController {
     const res = await this.utilityService.getUtilityDetails(Number(zipCode));
     return ServiceResponse.fromResult(res);
   }
+
+  @Get('/typical-baselines')
+  async getTypicalBaseline(@Query('zipCode') zipCode: string): Promise<ServiceResponse<UtilityDto>> {
+    const res = await this.utilityService.getTypicalBaseline(Number(zipCode));
+    return ServiceResponse.fromResult(res);
+  }
 }

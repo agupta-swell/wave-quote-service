@@ -11,9 +11,9 @@ const camelToUnderscore = (str: string) =>
 export const toCamelCase = (obj: Object) => {
   const newObj = {};
 
-  for (const key in obj) {
+  for (let key in obj) {
     if (obj.hasOwnProperty(key)) {
-      newObj[snakeToCamel(key)] = obj[key];
+      newObj[snakeToCamel(key === '_id' ? 'id' : key)] = obj[key];
     }
   }
 

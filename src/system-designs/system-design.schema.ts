@@ -9,10 +9,13 @@ export interface ILatLngSchema {
   lng: number;
 }
 
-const LatLngSchema = new Schema<ILatLngSchema>({
-  lat: Number,
-  lng: Number,
-});
+const LatLngSchema = new Schema<ILatLngSchema>(
+  {
+    lat: Number,
+    lng: Number,
+  },
+  { _id: false },
+);
 
 export interface IProductSchema {
   name: string;
@@ -23,14 +26,17 @@ export interface IProductSchema {
   part_number: string[];
 }
 
-const ProductSchema = new Schema<IProductSchema>({
-  name: String,
-  type: String,
-  price: Number,
-  sizeW: Number,
-  sizekWh: Number,
-  part_number: [String],
-});
+const ProductSchema = new Schema<IProductSchema>(
+  {
+    name: String,
+    type: String,
+    price: Number,
+    sizeW: Number,
+    sizekWh: Number,
+    part_number: [String],
+  },
+  { _id: false },
+);
 
 export interface ISolarPanelArraySchema {
   _id: string;
@@ -51,24 +57,27 @@ export interface ISolarPanelArraySchema {
   panel_model_snapshot_date: Date;
 }
 
-const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>({
-  _id: Schema.Types.ObjectId,
-  primary_orientation_side: Number,
-  panel_orientation: String,
-  bound_polygon: [LatLngSchema],
-  panels: [[LatLngSchema]],
-  setbacks: Object,
-  setbacks_polygon: [LatLngSchema],
-  // FIXME: need to change type
-  keepouts: [[LatLngSchema]],
-  pitch: Number,
-  azimuth: Number,
-  row_spacing: Number,
-  panel_id: String,
-  number_of_panels: Number,
-  panel_model_data_snapshot: ProductSchema,
-  panel_model_snapshot_date: Date,
-});
+const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
+  {
+    _id: Schema.Types.ObjectId,
+    primary_orientation_side: Number,
+    panel_orientation: String,
+    bound_polygon: [LatLngSchema],
+    panels: [[LatLngSchema]],
+    setbacks: Object,
+    setbacks_polygon: [LatLngSchema],
+    // FIXME: need to change type
+    keepouts: [[LatLngSchema]],
+    pitch: Number,
+    azimuth: Number,
+    row_spacing: Number,
+    panel_id: String,
+    number_of_panels: Number,
+    panel_model_data_snapshot: ProductSchema,
+    panel_model_snapshot_date: Date,
+  },
+  { _id: false },
+);
 
 export interface IInverterSchema {
   type: string;
@@ -77,12 +86,15 @@ export interface IInverterSchema {
   inverter_model_snapshot_date: Date;
 }
 
-const InverterSchema = new Schema<IInverterSchema>({
-  type: String,
-  solar_panel_array_id: String,
-  inverter_model_data_snapshot: ProductSchema,
-  inverter_model_snapshot_date: Date,
-});
+const InverterSchema = new Schema<IInverterSchema>(
+  {
+    type: String,
+    solar_panel_array_id: String,
+    inverter_model_data_snapshot: ProductSchema,
+    inverter_model_snapshot_date: Date,
+  },
+  { _id: false },
+);
 
 export interface IStorageSchema {
   type: string;
@@ -91,12 +103,15 @@ export interface IStorageSchema {
   storage_model_snapshot_date: Date;
 }
 
-const StorageSchema = new Schema<IStorageSchema>({
-  type: String,
-  quantity: Number,
-  storage_model_data_snapshot: ProductSchema,
-  storage_model_snapshot_date: Date,
-});
+const StorageSchema = new Schema<IStorageSchema>(
+  {
+    type: String,
+    quantity: Number,
+    storage_model_data_snapshot: ProductSchema,
+    storage_model_snapshot_date: Date,
+  },
+  { _id: false },
+);
 
 export interface IRoofTopSchema {
   panel_array: ISolarPanelArraySchema[];
@@ -104,11 +119,14 @@ export interface IRoofTopSchema {
   storage: IStorageSchema[];
 }
 
-const RoofTopSchema = new Schema<IRoofTopSchema>({
-  panel_array: [SolarPanelArraySchema],
-  inverters: [InverterSchema],
-  storage: [StorageSchema],
-});
+const RoofTopSchema = new Schema<IRoofTopSchema>(
+  {
+    panel_array: [SolarPanelArraySchema],
+    inverters: [InverterSchema],
+    storage: [StorageSchema],
+  },
+  { _id: false },
+);
 
 export interface ISystemProductionSchema {
   capacityKW: number;
@@ -118,13 +136,16 @@ export interface ISystemProductionSchema {
   offset_percentage: number;
 }
 
-const SystemProductionSchema = new Schema<ISystemProductionSchema>({
-  capacityKW: Number,
-  generationKWh: Number,
-  productivity: Number,
-  annual_usageKWh: Number,
-  offset_percentage: Number,
-});
+const SystemProductionSchema = new Schema<ISystemProductionSchema>(
+  {
+    capacityKW: Number,
+    generationKWh: Number,
+    productivity: Number,
+    annual_usageKWh: Number,
+    offset_percentage: Number,
+  },
+  { _id: false },
+);
 
 export const SystemDesignSchema = new Schema<SystemDesign>({
   name: String,
@@ -142,11 +163,6 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
 });
-
-interface ILocation {
-  address: string;
-  latlng: ILatLngSchema;
-}
 
 export interface SystemDesign extends Document {
   name: string;
