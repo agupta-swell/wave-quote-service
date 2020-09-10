@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
+import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
 import { ICalculateSystemProduction, ILoadServingEntity, ITypicalBaseLine, ITypicalUsage } from './typing';
 
@@ -18,15 +19,20 @@ export class ExternalService {
     const url = 'https://developer.nrel.gov/api/pvwatts/v6.json';
     const apiKey = 'Jfd68KJSvs2xJCe2zrFz8muiVLKh9G25CayoZSND';
 
-    const systemProduction = await axios.get(
-      `${url}?lat=${lat}&lon=${lon}&system_capacity=${systemCapacity}&azimuth=${azimuth}&tilt=${tilt}&array_type=1&module_type=1&losses=${losses}&timeframe=hourly`,
-      {
-        headers: {
-          'X-Api-Key': apiKey,
+    let systemProduction: any;
+    try {
+      systemProduction = await axios.get(
+        `${url}?lat=${lat}&lon=${lon}&system_capacity=${systemCapacity}&azimuth=${azimuth}&tilt=${tilt}&array_type=1&module_type=1&losses=${losses}&timeframe=hourly`,
+        {
+          headers: {
+            'X-Api-Key': apiKey,
+          },
         },
-      },
-    );
-
+      );
+    } catch (error) {
+      this.logger.errorAPICalling(url, error.message);
+      throw ApplicationException.ServiceError();
+    }
     return systemProduction.data.outputs.ac_annual;
   }
 
@@ -35,14 +41,20 @@ export class ExternalService {
     const token =
       'Basic MmZkOWMwNzUtZWZmYi00M2QyLWI1MWUtNjk1Y2I3NzI2ODk3OmZlMzk1NzZmLTExM2ItNGViZC05ZDU4LWM2ZTY5ODgyY2FjMg==';
 
-    const systemProduction = await axios.get(
-      `${url}/lses?zipCode=${zipCode}&country=US&residentialServiceTypes=ELECTRICITY&fields=ext`,
-      {
-        headers: {
-          Authorization: token,
+    let systemProduction: any;
+    try {
+      systemProduction = await axios.get(
+        `${url}/lses?zipCode=${zipCode}&country=US&residentialServiceTypes=ELECTRICITY&fields=ext`,
+        {
+          headers: {
+            Authorization: token,
+          },
         },
-      },
-    );
+      );
+    } catch (error) {
+      this.logger.errorAPICalling(url, error.message);
+      throw ApplicationException.ServiceError();
+    }
 
     const enitity = {
       zipCode,
@@ -115,11 +127,9 @@ export class ExternalService {
         },
       );
     } catch (error) {
-      // this.logger.error(`'111111 ${error}`);
-      // typicalBaseLine = error;
+      this.logger.errorAPICalling(url, error.message);
+      throw ApplicationException.ServiceError();
     }
-
-    // console.log('>>>>>>>>>>>>>>>>>>>', 'typicalBaseLine', typicalBaseLine);
 
     const result = typicalBaseLine.data.results[0];
     // const result = typicalBaseLine

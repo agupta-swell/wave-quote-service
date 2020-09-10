@@ -8,12 +8,14 @@ import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from './../utilities/utility.module';
 import { ExternalServiceModule } from './../external-services/external-service.module';
 import { ProductModule } from './../products/product.module';
+import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(process.env.MONGO_URL),
+    MyLoggerModule,
     UserModule,
     RoleModule,
     AuthencationModule,

@@ -3,6 +3,7 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as morgan from 'morgan';
 import { AppModule } from './app/app.module';
+import { MyLogger } from './app/my-logger/my-logger.service';
 import { ValidationPipe } from './app/validation.pipe';
 
 async function bootstrap() {
@@ -10,7 +11,7 @@ async function bootstrap() {
   fAdapt.register(require('fastify-multipart'));
   fAdapt.enableCors({ origin: '*', methods: ['GET', 'PUT', 'POST', 'DELETE'] });
 
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, fAdapt);
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, fAdapt, { logger: false });
 
   const options = new DocumentBuilder()
     .setTitle('Wave Solar Design Tool')
@@ -28,6 +29,7 @@ async function bootstrap() {
     ),
   );
 
+  app.useLogger(app.get(MyLogger));
   await app.listen(Number(process.env.PORT) || 3000, '0.0.0.0');
 }
 
