@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ApplicationException, OperationResult, Pagination } from 'src/app/common';
 import { ProductService } from './../products/product.service';
 import { DESIGN_MODE } from './constants';
@@ -34,24 +34,27 @@ export class SystemDesignService {
         {},
       );
 
-      systemDesign.roof_top_design_data.panel_array.forEach(async (item, index) => {
-        const panelModelId = hashPanelModelIds[index];
-        const panelModelData = await this.productService.getDetail(panelModelId);
-        const data = { ...panelModelData, part_number: panelModelData.partNumber };
-        systemDesign.addPanelModelDataSnapshot(data, index);
-        //FIXME: need to verify the value of capacity
-        const capacity = item.number_of_panels * panelModelData.sizeW;
-        const acAnnual = await this.systemProductService.pvWatCalculation({
-          lat: systemDesign.latitude,
-          lon: systemDesign.longtitude,
-          azimuth: item.azimuth,
-          systemCapacity: capacity,
-          tilt: item.pitch,
-        });
+      await Promise.all(
+        systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
+          item.array_id = Types.ObjectId();
+          const panelModelId = hashPanelModelIds[index];
+          const panelModelData = await this.productService.getDetail(panelModelId);
+          const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
+          systemDesign.setPanelModelDataSnapshot(data, index);
+          //FIXME: need to verify the value of capacity
+          const capacity = item.number_of_panels * panelModelData.sizeW;
+          const acAnnual = await this.systemProductService.pvWatCalculation({
+            lat: systemDesign.latitude,
+            lon: systemDesign.longtitude,
+            azimuth: item.azimuth,
+            systemCapacity: capacity,
+            tilt: item.pitch,
+          });
 
-        cumulativeGenerationKWh += acAnnual;
-        cumulativeCapacityKW += capacity;
-      });
+          cumulativeGenerationKWh += acAnnual;
+          cumulativeCapacityKW += capacity;
+        }),
+      );
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
@@ -84,24 +87,26 @@ export class SystemDesignService {
         {},
       );
 
-      systemDesign.roof_top_design_data.panel_array.forEach(async (item, index) => {
-        const panelModelId = hashPanelModelIds[index];
-        const panelModelData = await this.productService.getDetail(panelModelId);
-        const data = { ...panelModelData, part_number: panelModelData.partNumber };
-        systemDesign.addPanelModelDataSnapshot(data, index);
-        //FIXME: need to verify the value of capacity
-        const capacity = item.number_of_panels * panelModelData.sizeW;
-        const acAnnual = await this.systemProductService.pvWatCalculation({
-          lat: systemDesign.latitude,
-          lon: systemDesign.longtitude,
-          azimuth: item.azimuth,
-          systemCapacity: capacity,
-          tilt: item.pitch,
-        });
+      await Promise.all(
+        systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
+          const panelModelId = hashPanelModelIds[index];
+          const panelModelData = await this.productService.getDetail(panelModelId);
+          const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
+          systemDesign.setPanelModelDataSnapshot(data, index);
+          //FIXME: need to verify the value of capacity
+          const capacity = item.number_of_panels * panelModelData.sizeW;
+          const acAnnual = await this.systemProductService.pvWatCalculation({
+            lat: systemDesign.latitude,
+            lon: systemDesign.longtitude,
+            azimuth: item.azimuth,
+            systemCapacity: capacity,
+            tilt: item.pitch,
+          });
 
-        cumulativeGenerationKWh += acAnnual;
-        cumulativeCapacityKW += capacity;
-      });
+          cumulativeGenerationKWh += acAnnual;
+          cumulativeCapacityKW += capacity;
+        }),
+      );
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,

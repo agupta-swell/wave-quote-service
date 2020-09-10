@@ -1,4 +1,4 @@
-import { Document, Schema } from 'mongoose';
+import { Document, Schema, Types } from 'mongoose';
 import { toSnakeCase } from '../utils/transformProperties';
 import { CreateSystemDesignDto, RoofTopDataDto } from './req';
 
@@ -39,7 +39,7 @@ const ProductSchema = new Schema<IProductSchema>(
 );
 
 export interface ISolarPanelArraySchema {
-  _id: string;
+  array_id: Types.ObjectId;
   primary_orientation_side: number;
   panel_orientation: string;
   bound_polygon: ILatLngSchema[];
@@ -59,7 +59,7 @@ export interface ISolarPanelArraySchema {
 
 const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
   {
-    _id: Schema.Types.ObjectId,
+    array_id: Schema.Types.ObjectId,
     primary_orientation_side: Number,
     panel_orientation: String,
     bound_polygon: [LatLngSchema],
@@ -214,10 +214,9 @@ export class SystemDesignModel {
     };
   };
 
-  addPanelModelDataSnapshot = (panelModelData: IProductSchema, index: number) => {
+  setPanelModelDataSnapshot(panelModelData: IProductSchema, index: number) {
     this.roof_top_design_data.panel_array[index].panel_model_data_snapshot = panelModelData;
-    return this;
-  };
+  }
 
   setThumbnail(link: string) {
     this.thumbnail = link;
