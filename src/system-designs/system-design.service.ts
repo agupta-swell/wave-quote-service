@@ -29,15 +29,12 @@ export class SystemDesignService {
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
-      const hashPanelModelIds = systemDesignDto.roofTopDesignData.panelArray.reduce(
-        (acc, item, index) => ({ ...acc, [index]: item.panelModelId }),
-        {},
-      );
 
       await Promise.all(
         systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
           item.array_id = Types.ObjectId();
-          const panelModelId = hashPanelModelIds[index];
+          const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
+          item.panel_model_id = panelModelId;
           const panelModelData = await this.productService.getDetail(panelModelId);
           const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
           systemDesign.setPanelModelDataSnapshot(data, index);
@@ -82,14 +79,11 @@ export class SystemDesignService {
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
-      const hashPanelModelIds = systemDesignDto.roofTopDesignData.panelArray.reduce(
-        (acc, item, index) => ({ ...acc, [index]: item.panelModelId }),
-        {},
-      );
 
       await Promise.all(
         systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
-          const panelModelId = hashPanelModelIds[index];
+          const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
+          item.panel_model_id = panelModelId;
           const panelModelData = await this.productService.getDetail(panelModelId);
           const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
           systemDesign.setPanelModelDataSnapshot(data, index);

@@ -24,6 +24,10 @@ export interface IProductSchema {
   sizeW: number;
   sizekWh: number;
   part_number: string[];
+  dimension: {
+    length: number;
+    width: number;
+  };
 }
 
 const ProductSchema = new Schema<IProductSchema>(
@@ -34,6 +38,10 @@ const ProductSchema = new Schema<IProductSchema>(
     sizeW: Number,
     sizekWh: Number,
     part_number: [String],
+    dimension: {
+      length: Number,
+      width: Number,
+    },
   },
   { _id: false },
 );
@@ -51,7 +59,7 @@ export interface ISolarPanelArraySchema {
   pitch: number;
   azimuth: number;
   row_spacing: number;
-  panel_id: string;
+  panel_model_id: string;
   number_of_panels: number;
   panel_model_data_snapshot: IProductSchema;
   panel_model_snapshot_date: Date;
@@ -71,7 +79,7 @@ const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
     pitch: Number,
     azimuth: Number,
     row_spacing: Number,
-    panel_id: String,
+    panel_model_id: String,
     number_of_panels: Number,
     panel_model_data_snapshot: ProductSchema,
     panel_model_snapshot_date: Date,
