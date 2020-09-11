@@ -1,7 +1,10 @@
+import { UpdateUsageDto } from './req/update-usage';
 import { Document, Schema } from 'mongoose';
 import { ITypicalBaseLine } from '../external-services/typing';
+import { toSnakeCase } from '../utils/transformProperties';
 
 export const GENABILITY_TYPICAL_BASE_LINE = Symbol('GENABILITY_TYPICAL_BASE_LINE').toString();
+export const UTILITY_USAGE_DETAILS = Symbol('UTILITY_USAGE_DETAILS').toString();
 
 export interface ITypicalUsage {
   i: number;
@@ -65,5 +68,47 @@ export class GenabilityTypicalBaseLineModel {
     this.annual_consumption = props.annualConsumption;
     this.typical_hourly_usage = props.typicalHourlyUsage;
     this.typical_monthly_usage = props.typicalMonthlyUsage;
+  }
+}
+
+export interface IAcutalUsage {
+  opportunity_id: string;
+  source_type: string;
+  annual_consumption: number;
+  typical_monthly_usage: ITypicalUsage[];
+}
+
+export const AcutalUsageSchema = new Schema<IAcutalUsage>({
+  opportunity_id: String,
+  source_type: String,
+  annual_consumption: Number,
+  typical_monthly_usage: [TypicalUsageSchema],
+});
+
+export interface UtilityUsageDetails extends Document {
+  opportunity_id: string;
+  typical_baseline_usage_id: string;
+  actual_usage: IAcutalUsage;
+}
+
+export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
+  opportunity_id: String,
+  typical_baseline_usage_id: String,
+  actual_usage: AcutalUsageSchema,
+  created_at: { type: Date, default: Date.now },
+  created_by: String,
+  updated_at: { type: Date, default: Date.now },
+  updated_by: String,
+});
+
+export class UtilityUsageDetailsModel {
+  opportunity_id: string;
+  typical_baseline_usage_id: string;
+  actual_usage: IAcutalUsage;
+
+  constructor(props: UpdateUsageDto) {
+    this.opportunity_id = props.opportunityId;
+    this.typical_baseline_usage_id = toSnakeCase(props.typicalBaselineUsage)
+    this.actual_usage = toSnakeCase(props.actualUsage)
   }
 }
