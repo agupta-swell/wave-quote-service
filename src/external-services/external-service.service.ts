@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
+import { genabilityData } from './mock-data';
 import { ICalculateSystemProduction, ILoadServingEntity, ITypicalBaseLine, ITypicalUsage } from './typing';
 
 @Injectable()
@@ -116,20 +117,21 @@ export class ExternalService {
     const url = 'https://api.genability.com/rest/v1/typicals/baselines/best';
     const token = 'hello world';
 
-    let typicalBaseLine: AxiosResponse;
-    try {
-      typicalBaseLine = await axios.get(
-        `${url}?addressString=${zipCode}&buildingType=singleFamilyDetached&excludeMeasures=false&sizingKeyName=loadSize&sizingDataValue=12000&sizingUnit=kWh`,
-        {
-          headers: {
-            Authorization: token,
-          },
-        },
-      );
-    } catch (error) {
-      this.logger.errorAPICalling(url, error.message);
-      throw ApplicationException.ServiceError();
-    }
+    // let typicalBaseLine: AxiosResponse;
+    // try {
+    //   typicalBaseLine = await axios.get(
+    //     `${url}?addressString=${zipCode}&buildingType=singleFamilyDetached&excludeMeasures=false&sizingKeyName=loadSize&sizingDataValue=12000&sizingUnit=kWh`,
+    //     {
+    //       headers: {
+    //         Authorization: token,
+    //       },
+    //     },
+    //   );
+    // } catch (error) {
+    //   this.logger.errorAPICalling(url, error.message);
+    //   throw ApplicationException.ServiceError();
+    // }
+    const typicalBaseLine = { data: genabilityData };
 
     const result = typicalBaseLine.data.results[0];
     // const result = typicalBaseLine

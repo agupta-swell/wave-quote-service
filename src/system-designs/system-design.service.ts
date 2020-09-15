@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { UtilityService } from 'src/\butilities/utility.service';
 import { OperationResult, Pagination } from 'src/app/common';
 import { ApplicationException } from '../app/app.exception';
 import { ProductService } from './../products/product.service';
@@ -18,6 +19,7 @@ export class SystemDesignService {
     private readonly productService: ProductService,
     private readonly systemProductService: SystemProductService,
     private readonly uploadImageService: UploadImageService,
+    private readonly utilityService: UtilityService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -54,12 +56,16 @@ export class SystemDesignService {
         }),
       );
 
+      const annualUsageKWh =
+        (await this.utilityService.getTypicalBaseline(systemDesignDto.zipCode))?.data?.typicalBaselineUsage
+          ?.annualConsumption || 0;
+
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
         generationKWh: cumulativeGenerationKWh,
         productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
-        annual_usageKWh: 0,
-        offset_percentage: 0,
+        annual_usageKWh: annualUsageKWh,
+        offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
       });
     }
 
@@ -103,12 +109,16 @@ export class SystemDesignService {
         }),
       );
 
+      const annualUsageKWh =
+        (await this.utilityService.getTypicalBaseline(systemDesignDto.zipCode))?.data?.typicalBaselineUsage
+          ?.annualConsumption || 0;
+
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
         generationKWh: cumulativeGenerationKWh,
         productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
-        annual_usageKWh: 0,
-        offset_percentage: 0,
+        annual_usageKWh: annualUsageKWh,
+        offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
       });
     }
 

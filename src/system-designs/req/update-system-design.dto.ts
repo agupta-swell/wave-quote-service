@@ -30,6 +30,12 @@ export class UpdateSystemDesignDto {
   @IsNumber()
   longtitude: number;
 
+  @ApiProperty()
+  //TODO: need to open later
+  // @IsNotEmpty()
+  @IsNumber()
+  zipCode: number;
+
   @ApiPropertyOptional()
   @IsString()
   thumbnail: string;
