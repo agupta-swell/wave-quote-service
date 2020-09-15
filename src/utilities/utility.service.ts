@@ -58,4 +58,9 @@ export class UtilityService {
 
     return true;
   }
+
+  async getUtilityByOpportunityId(opportunityId: string): Promise<UtilityDto> {
+    const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
+    return new UtilityDto(utility);
+  }
 }

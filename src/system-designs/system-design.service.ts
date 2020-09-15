@@ -110,7 +110,7 @@ export class SystemDesignService {
       );
 
       const annualUsageKWh =
-        (await this.utilityService.getTypicalBaseline(systemDesignDto.zipCode))?.data?.typicalBaselineUsage
+        (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage
           ?.annualConsumption || 0;
 
       systemDesign.setSystemProductionData({
