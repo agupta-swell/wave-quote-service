@@ -106,3 +106,6 @@ dist
 db_data
 
 upload_images
+
+package-lock.json
+tags*
