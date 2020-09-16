@@ -14,10 +14,17 @@ export class ProductService {
     return product;
   }
 
-  async getAllPanels(limit: number, skip: number): Promise<OperationResult<Pagination<ProductDto>>> {
+  async getAllProductsByType(
+    limit: number,
+    skip: number,
+    types: string[],
+  ): Promise<OperationResult<Pagination<ProductDto>>> {
     const [panels, total] = await Promise.all([
-      this.productModel.find({ type: 'Panel' }).limit(limit).skip(skip),
-      this.productModel.countDocuments({ type: 'Panel' }),
+      this.productModel
+        .find({ type: { $in: types } })
+        .limit(limit)
+        .skip(skip),
+      this.productModel.countDocuments({ type: { $in: types } }),
     ]);
 
     return OperationResult.ok({ data: panels.map(panel => new ProductDto(panel)), total });

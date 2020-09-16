@@ -9,13 +9,16 @@ import { ProductDto } from './res/product.dto';
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
-  @Get('/panels')
-  @ApiOperation({ summary: 'Get all panels' })
+  @Get()
+  @ApiOperation({ summary: 'Get all products by type' })
   @ApiOkResponse({ type: Pagination })
-  async getQuotings(@Query() query: { limit: string; skip: string }): Promise<ServiceResponse<Pagination<ProductDto>>> {
+  async getQuotings(
+    @Query() query: { limit: string; skip: string; types: string },
+  ): Promise<ServiceResponse<Pagination<ProductDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
-    const result = await this.productService.getAllPanels(limit, skip);
+    const types = query.types.split(',');
+    const result = await this.productService.getAllProductsByType(limit, skip, types);
     return ServiceResponse.fromResult(result);
   }
 }

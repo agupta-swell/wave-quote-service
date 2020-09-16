@@ -41,8 +41,7 @@ export class SystemDesignService {
           const panelModelData = await this.productService.getDetail(panelModelId);
           const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
           systemDesign.setPanelModelDataSnapshot(data, index);
-          //FIXME: need to verify the value of capacity
-          const capacity = item.number_of_panels * panelModelData.sizeW;
+          const capacity = (item.number_of_panels * panelModelData.sizeW) / 1000;
           const acAnnual = await this.systemProductService.pvWatCalculation({
             lat: systemDesign.latitude,
             lon: systemDesign.longtitude,
@@ -57,7 +56,7 @@ export class SystemDesignService {
       );
 
       const annualUsageKWh =
-        (await this.utilityService.getTypicalBaseline(systemDesignDto.zipCode))?.data?.typicalBaselineUsage
+        (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage
           ?.annualConsumption || 0;
 
       systemDesign.setSystemProductionData({
@@ -94,8 +93,7 @@ export class SystemDesignService {
           const panelModelData = await this.productService.getDetail(panelModelId);
           const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
           systemDesign.setPanelModelDataSnapshot(data, index);
-          //FIXME: need to verify the value of capacity
-          const capacity = item.number_of_panels * panelModelData.sizeW;
+          const capacity = (item.number_of_panels * panelModelData.sizeW) / 1000;
           const acAnnual = await this.systemProductService.pvWatCalculation({
             lat: systemDesign.latitude,
             lon: systemDesign.longtitude,
