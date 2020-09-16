@@ -2,8 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { toCamelCase } from '../../utils/transformProperties';
 import { SystemDesign } from '../system-design.schema';
 import { IRoofTopSchema, ISystemProductionSchema } from './../system-design.schema';
-import { CapacityProductionDataDto } from './capacity-production.dto';
-import { RoofTopDataDto } from './roof-top-data.dto';
+import { CapacityProductionDataDto, RoofTopDataDto } from './sub-dto';
 
 export class LatLng {
   @ApiProperty()
@@ -76,12 +75,13 @@ export class SystemDesignDto {
   }
 
   transformRoofTopData = (data: IRoofTopSchema): RoofTopDataDto => {
-    const { panel_array, inverters, storage } = data;
+    const { panel_array, inverters, storage, adders } = data;
 
     return {
       panelArray: panel_array.map(item => toCamelCase(item)),
       inverters: inverters.map(item => toCamelCase(item)),
       storage: storage.map(item => toCamelCase(item)),
+      adders: adders.map(item => toCamelCase(item)),
     };
   };
 

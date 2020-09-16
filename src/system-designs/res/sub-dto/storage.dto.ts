@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { STORAGE_TYPE } from '../constants';
+import { STORAGE_TYPE } from '../../constants';
 import { ProductDto } from './product.dto';
 
 export class StorageDto {

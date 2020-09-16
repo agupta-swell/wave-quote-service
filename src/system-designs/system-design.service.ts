@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UtilityService } from 'src/\butilities/utility.service';
 import { OperationResult, Pagination } from 'src/app/common';
+import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ApplicationException } from '../app/app.exception';
 import { ProductService } from './../products/product.service';
 import { DESIGN_MODE } from './constants';
@@ -20,6 +21,7 @@ export class SystemDesignService {
     private readonly systemProductService: SystemProductService,
     private readonly uploadImageService: UploadImageService,
     private readonly utilityService: UtilityService,
+    private readonly adderConfigService: AdderConfigService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -33,7 +35,7 @@ export class SystemDesignService {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
-      await Promise.all(
+      await Promise.all([
         systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
           item.array_id = Types.ObjectId();
           const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
@@ -53,7 +55,11 @@ export class SystemDesignService {
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
         }),
-      );
+        systemDesign.roof_top_design_data.adders.map(async (item, index) => {
+          const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
+          systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
+        }),
+      ]);
 
       const annualUsageKWh =
         (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage
@@ -86,7 +92,7 @@ export class SystemDesignService {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
-      await Promise.all(
+      await Promise.all([
         systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
           const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
           item.panel_model_id = panelModelId;
@@ -105,7 +111,11 @@ export class SystemDesignService {
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
         }),
-      );
+        systemDesign.roof_top_design_data.adders.map(async (item, index) => {
+          const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
+          systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
+        }),
+      ]);
 
       const annualUsageKWh =
         (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage

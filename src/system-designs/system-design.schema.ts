@@ -1,4 +1,5 @@
 import { Document, Schema, Types } from 'mongoose';
+import { add } from 'winston';
 import { toSnakeCase } from '../utils/transformProperties';
 import { CreateSystemDesignDto, RoofTopDataDto } from './req';
 
@@ -121,10 +122,47 @@ const StorageSchema = new Schema<IStorageSchema>(
   { _id: false },
 );
 
+export interface IAdderModel {
+  adder: string;
+  price: number;
+  increment: string | any;
+  modified_at: Date;
+}
+
+const AdderModelSchema = new Schema<IAdderModel>(
+  {
+    adder: String,
+    price: Number,
+    increment: String,
+    modified_at: Date,
+  },
+  { _id: false },
+);
+
+export interface IAdderSchema {
+  adder_description: string;
+  quantity: number;
+  adder_id: string;
+  adder: IAdderModel;
+  adder_model_snapshot_date: Date;
+}
+
+const AdderSchema = new Schema<IAdderSchema>(
+  {
+    adder_description: String,
+    quantity: Number,
+    adder_id: String,
+    adder: AdderModelSchema,
+    adder_model_snapshot_date: Date,
+  },
+  { _id: false },
+);
+
 export interface IRoofTopSchema {
   panel_array: ISolarPanelArraySchema[];
   inverters: IInverterSchema[];
   storage: IStorageSchema[];
+  adders: IAdderSchema[];
 }
 
 const RoofTopSchema = new Schema<IRoofTopSchema>(
@@ -132,6 +170,7 @@ const RoofTopSchema = new Schema<IRoofTopSchema>(
     panel_array: [SolarPanelArraySchema],
     inverters: [InverterSchema],
     storage: [StorageSchema],
+    adders: [AdderSchema],
   },
   { _id: false },
 );
@@ -214,16 +253,23 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray } = data;
+    const { inverters, storage, panelArray, adders } = data;
     return {
       panel_array: panelArray.map(item => toSnakeCase(item)),
       inverters: inverters.map(item => toSnakeCase(item)),
       storage: storage.map(item => toSnakeCase(item)),
+      adders: adders.map(item => toSnakeCase(item)),
     };
   };
 
   setPanelModelDataSnapshot(panelModelData: IProductSchema, index: number) {
     this.roof_top_design_data.panel_array[index].panel_model_data_snapshot = panelModelData;
+    this.roof_top_design_data.panel_array[index].panel_model_snapshot_date = new Date();
+  }
+
+  setAdder(adder: IAdderModel, index: number) {
+    this.roof_top_design_data.adders[index].adder = adder;
+    this.roof_top_design_data.adders[index].adder_model_snapshot_date = new Date();
   }
 
   setThumbnail(link: string) {

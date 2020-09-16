@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { STORAGE_TYPE } from '../constants';
+import { STORAGE_TYPE } from '../../constants';
 
 export class StorageDto {
   @ApiProperty()

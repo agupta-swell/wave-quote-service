@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ORIENTATION } from '../constants';
+import { ORIENTATION } from '../../constants';
 import { ProductDto } from './product.dto';
-import { LatLng } from './system-design.dto';
+import { LatLng } from '../system-design.dto';
 
 export class SolarPanelArray {
   @ApiProperty()

@@ -17,4 +17,8 @@ export class AdderConfigService {
 
     return OperationResult.ok({ data: panels.map(adderConfig => new AdderConfigDto(adderConfig)), total });
   }
+
+  async getAdderConfigDetail(id: string): Promise<AdderConfig> {
+    return await this.adderConfigModel.findById(id);
+  }
 }
