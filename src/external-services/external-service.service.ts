@@ -176,4 +176,45 @@ export class ExternalService {
     let tariff = { data: JSON.parse(fs.readFileSync(path.join(__dirname, './mock-data/tariffDataRes.json'), 'utf8')) };
     return tariff.data.results;
   }
+
+  async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string) {
+    const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
+    const token = 'hello world';
+
+    const payload = {
+      fromDateTime: '2019-01-01T00:00:00-07:00',
+      toDateTime: '2020-01-01T00:00:00-07:00',
+      masterTariffId,
+      groupBy: 'DAY',
+      detailLevel: 'RATE',
+      billingPeriod: true,
+      propertyInputs: [
+        {
+          keyName: 'consumption',
+          fromDateTime: '2019-01-01T00:00:00-07:00',
+          duration: 3600000,
+          dataSeries: hourlyDataForTheYear,
+          unit: 'kWh',
+        },
+      ],
+    };
+
+    // let tariff: any;
+    // try {
+    //   tariff = await axios.post(
+    //     `${url}`,
+    //     {
+    //       headers: {
+    //         Authorization: token,
+    //       },
+    //     },
+    //   );
+    // } catch (error) {
+    //   this.logger.errorAPICalling(url, error.message);
+    //   throw ApplicationException.ServiceError();
+    // }
+
+    let tariff = { data: JSON.parse(fs.readFileSync(path.join(__dirname, './mock-data/costDataRes.json'), 'utf8')) };
+    return tariff.data.results;
+  }
 }

@@ -26,4 +26,12 @@ export class UtilityController {
     const res = await this.utilityService.getTariff(Number(query.zipCode), Number(query.lseId || 734));
     return ServiceResponse.fromResult(res);
   }
+
+  @Get('/costs')
+  async calculateCost(
+    @Query() query: { zipCode: string; masterTariffId: string },
+  ): Promise<ServiceResponse<any>> {
+    const res = await this.utilityService.calculateCost([], query.masterTariffId || '522');
+    return ServiceResponse.fromResult(res);
+  }
 }

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { groupBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { ExternalService } from '../external-services/external-service.service';
 import { OperationResult } from './../app/common';
@@ -63,6 +64,16 @@ export class UtilityService {
     const data = await this.externalService.getTariff(zipCode);
     const result = data.filter((item: any) => item.lseId === lseId);
     return OperationResult.ok(result.map(item => new TariffDto(item)));
+  }
+
+  async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string): Promise<OperationResult<any>> {
+    const data = await this.externalService.calculateCost([], masterTariffId);
+    const groupByMonth = groupBy(data[0].items, item => item.fromDateTime.substring(0, 7));
+    const monthlyCosts = Object.keys(groupByMonth).reduce(
+      (acc, item) => [...acc, { [item]: sumBy(groupByMonth[item], 'cost') }],
+      [],
+    );
+    return OperationResult.ok(monthlyCosts);
   }
 
   // -->>>>>>>>> INTERNAL <<<<<<<<<----
