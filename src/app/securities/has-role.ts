@@ -19,7 +19,7 @@ export class RolesGuard extends JwtAuthGuard {
     if (err || !user) {
       throw err || new UnauthorizedException();
     }
-    
+
     if (!isAuthorized) {
       throw ApplicationException.NoPermission();
     }

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { UtilityService } from 'src/\butilities/utility.service';
 import { OperationResult, Pagination } from 'src/app/common';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ApplicationException } from '../app/app.exception';
+import { UtilityService } from '../utilities/utility.service';
 import { ProductService } from './../products/product.service';
 import { DESIGN_MODE } from './constants';
 import { CreateSystemDesignDto } from './req/create-system-design.dto';
