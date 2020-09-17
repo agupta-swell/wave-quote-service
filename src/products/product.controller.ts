@@ -1,8 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ProductService } from './product.service';
-import { ProductDto } from './res/product.dto';
+import { ProductDto, ProductResponse } from './res/product.dto';
 
 @ApiTags('Products')
 @Controller('/products')
@@ -10,8 +10,11 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Get()
+  @ApiQuery({ name: 'limit' })
+  @ApiQuery({ name: 'skip' })
+  @ApiQuery({ name: 'types' })
   @ApiOperation({ summary: 'Get all products by type' })
-  @ApiOkResponse({ type: Pagination })
+  @ApiOkResponse({ type: ProductResponse })
   async getQuotings(
     @Query() query: { limit: string; skip: string; types: string },
   ): Promise<ServiceResponse<Pagination<ProductDto>>> {

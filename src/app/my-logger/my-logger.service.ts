@@ -1,4 +1,4 @@
-import { Injectable, LoggerService } from '@nestjs/common';
+import { Injectable, Logger, LoggerService } from '@nestjs/common';
 import * as path from 'path';
 import * as winston from 'winston';
 
@@ -7,10 +7,11 @@ const dateFormat = () => {
 };
 
 @Injectable()
-export class MyLogger implements LoggerService {
+export class MyLogger extends Logger {
   logger: winston.Logger;
 
   constructor() {
+    super();
     const logger = winston.createLogger({
       transports: [
         new winston.transports.Console(),
@@ -53,10 +54,10 @@ export class MyLogger implements LoggerService {
   }
 
   warn(message: string) {
-    throw new Error('Method not implemented.');
+    super.warn(message);
   }
 
   verbose(message: string) {
-    throw new Error('Method not implemented.');
+    super.verbose(message);
   }
 }

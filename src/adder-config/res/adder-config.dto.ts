@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Pagination } from '../../app/common';
 import { AdderConfig } from '../adder-config.schema';
 
 export class AdderConfigDto {
@@ -24,4 +25,12 @@ export class AdderConfigDto {
     this.increment = props.increment;
     this.modifiedAt = props.modifiedAt;
   }
+}
+
+export class AdderConfigResponseDto implements Pagination<AdderConfig> {
+  @ApiProperty({ isArray: true, type: AdderConfigDto })
+  data: AdderConfig[];
+
+  @ApiProperty()
+  total: number;
 }

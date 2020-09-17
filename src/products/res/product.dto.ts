@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Pagination } from '../../app/common';
 import { Product } from '../product.schema';
 
 export class ProductDto {
@@ -39,4 +40,15 @@ export class ProductDto {
     this.partNumber = props.partNumber;
     this.dimension = props.dimension;
   }
+}
+
+export class ProductResponse implements Pagination<ProductDto> {
+  @ApiProperty({
+    type: ProductDto,
+    isArray: true,
+  })
+  data: ProductDto[];
+
+  @ApiProperty()
+  total: number;
 }

@@ -1,8 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { AdderConfigService } from './adder-config.service';
-import { AdderConfigDto } from './res/adder-config.dto';
+import { AdderConfigDto, AdderConfigResponseDto } from './res/adder-config.dto';
 
 @ApiTags('Adder Config')
 @Controller('/adder-configs')
@@ -11,7 +11,9 @@ export class AdderConfigController {
 
   @Get()
   @ApiOperation({ summary: 'Get all adder configs' })
-  @ApiOkResponse({ type: Pagination })
+  @ApiQuery({ name: 'limit' })
+  @ApiQuery({ name: 'skip' })
+  @ApiOkResponse({ type: AdderConfigResponseDto })
   async getQuotings(
     @Query() query: { limit: string; skip: string },
   ): Promise<ServiceResponse<Pagination<AdderConfigDto>>> {

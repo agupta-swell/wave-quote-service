@@ -60,7 +60,7 @@ export class UtilityService {
     return true;
   }
 
-  async getTariff(zipCode: number, lseId: number): Promise<OperationResult<TariffDto>> {
+  async getTariff(zipCode: number, lseId: number): Promise<OperationResult<TariffDto[]>> {
     const data = await this.externalService.getTariff(zipCode);
     const result = data.filter((item: any) => item.lseId === lseId);
     return OperationResult.ok(result.map(item => new TariffDto(item)));
