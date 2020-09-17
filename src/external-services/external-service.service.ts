@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
-import { genabilityData } from './mock-data';
 import { ICalculateSystemProduction, ILoadServingEntity, ITypicalBaseLine, ITypicalUsage } from './typing';
 
 @Injectable()
@@ -59,7 +60,7 @@ export class ExternalService {
 
     const enitity = {
       zipCode,
-      name: systemProduction.data.results[0].name,
+      lseName: systemProduction.data.results[0].name,
       lseCode: systemProduction.data.results[0].lseCode,
       serviceType: systemProduction.data.results[0].serviceTypes,
       lseId: systemProduction.data.results[0].lseId,
@@ -131,10 +132,11 @@ export class ExternalService {
     //   this.logger.errorAPICalling(url, error.message);
     //   throw ApplicationException.ServiceError();
     // }
-    const typicalBaseLine = { data: genabilityData };
+    const typicalBaseLine = {
+      data: JSON.parse(fs.readFileSync(path.join(__dirname, './mock-data/genabilityDataRes.json'), 'utf8')),
+    };
 
     const result = typicalBaseLine.data.results[0];
-    // const result = typicalBaseLine
     const typicalMonthlyUsage = this.calculateMonthlyUsage(result.measures);
 
     const enitity = {
@@ -150,5 +152,28 @@ export class ExternalService {
     };
 
     return enitity;
+  }
+
+  async getTariff(zipCode: number) {
+    const url = 'https://api.genability.com/rest/public/tariffs';
+    const token = 'hello world';
+
+    // let tariff: any;
+    // try {
+    //   tariff = await axios.get(
+    //     `${url}?zipCode=${zipCode}&populateProperties=true&customerClasses=RESIDENTIAL&isActive=True`,
+    //     {
+    //       headers: {
+    //         Authorization: token,
+    //       },
+    //     },
+    //   );
+    // } catch (error) {
+    //   this.logger.errorAPICalling(url, error.message);
+    //   throw ApplicationException.ServiceError();
+    // }
+
+    let tariff = { data: JSON.parse(fs.readFileSync(path.join(__dirname, './mock-data/tariffDataRes.json'), 'utf8')) };
+    return tariff.data.results;
   }
 }

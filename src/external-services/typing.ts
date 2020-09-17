@@ -8,7 +8,7 @@ export interface ICalculateSystemProduction {
 }
 
 export interface ILoadServingEntity {
-  name: string;
+  lseName: string;
   lseCode: string;
   zipCode: number;
   serviceType: string;

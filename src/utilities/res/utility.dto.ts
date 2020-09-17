@@ -3,7 +3,7 @@ import { toCamelCase } from '../../utils/transformProperties';
 
 export class LoadServingEntity {
   @ApiProperty()
-  name: string;
+  lseName: string;
 
   @ApiProperty()
   lseCode: string;

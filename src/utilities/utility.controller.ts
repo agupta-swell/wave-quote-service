@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
-import { UtilityDto } from './res/utility.dto';
+import { TariffDto, UtilityDto } from './res';
 import { UtilityService } from './utility.service';
 
 @ApiTags('Utilities')
@@ -18,6 +18,12 @@ export class UtilityController {
   @Get('/typical-baselines')
   async getTypicalBaseline(@Query('zipCode') zipCode: string): Promise<ServiceResponse<UtilityDto>> {
     const res = await this.utilityService.getTypicalBaseline(Number(zipCode));
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/tariffs')
+  async getTariff(@Query() query: { zipCode: string; lseId: string }): Promise<ServiceResponse<TariffDto>> {
+    const res = await this.utilityService.getTariff(Number(query.zipCode), Number(query.lseId || 734));
     return ServiceResponse.fromResult(res);
   }
 }

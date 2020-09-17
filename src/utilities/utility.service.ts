@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { ExternalService } from '../external-services/external-service.service';
 import { OperationResult } from './../app/common';
 import { UpdateUsageDto } from './req/update-usage';
-import { UtilityDto } from './res/utility.dto';
+import { TariffDto, UtilityDto } from './res';
 import {
   GenabilityTypicalBaseLine,
   GenabilityTypicalBaseLineModel,
@@ -59,6 +59,13 @@ export class UtilityService {
     return true;
   }
 
+  async getTariff(zipCode: number, lseId: number): Promise<OperationResult<TariffDto>> {
+    const data = await this.externalService.getTariff(zipCode);
+    const result = data.filter((item: any) => item.lseId === lseId);
+    return OperationResult.ok(result.map(item => new TariffDto(item)));
+  }
+
+  // -->>>>>>>>> INTERNAL <<<<<<<<<----
   async getUtilityByOpportunityId(opportunityId: string): Promise<UtilityDto> {
     const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
     return new UtilityDto(utility);
