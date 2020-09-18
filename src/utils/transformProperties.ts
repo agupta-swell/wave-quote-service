@@ -1,3 +1,5 @@
+import { isValidObjectId } from 'mongoose';
+
 const snakeToCamel = (str: string) =>
   str.toLowerCase().replace(/([-_][a-z])/g, group => group[1].toUpperCase().replace('-', ''));
 
@@ -13,8 +15,12 @@ export const toCamelCase = <T extends unknown>(obj: Object) => {
 
   for (let key in obj) {
     if (typeof obj[key] === 'object') {
-      const deeper = toCamelCase(obj[key]);
-      newObj[snakeToCamel(key)] = deeper;
+      if (obj[key] instanceof Date || Array.isArray(obj[key]) || isValidObjectId(obj[key])) {
+        newObj[snakeToCamel(key === '_id' ? 'id' : key)] = obj[key];
+      } else {
+        const deeper = toCamelCase(obj[key]);
+        newObj[snakeToCamel(key)] = deeper;
+      }
     } else {
       newObj[snakeToCamel(key === '_id' ? 'id' : key)] = obj[key];
     }
@@ -28,8 +34,12 @@ export const toSnakeCase = <T extends unknown>(obj: Object) => {
 
   for (const key in obj) {
     if (typeof obj[key] === 'object') {
-      const deeper = toSnakeCase(obj[key]);
-      newObj[camelToUnderscore(key)] = deeper;
+      if (obj[key] instanceof Date || Array.isArray(obj[key])) {
+        newObj[camelToUnderscore(key)] = obj[key];
+      } else {
+        const deeper = toSnakeCase(obj[key]);
+        newObj[camelToUnderscore(key)] = deeper;
+      }
     } else {
       newObj[camelToUnderscore(key)] = obj[key];
     }

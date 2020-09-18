@@ -79,6 +79,6 @@ export class UtilityService {
   // -->>>>>>>>> INTERNAL <<<<<<<<<----
   async getUtilityByOpportunityId(opportunityId: string): Promise<UtilityDto> {
     const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
-    return new UtilityDto(utility);
+    return utility ? new UtilityDto(utility) : null;
   }
 }
