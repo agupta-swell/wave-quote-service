@@ -4,11 +4,6 @@ import { INVERTER_TYPE } from '../../constants';
 import { QuoteDataDto } from './quote-data.dto';
 
 export class InverterDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  id: string;
-
   @ApiProperty({ enum: [INVERTER_TYPE.CENTRAL, INVERTER_TYPE.MICRO] })
   @IsNotEmpty()
   type: INVERTER_TYPE;
@@ -17,6 +12,11 @@ export class InverterDto {
   @IsNotEmpty()
   @IsString()
   solarPanelArrayId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  inverterModelId: string;
 
   @ApiProperty()
   @IsNotEmpty()

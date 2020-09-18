@@ -4,11 +4,6 @@ import { STORAGE_TYPE } from '../../constants';
 import { QuoteDataDto } from './quote-data.dto';
 
 export class StorageDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  id: string;
-
   @ApiProperty({ enum: [STORAGE_TYPE.BACKUP_POWER, STORAGE_TYPE.SELF_CONSUMPTION, STORAGE_TYPE.TOU] })
   @IsNotEmpty()
   type: STORAGE_TYPE;
@@ -17,6 +12,11 @@ export class StorageDto {
   @IsNotEmpty()
   @IsNumber()
   quantity: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  storageModelId: string;
 
   @ApiProperty()
   reserve: number;

@@ -59,6 +59,16 @@ export class SystemDesignService {
           const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
           systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
         }),
+        systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
+          const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
+          const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
+          systemDesign.setInverter(data, index);
+        }),
+        systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
+          const storageModelData = await this.productService.getDetail(storage.storage_model_id);
+          const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
+          systemDesign.setStorage(data, index);
+        }),
       ]);
 
       const annualUsageKWh =
@@ -114,6 +124,16 @@ export class SystemDesignService {
         systemDesign.roof_top_design_data.adders.map(async (item, index) => {
           const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
           systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
+        }),
+        systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
+          const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
+          const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
+          systemDesign.setInverter(data, index);
+        }),
+        systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
+          const storageModelData = await this.productService.getDetail(storage.storage_model_id);
+          const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
+          systemDesign.setStorage(data, index);
         }),
       ]);
 

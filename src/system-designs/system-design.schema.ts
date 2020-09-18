@@ -1,5 +1,4 @@
 import { Document, Schema, Types } from 'mongoose';
-import { add } from 'winston';
 import { toSnakeCase } from '../utils/transformProperties';
 import { CreateSystemDesignDto, RoofTopDataDto } from './req';
 
@@ -115,6 +114,7 @@ const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
 export interface IInverterSchema {
   type: string;
   solar_panel_array_id: string;
+  inverter_model_id: string;
   inverter_model_data_snapshot: IProductSchema;
   inverter_model_snapshot_date: Date;
   quantity: number;
@@ -125,6 +125,7 @@ const InverterSchema = new Schema<IInverterSchema>(
   {
     type: String,
     solar_panel_array_id: String,
+    inverter_model_id: String,
     inverter_model_data_snapshot: ProductSchema,
     inverter_model_snapshot_date: Date,
     quantity: Number,
@@ -136,6 +137,7 @@ const InverterSchema = new Schema<IInverterSchema>(
 export interface IStorageSchema {
   type: string;
   quantity: number;
+  storage_model_id: string;
   storage_model_data_snapshot: IProductSchema;
   storage_model_snapshot_date: Date;
   storage_quote: IQuoteData;
@@ -147,6 +149,7 @@ const StorageSchema = new Schema<IStorageSchema>(
   {
     type: String,
     quantity: Number,
+    storage_model_id: String,
     storage_model_data_snapshot: ProductSchema,
     storage_model_snapshot_date: Date,
     storage_quote: QuoteDataSchema,
@@ -306,6 +309,16 @@ export class SystemDesignModel {
   setAdder(adder: IAdderModel, index: number) {
     this.roof_top_design_data.adders[index].adder = adder;
     this.roof_top_design_data.adders[index].adder_model_snapshot_date = new Date();
+  }
+
+  setInverter(inverter: IProductSchema, index: number) {
+    this.roof_top_design_data.inverters[index].inverter_model_data_snapshot = inverter;
+    this.roof_top_design_data.inverters[index].inverter_model_snapshot_date = new Date();
+  }
+
+  setStorage(storage: IProductSchema, index: number) {
+    this.roof_top_design_data.storage[index].storage_model_data_snapshot = storage;
+    this.roof_top_design_data.storage[index].storage_model_snapshot_date = new Date();
   }
 
   setThumbnail(link: string) {

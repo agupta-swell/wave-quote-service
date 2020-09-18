@@ -9,11 +9,6 @@ import { ProductDto } from './res/product.dto';
 export class ProductService {
   constructor(@InjectModel(PRODUCT) private productModel: Model<Product>) {}
 
-  async getDetail(id: string) {
-    const product = await this.productModel.findById(id);
-    return product;
-  }
-
   async getAllProductsByType(
     limit: number,
     skip: number,
@@ -28,5 +23,12 @@ export class ProductService {
     ]);
 
     return OperationResult.ok({ data: panels.map(panel => new ProductDto(panel)), total });
+  }
+
+  // ->>>>>>>>> INTERNAL <<<<<<<<<<-
+
+  async getDetail(id: string) {
+    const product = await this.productModel.findById(id);
+    return product;
   }
 }

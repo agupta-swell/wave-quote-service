@@ -11,6 +11,9 @@ export class StorageDto {
   type: STORAGE_TYPE;
 
   @ApiProperty()
+  storageModelId: string;
+
+  @ApiProperty()
   quantity: number;
 
   @ApiProperty()
