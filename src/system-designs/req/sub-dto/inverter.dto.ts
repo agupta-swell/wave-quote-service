@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { INVERTER_TYPE } from '../../constants';
+import { QuoteDataDto } from './quote-data.dto';
 
 export class InverterDto {
   @ApiProperty()
@@ -16,4 +17,12 @@ export class InverterDto {
   @IsNotEmpty()
   @IsString()
   solarPanelArrayId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  quantity: number;
+
+  @ApiProperty({ type: QuoteDataDto })
+  inverterQuote: QuoteDataDto;
 }

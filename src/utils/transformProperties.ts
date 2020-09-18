@@ -8,26 +8,31 @@ const camelToUnderscore = (str: string) =>
     .join('_')
     .toLowerCase();
 
-export const toCamelCase = (obj: Object) => {
+export const toCamelCase = <T extends unknown>(obj: Object) => {
   const newObj = {};
 
   for (let key in obj) {
-    if (obj.hasOwnProperty(key)) {
+    if (typeof obj[key] === 'object') {
+      const deeper = toCamelCase(obj[key]);
+      newObj[snakeToCamel(key)] = deeper;
+    } else {
       newObj[snakeToCamel(key === '_id' ? 'id' : key)] = obj[key];
     }
   }
 
-  return newObj as any;
+  return newObj as T;
 };
 
-export const toSnakeCase = (obj: Object) => {
+export const toSnakeCase = <T extends unknown>(obj: Object) => {
   const newObj = {};
 
   for (const key in obj) {
-    if (obj.hasOwnProperty(key)) {
+    if (typeof obj[key] === 'object') {
+      const deeper = toSnakeCase(obj[key]);
+      newObj[camelToUnderscore(key)] = deeper;
+    } else {
       newObj[camelToUnderscore(key)] = obj[key];
     }
   }
-
-  return newObj as any;
+  return newObj as T;
 };

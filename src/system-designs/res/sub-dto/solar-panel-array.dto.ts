@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ORIENTATION } from '../../constants';
 import { ProductDto } from './product.dto';
 import { LatLng } from '../system-design.dto';
+import { QuoteDataDto } from './quote-data.dto';
 
 export class SolarPanelArray {
   @ApiProperty()
@@ -42,4 +43,7 @@ export class SolarPanelArray {
 
   @ApiProperty()
   numberOfPanels: Number;
+
+  @ApiProperty({ type: QuoteDataDto })
+  panelQuote: QuoteDataDto;
 }

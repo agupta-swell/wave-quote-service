@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested } from 'class-validator';
 import { ORIENTATION } from '../../constants';
+import { QuoteDataDto } from './quote-data.dto';
 
 class LatLng {
   @ApiProperty()
@@ -99,4 +100,7 @@ export class SolarPanelArray {
   @IsNumber()
   @IsPositive()
   numberOfPanels: Number;
+
+  @ApiProperty({ type: QuoteDataDto })
+  panelQuote: QuoteDataDto;
 }
