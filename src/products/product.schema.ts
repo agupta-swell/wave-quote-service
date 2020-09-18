@@ -3,6 +3,7 @@ import { Document, Schema, Types } from 'mongoose';
 export const PRODUCT = Symbol('Product').toString();
 
 export interface Product extends Document {
+  manufacturer: string;
   name: string;
   type: string;
   price: number;
@@ -19,6 +20,7 @@ export interface Product extends Document {
 
 export const ProductSchema = new Schema<Product>({
   _id: String || Types.ObjectId,
+  manufacturer: String,
   name: String,
   type: String,
   price: Number,

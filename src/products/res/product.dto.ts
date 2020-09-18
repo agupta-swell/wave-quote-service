@@ -7,6 +7,9 @@ export class ProductDto {
   id: string;
 
   @ApiProperty()
+  manufacturer: string;
+
+  @ApiProperty()
   name: string;
 
   @ApiProperty()
@@ -32,6 +35,7 @@ export class ProductDto {
 
   constructor(props: Product) {
     this.id = props.id;
+    this.manufacturer = props.manufacturer;
     this.name = props.name;
     this.type = props.type;
     this.price = props.price;
