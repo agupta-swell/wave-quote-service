@@ -3,7 +3,7 @@ import { Document, Schema } from 'mongoose';
 import { ITypicalBaseLine } from '../external-services/typing';
 import { toSnakeCase } from '../utils/transformProperties';
 
-export const GENABILITY_TYPICAL_BASE_LINE = Symbol('GENABILITY_TYPICAL_BASE_LINE').toString();
+export const GENABILITY_USAGE_DATA = Symbol('GENABILITY_USAGE_DATA').toString();
 export const UTILITY_USAGE_DETAILS = Symbol('UTILITY_USAGE_DETAILS').toString();
 
 export interface ITypicalUsage {
@@ -19,7 +19,7 @@ const TypicalUsageSchema = new Schema<ITypicalUsage>(
   { _id: false },
 );
 
-export interface GenabilityTypicalBaseLine extends Document {
+export interface IGenabilityTypicalBaseLine extends Document {
   zip_code: number;
   building_type: string;
   customer_class: string;
@@ -31,7 +31,7 @@ export interface GenabilityTypicalBaseLine extends Document {
   typical_monthly_usage: ITypicalUsage[];
 }
 
-export const GenabilityTypicalBaseLineSchema = new Schema<GenabilityTypicalBaseLine>({
+ const GenabilityTypicalBaseLineSchema = new Schema<IGenabilityTypicalBaseLine>({
   zip_code: Number,
   building_type: String,
   customer_class: String,
@@ -41,10 +41,6 @@ export const GenabilityTypicalBaseLineSchema = new Schema<GenabilityTypicalBaseL
   annual_consumption: Number,
   typical_hourly_usage: [TypicalUsageSchema],
   typical_monthly_usage: [TypicalUsageSchema],
-  created_at: { type: Date, default: Date.now },
-  created_by: String,
-  updated_at: { type: Date, default: Date.now },
-  updated_by: String,
 });
 
 export class GenabilityTypicalBaseLineModel {
@@ -70,6 +66,22 @@ export class GenabilityTypicalBaseLineModel {
     this.typical_monthly_usage = props.typicalMonthlyUsage;
   }
 }
+
+export interface GenabilityUsageData extends Document {
+  zip_code: number;
+  lse_id: number;
+  typical_baseLine: IGenabilityTypicalBaseLine;
+  // FIXME: change type later
+  baseline_cost: string;
+}
+
+export const GenabilityUsageDataSchema = new Schema<GenabilityUsageData>({
+  zip_code: Number,
+  lse_id: Number,
+  typical_baseLine: GenabilityTypicalBaseLineSchema,
+  // FIXME: change type later
+  baseline_cost: String,
+});
 
 export interface IAcutalUsage {
   opportunity_id: string;
@@ -108,7 +120,7 @@ export class UtilityUsageDetailsModel {
 
   constructor(props: UpdateUsageDto) {
     this.opportunity_id = props.opportunityId;
-    this.typical_baseline_usage_id = toSnakeCase(props.typicalBaselineUsage)
-    this.actual_usage = toSnakeCase(props.actualUsage)
+    this.typical_baseline_usage_id = toSnakeCase(props.typicalBaselineUsage);
+    this.actual_usage = toSnakeCase(props.actualUsage);
   }
 }

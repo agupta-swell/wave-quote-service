@@ -7,9 +7,9 @@ import { OperationResult } from './../app/common';
 import { UpdateUsageDto } from './req/update-usage';
 import { TariffDto, UtilityDto } from './res';
 import {
-  GenabilityTypicalBaseLine,
   GenabilityTypicalBaseLineModel,
-  GENABILITY_TYPICAL_BASE_LINE,
+  GenabilityUsageData,
+  GENABILITY_USAGE_DATA,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
@@ -18,8 +18,8 @@ import {
 @Injectable()
 export class UtilityService {
   constructor(
-    @InjectModel(GENABILITY_TYPICAL_BASE_LINE)
-    private readonly genabilityTypicalBaseLineModel: Model<GenabilityTypicalBaseLine>,
+    @InjectModel(GENABILITY_USAGE_DATA)
+    private readonly genabilityUsageDataModel: Model<GenabilityUsageData>,
     @InjectModel(UTILITY_USAGE_DETAILS)
     private readonly utilityUsageDetailsModel: Model<UtilityUsageDetails>,
     private readonly externalService: ExternalService,
@@ -32,7 +32,7 @@ export class UtilityService {
   }
 
   async getTypicalBaseline(zipCode: number): Promise<OperationResult<UtilityDto>> {
-    const typicalBaseLine = await this.genabilityTypicalBaseLineModel.findOne({ zip_code: zipCode });
+    const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
     if (typicalBaseLine) {
       const typicalBaseLineObj = typicalBaseLine.toObject();
       delete typicalBaseLineObj.typical_hourly_usage;
@@ -41,9 +41,14 @@ export class UtilityService {
     }
 
     const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
-    const genabilityTypicalBaseLine = new GenabilityTypicalBaseLineModel(typicalBaseLineAPI);
+    const genabilityTypicalBaseLine = {
+      zip_code: typicalBaseLineAPI.zipCode,
+      lse_id: typicalBaseLineAPI.lseId,
+      typical_baseLine: new GenabilityTypicalBaseLineModel(typicalBaseLineAPI),
+      baseline_cost: '',
+    };
 
-    const createdTypicalBaseLine = new this.genabilityTypicalBaseLineModel(genabilityTypicalBaseLine);
+    const createdTypicalBaseLine = new this.genabilityUsageDataModel(genabilityTypicalBaseLine);
     await createdTypicalBaseLine.save();
 
     const createdTypicalBaseLineObj = createdTypicalBaseLine.toObject();

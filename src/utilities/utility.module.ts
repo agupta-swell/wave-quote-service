@@ -2,8 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UtilityController } from './utility.controller';
 import {
-  GenabilityTypicalBaseLineSchema,
-  GENABILITY_TYPICAL_BASE_LINE,
+  GenabilityUsageDataSchema,
+  GENABILITY_USAGE_DATA,
   UtilityUsageDetailsSchema,
   UTILITY_USAGE_DETAILS,
 } from './utility.schema';
@@ -14,9 +14,9 @@ import { UtilityService } from './utility.service';
   imports: [
     MongooseModule.forFeature([
       {
-        name: GENABILITY_TYPICAL_BASE_LINE,
-        schema: GenabilityTypicalBaseLineSchema,
-        collection: 'genability_typical_base_line',
+        name: GENABILITY_USAGE_DATA,
+        schema: GenabilityUsageDataSchema,
+        collection: 'genability_usage_data',
       },
       {
         name: UTILITY_USAGE_DETAILS,
