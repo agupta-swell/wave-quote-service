@@ -17,7 +17,7 @@ export class ProductDto {
   sizekWh: number;
 
   @ApiProperty()
-  partNumber: [string];
+  partNumber: string[];
 
   constructor(props: any) {
     Object.assign(this, { ...props, partNumber: props.part_number });

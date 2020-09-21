@@ -65,10 +65,11 @@ export class UtilityService {
     return true;
   }
 
-  async getTariff(zipCode: number, lseId: number): Promise<OperationResult<TariffDto[]>> {
+  async getTariffs(zipCode: number, lseId: number): Promise<OperationResult<TariffDto[]>> {
     const data = await this.externalService.getTariff(zipCode);
     const result = data.filter((item: any) => item.lseId === lseId);
-    return OperationResult.ok(result.map(item => new TariffDto(item)));
+    console.log('>>>>>>>>>>>>>>>>>>>', 'result', result);
+    return OperationResult.ok(result.map(item => new TariffDto({ ...item, zipCode })));
   }
 
   async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string): Promise<OperationResult<any>> {

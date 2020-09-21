@@ -326,6 +326,7 @@ export class SystemDesignModel {
   }
 
   setSystemProductionData(data: ISystemProductionSchema) {
+    console.log('>>>>>>>>>>>>>>>>>>>', 'data', data);
     this.system_production_data = data;
   }
 }

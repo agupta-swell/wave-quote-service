@@ -99,47 +99,51 @@ export class SystemDesignService {
     if (!foundSystemDesign) {
       throw ApplicationException.EnitityNotFound(id);
     }
-    const thumbnail = await this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail);
+
     const systemDesign = new SystemDesignModel(systemDesignDto);
-    systemDesign.setThumbnail(thumbnail);
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
-      await Promise.all([
-        systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
-          const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
-          item.panel_model_id = panelModelId;
-          const panelModelData = await this.productService.getDetail(panelModelId);
-          const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
-          systemDesign.setPanelModelDataSnapshot(data, index);
-          const capacity = (item.number_of_panels * panelModelData.sizeW) / 1000;
-          const acAnnual = await this.systemProductService.pvWatCalculation({
-            lat: systemDesign.latitude,
-            lon: systemDesign.longtitude,
-            azimuth: item.azimuth,
-            systemCapacity: capacity,
-            tilt: item.pitch,
-          });
+      const [thumbnail] = await Promise.all(
+        flatten([
+          this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail) as any,
+          systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
+            item.array_id = Types.ObjectId();
+            const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
+            item.panel_model_id = panelModelId;
+            const panelModelData = await this.productService.getDetail(panelModelId);
+            const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
+            systemDesign.setPanelModelDataSnapshot(data, index);
+            const capacity = (item.number_of_panels * panelModelData.sizeW) / 1000;
+            const acAnnual = await this.systemProductService.pvWatCalculation({
+              lat: systemDesign.latitude,
+              lon: systemDesign.longtitude,
+              azimuth: item.azimuth,
+              systemCapacity: capacity,
+              tilt: item.pitch,
+            });
+            cumulativeGenerationKWh += acAnnual;
+            cumulativeCapacityKW += capacity;
+          }),
+          systemDesign.roof_top_design_data.adders.map(async (item, index) => {
+            const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
+            systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
+          }),
+          systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
+            const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
+            const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
+            systemDesign.setInverter(data, index);
+          }),
+          systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
+            const storageModelData = await this.productService.getDetail(storage.storage_model_id);
+            const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
+            systemDesign.setStorage(data, index);
+          }),
+        ]),
+      );
 
-          cumulativeGenerationKWh += acAnnual;
-          cumulativeCapacityKW += capacity;
-        }),
-        systemDesign.roof_top_design_data.adders.map(async (item, index) => {
-          const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
-          systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
-        }),
-        systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
-          const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
-          const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
-          systemDesign.setInverter(data, index);
-        }),
-        systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
-          const storageModelData = await this.productService.getDetail(storage.storage_model_id);
-          const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
-          systemDesign.setStorage(data, index);
-        }),
-      ]);
+      systemDesign.setThumbnail(thumbnail);
 
       const annualUsageKWh =
         (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage

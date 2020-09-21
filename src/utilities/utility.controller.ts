@@ -26,7 +26,7 @@ export class UtilityController {
   @Get('/tariffs')
   @ApiOkResponse({ type: TariffDto, isArray: true })
   async getTariff(@Query() query: { zipCode: string; lseId: string }): Promise<ServiceResponse<TariffDto[]>> {
-    const res = await this.utilityService.getTariff(Number(query.zipCode), Number(query.lseId || 734));
+    const res = await this.utilityService.getTariffs(Number(query.zipCode), Number(query.lseId || 734));
     return ServiceResponse.fromResult(res);
   }
 

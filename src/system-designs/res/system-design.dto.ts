@@ -78,16 +78,43 @@ export class SystemDesignDto {
     const { panel_array, inverters, storage, adders } = data;
 
     return {
-      panelArray: panel_array.map(item => toCamelCase(item)),
-      inverters: inverters.map(item => toCamelCase(item)),
-      storage: storage.map(item => toCamelCase(item)),
+      panelArray: panel_array.map(item => {
+        const {
+          panel_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type },
+        } = item;
+
+        return {
+          ...toCamelCase(item),
+          panelModelDataSnapshot: { name, partNumber: part_number, price, sizeW, sizekWh, dimension, type },
+        };
+      }),
+      inverters: inverters.map(item => {
+        const {
+          inverter_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type },
+        } = item;
+
+        return {
+          ...toCamelCase(item),
+          inverterModelDataSnapshot: { name, partNumber: part_number, price, sizeW, sizekWh, dimension, type },
+        };
+      }),
+      storage: storage.map(item => {
+        const {
+          storage_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type },
+        } = item;
+
+        return {
+          ...toCamelCase(item),
+          storageModelDataSnapshot: { name, partNumber: part_number, price, sizeW, sizekWh, dimension, type },
+        };
+      }),
       adders: adders.map(item => toCamelCase(item)),
     };
   };
 
   transformSystemProductionData = (systemProduction: ISystemProductionSchema): ISystemProductionDto => {
     return {
-      capacityKW: systemProduction?.annual_usageKWh || 0,
+      capacityKW: systemProduction?.capacityKW || 0,
       generationKWh: systemProduction?.generationKWh || 0,
       productivity: systemProduction?.productivity || 0,
       annualUsageKWh: systemProduction?.annual_usageKWh || 0,
