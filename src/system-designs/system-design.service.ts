@@ -162,7 +162,7 @@ export class SystemDesignService {
     await foundSystemDesign.updateOne(systemDesign);
 
     console.log('>>>>>>>>>>>>>>>>>>>', 'systemDesign', systemDesign.roof_top_design_data.inverters);
-
+    systemDesign._id = id
     return OperationResult.ok(new SystemDesignDto(systemDesign as any));
   }
 

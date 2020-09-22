@@ -267,6 +267,7 @@ export interface SystemDesign extends Document {
 }
 
 export class SystemDesignModel {
+  _id: string;
   name: string;
   latitude: number;
   longtitude: number;
