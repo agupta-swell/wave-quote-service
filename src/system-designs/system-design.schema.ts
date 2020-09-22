@@ -288,7 +288,8 @@ export class SystemDesignModel {
     this.longtitude = systemDesign.longtitude;
     this.opportunity_id = systemDesign.opportunityId;
     this.design_mode = systemDesign.designMode;
-    this.roof_top_design_data = this.transformRoofTopData(systemDesign.roofTopDesignData);
+    this.roof_top_design_data =
+      systemDesign.roofTopDesignData && this.transformRoofTopData(systemDesign.roofTopDesignData);
     this.capacity_production_design_data = systemDesign.capacityProductionDesignData as any;
   }
 
@@ -313,7 +314,6 @@ export class SystemDesignModel {
   }
 
   setInverter(inverter: IProductSchema, index: number) {
-    console.log('>>>>>>>>>>>>>>>>>>>', 'this.roof_top_design_data.inverters', this.roof_top_design_data.inverters);
     this.roof_top_design_data.inverters[index].inverter_model_data_snapshot = inverter;
     this.roof_top_design_data.inverters[index].inverter_model_snapshot_date = new Date();
   }

@@ -19,17 +19,18 @@ export class UpdateSystemDesignDto {
   @IsOptional()
   designMode: DESIGN_MODE;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   latitude: number;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   longtitude: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   thumbnail: string;
 

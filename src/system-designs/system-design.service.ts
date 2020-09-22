@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { flatten } from 'lodash';
+import { flatten, identity, pickBy } from 'lodash';
 import { Model, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { AdderConfigService } from '../adder-config/adder-config.service';
@@ -96,74 +96,85 @@ export class SystemDesignService {
 
   async update(id: string, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     const foundSystemDesign = await this.systemDesignModel.findById(id);
+
     if (!foundSystemDesign) {
       throw ApplicationException.EnitityNotFound(id);
     }
 
-    const systemDesign = new SystemDesignModel(systemDesignDto);
+    const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, identity) as any);
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
-      const [thumbnail] = await Promise.all(
-        flatten([
-          this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail) as any,
-          systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
-            item.array_id = Types.ObjectId();
-            const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
-            item.panel_model_id = panelModelId;
-            const panelModelData = await this.productService.getDetail(panelModelId);
-            const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
-            systemDesign.setPanelModelDataSnapshot(data, index);
-            const capacity = (item.number_of_panels * panelModelData.sizeW) / 1000;
-            const acAnnual = await this.systemProductService.pvWatCalculation({
-              lat: systemDesign.latitude,
-              lon: systemDesign.longtitude,
-              azimuth: item.azimuth,
-              systemCapacity: capacity,
-              tilt: item.pitch,
-            });
-            cumulativeGenerationKWh += acAnnual;
-            cumulativeCapacityKW += capacity;
-          }),
-          systemDesign.roof_top_design_data.adders.map(async (item, index) => {
-            const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
-            systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
-          }),
-          systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
-            const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
-            const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
-            console.log('>>>>>>>>>>>>>>>>>>>', 'data', data, index);
-            systemDesign.setInverter(data, index);
-          }),
-          systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
-            const storageModelData = await this.productService.getDetail(storage.storage_model_id);
-            const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
-            systemDesign.setStorage(data, index);
-          }),
-        ]),
-      );
+      if (systemDesignDto.name) {
+        systemDesign.name = systemDesignDto.name;
+      }
 
-      systemDesign.setThumbnail(thumbnail);
+      if (systemDesignDto.thumbnail) {
+        const [thumbnail] = await Promise.all([
+          this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail),
+          await this.uploadImageService.deleteFileS3(foundSystemDesign.thumbnail),
+        ]);
+        systemDesign.setThumbnail(thumbnail);
+      }
 
-      const annualUsageKWh =
-        (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage
-          ?.annualConsumption || 0;
+      if (systemDesignDto.roofTopDesignData) {
+        await Promise.all(
+          flatten([
+            systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
+              item.array_id = Types.ObjectId();
+              const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
+              item.panel_model_id = panelModelId;
+              const panelModelData = await this.productService.getDetail(panelModelId);
+              const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
+              systemDesign.setPanelModelDataSnapshot(data, index);
+              const capacity = (item.number_of_panels * panelModelData.sizeW) / 1000;
+              const acAnnual = await this.systemProductService.pvWatCalculation({
+                lat: systemDesign.latitude,
+                lon: systemDesign.longtitude,
+                azimuth: item.azimuth,
+                systemCapacity: capacity,
+                tilt: item.pitch,
+              });
+              cumulativeGenerationKWh += acAnnual;
+              cumulativeCapacityKW += capacity;
+            }),
+            systemDesign.roof_top_design_data.adders.map(async (item, index) => {
+              const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
+              systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
+            }),
+            systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
+              const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
+              const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
+              systemDesign.setInverter(data, index);
+            }),
+            systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
+              const storageModelData = await this.productService.getDetail(storage.storage_model_id);
+              const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
+              systemDesign.setStorage(data, index);
+            }),
+          ]),
+        );
 
-      systemDesign.setSystemProductionData({
-        capacityKW: cumulativeCapacityKW,
-        generationKWh: cumulativeGenerationKWh,
-        productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
-        annual_usageKWh: annualUsageKWh,
-        offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
-      });
+        const annualUsageKWh =
+          (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage
+            ?.annualConsumption || 0;
+
+        systemDesign.setSystemProductionData({
+          capacityKW: cumulativeCapacityKW,
+          generationKWh: cumulativeGenerationKWh,
+          productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
+          annual_usageKWh: annualUsageKWh,
+          offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+        });
+      }
     }
 
-    await foundSystemDesign.updateOne(systemDesign);
+    const removedFalsy = pickBy(systemDesign, identity);
 
-    console.log('>>>>>>>>>>>>>>>>>>>', 'systemDesign', systemDesign.roof_top_design_data.inverters);
-    systemDesign._id = id
-    return OperationResult.ok(new SystemDesignDto(systemDesign as any));
+    await foundSystemDesign.updateOne(removedFalsy);
+
+    return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedFalsy } as any));
   }
 
   async delete(id: string): Promise<OperationResult<string>> {

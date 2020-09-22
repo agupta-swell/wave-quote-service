@@ -3,7 +3,9 @@ import * as AWS from 'aws-sdk';
 
 @Injectable()
 export class UploadImageService {
-  async uploadToAWSS3(imageData: string) {
+  S3_BUCKET: string;
+  AWS_REGION: string;
+  constructor() {
     // Configure AWS with your access and secret key.
     const { ACCESS_KEY_ID, SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET } = process.env;
 
@@ -11,17 +13,18 @@ export class UploadImageService {
     AWS.config.setPromisesDependency(require('bluebird'));
     AWS.config.update({ accessKeyId: ACCESS_KEY_ID, secretAccessKey: SECRET_ACCESS_KEY, region: AWS_REGION });
 
+    this.S3_BUCKET = S3_BUCKET;
+    this.AWS_REGION = AWS_REGION;
+  }
+
+  async uploadToAWSS3(imageData: string) {
     const s3 = new AWS.S3();
     const base64Data = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
 
-    // Getting the file type, ie: jpeg, png or gif
     const type = imageData.split(';')[0].split('/')[1];
 
-    // With this setup, each time your user uploads an image, will be overwritten.
-    // To prevent this, use a different Key each time.
-    // This won't be needed if they're uploading their avatar, hence the filename, userAvatar.js.
     const params = {
-      Bucket: S3_BUCKET,
+      Bucket: this.S3_BUCKET,
       Key: `${new Date().getTime()}.${type}`, // type is not required
       Body: base64Data,
       ACL: 'public-read',
@@ -44,5 +47,25 @@ export class UploadImageService {
     console.log(location, key);
 
     return location;
+  }
+
+  async deleteFileS3(url: string) {
+    // Create an s3 instance
+    const s3 = new AWS.S3();
+
+    // On around Line 41, you'll see how we stored the "Key"
+    // see: https://gist.github.com/SylarRuby/b60eea29c1682519e422476cc5357b60
+    const splitOn = `https://${this.S3_BUCKET.toLowerCase()}.s3.${this.AWS_REGION.toLowerCase()}.amazonaws.com/`;
+    const Key = url.split(splitOn)[1]; // The `${userId}.${type}`
+
+    const params = {
+      Bucket: this.S3_BUCKET,
+      Key, // required
+    };
+
+    // More on the deleteObject property:
+    // see: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObject-property
+    const data = await s3.deleteObject(params).promise();
+    console.log(data); // => {} Empty object when successful
   }
 }
