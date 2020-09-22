@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { flatten } from 'lodash';
+import { flatten, identity, pickBy } from 'lodash';
 import { Model, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { AdderConfigService } from '../adder-config/adder-config.service';
@@ -101,7 +101,7 @@ export class SystemDesignService {
       throw ApplicationException.EnitityNotFound(id);
     }
 
-    const systemDesign = new SystemDesignModel(systemDesignDto);
+    const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, identity) as any);
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -170,9 +170,11 @@ export class SystemDesignService {
       }
     }
 
-    await foundSystemDesign.updateOne(systemDesign);
+    const removedFalsy = pickBy(systemDesign, identity);
 
-    return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...systemDesign } as any));
+    await foundSystemDesign.updateOne(removedFalsy);
+
+    return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedFalsy } as any));
   }
 
   async delete(id: string): Promise<OperationResult<string>> {

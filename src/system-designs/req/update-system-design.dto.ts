@@ -30,6 +30,7 @@ export class UpdateSystemDesignDto {
   longtitude: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   thumbnail: string;
 
