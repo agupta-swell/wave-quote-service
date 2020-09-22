@@ -133,6 +133,7 @@ export class SystemDesignService {
           systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
             const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
             const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
+            console.log('>>>>>>>>>>>>>>>>>>>', 'data', data, index);
             systemDesign.setInverter(data, index);
           }),
           systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
@@ -159,7 +160,10 @@ export class SystemDesignService {
     }
 
     await foundSystemDesign.updateOne(systemDesign);
-    return OperationResult.ok(new SystemDesignDto(foundSystemDesign.toObject()));
+
+    console.log('>>>>>>>>>>>>>>>>>>>', 'systemDesign', systemDesign.roof_top_design_data.inverters);
+
+    return OperationResult.ok(new SystemDesignDto(systemDesign as any));
   }
 
   async delete(id: string): Promise<OperationResult<string>> {

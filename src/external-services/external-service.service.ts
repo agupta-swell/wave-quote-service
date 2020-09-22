@@ -111,6 +111,7 @@ export class ExternalService {
       }
       i += 1;
     }
+
     return typicalMonthlyUsage as ITypicalUsage[];
   };
 

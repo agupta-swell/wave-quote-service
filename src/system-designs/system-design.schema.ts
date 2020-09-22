@@ -312,6 +312,7 @@ export class SystemDesignModel {
   }
 
   setInverter(inverter: IProductSchema, index: number) {
+    console.log('>>>>>>>>>>>>>>>>>>>', 'this.roof_top_design_data.inverters', this.roof_top_design_data.inverters);
     this.roof_top_design_data.inverters[index].inverter_model_data_snapshot = inverter;
     this.roof_top_design_data.inverters[index].inverter_model_snapshot_date = new Date();
   }
@@ -326,7 +327,6 @@ export class SystemDesignModel {
   }
 
   setSystemProductionData(data: ISystemProductionSchema) {
-    console.log('>>>>>>>>>>>>>>>>>>>', 'data', data);
     this.system_production_data = data;
   }
 }

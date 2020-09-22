@@ -1,20 +1,15 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { CalculateActualUsageCostDto } from './req/calculate-actual-usage-cost.dto';
 import { TariffDto, UtilityDto } from './res';
+import { CostData } from './res/cost-data.dto';
 import { UtilityService } from './utility.service';
 
 @ApiTags('Utilities')
 @Controller('/utilities')
 export class UtilityController {
   constructor(private readonly utilityService: UtilityService) {}
-
-  @Get()
-  @ApiOkResponse({ type: UtilityDto })
-  async getDetails(@Query('zipCode') zipCode: string): Promise<ServiceResponse<UtilityDto>> {
-    const res = await this.utilityService.getUtilityDetails(Number(zipCode));
-    return ServiceResponse.fromResult(res);
-  }
 
   @Get('/typical-baselines')
   @ApiOkResponse({ type: UtilityDto })
@@ -30,9 +25,24 @@ export class UtilityController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Get('/costs')
-  async calculateCost(@Query() query: { zipCode: string; masterTariffId: string }): Promise<ServiceResponse<any>> {
-    const res = await this.utilityService.calculateCost([], query.masterTariffId || '522');
+  @Get('/typical-usage-costs')
+  @ApiQuery({ name: 'zipCode', required: true })
+  @ApiQuery({ name: 'masterTariffId', required: true })
+  @ApiOkResponse({ type: CostData })
+  async calculateTypicalUsageCost(
+    @Query() query: { zipCode: string; masterTariffId: string },
+  ): Promise<ServiceResponse<CostData>> {
+    const res = await this.utilityService.calculateTypicalUsageCost(
+      Number(query.zipCode),
+      query.masterTariffId || '522',
+    );
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/actual-usage-costs')
+  @ApiOkResponse({ type: CostData })
+  async calculateActualUsageCost(@Body() data: CalculateActualUsageCostDto): Promise<ServiceResponse<CostData>> {
+    const res = await this.utilityService.calculateActualUsageCost(data);
     return ServiceResponse.fromResult(res);
   }
 }
