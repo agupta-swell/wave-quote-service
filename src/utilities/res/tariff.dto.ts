@@ -28,16 +28,12 @@ export class TariffDto {
   lseName: string;
 
   @ApiProperty()
-  tariffDetails: TariffDetailDto;
+  tariffDetails: TariffDetailDto[];
 
   constructor(props: any) {
     this.zipCode = props.zipCode;
     this.lseId = props.lseId;
     this.lseName = props.lseName;
-    this.tariffDetails = new TariffDetailDto({
-      tariffCode: props.tariffCode,
-      masterTariffId: props.masterTariffId,
-      tariffName: props.tariffName,
-    });
+    this.tariffDetails = props.tariffDetails;
   }
 }
