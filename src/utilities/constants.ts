@@ -3,3 +3,8 @@ export enum INTERVAL_VALUE {
   MONTH = 'month',
   YEAR = 'year',
 }
+
+export enum CALCULATION_MODE {
+  TYPICAL = 'typical',
+  ACTUAL = 'actual',
+}
