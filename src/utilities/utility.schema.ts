@@ -1,10 +1,11 @@
 import { Document, Schema } from 'mongoose';
 import { ITypicalBaseLine } from '../external-services/typing';
 import { toSnakeCase } from '../utils/transformProperties';
-import { UpdateUsageDto } from './req/update-usage';
+import { UpdateUsageDto } from './req/update-usage.dto';
 
 export const GENABILITY_USAGE_DATA = Symbol('GENABILITY_USAGE_DATA').toString();
 export const UTILITY_USAGE_DETAILS = Symbol('UTILITY_USAGE_DETAILS').toString();
+export const GENABILITY_COST_DATA = Symbol('GENABILITY_COST_DATA').toString();
 
 export interface ITypicalUsage {
   i: number;
@@ -199,6 +200,18 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
+});
+
+export interface GenabilityCostData extends Document {
+  zip_code: number;
+  master_tariff_id: string;
+  utility_cost: IUtilityCostData;
+}
+
+export const GenabilityCostDataSchema = new Schema<GenabilityCostData>({
+  zip_code: Number,
+  master_tariff_id: String,
+  utility_cost: UtilityCostDataSchema,
 });
 
 export class UtilityUsageDetailsModel {

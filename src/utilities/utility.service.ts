@@ -4,14 +4,14 @@ import { groupBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { ExternalService } from '../external-services/external-service.service';
 import { OperationResult } from './../app/common';
-import { INTERVAL_VALUE } from './constants';
-import { CalculateActualUsageCostDto } from './req/calculate-actual-usage-cost.dto';
-import { UpdateUsageDto } from './req/update-usage';
-import { TariffDto, UtilityDto } from './res';
-import { CostData } from './res/cost-data.dto';
+import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
+import { CalculateActualUsageCostDto, GetActualUsageDto, UpdateUsageDto } from './req';
+import { CostData, TariffDto, UtilityDto } from './res';
 import {
+  GenabilityCostData,
   GenabilityTypicalBaseLineModel,
   GenabilityUsageData,
+  GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
   ICostData,
   IUtilityCostData,
@@ -25,6 +25,8 @@ export class UtilityService {
   constructor(
     @InjectModel(GENABILITY_USAGE_DATA)
     private readonly genabilityUsageDataModel: Model<GenabilityUsageData>,
+    @InjectModel(GENABILITY_COST_DATA)
+    private readonly genabilityCostDataModel: Model<GenabilityCostData>,
     @InjectModel(UTILITY_USAGE_DETAILS)
     private readonly utilityUsageDetailsModel: Model<UtilityUsageDetails>,
     private readonly externalService: ExternalService,
@@ -92,6 +94,8 @@ export class UtilityService {
     const monthlyCost = await this.calculateCost(
       typicalBaseLine.typical_baseline.typical_hourly_usage.map(item => item.v),
       masterTariffId,
+      CALCULATION_MODE.TYPICAL,
+      new Date().getFullYear(),
     );
 
     const costData = {
@@ -103,7 +107,7 @@ export class UtilityService {
     return OperationResult.ok(new CostData(costData));
   }
 
-  async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<any>> {
+  async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostData>> {
     const { zipCode, masterTariffId, utilityData } = data;
     const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
 
@@ -126,6 +130,8 @@ export class UtilityService {
     const monthlyCost = await this.calculateCost(
       typical_hourly_usage.map(item => item.v),
       masterTariffId,
+      CALCULATION_MODE.ACTUAL,
+      new Date().getFullYear(),
     );
 
     const costData = {
@@ -137,6 +143,16 @@ export class UtilityService {
     return OperationResult.ok(new CostData(costData));
   }
 
+  async getActualUsages(data: GetActualUsageDto): Promise<OperationResult<UtilityDto>> {
+    const { costData, utilityData } = data;
+
+    costData.actualUsageCost.cost.map((costDetail, index) => {
+      const deltaValueFactor = (costData.typicalUsageCost.cost[index].v - costDetail.v) / costDetail.v;
+      utilityData.actualUsage.monthlyUsage[index].v =
+        utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
+    });
+    return OperationResult.ok(new UtilityDto(utilityData));
+  }
   // -->>>>>>>>> INTERNAL <<<<<<<<<----
 
   getMonth(hour: number) {
@@ -178,7 +194,21 @@ export class UtilityService {
     return typicalBaseLine.toObject();
   }
 
-  async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string): Promise<IUtilityCostData> {
+  async calculateCost(
+    hourlyDataForTheYear: number[],
+    masterTariffId: string,
+    mode: CALCULATION_MODE,
+    year: number,
+    zipCode?: number,
+  ): Promise<IUtilityCostData> {
+    if (mode === CALCULATION_MODE.TYPICAL) {
+      const genabilityCost = await this.genabilityCostDataModel.findOne({ master_tariff_id: masterTariffId });
+
+      if (genabilityCost) {
+        return genabilityCost.utility_cost;
+      }
+    }
+
     const data = await this.externalService.calculateCost(hourlyDataForTheYear, masterTariffId);
     const groupByMonth = groupBy(data[0].items, item => item.fromDateTime.substring(0, 7));
     const monthlyCosts = Object.keys(groupByMonth).reduce((acc, item) => {
@@ -199,6 +229,17 @@ export class UtilityService {
       interval: INTERVAL_VALUE.MONTH,
       cost: monthlyCosts,
     } as IUtilityCostData;
+
+    if (mode === CALCULATION_MODE.TYPICAL) {
+      const genabilityCostData = {
+        zip_code: zipCode,
+        master_tariff_id: masterTariffId,
+        utility_cost: costData,
+      };
+
+      const createdgenabilityCost = new this.genabilityCostDataModel(genabilityCostData);
+      await createdgenabilityCost.save();
+    }
 
     return costData;
   }

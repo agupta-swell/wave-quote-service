@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
-import { CalculateActualUsageCostDto } from './req/calculate-actual-usage-cost.dto';
+import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { TariffDto, UtilityDto } from './res';
 import { CostData } from './res/cost-data.dto';
 import { UtilityService } from './utility.service';
@@ -43,6 +43,13 @@ export class UtilityController {
   @ApiOkResponse({ type: CostData })
   async calculateActualUsageCost(@Body() data: CalculateActualUsageCostDto): Promise<ServiceResponse<CostData>> {
     const res = await this.utilityService.calculateActualUsageCost(data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/actual-usages')
+  @ApiOkResponse({ type: UtilityDto })
+  async getActualUsages(@Body() data: GetActualUsageDto): Promise<ServiceResponse<UtilityDto>> {
+    const res = await this.utilityService.getActualUsages(data);
     return ServiceResponse.fromResult(res);
   }
 }

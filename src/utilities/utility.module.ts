@@ -2,7 +2,9 @@ import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UtilityController } from './utility.controller';
 import {
+  GenabilityCostDataSchema,
   GenabilityUsageDataSchema,
+  GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
   UtilityUsageDetailsSchema,
   UTILITY_USAGE_DETAILS,
@@ -22,6 +24,11 @@ import { UtilityService } from './utility.service';
         name: UTILITY_USAGE_DETAILS,
         schema: UtilityUsageDetailsSchema,
         collection: 'utility_usage_details',
+      },
+      {
+        name: GENABILITY_COST_DATA,
+        schema: GenabilityCostDataSchema,
+        collection: 'genability_cost_data',
       },
     ]),
   ],
