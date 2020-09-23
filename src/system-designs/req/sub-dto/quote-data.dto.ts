@@ -15,6 +15,6 @@ export class QuoteDataDto {
   @ApiProperty()
   markup: number;
 
-  @ApiProperty({ type: DiscountDetailDataDto })
+  @ApiProperty({ type: () => DiscountDetailDataDto })
   discountDetails: DiscountDetailDataDto;
 }

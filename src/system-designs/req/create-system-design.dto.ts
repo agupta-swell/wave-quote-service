@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { DESIGN_MODE } from './../constants';
-import { CapacityProductionDataDto, RoofTopDataDto } from './sub-dto';
+import { CapacityProductionDataDto, RoofTopDataReqDto } from './sub-dto';
 
 export class CreateSystemDesignDto {
   @ApiProperty()
@@ -33,11 +33,11 @@ export class CreateSystemDesignDto {
   @IsString()
   thumbnail: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ type: RoofTopDataReqDto })
   @IsOptional()
   @ValidateNested()
-  @Type(() => RoofTopDataDto)
-  roofTopDesignData: RoofTopDataDto;
+  @Type(() => RoofTopDataReqDto)
+  roofTopDesignData: RoofTopDataReqDto;
 
   @ApiPropertyOptional({ type: CapacityProductionDataDto })
   @IsOptional()

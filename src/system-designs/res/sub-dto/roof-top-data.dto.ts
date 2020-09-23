@@ -1,15 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AdderDto } from './adder.dto';
 import { InverterDto } from './inverter.dto';
-import { SolarPanelArray } from './solar-panel-array.dto';
+import { SolarPanelArrayDto } from './solar-panel-array.dto';
 import { StorageDto } from './storage.dto';
 
 export class RoofTopDataDto {
   @ApiProperty({
-    type: SolarPanelArray,
+    type: SolarPanelArrayDto,
     isArray: true,
   })
-  panelArray: SolarPanelArray[];
+  panelArray: SolarPanelArrayDto[];
 
   @ApiProperty({
     type: InverterDto,

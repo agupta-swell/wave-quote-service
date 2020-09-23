@@ -12,7 +12,7 @@ export class LatLng {
   lng: Number;
 }
 
-export class ISystemProductionDto {
+export class SystemProductionDto {
   @ApiProperty()
   capacityKW: number;
 
@@ -49,7 +49,7 @@ export class SystemDesignDto {
   capacityProductionDesignData: CapacityProductionDataDto;
 
   @ApiProperty()
-  systemProductionData: ISystemProductionDto;
+  systemProductionData: SystemProductionDto;
 
   @ApiProperty()
   latitude: number;
@@ -112,7 +112,7 @@ export class SystemDesignDto {
     };
   };
 
-  transformSystemProductionData = (systemProduction: ISystemProductionSchema): ISystemProductionDto => {
+  transformSystemProductionData = (systemProduction: ISystemProductionSchema): SystemProductionDto => {
     return {
       capacityKW: systemProduction?.capacityKW || 0,
       generationKWh: systemProduction?.generationKWh || 0,

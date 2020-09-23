@@ -4,7 +4,7 @@ import { ProductDto } from './product.dto';
 import { LatLng } from '../system-design.dto';
 import { QuoteDataDto } from './quote-data.dto';
 
-export class SolarPanelArray {
+export class SolarPanelArrayDto {
   @ApiProperty()
   primaryOrientationSide: Number;
 

@@ -1,6 +1,6 @@
 import { Document, Schema, Types } from 'mongoose';
 import { toSnakeCase } from '../utils/transformProperties';
-import { CreateSystemDesignDto, RoofTopDataDto } from './req';
+import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
 
@@ -204,7 +204,7 @@ export interface IRoofTopSchema {
   adders: IAdderSchema[];
 }
 
-const RoofTopSchema = new Schema<IRoofTopSchema>(
+export const RoofTopSchema = new Schema<IRoofTopSchema>(
   {
     panel_array: [SolarPanelArraySchema],
     inverters: [InverterSchema],
@@ -222,7 +222,7 @@ export interface ISystemProductionSchema {
   offset_percentage: number;
 }
 
-const SystemProductionSchema = new Schema<ISystemProductionSchema>(
+export const SystemProductionSchema = new Schema<ISystemProductionSchema>(
   {
     capacityKW: Number,
     generationKWh: Number,
@@ -293,7 +293,7 @@ export class SystemDesignModel {
     this.capacity_production_design_data = systemDesign.capacityProductionDesignData as any;
   }
 
-  transformRoofTopData = (data: RoofTopDataDto): IRoofTopSchema => {
+  transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
     const { inverters, storage, panelArray, adders } = data;
     return {
       panel_array: panelArray.map(item => toSnakeCase(item)),

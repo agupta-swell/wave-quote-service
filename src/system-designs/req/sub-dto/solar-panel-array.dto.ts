@@ -1,8 +1,8 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ORIENTATION } from '../../constants';
 import { QuoteDataDto } from './quote-data.dto';
+import { Type } from 'class-transformer';
 
 class LatLng {
   @ApiProperty()
@@ -16,11 +16,11 @@ class LatLng {
   lng: number;
 }
 
-export class SolarPanelArray {
+export class SolarPanelArrayDto1 {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  primaryOrientationSide: Number;
+  primaryOrientationSide: number;
 
   @ApiProperty({ enum: [ORIENTATION.LANDSCAPE, ORIENTATION.PORTRAIT] })
   @IsNotEmpty()
@@ -36,19 +36,19 @@ export class SolarPanelArray {
     type: 'array',
     items: {
       type: 'array',
-      // items: {
-      //   type: 'object',
-      //   properties: {
-      //     lat: { type: 'number' },
-      //     lng: { type: 'number' },
-      //   },
-      // },
+      items: {
+        type: 'object',
+        properties: {
+          lat: { type: 'number' },
+          lng: { type: 'number' },
+        },
+      },
     },
   })
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => LatLng)
-  panels: [LatLng][];
+  panels: LatLng[][];
 
   @ApiPropertyOptional()
   setbacks: Map<string, number>;
@@ -62,18 +62,18 @@ export class SolarPanelArray {
     type: 'array',
     items: {
       type: 'array',
-      // items: {
-      //   type: 'object',
-      //   properties: {
-      //     lat: { type: 'number' },
-      //     lng: { type: 'number' },
-      //   },
-      // },
+      items: {
+        type: 'object',
+        properties: {
+          lat: { type: 'number' },
+          lng: { type: 'number' },
+        },
+      },
     },
   })
   @ValidateNested({ each: true })
   @Type(() => LatLng)
-  keepouts: [LatLng][];
+  keepouts: LatLng[][];
 
   @ApiProperty()
   @IsNotEmpty()
@@ -84,7 +84,7 @@ export class SolarPanelArray {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  azimuth: Number;
+  azimuth: number;
 
   @ApiPropertyOptional()
   @IsNumber()
@@ -102,5 +102,7 @@ export class SolarPanelArray {
   numberOfPanels: Number;
 
   @ApiProperty({ type: QuoteDataDto })
+  @ValidateNested()
+  @Type(() => QuoteDataDto)
   panelQuote: QuoteDataDto;
 }

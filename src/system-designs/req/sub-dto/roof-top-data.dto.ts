@@ -3,18 +3,18 @@ import { Type } from 'class-transformer';
 import { IsNotEmpty, ValidateNested } from 'class-validator';
 import { AdderDto } from './adder.dto';
 import { InverterDto } from './inverter.dto';
-import { SolarPanelArray } from './solar-panel-array.dto';
+import { SolarPanelArrayDto1 } from './solar-panel-array.dto';
 import { StorageDto } from './storage.dto';
 
-export class RoofTopDataDto {
+export class RoofTopDataReqDto {
   @ApiProperty({
-    type: SolarPanelArray,
+    type: SolarPanelArrayDto1,
     isArray: true,
   })
   @IsNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => SolarPanelArray)
-  panelArray: SolarPanelArray[];
+  @Type(() => SolarPanelArrayDto1)
+  panelArray: SolarPanelArrayDto1[];
 
   @ApiProperty({
     type: InverterDto,
