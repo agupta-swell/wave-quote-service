@@ -195,7 +195,7 @@ export class UtilityService {
       const genabilityCost = await this.genabilityCostDataModel.findOne({ master_tariff_id: masterTariffId });
 
       if (genabilityCost) {
-        return genabilityCost.utility_cost;
+        return genabilityCost.toObject().utility_cost;
       }
     }
 
@@ -205,8 +205,8 @@ export class UtilityService {
       const [year, month] = item.split('-');
       const lastDay = this.getLastDay(Number(month), Number(year));
       const data = {
-        start_date: `1/${month}/${year}`,
-        end_date: `${lastDay}/${month}/${year}`,
+        start_date: new Date(`${month}/1/${year}`),
+        end_date: new Date(`${month}/${lastDay}/${year}`),
         i: Number(month),
         v: sumBy(groupByMonth[item], 'cost'),
       };
