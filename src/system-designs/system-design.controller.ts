@@ -29,11 +29,14 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(result);
   }
 
-  @Delete(':id')
+  @Delete(':id/:opportunityId')
   @ApiOperation({ summary: 'Delete system design' })
   @ApiOkResponse({ type: ServiceResponse })
-  async delete(@Param('id') id: string): Promise<ServiceResponse<string>> {
-    const result = await this.systemDesignService.delete(id);
+  async delete(
+    @Param('id') id: string,
+    @Param('opportunityId') opportunityId: string,
+  ): Promise<ServiceResponse<string>> {
+    const result = await this.systemDesignService.delete(id, opportunityId);
     return ServiceResponse.fromResult(result);
   }
 

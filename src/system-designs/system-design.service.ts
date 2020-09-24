@@ -177,8 +177,8 @@ export class SystemDesignService {
     return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedFalsy } as any));
   }
 
-  async delete(id: string): Promise<OperationResult<string>> {
-    const systemDesign = await this.systemDesignModel.findById(id);
+  async delete(id: string, opportunityId: string): Promise<OperationResult<string>> {
+    const systemDesign = await this.systemDesignModel.findOne({ _id: id, opportunity_id: opportunityId });
     if (!systemDesign) {
       throw ApplicationException.EnitityNotFound(id);
     }
