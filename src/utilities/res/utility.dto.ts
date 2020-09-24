@@ -52,12 +52,29 @@ export class TypicalBaseLine {
   typicalMonthlyUsage: TypicalUsage[];
 }
 
-export class UtilityDto {
+export class ActualUsageDto {
   @ApiProperty()
-  loadServingEntityData: LoadServingEntity;
+  zipCode: number;
 
   @ApiProperty()
+  sourceType: string;
+
+  @ApiProperty()
+  annualConsumption: number;
+
+  @ApiProperty({ type: TypicalUsage, isArray: true })
+  monthlyUsage: TypicalUsage[];
+}
+
+export class UtilityDto {
+  @ApiProperty({ type: LoadServingEntity })
+  loadServingEntityData: LoadServingEntity;
+
+  @ApiProperty({ type: TypicalBaseLine })
   typicalBaselineUsage: TypicalBaseLine;
+
+  @ApiProperty({ type: ActualUsageDto })
+  actualUsage: ActualUsageDto;
 
   constructor(props: any) {
     this.loadServingEntityData = toCamelCase(props?.loadServingEntityData);
@@ -70,6 +87,7 @@ export class UtilityDto {
     const utility = new UtilityDto(null);
     utility.loadServingEntityData = props.loadServingEntityData;
     utility.typicalBaselineUsage = props.typicalBaselineUsage;
+    utility.actualUsage = props.actualUsage;
     return utility;
   }
 }
