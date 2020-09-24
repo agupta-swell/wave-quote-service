@@ -113,7 +113,6 @@ const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
 
 export interface IInverterSchema {
   type: string;
-  solar_panel_array_id: string;
   inverter_model_id: string;
   inverter_model_data_snapshot: IProductSchema;
   inverter_model_snapshot_date: Date;
@@ -124,7 +123,6 @@ export interface IInverterSchema {
 const InverterSchema = new Schema<IInverterSchema>(
   {
     type: String,
-    solar_panel_array_id: String,
     inverter_model_id: String,
     inverter_model_data_snapshot: ProductSchema,
     inverter_model_snapshot_date: Date,
@@ -180,7 +178,7 @@ export interface IAdderSchema {
   adder_description: string;
   quantity: number;
   adder_id: string;
-  adder: IAdderModel;
+  adder_model_data_snapshot: IAdderModel;
   adder_model_snapshot_date: Date;
   adder_quote: IQuoteData;
 }
@@ -190,7 +188,7 @@ const AdderSchema = new Schema<IAdderSchema>(
     adder_description: String,
     quantity: Number,
     adder_id: String,
-    adder: AdderModelSchema,
+    adder_model_data_snapshot: AdderModelSchema,
     adder_model_snapshot_date: Date,
     adder_quote: QuoteDataSchema,
   },
@@ -309,7 +307,7 @@ export class SystemDesignModel {
   }
 
   setAdder(adder: IAdderModel, index: number) {
-    this.roof_top_design_data.adders[index].adder = adder;
+    this.roof_top_design_data.adders[index].adder_model_data_snapshot = adder;
     this.roof_top_design_data.adders[index].adder_model_snapshot_date = new Date();
   }
 

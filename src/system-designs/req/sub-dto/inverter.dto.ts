@@ -11,11 +11,6 @@ export class InverterDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  solarPanelArrayId: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   inverterModelId: string;
 
   @ApiProperty()

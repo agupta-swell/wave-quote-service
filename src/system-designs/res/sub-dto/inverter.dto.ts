@@ -11,9 +11,6 @@ export class InverterDto {
   type: INVERTER_TYPE;
 
   @ApiProperty()
-  solarPanelArrayId: string;
-
-  @ApiProperty()
   inverterModelId: string;
 
   @ApiProperty({ type: ProductDto })

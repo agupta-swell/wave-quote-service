@@ -29,7 +29,7 @@ export class AdderDto {
   adderId: string;
 
   @ApiProperty()
-  adders: Adder[];
+  adderModelDataSnapshot: Adder;
 
   @ApiProperty()
   adderModelSnapshotDate: Date;
