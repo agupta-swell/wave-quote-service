@@ -147,7 +147,8 @@ export class UtilityService {
     const { costData, utilityData } = data;
 
     costData.actualUsageCost.cost.map((costDetail, index) => {
-      const deltaValueFactor = (costData.typicalUsageCost.cost[index].v - costDetail.v) / costDetail.v;
+      const deltaValueFactor =
+        (costDetail.v - costData.typicalUsageCost.cost[index].v) / costData.typicalUsageCost.cost[index].v;
       utilityData.actualUsage.monthlyUsage[index].v =
         utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
     });
