@@ -151,7 +151,7 @@ export class UtilityService {
       utilityData.actualUsage.monthlyUsage[index].v =
         utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
     });
-    return OperationResult.ok(new UtilityDto(utilityData));
+    return OperationResult.ok(UtilityDto.actualUsages(utilityData));
   }
   // -->>>>>>>>> INTERNAL <<<<<<<<<----
 

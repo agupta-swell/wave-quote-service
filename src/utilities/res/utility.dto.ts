@@ -60,8 +60,16 @@ export class UtilityDto {
   typicalBaselineUsage: TypicalBaseLine;
 
   constructor(props: any) {
-    this.loadServingEntityData = toCamelCase(props.loadServingEntityData);
-    props.typicalBaselineUsage && delete props.typicalBaselineUsage.typical_baseline.typical_hourly_usage;
-    this.typicalBaselineUsage = toCamelCase(props.typicalBaselineUsage.typical_baseline);
+    this.loadServingEntityData = toCamelCase(props?.loadServingEntityData);
+    props?.typicalBaselineUsage?.typical_baseline &&
+      delete props.typicalBaselineUsage.typical_baseline.typical_hourly_usage;
+    this.typicalBaselineUsage = toCamelCase(props?.typicalBaselineUsage.typical_baseline);
+  }
+
+  static actualUsages(props: any) {
+    const utility = new UtilityDto(null);
+    utility.loadServingEntityData = props.loadServingEntityData;
+    utility.typicalBaselineUsage = props.typicalBaselineUsage;
+    return utility;
   }
 }
