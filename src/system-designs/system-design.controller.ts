@@ -46,8 +46,9 @@ export class SystemDesignController {
   async getsystemDesigns(
     @Query('limit') limit: string,
     @Query('skip') skip: string,
+    @Query('selected') selected: string,
   ): Promise<ServiceResponse<Pagination<SystemDesignDto>>> {
-    const result = await this.systemDesignService.getAllSystemDesigns(Number(limit), Number(skip));
+    const result = await this.systemDesignService.getAllSystemDesigns(Number(limit), Number(skip), selected);
     return ServiceResponse.fromResult(result);
   }
 

@@ -74,6 +74,7 @@ export class SystemDesignService {
       );
 
       systemDesign.setThumbnail(thumbnail);
+      systemDesign.setIsSelected(systemDesignDto.isSelected);
 
       const annualUsageKWh =
         (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage
@@ -116,6 +117,10 @@ export class SystemDesignService {
           await this.uploadImageService.deleteFileS3(foundSystemDesign.thumbnail),
         ]);
         systemDesign.setThumbnail(thumbnail);
+      }
+
+      if (typeof systemDesignDto.isSelected === 'boolean') {
+        systemDesign.setIsSelected(systemDesignDto.isSelected);
       }
 
       if (systemDesignDto.roofTopDesignData) {
@@ -186,11 +191,25 @@ export class SystemDesignService {
     return OperationResult.ok('Deleted Successfully');
   }
 
-  async getAllSystemDesigns(limit: number, skip: number): Promise<OperationResult<Pagination<SystemDesignDto>>> {
-    const [systemDesigns, total] = await Promise.all([
-      this.systemDesignModel.find().limit(limit).skip(skip).exec(),
-      this.systemDesignModel.estimatedDocumentCount(),
-    ]);
+  async getAllSystemDesigns(
+    limit: number,
+    skip: number,
+    selected: string,
+  ): Promise<OperationResult<Pagination<SystemDesignDto>>> {
+    let query: any;
+    switch (selected) {
+      case '-1':
+        query = this.systemDesignModel.find().limit(limit).skip(skip).exec();
+        break;
+      case '0':
+        query = this.systemDesignModel.find({ is_selected: false }).limit(limit).skip(skip).exec();
+        break;
+      case '1':
+        query = this.systemDesignModel.find({ is_selected: true }).limit(limit).skip(skip).exec();
+        break;
+    }
+
+    const [systemDesigns, total] = await Promise.all([query, this.systemDesignModel.estimatedDocumentCount()]);
     const data = systemDesigns.map(item => new SystemDesignDto(item.toObject()));
     const result = {
       data,

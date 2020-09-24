@@ -238,6 +238,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   opportunity_id: String,
   design_mode: String,
   thumbnail: String,
+  is_selected: Boolean,
   roof_top_design_data: RoofTopSchema,
   // TODO: implement later
   capacity_production_design_data: String,
@@ -253,6 +254,7 @@ export interface SystemDesign extends Document {
   opportunity_id: string;
   design_mode: string;
   thumbnail: string;
+  is_selected: boolean;
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: '';
   system_production_data: ISystemProductionSchema;
@@ -272,6 +274,7 @@ export class SystemDesignModel {
   opportunity_id: string;
   design_mode: string;
   thumbnail: string;
+  is_selected: boolean;
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: string;
   system_production_data: ISystemProductionSchema;
@@ -323,6 +326,10 @@ export class SystemDesignModel {
 
   setThumbnail(link: string) {
     this.thumbnail = link;
+  }
+
+  setIsSelected(isSelected: boolean) {
+    this.is_selected = isSelected;
   }
 
   setSystemProductionData(data: ISystemProductionSchema) {
