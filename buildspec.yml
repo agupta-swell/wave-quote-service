@@ -28,7 +28,7 @@ phases:
     commands:
       - echo build started on `date`
       - echo Building the Docker image..
-      - docker build --build-arg ROOT_URL=${ROOT_URL} -t ${REPOSITORY_URI}:latest .
+      - docker build -t ${REPOSITORY_URI}:latest .
       - docker tag ${REPOSITORY_URI}:latest ${REPOSITORY_URI}:$IMAGE_TAG
       - docker tag ${REPOSITORY_URI}:latest ${REPOSITORY_URI}:sbx
   post_build:
