@@ -54,14 +54,4 @@ bootstrap().then(() => {
     AWS_REGION,
     S3_BUCKET,
   });
-  console.table({
-    PORT,
-    MONGO_URL,
-    JWT_SECRET,
-    JWT_EXPIRE_TIME,
-    ACCESS_KEY_ID,
-    SECRET_ACCESS_KEY,
-    AWS_REGION,
-    S3_BUCKET,
-  });
 });
