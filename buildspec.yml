@@ -28,7 +28,7 @@ phases:
       - echo build started on `date`
       - echo Building the Docker image..
       - docker -v
-      - sudo service docker restart
+      - service docker restart
       - docker build -t ${REPOSITORY_URI}:latest .
       - docker tag ${REPOSITORY_URI}:latest ${REPOSITORY_URI}:$IMAGE_TAG
       - docker tag ${REPOSITORY_URI}:latest ${REPOSITORY_URI}:sbx
