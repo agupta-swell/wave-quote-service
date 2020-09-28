@@ -1,8 +1,6 @@
 version: 0.2
 
 env:
-  variables:
-    AWS_ACCOUNT_ID: AWS_ACCOUNT_ID
   exported-variables:
     - ECR_REGION
     - ECR_REPOSITORY_NAME
@@ -21,6 +19,7 @@ phases:
       - aws --version
       - $(aws ecr get-login --region ${ECR_REGION} --no-include-email)
       - REPOSITORY_URI=${AWS_ACCOUNTID}.dkr.ecr.${ECR_REGION}.amazonaws.com/${ECR_REPOSITORY_NAME}
+      - echo REPOSITORY_URI
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=build-$(echo $CODEBUILD_BUILD_ID | awk -F":" '{print $2}')
       - printf '{"AWSEBDockerrunVersion":"1","Image":{"Name":"%s","Update":"true"},"Ports":[{"ContainerPort":"3000"}]}' $REPOSITORY_URI:$IMAGE_TAG > Dockerrun.aws.json
