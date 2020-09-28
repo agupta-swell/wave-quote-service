@@ -3,17 +3,17 @@ import * as AWS from 'aws-sdk';
 
 @Injectable()
 export class UploadImageService {
-  S3_BUCKET: string;
+  AWS_S3_BUCKET: string;
   AWS_REGION: string;
   constructor() {
     // Configure AWS with your access and secret key.
-    const { ACCESS_KEY_ID, SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET } = process.env;
+    const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET } = process.env;
 
     // Configure AWS to use promise
     AWS.config.setPromisesDependency(require('bluebird'));
-    AWS.config.update({ accessKeyId: ACCESS_KEY_ID, secretAccessKey: SECRET_ACCESS_KEY, region: AWS_REGION });
+    AWS.config.update({ accessKeyId: AWS_ACCESS_KEY_ID, secretAccessKey: AWS_SECRET_ACCESS_KEY, region: AWS_REGION });
 
-    this.S3_BUCKET = S3_BUCKET;
+    this.AWS_S3_BUCKET = AWS_S3_BUCKET;
     this.AWS_REGION = AWS_REGION;
   }
 
@@ -24,7 +24,7 @@ export class UploadImageService {
     const type = imageData.split(';')[0].split('/')[1];
 
     const params = {
-      Bucket: this.S3_BUCKET,
+      Bucket: this.AWS_S3_BUCKET,
       Key: `${new Date().getTime()}.${type}`, // type is not required
       Body: base64Data,
       ACL: 'public-read',
@@ -55,11 +55,11 @@ export class UploadImageService {
 
     // On around Line 41, you'll see how we stored the "Key"
     // see: https://gist.github.com/SylarRuby/b60eea29c1682519e422476cc5357b60
-    const splitOn = `https://${this.S3_BUCKET.toLowerCase()}.s3.${this.AWS_REGION.toLowerCase()}.amazonaws.com/`;
+    const splitOn = `https://${this.AWS_S3_BUCKET.toLowerCase()}.s3.${this.AWS_REGION.toLowerCase()}.amazonaws.com/`;
     const Key = url.split(splitOn)[1]; // The `${userId}.${type}`
 
     const params = {
-      Bucket: this.S3_BUCKET,
+      Bucket: this.AWS_S3_BUCKET,
       Key, // required
     };
 
