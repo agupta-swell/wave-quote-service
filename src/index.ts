@@ -27,9 +27,41 @@ async function bootstrap() {
       `[:date[clf]] :remote-addr HTTP/:http-version :method :url HTTP-Code: :status Size: :res[content-length] bytes - Response-time: :response-time ms`,
     ),
   );
-
   // app.useLogger(app.get(MyLogger));
   await app.listen(Number(process.env.PORT) || 3000, '0.0.0.0');
 }
 
-bootstrap().then(() => console.log('Service listening 👍:', process.env.PORT));
+bootstrap().then(() => {
+  console.log('Service listening 👍:', process.env.PORT);
+
+  const {
+    PORT,
+    MONGO_URL,
+    JWT_SECRET,
+    JWT_EXPIRE_TIME,
+    ACCESS_KEY_ID,
+    SECRET_ACCESS_KEY,
+    AWS_REGION,
+    S3_BUCKET,
+  } = process.env;
+  console.log('>>>>>>>>>>>>>>>>>>>', {
+    PORT,
+    MONGO_URL,
+    JWT_SECRET,
+    JWT_EXPIRE_TIME,
+    ACCESS_KEY_ID,
+    SECRET_ACCESS_KEY,
+    AWS_REGION,
+    S3_BUCKET,
+  });
+  console.table({
+    PORT,
+    MONGO_URL,
+    JWT_SECRET,
+    JWT_EXPIRE_TIME,
+    ACCESS_KEY_ID,
+    SECRET_ACCESS_KEY,
+    AWS_REGION,
+    S3_BUCKET,
+  });
+});
