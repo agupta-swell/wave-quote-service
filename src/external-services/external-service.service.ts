@@ -134,7 +134,7 @@ export class ExternalService {
     //   throw ApplicationException.ServiceError();
     // }
     const typicalBaseLine = {
-      data: JSON.parse(fs.readFileSync(path.join(__dirname, './mock-data/genabilityDataRes.json'), 'utf8')),
+      data: JSON.parse(fs.readFileSync(path.join(__dirname, '../assets/mock-data/genabilityDataRes.json'), 'utf8')),
     };
 
     const result = typicalBaseLine.data.results[0];
@@ -174,7 +174,9 @@ export class ExternalService {
     //   throw ApplicationException.ServiceError();
     // }
 
-    let tariff = { data: JSON.parse(fs.readFileSync(path.join(__dirname, './mock-data/tariffDataRes.json'), 'utf8')) };
+    let tariff = {
+      data: JSON.parse(fs.readFileSync(path.join(__dirname, '../assets/mock-data/tariffDataRes.json'), 'utf8')),
+    };
     return tariff.data.results;
   }
 
@@ -215,7 +217,9 @@ export class ExternalService {
     //   throw ApplicationException.ServiceError();
     // }
 
-    let tariff = { data: JSON.parse(fs.readFileSync(path.join(__dirname, './mock-data/costDataRes.json'), 'utf8')) };
+    let tariff = {
+      data: JSON.parse(fs.readFileSync(path.join(__dirname, '../assets/mock-data/costDataRes.json'), 'utf8')),
+    };
     return tariff.data.results;
   }
 }
