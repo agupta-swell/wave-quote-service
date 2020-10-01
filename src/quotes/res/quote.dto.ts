@@ -46,36 +46,19 @@ export class QuoteDto {
   transformDetailedQuote(props: Quote): DetailedQuote {
     const {
       detailed_quote: {
-        solar_design: { adders, panel_array, inverters, storage },
         system_production,
         utility_program,
-        quote_finance_product: {
-          incentive_details,
-          rebate_details,
-          finace_product,
-          initial_deposit,
-          project_discount_detail,
-        },
-        calculated_quote_details,
+        quote_finance_product: { incentive_details, rebate_details, finace_product },
       },
     } = props;
     return {
-      solarDesign: {
-        panelArray: panel_array.map(item => toCamelCase(item)),
-        inverters: inverters.map(item => toCamelCase(item)),
-        storage: storage.map(item => toCamelCase(item)),
-        adders: adders.map(item => toCamelCase(item)),
-      },
       systemProduction: toCamelCase(system_production),
       utilityProgram: utility_program,
       quoteFinanceProduct: {
         incentiveDetails: incentive_details.map(item => toCamelCase(item)),
         rebateDetails: rebate_details.map(item => toCamelCase(item)),
         finaceProduct: toCamelCase(finace_product),
-        initialDeposit: initial_deposit,
-        projectDiscountDetail: project_discount_detail.map(item => toCamelCase(item)),
       },
-      calculatedQuoteDetails: toCamelCase(calculated_quote_details),
-    };
+    } as any;
   }
 }
