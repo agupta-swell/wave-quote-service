@@ -101,6 +101,7 @@ export class SystemDesignService {
     if (!foundSystemDesign) {
       throw ApplicationException.EnitityNotFound(id);
     }
+    console.log('systemDesignDto.isSelected', systemDesignDto.isSelected);
 
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, identity) as any);
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
@@ -118,7 +119,6 @@ export class SystemDesignService {
         ]);
         systemDesign.setThumbnail(thumbnail);
       }
-
       if (typeof systemDesignDto.isSelected === 'boolean') {
         systemDesign.setIsSelected(systemDesignDto.isSelected);
       }
@@ -176,7 +176,6 @@ export class SystemDesignService {
     }
 
     const removedFalsy = pickBy(systemDesign, identity);
-
     await foundSystemDesign.updateOne(removedFalsy);
 
     return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedFalsy } as any));
@@ -198,6 +197,7 @@ export class SystemDesignService {
   ): Promise<OperationResult<Pagination<SystemDesignDto>>> {
     let query: any;
     switch (selected) {
+      case undefined:
       case '-1':
         query = this.systemDesignModel.find().limit(limit).skip(skip).exec();
         break;
