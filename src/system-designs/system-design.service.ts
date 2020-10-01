@@ -207,10 +207,13 @@ export class SystemDesignService {
       case '1':
         query = this.systemDesignModel.find({ is_selected: true }).limit(limit).skip(skip).exec();
         break;
+      default:
+        query = this.systemDesignModel.find().limit(limit).skip(skip).exec();
+        break;
     }
 
     const [systemDesigns, total] = await Promise.all([query, this.systemDesignModel.estimatedDocumentCount()]);
-    const data = systemDesigns.map(item => new SystemDesignDto(item.toObject()));
+    const data = (systemDesigns || []).map(item => new SystemDesignDto(item.toObject()));
     const result = {
       data,
       total,

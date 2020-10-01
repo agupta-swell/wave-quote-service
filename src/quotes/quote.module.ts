@@ -3,10 +3,26 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
+import { CashPaymentConfigSchema, CASH_PAYMENT_CONFIG } from './schemas/cash-payment-config.schema';
+import { LaborCostConfigSchema, LABOR_COST_CONFIG } from './schemas/labor-cost-config.schema';
 
 @Global()
 @Module({
-  imports: [MongooseModule.forFeature([{ name: QUOTE, schema: QuoteSchema, collection: 'v2_quotes' }])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: QUOTE, schema: QuoteSchema, collection: 'v2_quotes' },
+      {
+        name: LABOR_COST_CONFIG,
+        schema: LaborCostConfigSchema,
+        collection: 'labor_cost_config',
+      },
+      {
+        name: CASH_PAYMENT_CONFIG,
+        schema: CashPaymentConfigSchema,
+        collection: 'cash_payment_config',
+      },
+    ]),
+  ],
   controllers: [QuoteController],
   providers: [QuoteService],
   exports: [QuoteService],

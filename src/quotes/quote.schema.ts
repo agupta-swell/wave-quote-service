@@ -1,10 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import {
-  IRoofTopSchema,
-  ISystemProductionSchema,
-  RoofTopSchema,
-  SystemProductionSchema,
-} from 'src/system-designs/system-design.schema';
+import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { CreateQuoteDto } from './req/create-quote.dto';
 
@@ -44,11 +39,26 @@ const RebateDetailsSchema = new Schema<IRebateDetailsSchema>(
   { _id: false },
 );
 
+export interface IMonthlyLoanPaymentDetails {
+  month: number;
+  payment_amount: number;
+  current_interest: number;
+  principal: number;
+  principal_prepayment: number;
+}
+
+export interface IYearlyLoanPaymentDetails {
+  year: number;
+  monthly_payment_details: IMonthlyLoanPaymentDetails[];
+}
+
 export interface ILoanProductAttributes {
   upfront_payment: number;
   loan_amount: number;
   interest_rate: number;
   loan_term: number;
+  tax_credit_prepayment_amount: number;
+  willing_to_pay_through_ach: boolean;
   monthly_loan_payment: number;
   current_monthly_average_utility_payment: number;
   monthly_utility_payment: number;
@@ -56,11 +66,27 @@ export interface ILoanProductAttributes {
   net_customer_energy_spend: number;
   return_on_investment: number;
   pay_back_period: number;
+  current_price_per_kWh: number;
+  new_price_per_kWh: number;
+  yearly_loan_payment_details: IYearlyLoanPaymentDetails[];
+}
+
+export interface IMonthlyLeasePaymentDetails {
+  month: number;
+  payment_amount: number;
+  pv: number;
+  es: number;
+}
+
+export interface IYearlyLeasePaymentDetails {
+  year: number;
+  monthly_payment_details: IMonthlyLeasePaymentDetails[];
 }
 
 export interface ILeaseProductAttributes {
   upfront_payment: number;
   lease_amount: number;
+  rate_escalator: number;
   lease_term: number;
   monthly_lease_payment: number;
   current_monthly_average_utility_payment: number;
@@ -68,24 +94,41 @@ export interface ILeaseProductAttributes {
   monthly_energy_payment: number;
   grid_service_payment: number;
   net_customer_energy_spend: number;
-  return_on_investment: number;
-  pay_back_period: number;
+  current_price_per_kWh: number;
+  new_price_per_kWh: number;
+  yearly_lease_payment_details: IYearlyLeasePaymentDetails[];
+}
+
+export interface IMilestonePayment {
+  name: string;
+  amount: number;
+  percentage: number;
+}
+
+export interface ICashQuoteConfigSnapshot {
+  type: string;
+  config: {
+    amount: number;
+    percentage: number;
+  }[];
 }
 
 export interface ICashProductAttributes {
   upfront_payment: number;
   balance: number;
-  //FIXME: need to implement later
-  milestone_payment: any;
+  milestone_payment: IMilestonePayment[];
+  cash_quote_config_snapshot: ICashQuoteConfigSnapshot;
+  cash_quote_config_snapshot_date: Date;
   current_average_monthly_bill: number;
   new_average_monthly_bill: number;
+  current_price_per_kWh: number;
+  new_price_per_kWh: number;
 }
 
 export interface IFinaceProductSchema {
   product_type: string;
   funding_source_id: string;
   funding_source_name: string;
-  //FIXME: need to implement later
   product_attribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
 }
 
@@ -94,7 +137,6 @@ const FinaceProductSchema = new Schema<IFinaceProductSchema>(
     product_type: String,
     funding_source_id: String,
     funding_source_name: String,
-    //FIXME: need to implement later
     product_attribute: Schema.Types.Mixed,
   },
   { _id: false },
@@ -103,7 +145,7 @@ const FinaceProductSchema = new Schema<IFinaceProductSchema>(
 export interface IProjectDiscountDetailSchema {
   unit: string;
   unit_value: number;
-  applies_to: string;
+  exclude_adders: boolean;
   description: string;
 }
 
@@ -111,69 +153,120 @@ const ProjectDiscountDetailSchema = new Schema<IProjectDiscountDetailSchema>(
   {
     unit: String,
     unit_value: Number,
-    applies_to: String,
+    exclude_adders: Boolean,
     description: String,
   },
   { _id: false },
 );
 
 export interface IQuoteFinanceProductSchema {
-  incentive_details: IIncentiveDetailsSchema[];
-  rebate_details: IRebateDetailsSchema[];
   finace_product: IFinaceProductSchema;
-  initial_deposit: number;
-  project_discount_detail: IProjectDiscountDetailSchema[];
+  net_amount: number;
+  incentive_details: IIncentiveDetailsSchema[]; ///////////////////////////////////////////////
+  rebate_details: IRebateDetailsSchema[];
+  project_discount_details: IProjectDiscountDetailSchema[];
 }
 
 const QuoteFinanceProductSchema = new Schema<IQuoteFinanceProductSchema>(
   {
+    finace_product: FinaceProductSchema,
     incentive_details: [IncentiveDetailsSchema],
     rebate_details: [RebateDetailsSchema],
-    finace_product: FinaceProductSchema,
-    initial_deposit: Number,
-    project_discount_detail: [ProjectDiscountDetailSchema],
+    net_amount: Number,
+    project_discount_details: [ProjectDiscountDetailSchema],
   },
   { _id: false },
 );
 
-export interface ICalculatedQuoteDetailsSchema {
-  initial_cost: number;
-  cost_per_watt: number;
-  monthly_payment: number;
-  initial_payment: number;
-  solar_rate: number;
+export interface IUtilityProgramSchema {
+  utility_program_id: number;
+  utility_program_name: string;
 }
 
-const CalculatedQuoteDetailsSchema = new Schema<ICalculatedQuoteDetailsSchema>(
+const UtilityProgramSchema = new Schema<IUtilityProgramSchema>(
   {
-    initial_cost: Number,
-    cost_per_watt: Number,
-    monthly_payment: Number,
-    initial_payment: Number,
-    solar_rate: Number,
+    utility_program_id: Number,
+    utility_program_name: String,
   },
   { _id: false },
 );
 
+export interface ISavingsDetailsSchema {
+  year: number;
+  current_utility_bill: number;
+  new_utility_bill: number;
+  payment: number;
+  discount_and_incentives: number;
+  annual_saving: number;
+}
+
+const SavingsDetailsSchema = new Schema<ISavingsDetailsSchema>({
+  year: Number,
+  current_utility_bill: Number,
+  new_utility_bill: Number,
+  payment: Number,
+  discount_and_incentives: Number,
+  annual_saving: Number,
+});
+
+export interface IDiscountDetailSchema {
+  amount: number;
+  description: string;
+}
+
+const DiscountDetailSchema = new Schema<IDiscountDetailSchema>({
+  amount: Number,
+  description: String,
+});
+
+export interface ILaborCostSchema {
+  labor_cost_data_snapshot: { calculation_type: string; unit: string };
+  labor_cost_snapshot_date: Date;
+  cost: number;
+  markup: number;
+  discount_details: IDiscountDetailSchema[];
+  netCost: number;
+}
+
+const LaborCostSchema = new Schema<ILaborCostSchema>({
+  labor_cost_data_snapshot: new Schema({ calculation_type: String, unit: String }),
+  labor_cost_snapshot_date: Date,
+  cost: Number,
+  markup: Number,
+  discount_details: [DiscountDetailSchema],
+  netCost: Number,
+});
+
+// TODO: implement tomorrow
+export interface IQuoteCostBuildupSchema {
+  overall_markup: number;
+  total_product_cost: number;
+  labor_cost: ILaborCostSchema;
+  gross_amount: number;
+}
+
+const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
+  overall_markup: Number,
+  total_product_cost: Number,
+  labor_cost: LaborCostSchema,
+  gross_amount: Number,
+});
+
 export interface IDetailedQuoteSchema {
-  quote_id?: string;
-  solar_design: IRoofTopSchema;
   system_production: ISystemProductionSchema;
-  //FIXME: need to implement later
-  utility_program: any;
-  quote_finance_product: IQuoteFinanceProductSchema;
-  calculated_quote_details: ICalculatedQuoteDetailsSchema;
+  utility_program: IUtilityProgramSchema;
+  quote_finance_product: IQuoteFinanceProductSchema; //////////////////////////////////////////
+  savings_details: ISavingsDetailsSchema[];
+  quote_cost_buildup: IQuoteCostBuildupSchema;
 }
 
 const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
   {
-    quote_id: String,
-    solar_design: RoofTopSchema,
     system_production: SystemProductionSchema,
-    //FIXME: need to implement later
-    utility_program: Schema.Types.Mixed,
+    utility_program: UtilityProgramSchema,
     quote_finance_product: QuoteFinanceProductSchema,
-    calculated_quote_details: CalculatedQuoteDetailsSchema,
+    savings_details: [SavingsDetailsSchema],
+    quoteCostBuildup: QuoteCostBuildupSchema,
   },
   { _id: false },
 );
@@ -222,22 +315,15 @@ export class QuoteModel {
       calculatedQuoteDetails,
     } = data;
     return {
-      solar_design: {
-        panel_array: panelArray.map(item => toSnakeCase(item)),
-        inverters: inverters.map(item => toSnakeCase(item)),
-        storage: storage.map(item => toSnakeCase(item)),
-        adders: adders.map(item => toSnakeCase(item)),
-      },
       system_production: toSnakeCase(systemProduction),
       utility_program: utilityProgram,
       quote_finance_product: {
         incentive_details: incentiveDetails.map(item => toSnakeCase(item)),
         rebate_details: rebateDetails.map(item => toSnakeCase(item)),
         finace_product: toSnakeCase(finaceProduct),
-        initial_deposit: initialDeposit,
-        project_discount_detail: projectDiscountDetail.map(item => toSnakeCase(item)),
+        net_amount: initialDeposit,
+        project_discount_details: projectDiscountDetail.map(item => toSnakeCase(item)),
       },
-      calculated_quote_details: toSnakeCase(calculatedQuoteDetails),
-    };
+    } as any;
   }
 }
