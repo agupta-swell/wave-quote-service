@@ -122,7 +122,7 @@ export class QuoteFinanceProductDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  initialDeposit: number;
+  netAmount: number;
 
   @ApiProperty({ type: ProjectDiscountDetailDto, isArray: true })
   @IsNotEmpty()

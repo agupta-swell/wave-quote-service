@@ -30,7 +30,7 @@ export interface IProductSchema {
   };
 }
 
-const ProductSchema = new Schema<IProductSchema>(
+export const ProductSchema = new Schema<IProductSchema>(
   {
     name: String,
     type: String,
@@ -164,7 +164,7 @@ export interface IAdderModel {
   modified_at: Date;
 }
 
-const AdderModelSchema = new Schema<IAdderModel>(
+export const AdderModelSchema = new Schema<IAdderModel>(
   {
     adder: String,
     price: Number,

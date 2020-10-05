@@ -1,5 +1,12 @@
 import { Document, Schema } from 'mongoose';
-import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
+import {
+  AdderModelSchema,
+  IAdderModel,
+  IProductSchema,
+  ISystemProductionSchema,
+  ProductSchema,
+  SystemProductionSchema,
+} from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { CreateQuoteDto } from './req/create-quote.dto';
 
@@ -160,7 +167,7 @@ const ProjectDiscountDetailSchema = new Schema<IProjectDiscountDetailSchema>(
 );
 
 export interface IQuoteFinanceProductSchema {
-  finace_product: IFinaceProductSchema;
+  finance_product: IFinaceProductSchema;
   net_amount: number;
   incentive_details: IIncentiveDetailsSchema[]; ///////////////////////////////////////////////
   rebate_details: IRebateDetailsSchema[];
@@ -169,7 +176,7 @@ export interface IQuoteFinanceProductSchema {
 
 const QuoteFinanceProductSchema = new Schema<IQuoteFinanceProductSchema>(
   {
-    finace_product: FinaceProductSchema,
+    finance_product: FinaceProductSchema,
     incentive_details: [IncentiveDetailsSchema],
     rebate_details: [RebateDetailsSchema],
     net_amount: Number,
@@ -200,45 +207,136 @@ export interface ISavingsDetailsSchema {
   annual_saving: number;
 }
 
-const SavingsDetailsSchema = new Schema<ISavingsDetailsSchema>({
-  year: Number,
-  current_utility_bill: Number,
-  new_utility_bill: Number,
-  payment: Number,
-  discount_and_incentives: Number,
-  annual_saving: Number,
-});
+const SavingsDetailsSchema = new Schema<ISavingsDetailsSchema>(
+  {
+    year: Number,
+    current_utility_bill: Number,
+    new_utility_bill: Number,
+    payment: Number,
+    discount_and_incentives: Number,
+    annual_saving: Number,
+  },
+  { _id: false },
+);
 
 export interface IDiscountDetailSchema {
   amount: number;
   description: string;
 }
 
-const DiscountDetailSchema = new Schema<IDiscountDetailSchema>({
-  amount: Number,
-  description: String,
-});
+const DiscountDetailSchema = new Schema<IDiscountDetailSchema>(
+  {
+    amount: Number,
+    description: String,
+  },
+  { _id: false },
+);
 
-export interface ILaborCostSchema {
-  labor_cost_data_snapshot: { calculation_type: string; unit: string };
-  labor_cost_snapshot_date: Date;
+export interface IQuoteCostCommonSchema {
   cost: number;
   markup: number;
   discount_details: IDiscountDetailSchema[];
   netCost: number;
 }
 
-const LaborCostSchema = new Schema<ILaborCostSchema>({
-  labor_cost_data_snapshot: new Schema({ calculation_type: String, unit: String }),
-  labor_cost_snapshot_date: Date,
-  cost: Number,
-  markup: Number,
-  discount_details: [DiscountDetailSchema],
-  netCost: Number,
-});
+export interface ILaborCostSchema extends IQuoteCostCommonSchema {
+  labor_cost_data_snapshot: { calculation_type: string; unit: string };
+  labor_cost_snapshot_date: Date;
+}
 
-// TODO: implement tomorrow
+const LaborCostSchema = new Schema<ILaborCostSchema>(
+  {
+    labor_cost_data_snapshot: new Schema({ calculation_type: String, unit: String }),
+    labor_cost_snapshot_date: Date,
+    cost: Number,
+    markup: Number,
+    discount_details: [DiscountDetailSchema],
+    netCost: Number,
+  },
+  { _id: false },
+);
+
+export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  panel_model_data_snapshot: IProductSchema;
+  panel_model_snapshot_date: Date;
+  quantity: number;
+}
+
+const PanelQuoteDetailsSchema = new Schema<IPanelQuoteDetailsSchema>(
+  {
+    panel_model_data_snapshot: ProductSchema,
+    panel_model_snapshot_date: Date,
+    quantity: Number,
+    cost: Number,
+    markup: Number,
+    discount_details: [DiscountDetailSchema],
+    netCost: Number,
+  },
+  { _id: false },
+);
+
+export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  inverter_model_data_snapshot: IProductSchema;
+  inverter_model_snapshot_date: Date;
+  quantity: number;
+}
+
+const InverterQuoteDetailsSchema = new Schema<IInverterQuoteDetailsSchema>(
+  {
+    inverter_model_data_snapshot: ProductSchema,
+    inverter_model_snapshot_date: Date,
+    quantity: Number,
+    cost: Number,
+    markup: Number,
+    discount_details: [DiscountDetailSchema],
+    netCost: Number,
+  },
+  { _id: false },
+);
+
+export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  storage_model_data_snapshot: IProductSchema;
+  storage_model_snapshot_date: Date;
+  quantity: number;
+}
+
+const StorageQuoteDetailsSchema = new Schema<IStorageQuoteDetailsSchema>(
+  {
+    storage_model_data_snapshot: ProductSchema,
+    storage_model_snapshot_date: Date,
+    quantity: Number,
+    cost: Number,
+    markup: Number,
+    discount_details: [DiscountDetailSchema],
+    netCost: Number,
+  },
+  { _id: false },
+);
+
+export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  adder_model_data_snapshot: IAdderModel;
+  adder_model_snapshot_date: Date;
+  quantity: number;
+}
+
+const AdderQuoteDetailsSchema = new Schema<IAdderQuoteDetailsSchema>(
+  {
+    adder_model_data_snapshot: AdderModelSchema,
+    adder_model_snapshot_date: Date,
+    quantity: Number,
+    cost: Number,
+    markup: Number,
+    discount_details: [DiscountDetailSchema],
+    netCost: Number,
+  },
+  { _id: false },
+);
+
 export interface IQuoteCostBuildupSchema {
+  panel_quote_details: IPanelQuoteDetailsSchema[];
+  inverter_quote_details: IInverterQuoteDetailsSchema[];
+  storage_quote_details: IStorageQuoteDetailsSchema[];
+  adder_quote_details: IAdderQuoteDetailsSchema[];
   overall_markup: number;
   total_product_cost: number;
   labor_cost: ILaborCostSchema;
@@ -246,6 +344,10 @@ export interface IQuoteCostBuildupSchema {
 }
 
 const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
+  panel_quote_details: [PanelQuoteDetailsSchema],
+  inverter_quote_details: [InverterQuoteDetailsSchema],
+  storage_quote_details: [StorageQuoteDetailsSchema],
+  adder_quote_details: [AdderQuoteDetailsSchema],
   overall_markup: Number,
   total_product_cost: Number,
   labor_cost: LaborCostSchema,
@@ -255,7 +357,7 @@ const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
 export interface IDetailedQuoteSchema {
   system_production: ISystemProductionSchema;
   utility_program: IUtilityProgramSchema;
-  quote_finance_product: IQuoteFinanceProductSchema; //////////////////////////////////////////
+  quote_finance_product: IQuoteFinanceProductSchema;
   savings_details: ISavingsDetailsSchema[];
   quote_cost_buildup: IQuoteCostBuildupSchema;
 }
@@ -266,7 +368,7 @@ const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
     utility_program: UtilityProgramSchema,
     quote_finance_product: QuoteFinanceProductSchema,
     savings_details: [SavingsDetailsSchema],
-    quoteCostBuildup: QuoteCostBuildupSchema,
+    quote_cost_buildup: QuoteCostBuildupSchema,
   },
   { _id: false },
 );
@@ -299,31 +401,52 @@ export class QuoteModel {
   quote_model_type: string;
   detailed_quote: IDetailedQuoteSchema;
 
-  constructor(data: CreateQuoteDto) {
+  constructor(data: CreateQuoteDto, detailedQuote: any) {
     this.opportunity_id = data.opportunityId;
     this.system_design_id = data.systemDesignId;
     this.quote_model_type = 'detailed';
-    this.detailed_quote = this.transformDetailedQuote(data);
+    this.detailed_quote = this.transformDetailedQuote(detailedQuote);
   }
 
-  transformDetailedQuote(data: CreateQuoteDto): IDetailedQuoteSchema {
+  transformDetailedQuote(data: any): IDetailedQuoteSchema {
+    console.log('>>>>>>>>>>>>>>>>', 'detailedQuote', data);
     const {
-      solarDesign: { adders, inverters, storage, panelArray },
       systemProduction,
       utilityProgram,
-      quoteFinanceProduct: { initialDeposit, incentiveDetails, rebateDetails, projectDiscountDetail, finaceProduct },
-      calculatedQuoteDetails,
+      quoteFinanceProduct: { netAmount, incentiveDetails, rebateDetails, projectDiscountDetails, financeProduct },
+      savingsDetails,
+      quoteCostBuildup: {
+        panelQuoteDetails,
+        inverterQuoteDetails,
+        storageQuoteDetails,
+        adderQuoteDetails,
+        overallMarkup,
+        totalProductCost,
+        laborCost,
+        grossAmount,
+      },
     } = data;
     return {
-      system_production: toSnakeCase(systemProduction),
+      system_production: systemProduction,
       utility_program: utilityProgram,
       quote_finance_product: {
         incentive_details: incentiveDetails.map(item => toSnakeCase(item)),
         rebate_details: rebateDetails.map(item => toSnakeCase(item)),
-        finace_product: toSnakeCase(finaceProduct),
-        net_amount: initialDeposit,
-        project_discount_details: projectDiscountDetail.map(item => toSnakeCase(item)),
+        finance_product: toSnakeCase(financeProduct),
+        net_amount: netAmount,
+        project_discount_details: projectDiscountDetails.map(item => toSnakeCase(item)),
       },
-    } as any;
+      savings_details: savingsDetails.map(item => toSnakeCase(item)),
+      quote_cost_buildup: {
+        panel_quote_details: panelQuoteDetails.map(panelQuote => toSnakeCase(panelQuote)),
+        inverter_quote_details: inverterQuoteDetails.map(inverterQuote => toSnakeCase(inverterQuote)),
+        storage_quote_details: storageQuoteDetails.map(storageQuote => toSnakeCase(storageQuote)),
+        adder_quote_details: adderQuoteDetails.map(adderQuote => toSnakeCase(adderQuote)),
+        overall_markup: overallMarkup,
+        total_product_cost: totalProductCost,
+        labor_cost: toSnakeCase(laborCost),
+        gross_amount: grossAmount,
+      } as IQuoteCostBuildupSchema,
+    };
   }
 }

@@ -2,8 +2,11 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthencationModule } from 'src/authentication/authentication.module';
+import { CashPaymentConfigModule } from 'src/cash-payment-configs/cash-payment-config.module';
+import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { RoleModule } from 'src/roles/role.module';
 import { UserModule } from 'src/users/user.module';
+import { UtilityProgramModule } from 'src/utility-programs/utility-program.module';
 import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from '../utilities/utility.module';
 import { AdderConfigModule } from './../adder-config/adder-config.module';
@@ -27,6 +30,9 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UtilityModule,
     AdderConfigModule,
     QuoteModule,
+    UtilityProgramModule,
+    FundingSourceModule,
+    CashPaymentConfigModule,
   ],
 })
 export class AppModule {
