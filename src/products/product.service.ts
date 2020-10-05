@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
+import { isObjectId } from 'src/utils/common';
 import { OperationResult, Pagination } from '../app/common';
 import { Product, PRODUCT } from './product.schema';
 import { ProductDto } from './res/product.dto';
@@ -28,7 +29,7 @@ export class ProductService {
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
   async getDetail(id: string) {
-    const product = await this.productModel.findById(id);
+    const product = await this.productModel.findById(isObjectId(id) ? Types.ObjectId(id) : id);
     return product;
   }
 }
