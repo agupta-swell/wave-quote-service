@@ -285,6 +285,7 @@ export class SystemDesignModel {
 
   constructor(systemDesign: CreateSystemDesignDto) {
     this.name = systemDesign.name;
+    this.is_selected = systemDesign.isSelected;
     this.latitude = systemDesign.latitude;
     this.longtitude = systemDesign.longtitude;
     this.opportunity_id = systemDesign.opportunityId;
