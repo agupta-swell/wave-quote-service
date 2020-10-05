@@ -58,7 +58,7 @@ export class QuoteDto {
   savingsDetails: SavingsDetailDto[];
 
   constructor(props: Quote) {
-    this.id = props.id;
+    this.id = props._id;
     this.opportunityId = props.opportunity_id;
     this.systemDesignId = props.system_design_id;
     this.systemProduction = toCamelCase(props.detailed_quote.system_production);

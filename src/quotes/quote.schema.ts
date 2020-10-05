@@ -409,7 +409,6 @@ export class QuoteModel {
   }
 
   transformDetailedQuote(data: any): IDetailedQuoteSchema {
-    console.log('>>>>>>>>>>>>>>>>', 'detailedQuote', data);
     const {
       systemProduction,
       utilityProgram,
