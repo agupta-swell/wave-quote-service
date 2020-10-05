@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { FundingSourceController } from './funding-source.controller';
 import { FundingSourceSchema, FUNDING_SOURCE } from './funding-source.schema';
 import { FundingSourceService } from './funding-source.service';
 
@@ -14,7 +15,7 @@ import { FundingSourceService } from './funding-source.service';
       },
     ]),
   ],
-  controllers: [],
+  controllers: [FundingSourceController],
   providers: [FundingSourceService],
   exports: [FundingSourceService],
 })

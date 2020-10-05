@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { flatten, identity, pickBy } from 'lodash';
+import { flatten, pickBy } from 'lodash';
 import { Model, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { AdderConfigService } from '../adder-config/adder-config.service';
@@ -101,16 +101,20 @@ export class SystemDesignService {
     if (!foundSystemDesign) {
       throw ApplicationException.EnitityNotFound(id);
     }
-    console.log('systemDesignDto.isSelected', systemDesignDto.isSelected);
 
-    const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, identity) as any);
+    const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
+
+    if (systemDesignDto.name) {
+      systemDesign.name = systemDesignDto.name;
+    }
+
+    if (systemDesignDto.isSelected) {
+      systemDesign.setIsSelected(systemDesignDto.isSelected);
+    }
+
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
-
-      if (systemDesignDto.name) {
-        systemDesign.name = systemDesignDto.name;
-      }
 
       if (systemDesignDto.thumbnail) {
         const [thumbnail] = await Promise.all([
@@ -175,10 +179,10 @@ export class SystemDesignService {
       }
     }
 
-    const removedFalsy = pickBy(systemDesign, identity);
-    await foundSystemDesign.updateOne(removedFalsy);
+    const removedUndefined = pickBy(systemDesign, item => typeof item !== 'undefined');
+    await foundSystemDesign.updateOne(removedUndefined);
 
-    return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedFalsy } as any));
+    return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedUndefined } as any));
   }
 
   async delete(id: string, opportunityId: string): Promise<OperationResult<string>> {
