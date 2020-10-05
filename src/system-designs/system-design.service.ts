@@ -225,4 +225,10 @@ export class SystemDesignService {
     const systemDesign = await this.systemDesignModel.findById(id);
     return OperationResult.ok(new SystemDesignDto(systemDesign.toObject()));
   }
+
+  //  ->>>>>>>>> INTERNAL <<<<<<<<<-
+  async getOneById(id: string): Promise<SystemDesign> {
+    const systemDesign = await this.systemDesignModel.findById(id);
+    return systemDesign.toObject();
+  }
 }

@@ -30,7 +30,7 @@ export interface IProductSchema {
   };
 }
 
-const ProductSchema = new Schema<IProductSchema>(
+export const ProductSchema = new Schema<IProductSchema>(
   {
     name: String,
     type: String,
@@ -56,18 +56,6 @@ const DiscountDetailsSchema = new Schema<IDiscountDetails>({
   description: String,
 });
 
-export interface IQuoteData {
-  cost: number;
-  markup: number;
-  discount_details: IDiscountDetails;
-}
-
-const QuoteDataSchema = new Schema<IQuoteData>({
-  cost: Number,
-  markup: Number,
-  discount_details: DiscountDetailsSchema,
-});
-
 export interface ISolarPanelArraySchema {
   array_id: Types.ObjectId;
   primary_orientation_side: number;
@@ -85,7 +73,6 @@ export interface ISolarPanelArraySchema {
   number_of_panels: number;
   panel_model_data_snapshot: IProductSchema;
   panel_model_snapshot_date: Date;
-  panel_quote: IQuoteData;
 }
 
 const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
@@ -106,7 +93,6 @@ const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
     number_of_panels: Number,
     panel_model_data_snapshot: ProductSchema,
     panel_model_snapshot_date: Date,
-    panel_quote: QuoteDataSchema,
   },
   { _id: false },
 );
@@ -117,7 +103,6 @@ export interface IInverterSchema {
   inverter_model_data_snapshot: IProductSchema;
   inverter_model_snapshot_date: Date;
   quantity: number;
-  inverter_quote: IQuoteData;
 }
 
 const InverterSchema = new Schema<IInverterSchema>(
@@ -127,7 +112,6 @@ const InverterSchema = new Schema<IInverterSchema>(
     inverter_model_data_snapshot: ProductSchema,
     inverter_model_snapshot_date: Date,
     quantity: Number,
-    inverter_quote: QuoteDataSchema,
   },
   { _id: false },
 );
@@ -138,7 +122,6 @@ export interface IStorageSchema {
   storage_model_id: string;
   storage_model_data_snapshot: IProductSchema;
   storage_model_snapshot_date: Date;
-  storage_quote: IQuoteData;
   reserve: number;
   purpose: string;
 }
@@ -150,7 +133,6 @@ const StorageSchema = new Schema<IStorageSchema>(
     storage_model_id: String,
     storage_model_data_snapshot: ProductSchema,
     storage_model_snapshot_date: Date,
-    storage_quote: QuoteDataSchema,
     reserve: Number,
     purpose: String,
   },
@@ -164,7 +146,7 @@ export interface IAdderModel {
   modified_at: Date;
 }
 
-const AdderModelSchema = new Schema<IAdderModel>(
+export const AdderModelSchema = new Schema<IAdderModel>(
   {
     adder: String,
     price: Number,
@@ -180,7 +162,6 @@ export interface IAdderSchema {
   adder_id: string;
   adder_model_data_snapshot: IAdderModel;
   adder_model_snapshot_date: Date;
-  adder_quote: IQuoteData;
 }
 
 const AdderSchema = new Schema<IAdderSchema>(
@@ -190,7 +171,6 @@ const AdderSchema = new Schema<IAdderSchema>(
     adder_id: String,
     adder_model_data_snapshot: AdderModelSchema,
     adder_model_snapshot_date: Date,
-    adder_quote: QuoteDataSchema,
   },
   { _id: false },
 );

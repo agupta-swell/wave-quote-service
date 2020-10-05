@@ -65,6 +65,9 @@ export class ProjectDiscountDetailDto {
 
   @ApiProperty()
   description: string;
+
+  @ApiProperty()
+  excludeAdders: boolean;
 }
 
 export class QuoteFinanceProductDto {
@@ -78,8 +81,8 @@ export class QuoteFinanceProductDto {
   finaceProduct: FinaceProductDto;
 
   @ApiProperty()
-  initialDeposit: number;
+  netAmount: number;
 
   @ApiProperty({ type: ProjectDiscountDetailDto, isArray: true })
-  projectDiscountDetail: ProjectDiscountDetailDto[];
+  projectDiscountDetails: ProjectDiscountDetailDto[];
 }
