@@ -86,7 +86,7 @@ export class QuoteService {
       },
       quoteFinanceProduct: {
         financeProduct: {
-          financeProduct: fundingSource.type,
+          productType: fundingSource.type,
           fundingSourceId: fundingSource.id,
           fundingSourceName: fundingSource.name,
           productAttribute: await this.createProductAttribute(fundingSource.type),

@@ -48,7 +48,7 @@ export class RebateDetailsDto {
 }
 
 @ApiExtraModels(LoanProductAttributesDto, CashProductAttributesDto, LeaseProductAttributesDto)
-export class FinaceProductDto {
+export class FinanceProductDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
@@ -113,11 +113,11 @@ export class QuoteFinanceProductDto {
   @Type(() => RebateDetailsDto)
   rebateDetails: RebateDetailsDto[];
 
-  @ApiProperty({ type: FinaceProductDto })
+  @ApiProperty({ type: FinanceProductDto })
   @IsNotEmpty()
   @ValidateNested()
-  @Type(() => FinaceProductDto)
-  finaceProduct: FinaceProductDto;
+  @Type(() => FinanceProductDto)
+  financeProduct: FinanceProductDto;
 
   @ApiProperty()
   @IsNotEmpty()

@@ -83,7 +83,7 @@ export class QuoteDto {
 
   transformQuoteFinanceProduct(quoteFinanceProduct: IQuoteFinanceProductSchema): QuoteFinanceProductDto {
     return {
-      finaceProduct: toCamelCase(quoteFinanceProduct.finance_product),
+      financeProduct: toCamelCase(quoteFinanceProduct.finance_product),
       netAmount: quoteFinanceProduct.net_amount,
       incentiveDetails: quoteFinanceProduct.incentive_details.map(item => toCamelCase(item)),
       rebateDetails: quoteFinanceProduct.rebate_details.map(item => toCamelCase(item)),

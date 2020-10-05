@@ -132,14 +132,14 @@ export interface ICashProductAttributes {
   new_price_per_kWh: number;
 }
 
-export interface IFinaceProductSchema {
+export interface IFinanceProductSchema {
   product_type: string;
   funding_source_id: string;
   funding_source_name: string;
   product_attribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
 }
 
-const FinaceProductSchema = new Schema<IFinaceProductSchema>(
+const FinanceProductSchema = new Schema<IFinanceProductSchema>(
   {
     product_type: String,
     funding_source_id: String,
@@ -167,7 +167,7 @@ const ProjectDiscountDetailSchema = new Schema<IProjectDiscountDetailSchema>(
 );
 
 export interface IQuoteFinanceProductSchema {
-  finance_product: IFinaceProductSchema;
+  finance_product: IFinanceProductSchema;
   net_amount: number;
   incentive_details: IIncentiveDetailsSchema[]; ///////////////////////////////////////////////
   rebate_details: IRebateDetailsSchema[];
@@ -176,7 +176,7 @@ export interface IQuoteFinanceProductSchema {
 
 const QuoteFinanceProductSchema = new Schema<IQuoteFinanceProductSchema>(
   {
-    finance_product: FinaceProductSchema,
+    finance_product: FinanceProductSchema,
     incentive_details: [IncentiveDetailsSchema],
     rebate_details: [RebateDetailsSchema],
     net_amount: Number,

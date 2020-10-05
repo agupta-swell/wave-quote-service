@@ -30,7 +30,7 @@ export class RebateDetailsDto {
 }
 
 @ApiExtraModels(LoanProductAttributesDto, CashProductAttributesDto, LeaseProductAttributesDto)
-export class FinaceProductDto {
+export class FinanceProductDto {
   @ApiProperty()
   productType: string;
 
@@ -77,8 +77,8 @@ export class QuoteFinanceProductDto {
   @ApiProperty({ type: RebateDetailsDto, isArray: true })
   rebateDetails: RebateDetailsDto[];
 
-  @ApiProperty({ type: FinaceProductDto })
-  finaceProduct: FinaceProductDto;
+  @ApiProperty({ type: FinanceProductDto })
+  financeProduct: FinanceProductDto;
 
   @ApiProperty()
   netAmount: number;
