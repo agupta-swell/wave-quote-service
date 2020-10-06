@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
 import { toCamelCase } from 'src/utils/transformProperties';
+import { Pagination, ServiceResponse } from '../../app/common';
 import { IQuoteCostBuildupSchema, IQuoteFinanceProductSchema, ISavingsDetailsSchema, Quote } from './../quote.schema';
 import { QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
 
@@ -94,4 +95,31 @@ export class QuoteDto {
   transformSavingsDetails(savingsDetails: ISavingsDetailsSchema[]): SavingsDetailDto[] {
     return savingsDetails.map(item => toCamelCase(item));
   }
+}
+
+class PaginationRes implements Pagination<QuoteDto> {
+  @ApiProperty({
+    type: QuoteDto,
+    isArray: true,
+  })
+  data: QuoteDto[];
+
+  @ApiProperty()
+  total: number;
+}
+
+export class QuoteListRes implements ServiceResponse<PaginationRes> {
+  @ApiProperty()
+  status: string;
+
+  @ApiProperty({ type: PaginationRes })
+  data: PaginationRes;
+}
+
+export class QuoteRes implements ServiceResponse<QuoteDto> {
+  @ApiProperty()
+  status: string;
+
+  @ApiProperty({ type: QuoteDto })
+  data: QuoteDto;
 }

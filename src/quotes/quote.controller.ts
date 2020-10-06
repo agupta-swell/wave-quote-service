@@ -1,9 +1,9 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { ServiceResponse } from 'src/app/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Pagination, ServiceResponse } from 'src/app/common';
 import { QuoteService } from './quote.service';
 import { CreateQuoteDto } from './req/create-quote.dto';
-import { QuoteDto } from './res/quote.dto';
+import { QuoteDto, QuoteListRes, QuoteRes } from './res/quote.dto';
 
 @ApiTags('Quote')
 @Controller('/quotes')
@@ -11,8 +11,30 @@ export class QuoteController {
   constructor(private quoteService: QuoteService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create quote' })
+  @ApiOkResponse({ type: QuoteRes })
   async create(@Body() data: CreateQuoteDto): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.createQuote(data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all quotes' })
+  @ApiOkResponse({ type: QuoteListRes })
+  async getListQuotes(
+    @Query('limit') limit: string,
+    @Query('skip') skip: string,
+    @Query('systemDesignId') systemDesignId: string,
+  ): Promise<ServiceResponse<Pagination<QuoteDto>>> {
+    const res = await this.quoteService.getAllQuotes(Number(limit || 0), Number(skip || 0), systemDesignId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/:quoteId')
+  @ApiOperation({ summary: 'Get detailed quote' })
+  @ApiOkResponse({ type: QuoteListRes })
+  async getDetails(@Param('quoteId') quoteId: string): Promise<ServiceResponse<QuoteDto>> {
+    const res = await this.quoteService.getDetailQuote(quoteId);
     return ServiceResponse.fromResult(res);
   }
 }

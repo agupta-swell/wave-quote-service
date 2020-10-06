@@ -1,10 +1,11 @@
+import { ApplicationException } from './../app/app.exception';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy } from 'lodash';
 import { Model } from 'mongoose';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { UtilityProgramService } from 'src/utility-programs/utility-program.service';
-import { OperationResult } from './../app/common';
+import { OperationResult, Pagination } from './../app/common';
 import { CashPaymentConfigService } from './../cash-payment-configs/cash-payment-config.service';
 import { SystemDesignService } from './../system-designs/system-design.service';
 import { FINANCE_PRODUCT_TYPE } from './constants';
@@ -193,6 +194,31 @@ export class QuoteService {
         };
         return template;
     }
+  }
+
+  async getAllQuotes(
+    limit: number,
+    skip: number,
+    systemDesignId: string,
+  ): Promise<OperationResult<Pagination<QuoteDto>>> {
+    const [quotes, total] = await Promise.all([
+      this.quoteModel.find({ system_design_id: systemDesignId }).limit(limit).skip(skip).exec(),
+      this.quoteModel.estimatedDocumentCount(),
+    ]);
+    const data = (quotes || []).map(item => new QuoteDto(item.toObject()));
+    const result = {
+      data,
+      total,
+    };
+    return OperationResult.ok(result);
+  }
+
+  async getDetailQuote(quoteId: string): Promise<OperationResult<QuoteDto>> {
+    const quote = await this.quoteModel.findById(quoteId);
+    if (!quote) {
+      throw ApplicationException.EnitityNotFound(quoteId);
+    }
+    return OperationResult.ok(new QuoteDto(quote.toObject()));
   }
 
   groupData(data: any[], field: string) {
