@@ -1,8 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ORIENTATION } from '../../constants';
 import { ProductDto } from './product.dto';
-import { LatLng } from '../system-design.dto';
-import { QuoteDataDto } from './quote-data.dto';
+
+export class LatLng {
+  @ApiProperty()
+  lat: Number;
+
+  @ApiProperty()
+  lng: Number;
+}
 
 export class SolarPanelArrayDto {
   @ApiProperty()
@@ -14,8 +20,20 @@ export class SolarPanelArrayDto {
   @ApiProperty({ isArray: true, type: LatLng })
   boundPolygon: LatLng[];
 
-  @ApiProperty({ isArray: true, type: [LatLng] })
-  panels: [LatLng][];
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          lat: { type: 'number' },
+          lng: { type: 'number' },
+        },
+      },
+    },
+  })
+  panels: LatLng[][];
 
   @ApiPropertyOptional()
   setbacks: Map<string, number>;
@@ -23,7 +41,19 @@ export class SolarPanelArrayDto {
   @ApiPropertyOptional({ isArray: true, type: LatLng })
   setbacksPolygon: LatLng[];
 
-  @ApiPropertyOptional({ isArray: true, type: LatLng })
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          lat: { type: 'number' },
+          lng: { type: 'number' },
+        },
+      },
+    },
+  })
   keepouts: LatLng[][];
 
   @ApiProperty()
@@ -35,7 +65,7 @@ export class SolarPanelArrayDto {
   @ApiPropertyOptional()
   rowSpacing: number;
 
-  @ApiProperty()
+  @ApiProperty({ type: ProductDto })
   panelModelDataSnapshot: ProductDto;
 
   @ApiProperty()
@@ -43,7 +73,4 @@ export class SolarPanelArrayDto {
 
   @ApiProperty()
   numberOfPanels: Number;
-
-  @ApiProperty({ type: QuoteDataDto })
-  panelQuote: QuoteDataDto;
 }

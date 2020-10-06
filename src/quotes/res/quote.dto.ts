@@ -34,7 +34,7 @@ class SavingsDetailDto {
 
 export class QuoteDto {
   @ApiProperty()
-  id: string;
+  quoteId: string;
 
   @ApiProperty()
   opportunityId: string;
@@ -58,7 +58,7 @@ export class QuoteDto {
   savingsDetails: SavingsDetailDto[];
 
   constructor(props: Quote) {
-    this.id = props._id;
+    this.quoteId = props._id;
     this.opportunityId = props.opportunity_id;
     this.systemDesignId = props.system_design_id;
     this.systemProduction = toCamelCase(props.detailed_quote.system_production);

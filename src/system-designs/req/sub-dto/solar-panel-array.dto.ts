@@ -1,8 +1,7 @@
-import { IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ORIENTATION } from '../../constants';
-import { QuoteDataDto } from './quote-data.dto';
 import { Type } from 'class-transformer';
+import { IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested } from 'class-validator';
+import { ORIENTATION } from '../../constants';
 
 class LatLng {
   @ApiProperty()
@@ -100,9 +99,4 @@ export class SolarPanelArrayDto1 {
   @IsNumber()
   @IsPositive()
   numberOfPanels: Number;
-
-  @ApiProperty({ type: QuoteDataDto })
-  @ValidateNested()
-  @Type(() => QuoteDataDto)
-  panelQuote: QuoteDataDto;
 }

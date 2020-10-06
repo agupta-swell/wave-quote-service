@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { QuoteDataDto } from './quote-data.dto';
 
 class Adder {
   @ApiProperty()
@@ -33,7 +32,4 @@ export class AdderDto {
 
   @ApiProperty()
   adderModelSnapshotDate: Date;
-
-  @ApiProperty({ type: QuoteDataDto })
-  adderQuote: QuoteDataDto;
 }

@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { INVERTER_TYPE } from '../../constants';
 import { ProductDto } from './product.dto';
-import { QuoteDataDto } from './quote-data.dto';
 
 export class InverterDto {
   @ApiProperty()
@@ -18,7 +17,4 @@ export class InverterDto {
 
   @ApiProperty()
   inverterModelSnapshotDate: Date;
-
-  @ApiProperty({ type: QuoteDataDto })
-  inverterQuote: QuoteDataDto;
 }

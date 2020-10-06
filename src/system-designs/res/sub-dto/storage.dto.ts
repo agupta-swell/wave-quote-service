@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { STORAGE_TYPE } from '../../constants';
 import { ProductDto } from './product.dto';
-import { QuoteDataDto } from './quote-data.dto';
 
 export class StorageDto {
   @ApiProperty()
@@ -16,12 +15,9 @@ export class StorageDto {
   @ApiProperty()
   quantity: number;
 
-  @ApiProperty()
+  @ApiProperty({ type: ProductDto })
   storageModelDataSnapshot: ProductDto;
 
   @ApiProperty()
   storageModelSnapshotDate: Date;
-
-  @ApiProperty({ type: QuoteDataDto })
-  storageQuote: QuoteDataDto;
 }

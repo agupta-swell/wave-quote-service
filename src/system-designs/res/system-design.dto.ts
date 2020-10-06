@@ -1,16 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Pagination } from '../../app/common';
 import { toCamelCase } from '../../utils/transformProperties';
 import { SystemDesign } from '../system-design.schema';
+import { ServiceResponse } from './../../app/common/service-response';
 import { IRoofTopSchema, ISystemProductionSchema } from './../system-design.schema';
 import { CapacityProductionDataDto, RoofTopDataDto } from './sub-dto';
-
-export class LatLng {
-  @ApiProperty()
-  lat: Number;
-
-  @ApiProperty()
-  lng: Number;
-}
 
 export class SystemProductionDto {
   @ApiProperty()
@@ -42,13 +36,13 @@ export class SystemDesignDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({ type: RoofTopDataDto })
   roofTopDesignData: RoofTopDataDto;
 
-  @ApiProperty()
+  @ApiProperty({ type: CapacityProductionDataDto })
   capacityProductionDesignData: CapacityProductionDataDto;
 
-  @ApiProperty()
+  @ApiProperty({ type: SystemProductionDto })
   systemProductionData: SystemProductionDto;
 
   @ApiProperty()
@@ -130,4 +124,31 @@ export class SystemDesignDto {
     // TODO: will implement when data is ready
     return null;
   };
+}
+
+class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {
+  @ApiProperty({
+    type: SystemDesignDto,
+    isArray: true,
+  })
+  data: SystemDesignDto[];
+
+  @ApiProperty()
+  total: number;
+}
+
+export class SystemDesignListRes implements ServiceResponse<SystemDesignPaginationRes> {
+  @ApiProperty()
+  status: string;
+
+  @ApiProperty({ type: SystemDesignPaginationRes })
+  data: SystemDesignPaginationRes;
+}
+
+export class SystemDesignRes implements ServiceResponse<SystemDesignDto> {
+  @ApiProperty()
+  status: string;
+
+  @ApiProperty({ type: SystemDesignDto })
+  data: SystemDesignDto;
 }
