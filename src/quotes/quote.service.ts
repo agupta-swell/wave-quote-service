@@ -1,10 +1,10 @@
-import { ApplicationException } from './../app/app.exception';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy } from 'lodash';
 import { Model } from 'mongoose';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { UtilityProgramService } from 'src/utility-programs/utility-program.service';
+import { ApplicationException } from './../app/app.exception';
 import { OperationResult, Pagination } from './../app/common';
 import { CashPaymentConfigService } from './../cash-payment-configs/cash-payment-config.service';
 import { SystemDesignService } from './../system-designs/system-design.service';
@@ -71,6 +71,7 @@ export class QuoteService {
         },
         laborCostSnapshotDate: new Date(),
         ...quoteCostCommon,
+        netCost: 0,
       },
       grossAmount: 0,
     };

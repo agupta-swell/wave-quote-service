@@ -72,7 +72,7 @@ export class QuoteDto {
   transformQuoteCostBuildup(quoteCostBuildup: IQuoteCostBuildupSchema): QuoteCostBuildupDto {
     return {
       panelQuoteDetails: quoteCostBuildup.panel_quote_details.map(item => toCamelCase(item)),
-      inveterQuoteDetails: quoteCostBuildup.inverter_quote_details.map(item => toCamelCase(item)),
+      inverterQuoteDetails: quoteCostBuildup.inverter_quote_details.map(item => toCamelCase(item)),
       storageQuoteDetails: quoteCostBuildup.storage_quote_details.map(item => toCamelCase(item)),
       adderQuoteDetails: quoteCostBuildup.adder_quote_details.map(item => toCamelCase(item)),
       overallMarkup: quoteCostBuildup.overall_markup,

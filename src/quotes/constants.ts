@@ -1,5 +1,5 @@
 export enum FINANCE_PRODUCT_TYPE {
-  LOAN = 'LOAN',
-  LEASE = 'LEASE',
-  CASH = 'CASH',
+  LOAN = 'loan',
+  LEASE = 'lease',
+  CASH = 'cash',
 }

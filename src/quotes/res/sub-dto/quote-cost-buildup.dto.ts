@@ -71,7 +71,7 @@ export class QuoteCostBuildupDto {
   panelQuoteDetails: PanelQuoteDetailsDto[];
 
   @ApiProperty({ type: () => InverterQuoteDetailsDto, isArray: true })
-  inveterQuoteDetails: InverterQuoteDetailsDto[];
+  inverterQuoteDetails: InverterQuoteDetailsDto[];
 
   @ApiProperty({ type: () => StorageQuoteDetailsDto, isArray: true })
   storageQuoteDetails: StorageQuoteDetailsDto[];
