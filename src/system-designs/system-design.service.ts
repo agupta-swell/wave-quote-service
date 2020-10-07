@@ -112,6 +112,14 @@ export class SystemDesignService {
       systemDesign.setIsSelected(systemDesignDto.isSelected);
     }
 
+    if (systemDesignDto.isSolar) {
+      systemDesign.setIsSolar(systemDesignDto.isSolar);
+    }
+
+    if (systemDesignDto.isRetrofit) {
+      systemDesign.setIsRetrofit(systemDesignDto.isRetrofit);
+    }
+
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;

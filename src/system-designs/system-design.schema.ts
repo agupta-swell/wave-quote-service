@@ -211,30 +211,14 @@ export const SystemProductionSchema = new Schema<ISystemProductionSchema>(
   { _id: false },
 );
 
-export const SystemDesignSchema = new Schema<SystemDesign>({
-  name: String,
-  latitude: Number,
-  longtitude: Number,
-  opportunity_id: String,
-  design_mode: String,
-  thumbnail: String,
-  is_selected: Boolean,
-  roof_top_design_data: RoofTopSchema,
-  // TODO: implement later
-  capacity_production_design_data: String,
-  system_production_data: SystemProductionSchema,
-  created_at: { type: Date, default: Date.now },
-  created_by: String,
-  updated_at: { type: Date, default: Date.now },
-  updated_by: String,
-});
-
 export interface SystemDesign extends Document {
   name: string;
   opportunity_id: string;
   design_mode: string;
   thumbnail: string;
   is_selected: boolean;
+  is_solar: boolean;
+  is_retrofit: boolean;
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: '';
   system_production_data: ISystemProductionSchema;
@@ -246,6 +230,26 @@ export interface SystemDesign extends Document {
   updated_at: Date;
 }
 
+export const SystemDesignSchema = new Schema<SystemDesign>({
+  name: String,
+  latitude: Number,
+  longtitude: Number,
+  opportunity_id: String,
+  design_mode: String,
+  thumbnail: String,
+  is_selected: Boolean,
+  is_solar: Boolean,
+  is_retrofit: Boolean,
+  roof_top_design_data: RoofTopSchema,
+  // TODO: implement later
+  capacity_production_design_data: String,
+  system_production_data: SystemProductionSchema,
+  created_at: { type: Date, default: Date.now },
+  created_by: String,
+  updated_at: { type: Date, default: Date.now },
+  updated_by: String,
+});
+
 export class SystemDesignModel {
   _id: string;
   name: string;
@@ -255,6 +259,8 @@ export class SystemDesignModel {
   design_mode: string;
   thumbnail: string;
   is_selected: boolean;
+  is_solar: boolean;
+  is_retrofit: boolean;
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: string;
   system_production_data: ISystemProductionSchema;
@@ -266,6 +272,8 @@ export class SystemDesignModel {
   constructor(systemDesign: CreateSystemDesignDto) {
     this.name = systemDesign.name;
     this.is_selected = systemDesign.isSelected;
+    this.is_solar = systemDesign.isSolar;
+    this.is_retrofit = systemDesign.isRetrofit;
     this.latitude = systemDesign.latitude;
     this.longtitude = systemDesign.longtitude;
     this.opportunity_id = systemDesign.opportunityId;
@@ -313,6 +321,13 @@ export class SystemDesignModel {
     this.is_selected = isSelected;
   }
 
+  setIsSolar(isSolar: boolean) {
+    this.is_selected = isSolar;
+  }
+
+  setIsRetrofit(isRetrofit: boolean) {
+    this.is_selected = isRetrofit;
+  }
   setSystemProductionData(data: ISystemProductionSchema) {
     this.system_production_data = data;
   }
