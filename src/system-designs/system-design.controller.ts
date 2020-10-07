@@ -47,8 +47,14 @@ export class SystemDesignController {
     @Query('limit') limit: string,
     @Query('skip') skip: string,
     @Query('selected') selected: string,
+    @Query('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<Pagination<SystemDesignDto>>> {
-    const result = await this.systemDesignService.getAllSystemDesigns(Number(limit), Number(skip), selected);
+    const result = await this.systemDesignService.getAllSystemDesigns(
+      Number(limit),
+      Number(skip),
+      selected,
+      opportunityId,
+    );
     return ServiceResponse.fromResult(result);
   }
 
