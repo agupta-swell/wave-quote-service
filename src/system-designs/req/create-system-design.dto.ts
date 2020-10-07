@@ -49,4 +49,14 @@ export class CreateSystemDesignDto {
   @IsNotEmpty()
   @IsBoolean()
   isSelected: boolean;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsBoolean()
+  isSolar: boolean;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsBoolean()
+  isRetrofit: boolean;
 }

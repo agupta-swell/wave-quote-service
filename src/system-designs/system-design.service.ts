@@ -112,6 +112,14 @@ export class SystemDesignService {
       systemDesign.setIsSelected(systemDesignDto.isSelected);
     }
 
+    if (systemDesignDto.isSolar) {
+      systemDesign.setIsSolar(systemDesignDto.isSolar);
+    }
+
+    if (systemDesignDto.isRetrofit) {
+      systemDesign.setIsRetrofit(systemDesignDto.isRetrofit);
+    }
+
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -198,21 +206,30 @@ export class SystemDesignService {
     limit: number,
     skip: number,
     selected: string,
+    opportunityId: string,
   ): Promise<OperationResult<Pagination<SystemDesignDto>>> {
     let query: any;
     switch (selected) {
       case undefined:
       case '-1':
-        query = this.systemDesignModel.find().limit(limit).skip(skip).exec();
+        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).exec();
         break;
       case '0':
-        query = this.systemDesignModel.find({ is_selected: false }).limit(limit).skip(skip).exec();
+        query = this.systemDesignModel
+          .find({ is_selected: false, opportunity_id: opportunityId })
+          .limit(limit)
+          .skip(skip)
+          .exec();
         break;
       case '1':
-        query = this.systemDesignModel.find({ is_selected: true }).limit(limit).skip(skip).exec();
+        query = this.systemDesignModel
+          .find({ is_selected: true, opportunity_id: opportunityId })
+          .limit(limit)
+          .skip(skip)
+          .exec();
         break;
       default:
-        query = this.systemDesignModel.find().limit(limit).skip(skip).exec();
+        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).exec();
         break;
     }
 
