@@ -20,7 +20,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(process.env.MONGO_URL),
+    MongooseModule.forRoot(process.env.MONGO_URL, { useFindAndModify: false }),
     MyLoggerModule,
     UserModule,
     RoleModule,

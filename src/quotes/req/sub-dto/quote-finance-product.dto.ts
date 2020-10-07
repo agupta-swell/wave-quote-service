@@ -76,6 +76,9 @@ export class FinanceProductDto {
   })
   @IsNotEmpty()
   productAttribute: LoanProductAttributesDto | CashProductAttributesDto | LeaseProductAttributesDto;
+
+  @ApiProperty()
+  netAmount : number
 }
 
 export class ProjectDiscountDetailDto {

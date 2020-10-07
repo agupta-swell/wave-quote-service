@@ -51,6 +51,9 @@ export class FinanceProductDto {
     default: {},
   })
   productAttribute: LoanProductAttributesDto | CashProductAttributesDto | LeaseProductAttributesDto;
+
+  @ApiProperty()
+  netAmount: number;
 }
 
 export class ProjectDiscountDetailDto {
