@@ -361,6 +361,10 @@ export interface IDetailedQuoteSchema {
   quote_finance_product: IQuoteFinanceProductSchema;
   savings_details: ISavingsDetailsSchema[];
   quote_cost_buildup: IQuoteCostBuildupSchema;
+  quote_name: string;
+  is_selected: boolean;
+  is_solar: boolean;
+  is_retrofit: boolean;
 }
 
 const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
@@ -370,6 +374,10 @@ const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
     quote_finance_product: QuoteFinanceProductSchema,
     savings_details: [SavingsDetailsSchema],
     quote_cost_buildup: QuoteCostBuildupSchema,
+    quote_name: String,
+    is_selected: Boolean,
+    is_solar: Boolean,
+    is_retrofit: Boolean,
   },
   { _id: false },
 );
@@ -425,9 +433,17 @@ export class QuoteModel {
         laborCost,
         grossAmount,
       },
+      quoteName,
+      isSelected,
+      isSolar,
+      isRetrofit,
     } = data;
     return {
       system_production: systemProduction,
+      quote_name: quoteName,
+      is_selected: isSelected,
+      is_solar: isSolar,
+      is_retrofit: isRetrofit,
       utility_program: utilityProgram,
       quote_finance_product: {
         incentive_details: incentiveDetails.map(item => toSnakeCase(item)),

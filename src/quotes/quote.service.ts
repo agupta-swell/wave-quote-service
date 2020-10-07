@@ -126,6 +126,10 @@ export class QuoteService {
         ],
       },
       savingsDetails: [],
+      quoteName: '',
+      isSelected: false,
+      isSolar: systemDesign.is_solar,
+      isRetrofit: systemDesign.is_retrofit,
     };
 
     const model = new QuoteModel(data, detailedQuote);
@@ -231,6 +235,10 @@ export class QuoteService {
       ...data,
       utilityProgram: foundQuote.detailed_quote.utility_program,
       systemProduction: foundQuote.detailed_quote.system_production,
+      quoteName: data.quoteName || foundQuote.detailed_quote.quote_name,
+      isSelected: data.quoteCostBuildup || foundQuote.detailed_quote.is_selected,
+      isSolar: foundQuote.detailed_quote.is_solar,
+      isRetrofit: foundQuote.detailed_quote.is_retrofit,
     };
 
     const model = new QuoteModel(data, detailedQuote);
