@@ -74,6 +74,7 @@ export class QuoteService {
         },
         laborCostSnapshotDate: new Date(),
         ...quoteCostCommon,
+        netCost: 0,
       },
       grossAmount: 0,
     };
@@ -98,7 +99,7 @@ export class QuoteService {
           fundingSourceName: fundingSource.name,
           productAttribute: await this.createProductAttribute(fundingSource.type),
         },
-        netAmount: 0,
+        netAmount: quoteCostBuildup.grossAmount,
         incentiveDetails: [
           {
             unit: 'percentage',
