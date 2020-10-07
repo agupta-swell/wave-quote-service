@@ -99,7 +99,7 @@ export class QuoteService {
           fundingSourceName: fundingSource.name,
           productAttribute: await this.createProductAttribute(fundingSource.type),
         },
-        netAmount: 0,
+        netAmount: quoteCostBuildup.grossAmount,
         incentiveDetails: [
           {
             unit: 'percentage',
