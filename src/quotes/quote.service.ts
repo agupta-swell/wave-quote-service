@@ -183,9 +183,9 @@ export class QuoteService {
         template = {
           upfrontPayment: 0,
           balance: 0,
-          milestonePayment: [],
+          milestonePayment: cashQuoteConfig ? cashQuoteConfig.config : [],
           //TODO: need Son implement
-          cashQuoteConfigSnapshot: cashQuoteConfig,
+          cashQuoteConfigSnapshot: undefined, //TODO: ThangHQ please fix this
           cashQuoteConfigSnapShotDate: '',
           currentAverageMonthlyBill: 0,
           newAverageMonthlyBill: 0,

@@ -116,7 +116,7 @@ export interface IMilestonePayment {
 export interface ICashQuoteConfigSnapshot {
   type: string;
   config: {
-    amount: number;
+    name: string;
     percentage: number;
   }[];
 }
