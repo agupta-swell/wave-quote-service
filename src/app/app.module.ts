@@ -7,6 +7,7 @@ import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { RoleModule } from 'src/roles/role.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityProgramModule } from 'src/utility-programs/utility-program.module';
+import { LeaseSolverConfigModule } from '../lease-solver-configs/lease-solver-config.module';
 import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from '../utilities/utility.module';
 import { AdderConfigModule } from './../adder-config/adder-config.module';
@@ -33,6 +34,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UtilityProgramModule,
     FundingSourceModule,
     CashPaymentConfigModule,
+    LeaseSolverConfigModule,
   ],
 })
 export class AppModule {
