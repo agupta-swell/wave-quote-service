@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy } from 'lodash';
+import { groupBy, pickBy } from 'lodash';
 import { Model } from 'mongoose';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { UtilityProgramService } from 'src/utility-programs/utility-program.service';
+import { roundNumber } from 'src/utils/transformNumber';
 import { ApplicationException } from './../app/app.exception';
 import { OperationResult, Pagination } from './../app/common';
 import { CashPaymentConfigService } from './../cash-payment-configs/cash-payment-config.service';
@@ -11,6 +12,7 @@ import { SystemDesignService } from './../system-designs/system-design.service';
 import { FINANCE_PRODUCT_TYPE } from './constants';
 import { Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CreateQuoteDto } from './req/create-quote.dto';
+import { UpdateQuoteDto } from './req/update-quote.dto';
 import { QuoteDto } from './res/quote.dto';
 
 @Injectable()
@@ -30,6 +32,7 @@ export class QuoteService {
       cost: 0,
       markup: 0,
       discountDetails: [{ amount: 0, description: '' }],
+      netCost: 0,
     };
 
     const quoteCostBuildup = {
@@ -76,6 +79,9 @@ export class QuoteService {
       grossAmount: 0,
     };
 
+    quoteCostBuildup.totalProductCost = this.calculateTotalProductCost(quoteCostBuildup);
+    quoteCostBuildup.grossAmount = quoteCostBuildup.totalProductCost - quoteCostBuildup.laborCost.netCost;
+
     const utilityProgram = await this.utilityProgramService.getFirst();
     const fundingSource = await this.fundingSourceService.getDetail(data.fundingSourceId);
 
@@ -121,13 +127,6 @@ export class QuoteService {
       },
       savingsDetails: [],
     };
-
-    // const quote = {
-    //   opportunityId: data.opportunityId,
-    //   systemDesignId: data.systemDesignId,
-    //   quoteModelType: 'detailed',
-    //   // detailedQuote,
-    // };
 
     const model = new QuoteModel(data, detailedQuote);
 
@@ -222,7 +221,56 @@ export class QuoteService {
     return OperationResult.ok(new QuoteDto(quote.toObject()));
   }
 
+  async updateQuote(quoteId: string, data: UpdateQuoteDto): Promise<OperationResult<QuoteDto>> {
+    const foundQuote = await this.quoteModel.findById(quoteId);
+    if (!foundQuote) {
+      throw ApplicationException.EnitityNotFound(quoteId);
+    }
+
+    const detailedQuote = {
+      ...data,
+      utilityProgram: foundQuote.detailed_quote.utility_program,
+      systemProduction: foundQuote.detailed_quote.system_production,
+    };
+
+    const model = new QuoteModel(data, detailedQuote);
+
+    const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
+    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined);
+    return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
+  }
+
   groupData(data: any[], field: string) {
     const groupById = groupBy(data, field);
+  }
+
+  // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
+
+  calculateNetCostData = (totalCost = 0, discountAmount = 0, markupPercentage = 0) => {
+    return roundNumber((totalCost - discountAmount) * (1 + markupPercentage), 2);
+  };
+
+  calculateTotalProductCost(data: any) {
+    const adderNetCost = data.adderQuoteDetails.reduce(
+      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+      0,
+    );
+
+    const storageNetCost = data.storageQuoteDetails.reduce(
+      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+      0,
+    );
+
+    const inverterNetCost = data.inverterQuoteDetails.reduce(
+      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+      0,
+    );
+
+    const panelNetCost = data.panelQuoteDetails.reduce(
+      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+      0,
+    );
+
+    return adderNetCost + storageNetCost + inverterNetCost + panelNetCost;
   }
 }

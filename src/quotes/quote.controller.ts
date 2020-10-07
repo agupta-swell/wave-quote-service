@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { QuoteService } from './quote.service';
 import { CreateQuoteDto } from './req/create-quote.dto';
+import { UpdateQuoteDto } from './req/update-quote.dto';
 import { QuoteDto, QuoteListRes, QuoteRes } from './res/quote.dto';
 
 @ApiTags('Quote')
@@ -35,6 +36,17 @@ export class QuoteController {
   @ApiOkResponse({ type: QuoteListRes })
   async getDetails(@Param('quoteId') quoteId: string): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.getDetailQuote(quoteId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put('/:quoteId')
+  @ApiOperation({ summary: 'Update quote' })
+  @ApiOkResponse({ type: QuoteRes })
+  async updateQuote(
+    @Body() data: UpdateQuoteDto,
+    @Param('quoteId') quoteId: string,
+  ): Promise<ServiceResponse<QuoteDto>> {
+    const res = await this.quoteService.updateQuote(quoteId, data);
     return ServiceResponse.fromResult(res);
   }
 }

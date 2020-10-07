@@ -9,6 +9,7 @@ import {
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { CreateQuoteDto } from './req/create-quote.dto';
+import { UpdateQuoteDto } from './req/update-quote.dto';
 
 export const QUOTE = Symbol('QUOTE').toString();
 
@@ -236,7 +237,7 @@ export interface IQuoteCostCommonSchema {
   cost: number;
   markup: number;
   discount_details: IDiscountDetailSchema[];
-  netCost: number;
+  net_cost: number;
 }
 
 export interface ILaborCostSchema extends IQuoteCostCommonSchema {
@@ -251,7 +252,7 @@ const LaborCostSchema = new Schema<ILaborCostSchema>(
     cost: Number,
     markup: Number,
     discount_details: [DiscountDetailSchema],
-    netCost: Number,
+    net_cost: Number,
   },
   { _id: false },
 );
@@ -270,7 +271,7 @@ const PanelQuoteDetailsSchema = new Schema<IPanelQuoteDetailsSchema>(
     cost: Number,
     markup: Number,
     discount_details: [DiscountDetailSchema],
-    netCost: Number,
+    net_cost: Number,
   },
   { _id: false },
 );
@@ -289,7 +290,7 @@ const InverterQuoteDetailsSchema = new Schema<IInverterQuoteDetailsSchema>(
     cost: Number,
     markup: Number,
     discount_details: [DiscountDetailSchema],
-    netCost: Number,
+    net_cost: Number,
   },
   { _id: false },
 );
@@ -308,7 +309,7 @@ const StorageQuoteDetailsSchema = new Schema<IStorageQuoteDetailsSchema>(
     cost: Number,
     markup: Number,
     discount_details: [DiscountDetailSchema],
-    netCost: Number,
+    net_cost: Number,
   },
   { _id: false },
 );
@@ -327,7 +328,7 @@ const AdderQuoteDetailsSchema = new Schema<IAdderQuoteDetailsSchema>(
     cost: Number,
     markup: Number,
     discount_details: [DiscountDetailSchema],
-    netCost: Number,
+    net_cost: Number,
   },
   { _id: false },
 );
@@ -401,7 +402,7 @@ export class QuoteModel {
   quote_model_type: string;
   detailed_quote: IDetailedQuoteSchema;
 
-  constructor(data: CreateQuoteDto, detailedQuote: any) {
+  constructor(data: CreateQuoteDto | UpdateQuoteDto, detailedQuote: any) {
     this.opportunity_id = data.opportunityId;
     this.system_design_id = data.systemDesignId;
     this.quote_model_type = 'detailed';
