@@ -235,7 +235,7 @@ export class QuoteService {
     const model = new QuoteModel(data, detailedQuote);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
-    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined);
+    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
     return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
   }
 
