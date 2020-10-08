@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy, pickBy } from 'lodash';
+import { groupBy, pickBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { UtilityProgramService } from 'src/utility-programs/utility-program.service';
@@ -36,35 +36,47 @@ export class QuoteService {
     };
 
     const quoteCostBuildup = {
-      panelQuoteDetails: systemDesign.roof_top_design_data.panel_array.map(item => ({
-        panelModelId: item.panel_model_id,
-        panelModelDataSnapshot: item.panel_model_data_snapshot,
-        panelModelSnapshotDate: new Date(),
-        quantity: item.number_of_panels,
-        ...quoteCostCommon,
-        cost: item.number_of_panels * item.panel_model_data_snapshot.price,
-      })),
-      inverterQuoteDetails: systemDesign.roof_top_design_data.inverters.map(item => ({
-        inverterModelId: item.inverter_model_id,
-        inverterModelDataSnapshot: item.inverter_model_data_snapshot,
-        inverterModelSnapshotDate: new Date(),
-        ...quoteCostCommon,
-        cost: item.quantity * item.inverter_model_data_snapshot.price,
-      })),
-      storageQuoteDetails: systemDesign.roof_top_design_data.storage.map(item => ({
-        storageModelId: item.storage_model_id,
-        storageModelDataSnapshot: item.storage_model_data_snapshot,
-        storageModelSnapshotDate: new Date(),
-        ...quoteCostCommon,
-        cost: item.quantity * item.storage_model_data_snapshot.price,
-      })),
-      adderQuoteDetails: systemDesign.roof_top_design_data.adders.map(item => ({
-        adderModelId: item.adder_id,
-        adderModelDataSnapshot: item.adder_model_data_snapshot,
-        adderModelSnapshotDate: new Date(),
-        ...quoteCostCommon,
-        cost: item.quantity * item.adder_model_data_snapshot.price,
-      })),
+      panelQuoteDetails: this.groupData(
+        systemDesign.roof_top_design_data.panel_array.map(item => ({
+          panelModelId: item.panel_model_id,
+          panelModelDataSnapshot: item.panel_model_data_snapshot,
+          panelModelSnapshotDate: new Date(),
+          quantity: item.number_of_panels,
+          ...quoteCostCommon,
+          cost: item.number_of_panels * item.panel_model_data_snapshot.price,
+        })),
+        'panelModelId',
+      ),
+      inverterQuoteDetails: this.groupData(
+        systemDesign.roof_top_design_data.inverters.map(item => ({
+          inverterModelId: item.inverter_model_id,
+          inverterModelDataSnapshot: item.inverter_model_data_snapshot,
+          inverterModelSnapshotDate: new Date(),
+          ...quoteCostCommon,
+          cost: item.quantity * item.inverter_model_data_snapshot.price,
+        })),
+        'inverterModelId',
+      ),
+      storageQuoteDetails: this.groupData(
+        systemDesign.roof_top_design_data.storage.map(item => ({
+          storageModelId: item.storage_model_id,
+          storageModelDataSnapshot: item.storage_model_data_snapshot,
+          storageModelSnapshotDate: new Date(),
+          ...quoteCostCommon,
+          cost: item.quantity * item.storage_model_data_snapshot.price,
+        })),
+        'storageModelId',
+      ),
+      adderQuoteDetails: this.groupData(
+        systemDesign.roof_top_design_data.adders.map(item => ({
+          adderModelId: item.adder_id,
+          adderModelDataSnapshot: item.adder_model_data_snapshot,
+          adderModelSnapshotDate: new Date(),
+          ...quoteCostCommon,
+          cost: item.quantity * item.adder_model_data_snapshot.price,
+        })),
+        'adderModelId',
+      ),
       overallMarkup: 0,
       totalProductCost: 0,
       laborCost: {
@@ -126,6 +138,10 @@ export class QuoteService {
         ],
       },
       savingsDetails: [],
+      quoteName: '',
+      isSelected: false,
+      isSolar: systemDesign.is_solar,
+      isRetrofit: systemDesign.is_retrofit,
     };
 
     const model = new QuoteModel(data, detailedQuote);
@@ -233,17 +249,31 @@ export class QuoteService {
       ...data,
       utilityProgram: foundQuote.detailed_quote.utility_program,
       systemProduction: foundQuote.detailed_quote.system_production,
+      quoteName: data.quoteName || foundQuote.detailed_quote.quote_name,
+      isSelected: data.quoteCostBuildup || foundQuote.detailed_quote.is_selected,
+      isSolar: foundQuote.detailed_quote.is_solar,
+      isRetrofit: foundQuote.detailed_quote.is_retrofit,
     };
 
     const model = new QuoteModel(data, detailedQuote);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
-    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined);
+    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
     return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
   }
 
   groupData(data: any[], field: string) {
-    const groupById = groupBy(data, field);
+    const groupByField = groupBy(data, item => item[field]);
+    return Object.keys(groupByField).reduce((acc, item) => {
+      return [
+        ...acc,
+        {
+          ...groupByField[item]?.[0],
+          quantity: sumBy(groupByField[item], (i: any) => i.quantity),
+          cost: sumBy(groupByField[item], (i: any) => i.cost),
+        },
+      ];
+    }, []);
   }
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
