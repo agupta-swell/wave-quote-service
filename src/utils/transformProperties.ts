@@ -1,7 +1,6 @@
 import { isValidObjectId } from 'mongoose';
 
-const snakeToCamel = (str: string) =>
-  str.toLowerCase().replace(/([-_][a-z])/g, group => group[1].toUpperCase().replace('-', ''));
+const snakeToCamel = (str: string) => str.replace(/([-_][a-zA-Z])/g, group => group[1].toUpperCase().replace('-', ''));
 
 const camelToUnderscore = (str: string) =>
   str

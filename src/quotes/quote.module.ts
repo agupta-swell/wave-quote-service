@@ -5,6 +5,7 @@ import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
 import { CashPaymentConfigSchema, CASH_PAYMENT_CONFIG } from './schemas/cash-payment-config.schema';
 import { LaborCostConfigSchema, LABOR_COST_CONFIG } from './schemas/labor-cost-config.schema';
+import { CalculationService } from './sub-services';
 
 @Global()
 @Module({
@@ -24,7 +25,7 @@ import { LaborCostConfigSchema, LABOR_COST_CONFIG } from './schemas/labor-cost-c
     ]),
   ],
   controllers: [QuoteController],
-  providers: [QuoteService],
+  providers: [QuoteService, CalculationService],
   exports: [QuoteService],
 })
 export class QuoteModule {}

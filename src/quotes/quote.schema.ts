@@ -105,6 +105,7 @@ export interface ILeaseProductAttributes {
   current_price_per_kWh: number;
   new_price_per_kWh: number;
   yearly_lease_payment_details: IYearlyLeasePaymentDetails[];
+  rate_per_kWh: number;
 }
 
 export interface IMilestonePayment {
@@ -258,6 +259,7 @@ const LaborCostSchema = new Schema<ILaborCostSchema>(
 );
 
 export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  panel_model_id: string;
   panel_model_data_snapshot: IProductSchema;
   panel_model_snapshot_date: Date;
   quantity: number;
@@ -265,6 +267,7 @@ export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
 
 const PanelQuoteDetailsSchema = new Schema<IPanelQuoteDetailsSchema>(
   {
+    panel_model_id: String,
     panel_model_data_snapshot: ProductSchema,
     panel_model_snapshot_date: Date,
     quantity: Number,
@@ -277,6 +280,7 @@ const PanelQuoteDetailsSchema = new Schema<IPanelQuoteDetailsSchema>(
 );
 
 export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  inverter_model_id: string;
   inverter_model_data_snapshot: IProductSchema;
   inverter_model_snapshot_date: Date;
   quantity: number;
@@ -284,6 +288,7 @@ export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
 
 const InverterQuoteDetailsSchema = new Schema<IInverterQuoteDetailsSchema>(
   {
+    inverter_model_id: String,
     inverter_model_data_snapshot: ProductSchema,
     inverter_model_snapshot_date: Date,
     quantity: Number,
@@ -296,6 +301,7 @@ const InverterQuoteDetailsSchema = new Schema<IInverterQuoteDetailsSchema>(
 );
 
 export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  storage_model_id: string;
   storage_model_data_snapshot: IProductSchema;
   storage_model_snapshot_date: Date;
   quantity: number;
@@ -303,6 +309,7 @@ export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
 
 const StorageQuoteDetailsSchema = new Schema<IStorageQuoteDetailsSchema>(
   {
+    storage_model_id: String,
     storage_model_data_snapshot: ProductSchema,
     storage_model_snapshot_date: Date,
     quantity: Number,
@@ -315,6 +322,7 @@ const StorageQuoteDetailsSchema = new Schema<IStorageQuoteDetailsSchema>(
 );
 
 export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  adder_model_id: string;
   adder_model_data_snapshot: IAdderModel;
   adder_model_snapshot_date: Date;
   quantity: number;
@@ -322,6 +330,7 @@ export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
 
 const AdderQuoteDetailsSchema = new Schema<IAdderQuoteDetailsSchema>(
   {
+    adder_model_id: String,
     adder_model_data_snapshot: AdderModelSchema,
     adder_model_snapshot_date: Date,
     quantity: Number,

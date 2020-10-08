@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { fromStream } from '../utils/convertToCSV';
 import { OperationResult } from './../app/common/operation-result';
 import { LeaseSolverConfig, LEASE_SOLVER_CONFIG } from './lease-solver-config.schema';
+import { IGetDetail } from './typing.d';
 
 @Injectable()
 export class LeaseSolverConfigService {
@@ -56,5 +57,23 @@ export class LeaseSolverConfigService {
 
     await Promise.all(data);
     return OperationResult.ok('okeeeeeee');
+  }
+
+  // --->>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<---
+
+  async getDetail(condition: IGetDetail) {
+    const leaseSolverConfig = await this.leaseSolverConfig.findOne({
+      is_solar: condition.isSolar,
+      is_retrofit: condition.isRetrofit,
+      utility_program_name: condition.utilityProgramName,
+      contract_term: condition.contractTerm,
+      storageSize: condition.storageSize,
+      solar_size_minimum: { $lte: condition.capacityKW },
+      solar_size_maximum: { $gt: condition.capacityKW },
+      rate_escalator: condition.rateEscalator,
+      productivity_min: { $lte: condition.productivity },
+      productivity_max: { $gt: condition.productivity },
+    });
+    return leaseSolverConfig;
   }
 }

@@ -14,6 +14,7 @@ import { Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
 import { QuoteDto } from './res/quote.dto';
+import { CalculationService } from './sub-services/calculation.service';
 
 @Injectable()
 export class QuoteService {
@@ -23,6 +24,7 @@ export class QuoteService {
     private readonly utilityProgramService: UtilityProgramService,
     private readonly fundingSourceService: FundingSourceService,
     private readonly cashPaymentConfigService: CashPaymentConfigService,
+    private readonly calculationService: CalculationService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -262,11 +264,14 @@ export class QuoteService {
       isRetrofit: foundQuote.detailed_quote.is_retrofit,
     };
 
-    const model = new QuoteModel(data, detailedQuote);
+    await this.calculationService.calculateLeaseQuote(detailedQuote);
 
-    const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
-    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
-    return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
+    // const model = new QuoteModel(data, detailedQuote);
+
+    // const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
+    // const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
+    // return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
+    return OperationResult.ok(null);
   }
 
   groupData(data: any[], field: string) {

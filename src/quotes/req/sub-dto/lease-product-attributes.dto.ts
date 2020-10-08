@@ -12,6 +12,14 @@ export class LeaseProductAttributesDto {
 
   @ApiProperty()
   @IsNumber()
+  rateEscalator: number;
+
+  @ApiProperty()
+  @IsNumber()
+  ratePerkWh: number;
+
+  @ApiProperty()
+  @IsNumber()
   leaseTerm: number;
 
   @ApiProperty()
@@ -45,4 +53,15 @@ export class LeaseProductAttributesDto {
   @ApiProperty()
   @IsNumber()
   payBackPeriod: number;
+
+  @ApiProperty()
+  @IsNumber()
+  currentPricePerKwh: number;
+
+  @ApiProperty()
+  @IsNumber()
+  newPricePerKwh: number;
+
+  @ApiProperty()
+  yearlyLoanPaymentDetails: any;
 }
