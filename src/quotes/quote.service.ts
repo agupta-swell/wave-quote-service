@@ -264,14 +264,12 @@ export class QuoteService {
       isRetrofit: foundQuote.detailed_quote.is_retrofit,
     };
 
-    await this.calculationService.calculateLeaseQuote(detailedQuote);
+    // await this.calculationService.calculateLeaseQuote(detailedQuote);
+    const model = new QuoteModel(data, detailedQuote);
 
-    // const model = new QuoteModel(data, detailedQuote);
-
-    // const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
-    // const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
-    // return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
-    return OperationResult.ok(null);
+    const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
+    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
+    return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
   }
 
   groupData(data: any[], field: string) {
