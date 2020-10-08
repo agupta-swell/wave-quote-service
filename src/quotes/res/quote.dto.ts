@@ -38,6 +38,15 @@ export class QuoteDto {
   quoteId: string;
 
   @ApiProperty()
+  isRetrofit: boolean;
+
+  @ApiProperty()
+  isSolar: boolean;
+
+  @ApiProperty()
+  isSelected: boolean;
+
+  @ApiProperty()
   opportunityId: string;
 
   @ApiProperty()
@@ -62,6 +71,9 @@ export class QuoteDto {
     this.quoteId = props._id;
     this.opportunityId = props.opportunity_id;
     this.systemDesignId = props.system_design_id;
+    this.isSelected = props.detailed_quote.is_selected;
+    this.isRetrofit = props.detailed_quote.is_retrofit;
+    this.isSolar = props.detailed_quote.is_solar;
     this.systemProduction = toCamelCase(props.detailed_quote.system_production);
     this.utilityProgram = toCamelCase(props.detailed_quote.utility_program);
     this.quoteFinanceProduct = this.transformQuoteFinanceProduct(props.detailed_quote.quote_finance_product);

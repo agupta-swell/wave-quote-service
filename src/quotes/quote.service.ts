@@ -254,7 +254,7 @@ export class QuoteService {
       utilityProgram: foundQuote.detailed_quote.utility_program,
       systemProduction: foundQuote.detailed_quote.system_production,
       quoteName: data.quoteName || foundQuote.detailed_quote.quote_name,
-      isSelected: data.quoteCostBuildup || foundQuote.detailed_quote.is_selected,
+      isSelected: data.isSelected || foundQuote.detailed_quote.is_selected,
       isSolar: foundQuote.detailed_quote.is_solar,
       isRetrofit: foundQuote.detailed_quote.is_retrofit,
     };
