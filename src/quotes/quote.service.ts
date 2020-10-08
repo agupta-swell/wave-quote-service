@@ -109,7 +109,7 @@ export class QuoteService {
           productType: fundingSource.type,
           fundingSourceId: fundingSource.id,
           fundingSourceName: fundingSource.name,
-          productAttribute: await this.createProductAttribute(fundingSource.type),
+          productAttribute: await this.createProductAttribute(fundingSource.type, quoteCostBuildup.grossAmount),
         },
         netAmount: quoteCostBuildup.grossAmount,
         incentiveDetails: [
@@ -152,7 +152,7 @@ export class QuoteService {
     return OperationResult.ok(new QuoteDto(createdQuote.toObject())) as any;
   }
 
-  async createProductAttribute(productType: string) {
+  async createProductAttribute(productType: string, netAmount) {
     let template = {};
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
@@ -198,8 +198,12 @@ export class QuoteService {
         const cashQuoteConfig = await this.cashPaymentConfigService.getFirst();
         template = {
           upfrontPayment: 0,
-          balance: 0,
-          milestonePayment: cashQuoteConfig ? cashQuoteConfig.config : [],
+          balance: netAmount,
+          milestonePayment: cashQuoteConfig
+            ? cashQuoteConfig
+                .toObject()
+                .config.map(item => ({ ...item, amount: roundNumber(netAmount * item.percentage, 2) }))
+            : [],
           cashQuoteConfigSnapshot: {
             type: cashQuoteConfig.type,
             config: cashQuoteConfig.config,
