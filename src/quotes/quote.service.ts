@@ -184,8 +184,10 @@ export class QuoteService {
           upfrontPayment: 0,
           balance: 0,
           milestonePayment: cashQuoteConfig ? cashQuoteConfig.config : [],
-          //TODO: need Son implement
-          cashQuoteConfigSnapshot: undefined, //TODO: ThangHQ please fix this
+          cashQuoteConfigSnapshot: {
+            type: cashQuoteConfig.type,
+            config: cashQuoteConfig.config,
+          },
           cashQuoteConfigSnapShotDate: '',
           currentAverageMonthlyBill: 0,
           newAverageMonthlyBill: 0,
