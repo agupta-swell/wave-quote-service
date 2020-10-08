@@ -157,13 +157,13 @@ export class QuoteService {
     return OperationResult.ok(new QuoteDto(createdQuote.toObject())) as any;
   }
 
-  async createProductAttribute(productType: string, netAmount) {
+  async createProductAttribute(productType: string, netAmount: number) {
     let template = {};
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
         template = {
           upfrontPayment: 0,
-          loanAmount: 0,
+          loanAmount: netAmount,
           interestRate: 0,
           loanTerm: 0,
           taxCreditPrepaymentAmount: 0,

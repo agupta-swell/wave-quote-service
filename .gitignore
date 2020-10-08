@@ -109,3 +109,5 @@ upload_images
 
 package-lock.json
 tags*
+
+.env
