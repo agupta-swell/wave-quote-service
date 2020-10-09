@@ -6,6 +6,9 @@ import { UtilityDataDto } from './utility-data.dto';
 
 export class UtilityDetailsDto {
   @ApiProperty()
+  id: string;
+
+  @ApiProperty()
   opportunityId: string;
 
   @ApiProperty({ type: UtilityDataDto })
@@ -15,6 +18,7 @@ export class UtilityDetailsDto {
   costData: CostDataDto;
 
   constructor(props: UtilityUsageDetails) {
+    this.id = props._id;
     this.opportunityId = props.opportunity_id;
     this.utilityData = toCamelCase(props.utility_data);
     this.costData = toCamelCase(props.cost_data);

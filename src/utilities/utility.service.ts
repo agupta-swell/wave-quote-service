@@ -155,7 +155,22 @@ export class UtilityService {
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
     await createdUtility.save();
 
-    return OperationResult.ok(new UtilityDetailsDto(createdUtility.toObject()));
+    const createdUtilityObj = createdUtility.toObject();
+    delete createdUtilityObj.utility_data.typical_baseline_usage._id;
+    return OperationResult.ok(new UtilityDetailsDto(createdUtilityObj));
+  }
+
+  async updateUtility(utilityId: string, utilityDto: CreateUtilityDto): Promise<OperationResult<UtilityDetailsDto>> {
+    const utilityModel = new UtilityUsageDetailsModel(utilityDto);
+
+    const updatedUtility = await this.utilityUsageDetailsModel.findByIdAndUpdate(utilityId, utilityModel, {
+      new: true,
+    });
+
+    const updatedUtilityObj = updatedUtility.toObject();
+    delete updatedUtilityObj.utility_data.typical_baseline_usage._id;
+
+    return OperationResult.ok(new UtilityDetailsDto(updatedUtilityObj));
   }
 
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----

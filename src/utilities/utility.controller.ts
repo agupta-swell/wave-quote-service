@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
@@ -59,6 +59,16 @@ export class UtilityController {
   @ApiOperation({ summary: 'create a utility' })
   async createUtility(@Body() utility: CreateUtilityDto): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.createUtility(utility);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put('/:utilityId')
+  @ApiOperation({ summary: 'update a utility' })
+  async updateUtility(
+    @Param('utilityId') utilityId: string,
+    @Body() utilityDto: CreateUtilityDto,
+  ): Promise<ServiceResponse<UtilityDetailsDto>> {
+    const res = await this.utilityService.updateUtility(utilityId, utilityDto);
     return ServiceResponse.fromResult(res);
   }
 }
