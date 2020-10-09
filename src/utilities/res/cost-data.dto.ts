@@ -31,7 +31,7 @@ class UtilityCostData {
   cost: CostDetailData[];
 }
 
-export class CostData {
+export class CostDataDto {
   @ApiProperty()
   masterTariffId: string;
 

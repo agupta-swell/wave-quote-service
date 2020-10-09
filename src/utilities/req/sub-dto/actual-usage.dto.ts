@@ -10,9 +10,6 @@ class TypicalUsage {
 
 export class ActualUsageDto {
   @ApiProperty()
-  zipCode: number;
-
-  @ApiProperty()
   sourceType: string;
 
   @ApiProperty()

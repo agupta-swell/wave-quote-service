@@ -57,6 +57,12 @@ export class SystemDesignDto {
   @ApiProperty()
   isSelected: boolean;
 
+  @ApiProperty()
+  isRetrofit: boolean;
+
+  @ApiProperty()
+  isSolar: boolean;
+
   constructor(props: SystemDesign) {
     this.id = props._id;
     this.opportunityId = props.opportunity_id;
@@ -66,6 +72,8 @@ export class SystemDesignDto {
     this.longtitude = props.longtitude;
     this.thumbnail = props.thumbnail;
     this.isSelected = props.is_selected;
+    this.isSolar = props.is_solar;
+    this.isRetrofit = props.is_retrofit;
     this.systemProductionData = this.transformSystemProductionData(props.system_production_data);
     this.roofTopDesignData = this.transformRoofTopData(props.roof_top_design_data);
     this.capacityProductionDesignData = (null ||

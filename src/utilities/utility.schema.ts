@@ -1,3 +1,4 @@
+import { CreateUtilityDto } from './req/create-utility.dto';
 import { Document, Schema } from 'mongoose';
 import { ITypicalBaseLine } from '../external-services/typing';
 import { toSnakeCase } from '../utils/transformProperties';
@@ -219,7 +220,7 @@ export class UtilityUsageDetailsModel {
   utility_data: IUtilityData;
   cost_data: ICostData;
 
-  constructor(props: UpdateUsageDto | any) {
+  constructor(props: CreateUtilityDto | any) {
     this.opportunity_id = props.opportunityId;
     this.utility_data = toSnakeCase(props.utilityData);
     this.cost_data = toSnakeCase(props.costData);

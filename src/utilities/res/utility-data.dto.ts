@@ -48,7 +48,7 @@ export class TypicalBaseLine {
   @ApiProperty()
   annualConsumption: number;
 
-  @ApiProperty()
+  @ApiProperty({ type: TypicalUsage })
   typicalMonthlyUsage: TypicalUsage[];
 }
 
@@ -66,7 +66,7 @@ export class ActualUsageDto {
   monthlyUsage: TypicalUsage[];
 }
 
-export class UtilityDto {
+export class UtilityDataDto {
   @ApiProperty({ type: LoadServingEntity })
   loadServingEntityData: LoadServingEntity;
 
@@ -84,7 +84,7 @@ export class UtilityDto {
   }
 
   static actualUsages(props: any) {
-    const utility = new UtilityDto(null);
+    const utility = new UtilityDataDto(null);
     utility.loadServingEntityData = props.loadServingEntityData;
     utility.typicalBaselineUsage = props.typicalBaselineUsage;
     utility.actualUsage = props.actualUsage;

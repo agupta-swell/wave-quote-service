@@ -1,9 +1,11 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
-import { TariffDto, UtilityDto } from './res';
-import { CostData } from './res/cost-data.dto';
+import { CreateUtilityDto } from './req/create-utility.dto';
+import { TariffDto, UtilityDataDto } from './res';
+import { CostDataDto } from './res/cost-data.dto';
+import { UtilityDetailsDto } from './res/utility-details.dto';
 import { UtilityService } from './utility.service';
 
 @ApiTags('Utilities')
@@ -12,8 +14,8 @@ export class UtilityController {
   constructor(private readonly utilityService: UtilityService) {}
 
   @Get('/typical-baselines')
-  @ApiOkResponse({ type: UtilityDto })
-  async getTypicalBaseline(@Query('zipCode') zipCode: string): Promise<ServiceResponse<UtilityDto>> {
+  @ApiOkResponse({ type: UtilityDataDto })
+  async getTypicalBaseline(@Query('zipCode') zipCode: string): Promise<ServiceResponse<UtilityDataDto>> {
     const res = await this.utilityService.getTypicalBaseline(Number(zipCode));
     return ServiceResponse.fromResult(res);
   }
@@ -28,10 +30,10 @@ export class UtilityController {
   @Get('/typical-usage-costs')
   @ApiQuery({ name: 'zipCode', required: true })
   @ApiQuery({ name: 'masterTariffId', required: true })
-  @ApiOkResponse({ type: CostData })
+  @ApiOkResponse({ type: CostDataDto })
   async calculateTypicalUsageCost(
     @Query() query: { zipCode: string; masterTariffId: string },
-  ): Promise<ServiceResponse<CostData>> {
+  ): Promise<ServiceResponse<CostDataDto>> {
     const res = await this.utilityService.calculateTypicalUsageCost(
       Number(query.zipCode),
       query.masterTariffId || '522',
@@ -40,16 +42,23 @@ export class UtilityController {
   }
 
   @Post('/actual-usage-costs')
-  @ApiOkResponse({ type: CostData })
-  async calculateActualUsageCost(@Body() data: CalculateActualUsageCostDto): Promise<ServiceResponse<CostData>> {
+  @ApiOkResponse({ type: CostDataDto })
+  async calculateActualUsageCost(@Body() data: CalculateActualUsageCostDto): Promise<ServiceResponse<CostDataDto>> {
     const res = await this.utilityService.calculateActualUsageCost(data);
     return ServiceResponse.fromResult(res);
   }
 
   @Post('/actual-usages')
-  @ApiOkResponse({ type: UtilityDto })
-  async getActualUsages(@Body() data: GetActualUsageDto): Promise<ServiceResponse<UtilityDto>> {
+  @ApiOkResponse({ type: UtilityDataDto })
+  async getActualUsages(@Body() data: GetActualUsageDto): Promise<ServiceResponse<UtilityDataDto>> {
     const res = await this.utilityService.getActualUsages(data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'create a utility' })
+  async createUtility(@Body() utility: CreateUtilityDto): Promise<ServiceResponse<UtilityDetailsDto>> {
+    const res = await this.utilityService.createUtility(utility);
     return ServiceResponse.fromResult(res);
   }
 }

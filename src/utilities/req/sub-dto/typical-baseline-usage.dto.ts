@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 class TypicalUsage {
   @ApiProperty()
@@ -30,6 +31,7 @@ export class TypicalBaselineUsageDto {
   @ApiProperty()
   annualConsumption: number;
 
-  @ApiProperty({ type: TypicalUsage, isArray: true })
+  @ApiProperty({ type: () => TypicalUsage, isArray: true, default: [{ i: 1, v: 2 }] })
+  @Type(() => TypicalUsage)
   typicalMonthlyUsage: TypicalUsage[];
 }

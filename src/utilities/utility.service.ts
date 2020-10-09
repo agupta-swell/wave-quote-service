@@ -5,8 +5,10 @@ import { Model } from 'mongoose';
 import { ExternalService } from '../external-services/external-service.service';
 import { OperationResult } from './../app/common';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
-import { CalculateActualUsageCostDto, GetActualUsageDto, UpdateUsageDto } from './req';
-import { CostData, TariffDto, UtilityDto } from './res';
+import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
+import { CreateUtilityDto } from './req/create-utility.dto';
+import { CostDataDto, TariffDto, UtilityDataDto } from './res';
+import { UtilityDetailsDto } from './res/utility-details.dto';
 import {
   GenabilityCostData,
   GenabilityTypicalBaseLineModel,
@@ -32,19 +34,19 @@ export class UtilityService {
     private readonly externalService: ExternalService,
   ) {}
 
-  async getUtilityDetails(zipCode: number): Promise<OperationResult<UtilityDto>> {
+  async getUtilityDetails(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
     const loadServingEntityData = await this.externalService.getLoadServingEntity(zipCode);
     const data = { loadServingEntityData };
-    return OperationResult.ok(new UtilityDto(data));
+    return OperationResult.ok(new UtilityDataDto(data));
   }
 
-  async getTypicalBaseline(zipCode: number): Promise<OperationResult<UtilityDto>> {
+  async getTypicalBaseline(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
     const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
     if (typicalBaseLine) {
       const typicalBaseLineObj = typicalBaseLine.toObject();
       delete typicalBaseLineObj.typical_hourly_usage;
       const data = { typicalBaselineUsage: typicalBaseLineObj };
-      return OperationResult.ok(new UtilityDto(data));
+      return OperationResult.ok(new UtilityDataDto(data));
     }
 
     const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
@@ -61,15 +63,7 @@ export class UtilityService {
     const createdTypicalBaseLineObj = createdTypicalBaseLine.toObject();
     delete createdTypicalBaseLineObj.typical_baseline.typical_hourly_usage;
     const data = { typicalBaselineUsage: createdTypicalBaseLineObj };
-    return OperationResult.ok(new UtilityDto(data));
-  }
-
-  async updateUsage(usage: UpdateUsageDto): Promise<boolean> {
-    const utilityUsageDetailsModel = new UtilityUsageDetailsModel(usage);
-    const model = new this.utilityUsageDetailsModel(utilityUsageDetailsModel);
-    await model.save();
-
-    return true;
+    return OperationResult.ok(new UtilityDataDto(data));
   }
 
   async getTariffs(zipCode: number, lseId: number): Promise<OperationResult<TariffDto>> {
@@ -88,7 +82,7 @@ export class UtilityService {
     return OperationResult.ok(new TariffDto({ ...newResult, zipCode }));
   }
 
-  async calculateTypicalUsageCost(zipCode: number, masterTariffId: string): Promise<OperationResult<CostData>> {
+  async calculateTypicalUsageCost(zipCode: number, masterTariffId: string): Promise<OperationResult<CostDataDto>> {
     const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
 
     const monthlyCost = await this.calculateCost(
@@ -104,10 +98,10 @@ export class UtilityService {
       actual_usage_cost: null,
     } as ICostData;
 
-    return OperationResult.ok(new CostData(costData));
+    return OperationResult.ok(new CostDataDto(costData));
   }
 
-  async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostData>> {
+  async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostDataDto>> {
     const { zipCode, masterTariffId, utilityData } = data;
     const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
 
@@ -140,10 +134,10 @@ export class UtilityService {
       actual_usage_cost: monthlyCost,
     } as ICostData;
 
-    return OperationResult.ok(new CostData(costData));
+    return OperationResult.ok(new CostDataDto(costData));
   }
 
-  async getActualUsages(data: GetActualUsageDto): Promise<OperationResult<UtilityDto>> {
+  async getActualUsages(data: GetActualUsageDto): Promise<OperationResult<UtilityDataDto>> {
     const { costData, utilityData } = data;
 
     costData.actualUsageCost.cost.map((costDetail, index) => {
@@ -152,9 +146,19 @@ export class UtilityService {
       utilityData.actualUsage.monthlyUsage[index].v =
         utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
     });
-    return OperationResult.ok(UtilityDto.actualUsages(utilityData));
+    return OperationResult.ok(UtilityDataDto.actualUsages(utilityData));
   }
-  // -->>>>>>>>> INTERNAL <<<<<<<<<----
+
+  async createUtility(utilityDto: CreateUtilityDto): Promise<OperationResult<UtilityDetailsDto>> {
+    const utilityModel = new UtilityUsageDetailsModel(utilityDto);
+
+    const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
+    await createdUtility.save();
+
+    return OperationResult.ok(new UtilityDetailsDto(createdUtility.toObject()));
+  }
+
+  // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----
 
   getMonth(hour: number) {
     if (hour <= 744) return 1;
