@@ -245,8 +245,8 @@ export class UtilityService {
     return costData;
   }
 
-  async getUtilityByOpportunityId(opportunityId: string): Promise<UtilityDto> {
+  async getUtilityByOpportunityId(opportunityId: string): Promise<UtilityUsageDetails> {
     const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
-    return utility ? new UtilityDto(utility) : null;
+    return utility || null;
   }
 }

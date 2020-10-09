@@ -77,8 +77,8 @@ export class SystemDesignService {
       systemDesign.setIsSelected(systemDesignDto.isSelected);
 
       const annualUsageKWh =
-        (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage
-          ?.annualConsumption || 0;
+        (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.utility_data
+          .typical_baseline_usage?.annual_consumption || 0;
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
@@ -174,8 +174,8 @@ export class SystemDesignService {
         );
 
         const annualUsageKWh =
-          (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.typicalBaselineUsage
-            ?.annualConsumption || 0;
+          (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.utility_data
+            .typical_baseline_usage?.annual_consumption || 0;
 
         systemDesign.setSystemProductionData({
           capacityKW: cumulativeCapacityKW,

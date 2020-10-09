@@ -49,6 +49,10 @@ export class CalculationService {
       productAttribute.leaseTerm,
       monthlyLeasePayment,
     );
+    productAttribute.currentMonthlyAverageUtilityPayment = await this.getCurrentMonthlyAverageUtilityPayment(
+      detailedQuote.opportunityId,
+    );
+    productAttribute.monthlyEnergyPayment = monthlyLeasePayment + productAttribute.currentMonthlyAverageUtilityPayment;
 
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
     return detailedQuote;
@@ -76,5 +80,12 @@ export class CalculationService {
     }
 
     return yearlyLeasePaymentDetails;
+  }
+
+  private async getCurrentMonthlyAverageUtilityPayment(opportunityId: string) {
+    const utility = await this.utilityService.getUtilityByOpportunityId(opportunityId);
+    const totalCost = sumBy(utility.cost_data.typical_usage_cost.cost, item => item.v);
+    const lenCost = utility.cost_data.typical_usage_cost.cost.length;
+    return totalCost / lenCost;
   }
 }
