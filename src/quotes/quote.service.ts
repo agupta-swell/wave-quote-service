@@ -184,8 +184,8 @@ export class QuoteService {
       case FINANCE_PRODUCT_TYPE.LEASE:
         template = {
           upfrontPayment: 0,
-          leaseAmount: 0,
-          leaseTerm: 0,
+          leaseAmount: netAmount,
+          leaseTerm: 25,
           monthlyLeasePayment: 0,
           currentMonthlyAverageUtilityPayment: 0,
           monthlyUtilityPayment: 0,
