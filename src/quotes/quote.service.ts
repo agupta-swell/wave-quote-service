@@ -255,7 +255,6 @@ export class QuoteService {
 
     const detailedQuote = {
       ...data,
-      utilityProgram: foundQuote.detailed_quote.utility_program,
       systemProduction: foundQuote.detailed_quote.system_production,
       quoteName: data.quoteName || foundQuote.detailed_quote.quote_name,
       isSelected: data.isSelected || foundQuote.detailed_quote.is_selected,

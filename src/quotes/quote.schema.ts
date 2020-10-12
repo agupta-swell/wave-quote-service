@@ -453,7 +453,7 @@ export class QuoteModel {
       is_selected: isSelected,
       is_solar: isSolar,
       is_retrofit: isRetrofit,
-      utility_program: utilityProgram,
+      utility_program: toSnakeCase(utilityProgram),
       quote_finance_product: {
         incentive_details: incentiveDetails.map(item => toSnakeCase(item)),
         rebate_details: rebateDetails.map(item => toSnakeCase(item)),
