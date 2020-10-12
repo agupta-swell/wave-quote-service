@@ -1,3 +1,4 @@
+import { UtilityProgramController } from './utility-program.controller';
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UtilityProgramSchema, UTILITY_PROGRAM } from './utility-program.schema';
@@ -14,6 +15,7 @@ import { UtilityProgramService } from './utility-program.service';
       },
     ]),
   ],
+  controllers: [UtilityProgramController],
   providers: [UtilityProgramService],
   exports: [UtilityProgramService],
 })

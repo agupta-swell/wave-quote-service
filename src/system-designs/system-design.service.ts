@@ -127,7 +127,7 @@ export class SystemDesignService {
       if (systemDesignDto.thumbnail) {
         const [thumbnail] = await Promise.all([
           this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail),
-          await this.uploadImageService.deleteFileS3(foundSystemDesign.thumbnail),
+          this.uploadImageService.deleteFileS3(foundSystemDesign.thumbnail),
         ]);
         systemDesign.setThumbnail(thumbnail);
       }
