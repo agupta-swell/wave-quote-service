@@ -18,7 +18,7 @@ export class CalculationService {
       .productAttribute as LeaseProductAttributesDto;
     productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossAmount;
 
-    const leaseSolverConfig = await this.leaseSolverConfigService.getDetail({
+    const query = {
       isSolar: detailedQuote.isSolar,
       isRetrofit: detailedQuote.isRetrofit,
       utilityProgramName: detailedQuote.utilityProgram.utilityProgramName || 'PRP2',
@@ -30,9 +30,12 @@ export class CalculationService {
       rateEscalator: productAttribute.rateEscalator,
       capacityKW: detailedQuote.systemProduction.capacityKW,
       productivity: detailedQuote.systemProduction.productivity,
-    });
+    };
+
+    const leaseSolverConfig = await this.leaseSolverConfigService.getDetail(query);
 
     if (!leaseSolverConfig) {
+      console.log('Cannot find leaseSolverConfig with query:', query);
       throw ApplicationException.NullEnitityFound('Lease Config');
     }
 

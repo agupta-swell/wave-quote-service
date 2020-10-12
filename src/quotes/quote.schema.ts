@@ -188,13 +188,13 @@ const QuoteFinanceProductSchema = new Schema<IQuoteFinanceProductSchema>(
 );
 
 export interface IUtilityProgramSchema {
-  utility_program_id: number;
+  utility_program_id: string;
   utility_program_name: string;
 }
 
 const UtilityProgramSchema = new Schema<IUtilityProgramSchema>(
   {
-    utility_program_id: Number,
+    utility_program_id: String,
     utility_program_name: String,
   },
   { _id: false },

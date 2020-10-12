@@ -98,7 +98,7 @@ export class QuoteService {
     quoteCostBuildup.totalProductCost = this.calculateTotalProductCost(quoteCostBuildup);
     quoteCostBuildup.grossAmount = quoteCostBuildup.totalProductCost - quoteCostBuildup.laborCost.netCost;
 
-    const utilityProgram = await this.utilityProgramService.getFirst();
+    const utilityProgram = await this.utilityProgramService.getDetail(data.utilityProgramId);
     const fundingSource = await this.fundingSourceService.getDetail(data.fundingSourceId);
 
     const detailedQuote = {
