@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { UtilityProgramDto, UtilityProgramListRes } from './res/utility-program.dto';
 import { UtilityProgramService } from './utility-program.service';
@@ -12,7 +12,7 @@ export class UtilityProgramController {
   @Get()
   @ApiOperation({ summary: 'Get List' })
   @ApiOkResponse({ type: UtilityProgramListRes })
-  async getTypicalBaseline(): Promise<ServiceResponse<Pagination<UtilityProgramDto>>> {
+  async getList(): Promise<ServiceResponse<Pagination<UtilityProgramDto>>> {
     const res = await this.utilityProgramService.getList();
     return ServiceResponse.fromResult(res);
   }
