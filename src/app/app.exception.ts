@@ -6,15 +6,15 @@ export class ApplicationException extends HttpException {
   }
 
   static EnitityNotFound(id?: string) {
-    return new ApplicationException(`Enitity Not Found: ${id}`, HttpStatus.UNPROCESSABLE_ENTITY);
+    return new ApplicationException(`Enitity Not Found: ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
   static EmailNotFound(email?: string) {
-    return new ApplicationException(`Email Not Found: ${email}`, HttpStatus.UNAUTHORIZED);
+    return new ApplicationException(`Email Not Found: ${email || ''}`, HttpStatus.UNAUTHORIZED);
   }
 
   static EmailDuplicated(email?: string) {
-    return new ApplicationException(`Email is already existed: ${email}`, HttpStatus.BAD_REQUEST);
+    return new ApplicationException(`Email is already existed: ${email || ''}`, HttpStatus.BAD_REQUEST);
   }
 
   static NoPermission() {
@@ -33,6 +33,6 @@ export class ApplicationException extends HttpException {
   }
 
   static NullEnitityFound(enitity: string, id?: string) {
-    return new ApplicationException(`${enitity} Not Found ${id}`, HttpStatus.UNPROCESSABLE_ENTITY);
+    return new ApplicationException(`${enitity} Not Found ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 }
