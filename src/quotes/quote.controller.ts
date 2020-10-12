@@ -2,8 +2,7 @@ import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { QuoteService } from './quote.service';
-import { CreateQuoteDto } from './req/create-quote.dto';
-import { UpdateQuoteDto } from './req/update-quote.dto';
+import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import { QuoteDto, QuoteListRes, QuoteRes } from './res/quote.dto';
 
 @ApiTags('Quote')
@@ -47,6 +46,14 @@ export class QuoteController {
     @Param('quoteId') quoteId: string,
   ): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.updateQuote(quoteId, data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/calculations')
+  @ApiOperation({ summary: 'Calculate Quote Detail' })
+  @ApiOkResponse({ type: QuoteRes })
+  async calculateQuoteDetails(@Body() data: CalculateQuoteDetailDto): Promise<ServiceResponse<QuoteDto>> {
+    const res = await this.quoteService.calculateQuoteDetail(data);
     return ServiceResponse.fromResult(res);
   }
 }

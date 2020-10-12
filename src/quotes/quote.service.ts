@@ -11,8 +11,7 @@ import { CashPaymentConfigService } from './../cash-payment-configs/cash-payment
 import { SystemDesignService } from './../system-designs/system-design.service';
 import { FINANCE_PRODUCT_TYPE } from './constants';
 import { Quote, QUOTE, QuoteModel } from './quote.schema';
-import { CreateQuoteDto } from './req/create-quote.dto';
-import { UpdateQuoteDto } from './req/update-quote.dto';
+import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import { QuoteDto } from './res/quote.dto';
 import { CalculationService } from './sub-services/calculation.service';
 
@@ -264,13 +263,32 @@ export class QuoteService {
       isRetrofit: foundQuote.detailed_quote.is_retrofit,
     };
 
-    // await this.calculationService.calculateLeaseQuote(detailedQuote);
     const model = new QuoteModel(data, detailedQuote);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
     const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
     return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
   }
+
+  async calculateQuoteDetail(data: CalculateQuoteDetailDto): Promise<OperationResult<QuoteDto>> {
+    let res: CalculateQuoteDetailDto;
+    switch (data.quoteFinanceProduct.financeProduct.productType) {
+      case FINANCE_PRODUCT_TYPE.LEASE:
+        res = await this.calculationService.calculateLeaseQuote(data);
+        break;
+      case FINANCE_PRODUCT_TYPE.LEASE:
+        res = {} as any;
+        break;
+      case FINANCE_PRODUCT_TYPE.LEASE:
+        res = {} as any;
+        break;
+      default:
+        break;
+    }
+    return OperationResult.ok(res as any);
+  }
+
+  // ->>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<-
 
   groupData(data: any[], field: string) {
     const groupByField = groupBy(data, item => item[field]);

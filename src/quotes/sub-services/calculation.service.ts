@@ -3,7 +3,8 @@ import { sumBy } from 'lodash';
 import { LeaseSolverConfigService } from '../../lease-solver-configs/lease-solver-config.service';
 import { UtilityService } from '../../utilities/utility.service';
 import { LeaseProductAttributesDto } from '../req/sub-dto';
-import { UpdateQuoteDto } from './../req/update-quote.dto';
+import { ApplicationException } from './../../app/app.exception';
+import { CalculateQuoteDetailDto } from './../req';
 
 @Injectable()
 export class CalculationService {
@@ -12,7 +13,7 @@ export class CalculationService {
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
   ) {}
 
-  async calculateLeaseQuote(detailedQuote: UpdateQuoteDto) {
+  async calculateLeaseQuote(detailedQuote: CalculateQuoteDetailDto): Promise<CalculateQuoteDetailDto> {
     const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
       .productAttribute as LeaseProductAttributesDto;
     productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossAmount;
@@ -20,18 +21,22 @@ export class CalculationService {
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetail({
       isSolar: detailedQuote.isSolar,
       isRetrofit: detailedQuote.isRetrofit,
-      utilityProgramName: (detailedQuote as any).utilityProgram.utilityProgramName || 'PRP2',
+      utilityProgramName: detailedQuote.utilityProgram.utilityProgramName || 'PRP2',
       contractTerm: productAttribute.leaseTerm,
       storageSize: sumBy(
         detailedQuote.quoteCostBuildup.storageQuoteDetails,
         item => item.storageModelDataSnapshot.sizekWh,
       ),
       rateEscalator: productAttribute.rateEscalator,
-      capacityKW: (detailedQuote as any).systemProduction.capacityKW,
-      productivity: (detailedQuote as any).systemProduction.productivity,
+      capacityKW: detailedQuote.systemProduction.capacityKW,
+      productivity: detailedQuote.systemProduction.productivity,
     });
 
-    const actualSystemCostPerkW = productAttribute.leaseAmount / (detailedQuote as any).systemProduction.capacityKW;
+    if (!leaseSolverConfig) {
+      throw ApplicationException.NullEnitityFound('Lease Config');
+    }
+
+    const actualSystemCostPerkW = productAttribute.leaseAmount / detailedQuote.systemProduction.capacityKW;
     const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
     const averageProductivity = (leaseSolverConfig.productivity_min + leaseSolverConfig.productivity_max) / 2;
     const rateDeltaPerkWh =

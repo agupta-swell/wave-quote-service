@@ -31,4 +31,8 @@ export class ApplicationException extends HttpException {
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }
+
+  static NullEnitityFound(enitity: string, id?: string) {
+    return new ApplicationException(`${enitity} Not Found ${id}`, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
 }
