@@ -1,9 +1,11 @@
+import { ApplicationException } from './../app/app.exception';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { ExternalService } from '../external-services/external-service.service';
 import { OperationResult } from './../app/common';
+import { SystemDesignService } from './../system-designs/system-design.service';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { CreateUtilityDto } from './req/create-utility.dto';
@@ -32,6 +34,7 @@ export class UtilityService {
     @InjectModel(UTILITY_USAGE_DETAILS)
     private readonly utilityUsageDetailsModel: Model<UtilityUsageDetails>,
     private readonly externalService: ExternalService,
+    private readonly systemDesignService: SystemDesignService,
   ) {}
 
   async getUtilityDetails(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
@@ -182,6 +185,15 @@ export class UtilityService {
     const updatedUtility = await this.utilityUsageDetailsModel.findByIdAndUpdate(utilityId, utilityModel, {
       new: true,
     });
+
+    const isUpdated = await this.systemDesignService.updateListSystemDesign(
+      utilityDto.opportunityId,
+      utilityDto.utilityData.typicalBaselineUsage.annualConsumption,
+    );
+
+    if (!isUpdated) {
+      throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
+    }
 
     const updatedUtilityObj = updatedUtility.toObject();
     delete updatedUtilityObj.utility_data.typical_baseline_usage._id;

@@ -252,4 +252,18 @@ export class SystemDesignService {
     const systemDesign = await this.systemDesignModel.findById(id);
     return systemDesign.toObject();
   }
+
+  async updateListSystemDesign(opportunityId: string, annualUsageKWh: number): Promise<boolean> {
+    const systemDesigns = await this.systemDesignModel.find({ opportunity_id: opportunityId });
+    await Promise.all(
+      systemDesigns.map(item => {
+        item.system_production_data.annual_usageKWh = annualUsageKWh;
+        item.system_production_data.offset_percentage =
+          annualUsageKWh > 0 ? item.system_production_data.generationKWh / annualUsageKWh : 0;
+        return item.update(item.toObject());
+      }),
+    );
+
+    return true;
+  }
 }
