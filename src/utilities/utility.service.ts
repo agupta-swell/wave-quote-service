@@ -172,6 +172,9 @@ export class UtilityService {
 
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
     const res = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
+    if (!res) {
+      return OperationResult.ok(null);
+    }
     const obj = res.toObject();
     delete obj.utility_data.typical_baseline_usage._id;
     return OperationResult.ok(new UtilityDetailsDto(obj));
