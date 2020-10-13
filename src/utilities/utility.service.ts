@@ -149,7 +149,7 @@ export class UtilityService {
     return OperationResult.ok(UtilityDataDto.actualUsages(utilityData));
   }
 
-  async createUtility(utilityDto: CreateUtilityDto): Promise<OperationResult<UtilityDetailsDto>> {
+  async createUtilityUsageDetail(utilityDto: CreateUtilityDto): Promise<OperationResult<UtilityDetailsDto>> {
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
@@ -160,7 +160,17 @@ export class UtilityService {
     return OperationResult.ok(new UtilityDetailsDto(createdUtilityObj));
   }
 
-  async updateUtility(utilityId: string, utilityDto: CreateUtilityDto): Promise<OperationResult<UtilityDetailsDto>> {
+  async getUtilityUsageDetail(id: string): Promise<OperationResult<UtilityDetailsDto>> {
+    const res = await this.utilityUsageDetailsModel.findById(id);
+    const obj = res.toObject();
+    delete obj.utility_data.typical_baseline_usage._id;
+    return OperationResult.ok(new UtilityDetailsDto(obj));
+  }
+
+  async updateUtilityUsageDetail(
+    utilityId: string,
+    utilityDto: CreateUtilityDto,
+  ): Promise<OperationResult<UtilityDetailsDto>> {
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
     const updatedUtility = await this.utilityUsageDetailsModel.findByIdAndUpdate(utilityId, utilityModel, {
