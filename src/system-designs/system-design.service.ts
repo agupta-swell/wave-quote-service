@@ -260,7 +260,7 @@ export class SystemDesignService {
         item.system_production_data.annual_usageKWh = annualUsageKWh;
         item.system_production_data.offset_percentage =
           annualUsageKWh > 0 ? item.system_production_data.generationKWh / annualUsageKWh : 0;
-        return item.update(item.toObject());
+        return item.updateOne(item.toObject());
       }),
     );
 

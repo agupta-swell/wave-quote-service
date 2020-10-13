@@ -1,11 +1,11 @@
-import { ApplicationException } from './../app/app.exception';
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { ExternalService } from '../external-services/external-service.service';
+import { SystemDesignService } from '../system-designs/system-design.service';
+import { ApplicationException } from './../app/app.exception';
 import { OperationResult } from './../app/common';
-import { SystemDesignService } from './../system-designs/system-design.service';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { CreateUtilityDto } from './req/create-utility.dto';
@@ -34,7 +34,8 @@ export class UtilityService {
     @InjectModel(UTILITY_USAGE_DETAILS)
     private readonly utilityUsageDetailsModel: Model<UtilityUsageDetails>,
     private readonly externalService: ExternalService,
-    private readonly systemDesignService: SystemDesignService,
+    @Inject(forwardRef(() => SystemDesignService))
+    private systemDesignService: SystemDesignService,
   ) {}
 
   async getUtilityDetails(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
