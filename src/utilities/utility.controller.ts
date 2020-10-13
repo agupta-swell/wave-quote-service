@@ -56,19 +56,26 @@ export class UtilityController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'create a utility' })
+  @ApiOperation({ summary: 'create a utility usage detail' })
   async createUtility(@Body() utility: CreateUtilityDto): Promise<ServiceResponse<UtilityDetailsDto>> {
-    const res = await this.utilityService.createUtility(utility);
+    const res = await this.utilityService.createUtilityUsageDetail(utility);
     return ServiceResponse.fromResult(res);
   }
 
   @Put('/:utilityId')
-  @ApiOperation({ summary: 'update a utility' })
+  @ApiOperation({ summary: 'update a utility usage detail' })
   async updateUtility(
     @Param('utilityId') utilityId: string,
     @Body() utilityDto: CreateUtilityDto,
   ): Promise<ServiceResponse<UtilityDetailsDto>> {
-    const res = await this.utilityService.updateUtility(utilityId, utilityDto);
+    const res = await this.utilityService.updateUtilityUsageDetail(utilityId, utilityDto);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/:utilityId')
+  @ApiOperation({ summary: 'update a utility' })
+  async getUtilityUsageDetail(@Param('utilityId') utilityId: string): Promise<ServiceResponse<UtilityDetailsDto>> {
+    const res = await this.utilityService.getUtilityUsageDetail(utilityId);
     return ServiceResponse.fromResult(res);
   }
 }
