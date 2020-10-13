@@ -72,10 +72,12 @@ export class UtilityController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Get('/:utilityId')
-  @ApiOperation({ summary: 'update a utility' })
-  async getUtilityUsageDetail(@Param('utilityId') utilityId: string): Promise<ServiceResponse<UtilityDetailsDto>> {
-    const res = await this.utilityService.getUtilityUsageDetail(utilityId);
+  @Get('/:opportunityId')
+  @ApiOperation({ summary: 'get utility usage detail by opportunityId' })
+  async getUtilityUsageDetail(
+    @Param('opportunityId') opportunityId: string,
+  ): Promise<ServiceResponse<UtilityDetailsDto>> {
+    const res = await this.utilityService.getUtilityUsageDetail(opportunityId);
     return ServiceResponse.fromResult(res);
   }
 }
