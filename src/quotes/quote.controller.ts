@@ -4,11 +4,12 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { QuoteService } from './quote.service';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import { QuoteDto, QuoteListRes, QuoteRes } from './res/quote.dto';
+import { CalculationService } from './sub-services';
 
 @ApiTags('Quote')
 @Controller('/quotes')
 export class QuoteController {
-  constructor(private quoteService: QuoteService) {}
+  constructor(private quoteService: QuoteService, private readonly calculationService: CalculationService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create quote' })
@@ -28,6 +29,12 @@ export class QuoteController {
   ): Promise<ServiceResponse<Pagination<QuoteDto>>> {
     const res = await this.quoteService.getAllQuotes(Number(limit || 0), Number(skip || 0), systemDesignId);
     return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/loan')
+  async test() {
+    const res = this.calculationService.calculateLoanSolver(6.5, 27000, new Date('1/1/2021'), 240, 18, 1500, 18, 0);
+    return res;
   }
 
   @Get('/:quoteId')

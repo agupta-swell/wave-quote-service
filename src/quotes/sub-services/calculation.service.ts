@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { sumBy } from 'lodash';
 import { LeaseSolverConfigService } from '../../lease-solver-configs/lease-solver-config.service';
 import { UtilityService } from '../../utilities/utility.service';
+import { getDaysInYear } from '../../utils/datetime';
 import { LeaseProductAttributesDto } from '../req/sub-dto';
+import { IGenLoanDataParam, IGetPaymentAmount, IPayPeriodData } from '../typing.d';
 import { ApplicationException } from './../../app/app.exception';
+import { getDaysInMonth, getPaymentDueDateByPeriod } from './../../utils/datetime';
 import { CalculateQuoteDetailDto } from './../req';
 
 @Injectable()
@@ -95,5 +98,171 @@ export class CalculationService {
     const totalCost = sumBy(utility.cost_data.typical_usage_cost.cost, item => item.v);
     const lenCost = utility.cost_data.typical_usage_cost.cost.length;
     return totalCost / lenCost;
+  }
+
+  calculateLoanSolver(
+    annualInterestRate: number,
+    loanAmount: number,
+    startDate: Date,
+    loanPeriod: number,
+    principlePaymentPeriodStart: number,
+    prepaymentAmount: number,
+    periodPrepayment: number,
+    approximateAccuracy: number,
+  ) {
+    const startingMonthyPaymentBeforePrePayment = this.getPaymentAmountBeforePrePayment({
+      loanAmount,
+      annualInterestRate,
+      periodStart: principlePaymentPeriodStart,
+    });
+
+    const tempPeriod = loanPeriod - principlePaymentPeriodStart;
+    const tempPrincipleAmount = loanAmount - prepaymentAmount;
+
+    const startingMonthyPaymentAfterPrePayment = this.getPaymentAmountAfterPrePayment({
+      loanAmount: tempPrincipleAmount,
+      annualInterestRate,
+      periodStart: tempPeriod,
+    });
+
+    const genLoanDataParam = {
+      loanAmount,
+      annualInterestRate,
+      loanStartDate: startDate,
+      totalPeriod: loanPeriod,
+      amountOfPrePayment: prepaymentAmount,
+      monthOfPrePayment: periodPrepayment,
+      periodWhenPrinciplePaymentStarts: principlePaymentPeriodStart,
+    };
+
+    const { prePaymentPeriodInterestTotal } = this.calculateAmortizationSchedule(
+      startingMonthyPaymentBeforePrePayment,
+      startingMonthyPaymentAfterPrePayment,
+      genLoanDataParam,
+    );
+
+    const newStartingMonthyPaymentBeforePrePayment = prePaymentPeriodInterestTotal / (principlePaymentPeriodStart - 2);
+
+    const { loanSolvers } = this.calculateAmortizationSchedule(
+      newStartingMonthyPaymentBeforePrePayment,
+      startingMonthyPaymentAfterPrePayment,
+      genLoanDataParam,
+    );
+
+    return loanSolvers;
+  }
+
+  getMonthlyInterestRate(annualInterestRate: number) {
+    return annualInterestRate / 100 / 12;
+  }
+
+  getPaymentAmountBeforePrePayment(data: IGetPaymentAmount) {
+    const { annualInterestRate, loanAmount } = data;
+    const interestRateMonthly = this.getMonthlyInterestRate(annualInterestRate);
+    return loanAmount * interestRateMonthly;
+  }
+
+  getPaymentAmountAfterPrePayment(data: IGetPaymentAmount) {
+    const { annualInterestRate, loanAmount, periodStart } = data;
+    const interestRateMonthly = this.getMonthlyInterestRate(annualInterestRate);
+    const paymentMonthly =
+      loanAmount *
+      ((interestRateMonthly * (interestRateMonthly + 1) ** periodStart) /
+        ((interestRateMonthly + 1) ** periodStart - 1));
+
+    return paymentMonthly;
+  }
+
+  calculateAmortizationSchedule(
+    startingMonthlyPaymentBeforePrePayment: number,
+    startingMonthlyPaymentAfterPrePayment: number,
+    genLoanDataParam: IGenLoanDataParam,
+  ) {
+    const { loanStartDate, loanAmount } = genLoanDataParam;
+    const loanSolvers: IPayPeriodData[] = [];
+    let paymentNumberCounter = -2;
+    let daysInCurrentMonth: number;
+    let daysInCurrentYear: number;
+    let runningBalancePrinciple = loanAmount;
+    let runningUnpaidInterest = 0;
+    let prePaymentPeriodInterestTotal = 0;
+
+    for (let periodCounter = 0; periodCounter <= genLoanDataParam.totalPeriod; periodCounter += 1) {
+      paymentNumberCounter += 1;
+      const payPeriodDataInst = {
+        paymentDueDate: '',
+        daysInPeriod: 0,
+        daysInYear: 0,
+        period: 0,
+        paymentNumber: 0,
+        startingBalance: 0,
+        monthlyPayment: 0,
+        interestComponent: 0,
+        principleComponent: 0,
+        endingBalance: 0,
+        prePaymentAmount: 0,
+        unpaidInterestForCurrentMonth: 0,
+        unpaidInterestCumulative: 0,
+        adjustedMonthlyPayment: 0,
+      } as IPayPeriodData;
+
+      const previousPeriodDate = getPaymentDueDateByPeriod(
+        loanStartDate.getFullYear(),
+        periodCounter,
+        loanStartDate.getMonth() - 1,
+      );
+
+      daysInCurrentYear = getDaysInYear(previousPeriodDate.getFullYear());
+      payPeriodDataInst.period = periodCounter;
+      payPeriodDataInst.paymentNumber = paymentNumberCounter < 0 ? 0 : paymentNumberCounter;
+      payPeriodDataInst.paymentDueDate = getPaymentDueDateByPeriod(
+        loanStartDate.getFullYear(),
+        periodCounter,
+        loanStartDate.getMonth(),
+      ).toLocaleDateString();
+      payPeriodDataInst.daysInYear = daysInCurrentYear;
+
+      if (payPeriodDataInst.period === genLoanDataParam.monthOfPrePayment) {
+        payPeriodDataInst.prePaymentAmount = genLoanDataParam.amountOfPrePayment;
+      }
+      if (periodCounter === 0) {
+        payPeriodDataInst.startingBalance = loanAmount;
+        payPeriodDataInst.endingBalance = loanAmount;
+        loanSolvers.push(payPeriodDataInst);
+        continue;
+      }
+
+      payPeriodDataInst.startingBalance = runningBalancePrinciple - payPeriodDataInst.prePaymentAmount;
+
+      daysInCurrentMonth = getDaysInMonth(previousPeriodDate.getFullYear(), previousPeriodDate.getMonth());
+      payPeriodDataInst.daysInPeriod = daysInCurrentMonth;
+
+      // TODO: need to confirm
+      payPeriodDataInst.interestComponent =
+        (payPeriodDataInst.startingBalance *
+          payPeriodDataInst.daysInPeriod *
+          (genLoanDataParam.annualInterestRate / 100)) /
+        payPeriodDataInst.daysInYear;
+
+      if (payPeriodDataInst.period >= genLoanDataParam.periodWhenPrinciplePaymentStarts) {
+        // AFTER prepayment periods
+        payPeriodDataInst.monthlyPayment = startingMonthlyPaymentAfterPrePayment;
+        payPeriodDataInst.principleComponent = payPeriodDataInst.monthlyPayment - payPeriodDataInst.interestComponent;
+      } else {
+        //  BEFORE PREPAYMENT PERIOD
+        payPeriodDataInst.monthlyPayment =
+          payPeriodDataInst.paymentNumber <= 0 ? 0 : startingMonthlyPaymentBeforePrePayment;
+        payPeriodDataInst.unpaidInterestForCurrentMonth =
+          payPeriodDataInst.interestComponent - payPeriodDataInst.monthlyPayment;
+        runningUnpaidInterest = runningUnpaidInterest + payPeriodDataInst.unpaidInterestForCurrentMonth;
+        prePaymentPeriodInterestTotal = prePaymentPeriodInterestTotal + payPeriodDataInst.interestComponent;
+      }
+      payPeriodDataInst.unpaidInterestCumulative = runningUnpaidInterest;
+      payPeriodDataInst.endingBalance = payPeriodDataInst.startingBalance - payPeriodDataInst.principleComponent;
+      payPeriodDataInst.adjustedMonthlyPayment = payPeriodDataInst.monthlyPayment;
+      runningBalancePrinciple = payPeriodDataInst.endingBalance;
+      loanSolvers.push(payPeriodDataInst);
+    }
+    return { loanSolvers, prePaymentPeriodInterestTotal };
   }
 }
