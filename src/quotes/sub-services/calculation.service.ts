@@ -1,3 +1,4 @@
+import { toFixNumber } from './../../utils/transformNumber';
 import { Injectable } from '@nestjs/common';
 import { sumBy } from 'lodash';
 import { LeaseSolverConfigService } from '../../lease-solver-configs/lease-solver-config.service';
@@ -119,7 +120,7 @@ export class CalculationService {
     const tempPeriod = loanPeriod - principlePaymentPeriodStart;
     const tempPrincipleAmount = loanAmount - prepaymentAmount;
 
-    const startingMonthyPaymentAfterPrePayment = this.getPaymentAmountAfterPrePayment({
+    let startingMonthyPaymentAfterPrePayment = this.getPaymentAmountAfterPrePayment({
       loanAmount: tempPrincipleAmount,
       annualInterestRate,
       periodStart: tempPeriod,
@@ -141,15 +142,45 @@ export class CalculationService {
       genLoanDataParam,
     );
 
-    const newStartingMonthyPaymentBeforePrePayment = prePaymentPeriodInterestTotal / (principlePaymentPeriodStart - 2);
-
-    const { loanSolvers } = this.calculateAmortizationSchedule(
-      newStartingMonthyPaymentBeforePrePayment,
-      startingMonthyPaymentAfterPrePayment,
-      genLoanDataParam,
+    const newStartingMonthyPaymentBeforePrePayment = toFixNumber(
+      prePaymentPeriodInterestTotal / (principlePaymentPeriodStart - 2),
+      2,
     );
 
-    return loanSolvers;
+    let iterationSteps = approximateAccuracy < 0 ? 0.01 : approximateAccuracy;
+    let stopIteration = false;
+    let tempLoanSolvers = [];
+
+    while (!stopIteration) {
+      const { loanSolvers } = this.calculateAmortizationSchedule(
+        newStartingMonthyPaymentBeforePrePayment,
+        startingMonthyPaymentAfterPrePayment,
+        genLoanDataParam,
+      );
+
+      if (loanSolvers[loanSolvers.length - 1].endingBalance > 0) {
+        startingMonthyPaymentAfterPrePayment = startingMonthyPaymentAfterPrePayment + iterationSteps;
+        const { loanSolvers } = this.calculateAmortizationSchedule(
+          newStartingMonthyPaymentBeforePrePayment,
+          startingMonthyPaymentAfterPrePayment,
+          genLoanDataParam,
+        );
+
+        const theLastMonth = loanSolvers[loanSolvers.length - 1];
+
+        const finalMonthPayment =
+          theLastMonth.monthlyPayment + theLastMonth.endingBalance + theLastMonth.unpaidInterestCumulative;
+
+        theLastMonth.adjustedMonthlyPayment = toFixNumber(finalMonthPayment, 2);
+        stopIteration = true;
+      } else {
+        startingMonthyPaymentAfterPrePayment -= iterationSteps;
+      }
+
+      tempLoanSolvers = loanSolvers;
+    }
+
+    return tempLoanSolvers;
   }
 
   getMonthlyInterestRate(annualInterestRate: number) {
@@ -159,7 +190,7 @@ export class CalculationService {
   getPaymentAmountBeforePrePayment(data: IGetPaymentAmount) {
     const { annualInterestRate, loanAmount } = data;
     const interestRateMonthly = this.getMonthlyInterestRate(annualInterestRate);
-    return loanAmount * interestRateMonthly;
+    return toFixNumber(loanAmount * interestRateMonthly, 2);
   }
 
   getPaymentAmountAfterPrePayment(data: IGetPaymentAmount) {
@@ -170,7 +201,7 @@ export class CalculationService {
       ((interestRateMonthly * (interestRateMonthly + 1) ** periodStart) /
         ((interestRateMonthly + 1) ** periodStart - 1));
 
-    return paymentMonthly;
+    return toFixNumber(paymentMonthly, 2);
   }
 
   calculateAmortizationSchedule(
@@ -246,20 +277,21 @@ export class CalculationService {
 
       if (payPeriodDataInst.period >= genLoanDataParam.periodWhenPrinciplePaymentStarts) {
         // AFTER prepayment periods
-        payPeriodDataInst.monthlyPayment = startingMonthlyPaymentAfterPrePayment;
+        payPeriodDataInst.monthlyPayment = toFixNumber(startingMonthlyPaymentAfterPrePayment, 2);
         payPeriodDataInst.principleComponent = payPeriodDataInst.monthlyPayment - payPeriodDataInst.interestComponent;
       } else {
         //  BEFORE PREPAYMENT PERIOD
         payPeriodDataInst.monthlyPayment =
-          payPeriodDataInst.paymentNumber <= 0 ? 0 : startingMonthlyPaymentBeforePrePayment;
+          payPeriodDataInst.paymentNumber <= 0 ? 0 : toFixNumber(startingMonthlyPaymentBeforePrePayment, 2);
         payPeriodDataInst.unpaidInterestForCurrentMonth =
           payPeriodDataInst.interestComponent - payPeriodDataInst.monthlyPayment;
         runningUnpaidInterest = runningUnpaidInterest + payPeriodDataInst.unpaidInterestForCurrentMonth;
         prePaymentPeriodInterestTotal = prePaymentPeriodInterestTotal + payPeriodDataInst.interestComponent;
       }
+
       payPeriodDataInst.unpaidInterestCumulative = runningUnpaidInterest;
       payPeriodDataInst.endingBalance = payPeriodDataInst.startingBalance - payPeriodDataInst.principleComponent;
-      payPeriodDataInst.adjustedMonthlyPayment = payPeriodDataInst.monthlyPayment;
+      payPeriodDataInst.adjustedMonthlyPayment = toFixNumber(payPeriodDataInst.monthlyPayment, 2);
       runningBalancePrinciple = payPeriodDataInst.endingBalance;
       loanSolvers.push(payPeriodDataInst);
     }

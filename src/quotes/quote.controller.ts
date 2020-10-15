@@ -33,7 +33,7 @@ export class QuoteController {
 
   @Get('/loan')
   async test() {
-    const res = this.calculationService.calculateLoanSolver(6.5, 27000, new Date('1/1/2021'), 240, 18, 1500, 18, 0);
+    const res = this.calculationService.calculateLoanSolver(6.5, 27000, new Date('1/1/2021'), 240, 18, 1500, 18, -1);
     return res;
   }
 
