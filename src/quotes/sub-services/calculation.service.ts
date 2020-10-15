@@ -159,7 +159,7 @@ export class CalculationService {
       );
 
       if (loanSolvers[loanSolvers.length - 1].endingBalance > 0) {
-        startingMonthyPaymentAfterPrePayment = startingMonthyPaymentAfterPrePayment + iterationSteps;
+        startingMonthyPaymentAfterPrePayment = toFixNumber(startingMonthyPaymentAfterPrePayment + iterationSteps, 2);
         const { loanSolvers } = this.calculateAmortizationSchedule(
           newStartingMonthyPaymentBeforePrePayment,
           startingMonthyPaymentAfterPrePayment,
@@ -172,12 +172,11 @@ export class CalculationService {
           theLastMonth.monthlyPayment + theLastMonth.endingBalance + theLastMonth.unpaidInterestCumulative;
 
         theLastMonth.adjustedMonthlyPayment = toFixNumber(finalMonthPayment, 2);
+        tempLoanSolvers = loanSolvers;
         stopIteration = true;
       } else {
-        startingMonthyPaymentAfterPrePayment -= iterationSteps;
+        startingMonthyPaymentAfterPrePayment = toFixNumber(startingMonthyPaymentAfterPrePayment - iterationSteps, 2);
       }
-
-      tempLoanSolvers = loanSolvers;
     }
 
     return tempLoanSolvers;
@@ -277,12 +276,12 @@ export class CalculationService {
 
       if (payPeriodDataInst.period >= genLoanDataParam.periodWhenPrinciplePaymentStarts) {
         // AFTER prepayment periods
-        payPeriodDataInst.monthlyPayment = toFixNumber(startingMonthlyPaymentAfterPrePayment, 2);
+        payPeriodDataInst.monthlyPayment = startingMonthlyPaymentAfterPrePayment;
         payPeriodDataInst.principleComponent = payPeriodDataInst.monthlyPayment - payPeriodDataInst.interestComponent;
       } else {
         //  BEFORE PREPAYMENT PERIOD
         payPeriodDataInst.monthlyPayment =
-          payPeriodDataInst.paymentNumber <= 0 ? 0 : toFixNumber(startingMonthlyPaymentBeforePrePayment, 2);
+          payPeriodDataInst.paymentNumber <= 0 ? 0 : startingMonthlyPaymentBeforePrePayment;
         payPeriodDataInst.unpaidInterestForCurrentMonth =
           payPeriodDataInst.interestComponent - payPeriodDataInst.monthlyPayment;
         runningUnpaidInterest = runningUnpaidInterest + payPeriodDataInst.unpaidInterestForCurrentMonth;
@@ -291,7 +290,7 @@ export class CalculationService {
 
       payPeriodDataInst.unpaidInterestCumulative = runningUnpaidInterest;
       payPeriodDataInst.endingBalance = payPeriodDataInst.startingBalance - payPeriodDataInst.principleComponent;
-      payPeriodDataInst.adjustedMonthlyPayment = toFixNumber(payPeriodDataInst.monthlyPayment, 2);
+      payPeriodDataInst.adjustedMonthlyPayment = payPeriodDataInst.monthlyPayment;
       runningBalancePrinciple = payPeriodDataInst.endingBalance;
       loanSolvers.push(payPeriodDataInst);
     }
