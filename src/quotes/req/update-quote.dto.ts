@@ -48,4 +48,8 @@ export class UpdateQuoteDto {
   @Type(() => SavingsDetailsDto)
   @IsOptional()
   savingsDetails: SavingsDetailsDto[];
+
+  @ApiProperty()
+  @IsBoolean()
+  isSync: boolean;
 }

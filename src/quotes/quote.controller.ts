@@ -56,6 +56,17 @@ export class QuoteController {
     return ServiceResponse.fromResult(res);
   }
 
+  @Put('/:quoteId/latest')
+  @ApiOperation({ summary: 'Get Latest Quote' })
+  @ApiOkResponse({ type: QuoteRes })
+  async updateLatestQuote(
+    @Body() data: CreateQuoteDto,
+    @Param('quoteId') quoteId: string,
+  ): Promise<ServiceResponse<QuoteDto>> {
+    const res = await this.quoteService.createQuote(data, quoteId);
+    return ServiceResponse.fromResult(res);
+  }
+
   @Post('/calculations')
   @ApiOperation({ summary: 'Calculate Quote Detail' })
   @ApiOkResponse({ type: QuoteRes })

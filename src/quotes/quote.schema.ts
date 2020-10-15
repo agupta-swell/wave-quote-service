@@ -396,6 +396,7 @@ export interface Quote extends Document {
   system_design_id: string;
   quote_model_type: string;
   detailed_quote: IDetailedQuoteSchema;
+  is_sync: boolean;
   created_by: string;
   created_at: Date;
   updated_by: string;
@@ -407,6 +408,7 @@ export const QuoteSchema = new Schema<Quote>({
   system_design_id: String,
   quote_model_type: String,
   detailed_quote: DetailedQuoteSchema,
+  is_sync: Boolean,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
@@ -418,6 +420,7 @@ export class QuoteModel {
   system_design_id: string;
   quote_model_type: string;
   detailed_quote: IDetailedQuoteSchema;
+  is_sync: boolean;
 
   constructor(data: CreateQuoteDto | UpdateQuoteDto, detailedQuote: any) {
     this.opportunity_id = data.opportunityId;
@@ -473,5 +476,9 @@ export class QuoteModel {
         gross_amount: grossAmount,
       } as IQuoteCostBuildupSchema,
     };
+  }
+
+  setIsSync(isSync: boolean) {
+    this.is_sync = isSync;
   }
 }

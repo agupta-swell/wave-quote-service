@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, pickBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
@@ -19,6 +19,7 @@ import { CalculationService } from './sub-services/calculation.service';
 export class QuoteService {
   constructor(
     @InjectModel(QUOTE) private readonly quoteModel: Model<Quote>,
+    @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
     private readonly utilityProgramService: UtilityProgramService,
     private readonly fundingSourceService: FundingSourceService,
@@ -26,7 +27,7 @@ export class QuoteService {
     private readonly calculationService: CalculationService,
   ) {}
 
-  async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
+  async createQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
 
     const quoteCostCommon = {
@@ -149,11 +150,18 @@ export class QuoteService {
     };
 
     const model = new QuoteModel(data, detailedQuote);
+    model.setIsSync(true);
 
-    const createdQuote = new this.quoteModel(model);
-    await createdQuote.save();
+    let obj: Quote;
 
-    return OperationResult.ok(new QuoteDto(createdQuote.toObject())) as any;
+    if (quoteId) {
+      obj = await this.quoteModel.findByIdAndUpdate(quoteId, model, { new: true });
+    } else {
+      obj = new this.quoteModel(model);
+      await obj.save();
+    }
+
+    return OperationResult.ok(new QuoteDto(obj.toObject())) as any;
   }
 
   async createProductAttribute(productType: string, netAmount: number) {
@@ -263,6 +271,7 @@ export class QuoteService {
     };
 
     const model = new QuoteModel(data, detailedQuote);
+    model.setIsSync(data.isSync);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
     const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
@@ -301,6 +310,17 @@ export class QuoteService {
         },
       ];
     }, []);
+  }
+
+  async setOutdatedData(opportunityId: string) {
+    const quotes = await this.quoteModel.find({ opportunity_id: opportunityId });
+
+    await Promise.all(
+      quotes.map(item => {
+        item.is_sync = false;
+        return item.save(item.toObject());
+      }),
+    );
   }
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-

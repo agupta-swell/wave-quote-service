@@ -67,6 +67,9 @@ export class QuoteDto {
   @ApiProperty({ type: () => SavingsDetailDto, isArray: true })
   savingsDetails: SavingsDetailDto[];
 
+  @ApiProperty()
+  isSync: boolean;
+
   constructor(props: Quote) {
     this.quoteId = props._id;
     this.opportunityId = props.opportunity_id;
@@ -79,6 +82,7 @@ export class QuoteDto {
     this.quoteFinanceProduct = this.transformQuoteFinanceProduct(props.detailed_quote.quote_finance_product);
     this.savingsDetails = this.transformSavingsDetails(props.detailed_quote.savings_details);
     this.quoteCostBuildup = this.transformQuoteCostBuildup(props.detailed_quote.quote_cost_buildup);
+    this.isSync = props.is_sync;
   }
 
   transformQuoteCostBuildup(quoteCostBuildup: IQuoteCostBuildupSchema): QuoteCostBuildupDto {

@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { flatten, pickBy } from 'lodash';
 import { Model, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
+import { QuoteService } from 'src/quotes/quote.service';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ApplicationException } from '../app/app.exception';
 import { UtilityService } from '../utilities/utility.service';
@@ -23,6 +24,7 @@ export class SystemDesignService {
     private readonly uploadImageService: UploadImageService,
     private readonly utilityService: UtilityService,
     private readonly adderConfigService: AdderConfigService,
+    private readonly quoteService: QuoteService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -188,7 +190,11 @@ export class SystemDesignService {
     }
 
     const removedUndefined = pickBy(systemDesign, item => typeof item !== 'undefined');
-    await foundSystemDesign.updateOne(removedUndefined);
+
+    await Promise.all([
+      foundSystemDesign.updateOne(removedUndefined),
+      this.quoteService.setOutdatedData(systemDesignDto.opportunityId),
+    ]);
 
     return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedUndefined } as any));
   }

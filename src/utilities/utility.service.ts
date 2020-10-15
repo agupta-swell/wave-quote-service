@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
+import { QuoteService } from 'src/quotes/quote.service';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { ApplicationException } from './../app/app.exception';
@@ -35,7 +36,9 @@ export class UtilityService {
     private readonly utilityUsageDetailsModel: Model<UtilityUsageDetails>,
     private readonly externalService: ExternalService,
     @Inject(forwardRef(() => SystemDesignService))
-    private systemDesignService: SystemDesignService,
+    private readonly systemDesignService: SystemDesignService,
+    @Inject(forwardRef(() => QuoteService))
+    private readonly quoteService: QuoteService,
   ) {}
 
   async getUtilityDetails(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
@@ -190,10 +193,13 @@ export class UtilityService {
       new: true,
     });
 
-    const isUpdated = await this.systemDesignService.updateListSystemDesign(
-      utilityDto.opportunityId,
-      utilityDto.utilityData.typicalBaselineUsage.annualConsumption,
-    );
+    const [isUpdated] = await Promise.all([
+      this.systemDesignService.updateListSystemDesign(
+        utilityDto.opportunityId,
+        utilityDto.utilityData.typicalBaselineUsage.annualConsumption,
+      ),
+      this.quoteService.setOutdatedData(utilityDto.opportunityId),
+    ]);
 
     if (!isUpdated) {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
