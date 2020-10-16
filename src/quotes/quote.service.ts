@@ -383,7 +383,7 @@ export class QuoteService {
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
 
-    return OperationResult.ok(new QuoteDto(model as any)) as any;
+    return OperationResult.ok(new QuoteDto({ ...model, _id: foundQuote._id } as any)) as any;
   }
 
   async getAllQuotes(
