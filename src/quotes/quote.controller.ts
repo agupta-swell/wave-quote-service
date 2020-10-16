@@ -63,7 +63,7 @@ export class QuoteController {
     @Body() data: CreateQuoteDto,
     @Param('quoteId') quoteId: string,
   ): Promise<ServiceResponse<QuoteDto>> {
-    const res = await this.quoteService.createQuote(data, quoteId);
+    const res = await this.quoteService.getLatestQuote(data, quoteId);
     return ServiceResponse.fromResult(res);
   }
 
