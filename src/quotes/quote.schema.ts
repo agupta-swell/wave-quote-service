@@ -48,11 +48,20 @@ const RebateDetailsSchema = new Schema<IRebateDetailsSchema>(
 );
 
 export interface IMonthlyLoanPaymentDetails {
-  month: number;
-  payment_amount: number;
-  current_interest: number;
-  principal: number;
-  principal_prepayment: number;
+  payment_due_date: Date;
+  period: number;
+  payment_number: number;
+  days_in_period: number;
+  days_in_year: number;
+  starting_balance: number;
+  monthly_payment: number;
+  interest_component: number;
+  principle_component: number;
+  ending_balance: number;
+  adjusted_monthly_payment: number;
+  pre_payment: number;
+  unpaid_interest_for_current_month: number;
+  unpaid_interest_cumulative: number;
 }
 
 export interface IYearlyLoanPaymentDetails {
@@ -60,11 +69,19 @@ export interface IYearlyLoanPaymentDetails {
   monthly_payment_details: IMonthlyLoanPaymentDetails[];
 }
 
+export interface IReinvestment {
+  reinvestment_amount: number;
+  reinvestment_month: number;
+  description: string;
+}
+
 export interface ILoanProductAttributes {
   upfront_payment: number;
   loan_amount: number;
   interest_rate: number;
   loan_term: number;
+  reinvestment: IReinvestment[];
+  loan_start_date: Date;
   tax_credit_prepayment_amount: number;
   willing_to_pay_through_ach: boolean;
   monthly_loan_payment: number;
@@ -187,15 +204,34 @@ const QuoteFinanceProductSchema = new Schema<IQuoteFinanceProductSchema>(
   { _id: false },
 );
 
+export interface IUtilityProgramDataSnapshot {
+  name: string;
+  rebate_amount: number;
+}
+
+const UtilityProgramDataSnapshot = new Schema<IUtilityProgramDataSnapshot>(
+  {
+    name: String,
+    rebate_amount: Number,
+  },
+  { _id: false },
+);
+
 export interface IUtilityProgramSchema {
   utility_program_id: string;
   utility_program_name: string;
+  rebate_amount: number;
+  utility_program_data_snapshot: IUtilityProgramDataSnapshot;
+  utility_program_data_snapshot_date: Date;
 }
 
 const UtilityProgramSchema = new Schema<IUtilityProgramSchema>(
   {
     utility_program_id: String,
     utility_program_name: String,
+    rebate_amount: Number,
+    utility_program_data_snapshot: UtilityProgramDataSnapshot,
+    utility_program_data_snapshot_date: Date,
   },
   { _id: false },
 );
