@@ -5,7 +5,7 @@ import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
 import { CashPaymentConfigSchema, CASH_PAYMENT_CONFIG } from './schemas/cash-payment-config.schema';
 import { LaborCostConfigSchema, LABOR_COST_CONFIG } from './schemas/labor-cost-config.schema';
-import { TAX_CREDIT_CONFIG, TaxCreditConfigSchema } from './schemas/tax-credit-config.schema';
+import { TaxCreditConfigSchema, TAX_CREDIT_CONFIG } from './schemas/tax-credit-config.schema';
 import { CalculationService } from './sub-services';
 
 @Global()
@@ -26,7 +26,7 @@ import { CalculationService } from './sub-services';
       {
         name: TAX_CREDIT_CONFIG,
         schema: TaxCreditConfigSchema,
-        collection: 'tax_credit_config',
+        collection: 'v2_taxCreditConfig',
       },
     ]),
   ],

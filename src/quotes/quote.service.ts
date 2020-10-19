@@ -185,8 +185,9 @@ export class QuoteService {
         template = {
           upfrontPayment: 0,
           loanAmount: netAmount,
-          interestRate: 0,
-          loanTerm: 0,
+          loanStartDate: new Date(new Date().setDate(1)),
+          interestRate: 0.05,
+          loanTerm: 120,
           taxCreditPrepaymentAmount: 0,
           willingToPayThroughAch: false,
           monthlyLoanPayment: 0,
