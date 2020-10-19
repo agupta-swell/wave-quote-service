@@ -67,13 +67,27 @@ export class LeaseSolverConfigService {
       is_retrofit: condition.isRetrofit,
       utility_program_name: condition.utilityProgramName,
       contract_term: condition.contractTerm,
-      storageSize: condition.storageSize,
+      storage_size: condition.storageSize,
       solar_size_minimum: { $lte: condition.capacityKW },
       solar_size_maximum: { $gt: condition.capacityKW },
       rate_escalator: condition.rateEscalator,
       productivity_min: { $lte: condition.productivity },
       productivity_max: { $gt: condition.productivity },
     });
+    return leaseSolverConfig;
+  }
+
+  async getListSolverCofigs(
+    isSolar: boolean,
+    isRetrofit: boolean,
+    utilityProgramName: string,
+  ): Promise<LeaseSolverConfig[]> {
+    const leaseSolverConfig = await this.leaseSolverConfig.find({
+      is_solar: isSolar,
+      is_retrofit: isRetrofit,
+      utility_program_name: utilityProgramName,
+    });
+
     return leaseSolverConfig;
   }
 }

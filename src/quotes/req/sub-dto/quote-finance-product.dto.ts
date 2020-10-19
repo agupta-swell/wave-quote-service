@@ -2,6 +2,7 @@ import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
+import { INCENTIVE_APPLIES_TO_VALUE } from '../../constants';
 
 export class IncentiveDetailsDto {
   @ApiProperty()
@@ -19,10 +20,10 @@ export class IncentiveDetailsDto {
   @IsString()
   type: string;
 
-  @ApiProperty()
+  @ApiProperty({ enum: INCENTIVE_APPLIES_TO_VALUE })
   @IsNotEmpty()
   @IsString()
-  appliesTo: string;
+  appliesTo: INCENTIVE_APPLIES_TO_VALUE;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -76,9 +77,6 @@ export class FinanceProductDto {
   })
   @IsNotEmpty()
   productAttribute: LoanProductAttributesDto | CashProductAttributesDto | LeaseProductAttributesDto;
-
-  @ApiProperty()
-  netAmount : number
 }
 
 export class ProjectDiscountDetailDto {
@@ -131,5 +129,5 @@ export class QuoteFinanceProductDto {
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => ProjectDiscountDetailDto)
-  projectDiscountDetail: ProjectDiscountDetailDto[];
+  projectDiscountDetails: ProjectDiscountDetailDto[];
 }

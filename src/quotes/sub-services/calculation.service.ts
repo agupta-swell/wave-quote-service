@@ -1,6 +1,6 @@
 import { toFixNumber } from './../../utils/transformNumber';
 import { Injectable } from '@nestjs/common';
-import { sumBy } from 'lodash';
+import { groupBy, sumBy } from 'lodash';
 import { LeaseSolverConfigService } from '../../lease-solver-configs/lease-solver-config.service';
 import { UtilityService } from '../../utilities/utility.service';
 import { getDaysInYear } from '../../utils/datetime';
@@ -39,7 +39,6 @@ export class CalculationService {
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetail(query);
 
     if (!leaseSolverConfig) {
-      console.log('Cannot find leaseSolverConfig with query:', query);
       throw ApplicationException.NullEnitityFound('Lease Config');
     }
 
@@ -149,7 +148,7 @@ export class CalculationService {
 
     let iterationSteps = approximateAccuracy < 0 ? 0.01 : approximateAccuracy;
     let stopIteration = false;
-    let tempLoanSolvers = [];
+    let tempLoanSolvers: IPayPeriodData[] = [];
 
     while (!stopIteration) {
       const { loanSolvers } = this.calculateAmortizationSchedule(
@@ -179,7 +178,13 @@ export class CalculationService {
       }
     }
 
-    return tempLoanSolvers;
+    const groupByYears = groupBy(tempLoanSolvers, item => new Date(item.paymentDueDate).getFullYear());
+    const monthlyCosts = Object.keys(groupByYears).reduce(
+      (acc, item) => [...acc, { year: item, monthlyPaymentDetails: groupByYears[item] }],
+      [],
+    );
+
+    return monthlyCosts;
   }
 
   getMonthlyInterestRate(annualInterestRate: number) {

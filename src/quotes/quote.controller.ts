@@ -4,6 +4,7 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { QuoteService } from './quote.service';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import { QuoteDto, QuoteListRes, QuoteRes } from './res/quote.dto';
+import { TaxCreditDto, TaxCreditListRes } from './res/tax-credit.dto';
 import { CalculationService } from './sub-services';
 
 @ApiTags('Quote')
@@ -16,6 +17,21 @@ export class QuoteController {
   @ApiOkResponse({ type: QuoteRes })
   async create(@Body() data: CreateQuoteDto): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.createQuote(data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/tax-credits')
+  @ApiOperation({ summary: 'Get All Tax Credits' })
+  @ApiOkResponse({ type: TaxCreditListRes })
+  async getListTaxCredits(): Promise<ServiceResponse<Pagination<TaxCreditDto>>> {
+    const res = await this.quoteService.getAllTaxCredits();
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/lease-quote-validations')
+  @ApiOperation({ summary: 'Get condition to find out lease config' })
+  async checkConditionsForLeaseQuote(@Body() data: CalculateQuoteDetailDto): Promise<ServiceResponse<string>> {
+    const res = await this.quoteService.getValidationForLease(data);
     return ServiceResponse.fromResult(res);
   }
 

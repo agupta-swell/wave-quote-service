@@ -7,7 +7,7 @@ export interface LeaseSolverConfig extends Document {
   is_retrofit: boolean;
   utility_program_name: string;
   contract_term: number;
-  storageSize: number;
+  storage_size: number;
   solar_size_minimum: number;
   solar_size_maximum: number;
   adjusted_install_cost: number;
@@ -25,7 +25,7 @@ export const LeaseSolverConfigSchema = new Schema<LeaseSolverConfig>({
   is_retrofit: Boolean,
   utility_program_name: String,
   contract_term: Number,
-  storageSize: Number,
+  storage_size: Number,
   solar_size_minimum: Number,
   solar_size_maximum: Number,
   adjusted_install_cost: Number,

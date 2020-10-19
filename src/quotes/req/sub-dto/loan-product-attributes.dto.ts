@@ -1,5 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber } from 'class-validator';
+import { IsNumber, IsString } from 'class-validator';
+
+class ReinvestmentDto {
+  @ApiProperty()
+  @IsNumber()
+  reinvestmentAmount: number;
+
+  @ApiProperty()
+  @IsNumber()
+  reinvestmentMonth: number; // default: 18
+
+  @ApiProperty()
+  @IsString()
+  description: string;
+}
 
 export class LoanProductAttributesDto {
   @ApiProperty()
@@ -17,6 +31,9 @@ export class LoanProductAttributesDto {
   @ApiProperty()
   @IsNumber()
   loanTerm: number;
+
+  @ApiProperty({ type: ReinvestmentDto })
+  reinvestment: ReinvestmentDto;
 
   @ApiProperty()
   @IsNumber()
