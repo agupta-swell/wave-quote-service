@@ -26,7 +26,7 @@ import { CalculationService } from './sub-services';
       {
         name: TAX_CREDIT_CONFIG,
         schema: TaxCreditConfigSchema,
-        collection: 'v2_taxCreditConfig',
+        collection: 'tax_credit_config',
       },
     ]),
   ],
