@@ -133,6 +133,7 @@ export class SystemDesignService {
         ]);
         systemDesign.setThumbnail(thumbnail);
       }
+
       if (typeof systemDesignDto.isSelected === 'boolean') {
         systemDesign.setIsSelected(systemDesignDto.isSelected);
       }
@@ -193,7 +194,8 @@ export class SystemDesignService {
 
     await Promise.all([
       foundSystemDesign.updateOne(removedUndefined),
-      this.quoteService.setOutdatedData(systemDesignDto.opportunityId),
+      typeof systemDesignDto.isSelected === 'undefined' &&
+        this.quoteService.setOutdatedData(systemDesignDto.opportunityId),
     ]);
 
     return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedUndefined } as any));

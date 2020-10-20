@@ -328,6 +328,7 @@ export class SystemDesignModel {
   setIsRetrofit(isRetrofit: boolean) {
     this.is_selected = isRetrofit;
   }
+
   setSystemProductionData(data: ISystemProductionSchema) {
     this.system_production_data = data;
   }
