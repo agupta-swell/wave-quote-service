@@ -162,6 +162,8 @@ export class QuoteService {
           },
         ],
       },
+      utilityProgramSelectedForReinvestment: false,
+      taxCreditSelectedForReinvestment: false,
       savingsDetails: [],
       quoteName: '',
       isSelected: false,
@@ -469,6 +471,10 @@ export class QuoteService {
       throw ApplicationException.EnitityNotFound(quoteId);
     }
 
+    const taxCreditData = await Promise.all(
+      data.taxCreditData.map(item => this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId })),
+    );
+
     const detailedQuote = {
       ...data,
       systemProduction: foundQuote.detailed_quote.system_production,
@@ -476,6 +482,7 @@ export class QuoteService {
       isSelected: data.isSelected || foundQuote.detailed_quote.is_selected,
       isSolar: foundQuote.detailed_quote.is_solar,
       isRetrofit: foundQuote.detailed_quote.is_retrofit,
+      taxCreditData: taxCreditData.map(item => toCamelCase(item.toObject())),
     };
 
     const model = new QuoteModel(data, detailedQuote);

@@ -10,20 +10,20 @@ export class TaxCreditDto {
   name: string;
 
   @ApiProperty()
-  taxCreditPrecentage: number;
+  percentage: number;
 
   @ApiProperty()
-  taxCreditStartDate: Date;
+  startDate: Date;
 
   @ApiProperty()
-  taxCreditEndDate: Date;
+  endDate: Date;
 
   constructor(props: TaxCreditConfig) {
     this.id = props._id;
     this.name = props.name;
-    this.taxCreditPrecentage = props.tax_credit_precentage;
-    this.taxCreditStartDate = props.tax_credit_start_date;
-    this.taxCreditEndDate = props.tax_credit_end_date;
+    this.percentage = props.percentage;
+    this.startDate = props.start_date;
+    this.endDate = props.end_date;
   }
 }
 

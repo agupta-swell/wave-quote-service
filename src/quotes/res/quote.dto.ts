@@ -1,3 +1,4 @@
+import { TaxCreditConfig } from './../schemas/tax-credit-config.schema';
 import { ApiProperty } from '@nestjs/swagger';
 import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
 import { toCamelCase } from 'src/utils/transformProperties';
@@ -31,6 +32,40 @@ class SavingsDetailDto {
 
   @ApiProperty()
   annualSaving: number;
+}
+
+class TaxCreditConfigSnapshot {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  taxCreditPrecentage: number;
+
+  @ApiProperty()
+  taxCreditStartDate: Date;
+
+  @ApiProperty()
+  taxCreditEndDate: Date;
+}
+
+class TaxCreditDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  percentage: number;
+
+  @ApiProperty({ type: TaxCreditConfigSnapshot })
+  taxCreditConfigDataSnapshot: TaxCreditConfigSnapshot;
+
+  @ApiProperty()
+  taxCreditConfigDataSnapshotDate: Date;
 }
 
 export class QuoteDto {
@@ -70,6 +105,15 @@ export class QuoteDto {
   @ApiProperty()
   isSync: boolean;
 
+  @ApiProperty({ type: TaxCreditDto, isArray: true })
+  taxCreditData: TaxCreditDto[];
+
+  @ApiProperty()
+  utilityProgramSelectedForReinvestment: boolean;
+
+  @ApiProperty()
+  taxCreditSelectedForReinvestment: boolean;
+
   constructor(props: Quote) {
     this.quoteId = props._id;
     this.opportunityId = props.opportunity_id;
@@ -82,6 +126,9 @@ export class QuoteDto {
     this.quoteFinanceProduct = this.transformQuoteFinanceProduct(props.detailed_quote.quote_finance_product);
     this.savingsDetails = this.transformSavingsDetails(props.detailed_quote.savings_details);
     this.quoteCostBuildup = this.transformQuoteCostBuildup(props.detailed_quote.quote_cost_buildup);
+    this.taxCreditData = props.detailed_quote.tax_credit_data.map(item => toCamelCase(item));
+    this.utilityProgramSelectedForReinvestment = props.detailed_quote.utility_program_selected_for_reinvestment;
+    this.taxCreditSelectedForReinvestment = props.detailed_quote.tax_credit_selected_for_reinvestment;
     this.isSync = props.is_sync;
   }
 

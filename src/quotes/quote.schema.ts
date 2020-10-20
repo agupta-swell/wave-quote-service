@@ -400,6 +400,42 @@ const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
   gross_amount: Number,
 });
 
+export interface ITaxCreditConfigDataSnapshotSchema {
+  name: string;
+  tax_credit_percentage: number;
+  tax_credit_start_date: Date;
+  tax_credit_end_date: Date;
+}
+
+const TaxCreditConfigDataSnapshotSchema = new Schema<ITaxCreditConfigDataSnapshotSchema>(
+  {
+    name: String,
+    tax_credit_percentage: Number,
+    tax_credit_start_date: Date,
+    tax_credit_end_date: Date,
+  },
+  { _id: false },
+);
+
+export interface ITaxCreditDataSchema {
+  name: string;
+  percentage: number;
+  tax_credit_config_data_id: string;
+  tax_credit_config_data_snapshot: ITaxCreditConfigDataSnapshotSchema;
+  tax_credit_config_data_snapshot_date: Date;
+}
+
+const TaxCreditDataSchema = new Schema<ITaxCreditDataSchema>(
+  {
+    name: String,
+    percentage: Number,
+    tax_credit_config_data_id: String,
+    tax_credit_config_data_snapshot: TaxCreditConfigDataSnapshotSchema,
+    tax_credit_config_data_snapshot_date: Date,
+  },
+  { _id: false },
+);
+
 export interface IDetailedQuoteSchema {
   system_production: ISystemProductionSchema;
   utility_program: IUtilityProgramSchema;
@@ -410,6 +446,9 @@ export interface IDetailedQuoteSchema {
   is_selected: boolean;
   is_solar: boolean;
   is_retrofit: boolean;
+  tax_credit_data: ITaxCreditDataSchema[];
+  utility_program_selected_for_reinvestment: boolean;
+  tax_credit_selected_for_reinvestment: boolean;
 }
 
 const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
@@ -423,6 +462,9 @@ const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
     is_selected: Boolean,
     is_solar: Boolean,
     is_retrofit: Boolean,
+    tax_credit_data: [TaxCreditDataSchema],
+    utility_program_selected_for_reinvestment: Boolean,
+    tax_credit_selected_for_reinvestment: Boolean,
   },
   { _id: false },
 );
@@ -485,6 +527,9 @@ export class QuoteModel {
       isSelected,
       isSolar,
       isRetrofit,
+      taxCreditData,
+      utilityProgramSelectedForReinvestment,
+      taxCreditSelectedForReinvestment,
     } = data;
     return {
       system_production: systemProduction,
@@ -511,6 +556,22 @@ export class QuoteModel {
         labor_cost: toSnakeCase(laborCost),
         gross_amount: grossAmount,
       } as IQuoteCostBuildupSchema,
+      tax_credit_selected_for_reinvestment: taxCreditSelectedForReinvestment,
+      utility_program_selected_for_reinvestment: utilityProgramSelectedForReinvestment,
+      tax_credit_data: (taxCreditData || []).map(item => {
+        return {
+          tax_credit_config_data_id: item.id,
+          name: item.name,
+          percentage: item.percentage,
+          tax_credit_config_data_snapshot: {
+            name: item.name,
+            percentage: item.percentage,
+            start_date: item.startDate,
+            end_date: item.endDate,
+          },
+          tax_credit_config_data_snapshot_date: new Date(),
+        };
+      }),
     };
   }
 
