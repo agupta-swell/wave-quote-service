@@ -126,6 +126,7 @@ export class QuoteService {
         utility_program_data_snapshot: {
           id: utilityProgram?.id,
           name: utilityProgram?.name,
+          rebateAmount: utilityProgram?.rebate_amount,
         },
         utility_program_data_snapshot_date: new Date(),
       },

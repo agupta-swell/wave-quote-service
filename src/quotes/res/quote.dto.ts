@@ -8,10 +8,13 @@ import { QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
 
 class UtilityProgramDto {
   @ApiProperty()
-  utilityProgramId: string;
+  id: string;
 
   @ApiProperty()
-  utilityProgramName: string;
+  name: string;
+
+  @ApiProperty()
+  rebateAmount: number;
 }
 
 class SavingsDetailDto {
