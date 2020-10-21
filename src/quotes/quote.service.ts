@@ -734,4 +734,8 @@ export class QuoteService {
       }
     }
   };
+
+  async countByOpportunityId(opportunityId: string): Promise<number> {
+    return await this.quoteModel.countDocuments({ opportunity_id: opportunityId }).exec();
+  }
 }

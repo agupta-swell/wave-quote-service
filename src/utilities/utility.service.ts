@@ -306,4 +306,8 @@ export class UtilityService {
     const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
     return utility || null;
   }
+
+  async countByOpportunityId(opportunityId: string): Promise<number> {
+    return await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId }).exec();
+  }
 }

@@ -273,4 +273,8 @@ export class SystemDesignService {
 
     return true;
   }
+
+  async countByOpportunityId(opportunityId: string): Promise<number> {
+    return await this.systemDesignModel.countDocuments({ opportunity_id: opportunityId }).exec();
+  }
 }

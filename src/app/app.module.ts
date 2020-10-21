@@ -13,6 +13,7 @@ import { UtilityModule } from '../utilities/utility.module';
 import { AdderConfigModule } from './../adder-config/adder-config.module';
 import { ExternalServiceModule } from './../external-services/external-service.module';
 import { ProductModule } from './../products/product.module';
+import { ProgressModule } from './../progresses/progress.module';
 import { QuoteModule } from './../quotes/quote.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
@@ -35,6 +36,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     FundingSourceModule,
     CashPaymentConfigModule,
     LeaseSolverConfigModule,
+    ProgressModule,
   ],
 })
 export class AppModule {
