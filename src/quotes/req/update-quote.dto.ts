@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { QuoteCostBuildupDto, QuoteFinanceProductDto, SavingsDetailsDto } from './sub-dto';
 
 class TaxCreditDto {
@@ -73,10 +73,8 @@ export class UpdateQuoteDto {
   taxCreditData: TaxCreditDto[];
 
   @ApiProperty()
-  @IsBoolean()
   utilityProgramSelectedForReinvestment: boolean;
 
   @ApiProperty()
-  @IsBoolean()
   taxCreditSelectedForReinvestment: boolean;
 }

@@ -194,8 +194,7 @@ export class SystemDesignService {
 
     await Promise.all([
       foundSystemDesign.updateOne(removedUndefined),
-      typeof systemDesignDto.isSelected === 'undefined' &&
-        this.quoteService.setOutdatedData(systemDesignDto.opportunityId),
+      systemDesignDto.designMode && this.quoteService.setOutdatedData(systemDesignDto.opportunityId), //systemDesignDto.designMode <=> update all systemDesign detail
     ]);
 
     return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedUndefined } as any));
