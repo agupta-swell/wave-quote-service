@@ -36,6 +36,14 @@ export class ApplicationException extends HttpException {
     return new ApplicationException(`${enitity} Not Found ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
+  static NotFoundStatus(enitity: string, id?: string) {
+    return new ApplicationException(`${enitity} Not Found ${id || ''}`, HttpStatus.NOT_FOUND);
+  }
+
+  static UnprocessableEnity(message: string, id?: string) {
+    return new ApplicationException(`${message || ''} ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+
   static SyncSystemDesignFail(opportunityId: string) {
     return new ApplicationException(
       `System Designs are not update by opportunity ${opportunityId} when Utility and Usage have changed`,

@@ -558,16 +558,21 @@ export class QuoteService {
       data.utilityProgram.utilityProgramName || 'PRP2',
     );
 
+    if (!leaseSolverConfig.length) {
+      throw ApplicationException.NotFoundStatus('Lease Config');
+    }
+
     const solarSizeMinimumArr = leaseSolverConfig.map(item => item.solar_size_minimum);
     const solarSizeMaximumArr = leaseSolverConfig.map(item => item.solar_size_maximum);
     const productivityMinArr = leaseSolverConfig.map(item => item.productivity_min);
     const productivityMaxArr = leaseSolverConfig.map(item => item.productivity_max);
 
-    return OperationResult.ok(
+    throw ApplicationException.UnprocessableEnity(
       `System capacity should be between ${min(solarSizeMinimumArr)} and ${max(
         solarSizeMaximumArr,
       )} and productivity should be between ${min(productivityMinArr)} and ${max(productivityMaxArr)}`,
     );
+    return;
   }
 
   // ->>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<-
