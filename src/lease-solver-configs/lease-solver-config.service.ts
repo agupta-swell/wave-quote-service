@@ -40,7 +40,7 @@ export class LeaseSolverConfigService {
         is_retrofit: values[1] === 'TRUE',
         utility_program_name: values[2],
         contract_term: values[3],
-        storageSize: values[4],
+        storage_size: values[4],
         solar_size_minimum: values[5],
         solar_size_maximum: values[6],
         adjusted_install_cost: values[7],
