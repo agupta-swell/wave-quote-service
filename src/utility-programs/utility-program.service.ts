@@ -19,7 +19,7 @@ export class UtilityProgramService {
 
   async createDataFeed() {
     const data = ['ACES', 'ACES+SGIP', 'none', 'PRP2', 'PRP2+SGIP', 'SGIP'];
-    await Promise.all(data.map(item => new this.utilityProgram({ name: item }).save()));
+    await Promise.all(data.map(item => new this.utilityProgram({ name: item, rebate_amount: 1000 }).save()));
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

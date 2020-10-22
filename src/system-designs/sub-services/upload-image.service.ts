@@ -65,7 +65,9 @@ export class UploadImageService {
 
     // More on the deleteObject property:
     // see: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObject-property
-    const data = await s3.deleteObject(params).promise();
-    console.log('delete image successfully', data); // => {} Empty object when successful
+    try {
+      const data = await s3.deleteObject(params).promise();
+      console.log('delete image successfully', data); // => {} Empty object when successful
+    } catch (error) {}
   }
 }
