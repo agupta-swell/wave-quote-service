@@ -1,8 +1,7 @@
-import { CreateUtilityDto } from './req/create-utility.dto';
 import { Document, Schema } from 'mongoose';
 import { ITypicalBaseLine } from '../external-services/typing';
 import { toSnakeCase } from '../utils/transformProperties';
-import { UpdateUsageDto } from './req/update-usage.dto';
+import { CreateUtilityDto } from './req/create-utility.dto';
 
 export const GENABILITY_USAGE_DATA = Symbol('GENABILITY_USAGE_DATA').toString();
 export const UTILITY_USAGE_DETAILS = Symbol('UTILITY_USAGE_DETAILS').toString();
@@ -90,6 +89,7 @@ export interface IAcutalUsage {
   source_type: string;
   annual_consumption: number;
   monthly_usage: ITypicalUsage[];
+  hourly_usage: ITypicalUsage[];
 }
 
 export const AcutalUsageSchema = new Schema<IAcutalUsage>(
@@ -98,6 +98,7 @@ export const AcutalUsageSchema = new Schema<IAcutalUsage>(
     source_type: String,
     annual_consumption: Number,
     monthly_usage: [TypicalUsageSchema],
+    hourly_usage: [TypicalUsageSchema],
   },
   { _id: false },
 );
@@ -224,5 +225,9 @@ export class UtilityUsageDetailsModel {
     this.opportunity_id = props.opportunityId;
     this.utility_data = toSnakeCase(props.utilityData);
     this.cost_data = toSnakeCase(props.costData);
+  }
+
+  setActualHourlyUsage(data: ITypicalUsage[]) {
+    this.utility_data.actual_usage.hourly_usage = data;
   }
 }

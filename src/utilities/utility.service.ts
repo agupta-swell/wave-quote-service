@@ -19,6 +19,7 @@ import {
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
   ICostData,
+  ITypicalUsage,
   IUtilityCostData,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
@@ -163,11 +164,16 @@ export class UtilityService {
       delete createdUtilityObj.utility_data.typical_baseline_usage._id;
       return OperationResult.ok(new UtilityDetailsDto(createdUtilityObj));
     }
+
+    const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
+    const { typical_hourly_usage = [] } = typicalBaseLine.typical_baseline;
+
+    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(utilityDto, typical_hourly_usage);
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
+    utilityModel.setActualHourlyUsage(hourlyUsage);
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
     await createdUtility.save();
-
     const createdUtilityObj = createdUtility.toObject();
     delete createdUtilityObj.utility_data.typical_baseline_usage._id;
     return OperationResult.ok(new UtilityDetailsDto(createdUtilityObj));
@@ -187,7 +193,12 @@ export class UtilityService {
     utilityId: string,
     utilityDto: CreateUtilityDto,
   ): Promise<OperationResult<UtilityDetailsDto>> {
+    const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
+    const { typical_hourly_usage = [] } = typicalBaseLine.typical_baseline;
+
+    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(utilityDto, typical_hourly_usage);
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
+    utilityModel.setActualHourlyUsage(hourlyUsage);
 
     const updatedUtility = await this.utilityUsageDetailsModel.findByIdAndUpdate(utilityId, utilityModel, {
       new: true,
@@ -309,5 +320,42 @@ export class UtilityService {
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
     return await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId }).exec();
+  }
+
+  getHourlyUsageFromMonthlyUsage(utilityDto: CreateUtilityDto, typicalHourlyUsage: ITypicalUsage[]): ITypicalUsage[] {
+    const deltaValue = [];
+    const hourlyUsage = [];
+
+    const condition = {
+      1: 744,
+      2: 1416,
+      3: 2160,
+      4: 2880,
+      5: 3624,
+      6: 4344,
+      7: 5088,
+      8: 5832,
+      9: 6552,
+      10: 7296,
+      11: 8016,
+      12: 8760,
+    };
+
+    utilityDto.utilityData.actualUsage.monthlyUsage.forEach((item, index) => {
+      const typicalUsageValue = utilityDto.utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v;
+      const actualUsageValue = item.v;
+      deltaValue[index] = (actualUsageValue - typicalUsageValue) / typicalUsageValue;
+    });
+
+    let i = 0;
+    let month = 0;
+    while (i < typicalHourlyUsage.length) {
+      hourlyUsage.push({ i: i + 1, v: typicalHourlyUsage[i].v * (1 + deltaValue[month]) });
+      if (typicalHourlyUsage[i].i === condition[month]) {
+        month += 1;
+      }
+      i += 1;
+    }
+    return hourlyUsage;
   }
 }
