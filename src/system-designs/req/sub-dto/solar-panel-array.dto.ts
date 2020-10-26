@@ -98,5 +98,5 @@ export class SolarPanelArrayDto1 {
   @IsNotEmpty()
   @IsNumber()
   @IsPositive()
-  numberOfPanels: Number;
+  numberOfPanels: number;
 }

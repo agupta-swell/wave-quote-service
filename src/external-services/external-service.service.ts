@@ -17,7 +17,7 @@ export class ExternalService {
     azimuth,
     tilt = 0,
     losses = 0,
-  }: ICalculateSystemProduction) {
+  }: ICalculateSystemProduction): Promise<any> {
     const url = 'https://developer.nrel.gov/api/pvwatts/v6.json';
     const apiKey = 'Jfd68KJSvs2xJCe2zrFz8muiVLKh9G25CayoZSND';
 
@@ -35,7 +35,7 @@ export class ExternalService {
       this.logger.errorAPICalling(url, error.message);
       throw ApplicationException.ServiceError();
     }
-    return systemProduction.data.outputs.ac_annual;
+    return systemProduction.data.outputs;
   }
 
   async getLoadServingEntity(zipCode: number): Promise<ILoadServingEntity> {

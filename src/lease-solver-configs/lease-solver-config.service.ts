@@ -11,7 +11,7 @@ export class LeaseSolverConfigService {
   constructor(@InjectModel(LEASE_SOLVER_CONFIG) private leaseSolverConfig: Model<LeaseSolverConfig>) {}
 
   async createDataFromCSV(@Req() req: any): Promise<OperationResult<string>> {
-    const [csv] = await Promise.all([fromStream(await req.file()), this.leaseSolverConfig.collection.drop()]);
+    const [csv] = await Promise.all([fromStream(await req.file())]);
     const header = [
       'solar', // 0
       'retrofit', // 1

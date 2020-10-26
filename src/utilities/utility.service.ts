@@ -267,7 +267,7 @@ export class UtilityService {
     hourlyDataForTheYear: number[],
     masterTariffId: string,
     mode: CALCULATION_MODE,
-    year: number,
+    year?: number,
     zipCode?: number,
   ): Promise<IUtilityCostData> {
     if (mode === CALCULATION_MODE.TYPICAL) {

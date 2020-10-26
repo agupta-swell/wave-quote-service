@@ -1,4 +1,5 @@
 import { Document, Schema, Types } from 'mongoose';
+import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
 import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
@@ -211,6 +212,19 @@ export const SystemProductionSchema = new Schema<ISystemProductionSchema>(
   { _id: false },
 );
 
+export interface INetUsagePostInstallationSchema {
+  hourly_net_usage: number[];
+  calculation_mode: string;
+}
+
+export const NetUsagePostInstallationSchema = new Schema<INetUsagePostInstallationSchema>(
+  {
+    hourly_net_usage: [Number],
+    calculation_mode: String,
+  },
+  { _id: false },
+);
+
 export interface SystemDesign extends Document {
   name: string;
   opportunity_id: string;
@@ -222,6 +236,8 @@ export interface SystemDesign extends Document {
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: '';
   system_production_data: ISystemProductionSchema;
+  net_usage_post_installation: INetUsagePostInstallationSchema;
+  cost_post_installation: IUtilityCostData;
   latitude: number;
   longtitude: number;
   created_by: string;
@@ -243,6 +259,8 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   roof_top_design_data: RoofTopSchema,
   // TODO: implement later
   capacity_production_design_data: String,
+  net_usage_post_installation: NetUsagePostInstallationSchema,
+  cost_post_installation: UtilityCostDataSchema,
   system_production_data: SystemProductionSchema,
   created_at: { type: Date, default: Date.now },
   created_by: String,
@@ -264,6 +282,8 @@ export class SystemDesignModel {
   roof_top_design_data: IRoofTopSchema;
   capacity_production_design_data: string;
   system_production_data: ISystemProductionSchema;
+  net_usage_post_installation: INetUsagePostInstallationSchema;
+  cost_post_installation: IUtilityCostData;
   created_by: string;
   created_at: Date;
   updated_by: string;
@@ -331,5 +351,13 @@ export class SystemDesignModel {
 
   setSystemProductionData(data: ISystemProductionSchema) {
     this.system_production_data = data;
+  }
+
+  setNetUsagePostInstallation(data: INetUsagePostInstallationSchema) {
+    this.net_usage_post_installation = data;
+  }
+
+  setCostPostInstallation(data: IUtilityCostData) {
+    this.cost_post_installation = data;
   }
 }

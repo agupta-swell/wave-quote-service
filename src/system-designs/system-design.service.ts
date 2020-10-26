@@ -6,6 +6,7 @@ import { OperationResult, Pagination } from 'src/app/common';
 import { QuoteService } from 'src/quotes/quote.service';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ApplicationException } from '../app/app.exception';
+import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { ProductService } from './../products/product.service';
 import { DESIGN_MODE } from './constants';
@@ -187,6 +188,27 @@ export class SystemDesignService {
           annual_usageKWh: annualUsageKWh,
           offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         });
+
+        const [utilityAndUsage, systemProductionArray] = await Promise.all([
+          this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
+          this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
+        ]);
+
+        const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
+          utilityAndUsage.utility_data.actual_usage.hourly_usage.map(item => item.v),
+          systemProductionArray,
+        );
+
+        const costPostInstallation = await this.utilityService.calculateCost(
+          netUsagePostInstallation.hourly_net_usage,
+          utilityAndUsage.cost_data.master_tariff_id,
+          CALCULATION_MODE.TYPICAL,
+          new Date().getFullYear(),
+          utilityAndUsage.utility_data.typical_baseline_usage.zip_code,
+        );
+
+        systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
+        systemDesign.setCostPostInstallation(costPostInstallation);
       }
     }
 

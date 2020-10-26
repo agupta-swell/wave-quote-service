@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { PV_WATT_SYSTEM_PRODUCTION, PvWattSystemProductionSchema } from './schemas/pv-watt-system-production.schema';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { SystemDesignController } from './system-design.controller';
 import { SystemDesignSchema, SYSTEM_DESIGN } from './system-design.schema';
@@ -8,7 +9,14 @@ import { SystemDesignService } from './system-design.service';
 @Global()
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: SYSTEM_DESIGN, schema: SystemDesignSchema, collection: 'system_designs' }]),
+    MongooseModule.forFeature([
+      { name: SYSTEM_DESIGN, schema: SystemDesignSchema, collection: 'system_designs' },
+      {
+        name: PV_WATT_SYSTEM_PRODUCTION,
+        schema: PvWattSystemProductionSchema,
+        collection: 'pv_watt_system_production',
+      },
+    ]),
   ],
   controllers: [SystemDesignController],
   providers: [SystemDesignService, SystemProductService, UploadImageService],
