@@ -472,17 +472,19 @@ export class QuoteService {
       throw ApplicationException.EnitityNotFound(quoteId);
     }
 
+    const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
+
     const taxCreditData = await Promise.all(
-      data.taxCreditData.map(item => this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId })),
+      data.taxCreditData?.map(item => this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId })),
     );
 
     const detailedQuote = {
       ...data,
-      systemProduction: foundQuote.detailed_quote.system_production,
+      systemProduction: toCamelCase(systemDesign.system_production_data),
       quoteName: data.quoteName || foundQuote.detailed_quote.quote_name,
-      isSelected: data.isSelected || foundQuote.detailed_quote.is_selected,
-      isSolar: foundQuote.detailed_quote.is_solar,
-      isRetrofit: foundQuote.detailed_quote.is_retrofit,
+      isSelected: typeof data.isSelected === 'boolean' ? data.isSelected : foundQuote.detailed_quote.is_selected,
+      isSolar: systemDesign.is_solar,
+      isRetrofit: systemDesign.is_retrofit,
       taxCreditData: taxCreditData.map(item => toCamelCase(item.toObject())),
     };
 

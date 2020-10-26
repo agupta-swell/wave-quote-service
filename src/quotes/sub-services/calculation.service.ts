@@ -42,7 +42,7 @@ export class CalculationService {
       throw ApplicationException.NullEnitityFound('Lease Config');
     }
 
-    const actualSystemCostPerkW = productAttribute.leaseAmount / detailedQuote.systemProduction.capacityKW;
+    const actualSystemCostPerkW = leaseSolverConfig.adjusted_install_cost + 0.1;
     const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
     const averageProductivity = (leaseSolverConfig.productivity_min + leaseSolverConfig.productivity_max) / 2;
     const rateDeltaPerkWh =
