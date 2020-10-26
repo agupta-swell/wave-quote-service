@@ -38,15 +38,15 @@ export class UpdateQuoteDto {
   @IsOptional()
   isSelected: boolean;
 
-  // @ApiPropertyOptional()
-  // @IsBoolean()
-  // @IsOptional()
-  // isSolar: boolean;
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  isSolar: boolean;
 
-  // @ApiPropertyOptional()
-  // @IsBoolean()
-  // @IsOptional()
-  // isRetrofit: boolean;
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  isRetrofit: boolean;
 
   @ApiPropertyOptional({ type: () => QuoteCostBuildupDto })
   @Type(() => QuoteCostBuildupDto)
