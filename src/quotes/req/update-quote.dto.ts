@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { QuoteCostBuildupDto, QuoteFinanceProductDto, SavingsDetailsDto } from './sub-dto';
 
 class TaxCreditDto {
@@ -38,15 +38,15 @@ export class UpdateQuoteDto {
   @IsOptional()
   isSelected: boolean;
 
-  @ApiPropertyOptional()
-  @IsBoolean()
-  @IsOptional()
-  isSolar: boolean;
+  // @ApiPropertyOptional()
+  // @IsBoolean()
+  // @IsOptional()
+  // isSolar: boolean;
 
-  @ApiPropertyOptional()
-  @IsBoolean()
-  @IsOptional()
-  isRetrofit: boolean;
+  // @ApiPropertyOptional()
+  // @IsBoolean()
+  // @IsOptional()
+  // isRetrofit: boolean;
 
   @ApiPropertyOptional({ type: () => QuoteCostBuildupDto })
   @Type(() => QuoteCostBuildupDto)
@@ -67,9 +67,10 @@ export class UpdateQuoteDto {
   @IsBoolean()
   isSync: boolean;
 
-  @ApiPropertyOptional({ type: TaxCreditDto, isArray: true })
+  @ApiProperty({ type: TaxCreditDto, isArray: true })
   @Type(() => TaxCreditDto)
-  @IsOptional()
+  @IsNotEmpty()
+  @IsArray()
   taxCreditData: TaxCreditDto[];
 
   @ApiProperty()
