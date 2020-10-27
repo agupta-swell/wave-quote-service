@@ -4,7 +4,7 @@ import { groupBy, sumBy } from 'lodash';
 import { LeaseSolverConfigService } from '../../lease-solver-configs/lease-solver-config.service';
 import { UtilityService } from '../../utilities/utility.service';
 import { getDaysInYear } from '../../utils/datetime';
-import { LeaseProductAttributesDto } from '../req/sub-dto';
+import { LeaseProductAttributesDto, LoanProductAttributesDto } from '../req/sub-dto';
 import { IGenLoanDataParam, IGetPaymentAmount, IPayPeriodData } from '../typing.d';
 import { ApplicationException } from './../../app/app.exception';
 import { getDaysInMonth, getPaymentDueDateByPeriod } from './../../utils/datetime';
@@ -17,7 +17,10 @@ export class CalculationService {
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
   ) {}
 
-  async calculateLeaseQuote(detailedQuote: CalculateQuoteDetailDto): Promise<CalculateQuoteDetailDto> {
+  async calculateLeaseQuote(
+    detailedQuote: CalculateQuoteDetailDto,
+    monthlyUtilityPayment: number,
+  ): Promise<CalculateQuoteDetailDto> {
     const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
       .productAttribute as LeaseProductAttributesDto;
     productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossAmount;
@@ -64,7 +67,7 @@ export class CalculationService {
       detailedQuote.opportunityId,
     );
     productAttribute.monthlyEnergyPayment = monthlyLeasePayment + productAttribute.currentMonthlyAverageUtilityPayment;
-
+    productAttribute.monthlyUtilityPayment = monthlyUtilityPayment;
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
     return detailedQuote;
   }
@@ -101,6 +104,7 @@ export class CalculationService {
   }
 
   calculateLoanSolver(
+    detailedQuote: CalculateQuoteDetailDto,
     annualInterestRate: number,
     loanAmount: number,
     startDate: Date,
@@ -109,7 +113,10 @@ export class CalculationService {
     prepaymentAmount: number,
     periodPrepayment: number,
     approximateAccuracy: number,
-  ) {
+    monthlyUtilityPayment: number,
+  ): CalculateQuoteDetailDto {
+    const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
+      .productAttribute as LoanProductAttributesDto;
     const startingMonthyPaymentBeforePrePayment = this.getPaymentAmountBeforePrePayment({
       loanAmount,
       annualInterestRate,
@@ -184,7 +191,10 @@ export class CalculationService {
       [],
     );
 
-    return monthlyCosts;
+    (productAttribute as any).yearlyLoanPaymentDetails = monthlyCosts;
+    productAttribute.monthlyUtilityPayment = monthlyUtilityPayment;
+    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
+    return detailedQuote;
   }
 
   getMonthlyInterestRate(annualInterestRate: number) {

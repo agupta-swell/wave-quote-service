@@ -497,10 +497,17 @@ export class QuoteService {
   }
 
   async calculateQuoteDetail(data: CalculateQuoteDetailDto): Promise<OperationResult<QuoteDto>> {
+    const systemDesign = await this.systemDesignService.getOneById(data.opportunityId);
+    const {
+      cost_post_installation: { cost = [] },
+    } = systemDesign;
+
+    const monthlyUtilityPayment = cost.reduce((acc, item) => (acc += item.v), 0) / cost.length;
+
     let res: CalculateQuoteDetailDto;
     switch (data.quoteFinanceProduct.financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE:
-        res = await this.calculationService.calculateLeaseQuote(data);
+        res = await this.calculationService.calculateLeaseQuote(data, monthlyUtilityPayment);
         break;
       case FINANCE_PRODUCT_TYPE.LOAN:
         const {
@@ -508,11 +515,9 @@ export class QuoteService {
             financeProduct: { productAttribute },
           },
         } = data;
-
         const product = productAttribute as LoanProductAttributesDto;
-
-        (data.quoteFinanceProduct.financeProduct
-          .productAttribute as any).yearlyLoanPaymentDetails = this.calculationService.calculateLoanSolver(
+        res = this.calculationService.calculateLoanSolver(
+          data,
           product.interestRate,
           product.loanAmount,
           new Date(),
@@ -521,8 +526,8 @@ export class QuoteService {
           product.reinvestment[0]?.reinvestmentAmount || 0,
           product.reinvestment[0]?.reinvestmentMonth || 18,
           0.01,
+          monthlyUtilityPayment,
         );
-        res = data;
         break;
       case FINANCE_PRODUCT_TYPE.CASH:
         res = {} as any;

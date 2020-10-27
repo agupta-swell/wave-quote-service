@@ -74,7 +74,7 @@ export class SystemProductService {
     );
 
     const cumulativePvProduction = [];
-    if (pvProductionArray.length == 1) {
+    if (pvProductionArray.length === 1) {
       cumulativePvProduction.push(pvProductionArray[0]);
     } else {
       pvProductionArray.forEach((item, index) => item.forEach(value => (cumulativePvProduction[index] += value)));
