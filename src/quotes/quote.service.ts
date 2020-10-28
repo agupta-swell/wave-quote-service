@@ -521,8 +521,8 @@ export class QuoteService {
           new Date(),
           product.loanTerm,
           18,
-          product.reinvestment[0]?.reinvestmentAmount || 0,
-          product.reinvestment[0]?.reinvestmentMonth || 18,
+          product.reinvestment?.[0]?.reinvestmentAmount || 0,
+          product.reinvestment?.[0]?.reinvestmentMonth || 18,
           0.01,
           monthlyUtilityPayment,
         );
