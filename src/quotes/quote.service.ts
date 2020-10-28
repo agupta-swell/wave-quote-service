@@ -514,7 +514,7 @@ export class QuoteService {
           },
         } = data;
         const product = productAttribute as LoanProductAttributesDto;
-        res = this.calculationService.calculateLoanSolver(
+        res = await this.calculationService.calculateLoanSolver(
           data,
           product.interestRate,
           product.loanAmount,

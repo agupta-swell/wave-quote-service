@@ -35,18 +35,16 @@ export class SystemProductService {
         const panelModelData = await this.productService.getDetail(item.panelModelId);
         const systemCapacityInkWh = item.numberOfPanels * panelModelData.sizeW;
 
-        const pvWattSystemProduction = (
-          await this.pvWattSystemProduction.findOne({
-            lat: systemDesignDto.latitude,
-            lon: systemDesignDto.longtitude,
-            system_capacity_kW: systemCapacityInkWh,
-            azimuth: item.azimuth,
-            tilt: item.pitch,
-          })
-        ).toObject();
+        const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
+          lat: systemDesignDto.latitude,
+          lon: systemDesignDto.longtitude,
+          system_capacity_kW: systemCapacityInkWh,
+          azimuth: item.azimuth,
+          tilt: item.pitch,
+        });
 
         if (pvWattSystemProduction) {
-          return pvWattSystemProduction.ac_annual_hourly_production;
+          return pvWattSystemProduction.toObject().ac_annual_hourly_production;
         } else {
           const payload = {
             lat: systemDesignDto.latitude,
