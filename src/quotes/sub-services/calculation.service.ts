@@ -103,7 +103,7 @@ export class CalculationService {
     return totalCost / lenCost;
   }
 
-  calculateLoanSolver(
+  async calculateLoanSolver(
     detailedQuote: CalculateQuoteDetailDto,
     annualInterestRate: number,
     loanAmount: number,
@@ -114,7 +114,7 @@ export class CalculationService {
     periodPrepayment: number,
     approximateAccuracy: number,
     monthlyUtilityPayment: number,
-  ): CalculateQuoteDetailDto {
+  ): Promise<CalculateQuoteDetailDto> {
     const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
       .productAttribute as LoanProductAttributesDto;
     const startingMonthyPaymentBeforePrePayment = this.getPaymentAmountBeforePrePayment({
@@ -192,6 +192,9 @@ export class CalculationService {
     );
 
     (productAttribute as any).yearlyLoanPaymentDetails = monthlyCosts;
+    productAttribute.currentMonthlyAverageUtilityPayment = await this.getCurrentMonthlyAverageUtilityPayment(
+      detailedQuote.opportunityId,
+    );
     productAttribute.monthlyUtilityPayment = monthlyUtilityPayment;
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
     return detailedQuote;
