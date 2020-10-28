@@ -35,13 +35,15 @@ export class SystemProductService {
         const panelModelData = await this.productService.getDetail(item.panelModelId);
         const systemCapacityInkWh = item.numberOfPanels * panelModelData.sizeW;
 
-        const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
-          lat: systemDesignDto.latitude,
-          lon: systemDesignDto.longtitude,
-          system_capacity_kW: systemCapacityInkWh,
-          azimuth: item.azimuth,
-          tilt: item.pitch,
-        });
+        const pvWattSystemProduction = (
+          await this.pvWattSystemProduction.findOne({
+            lat: systemDesignDto.latitude,
+            lon: systemDesignDto.longtitude,
+            system_capacity_kW: systemCapacityInkWh,
+            azimuth: item.azimuth,
+            tilt: item.pitch,
+          })
+        ).toObject();
 
         if (pvWattSystemProduction) {
           return pvWattSystemProduction.ac_annual_hourly_production;
@@ -73,9 +75,9 @@ export class SystemProductService {
       }),
     );
 
-    const cumulativePvProduction = [];
+    let cumulativePvProduction = [];
     if (pvProductionArray.length === 1) {
-      cumulativePvProduction.push(pvProductionArray[0]);
+      cumulativePvProduction = pvProductionArray[0];
     } else {
       pvProductionArray.forEach((item, index) => item.forEach(value => (cumulativePvProduction[index] += value)));
     }
@@ -87,7 +89,7 @@ export class SystemProductService {
     currentUtilityUsage: number[],
     pvProduction: number[],
   ): INetUsagePostInstallationSchema {
-    const netUsagePostInstallation = {} as INetUsagePostInstallationSchema;
+    const netUsagePostInstallation = { hourly_net_usage: [] } as INetUsagePostInstallationSchema;
     currentUtilityUsage.forEach((value, index) => {
       netUsagePostInstallation.hourly_net_usage[index] = value - pvProduction[index];
     });

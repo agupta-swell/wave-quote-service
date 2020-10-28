@@ -92,6 +92,27 @@ export class SystemDesignService {
       });
     }
 
+    const [utilityAndUsage, systemProductionArray] = await Promise.all([
+      this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
+      this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
+    ]);
+
+    const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
+      utilityAndUsage.utility_data.actual_usage.hourly_usage.map(item => item.v),
+      systemProductionArray,
+    );
+
+    const costPostInstallation = await this.utilityService.calculateCost(
+      netUsagePostInstallation.hourly_net_usage,
+      utilityAndUsage.cost_data.master_tariff_id,
+      CALCULATION_MODE.TYPICAL,
+      new Date().getFullYear(),
+      utilityAndUsage.utility_data.typical_baseline_usage.zip_code,
+    );
+
+    systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
+    systemDesign.setCostPostInstallation(costPostInstallation);
+
     const createdSystemDesign = new this.systemDesignModel(systemDesign);
     await createdSystemDesign.save();
 
