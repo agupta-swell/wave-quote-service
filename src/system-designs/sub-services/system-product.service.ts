@@ -77,7 +77,9 @@ export class SystemProductService {
     if (pvProductionArray.length === 1) {
       cumulativePvProduction = pvProductionArray[0];
     } else {
-      pvProductionArray.forEach((item, index) => item.forEach(value => (cumulativePvProduction[index] += value)));
+      pvProductionArray.forEach(item =>
+        item.forEach((value, index) => (cumulativePvProduction[index] = (cumulativePvProduction[index] || 0) + value)),
+      );
     }
 
     return cumulativePvProduction as number[];
