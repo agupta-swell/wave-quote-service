@@ -497,10 +497,8 @@ export class QuoteService {
   }
 
   async calculateQuoteDetail(data: CalculateQuoteDetailDto): Promise<OperationResult<QuoteDto>> {
-    const systemDesign = await this.systemDesignService.getOneById(data.opportunityId);
-    const {
-      cost_post_installation: { cost = [] },
-    } = systemDesign;
+    const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
+    const cost = systemDesign?.cost_post_installation?.cost || [];
 
     const monthlyUtilityPayment = cost.reduce((acc, item) => (acc += item.v), 0) / cost.length;
 
