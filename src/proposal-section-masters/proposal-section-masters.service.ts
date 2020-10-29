@@ -48,9 +48,16 @@ export class ProposalSectionMasterService {
     ]);
 
     return OperationResult.ok({
-      data: proposalSectionMasters.map(proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster)),
+      data: proposalSectionMasters.map(
+        proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster.toObject()),
+      ),
       total,
     });
   }
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
+
+  async getProposalSectionMasterById(id: string): Promise<ProposalSectionMaster> {
+    const found = await this.proposalSectionMaster.findOne({ _id: id });
+    return found.toObject();
+  }
 }

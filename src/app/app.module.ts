@@ -9,6 +9,7 @@ import { UserModule } from 'src/users/user.module';
 import { UtilityProgramModule } from 'src/utility-programs/utility-program.module';
 import { LeaseSolverConfigModule } from '../lease-solver-configs/lease-solver-config.module';
 import { ProposalSectionMasterModule } from '../proposal-section-masters/proposal-section-masters.module';
+import { ProposalTemplateModule } from '../proposal-templates/proposal-template.module';
 import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from '../utilities/utility.module';
 import { AdderConfigModule } from './../adder-config/adder-config.module';
@@ -39,6 +40,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     LeaseSolverConfigModule,
     ProgressModule,
     ProposalSectionMasterModule,
+    ProposalTemplateModule,
   ],
 })
 export class AppModule {
