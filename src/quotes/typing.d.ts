@@ -26,7 +26,7 @@ export interface IPayPeriodData {
   principleComponent: number;
   endingBalance: number;
   prePaymentAmount: number;
-  unpaidInterestForCurrentMonth: number;
+  unpaidInterest: number;
   unpaidInterestCumulative: number;
   adjustedMonthlyPayment: number;
 }

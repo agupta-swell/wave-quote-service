@@ -25,6 +25,9 @@ export class LoanProductAttributesDto {
   loanAmount: number;
 
   @ApiProperty()
+  loanStartDate: number;
+
+  @ApiProperty()
   @IsNumber()
   interestRate: number;
 

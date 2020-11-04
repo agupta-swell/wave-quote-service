@@ -1,3 +1,5 @@
+import * as dayjs from 'dayjs';
+
 export const isLeapYear = function (year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 };
@@ -10,4 +12,8 @@ export const getDaysInMonth = (year: number, month: number) =>
 export const getPaymentDueDateByPeriod = (startYear: number, period: number, startMonth?: number) => {
   const current = new Date(startYear, startMonth + period);
   return current;
+};
+
+export const dateAdd = (interval: 'day' | 'year' | 'month', value: number, date: Date) => {
+  return dayjs(date).add(value, interval).toDate();
 };

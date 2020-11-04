@@ -1,14 +1,15 @@
-import { toFixNumber } from './../../utils/transformNumber';
 import { Injectable } from '@nestjs/common';
 import { groupBy, sumBy } from 'lodash';
 import { LeaseSolverConfigService } from '../../lease-solver-configs/lease-solver-config.service';
 import { UtilityService } from '../../utilities/utility.service';
-import { getDaysInYear } from '../../utils/datetime';
+import { roundNumber } from '../../utils/transformNumber';
 import { LeaseProductAttributesDto, LoanProductAttributesDto } from '../req/sub-dto';
-import { IGenLoanDataParam, IGetPaymentAmount, IPayPeriodData } from '../typing.d';
+import { IPayPeriodData } from '../typing.d';
 import { ApplicationException } from './../../app/app.exception';
-import { getDaysInMonth, getPaymentDueDateByPeriod } from './../../utils/datetime';
+import { dateAdd, getDaysInMonth, getPaymentDueDateByPeriod } from './../../utils/datetime';
 import { CalculateQuoteDetailDto } from './../req';
+
+const PAYMENT_ROUNDING = 2;
 
 @Injectable()
 export class CalculationService {
@@ -105,87 +106,169 @@ export class CalculationService {
 
   async calculateLoanSolver(
     detailedQuote: CalculateQuoteDetailDto,
-    annualInterestRate: number,
-    loanAmount: number,
-    startDate: Date,
-    loanPeriod: number,
-    principlePaymentPeriodStart: number,
-    prepaymentAmount: number,
-    periodPrepayment: number,
-    approximateAccuracy: number,
     monthlyUtilityPayment: number,
   ): Promise<CalculateQuoteDetailDto> {
     const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
       .productAttribute as LoanProductAttributesDto;
-    const startingMonthyPaymentBeforePrePayment = this.getPaymentAmountBeforePrePayment({
-      loanAmount,
+
+    const annualInterestRate = productAttribute.interestRate;
+    const loanAmount = productAttribute.loanAmount;
+    const startDate = new Date(productAttribute.loanStartDate);
+    const loanPeriod = productAttribute.loanTerm;
+    const principlePaymentPeriodStart = 18;
+    let prepaymentAmount: number = productAttribute.reinvestment?.[0]?.reinvestmentAmount || 0;
+    const periodPrepayment: number = productAttribute.reinvestment?.[0]?.reinvestmentMonth || 0; // monthOfPrepayment
+    const approximateAccuracy = 0.00001;
+
+    let startingMonthlyPaymentAmount = this.monthlyPaymentAmount(
+      loanAmount - prepaymentAmount,
       annualInterestRate,
-      periodStart: principlePaymentPeriodStart,
-    });
-
-    const tempPeriod = loanPeriod - principlePaymentPeriodStart;
-    const tempPrincipleAmount = loanAmount - prepaymentAmount;
-
-    let startingMonthyPaymentAfterPrePayment = this.getPaymentAmountAfterPrePayment({
-      loanAmount: tempPrincipleAmount,
-      annualInterestRate,
-      periodStart: tempPeriod,
-    });
-
-    const genLoanDataParam = {
-      loanAmount,
-      annualInterestRate,
-      loanStartDate: startDate,
-      totalPeriod: loanPeriod,
-      amountOfPrePayment: prepaymentAmount,
-      monthOfPrePayment: periodPrepayment,
-      periodWhenPrinciplePaymentStarts: principlePaymentPeriodStart,
-    };
-
-    const { prePaymentPeriodInterestTotal } = this.calculateAmortizationSchedule(
-      startingMonthyPaymentBeforePrePayment,
-      startingMonthyPaymentAfterPrePayment,
-      genLoanDataParam,
+      loanPeriod - 1,
     );
 
-    const newStartingMonthyPaymentBeforePrePayment = toFixNumber(
-      prePaymentPeriodInterestTotal / (principlePaymentPeriodStart - 2),
-      2,
-    );
-
-    let iterationSteps = approximateAccuracy < 0 ? 0.01 : approximateAccuracy;
     let stopIteration = false;
-    let tempLoanSolvers: IPayPeriodData[] = [];
+    let iterationInterval = 1;
+    let numberOfIterations = 0;
+    let previousIterationAmount = startingMonthlyPaymentAmount;
+    let v2_cls_AmortTableInstanceWithPrePay: IPayPeriodData[] = [];
+    let endingBalanceVariation: any;
+
+    if (PAYMENT_ROUNDING > 0) {
+      startingMonthlyPaymentAmount = roundNumber(startingMonthlyPaymentAmount, PAYMENT_ROUNDING);
+    }
 
     while (!stopIteration) {
-      const { loanSolvers } = this.calculateAmortizationSchedule(
-        newStartingMonthyPaymentBeforePrePayment,
-        startingMonthyPaymentAfterPrePayment,
-        genLoanDataParam,
+      numberOfIterations += 1;
+      v2_cls_AmortTableInstanceWithPrePay = this.initiateProcess(
+        annualInterestRate,
+        loanAmount,
+        startDate,
+        loanPeriod,
+        prepaymentAmount,
+        principlePaymentPeriodStart,
+        startingMonthlyPaymentAmount, // Monthly payment
+        'INITIAL BUILD',
+        0,
+        v2_cls_AmortTableInstanceWithPrePay,
       );
 
-      if (loanSolvers[loanSolvers.length - 1].endingBalance > 0) {
-        startingMonthyPaymentAfterPrePayment = toFixNumber(startingMonthyPaymentAfterPrePayment + iterationSteps, 2);
-        const { loanSolvers } = this.calculateAmortizationSchedule(
-          newStartingMonthyPaymentBeforePrePayment,
-          startingMonthyPaymentAfterPrePayment,
-          genLoanDataParam,
-        );
+      endingBalanceVariation =
+        0 - v2_cls_AmortTableInstanceWithPrePay?.[v2_cls_AmortTableInstanceWithPrePay.length - 1]?.endingBalance || 0;
 
-        const theLastMonth = loanSolvers[loanSolvers.length - 1];
+      if (endingBalanceVariation > 0) {
+        if (endingBalanceVariation > approximateAccuracy) {
+          startingMonthlyPaymentAmount = startingMonthlyPaymentAmount - iterationInterval;
+          iterationInterval = iterationInterval / 10;
+        } else {
+          stopIteration = true;
+        }
+      }
 
-        const finalMonthPayment =
-          theLastMonth.monthlyPayment + theLastMonth.endingBalance + theLastMonth.unpaidInterestCumulative;
+      startingMonthlyPaymentAmount = startingMonthlyPaymentAmount + iterationInterval;
 
-        theLastMonth.adjustedMonthlyPayment = toFixNumber(finalMonthPayment, 2);
-        tempLoanSolvers = loanSolvers;
+      if (PAYMENT_ROUNDING > 0) {
+        startingMonthlyPaymentAmount = roundNumber(startingMonthlyPaymentAmount, PAYMENT_ROUNDING);
+      }
+
+      if (previousIterationAmount === startingMonthlyPaymentAmount) {
         stopIteration = true;
       } else {
-        startingMonthyPaymentAfterPrePayment = toFixNumber(startingMonthyPaymentAfterPrePayment - iterationSteps, 2);
+        previousIterationAmount = startingMonthlyPaymentAmount;
+      }
+
+      if (numberOfIterations > 100) {
+        stopIteration = true;
       }
     }
 
-    const groupByYears = groupBy(tempLoanSolvers, item => new Date(item.paymentDueDate).getFullYear());
+    //FIXME: CALCULATE SECOND SET WITHOUT PREPAYMENT
+
+    let endingBalanceAtTheEndOfPrePaymentMonth =
+      v2_cls_AmortTableInstanceWithPrePay[periodPrepayment - 1].endingBalance;
+    startingMonthlyPaymentAmount = this.monthlyPaymentAmount(
+      endingBalanceAtTheEndOfPrePaymentMonth,
+      annualInterestRate,
+      loanPeriod - periodPrepayment,
+    );
+
+    if (PAYMENT_ROUNDING > 0) {
+      startingMonthlyPaymentAmount = roundNumber(startingMonthlyPaymentAmount, PAYMENT_ROUNDING);
+    }
+
+    prepaymentAmount = 0;
+    stopIteration = false;
+    iterationInterval = 1;
+    numberOfIterations = 0;
+
+    let v2_cls_AmortTableInstanceWithoutPrePay: IPayPeriodData[] = [];
+
+    while (!stopIteration) {
+      numberOfIterations += 1;
+      v2_cls_AmortTableInstanceWithoutPrePay = this.initiateProcess(
+        annualInterestRate,
+        loanAmount,
+        startDate,
+        loanPeriod,
+        prepaymentAmount,
+        principlePaymentPeriodStart,
+        startingMonthlyPaymentAmount,
+        'ADJUSTED BUILD',
+        periodPrepayment,
+        v2_cls_AmortTableInstanceWithPrePay,
+      );
+
+      endingBalanceVariation =
+        0 -
+          v2_cls_AmortTableInstanceWithoutPrePay?.[v2_cls_AmortTableInstanceWithoutPrePay.length - 1]?.endingBalance ||
+        0;
+      if (endingBalanceVariation > 0) {
+        if (endingBalanceVariation > approximateAccuracy) {
+          startingMonthlyPaymentAmount = startingMonthlyPaymentAmount - iterationInterval;
+          iterationInterval = iterationInterval / 10;
+        } else {
+          stopIteration = true;
+        }
+      }
+
+      startingMonthlyPaymentAmount = startingMonthlyPaymentAmount + iterationInterval;
+
+      if (PAYMENT_ROUNDING > 0) {
+        startingMonthlyPaymentAmount = roundNumber(startingMonthlyPaymentAmount, PAYMENT_ROUNDING);
+      }
+
+      if (previousIterationAmount === startingMonthlyPaymentAmount) {
+        stopIteration = true;
+      } else {
+        previousIterationAmount = startingMonthlyPaymentAmount;
+      }
+
+      if (numberOfIterations > 100) {
+        stopIteration = true;
+      }
+    }
+
+    const lastWithoutPaymentElement =
+      v2_cls_AmortTableInstanceWithoutPrePay[v2_cls_AmortTableInstanceWithoutPrePay.length - 1];
+
+    const adjustedWithoutPayment = this.adjustLastMonthPayment(
+      lastWithoutPaymentElement.monthlyPayment,
+      lastWithoutPaymentElement.endingBalance,
+    );
+    lastWithoutPaymentElement.endingBalance = adjustedWithoutPayment.endingBalance;
+    lastWithoutPaymentElement.monthlyPayment = adjustedWithoutPayment.monthlyPayment;
+
+    const lastWithPaymentElement = v2_cls_AmortTableInstanceWithPrePay[v2_cls_AmortTableInstanceWithPrePay.length - 1];
+    const adjustedWithPayment = this.adjustLastMonthPayment(
+      lastWithPaymentElement.monthlyPayment,
+      lastWithPaymentElement.endingBalance,
+    );
+    lastWithPaymentElement.endingBalance = adjustedWithPayment.endingBalance;
+    lastWithPaymentElement.monthlyPayment = adjustedWithPayment.monthlyPayment;
+
+    /// TAO DA SUA O DAY
+    const groupByYears = groupBy(v2_cls_AmortTableInstanceWithoutPrePay, item =>
+      new Date(item.paymentDueDate).getFullYear(),
+    );
     const monthlyCosts = Object.keys(groupByYears).reduce(
       (acc, item) => [...acc, { year: item, monthlyPaymentDetails: groupByYears[item] }],
       [],
@@ -200,44 +283,63 @@ export class CalculationService {
     return detailedQuote;
   }
 
+  private monthlyPaymentAmount(principle: number, interestRateAPR: number, numberOfPayments: number): number {
+    const interestRateMonthly = this.getMonthlyInterestRate(interestRateAPR);
+    const monthlyPayment =
+      principle *
+      ((interestRateMonthly * (interestRateMonthly + 1) ** numberOfPayments) /
+        ((interestRateMonthly + 1) ** numberOfPayments - 1));
+
+    return monthlyPayment;
+  }
+
   getMonthlyInterestRate(annualInterestRate: number) {
     return annualInterestRate / 100 / 12;
   }
 
-  getPaymentAmountBeforePrePayment(data: IGetPaymentAmount) {
-    const { annualInterestRate, loanAmount } = data;
-    const interestRateMonthly = this.getMonthlyInterestRate(annualInterestRate);
-    return toFixNumber(loanAmount * interestRateMonthly, 2);
-  }
-
-  getPaymentAmountAfterPrePayment(data: IGetPaymentAmount) {
-    const { annualInterestRate, loanAmount, periodStart } = data;
-    const interestRateMonthly = this.getMonthlyInterestRate(annualInterestRate);
-    const paymentMonthly =
-      loanAmount *
-      ((interestRateMonthly * (interestRateMonthly + 1) ** periodStart) /
-        ((interestRateMonthly + 1) ** periodStart - 1));
-
-    return toFixNumber(paymentMonthly, 2);
-  }
-
-  calculateAmortizationSchedule(
-    startingMonthlyPaymentBeforePrePayment: number,
-    startingMonthlyPaymentAfterPrePayment: number,
-    genLoanDataParam: IGenLoanDataParam,
+  initiateProcess(
+    annaualInterestRate: number,
+    loanAmount: number,
+    startDate: Date,
+    loanPeriodInMonths: number,
+    amountOfPrePayment: number,
+    monthOfPrePayment: number,
+    firstMonthlyPayment: number,
+    processingMode: string,
+    startingPeriod: number,
+    previousAmortTale: IPayPeriodData[],
   ) {
-    const { loanStartDate, loanAmount } = genLoanDataParam;
-    const loanSolvers: IPayPeriodData[] = [];
-    let paymentNumberCounter = -2;
-    let daysInCurrentMonth: number;
-    let daysInCurrentYear: number;
-    let runningBalancePrinciple = loanAmount;
-    let runningUnpaidInterest = 0;
-    let prePaymentPeriodInterestTotal = 0;
+    let periodCounter: number;
+    let paymentNumberCounter: number;
+    let currentlyProcessingDate: Date;
+    let unpaidInterestForNextMonth: number;
+    let previousCycleEndingBalance: number;
+    let monthlyPayment: number;
+    let adjustedBuildModeFirstPayment: number;
 
-    for (let periodCounter = 0; periodCounter <= genLoanDataParam.totalPeriod; periodCounter += 1) {
-      paymentNumberCounter += 1;
-      const payPeriodDataInst = {
+    let newAmortTable: IPayPeriodData[] = [];
+
+    if (processingMode === 'INITIAL BUILD') {
+      periodCounter = 0;
+      paymentNumberCounter = 0;
+      currentlyProcessingDate = startDate;
+      unpaidInterestForNextMonth = 0;
+      previousCycleEndingBalance = loanAmount;
+      monthlyPayment = firstMonthlyPayment;
+    } else {
+      newAmortTable = [...previousAmortTale];
+      newAmortTable = newAmortTable.slice(0, startingPeriod);
+      const lastElement = newAmortTable[newAmortTable.length - 1];
+      adjustedBuildModeFirstPayment = lastElement.monthlyPayment;
+      periodCounter = lastElement.period;
+      paymentNumberCounter = lastElement.paymentNumber;
+      currentlyProcessingDate = dateAdd('month', 1, new Date(lastElement.paymentDueDate));
+      unpaidInterestForNextMonth = lastElement.unpaidInterestCumulative;
+      previousCycleEndingBalance = lastElement.endingBalance;
+    }
+
+    for (let i = startingPeriod; i <= loanPeriodInMonths; i++) {
+      const payPeriodData: IPayPeriodData = {
         paymentDueDate: '',
         daysInPeriod: 0,
         daysInYear: 0,
@@ -249,69 +351,120 @@ export class CalculationService {
         principleComponent: 0,
         endingBalance: 0,
         prePaymentAmount: 0,
-        unpaidInterestForCurrentMonth: 0,
+        unpaidInterest: 0,
         unpaidInterestCumulative: 0,
         adjustedMonthlyPayment: 0,
-      } as IPayPeriodData;
+      };
 
-      const previousPeriodDate = getPaymentDueDateByPeriod(
-        loanStartDate.getFullYear(),
-        periodCounter,
-        loanStartDate.getMonth() - 1,
+      if (i > 1) {
+        paymentNumberCounter += 1;
+      }
+
+      if (startingPeriod === i) {
+        monthlyPayment = adjustedBuildModeFirstPayment;
+      } else {
+        monthlyPayment = firstMonthlyPayment;
+      }
+
+      if (paymentNumberCounter > 0) {
+        payPeriodData.monthlyPayment = monthlyPayment;
+      }
+
+      payPeriodData.daysInYear = 365;
+      payPeriodData.period = i;
+      payPeriodData.paymentNumber = paymentNumberCounter;
+      payPeriodData.paymentDueDate = currentlyProcessingDate.toLocaleDateString();
+
+      if (i > 0) {
+        payPeriodData.startingBalance = previousCycleEndingBalance;
+        const date = dateAdd('month', -1, currentlyProcessingDate);
+        payPeriodData.daysInPeriod = getDaysInMonth(date.getFullYear(), date.getMonth());
+      } else {
+        payPeriodData.startingBalance = loanAmount;
+        payPeriodData.daysInPeriod = 0;
+      }
+
+      if (i === monthOfPrePayment) {
+        payPeriodData.prePaymentAmount = amountOfPrePayment;
+      }
+
+      payPeriodData.interestComponent =
+        ((annaualInterestRate / 100) * payPeriodData.startingBalance * payPeriodData.daysInPeriod) /
+        payPeriodData.daysInYear;
+
+      payPeriodData.unpaidInterestCumulative = this.getUnPaidInterestCumulative(
+        newAmortTable[newAmortTable.length - 1],
       );
 
-      daysInCurrentYear = getDaysInYear(previousPeriodDate.getFullYear());
-      payPeriodDataInst.period = periodCounter;
-      payPeriodDataInst.paymentNumber = paymentNumberCounter < 0 ? 0 : paymentNumberCounter;
-      payPeriodDataInst.paymentDueDate = getPaymentDueDateByPeriod(
-        loanStartDate.getFullYear(),
-        periodCounter,
-        loanStartDate.getMonth(),
-      ).toLocaleDateString();
-      payPeriodDataInst.daysInYear = daysInCurrentYear;
+      payPeriodData.unpaidInterest = this.getCurrentMonthUnpaidInterest(payPeriodData);
 
-      if (payPeriodDataInst.period === genLoanDataParam.monthOfPrePayment) {
-        payPeriodDataInst.prePaymentAmount = genLoanDataParam.amountOfPrePayment;
-      }
-      if (periodCounter === 0) {
-        payPeriodDataInst.startingBalance = loanAmount;
-        payPeriodDataInst.endingBalance = loanAmount;
-        loanSolvers.push(payPeriodDataInst);
-        continue;
-      }
+      payPeriodData.principleComponent = this.getCurrentMonthPrincipleComponent(payPeriodData);
 
-      payPeriodDataInst.startingBalance = runningBalancePrinciple - payPeriodDataInst.prePaymentAmount;
+      payPeriodData.endingBalance = payPeriodData.startingBalance - payPeriodData.principleComponent;
+      previousCycleEndingBalance = payPeriodData.endingBalance;
 
-      daysInCurrentMonth = getDaysInMonth(previousPeriodDate.getFullYear(), previousPeriodDate.getMonth());
-      payPeriodDataInst.daysInPeriod = daysInCurrentMonth;
-
-      // TODO: need to confirm
-      payPeriodDataInst.interestComponent =
-        (payPeriodDataInst.startingBalance *
-          payPeriodDataInst.daysInPeriod *
-          (genLoanDataParam.annualInterestRate / 100)) /
-        payPeriodDataInst.daysInYear;
-
-      if (payPeriodDataInst.period >= genLoanDataParam.periodWhenPrinciplePaymentStarts) {
-        // AFTER prepayment periods
-        payPeriodDataInst.monthlyPayment = startingMonthlyPaymentAfterPrePayment;
-        payPeriodDataInst.principleComponent = payPeriodDataInst.monthlyPayment - payPeriodDataInst.interestComponent;
-      } else {
-        //  BEFORE PREPAYMENT PERIOD
-        payPeriodDataInst.monthlyPayment =
-          payPeriodDataInst.paymentNumber <= 0 ? 0 : startingMonthlyPaymentBeforePrePayment;
-        payPeriodDataInst.unpaidInterestForCurrentMonth =
-          payPeriodDataInst.interestComponent - payPeriodDataInst.monthlyPayment;
-        runningUnpaidInterest = runningUnpaidInterest + payPeriodDataInst.unpaidInterestForCurrentMonth;
-        prePaymentPeriodInterestTotal = prePaymentPeriodInterestTotal + payPeriodDataInst.interestComponent;
-      }
-
-      payPeriodDataInst.unpaidInterestCumulative = runningUnpaidInterest;
-      payPeriodDataInst.endingBalance = payPeriodDataInst.startingBalance - payPeriodDataInst.principleComponent;
-      payPeriodDataInst.adjustedMonthlyPayment = payPeriodDataInst.monthlyPayment;
-      runningBalancePrinciple = payPeriodDataInst.endingBalance;
-      loanSolvers.push(payPeriodDataInst);
+      newAmortTable.push(payPeriodData);
+      currentlyProcessingDate = dateAdd('month', 1, currentlyProcessingDate);
     }
-    return { loanSolvers, prePaymentPeriodInterestTotal };
+
+    return newAmortTable;
+  }
+
+  getUnPaidInterestCumulative(dataParam: IPayPeriodData) {
+    let tmpUnpaidInterest = 0;
+
+    if (!dataParam || dataParam.prePaymentAmount > 0) {
+      tmpUnpaidInterest = 0;
+    } else {
+      let monthlyPaymentMinusCurrentMonthInterest: number;
+      let value2: number;
+      let value3: number;
+
+      monthlyPaymentMinusCurrentMonthInterest = dataParam.monthlyPayment - dataParam.interestComponent;
+      value3 = Math.min(0, monthlyPaymentMinusCurrentMonthInterest);
+      value2 = value3 + dataParam.unpaidInterestCumulative + dataParam.unpaidInterest;
+
+      tmpUnpaidInterest = Math.min(0, value2);
+    }
+
+    return tmpUnpaidInterest;
+  }
+
+  getCurrentMonthUnpaidInterest(dataParam: IPayPeriodData) {
+    const max = Math.max(dataParam.unpaidInterestCumulative, dataParam.interestComponent - dataParam.monthlyPayment);
+    return -1 * Math.min(0, max);
+  }
+
+  getCurrentMonthPrincipleComponent(dataParam: IPayPeriodData) {
+    let value2 = 0;
+    let value1 = dataParam.monthlyPayment - dataParam.interestComponent - dataParam.unpaidInterest;
+
+    if (dataParam.prePaymentAmount > 0) {
+      let value3: number;
+      if (dataParam.prePaymentAmount > 0) {
+        value3 = dataParam.prePaymentAmount + dataParam.unpaidInterestCumulative;
+      } else {
+        value3 = 0;
+      }
+
+      value2 = Math.max(0, value1 + value3);
+    } else {
+      value2 = Math.max(0, value1);
+    }
+
+    return value2;
+  }
+
+  adjustLastMonthPayment(monthlyPayment: number, endingBalance: number) {
+    if (!PAYMENT_ROUNDING) {
+      return { monthlyPayment, endingBalance };
+    }
+
+    const adjustedAmount = monthlyPayment + endingBalance;
+
+    return {
+      monthlyPayment: roundNumber(adjustedAmount, PAYMENT_ROUNDING),
+      endingBalance: adjustedAmount - monthlyPayment,
+    };
   }
 }

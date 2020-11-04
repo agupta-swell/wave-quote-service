@@ -508,24 +508,7 @@ export class QuoteService {
         res = await this.calculationService.calculateLeaseQuote(data, monthlyUtilityPayment);
         break;
       case FINANCE_PRODUCT_TYPE.LOAN:
-        const {
-          quoteFinanceProduct: {
-            financeProduct: { productAttribute },
-          },
-        } = data;
-        const product = productAttribute as LoanProductAttributesDto;
-        res = await this.calculationService.calculateLoanSolver(
-          data,
-          product.interestRate,
-          product.loanAmount,
-          new Date(),
-          product.loanTerm,
-          18,
-          product.reinvestment?.[0]?.reinvestmentAmount || 0,
-          product.reinvestment?.[0]?.reinvestmentMonth || 18,
-          0.01,
-          monthlyUtilityPayment,
-        );
+        res = await this.calculationService.calculateLoanSolver(data, monthlyUtilityPayment);
         break;
       case FINANCE_PRODUCT_TYPE.CASH:
         res = {} as any;
