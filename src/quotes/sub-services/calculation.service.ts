@@ -117,7 +117,7 @@ export class CalculationService {
     const loanPeriod = productAttribute.loanTerm;
     const principlePaymentPeriodStart = 18;
     let prepaymentAmount: number = productAttribute.reinvestment?.[0]?.reinvestmentAmount || 0;
-    const periodPrepayment: number = productAttribute.reinvestment?.[0]?.reinvestmentMonth || 0; // monthOfPrepayment
+    const periodPrepayment: number = productAttribute.reinvestment?.[0]?.reinvestmentMonth || 18; // monthOfPrepayment
     const approximateAccuracy = 0.00001;
 
     let startingMonthlyPaymentAmount = this.monthlyPaymentAmount(
