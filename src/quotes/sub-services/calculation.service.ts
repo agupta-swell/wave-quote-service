@@ -461,10 +461,11 @@ export class CalculationService {
     }
 
     const adjustedAmount = monthlyPayment + endingBalance;
+    const roundedMonthlyPayment = roundNumber(adjustedAmount, PAYMENT_ROUNDING);
 
     return {
-      monthlyPayment: roundNumber(adjustedAmount, PAYMENT_ROUNDING),
-      endingBalance: adjustedAmount - monthlyPayment,
+      monthlyPayment: roundedMonthlyPayment,
+      endingBalance: adjustedAmount - roundedMonthlyPayment,
     };
   }
 }
