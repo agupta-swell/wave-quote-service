@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthencationModule } from 'src/authentication/authentication.module';
 import { CashPaymentConfigModule } from 'src/cash-payment-configs/cash-payment-config.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
+import { ProposalModule } from 'src/proposals/proposal.module';
 import { RoleModule } from 'src/roles/role.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityProgramModule } from 'src/utility-programs/utility-program.module';
@@ -41,6 +42,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     ProgressModule,
     ProposalSectionMasterModule,
     ProposalTemplateModule,
+    ProposalModule,
   ],
 })
 export class AppModule {

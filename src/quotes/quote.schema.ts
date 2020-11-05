@@ -451,7 +451,7 @@ export interface IDetailedQuoteSchema {
   tax_credit_selected_for_reinvestment: boolean;
 }
 
-const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
+export const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
   {
     system_production: SystemProductionSchema,
     utility_program: UtilityProgramSchema,
