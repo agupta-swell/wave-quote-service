@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
 import { ProposalService } from './proposal.service';
+import { PROPOSAL_ANALYTIC, ProposalAnalyticSchema } from './schemas/proposal-analytic.schema';
 
 @Global()
 @Module({
@@ -11,7 +12,12 @@ import { ProposalService } from './proposal.service';
       {
         name: PROPOSAL,
         schema: ProposalSchema,
-        collection: 'v2_proposal',
+        collection: 'v2_proposals',
+      },
+      {
+        name: PROPOSAL_ANALYTIC,
+        schema: ProposalAnalyticSchema,
+        collection: 'v2_proposal_analytics',
       },
     ]),
   ],
