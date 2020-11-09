@@ -10,10 +10,10 @@ export class ProposalSectionMasterDto {
   proposalSectionName: string;
 
   @ApiProperty()
-  applicableFinancialProduct: string;
+  applicableFinancialProducts: string[];
 
   @ApiProperty()
-  applicableProduct: string;
+  applicableProducts: string[];
 
   @ApiProperty()
   componentName: string;
@@ -21,8 +21,8 @@ export class ProposalSectionMasterDto {
   constructor(props: ProposalSectionMaster) {
     this.id = props._id;
     this.proposalSectionName = props.proposal_section_name;
-    this.applicableFinancialProduct = props.applicable_financial_product;
-    this.applicableProduct = props.applicable_product;
+    this.applicableFinancialProducts = props.applicable_financial_products;
+    this.applicableProducts = props.applicable_products;
     this.componentName = props.component_name;
   }
 }

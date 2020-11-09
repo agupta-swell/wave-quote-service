@@ -10,12 +10,12 @@ export class CreateProposalSectionMasterDto {
   @ApiProperty({ type: String, isArray: true })
   @IsArray()
   @IsNotEmpty()
-  applicableFinancialProduct: string[];
+  applicableFinancialProducts: string[];
 
   @ApiProperty({ type: String, isArray: true })
   @IsArray()
   @IsNotEmpty()
-  applicableProduct: string[];
+  applicableProducts: string[];
 
   @ApiProperty()
   @IsString()

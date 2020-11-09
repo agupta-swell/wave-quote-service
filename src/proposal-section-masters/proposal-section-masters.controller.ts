@@ -7,7 +7,7 @@ import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-ma
 import {
   ProposalSectionMasterDto,
   ProposalSectionMasterListRes,
-  ProposalSectionMasterRes,
+  ProposalSectionMasterRes
 } from './res/proposal-section-master.dto';
 
 @ApiTags('Proposal Section Master')
@@ -41,13 +41,17 @@ export class ProposalSectionMasterController {
   @ApiOperation({ summary: 'Get List' })
   @ApiQuery({ name: 'limit' })
   @ApiQuery({ name: 'skip' })
+  @ApiQuery({ name: 'products' })
+  @ApiQuery({ name: 'financial-products' })
   @ApiOkResponse({ type: ProposalSectionMasterListRes })
   async getList(
-    @Query() query: { limit: string; skip: string },
+    @Query() query: { limit: string; skip: string; products: string; 'financial-product': string },
   ): Promise<ServiceResponse<Pagination<ProposalSectionMasterDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
-    const res = await this.proposalSectionMasterService.getList(limit, skip);
+    const products = query?.products?.split(',');
+    const financialProducts = query['financial-product']?.split(',');
+    const res = await this.proposalSectionMasterService.getList(limit, skip, products, financialProducts);
     return ServiceResponse.fromResult(res);
   }
 }

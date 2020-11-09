@@ -11,7 +11,7 @@ import { ProposalSectionMasterService } from './proposal-section-masters.service
       {
         name: PROPOSAL_SECTION_MASTER,
         schema: ProposalSectionMasterSchema,
-        collection: 'proposal_section_masters',
+        collection: 'v2_proposal_section_masters',
       },
     ]),
   ],

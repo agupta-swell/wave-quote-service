@@ -1,9 +1,10 @@
-import { ApplicationException } from './../app/app.exception';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { identity, pickBy } from 'lodash';
 import { Model } from 'mongoose';
 import { OperationResult, Pagination } from '../app/common';
 import { toSnakeCase } from '../utils/transformProperties';
+import { ApplicationException } from './../app/app.exception';
 import { ProposalSectionMaster, PROPOSAL_SECTION_MASTER } from './proposal-section-masters.schema';
 import { CreateProposalSectionMasterDto } from './req/create-proposal-section-master.dto';
 import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-master.dto';
@@ -41,10 +42,23 @@ export class ProposalSectionMasterService {
     return OperationResult.ok(new ProposalSectionMasterDto(updatedModel.toObject()));
   }
 
-  async getList(limit: number, skip: number): Promise<OperationResult<Pagination<ProposalSectionMasterDto>>> {
+  async getList(
+    limit: number,
+    skip: number,
+    products: string[],
+    financialProducts: string[],
+  ): Promise<OperationResult<Pagination<ProposalSectionMasterDto>>> {
+    const condition = pickBy(
+      {
+        applicable_products: products && { $in: products },
+        applicable_financial_products: financialProducts && { $in: financialProducts },
+      },
+      identity,
+    );
+
     const [proposalSectionMasters, total] = await Promise.all([
-      this.proposalSectionMaster.find().limit(limit).skip(skip),
-      this.proposalSectionMaster.estimatedDocumentCount(),
+      this.proposalSectionMaster.find(condition).limit(limit).skip(skip),
+      this.proposalSectionMaster.countDocuments(condition),
     ]);
 
     return OperationResult.ok({

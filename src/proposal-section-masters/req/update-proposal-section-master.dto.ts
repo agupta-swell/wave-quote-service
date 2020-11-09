@@ -10,12 +10,12 @@ export class UpdateProposalSectionMasterDto {
   @ApiPropertyOptional({ type: String, isArray: true })
   @IsArray()
   @IsOptional()
-  applicableFinancialProduct: string[];
+  applicableFinancialProducts: string[];
 
   @ApiPropertyOptional({ type: String, isArray: true })
   @IsArray()
   @IsOptional()
-  applicableProduct: string[];
+  applicableProducts: string[];
 
   @ApiPropertyOptional()
   @IsString()
