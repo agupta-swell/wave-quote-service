@@ -1,6 +1,6 @@
-import { SystemDesign, SystemDesignSchema } from './../system-designs/system-design.schema';
-import { DetailedQuoteSchema, IDetailedQuoteSchema } from './../quotes/quote.schema';
 import { Document, Schema } from 'mongoose';
+import { DetailedQuoteSchema, IDetailedQuoteSchema } from './../quotes/quote.schema';
+import { SystemDesign, SystemDesignSchema } from './../system-designs/system-design.schema';
 
 export const PROPOSAL = Symbol('PROPOSAL').toString();
 
@@ -14,7 +14,7 @@ const RecipientSchema = new Schema<IRecipientSchema>({
   name: String,
 });
 
-export interface IProposalSchema {
+export interface IDetailedProposalSchema {
   is_selected: boolean;
   quote_data: IDetailedQuoteSchema;
   system_design_data: SystemDesign;
@@ -28,7 +28,7 @@ export interface IProposalSchema {
   pdf_file_url: string;
 }
 
-const SectionSchema = new Schema<IProposalSchema>(
+const DetailedProposalSchema = new Schema<IDetailedProposalSchema>(
   {
     is_selected: Boolean,
     quote_data: DetailedQuoteSchema,
@@ -49,13 +49,16 @@ export interface Proposal extends Document {
   opportunity_id: string;
   system_design_id: string;
   quote_id: number;
-  proposal: IProposalSchema;
+  detailed_proposal: IDetailedProposalSchema;
   valid_till: Date;
 }
 
 export const ProposalSchema = new Schema<Proposal>({
   name: String,
-  sections: [SectionSchema],
+  system_design_id: String,
+  quote_id: Number,
+  detailed_proposal: DetailedProposalSchema,
+  valid_till: Date,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

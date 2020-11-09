@@ -14,10 +14,8 @@ export class ProposalController {
   @Post()
   @ApiOperation({ summary: 'Create Proposal' })
   @ApiOkResponse({ type: ProposalRes })
-  async createProposalSectionMaster(
-    @Body() proposalSectionMasterDto: CreateProposalDto,
-  ): Promise<ServiceResponse<ProposalDto>> {
-    const res = await this.proposalService.create(proposalSectionMasterDto);
+  async createProposalSectionMaster(@Body() proposalDto: CreateProposalDto): Promise<ServiceResponse<ProposalDto>> {
+    const res = await this.proposalService.create(proposalDto);
     return ServiceResponse.fromResult(res);
   }
 

@@ -3,7 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
 import { ProposalService } from './proposal.service';
-import { PROPOSAL_ANALYTIC, ProposalAnalyticSchema } from './schemas/proposal-analytic.schema';
+import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
 
 @Global()
 @Module({

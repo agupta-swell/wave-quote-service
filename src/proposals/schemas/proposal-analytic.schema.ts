@@ -3,13 +3,13 @@ import { Schema, Document } from 'mongoose';
 export const PROPOSAL_ANALYTIC = Symbol('PROPOSAL_ANALYTIC').toString();
 
 export interface IStatisticSchema {
-  on: Date;
+  issueDate: Date;
   view_counter: number;
 }
 
 const StatisticSchema = new Schema<IStatisticSchema>(
   {
-    on: Date,
+    issueDate: Date,
     view_counter: Number,
   },
   { _id: false },

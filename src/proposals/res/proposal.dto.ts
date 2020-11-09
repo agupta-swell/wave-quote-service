@@ -1,11 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { QuoteDto } from '../../quotes/res/quote.dto';
+import { SystemDesignDto } from '../../system-designs/res/system-design.dto';
 import { toCamelCase } from '../../utils/transformProperties';
 import { Proposal } from '../proposal.schema';
 
-class SectionDto {
+class RecipientDto {
   @ApiProperty()
-  id: string;
+  email: string;
 
   @ApiProperty()
   name: string;
@@ -19,15 +21,53 @@ export class ProposalDto {
   id: string;
 
   @ApiProperty()
-  name: string;
+  isSelected: boolean;
 
-  @ApiProperty({ type: SectionDto, isArray: true })
-  sections: SectionDto[];
+  @ApiProperty({ type: QuoteDto })
+  quoteData: QuoteDto;
+
+  @ApiProperty({ type: SystemDesignDto })
+  systemDesignData: SystemDesignDto;
+
+  @ApiProperty()
+  proposalName: string;
+
+  @ApiProperty()
+  proposalCreationDate: Date;
+
+  @ApiProperty()
+  proposalSentDate: Date;
+
+  @ApiProperty()
+  recipients: RecipientDto[];
+
+  @ApiProperty()
+  proposalValidityPeriod: number;
+
+  @ApiProperty()
+  templateId: number;
+
+  @ApiProperty()
+  status: string;
+
+  @ApiProperty()
+  pdfFileUrl: string;
 
   constructor(props: Proposal) {
     this.id = props._id;
-    this.name = props.name;
-    this.sections = props.sections.map(item => toCamelCase(item));
+    if (props.detailed_proposal) {
+      this.isSelected = props.detailed_proposal.is_selected;
+      this.quoteData = new QuoteDto(props.detailed_proposal.quote_data as any);
+      this.systemDesignData = new SystemDesignDto(props.detailed_proposal.system_design_data as any);
+      this.proposalName = props.detailed_proposal.proposal_name;
+      this.proposalCreationDate = props.detailed_proposal.proposal_creation_date;
+      this.proposalSentDate = props.detailed_proposal.proposal_sent_date;
+      this.recipients = props.detailed_proposal.recipients.map(item => toCamelCase(item));
+      this.proposalValidityPeriod = props.detailed_proposal.proposal_validity_period;
+      this.templateId = props.detailed_proposal.template_id;
+      this.status = props.detailed_proposal.status;
+      this.pdfFileUrl = props.detailed_proposal.pdf_file_url;
+    }
   }
 }
 
