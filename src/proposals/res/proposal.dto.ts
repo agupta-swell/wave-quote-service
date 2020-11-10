@@ -45,7 +45,7 @@ export class ProposalDto {
   proposalValidityPeriod: number;
 
   @ApiProperty()
-  templateId: number;
+  templateId: string;
 
   @ApiProperty()
   status: string;

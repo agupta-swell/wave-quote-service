@@ -1,6 +1,7 @@
 import { Document, Schema } from 'mongoose';
 import { DetailedQuoteSchema, IDetailedQuoteSchema } from './../quotes/quote.schema';
 import { SystemDesign, SystemDesignSchema } from './../system-designs/system-design.schema';
+import { PROPOSAL_STATUS } from './constants';
 
 export const PROPOSAL = Symbol('PROPOSAL').toString();
 
@@ -23,8 +24,8 @@ export interface IDetailedProposalSchema {
   proposal_sent_date: Date;
   recipients: IRecipientSchema[];
   proposal_validity_period: number;
-  template_id: number;
-  status: string;
+  template_id: string;
+  status: PROPOSAL_STATUS;
   pdf_file_url: string;
 }
 
@@ -38,7 +39,7 @@ const DetailedProposalSchema = new Schema<IDetailedProposalSchema>(
     proposal_sent_date: Date,
     recipients: [RecipientSchema],
     proposal_validity_period: Number,
-    template_id: Number,
+    template_id: String,
     status: String,
     pdf_file_url: String,
   },
@@ -48,7 +49,7 @@ const DetailedProposalSchema = new Schema<IDetailedProposalSchema>(
 export interface Proposal extends Document {
   opportunity_id: string;
   system_design_id: string;
-  quote_id: number;
+  quote_id: string;
   detailed_proposal: IDetailedProposalSchema;
   valid_till: Date;
 }
@@ -56,7 +57,7 @@ export interface Proposal extends Document {
 export const ProposalSchema = new Schema<Proposal>({
   name: String,
   system_design_id: String,
-  quote_id: Number,
+  quote_id: String,
   detailed_proposal: DetailedProposalSchema,
   valid_till: Date,
   created_at: { type: Date, default: Date.now },

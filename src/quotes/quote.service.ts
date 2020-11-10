@@ -12,7 +12,7 @@ import { OperationResult, Pagination } from './../app/common';
 import { CashPaymentConfigService } from './../cash-payment-configs/cash-payment-config.service';
 import { SystemDesignService } from './../system-designs/system-design.service';
 import { FINANCE_PRODUCT_TYPE, INCENTIVE_APPLIES_TO_VALUE, INCENTIVE_UNITS, PROJECT_DISCOUNT_UNITS } from './constants';
-import { Quote, QUOTE, QuoteModel } from './quote.schema';
+import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
   CashProductAttributesDto,
@@ -563,7 +563,12 @@ export class QuoteService {
     return;
   }
 
-  // ->>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<-
+  // ->>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<-\
+
+  async getOneById(id: string): Promise<IDetailedQuoteSchema> {
+    const res = await this.quoteModel.findById(id);
+    return res?.toObject().detailed_quote;
+  }
 
   groupData(data: any[], field: string) {
     const groupByField = groupBy(data, item => item[field]);
