@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { identity, pickBy } from 'lodash';
 import { Model } from 'mongoose';
 import { OperationResult, Pagination } from '../app/common';
 import { SystemDesignService } from '../system-designs/system-design.service';
@@ -77,14 +78,27 @@ export class ProposalService {
     return OperationResult.ok(new ProposalDto(updatedModel.toObject()));
   }
 
-  async getList(limit: number, skip: number): Promise<OperationResult<Pagination<ProposalDto>>> {
-    const [proposalTemplates, total] = await Promise.all([
-      this.proposalModel.find().limit(limit).skip(skip),
-      this.proposalModel.estimatedDocumentCount(),
+  async getList(
+    limit: number,
+    skip: number,
+    quoteId: string,
+    opportunityId: string,
+  ): Promise<OperationResult<Pagination<ProposalDto>>> {
+    const condition = pickBy(
+      {
+        quote_id: quoteId,
+        opportunity_id: opportunityId,
+      },
+      identity,
+    );
+
+    const [proposals, total] = await Promise.all([
+      this.proposalModel.find(condition).limit(limit).skip(skip),
+      this.proposalModel.countDocuments(condition),
     ]);
 
     return OperationResult.ok({
-      data: proposalTemplates.map(proposalTemplate => new ProposalDto(proposalTemplate.toObject())),
+      data: proposals.map(proposal => new ProposalDto(proposal.toObject())),
       total,
     });
   }
