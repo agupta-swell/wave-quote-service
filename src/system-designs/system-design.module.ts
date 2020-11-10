@@ -10,11 +10,11 @@ import { SystemDesignService } from './system-design.service';
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: SYSTEM_DESIGN, schema: SystemDesignSchema, collection: 'system_designs' },
+      { name: SYSTEM_DESIGN, schema: SystemDesignSchema, collection: 'v2_system_designs' },
       {
         name: PV_WATT_SYSTEM_PRODUCTION,
         schema: PvWattSystemProductionSchema,
-        collection: 'pv_watt_system_production',
+        collection: 'v2_pv_watt_system_productions',
       },
     ]),
   ],

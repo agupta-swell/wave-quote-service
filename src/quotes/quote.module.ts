@@ -16,17 +16,17 @@ import { CalculationService } from './sub-services';
       {
         name: LABOR_COST_CONFIG,
         schema: LaborCostConfigSchema,
-        collection: 'labor_cost_config',
+        collection: 'v2_labor_cost_configs',
       },
       {
         name: CASH_PAYMENT_CONFIG,
         schema: CashPaymentConfigSchema,
-        collection: 'cash_payment_config',
+        collection: 'v2_cash_payment_configs',
       },
       {
         name: TAX_CREDIT_CONFIG,
         schema: TaxCreditConfigSchema,
-        collection: 'tax_credit_config',
+        collection: 'v2_tax_credit_configs',
       },
     ]),
   ],

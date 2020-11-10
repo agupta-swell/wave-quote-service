@@ -18,17 +18,17 @@ import { UtilityService } from './utility.service';
       {
         name: GENABILITY_USAGE_DATA,
         schema: GenabilityUsageDataSchema,
-        collection: 'genability_usage_data',
+        collection: 'v2_genability_usage_data',
       },
       {
         name: UTILITY_USAGE_DETAILS,
         schema: UtilityUsageDetailsSchema,
-        collection: 'utility_usage_details',
+        collection: 'v2_utility_usage_details',
       },
       {
         name: GENABILITY_COST_DATA,
         schema: GenabilityCostDataSchema,
-        collection: 'genability_cost_data',
+        collection: 'v2_genability_cost_data',
       },
     ]),
   ],

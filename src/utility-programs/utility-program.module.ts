@@ -11,7 +11,7 @@ import { UtilityProgramService } from './utility-program.service';
       {
         name: UTILITY_PROGRAM,
         schema: UtilityProgramSchema,
-        collection: 'utility_program',
+        collection: 'v2_utility_programs',
       },
     ]),
   ],

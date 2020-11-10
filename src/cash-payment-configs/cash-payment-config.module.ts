@@ -10,7 +10,7 @@ import { CashPaymentConfigService } from './cash-payment-config.service';
       {
         name: CASH_PAYMENT_CONFIG,
         schema: CashPaymentConfig,
-        collection: 'cash_payment_config',
+        collection: 'v2_cash_payment_config',
       },
     ]),
   ],

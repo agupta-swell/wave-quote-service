@@ -11,7 +11,7 @@ import { LeaseSolverConfigService } from './lease-solver-config.service';
       {
         name: LEASE_SOLVER_CONFIG,
         schema: LeaseSolverConfigSchema,
-        collection: 'lease_solver_config',
+        collection: 'v2_lease_solver_configs',
       },
     ]),
   ],

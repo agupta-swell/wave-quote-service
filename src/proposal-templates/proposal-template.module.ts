@@ -11,7 +11,7 @@ import { ProposalTemplateService } from './proposal-template.service';
       {
         name: PROPOSAL_TEMPLATE,
         schema: ProposalTemplateSchema,
-        collection: 'proposal_templates',
+        collection: 'v2_proposal_templates',
       },
     ]),
   ],
