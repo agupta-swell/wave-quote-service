@@ -7,7 +7,7 @@ import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-ma
 import {
   ProposalSectionMasterDto,
   ProposalSectionMasterListRes,
-  ProposalSectionMasterRes
+  ProposalSectionMasterRes,
 } from './res/proposal-section-master.dto';
 
 @ApiTags('Proposal Section Master')

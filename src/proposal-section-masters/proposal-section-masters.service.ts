@@ -50,8 +50,8 @@ export class ProposalSectionMasterService {
   ): Promise<OperationResult<Pagination<ProposalSectionMasterDto>>> {
     const condition = pickBy(
       {
-        applicable_products: products && { $in: products },
-        applicable_financial_products: financialProducts && { $in: financialProducts },
+        applicable_products: { $in: ['all', ...(products ? products : [])] },
+        applicable_financial_products: { $in: ['all', ...(financialProducts ? financialProducts : [])] },
       },
       identity,
     );
