@@ -45,12 +45,12 @@ export class ProposalSectionMasterController {
   @ApiQuery({ name: 'financial-products' })
   @ApiOkResponse({ type: ProposalSectionMasterListRes })
   async getList(
-    @Query() query: { limit: string; skip: string; products: string; 'financial-product': string },
+    @Query() query: { limit: string; skip: string; products: string; 'financial-products': string },
   ): Promise<ServiceResponse<Pagination<ProposalSectionMasterDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
     const products = query?.products?.split(',');
-    const financialProducts = query['financial-product']?.split(',');
+    const financialProducts = query['financial-products']?.split(',');
     const res = await this.proposalSectionMasterService.getList(limit, skip, products, financialProducts);
     return ServiceResponse.fromResult(res);
   }
