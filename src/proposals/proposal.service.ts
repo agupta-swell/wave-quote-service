@@ -14,13 +14,13 @@ import { ProposalDto } from './res/proposal.dto';
 @Injectable()
 export class ProposalService {
   constructor(
-    @InjectModel(PROPOSAL) private proposal: Model<Proposal>,
+    @InjectModel(PROPOSAL) private proposalModel: Model<Proposal>,
     private readonly systemDesignService: SystemDesignService,
     private readonly quoteService: QuoteService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
-    const model = new this.proposal({
+    const model = new this.proposalModel({
       opportunity_id: proposalDto.opportunityId,
     });
     await model.save();
@@ -28,7 +28,7 @@ export class ProposalService {
   }
 
   async update(id: string, proposalDto: UpdateProposalDto): Promise<OperationResult<ProposalDto>> {
-    const foundProposal = await this.proposal.findById(id);
+    const foundProposal = await this.proposalModel.findById(id);
 
     if (!foundProposal) {
       throw ApplicationException.EnitityNotFound(id);
@@ -73,20 +73,29 @@ export class ProposalService {
       newData.detailed_proposal.quote_data = detailedQuote;
     }
 
-    const updatedModel = await this.proposal.findByIdAndUpdate(id, newData, { new: true });
+    const updatedModel = await this.proposalModel.findByIdAndUpdate(id, newData, { new: true });
     return OperationResult.ok(new ProposalDto(updatedModel.toObject()));
   }
 
   async getList(limit: number, skip: number): Promise<OperationResult<Pagination<ProposalDto>>> {
     const [proposalTemplates, total] = await Promise.all([
-      this.proposal.find().limit(limit).skip(skip),
-      this.proposal.estimatedDocumentCount(),
+      this.proposalModel.find().limit(limit).skip(skip),
+      this.proposalModel.estimatedDocumentCount(),
     ]);
 
     return OperationResult.ok({
       data: proposalTemplates.map(proposalTemplate => new ProposalDto(proposalTemplate.toObject())),
       total,
     });
+  }
+
+  async getProposalDetails(id: string): Promise<OperationResult<ProposalDto>> {
+    const proposal = await this.proposalModel.findById(id);
+    if (!proposal) {
+      throw ApplicationException.EnitityNotFound(id);
+    }
+
+    return OperationResult.ok(new ProposalDto(proposal.toObject()));
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

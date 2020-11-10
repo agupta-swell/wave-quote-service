@@ -42,4 +42,10 @@ export class ProposalController {
     const res = await this.proposalService.getList(limit, skip);
     return ServiceResponse.fromResult(res);
   }
+
+  @Get(':id')
+  async getProposalById(@Param('id') id: string) {
+    const res = await this.proposalService.getProposalDetails(id);
+    return ServiceResponse.fromResult(res);
+  }
 }
