@@ -14,6 +14,14 @@ class SectionDto {
   componentName: string;
 }
 
+class ProposalSectionMasterDto {
+  @ApiProperty({ type: String, isArray: true })
+  applicableFinancialProducts: string[];
+
+  @ApiProperty({ type: String, isArray: true })
+  applicableProducts: string[];
+}
+
 export class ProposalTemplateDto {
   @ApiProperty()
   id: string;
@@ -24,10 +32,14 @@ export class ProposalTemplateDto {
   @ApiProperty({ type: SectionDto, isArray: true })
   sections: SectionDto[];
 
+  @ApiProperty({ type: ProposalSectionMasterDto })
+  proposalSectionMaster: ProposalSectionMasterDto;
+
   constructor(props: ProposalTemplate) {
     this.id = props._id;
     this.name = props.name;
     this.sections = props.sections.map(item => toCamelCase(item));
+    this.proposalSectionMaster = toCamelCase(props.proposal_section_master);
   }
 }
 

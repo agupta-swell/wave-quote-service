@@ -29,6 +29,7 @@ export class ProposalTemplateService {
         name: item.proposal_section_name,
         component_name: item.component_name,
       })),
+      proposal_section_master: toSnakeCase(proposalTemplateDto.proposalSectionMaster),
     });
     await model.save();
     return OperationResult.ok(new ProposalTemplateDto(model.toObject()));
@@ -60,6 +61,9 @@ export class ProposalTemplateService {
               component_name: item.component_name,
             }))
           : foundProposalSectionMaster.sections,
+        proposal_section_master: proposalTemplateDto.proposalSectionMaster
+          ? toSnakeCase(proposalTemplateDto.proposalSectionMaster)
+          : foundProposalSectionMaster.proposal_section_master,
       },
       { new: true },
     );

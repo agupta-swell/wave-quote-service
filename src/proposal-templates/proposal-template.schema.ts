@@ -17,14 +17,26 @@ const SectionSchema = new Schema<ISectionSchema>(
   { _id: false },
 );
 
+export interface IProposalSectionMaster {
+  applicable_financial_products: string[];
+  applicable_products: string[];
+}
+
+const ProposalSectionMaster = new Schema<IProposalSectionMaster>({
+  applicable_financial_products: [String],
+  applicable_products: [String],
+});
+
 export interface ProposalTemplate extends Document {
   name: string;
   sections: ISectionSchema[];
+  proposal_section_master: IProposalSectionMaster;
 }
 
 export const ProposalTemplateSchema = new Schema<ProposalTemplate>({
   name: String,
   sections: [SectionSchema],
+  proposal_section_master: [ProposalSectionMaster],
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
