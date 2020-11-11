@@ -36,7 +36,7 @@ export interface ProposalTemplate extends Document {
 export const ProposalTemplateSchema = new Schema<ProposalTemplate>({
   name: String,
   sections: [SectionSchema],
-  proposal_section_master: [ProposalSectionMaster],
+  proposal_section_master: ProposalSectionMaster,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
