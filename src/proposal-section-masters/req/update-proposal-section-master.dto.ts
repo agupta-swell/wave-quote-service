@@ -5,7 +5,7 @@ export class UpdateProposalSectionMasterDto {
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
-  proposalSectionName: string;
+  name: string;
 
   @ApiPropertyOptional({ type: String, isArray: true })
   @IsArray()

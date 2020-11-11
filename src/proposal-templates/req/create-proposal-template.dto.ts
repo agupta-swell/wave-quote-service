@@ -2,8 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsNotEmpty, IsString } from 'class-validator';
 
 export class ProposalSectionMasterDto {
-  @ApiProperty({ type: String, isArray: true })
-  applicableFinancialProducts: string[];
+  @ApiProperty()
+  applicableFinancialProduct: string;
 
   @ApiProperty({ type: String, isArray: true })
   applicableProducts: string[];

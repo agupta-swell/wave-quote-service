@@ -18,12 +18,12 @@ const SectionSchema = new Schema<ISectionSchema>(
 );
 
 export interface IProposalSectionMaster {
-  applicable_financial_products: string[];
+  applicable_financial_product: string;
   applicable_products: string[];
 }
 
 const ProposalSectionMaster = new Schema<IProposalSectionMaster>({
-  applicable_financial_products: [String],
+  applicable_financial_product: String,
   applicable_products: [String],
 });
 

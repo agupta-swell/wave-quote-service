@@ -15,8 +15,8 @@ class SectionDto {
 }
 
 class ProposalSectionMasterDto {
-  @ApiProperty({ type: String, isArray: true })
-  applicableFinancialProducts: string[];
+  @ApiProperty()
+  applicableFinancialProduct: string;
 
   @ApiProperty({ type: String, isArray: true })
   applicableProducts: string[];

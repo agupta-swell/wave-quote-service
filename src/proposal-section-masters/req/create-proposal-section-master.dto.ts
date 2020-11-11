@@ -5,7 +5,7 @@ export class CreateProposalSectionMasterDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  proposalSectionName: string;
+  name: string;
 
   @ApiProperty({ type: String, isArray: true })
   @IsArray()

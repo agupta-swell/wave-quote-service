@@ -26,7 +26,7 @@ export class ProposalTemplateService {
       name: proposalTemplateDto.name,
       sections: proposalSections.map(item => ({
         id: item._id,
-        name: item.proposal_section_name,
+        name: item.name,
         component_name: item.component_name,
       })),
       proposal_section_master: toSnakeCase(proposalTemplateDto.proposalSectionMaster),
@@ -57,7 +57,7 @@ export class ProposalTemplateService {
         sections: proposalSections.length
           ? proposalSections.map(item => ({
               id: item._id,
-              name: item.proposal_section_name,
+              name: item.name,
               component_name: item.component_name,
             }))
           : foundProposalSectionMaster.sections,
