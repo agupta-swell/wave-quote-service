@@ -25,7 +25,7 @@ export class AuthenticationService {
 
     const match = await compare(hashPassword, (user.services as any).password.bcrypt);
     if (!match) throw new UnauthorizedException();
-    const payload = { userName: user.profile.firstName, roles: user.roles };
+    const payload = { userName: user.profile.firstName, roles: user.roles, userId: user._id };
     return new AuthenticationDto({ accessToken: this.jwtService.sign(payload, { algorithm: 'HS512' }) });
   }
 }
