@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
@@ -8,6 +9,9 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
 @Global()
 @Module({
   imports: [
+    JwtModule.register({
+      secret: process.env.PROPOSAL_JWT_SECRET,
+    }),
     MongooseModule.forFeature([
       {
         name: PROPOSAL,

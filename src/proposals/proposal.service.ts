@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { identity, pickBy } from 'lodash';
 import { Model } from 'mongoose';
+import { createTransport } from 'nodemailer';
 import { OperationResult, Pagination } from '../app/common';
+import { CurrentUserType } from '../app/securities';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { ApplicationException } from './../app/app.exception';
 import { QuoteService } from './../quotes/quote.service';
@@ -18,6 +21,7 @@ export class ProposalService {
     @InjectModel(PROPOSAL) private proposalModel: Model<Proposal>,
     private readonly systemDesignService: SystemDesignService,
     private readonly quoteService: QuoteService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -110,6 +114,60 @@ export class ProposalService {
     }
 
     return OperationResult.ok(new ProposalDto(proposal.toObject()));
+  }
+
+  async sendRecipients(proposalId: string, user: CurrentUserType): Promise<boolean> {
+    const foundProposal = await this.proposalModel.findById(proposalId);
+    if (!foundProposal) {
+      throw ApplicationException.EnitityNotFound(proposalId);
+    }
+
+    const transporter = createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.NODE_MAILER_EMAIL,
+        pass: process.env.NODE_MAILER_PASSWORD,
+      },
+    });
+
+    const tokensByRecipients = foundProposal.detailed_proposal.recipients.map(item =>
+      this.jwtService.sign(
+        {
+          proposalId: foundProposal._id,
+          email: item.email,
+          houseNumber: 'need to fix later',
+          zipCode: 'need to fix later',
+        },
+        { expiresIn: foundProposal.detailed_proposal.proposal_validity_period },
+      ),
+    );
+
+    const linksByToken = tokensByRecipients.map(token => process.env.PROPOSAL_PAGE.concat(`/${token}`));
+    const recipients = foundProposal.detailed_proposal.recipients.map(item => item.email);
+
+    await Promise.all(
+      linksByToken.map(item =>
+        transporter.sendMail({
+          from: process.env.NODE_MAILER_EMAIL,
+          to: recipients.concat(['thanghq@dgroup.co']),
+          subject: 'Welcome',
+          html: `
+            <div> Click <a href=${item}>here</a> to watch proposal</div>
+            `,
+        }),
+      ),
+    );
+
+    return this.jwtService.sign({ hello: 1 }, { expiresIn: '30d' }) as any;
+  }
+
+  async verifyProposalToken(token: string) {
+    // TODO: need to implement later
+    try {
+      await this.jwtService.verifyAsync(token, { secret: process.env.PROPOSAL_JWT_SECRET });
+    } catch (error) {
+      throw new UnauthorizedException();
+    }
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

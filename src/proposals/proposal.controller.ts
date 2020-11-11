@@ -1,7 +1,8 @@
-import { OperationResult } from './../app/common/operation-result';
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { CurrentUser, PreAuthenticate } from '../app/securities';
+import { CurrentUserType } from './../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto } from './req/create-proposal.dto';
 import { UpdateProposalDto } from './req/update-proposal.dto';
@@ -52,5 +53,17 @@ export class ProposalController {
   async getProposalById(@Param('id') id: string) {
     const res = await this.proposalService.getProposalDetails(id);
     return ServiceResponse.fromResult(res);
+  }
+
+  @PreAuthenticate()
+  @Put(':proposalId/send-emails')
+  async sendRecipients(@Param('proposalId') proposalId: string, @CurrentUser() user: CurrentUserType) {
+    const res = await this.proposalService.sendRecipients(proposalId, user);
+    return res;
+  }
+
+  @Post('/validations')
+  async getProposalLink(@Body() body: any) {
+    const res = await this.proposalService.verifyProposalToken(body.accessToken);
   }
 }
