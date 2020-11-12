@@ -35,10 +35,10 @@ export class ProposalController {
 
   @Get()
   @ApiOperation({ summary: 'Get List' })
-  @ApiQuery({ name: 'limit' })
-  @ApiQuery({ name: 'skip' })
-  @ApiQuery({ name: 'quote-id' })
-  @ApiQuery({ name: 'opportunity-id' })
+  @ApiQuery({ name: 'limit', required: false, example: 100 })
+  @ApiQuery({ name: 'skip', required: false, example: 0 })
+  @ApiQuery({ name: 'quote-id', required: false, example: 'quote-id' })
+  @ApiQuery({ name: 'opportunity-id', required: false, example: 'opportunity-id' })
   @ApiOkResponse({ type: ProposalListRes })
   async getList(
     @Query() query: { limit: string; skip: string; 'quote-id': string; 'opportunity-id': string },

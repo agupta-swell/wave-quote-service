@@ -42,8 +42,14 @@ export class QuoteController {
     @Query('limit') limit: string,
     @Query('skip') skip: string,
     @Query('systemDesignId') systemDesignId: string,
+    @Query('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<Pagination<QuoteDto>>> {
-    const res = await this.quoteService.getAllQuotes(Number(limit || 0), Number(skip || 0), systemDesignId);
+    const res = await this.quoteService.getAllQuotes(
+      Number(limit || 0),
+      Number(skip || 0),
+      systemDesignId,
+      opportunityId,
+    );
     return ServiceResponse.fromResult(res);
   }
 
