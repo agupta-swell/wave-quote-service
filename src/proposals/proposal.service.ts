@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import * as Handlebars from 'handlebars';
 import { identity, pickBy } from 'lodash';
 import { Model } from 'mongoose';
 import { createTransport } from 'nodemailer';
@@ -14,6 +15,7 @@ import { IDetailedProposalSchema, Proposal, PROPOSAL } from './proposal.schema';
 import { CreateProposalDto } from './req/create-proposal.dto';
 import { UpdateProposalDto } from './req/update-proposal.dto';
 import { ProposalDto } from './res/proposal.dto';
+import proposalTemplate from './template-html/proposal-template';
 
 @Injectable()
 export class ProposalService {
@@ -151,17 +153,25 @@ export class ProposalService {
     const linksByToken = tokensByRecipients.map(token => process.env.PROPOSAL_PAGE.concat(`/${token}`));
     const recipients = foundProposal.detailed_proposal.recipients.map(item => item.email);
 
+    const source = proposalTemplate;
+    const template = Handlebars.compile(source);
+
     await Promise.all(
-      linksByToken.map(item =>
+      linksByToken.map(item => {
+        const data = {
+          customerName: 'Ahihi ^^!',
+          proposalIntro: 'Ahaha ^^!',
+          proposalLink: item,
+        };
+
+        const htmlToSend = template(data);
         transporter.sendMail({
           from: process.env.NODE_MAILER_EMAIL,
           to: recipients.concat(['thanghq@dgroup.co']),
-          subject: 'Welcome',
-          html: `
-            <div> Click <a href=${item}>here</a> to watch proposal</div>
-            `,
-        }),
-      ),
+          subject: 'Proposal Invitation',
+          html: htmlToSend,
+        });
+      }),
     );
 
     return this.jwtService.sign({ hello: 1 }, { expiresIn: '30d' }) as any;

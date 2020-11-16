@@ -55,7 +55,7 @@ export class ProposalController {
     return ServiceResponse.fromResult(res);
   }
 
-  @PreAuthenticate()
+  // @PreAuthenticate()
   @Put(':proposalId/send-emails')
   async sendRecipients(@Param('proposalId') proposalId: string, @CurrentUser() user: CurrentUserType) {
     const res = await this.proposalService.sendRecipients(proposalId, user);

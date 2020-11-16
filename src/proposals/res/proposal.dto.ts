@@ -62,7 +62,7 @@ export class ProposalDto {
   constructor(props: Proposal) {
     this.id = props._id;
     if (props.detailed_proposal) {
-      this.isSelected = props.detailed_proposal.is_selected;
+      this.isSelected = props.detailed_proposal.is_selected || false;
       this.quoteId = props.quote_id;
       this.systemDesignId = props.system_design_id;
       this.quoteData =
