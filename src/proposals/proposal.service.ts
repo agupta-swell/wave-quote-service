@@ -64,7 +64,7 @@ export class ProposalService {
     }
 
     if (detailedProposal.recipients) {
-      newData.detailed_proposal.recipients = detailedProposal.recipients;
+      newData.detailed_proposal.recipients = detailedProposal.recipients.filter(item => item.email !== '');
     }
 
     if (detailedProposal.templateId) {
@@ -146,7 +146,7 @@ export class ProposalService {
           houseNumber: 'need to fix later',
           zipCode: 'need to fix later',
         },
-        { expiresIn: foundProposal.detailed_proposal.proposal_validity_period },
+        { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
       ),
     );
 
@@ -157,17 +157,17 @@ export class ProposalService {
     const template = Handlebars.compile(source);
 
     await Promise.all(
-      linksByToken.map(item => {
+      recipients.map((item, index) => {
         const data = {
           customerName: 'Ahihi ^^!',
           proposalIntro: 'Ahaha ^^!',
-          proposalLink: item,
+          proposalLink: linksByToken[index],
         };
 
         const htmlToSend = template(data);
         transporter.sendMail({
           from: process.env.NODE_MAILER_EMAIL,
-          to: recipients.concat(['thanghq@dgroup.co']),
+          to: item,
           subject: 'Proposal Invitation',
           html: htmlToSend,
         });
