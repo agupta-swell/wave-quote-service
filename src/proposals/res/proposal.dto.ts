@@ -56,7 +56,7 @@ export class ProposalDto {
   constructor(props: Proposal) {
     this.id = props._id;
     if (props.detailed_proposal) {
-      this.isSelected = props.detailed_proposal.is_selected;
+      this.isSelected = props.detailed_proposal.is_selected || false;
       this.quoteData = new QuoteDto(props.detailed_proposal.quote_data as any);
       this.systemDesignData = new SystemDesignDto(props.detailed_proposal.system_design_data as any);
       this.proposalName = props.detailed_proposal.proposal_name;

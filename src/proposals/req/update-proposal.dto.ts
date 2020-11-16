@@ -2,7 +2,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
 
 class RecepientDto {
+  @ApiProperty()
   email: string;
+
+  @ApiProperty()
   name: string;
 }
 
@@ -13,7 +16,7 @@ class DetailedProposalDto {
   @ApiProperty()
   proposalName: string;
 
-  @ApiProperty({ type: RecepientDto })
+  @ApiProperty({ type: RecepientDto, isArray: true })
   recipients: RecepientDto[];
 
   @ApiProperty()
