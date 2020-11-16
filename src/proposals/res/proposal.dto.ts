@@ -53,12 +53,24 @@ export class ProposalDto {
   @ApiProperty()
   pdfFileUrl: string;
 
+  @ApiProperty()
+  quoteId: string;
+
+  @ApiProperty()
+  systemDesignId: string;
+
   constructor(props: Proposal) {
     this.id = props._id;
     if (props.detailed_proposal) {
       this.isSelected = props.detailed_proposal.is_selected;
-      this.quoteData = new QuoteDto(props.detailed_proposal.quote_data as any);
-      this.systemDesignData = new SystemDesignDto(props.detailed_proposal.system_design_data as any);
+      this.quoteId = props.quote_id;
+      this.systemDesignId = props.system_design_id;
+      this.quoteData =
+        props.detailed_proposal.quote_data &&
+        new QuoteDto({ detailed_quote: props.detailed_proposal.quote_data } as any);
+      this.systemDesignData =
+        props.detailed_proposal.system_design_data &&
+        new SystemDesignDto(props.detailed_proposal.system_design_data as any);
       this.proposalName = props.detailed_proposal.proposal_name;
       this.proposalCreationDate = props.detailed_proposal.proposal_creation_date;
       this.proposalSentDate = props.detailed_proposal.proposal_sent_date;

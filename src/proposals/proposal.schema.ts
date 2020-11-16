@@ -56,6 +56,7 @@ export interface Proposal extends Document {
 
 export const ProposalSchema = new Schema<Proposal>({
   name: String,
+  opportunity_id: String,
   system_design_id: String,
   quote_id: String,
   detailed_proposal: DetailedProposalSchema,

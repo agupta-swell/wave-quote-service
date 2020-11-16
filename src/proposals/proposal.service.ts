@@ -27,6 +27,10 @@ export class ProposalService {
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
     const model = new this.proposalModel({
       opportunity_id: proposalDto.opportunityId,
+      detailed_proposal: {
+        proposal_name: proposalDto.proposalName,
+        recipients: proposalDto.recipients,
+      },
     });
     await model.save();
     return OperationResult.ok(new ProposalDto(model.toObject()));
@@ -65,17 +69,19 @@ export class ProposalService {
       newData.detailed_proposal.template_id = detailedProposal.templateId;
     }
 
-    if (!foundProposal.detailed_proposal) {
+    if (!foundProposal.detailed_proposal.quote_data) {
       newData.system_design_id = proposalDto.systemDesignId;
       newData.quote_id = proposalDto.quoteId;
       newData.detailed_proposal.proposal_creation_date = new Date();
       newData.detailed_proposal.status = PROPOSAL_STATUS.CREATED;
       const [systemDesign, detailedQuote] = await Promise.all([
-        this.systemDesignService.getOneById(proposalDto.opportunityId),
+        this.systemDesignService.getOneById(proposalDto.systemDesignId),
         this.quoteService.getOneById(proposalDto.quoteId),
       ]);
       newData.detailed_proposal.system_design_data = systemDesign;
       newData.detailed_proposal.quote_data = detailedQuote;
+    } else {
+      newData.detailed_proposal = { ...foundProposal.detailed_proposal, ...newData.detailed_proposal };
     }
 
     const updatedModel = await this.proposalModel.findByIdAndUpdate(id, newData, { new: true });
