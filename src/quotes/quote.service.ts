@@ -166,10 +166,10 @@ export class QuoteService {
       utilityProgramSelectedForReinvestment: false,
       taxCreditSelectedForReinvestment: false,
       savingsDetails: [],
-      quoteName: '',
       isSelected: false,
       isSolar: systemDesign.is_solar,
       isRetrofit: systemDesign.is_retrofit,
+      quoteName: data.quoteName,
     };
 
     const model = new QuoteModel(data, detailedQuote);

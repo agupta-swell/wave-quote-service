@@ -12,4 +12,7 @@ export class CreateQuoteDto {
 
   @ApiProperty()
   utilityProgramId: string;
+
+  @ApiProperty()
+  quoteName: string;
 }

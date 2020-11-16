@@ -76,6 +76,9 @@ export class QuoteDto {
   quoteId: string;
 
   @ApiProperty()
+  quoteName: string;
+
+  @ApiProperty()
   isRetrofit: boolean;
 
   @ApiProperty()
@@ -119,6 +122,7 @@ export class QuoteDto {
 
   constructor(props: Quote) {
     this.quoteId = props._id;
+    this.quoteName = props.detailed_quote.quote_name;
     this.opportunityId = props.opportunity_id;
     this.systemDesignId = props.system_design_id;
     this.isSelected = props.detailed_quote.is_selected;
