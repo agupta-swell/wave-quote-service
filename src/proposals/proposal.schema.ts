@@ -10,10 +10,13 @@ export interface IRecipientSchema {
   name: string;
 }
 
-const RecipientSchema = new Schema<IRecipientSchema>({
-  email: String,
-  name: String,
-});
+const RecipientSchema = new Schema<IRecipientSchema>(
+  {
+    email: String,
+    name: String,
+  },
+  { _id: false },
+);
 
 export interface IDetailedProposalSchema {
   is_selected: boolean;

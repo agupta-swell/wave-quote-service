@@ -1,13 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-
-class RecepientDto {
-  @ApiProperty()
-  email: string;
-
-  @ApiProperty()
-  name: string;
-}
+import { RecepientDto } from './create-proposal.dto';
 
 class DetailedProposalDto {
   @ApiProperty()

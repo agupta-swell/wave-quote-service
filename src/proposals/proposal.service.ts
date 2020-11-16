@@ -83,7 +83,7 @@ export class ProposalService {
       newData.detailed_proposal.system_design_data = systemDesign;
       newData.detailed_proposal.quote_data = detailedQuote;
     } else {
-      newData.detailed_proposal = { ...foundProposal.detailed_proposal, ...newData.detailed_proposal };
+      newData.detailed_proposal = { ...foundProposal.toObject().detailed_proposal, ...newData.detailed_proposal };
     }
 
     const updatedModel = await this.proposalModel.findByIdAndUpdate(id, newData, { new: true });
