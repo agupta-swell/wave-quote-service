@@ -159,8 +159,13 @@ export class ProposalService {
     await Promise.all(
       recipients.map((item, index) => {
         const data = {
-          customerName: 'Ahihi ^^!',
-          proposalIntro: 'Ahaha ^^!',
+          customerName: item.split('@')?.[0] ? item.split('@')[0] : 'Customer',
+          proposalValidityPeriod: foundProposal.detailed_proposal.proposal_validity_period,
+          recipientNotice: recipients.filter(i => i !== item).join(', ')
+            ? `Please note, this proposal has been shared with additinal email IDs as per your request: ${recipients
+                .filter(i => i !== item)
+                .join(', ')}`
+            : '',
           proposalLink: linksByToken[index],
         };
 

@@ -35,6 +35,11 @@ export default `
           </p>
           <p style="font-size: 14px; margin-bottom: 20px; line-height: 26px">
             {{proposalIntro}}
+            Thanks for your interest in Swell's Service.
+          <br>Per your request, we are pleased to share a link to a proposal custom made for you.
+          <br>This proposal will be accessible for next {{proposalValidityPeriod}} days.
+          <br>{{recipientNotice}}
+          <br>You can access your proposal through the link provided below.
           </p>
           <a href="{{proposalLink}}" style="color:#ffffff!important;display:inline-block;font-weight:500;font-size:16px;line-height:42px;width:auto;white-space:nowrap;min-height:42px;margin:12px 5px 12px 0;padding:0 22px;text-decoration:none;text-align:center;border:0;border-radius:3px;vertical-align:top;background-color:#00aeef!important" target="_blank">
             <span style="display:inline;text-decoration:none;font-weight:500;font-style:normal;font-size:16px;line-height:42px;border:none;background-color:#00aeef!important;color:#ffffff!important">
