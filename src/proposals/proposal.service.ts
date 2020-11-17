@@ -5,6 +5,7 @@ import * as Handlebars from 'handlebars';
 import { identity, pickBy } from 'lodash';
 import { Model } from 'mongoose';
 import { createTransport } from 'nodemailer';
+import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CurrentUserType } from '../app/securities';
 import { SystemDesignService } from '../system-designs/system-design.service';
@@ -24,6 +25,7 @@ export class ProposalService {
     private readonly systemDesignService: SystemDesignService,
     private readonly quoteService: QuoteService,
     private readonly jwtService: JwtService,
+    private readonly proposalTemplateService: ProposalTemplateService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -121,7 +123,9 @@ export class ProposalService {
       throw ApplicationException.EnitityNotFound(id);
     }
 
-    return OperationResult.ok(new ProposalDto(proposal.toObject()));
+    const template = await this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id);
+
+    return OperationResult.ok(new ProposalDto({ ...proposal.toObject(), template }));
   }
 
   async sendRecipients(proposalId: string, user: CurrentUserType): Promise<boolean> {
