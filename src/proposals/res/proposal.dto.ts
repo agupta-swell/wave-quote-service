@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { ProposalTemplateDto } from '../../proposal-templates/res/proposal-template.dto';
 import { QuoteDto } from '../../quotes/res/quote.dto';
 import { SystemDesignDto } from '../../system-designs/res/system-design.dto';
 import { toCamelCase } from '../../utils/transformProperties';
@@ -45,9 +46,6 @@ export class ProposalDto {
   proposalValidityPeriod: number;
 
   @ApiProperty()
-  templateId: string;
-
-  @ApiProperty()
   status: string;
 
   @ApiProperty()
@@ -58,6 +56,12 @@ export class ProposalDto {
 
   @ApiProperty()
   systemDesignId: string;
+
+  @ApiProperty()
+  templateId: string;
+
+  @ApiProperty({ type: ProposalTemplateDto })
+  template: ProposalTemplateDto;
 
   constructor(props: Proposal) {
     this.id = props._id;
@@ -77,6 +81,7 @@ export class ProposalDto {
       this.recipients = props.detailed_proposal.recipients.map(item => toCamelCase(item));
       this.proposalValidityPeriod = props.detailed_proposal.proposal_validity_period;
       this.templateId = props.detailed_proposal.template_id;
+      this.template = (props as any)?.template && new ProposalTemplateDto((props as any)?.template);
       this.status = props.detailed_proposal.status;
       this.pdfFileUrl = props.detailed_proposal.pdf_file_url;
     }

@@ -84,4 +84,9 @@ export class ProposalTemplateService {
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
+
+  async getOneById(proposalTemplateId: string): Promise<ProposalTemplate> {
+    const res = await this.proposalTemplate.findById(proposalTemplateId);
+    return res?.toObject() || {};
+  }
 }
