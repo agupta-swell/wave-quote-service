@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { CurrentUser, PreAuthenticate } from '../app/securities';
+import { CurrentUser } from '../app/securities';
 import { CurrentUserType } from './../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto } from './req/create-proposal.dto';
@@ -49,21 +49,37 @@ export class ProposalController {
     return ServiceResponse.fromResult(res);
   }
 
+  // TODO: need to implement later -----> need to enable preauthenticate to take token in header
+  // @PreAuthenticate()
+  @Post('generate-link')
+  async generateLinkByAgent(@Body() body: { proposalId: string }): Promise<ServiceResponse<{ proposalLink: string }>> {
+    const res = await this.proposalService.generateLinkByAgent(body.proposalId);
+    return ServiceResponse.fromResult(res);
+  }
+
   @Get(':id')
-  async getProposalById(@Param('id') id: string) {
+  @ApiOkResponse({ type: ProposalRes })
+  async getProposalById(@Param('id') id: string): Promise<ServiceResponse<ProposalDto>> {
     const res = await this.proposalService.getProposalDetails(id);
     return ServiceResponse.fromResult(res);
   }
 
-  // @PreAuthenticate()
   @Put(':proposalId/send-emails')
-  async sendRecipients(@Param('proposalId') proposalId: string, @CurrentUser() user: CurrentUserType) {
+  @ApiOkResponse({ type: Boolean })
+  async sendRecipients(
+    @Param('proposalId') proposalId: string,
+    @CurrentUser() user: CurrentUserType,
+  ): Promise<ServiceResponse<Boolean>> {
     const res = await this.proposalService.sendRecipients(proposalId, user);
-    return res;
+    return ServiceResponse.fromResult(res);
   }
 
   @Post('/validations')
-  async getProposalLink(@Body() body: any) {
+  @ApiOkResponse({ type: ProposalRes })
+  async getProposalLink(
+    @Body() body: any,
+  ): Promise<ServiceResponse<{ isAgent: boolean; proposalDetails: ProposalDto }>> {
     const res = await this.proposalService.verifyProposalToken(body.accessToken);
+    return ServiceResponse.fromResult(res);
   }
 }

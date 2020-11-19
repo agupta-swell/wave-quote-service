@@ -128,7 +128,27 @@ export class ProposalService {
     return OperationResult.ok(new ProposalDto({ ...proposal.toObject(), template }));
   }
 
-  async sendRecipients(proposalId: string, user: CurrentUserType): Promise<boolean> {
+  async generateLinkByAgent(proposalId: string): Promise<OperationResult<{ proposalLink: string }>> {
+    // TODO: need to check role later
+    const foundProposal = await this.proposalModel.findById(proposalId);
+    if (!foundProposal) {
+      throw ApplicationException.EnitityNotFound(proposalId);
+    }
+
+    const token = this.jwtService.sign(
+      {
+        proposalId: foundProposal._id,
+        houseNumber: 'need to fix later',
+        zipCode: 'need to fix later',
+        isAgent: true,
+      },
+      { expiresIn: '5m' },
+    );
+
+    return OperationResult.ok({ proposalLink: process.env.PROPOSAL_PAGE.concat(`/${token}`) });
+  }
+
+  async sendRecipients(proposalId: string, user: CurrentUserType): Promise<OperationResult<boolean>> {
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
       throw ApplicationException.EnitityNotFound(proposalId);
@@ -183,16 +203,34 @@ export class ProposalService {
       }),
     );
 
-    return this.jwtService.sign({ hello: 1 }, { expiresIn: '30d' }) as any;
+    return OperationResult.ok(true);
   }
 
-  async verifyProposalToken(token: string) {
-    // TODO: need to implement later
+  async verifyProposalToken(
+    token: string,
+  ): Promise<OperationResult<{ isAgent: boolean; proposalDetails: ProposalDto }>> {
+    let res: any;
+
     try {
-      await this.jwtService.verifyAsync(token, { secret: process.env.PROPOSAL_JWT_SECRET });
+      res = await this.jwtService.verifyAsync(token, {
+        secret: process.env.PROPOSAL_JWT_SECRET,
+        ignoreExpiration: false,
+      });
     } catch (error) {
       throw new UnauthorizedException();
     }
+
+    const proposal = await this.proposalModel.findById(res.proposalId);
+    if (!proposal) {
+      throw ApplicationException.EnitityNotFound(res.proposalId);
+    }
+
+    const template = await this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id);
+
+    return OperationResult.ok({
+      isAgent: res.isAgent || false,
+      proposalDetails: new ProposalDto({ ...proposal.toObject(), template }),
+    });
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
