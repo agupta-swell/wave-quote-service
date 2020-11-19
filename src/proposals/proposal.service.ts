@@ -1,3 +1,4 @@
+import { ValidateProposalDto } from './req/validate-proposal.dto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
@@ -207,17 +208,24 @@ export class ProposalService {
   }
 
   async verifyProposalToken(
-    token: string,
-  ): Promise<OperationResult<{ isAgent: boolean; proposalDetails: ProposalDto }>> {
+    data: ValidateProposalDto,
+  ): Promise<OperationResult<{ isAgent: boolean; proposalDetail: ProposalDto }>> {
     let res: any;
 
     try {
-      res = await this.jwtService.verifyAsync(token, {
+      res = await this.jwtService.verifyAsync(data.token, {
         secret: process.env.PROPOSAL_JWT_SECRET,
         ignoreExpiration: false,
       });
     } catch (error) {
       throw new UnauthorizedException();
+    }
+
+    if (!res.isAgent && !data.customerInformation) {
+      return OperationResult.ok({
+        isAgent: false,
+        proposalDetail: {} as any,
+      });
     }
 
     const proposal = await this.proposalModel.findById(res.proposalId);
@@ -229,7 +237,7 @@ export class ProposalService {
 
     return OperationResult.ok({
       isAgent: res.isAgent || false,
-      proposalDetails: new ProposalDto({ ...proposal.toObject(), template }),
+      proposalDetail: new ProposalDto({ ...proposal.toObject(), template }),
     });
   }
 

@@ -6,6 +6,7 @@ import { CurrentUserType } from './../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto } from './req/create-proposal.dto';
 import { UpdateProposalDto } from './req/update-proposal.dto';
+import { ValidateProposalDto } from './req/validate-proposal.dto';
 import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
 
 @ApiTags('Proposal')
@@ -77,9 +78,9 @@ export class ProposalController {
   @Post('/validations')
   @ApiOkResponse({ type: ProposalRes })
   async getProposalLink(
-    @Body() body: any,
-  ): Promise<ServiceResponse<{ isAgent: boolean; proposalDetails: ProposalDto }>> {
-    const res = await this.proposalService.verifyProposalToken(body.accessToken);
+    @Body() body: ValidateProposalDto,
+  ): Promise<ServiceResponse<{ isAgent: boolean; proposalDetail: ProposalDto }>> {
+    const res = await this.proposalService.verifyProposalToken(body);
     return ServiceResponse.fromResult(res);
   }
 }
