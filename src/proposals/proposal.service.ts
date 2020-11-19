@@ -1,4 +1,3 @@
-import { ValidateProposalDto } from './req/validate-proposal.dto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,6 +15,7 @@ import { PROPOSAL_STATUS } from './constants';
 import { IDetailedProposalSchema, Proposal, PROPOSAL } from './proposal.schema';
 import { CreateProposalDto } from './req/create-proposal.dto';
 import { UpdateProposalDto } from './req/update-proposal.dto';
+import { CustomerInformationDto, ValidateProposalDto } from './req/validate-proposal.dto';
 import { ProposalDto } from './res/proposal.dto';
 import proposalTemplate from './template-html/proposal-template';
 
@@ -168,8 +168,8 @@ export class ProposalService {
         {
           proposalId: foundProposal._id,
           email: item.email,
-          houseNumber: 'need to fix later',
-          zipCode: 'need to fix later',
+          houseNumber: 'myhouse123',
+          zipCode: 7000000,
         },
         { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
       ),
@@ -210,36 +210,43 @@ export class ProposalService {
   async verifyProposalToken(
     data: ValidateProposalDto,
   ): Promise<OperationResult<{ isAgent: boolean; proposalDetail: ProposalDto }>> {
-    let res: any;
+    let tokenPayload: any;
 
     try {
-      res = await this.jwtService.verifyAsync(data.token, {
+      tokenPayload = await this.jwtService.verifyAsync(data.token, {
         secret: process.env.PROPOSAL_JWT_SECRET,
         ignoreExpiration: false,
       });
     } catch (error) {
       throw new UnauthorizedException();
     }
-
-    if (!res.isAgent && !data.customerInformation) {
+    // Role: customer - Stage: 1
+    if (!tokenPayload.isAgent && !data.customerInformation) {
       return OperationResult.ok({
         isAgent: false,
-        proposalDetail: {} as any,
+        proposalDetail: null,
       });
     }
+    // Role: customer - Stage: 2
+    if (!tokenPayload.isAgent && !this.validateCustomerInformation(data.customerInformation, tokenPayload)) {
+      throw ApplicationException.NoPermission();
+    }
 
-    const proposal = await this.proposalModel.findById(res.proposalId);
+    const proposal = await this.proposalModel.findById(tokenPayload.proposalId);
     if (!proposal) {
-      throw ApplicationException.EnitityNotFound(res.proposalId);
+      throw ApplicationException.EnitityNotFound(tokenPayload.proposalId);
     }
 
     const template = await this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id);
 
     return OperationResult.ok({
-      isAgent: res.isAgent || false,
+      isAgent: !!tokenPayload.isAgent,
       proposalDetail: new ProposalDto({ ...proposal.toObject(), template }),
     });
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
+  validateCustomerInformation(customerInformation: CustomerInformationDto, tokenPayload): boolean {
+    return Object.keys(customerInformation).every(key => customerInformation[key] === tokenPayload[key]);
+  }
 }
