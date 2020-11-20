@@ -50,4 +50,8 @@ export class ApplicationException extends HttpException {
       HttpStatus.UNPROCESSABLE_ENTITY,
     );
   }
+
+  static ValidationFailed(message?: string) {
+    return new ApplicationException(`Validation failed${message ? ': ' + message : ''}`, HttpStatus.BAD_REQUEST);
+  }
 }

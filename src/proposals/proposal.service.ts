@@ -146,7 +146,7 @@ export class ProposalService {
       { expiresIn: '5m' },
     );
 
-    return OperationResult.ok({ proposalLink: process.env.PROPOSAL_PAGE.concat(`/${token}`) });
+    return OperationResult.ok({ proposalLink: process.env.PROPOSAL_PAGE.concat(`?s=${token}`) });
   }
 
   async sendRecipients(proposalId: string, user: CurrentUserType): Promise<OperationResult<boolean>> {
@@ -175,7 +175,7 @@ export class ProposalService {
       ),
     );
 
-    const linksByToken = tokensByRecipients.map(token => process.env.PROPOSAL_PAGE.concat(`/${token}`));
+    const linksByToken = tokensByRecipients.map(token => process.env.PROPOSAL_PAGE.concat(`?s=${token}`));
     const recipients = foundProposal.detailed_proposal.recipients.map(item => item.email);
 
     const source = proposalTemplate;
@@ -229,7 +229,7 @@ export class ProposalService {
     }
     // Role: customer - Stage: 2
     if (!tokenPayload.isAgent && !this.validateCustomerInformation(data.customerInformation, tokenPayload)) {
-      throw ApplicationException.NoPermission();
+      throw ApplicationException.ValidationFailed('Incorrect customer information.');
     }
 
     const proposal = await this.proposalModel.findById(tokenPayload.proposalId);
