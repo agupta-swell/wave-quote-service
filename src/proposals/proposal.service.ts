@@ -3,8 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as Handlebars from 'handlebars';
 import { identity, pickBy } from 'lodash';
+import * as mailgun from 'mailgun-js';
 import { Model } from 'mongoose';
-import { createTransport } from 'nodemailer';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CurrentUserType } from '../app/securities';
@@ -155,21 +155,13 @@ export class ProposalService {
       throw ApplicationException.EnitityNotFound(proposalId);
     }
 
-    const transporter = createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.NODE_MAILER_EMAIL,
-        pass: process.env.NODE_MAILER_PASSWORD,
-      },
-    });
-
     const tokensByRecipients = foundProposal.detailed_proposal.recipients.map(item =>
       this.jwtService.sign(
         {
           proposalId: foundProposal._id,
           email: item.email,
-          houseNumber: 'myhouse123',
-          zipCode: 7000000,
+          houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
+          zipCode: 7000000, // TO BE REMOVED AFTER MERGED
         },
         { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
       ),
@@ -182,25 +174,20 @@ export class ProposalService {
     const template = Handlebars.compile(source);
 
     await Promise.all(
-      recipients.map((item, index) => {
+      recipients.map((recipient, index) => {
         const data = {
-          customerName: item.split('@')?.[0] ? item.split('@')[0] : 'Customer',
+          customerName: recipient.split('@')?.[0] ? recipient.split('@')[0] : 'Customer',
           proposalValidityPeriod: foundProposal.detailed_proposal.proposal_validity_period,
-          recipientNotice: recipients.filter(i => i !== item).join(', ')
+          recipientNotice: recipients.filter(i => i !== recipient).join(', ')
             ? `Please note, this proposal has been shared with additinal email IDs as per your request: ${recipients
-                .filter(i => i !== item)
+                .filter(i => i !== recipient)
                 .join(', ')}`
             : '',
           proposalLink: linksByToken[index],
         };
 
         const htmlToSend = template(data);
-        transporter.sendMail({
-          from: process.env.NODE_MAILER_EMAIL,
-          to: item,
-          subject: 'Proposal Invitation',
-          html: htmlToSend,
-        });
+        this.sendMail(recipient, htmlToSend, 'Proposal Invitation');
       }),
     );
 
@@ -249,4 +236,23 @@ export class ProposalService {
   validateCustomerInformation(customerInformation: CustomerInformationDto, tokenPayload): boolean {
     return Object.keys(customerInformation).every(key => customerInformation[key] === tokenPayload[key]);
   }
+
+  sendMail = (recipient, message, subject) => {
+    const mailOptions = {
+      from: process.env.MAILGUN_SENDER_EMAIL,
+      to: recipient,
+      subject,
+      html: message,
+    };
+    const mailgunInstance = mailgun({
+      apiKey: process.env.MAILGUN_KEY,
+      domain: process.env.MAILGUN_DOMAIN,
+    });
+
+    return mailgunInstance.messages().send(mailOptions, (error, body) => {
+      if (error) {
+        throw Error(error.message);
+      }
+    });
+  };
 }
