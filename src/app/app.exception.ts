@@ -54,4 +54,8 @@ export class ApplicationException extends HttpException {
   static ValidationFailed(message?: string) {
     return new ApplicationException(`Validation failed${message ? ': ' + message : ''}`, HttpStatus.BAD_REQUEST);
   }
+
+  static ExistedEntity(type: string, id?: string) {
+    return new ApplicationException(`Can not process with ${type}: ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
 }

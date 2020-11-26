@@ -37,13 +37,13 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Get(':qualificationId')
+  @Get(':opportunityId')
   @ApiOperation({ summary: 'Get Qualification Detail' })
   @ApiOkResponse({ type: GetQualificationDetailRes })
   async getQualificationDetail(
-    @Param('qualificationId') id: string,
+    @Param('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<GetQualificationDetailDto>> {
-    const res = await this.qualificationService.getQualificationDetail(id);
+    const res = await this.qualificationService.getQualificationDetail(opportunityId);
     return ServiceResponse.fromResult(res);
   }
 }

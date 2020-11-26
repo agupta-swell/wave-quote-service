@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from '../app/common';
-import { ApplicationException } from './../app/app.exception';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from './constants';
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import { CreateQualificationDto, SetManualApprovalDto } from './req';
@@ -17,6 +17,11 @@ export class QualificationService {
   ) {}
 
   async createQualification(qualificationDto: CreateQualificationDto): Promise<OperationResult<ManualApprovalDto>> {
+    const found = await this.qualificationCreditModel.findOne({ opportunity_id: qualificationDto.opportunityId });
+    if (found) {
+      throw ApplicationException.ExistedEntity('opportunityId', qualificationDto.opportunityId);
+    }
+
     const now = new Date();
     const model = new this.qualificationCreditModel({
       opportunity_id: qualificationDto.opportunityId,
@@ -36,10 +41,10 @@ export class QualificationService {
     return OperationResult.ok(new ManualApprovalDto(model.toObject()));
   }
 
-  async getQualificationDetail(id: string): Promise<OperationResult<GetQualificationDetailDto>> {
-    const qualificationCredit = await this.qualificationCreditModel.findById(id);
+  async getQualificationDetail(opportunityId: string): Promise<OperationResult<GetQualificationDetailDto>> {
+    const qualificationCredit = await this.qualificationCreditModel.findOne({ opportunity_id: opportunityId });
     if (!qualificationCredit) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EnitityNotFound(opportunityId);
     }
 
     const fniCommunication = await this.fniCommunicationModel.findOne({
