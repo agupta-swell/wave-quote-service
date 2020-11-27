@@ -5,13 +5,13 @@ export const QUALIFICATION_CREDIT = Symbol('QUALIFICATION_CREDIT').toString();
 
 export interface ICustomerNotification {
   sent_on: Date;
-  email_id: string;
+  email: string;
 }
 
 export const CustomerNotificationSchema = new Schema<ICustomerNotification>(
   {
     sent_on: Date,
-    email_id: String,
+    email: String,
   },
   { _id: false },
 );

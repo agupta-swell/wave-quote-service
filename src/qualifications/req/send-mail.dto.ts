@@ -8,9 +8,12 @@ class AgentDetailDto {
   userId: string;
 }
 
-export class CreateQualificationReqDto {
+export class SendMailReqDto {
   @ApiProperty()
   opportunityId: string;
+
+  @ApiProperty()
+  qualificationCreditId: string;
 
   @ApiProperty({ type: AgentDetailDto })
   agentDetail: AgentDetailDto;

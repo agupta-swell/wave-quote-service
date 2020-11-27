@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { QualificationController } from './qualification.controller';
 import { QualificationCreditSchema, QUALIFICATION_CREDIT } from './qualification.schema';
@@ -8,6 +9,9 @@ import { FNI_COMMUNICATION, FNI_CommunicationSchema } from './schemas/fni-commun
 @Global()
 @Module({
   imports: [
+    JwtModule.register({
+      secret: process.env.QUALIFICATION_JWT_SECRET,
+    }),
     MongooseModule.forFeature([
       { name: QUALIFICATION_CREDIT, schema: QualificationCreditSchema, collection: 'v2_qualification_credits' },
       {

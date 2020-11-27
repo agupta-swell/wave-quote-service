@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class SetManualApprovalDto {
+export class SetManualApprovalReqDto {
   @ApiProperty()
   opportunityId: string;
 

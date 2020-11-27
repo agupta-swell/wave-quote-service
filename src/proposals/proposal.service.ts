@@ -3,11 +3,11 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as Handlebars from 'handlebars';
 import { identity, pickBy } from 'lodash';
-import * as mailgun from 'mailgun-js';
 import { Model } from 'mongoose';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CurrentUserType } from '../app/securities';
+import { EmailService } from '../emails/email.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { ApplicationException } from './../app/app.exception';
 import { QuoteService } from './../quotes/quote.service';
@@ -27,6 +27,7 @@ export class ProposalService {
     private readonly quoteService: QuoteService,
     private readonly jwtService: JwtService,
     private readonly proposalTemplateService: ProposalTemplateService,
+    private readonly emailService: EmailService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -187,7 +188,7 @@ export class ProposalService {
         };
 
         const htmlToSend = template(data);
-        this.sendMail(recipient, htmlToSend, 'Proposal Invitation');
+        this.emailService.sendMail(recipient, htmlToSend, 'Proposal Invitation');
       }),
     );
 
@@ -207,6 +208,7 @@ export class ProposalService {
     } catch (error) {
       throw new UnauthorizedException();
     }
+
     // Role: customer - Stage: 1
     if (!tokenPayload.isAgent && !data.customerInformation) {
       return OperationResult.ok({
@@ -214,6 +216,7 @@ export class ProposalService {
         proposalDetail: null,
       });
     }
+
     // Role: customer - Stage: 2
     if (!tokenPayload.isAgent && !this.validateCustomerInformation(data.customerInformation, tokenPayload)) {
       throw ApplicationException.ValidationFailed('Incorrect customer information.');
@@ -236,23 +239,4 @@ export class ProposalService {
   validateCustomerInformation(customerInformation: CustomerInformationDto, tokenPayload): boolean {
     return Object.keys(customerInformation).every(key => customerInformation[key] === tokenPayload[key]);
   }
-
-  sendMail = (recipient, message, subject) => {
-    const mailOptions = {
-      from: process.env.MAILGUN_SENDER_EMAIL,
-      to: recipient,
-      subject,
-      html: message,
-    };
-    const mailgunInstance = mailgun({
-      apiKey: process.env.MAILGUN_KEY,
-      domain: process.env.MAILGUN_DOMAIN,
-    });
-
-    return mailgunInstance.messages().send(mailOptions, (error, body) => {
-      if (error) {
-        throw Error(error.message);
-      }
-    });
-  };
 }

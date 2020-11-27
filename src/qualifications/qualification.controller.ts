@@ -2,14 +2,9 @@ import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { QualificationService } from './qualification.service';
-import { CreateQualificationDto, SetManualApprovalDto } from './req';
-import {
-  GetQualificationDetailDto,
-  GetQualificationDetailRes,
-  ManualApprovalDto,
-  ManualApprovalRes,
-  QualificationRes,
-} from './res';
+import { CreateQualificationReqDto, SetManualApprovalReqDto } from './req';
+import { GetQualificationDetailRes, ManualApprovalDto, ManualApprovalRes, QualificationRes } from './res';
+import { GetQualificationDetailDto } from './res/get-qualification-detail.dto';
 
 @ApiTags('Qualification')
 @Controller('/qualifications')
@@ -20,7 +15,7 @@ export class QualificationController {
   @ApiOperation({ summary: 'Create Qualification' })
   @ApiOkResponse({ type: QualificationRes })
   async createQualification(
-    @Body() qualificationDto: CreateQualificationDto,
+    @Body() qualificationDto: CreateQualificationReqDto,
   ): Promise<ServiceResponse<ManualApprovalDto>> {
     const res = await this.qualificationService.createQualification(qualificationDto);
     return ServiceResponse.fromResult(res);
@@ -31,7 +26,7 @@ export class QualificationController {
   @ApiOkResponse({ type: ManualApprovalRes })
   async manualApproval(
     @Param('qualificationId') id: string,
-    @Body() manualApprovalDto: SetManualApprovalDto,
+    @Body() manualApprovalDto: SetManualApprovalReqDto,
   ): Promise<ServiceResponse<ManualApprovalDto>> {
     const res = await this.qualificationService.setManualApproval(id, manualApprovalDto);
     return ServiceResponse.fromResult(res);
