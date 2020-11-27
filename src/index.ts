@@ -16,6 +16,7 @@ async function bootstrap() {
     .setTitle('Wave Solar Design Tool')
     .setDescription('Wave Solar Design Tool API')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup('docs', app, document);

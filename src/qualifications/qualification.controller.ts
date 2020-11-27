@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from '../app/securities';
 import { QualificationService } from './qualification.service';
 import { CreateQualificationReqDto, SetManualApprovalReqDto } from './req';
 import { GetQualificationDetailRes, ManualApprovalDto, ManualApprovalRes, QualificationRes } from './res';
@@ -12,6 +13,8 @@ export class QualificationController {
   constructor(private qualificationService: QualificationService) {}
 
   @Post()
+  @ApiBearerAuth()
+  @PreAuthenticate()
   @ApiOperation({ summary: 'Create Qualification' })
   @ApiOkResponse({ type: QualificationRes })
   async createQualification(
@@ -22,6 +25,8 @@ export class QualificationController {
   }
 
   @Put(':qualificationId')
+  @ApiBearerAuth()
+  @PreAuthenticate()
   @ApiOperation({ summary: 'Manual Approval' })
   @ApiOkResponse({ type: ManualApprovalRes })
   async manualApproval(
@@ -33,6 +38,8 @@ export class QualificationController {
   }
 
   @Get(':opportunityId')
+  @ApiBearerAuth()
+  @PreAuthenticate()
   @ApiOperation({ summary: 'Get Qualification Detail' })
   @ApiOkResponse({ type: GetQualificationDetailRes })
   async getQualificationDetail(

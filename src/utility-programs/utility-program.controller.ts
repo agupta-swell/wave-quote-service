@@ -1,11 +1,14 @@
 import { Controller, Get, Post } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from '../app/securities';
 import { UtilityProgramDto, UtilityProgramListRes } from './res/utility-program.dto';
 import { UtilityProgramService } from './utility-program.service';
 
 @ApiTags('Utility Program')
+@ApiBearerAuth()
 @Controller('/utility-programs')
+@PreAuthenticate()
 export class UtilityProgramController {
   constructor(private readonly utilityProgramService: UtilityProgramService) {}
 

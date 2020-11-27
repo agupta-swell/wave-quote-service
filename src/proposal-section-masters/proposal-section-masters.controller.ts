@@ -1,17 +1,20 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from '../app/securities';
 import { ProposalSectionMasterService } from './proposal-section-masters.service';
 import { CreateProposalSectionMasterDto } from './req/create-proposal-section-master.dto';
 import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-master.dto';
 import {
   ProposalSectionMasterDto,
   ProposalSectionMasterListRes,
-  ProposalSectionMasterRes,
+  ProposalSectionMasterRes
 } from './res/proposal-section-master.dto';
 
 @ApiTags('Proposal Section Master')
+@ApiBearerAuth()
 @Controller('/proposal-section-masters')
+@PreAuthenticate()
 export class ProposalSectionMasterController {
   constructor(private readonly proposalSectionMasterService: ProposalSectionMasterService) {}
 

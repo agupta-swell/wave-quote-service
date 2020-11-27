@@ -1,11 +1,14 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from '../app/securities';
 import { FundingSourceService } from './funding-source.service';
 import { FundingSourceDto } from './res/funding-source.dto';
 
 @ApiTags('Funding Source')
+@ApiBearerAuth()
 @Controller('/funding-sources')
+@PreAuthenticate()
 export class FundingSourceController {
   constructor(private readonly fundingSourceService: FundingSourceService) {}
 

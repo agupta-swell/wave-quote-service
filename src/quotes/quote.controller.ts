@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from 'src/app/securities';
 import { QuoteService } from './quote.service';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import { QuoteDto, QuoteListRes, QuoteRes } from './res/quote.dto';
@@ -8,7 +9,9 @@ import { TaxCreditDto, TaxCreditListRes } from './res/tax-credit.dto';
 import { CalculationService } from './sub-services';
 
 @ApiTags('Quote')
+@ApiBearerAuth()
 @Controller('/quotes')
+@PreAuthenticate()
 export class QuoteController {
   constructor(private quoteService: QuoteService, private readonly calculationService: CalculationService) {}
 

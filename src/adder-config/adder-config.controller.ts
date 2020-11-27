@@ -1,11 +1,14 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from '../app/securities';
 import { AdderConfigService } from './adder-config.service';
 import { AdderConfigDto, AdderConfigResponseDto } from './res/adder-config.dto';
 
 @ApiTags('Adder Config')
+@ApiBearerAuth()
 @Controller('/adder-configs')
+@PreAuthenticate()
 export class AdderConfigController {
   constructor(private readonly adderConfigService: AdderConfigService) {}
 

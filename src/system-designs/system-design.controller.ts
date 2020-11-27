@@ -1,12 +1,15 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from '../app/securities';
 import { CreateSystemDesignDto, UpdateSystemDesignDto } from './req';
 import { SystemDesignDto, SystemDesignListRes, SystemDesignRes } from './res/system-design.dto';
 import { SystemDesignService } from './system-design.service';
 
 @ApiTags('System Design')
+@ApiBearerAuth()
 @Controller('/system-designs')
+@PreAuthenticate()
 export class SystemDesignController {
   constructor(private systemDesignService: SystemDesignService) {}
 

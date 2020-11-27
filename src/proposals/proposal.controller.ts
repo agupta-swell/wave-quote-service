@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { CurrentUser } from '../app/securities';
+import { CurrentUser, PreAuthenticate } from '../app/securities';
 import { CurrentUserType } from './../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto } from './req/create-proposal.dto';
@@ -15,6 +15,8 @@ export class ProposalController {
   constructor(private readonly proposalService: ProposalService) {}
 
   @Post()
+  @ApiBearerAuth()
+  @PreAuthenticate()
   @ApiOperation({ summary: 'Create Proposal' })
   @ApiOkResponse({ type: ProposalRes })
   async createProposalSectionMaster(@Body() proposalDto: CreateProposalDto): Promise<ServiceResponse<ProposalDto>> {
@@ -23,6 +25,8 @@ export class ProposalController {
   }
 
   @Put('/:id')
+  @ApiBearerAuth()
+  @PreAuthenticate()
   @ApiOperation({ summary: 'Update Proposal' })
   @ApiOkResponse({ type: ProposalRes })
   async updateProposalSectionMaster(
@@ -35,6 +39,8 @@ export class ProposalController {
   }
 
   @Get()
+  @ApiBearerAuth()
+  @PreAuthenticate()
   @ApiOperation({ summary: 'Get List' })
   @ApiQuery({ name: 'limit', required: false, example: 100 })
   @ApiQuery({ name: 'skip', required: false, example: 0 })
@@ -50,15 +56,19 @@ export class ProposalController {
     return ServiceResponse.fromResult(res);
   }
 
-  // TODO: need to implement later -----> need to enable preauthenticate to take token in header
-  // @PreAuthenticate()
   @Post('generate-link')
+  @PreAuthenticate()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate Link To Access Proposal Page' })
   async generateLinkByAgent(@Body() body: { proposalId: string }): Promise<ServiceResponse<{ proposalLink: string }>> {
     const res = await this.proposalService.generateLinkByAgent(body.proposalId);
     return ServiceResponse.fromResult(res);
   }
 
   @Get(':id')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Get Detail' })
   @ApiOkResponse({ type: ProposalRes })
   async getProposalById(@Param('id') id: string): Promise<ServiceResponse<ProposalDto>> {
     const res = await this.proposalService.getProposalDetails(id);
@@ -66,6 +76,9 @@ export class ProposalController {
   }
 
   @Put(':proposalId/send-emails')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Send Emails' })
   @ApiOkResponse({ type: Boolean })
   async sendRecipients(
     @Param('proposalId') proposalId: string,
@@ -76,6 +89,7 @@ export class ProposalController {
   }
 
   @Post('/validations')
+  @ApiOperation({ summary: 'Validate and Reponse Data' })
   @ApiOkResponse({ type: ProposalRes })
   async getProposalLink(
     @Body() body: ValidateProposalDto,

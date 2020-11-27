@@ -1,13 +1,16 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from '../app/securities';
 import { ProposalTemplateService } from './proposal-template.service';
 import { CreateProposalTemplateDto } from './req/create-proposal-template.dto';
 import { UpdateProposalTemplateDto } from './req/update-proposal-template.dto';
 import { ProposalTemplateDto, ProposalTemplateListRes, ProposalTemplateRes } from './res/proposal-template.dto';
 
 @ApiTags('Proposal Template')
+@ApiBearerAuth()
 @Controller('/proposal-templates')
+@PreAuthenticate()
 export class ProposalTemplateController {
   constructor(private readonly proposalSectionMasterService: ProposalTemplateService) {}
 
