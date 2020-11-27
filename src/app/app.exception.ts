@@ -1,7 +1,10 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export class ApplicationException extends HttpException {
-  private constructor(response: string = '', status: HttpStatus = HttpStatus.UNPROCESSABLE_ENTITY) {
+  private constructor(
+    response: string | Record<string, any> = '',
+    status: HttpStatus = HttpStatus.UNPROCESSABLE_ENTITY,
+  ) {
     super(response, status);
   }
 
@@ -53,6 +56,10 @@ export class ApplicationException extends HttpException {
 
   static ValidationFailed(message?: string) {
     return new ApplicationException(`Validation failed${message ? ': ' + message : ''}`, HttpStatus.BAD_REQUEST);
+  }
+
+  static ExpiredToken(data?: any) {
+    return new ApplicationException({ message: `Your token is expired!!!`, data }, HttpStatus.BAD_REQUEST);
   }
 
   static ExistedEntity(type: string, id?: string) {

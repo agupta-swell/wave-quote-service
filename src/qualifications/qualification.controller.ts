@@ -1,11 +1,21 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { QualificationService } from './qualification.service';
-import { CreateQualificationReqDto, SetManualApprovalReqDto } from './req';
-import { GetQualificationDetailRes, ManualApprovalDto, ManualApprovalRes, QualificationRes } from './res';
-import { GetQualificationDetailDto } from './res/get-qualification-detail.dto';
+import { CreateQualificationReqDto, GetApplicationDetailReqDto, SetManualApprovalReqDto } from './req';
+import { SendMailReqDto } from './req/send-mail.dto';
+import {
+  GetApplicationDetailDto,
+  GetApplicationDetailRes,
+  GetQualificationDetailDto,
+  GetQualificationDetailRes,
+  ManualApprovalDto,
+  ManualApprovalRes,
+  QualificationRes,
+  SendMailDto,
+  SendMailRes,
+} from './res';
 
 @ApiTags('Qualification')
 @Controller('/qualifications')
@@ -24,7 +34,17 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Put(':qualificationId')
+  @Post('/send-mails')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Send email to customers' })
+  @ApiOkResponse({ type: SendMailRes })
+  async sendMail(@Body() req: SendMailReqDto): Promise<ServiceResponse<SendMailDto>> {
+    const res = await this.qualificationService.sendMail(req);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put(':qualificationId/manual-approval')
   @ApiBearerAuth()
   @PreAuthenticate()
   @ApiOperation({ summary: 'Manual Approval' })
@@ -34,6 +54,20 @@ export class QualificationController {
     @Body() manualApprovalDto: SetManualApprovalReqDto,
   ): Promise<ServiceResponse<ManualApprovalDto>> {
     const res = await this.qualificationService.setManualApproval(id, manualApprovalDto);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get(':qualificationId/applications')
+  @ApiOperation({ summary: 'Get Application Detail' })
+  @ApiQuery({ name: 'qualificationCreditId' })
+  @ApiQuery({ name: 'opportunityId' })
+  @ApiQuery({ name: 'token' })
+  @ApiOkResponse({ type: GetApplicationDetailRes })
+  async getApplicationDetails(
+    @Param('qualificationId') id: string,
+    @Query() req: GetApplicationDetailReqDto,
+  ): Promise<ServiceResponse<GetApplicationDetailDto>> {
+    const res = await this.qualificationService.getApplicationDetail(req);
     return ServiceResponse.fromResult(res);
   }
 

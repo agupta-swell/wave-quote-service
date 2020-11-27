@@ -13,4 +13,9 @@ export class ContactService {
     const res = await this.contactModel.findById(contactId);
     return res?.toObject()?.email;
   }
+
+  async getContactById(contactId: string): Promise<Contact> {
+    const res = await this.contactModel.findById(contactId);
+    return res?.toObject();
+  }
 }

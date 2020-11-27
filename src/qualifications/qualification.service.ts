@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -7,18 +7,14 @@ import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from './constants';
+import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, ROLE, TOKEN_STATUS, VENDOR_ID } from './constants';
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import { CreateQualificationReqDto, SendMailReqDto, SetManualApprovalReqDto } from './req';
+import { GetApplicationDetailReqDto } from './req/get-application-detail.dto';
 import { GetQualificationDetailDto, ManualApprovalDto, SendMailDto } from './res';
+import { GetApplicationDetailDto } from './res/get-application-detail.dto';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import qualificationTemplate from './template-html/qualification-template';
-
-enum ROLE {
-  AGENT,
-  CUSTOMER,
-  SYSTEM,
-}
 
 @Injectable()
 export class QualificationService {
@@ -145,6 +141,61 @@ export class QualificationService {
     return OperationResult.ok(new SendMailDto({ status: true, detail: res }));
   }
 
+  async getApplicationDetail(req: GetApplicationDetailReqDto): Promise<OperationResult<GetApplicationDetailDto>> {
+    const tokenStatus = await this.checkToken(req.token);
+    switch (tokenStatus) {
+      case TOKEN_STATUS.EXPIRED:
+        throw ApplicationException.ExpiredToken({ responseStatus: false });
+      case TOKEN_STATUS.INVALID:
+        throw new UnauthorizedException();
+    }
+
+    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+    if (qualificationCredit.process_status !== PROCESS_STATUS.INITIATED) {
+      return OperationResult.ok(
+        new GetApplicationDetailDto({
+          qualificationCreditId: req.qualificationCreditId,
+          processStatus: qualificationCredit.process_status,
+          responseStatus: true,
+        }),
+      );
+    }
+
+    const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunity_id);
+    const contact = await this.contactService.getContactById(contactId);
+
+    qualificationCredit.process_status = PROCESS_STATUS.STARTED;
+    qualificationCredit.event_histories = [
+      ...qualificationCredit.event_histories,
+      {
+        issue_date: new Date(),
+        by: `${contact.firstName} ${contact.lastName}`,
+        detail: 'Application Started by Customer',
+      },
+    ];
+
+    const newToken = this.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.SYSTEM);
+
+    return OperationResult.ok(
+      new GetApplicationDetailDto({
+        qualificationCreditId: req.qualificationCreditId,
+        responseStatus: true,
+        // processStatus: qualificationCredit.process_status,
+        primaryApplicantData: {
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          email: contact.email,
+          phoneNumber: contact.cellPhone,
+          addressLine1: contact.address1,
+          addressLine2: contact.address2,
+          city: contact.city,
+          state: contact.state,
+          zipcode: contact.zip,
+        },
+      }),
+    );
+  }
+
   // ==============> INTERNAL <==============
   generateToken(qualificationCreditId: string, opportunityId: string, role: ROLE): string {
     let tokenExpiry: string;
@@ -170,5 +221,30 @@ export class QualificationService {
       },
       { expiresIn: tokenExpiry },
     );
+  }
+
+  async checkToken(token: string) {
+    let tokenPayload: any;
+
+    try {
+      tokenPayload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.QUALIFICATION_JWT_SECRET,
+        ignoreExpiration: true,
+      });
+
+      if (tokenPayload) {
+        try {
+          tokenPayload = await this.jwtService.verifyAsync(token, {
+            secret: process.env.QUALIFICATION_JWT_SECRET,
+            ignoreExpiration: false,
+          });
+          return TOKEN_STATUS.VALID;
+        } catch (error) {
+          return TOKEN_STATUS.EXPIRED;
+        }
+      }
+    } catch (error) {
+      return TOKEN_STATUS.INVALID;
+    }
   }
 }

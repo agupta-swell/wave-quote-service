@@ -1,3 +1,4 @@
+export * from './get-application-detail.dto';
 export * from './get-qualification-detail.dto';
 export * from './manual-approval.dto';
 export * from './qualification.dto';

@@ -32,3 +32,15 @@ export enum REQUEST_TYPE {
   OUTBOUND = 'OUTBOUND',
   INBOUND = 'INBOUND',
 }
+
+export enum ROLE {
+  AGENT,
+  CUSTOMER,
+  SYSTEM,
+}
+
+export enum TOKEN_STATUS {
+  EXPIRED,
+  INVALID,
+  VALID,
+}
