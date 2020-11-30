@@ -57,12 +57,6 @@ export class GetApplicationDetailDto {
   @ApiProperty({ type: ApplicantDataDto })
   coApplicantData: ApplicantDataDto;
 
-  @ApiProperty({ type: PersonalInformation })
-  primaryApplicantSecuredData: PersonalInformation;
-
-  @ApiProperty({ type: PersonalInformation })
-  coApplicantSecuredData: PersonalInformation;
-
   @ApiProperty()
   newJWTToken: string;
 
@@ -72,8 +66,6 @@ export class GetApplicationDetailDto {
     this.processStatus = props.processStatus;
     this.primaryApplicantData = props.primaryApplicantData;
     this.coApplicantData = props.coApplicantData;
-    this.primaryApplicantSecuredData = props.primaryApplicantSecuredData;
-    this.coApplicantSecuredData = props.coApplicantSecuredData;
     this.newJWTToken = props.newJWTToken;
   }
 }

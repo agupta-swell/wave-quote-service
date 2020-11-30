@@ -174,13 +174,15 @@ export class QualificationService {
       },
     ];
 
+    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit.toObject());
+
     const newToken = this.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.SYSTEM);
 
     return OperationResult.ok(
       new GetApplicationDetailDto({
         qualificationCreditId: req.qualificationCreditId,
         responseStatus: true,
-        // processStatus: qualificationCredit.process_status,
+        processStatus: qualificationCredit.process_status,
         primaryApplicantData: {
           firstName: contact.firstName,
           lastName: contact.lastName,
@@ -192,6 +194,7 @@ export class QualificationService {
           state: contact.state,
           zipcode: contact.zip,
         },
+        newJWTToken: newToken,
       }),
     );
   }
