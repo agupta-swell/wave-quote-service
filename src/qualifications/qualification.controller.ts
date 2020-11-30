@@ -12,6 +12,7 @@ import {
   GetQualificationDetailRes,
   ManualApprovalDto,
   ManualApprovalRes,
+  QualificationDto,
   QualificationRes,
   SendMailDto,
   SendMailRes,
@@ -29,7 +30,7 @@ export class QualificationController {
   @ApiOkResponse({ type: QualificationRes })
   async createQualification(
     @Body() qualificationDto: CreateQualificationReqDto,
-  ): Promise<ServiceResponse<ManualApprovalDto>> {
+  ): Promise<ServiceResponse<QualificationDto>> {
     const res = await this.qualificationService.createQualification(qualificationDto);
     return ServiceResponse.fromResult(res);
   }

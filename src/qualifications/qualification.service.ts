@@ -11,7 +11,7 @@ import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, ROLE, TOKEN_STATUS
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import { CreateQualificationReqDto, SendMailReqDto, SetManualApprovalReqDto } from './req';
 import { GetApplicationDetailReqDto } from './req/get-application-detail.dto';
-import { GetQualificationDetailDto, ManualApprovalDto, SendMailDto } from './res';
+import { GetQualificationDetailDto, ManualApprovalDto, QualificationDto, SendMailDto } from './res';
 import { GetApplicationDetailDto } from './res/get-application-detail.dto';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import qualificationTemplate from './template-html/qualification-template';
@@ -27,7 +27,7 @@ export class QualificationService {
     private readonly emailService: EmailService,
   ) {}
 
-  async createQualification(qualificationDto: CreateQualificationReqDto): Promise<OperationResult<ManualApprovalDto>> {
+  async createQualification(qualificationDto: CreateQualificationReqDto): Promise<OperationResult<QualificationDto>> {
     const found = await this.qualificationCreditModel.findOne({ opportunity_id: qualificationDto.opportunityId });
     if (found) {
       throw ApplicationException.ExistedEntity('opportunityId', qualificationDto.opportunityId);
@@ -49,7 +49,7 @@ export class QualificationService {
     });
     await model.save();
 
-    return OperationResult.ok(new ManualApprovalDto(model.toObject()));
+    return OperationResult.ok(new QualificationDto(model.toObject()));
   }
 
   async getQualificationDetail(opportunityId: string): Promise<OperationResult<GetQualificationDetailDto>> {
