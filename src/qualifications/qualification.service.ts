@@ -296,4 +296,64 @@ export class QualificationService {
       return TOKEN_STATUS.INVALID;
     }
   }
+
+  handleFNIResponse(
+    fniResponse: string,
+    customerNameInst: string,
+    qualificationCreditRecordInst: QualificationCredit,
+  ): string {
+    let applyCreditQualificationResponseStatus: string;
+
+    switch (fniResponse) {
+      case 'SUCCESS': {
+        applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
+        qualificationCreditRecordInst.process_status = PROCESS_STATUS.COMPLETED;
+        qualificationCreditRecordInst.event_histories = [
+          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation Completed' },
+          ...qualificationCreditRecordInst.event_histories,
+        ];
+        qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
+        qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.APPROVED;
+        qualificationCreditRecordInst.approved_by = 'SYSTEM';
+        return;
+      }
+      case 'FAILURE': {
+        applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
+        qualificationCreditRecordInst.process_status = PROCESS_STATUS.COMPLETED;
+        qualificationCreditRecordInst.event_histories = [
+          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation Completed' },
+          ...qualificationCreditRecordInst.event_histories,
+        ];
+        qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
+        qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.DECLINED;
+        qualificationCreditRecordInst.approved_by = 'SYSTEM';
+        return;
+      }
+      case 'PENDING': {
+        applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
+        qualificationCreditRecordInst.process_status = PROCESS_STATUS.IN_PROGRESS;
+        qualificationCreditRecordInst.event_histories = [
+          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation In Progress' },
+          ...qualificationCreditRecordInst.event_histories,
+        ];
+        qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
+        qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.PENDING;
+        qualificationCreditRecordInst.approved_by = 'SYSTEM';
+        return;
+      }
+      case 'ERROR': {
+        applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_ERROR';
+        qualificationCreditRecordInst.process_status = PROCESS_STATUS.ERROR;
+        qualificationCreditRecordInst.event_histories = [
+          { issue_date: new Date(), by: customerNameInst, detail: 'Error Reported by Vendor' },
+          ...qualificationCreditRecordInst.event_histories,
+        ];
+        qualificationCreditRecordInst.approval_mode = null;
+        qualificationCreditRecordInst.qualification_status = null;
+        qualificationCreditRecordInst.approved_by = null;
+        return applyCreditQualificationResponseStatus;
+      }
+    }
+    return;
+  }
 }
