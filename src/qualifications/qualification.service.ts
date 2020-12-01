@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import * as Handlebars from 'handlebars';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from '../app/common';
@@ -102,7 +103,9 @@ export class QualificationService {
 
     await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit.toObject());
 
-    return OperationResult.ok(new ManualApprovalDto({ status: true, status_detail: 'SUCCESS' }));
+    return OperationResult.ok(
+      new ManualApprovalDto({ status: true, status_detail: 'SUCCESS' }, qualificationCredit.toObject()),
+    );
   }
 
   async sendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
