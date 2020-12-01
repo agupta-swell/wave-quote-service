@@ -1,11 +1,18 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { ServiceResponse } from 'src/app/common';
+import { OperationResult, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
+import { ROLE } from './constants';
 import { QualificationService } from './qualification.service';
-import { CreateQualificationReqDto, GetApplicationDetailReqDto, SetManualApprovalReqDto } from './req';
-import { SendMailReqDto } from './req/send-mail.dto';
 import {
+  CreateQualificationReqDto,
+  GenerateTokenReqDto,
+  GetApplicationDetailReqDto,
+  SendMailReqDto,
+  SetManualApprovalReqDto,
+} from './req';
+import {
+  GenerateTokenRes,
   GetApplicationDetailDto,
   GetApplicationDetailRes,
   GetQualificationDetailDto,
@@ -33,6 +40,16 @@ export class QualificationController {
   ): Promise<ServiceResponse<QualificationDto>> {
     const res = await this.qualificationService.createQualification(qualificationDto);
     return ServiceResponse.fromResult(res);
+  }
+
+  @Post('token')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Generate token' })
+  @ApiOkResponse({ type: GenerateTokenRes })
+  generateToken(@Body() req: GenerateTokenReqDto): ServiceResponse<{ token: string }> {
+    const res = this.qualificationService.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.AGENT);
+    return ServiceResponse.fromResult(OperationResult.ok({ token: res }));
   }
 
   @Post('/send-mails')
