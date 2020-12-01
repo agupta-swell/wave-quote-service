@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import * as Handlebars from 'handlebars';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from '../app/common';
