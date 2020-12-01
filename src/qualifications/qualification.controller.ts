@@ -3,8 +3,13 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { QualificationService } from './qualification.service';
-import { CreateQualificationReqDto, GetApplicationDetailReqDto, SetManualApprovalReqDto } from './req';
-import { SendMailReqDto } from './req/send-mail.dto';
+import {
+  ApplyCreditQualificationReqDto,
+  CreateQualificationReqDto,
+  GetApplicationDetailReqDto,
+  SendMailReqDto,
+  SetManualApprovalReqDto,
+} from './req';
 import {
   GetApplicationDetailDto,
   GetApplicationDetailRes,
@@ -58,6 +63,20 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
+  @Get(':opportunityId')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Get Qualification Detail' })
+  @ApiOkResponse({ type: GetQualificationDetailRes })
+  async getQualificationDetail(
+    @Param('opportunityId') opportunityId: string,
+  ): Promise<ServiceResponse<GetQualificationDetailDto>> {
+    const res = await this.qualificationService.getQualificationDetail(opportunityId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  //  ================= specific token in body ==============
+
   @Get(':qualificationId/applications')
   @ApiOperation({ summary: 'Get Application Detail' })
   @ApiQuery({ name: 'qualificationCreditId' })
@@ -72,15 +91,15 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Get(':opportunityId')
-  @ApiBearerAuth()
-  @PreAuthenticate()
-  @ApiOperation({ summary: 'Get Qualification Detail' })
-  @ApiOkResponse({ type: GetQualificationDetailRes })
-  async getQualificationDetail(
-    @Param('opportunityId') opportunityId: string,
-  ): Promise<ServiceResponse<GetQualificationDetailDto>> {
-    const res = await this.qualificationService.getQualificationDetail(opportunityId);
+  @Post('/apply-credit-qualification')
+  @ApiOperation({ summary: 'Apply Credit Qualification' })
+  @ApiOkResponse({ type: String })
+  async applyCreditQualification(
+    @Body() req: ApplyCreditQualificationReqDto,
+  ): Promise<ServiceResponse<{ responseStatus: string }>> {
+    const res = await this.qualificationService.applyCreditQualification(req);
     return ServiceResponse.fromResult(res);
   }
+
+  //  ================= specific token in body ==============
 }

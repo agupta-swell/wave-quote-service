@@ -33,14 +33,6 @@ class ApplicantDataDto {
   zipcode: number;
 }
 
-class PersonalInformation {
-  @ApiProperty()
-  soc: number;
-
-  @ApiProperty()
-  dob: Date;
-}
-
 export class GetApplicationDetailDto {
   @ApiProperty()
   qualificationCreditId: string;

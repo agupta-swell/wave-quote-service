@@ -9,10 +9,20 @@ import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, ROLE, TOKEN_STATUS, VENDOR_ID } from './constants';
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
-import { CreateQualificationReqDto, SendMailReqDto, SetManualApprovalReqDto } from './req';
-import { GetApplicationDetailReqDto } from './req/get-application-detail.dto';
-import { GetQualificationDetailDto, ManualApprovalDto, QualificationDto, SendMailDto } from './res';
-import { GetApplicationDetailDto } from './res/get-application-detail.dto';
+import {
+  ApplyCreditQualificationReqDto,
+  CreateQualificationReqDto,
+  GetApplicationDetailReqDto,
+  SendMailReqDto,
+  SetManualApprovalReqDto,
+} from './req';
+import {
+  GetApplicationDetailDto,
+  GetQualificationDetailDto,
+  ManualApprovalDto,
+  QualificationDto,
+  SendMailDto,
+} from './res';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import qualificationTemplate from './template-html/qualification-template';
 
@@ -197,6 +207,39 @@ export class QualificationService {
         newJWTToken: newToken,
       }),
     );
+  }
+
+  async applyCreditQualification(
+    req: ApplyCreditQualificationReqDto,
+  ): Promise<OperationResult<{ responseStatus: string }>> {
+    //NOTE: NEVER NEVER NEVER NEVER store the applyCreditQualificationRequestParam or fniApplyRequestInst in the database
+    //NOTE: NEVER NEVER NEVER NEVER log the applyCreditQualificationRequestParam or fniApplyRequestInst
+    //NOTE: Copy this warning and paste it in the code at the top and bottom of this method
+
+    const tokenStatus = await this.checkToken(req.authenticationToken);
+    switch (tokenStatus) {
+      case TOKEN_STATUS.EXPIRED:
+        throw ApplicationException.ExpiredToken({ responseStatus: 'EXPIRED_TOKEN' });
+      case TOKEN_STATUS.INVALID:
+        throw new UnauthorizedException();
+      case TOKEN_STATUS.VALID: {
+        const tokenPayload = await this.jwtService.verifyAsync(req.qualificationCreditId, {
+          secret: process.env.QUALIFICATION_JWT_SECRET,
+          ignoreExpiration: true,
+        });
+
+        if (tokenPayload.role !== ROLE.SYSTEM) {
+          throw new UnauthorizedException();
+        }
+      }
+    }
+
+    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+    if (qualificationCredit.process_status !== PROCESS_STATUS.STARTED) {
+      return OperationResult.ok({ responseStatus: 'NO_ACTIVE_VALIDATION' });
+    }
+
+    return;
   }
 
   // ==============> INTERNAL <==============
