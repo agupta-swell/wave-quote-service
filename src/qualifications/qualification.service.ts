@@ -92,7 +92,9 @@ export class QualificationService {
 
     await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit.toObject());
 
-    return OperationResult.ok(new ManualApprovalDto({ status: true, status_detail: 'SUCCESS' }));
+    return OperationResult.ok(
+      new ManualApprovalDto({ status: true, status_detail: 'SUCCESS' }, qualificationCredit.toObject()),
+    );
   }
 
   async sendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
