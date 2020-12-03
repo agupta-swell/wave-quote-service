@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OperationResult, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { ROLE } from './constants';
@@ -10,7 +10,7 @@ import {
   GenerateTokenReqDto,
   GetApplicationDetailReqDto,
   SendMailReqDto,
-  SetManualApprovalReqDto,
+  SetManualApprovalReqDto
 } from './req';
 import {
   GenerateTokenRes,
@@ -23,7 +23,7 @@ import {
   QualificationDto,
   QualificationRes,
   SendMailDto,
-  SendMailRes,
+  SendMailRes
 } from './res';
 
 @ApiTags('Qualification')
@@ -43,7 +43,7 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Post('token')
+  @Post('/token')
   @ApiBearerAuth()
   @PreAuthenticate()
   @ApiOperation({ summary: 'Generate token' })
@@ -90,15 +90,11 @@ export class QualificationController {
 
   //  ================= specific token in body ==============
 
-  @Get(':qualificationId/applications')
+  @Post('/applications')
   @ApiOperation({ summary: 'Get Application Detail' })
-  // @ApiQuery({ name: 'qualificationCreditId' })
-  @ApiQuery({ name: 'opportunityId' })
-  @ApiQuery({ name: 'token' })
   @ApiOkResponse({ type: GetApplicationDetailRes })
   async getApplicationDetails(
-    @Param('qualificationId') id: string,
-    @Query() req: GetApplicationDetailReqDto,
+    @Body() req: GetApplicationDetailReqDto,
   ): Promise<ServiceResponse<GetApplicationDetailDto>> {
     const res = await this.qualificationService.getApplicationDetail(req);
     return ServiceResponse.fromResult(res);

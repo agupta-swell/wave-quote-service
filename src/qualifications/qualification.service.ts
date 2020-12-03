@@ -166,11 +166,22 @@ export class QualificationService {
         throw new UnauthorizedException();
     }
 
-    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+    let { qualificationCreditId, opportunityId } = req;
+
+    if (!opportunityId || !qualificationCreditId) {
+      const tokenPayload = await this.jwtService.verifyAsync(req.token, {
+        secret: process.env.QUALIFICATION_JWT_SECRET,
+        ignoreExpiration: false,
+      });
+      qualificationCreditId = tokenPayload.qualificationCreditId;
+      opportunityId = tokenPayload.opportunityId;
+    }
+
+    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
     if (qualificationCredit.process_status !== PROCESS_STATUS.INITIATED) {
       return OperationResult.ok(
         new GetApplicationDetailDto({
-          qualificationCreditId: req.qualificationCreditId,
+          qualificationCreditId,
           processStatus: qualificationCredit.process_status,
           responseStatus: true,
         }),
@@ -192,11 +203,11 @@ export class QualificationService {
 
     await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit.toObject());
 
-    const newToken = this.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.SYSTEM);
+    const newToken = this.generateToken(qualificationCreditId, opportunityId, ROLE.SYSTEM);
 
     return OperationResult.ok(
       new GetApplicationDetailDto({
-        qualificationCreditId: req.qualificationCreditId,
+        qualificationCreditId,
         responseStatus: true,
         processStatus: qualificationCredit.process_status,
         primaryApplicantData: {
@@ -344,7 +355,7 @@ export class QualificationService {
 
       if (tokenPayload) {
         try {
-          tokenPayload = await this.jwtService.verifyAsync(token, {
+          await this.jwtService.verifyAsync(token, {
             secret: process.env.QUALIFICATION_JWT_SECRET,
             ignoreExpiration: false,
           });
