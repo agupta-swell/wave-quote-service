@@ -92,7 +92,7 @@ export class QualificationController {
 
   @Get(':qualificationId/applications')
   @ApiOperation({ summary: 'Get Application Detail' })
-  @ApiQuery({ name: 'qualificationCreditId' })
+  // @ApiQuery({ name: 'qualificationCreditId' })
   @ApiQuery({ name: 'opportunityId' })
   @ApiQuery({ name: 'token' })
   @ApiOkResponse({ type: GetApplicationDetailRes })

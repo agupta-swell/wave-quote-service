@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
+import { IApplyRequest, IApplyResponse } from '../qualifications/typing';
 import { ICalculateSystemProduction, ILoadServingEntity, ITypicalBaseLine, ITypicalUsage } from './typing';
 
 @Injectable()
@@ -221,5 +222,25 @@ export class ExternalService {
       data: JSON.parse(fs.readFileSync(path.join(__dirname, '../assets/mock-data/costDataRes.json'), 'utf8')),
     };
     return tariff.data.results;
+  }
+
+  // TODO: need to delete when having real api
+  getFniResponse(data: IApplyRequest): IApplyResponse {
+    console.log('>>>>>>>>>>>>>>>>>>>', 'FNI API', process.env.FNI_API);
+    const obj = {
+      transaction: {
+        refNum: 'FNI Reference Number',
+        status: 'SUCCESS',
+      },
+      application: {
+        code: 'X',
+        track: 'External Tracking Number',
+      },
+      applicant1: {
+        sightenId: 'Sighten Site UUID',
+      },
+    } as IApplyResponse;
+
+    return obj;
   }
 }

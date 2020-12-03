@@ -5,6 +5,7 @@ import { QualificationController } from './qualification.controller';
 import { QualificationCreditSchema, QUALIFICATION_CREDIT } from './qualification.schema';
 import { QualificationService } from './qualification.service';
 import { FNI_COMMUNICATION, FNI_CommunicationSchema } from './schemas/fni-communication.schema';
+import { FniEngineService } from './sub-services/fni-engine.service';
 
 @Global()
 @Module({
@@ -22,7 +23,7 @@ import { FNI_COMMUNICATION, FNI_CommunicationSchema } from './schemas/fni-commun
     ]),
   ],
   controllers: [QualificationController],
-  providers: [QualificationService],
+  providers: [QualificationService, FniEngineService],
   exports: [QualificationService],
 })
 export class QualificationModule {}

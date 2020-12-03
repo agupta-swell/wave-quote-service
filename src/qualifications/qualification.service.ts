@@ -25,7 +25,9 @@ import {
   SendMailDto,
 } from './res';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
+import { FniEngineService } from './sub-services/fni-engine.service';
 import qualificationTemplate from './template-html/qualification-template';
+import { IFniApplyReq } from './typing.d';
 
 @Injectable()
 export class QualificationService {
@@ -36,6 +38,7 @@ export class QualificationService {
     private readonly opportunityService: OpportunityService,
     private readonly contactService: ContactService,
     private readonly emailService: EmailService,
+    private readonly fniEngineService: FniEngineService,
   ) {}
 
   async createQualification(qualificationDto: CreateQualificationReqDto): Promise<OperationResult<QualificationDto>> {
@@ -242,7 +245,65 @@ export class QualificationService {
       return OperationResult.ok({ responseStatus: 'NO_ACTIVE_VALIDATION' });
     }
 
-    return;
+    const fniApplyRequest = {
+      qualificationCreditId: req.qualificationCreditId,
+      opportunityId: req.opportunityId,
+      primaryApplicantData: {
+        firstName: req.primaryApplicantData.firstName,
+        middleName: req.primaryApplicantData.middleName,
+        lastName: req.primaryApplicantData.lastName,
+        email: req.primaryApplicantData.email,
+        phoneNumber: req.primaryApplicantData.phoneNumber,
+        addressLine1: req.primaryApplicantData.addressLine1,
+        addressLine2: req.primaryApplicantData.addressLine2,
+        city: req.primaryApplicantData.city,
+        state: req.primaryApplicantData.state,
+        zipcode: req.primaryApplicantData.zipcode,
+      },
+      coApplicantData: {
+        firstName: req.coApplicantData.firstName,
+        middleName: req.coApplicantData.middleName,
+        lastName: req.coApplicantData.lastName,
+        email: req.coApplicantData.email,
+        phoneNumber: req.coApplicantData.phoneNumber,
+        addressLine1: req.coApplicantData.addressLine1,
+        addressLine2: req.coApplicantData.addressLine2,
+        city: req.coApplicantData.city,
+        state: req.coApplicantData.state,
+        zipcode: req.coApplicantData.zipcode,
+      },
+      primaryApplicantSecuredData: {
+        soc: req.primaryApplicantSecuredData.soc,
+        dob: req.primaryApplicantSecuredData.dob,
+      },
+      coApplicantSecuredData: {
+        soc: req.coApplicantSecuredData.soc,
+        dob: req.coApplicantSecuredData.dob,
+      },
+    } as IFniApplyReq;
+
+    qualificationCredit.process_status = PROCESS_STATUS.IN_PROGRESS;
+    qualificationCredit.event_histories = [
+      {
+        issue_date: new Date(),
+        by: `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
+        detail: 'Application sent for Credit Check',
+      },
+      ...qualificationCredit.event_histories,
+    ];
+
+    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, qualificationCredit.toObject());
+
+    fniApplyRequest.qualificationCreditId = qualificationCredit._id;
+
+    const applyResponse = await this.fniEngineService.apply(fniApplyRequest);
+    const responseStatus = await this.handleFNIResponse(
+      applyResponse,
+      `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
+      qualificationCredit,
+    );
+
+    return OperationResult.ok({ responseStatus });
   }
 
   // ==============> INTERNAL <==============
@@ -297,11 +358,11 @@ export class QualificationService {
     }
   }
 
-  handleFNIResponse(
+  async handleFNIResponse(
     fniResponse: string,
     customerNameInst: string,
     qualificationCreditRecordInst: QualificationCredit,
-  ): string {
+  ): Promise<string> {
     let applyCreditQualificationResponseStatus: string;
 
     switch (fniResponse) {
@@ -315,7 +376,7 @@ export class QualificationService {
         qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.APPROVED;
         qualificationCreditRecordInst.approved_by = 'SYSTEM';
-        return;
+        break;
       }
       case 'FAILURE': {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
@@ -327,7 +388,7 @@ export class QualificationService {
         qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.DECLINED;
         qualificationCreditRecordInst.approved_by = 'SYSTEM';
-        return;
+        break;
       }
       case 'PENDING': {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
@@ -339,21 +400,25 @@ export class QualificationService {
         qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.PENDING;
         qualificationCreditRecordInst.approved_by = 'SYSTEM';
-        return;
+        break;
       }
       case 'ERROR': {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_ERROR';
-        qualificationCreditRecordInst.process_status = PROCESS_STATUS.ERROR;
-        qualificationCreditRecordInst.event_histories = [
-          { issue_date: new Date(), by: customerNameInst, detail: 'Error Reported by Vendor' },
-          ...qualificationCreditRecordInst.event_histories,
-        ];
-        qualificationCreditRecordInst.approval_mode = null;
-        qualificationCreditRecordInst.qualification_status = null;
-        qualificationCreditRecordInst.approved_by = null;
         return applyCreditQualificationResponseStatus;
       }
     }
-    return;
+
+    await this.qualificationCreditModel.updateOne(
+      { _id: qualificationCreditRecordInst.id },
+      qualificationCreditRecordInst.toObject(),
+    );
+
+    return applyCreditQualificationResponseStatus;
   }
+
+  async getOneById(id: string): Promise<QualificationCredit> {
+    const res = await this.qualificationCreditModel.findById(id);
+    return res;
+  }
+  // ===================== INTERNAL =====================
 }

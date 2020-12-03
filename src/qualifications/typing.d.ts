@@ -33,6 +33,16 @@ export interface IFniUpdateReq {
   rawRequest: string;
 }
 
+export interface IFniUpdateRes {
+  refnum: string;
+  status: string;
+  errorMsgs: {
+    errorType: string;
+    fieldId: string;
+    message: string;
+  }[];
+}
+
 // ======================= SWAGGER =======================
 // https://sites.google.com/swellenergy.com/wave2/enhanced-quoting-process/creditcheck
 
