@@ -1,13 +1,13 @@
-import { IFniUpdateReq, IFniUpdateRes } from './../typing.d';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as AWS from 'aws-sdk';
 import { Model } from 'mongoose';
 import { REQUEST_CATEGORY, REQUEST_TYPE } from '../constants';
+import { QualificationService } from '../qualification.service';
 import { FNI_Communication, FNI_COMMUNICATION } from '../schemas/fni-communication.schema';
 import { IApplyRequest, IFniApplyReq } from '../typing.d';
 import { ExternalService } from './../../external-services/external-service.service';
-import { QualificationService } from '../qualification.service';
+import { IFniUpdateReq, IFniUpdateRes } from './../typing.d';
 
 @Injectable()
 export class FniEngineService {
@@ -67,21 +67,21 @@ export class FniEngineService {
         primState: req.primaryApplicantData.state,
         primZip: req.primaryApplicantData.zipcode.toString(),
       },
-      applicant2: {
-        first: req.coApplicantData.firstName,
-        mi: req.coApplicantData.middleName,
-        sightenId: req.qualificationCreditId,
-        last: req.coApplicantData.lastName,
-        email: req.coApplicantData.email,
-        phoneNumber: req.coApplicantData.phoneNumber,
-        dob: req.coApplicantSecuredData.dob.toString(),
-        soc: req.coApplicantSecuredData.soc.toString(),
-        coAddr: req.coApplicantData.addressLine1,
-        coAttn: req.coApplicantData.addressLine2,
-        coCity: req.coApplicantData.city,
-        coState: req.coApplicantData.state,
-        coZip: req.coApplicantData.zipcode.toString(),
-      },
+      // applicant2: {
+      //   first: req.coApplicantData.firstName,
+      //   mi: req.coApplicantData.middleName,
+      //   sightenId: req.qualificationCreditId,
+      //   last: req.coApplicantData.lastName,
+      //   email: req.coApplicantData.email,
+      //   phoneNumber: req.coApplicantData.phoneNumber,
+      //   dob: req.coApplicantSecuredData.dob.toString(),
+      //   soc: req.coApplicantSecuredData.soc.toString(),
+      //   coAddr: req.coApplicantData.addressLine1,
+      //   coAttn: req.coApplicantData.addressLine2,
+      //   coCity: req.coApplicantData.city,
+      //   coState: req.coApplicantData.state,
+      //   coZip: req.coApplicantData.zipcode.toString(),
+      // },
     } as IApplyRequest;
 
     const applyResponse = this.externalService.getFniResponse(applyReq);

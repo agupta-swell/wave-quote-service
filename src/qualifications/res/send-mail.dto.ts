@@ -1,8 +1,8 @@
-import { ServiceResponse } from 'src/app/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { QualificationCredit } from '../qualification.schema';
+import { ServiceResponse } from 'src/app/common';
 import { toCamelCase } from '../../utils/transformProperties';
-import { PROCESS_STATUS, VENDOR_ID, APPROVAL_MODE, QUALIFICATION_STATUS } from '../constants';
+import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
+import { QualificationCredit } from '../qualification.schema';
 
 class CustomerNotificationDto {
   @ApiProperty()
@@ -46,7 +46,7 @@ class QualificationDetailDto {
   approvalMode: APPROVAL_MODE;
 
   @ApiProperty()
-  approvedby: string;
+  approvedBy: string;
 
   @ApiProperty()
   qualificationStatus: QUALIFICATION_STATUS;
@@ -77,7 +77,7 @@ class QualificationDto {
       eventHistories: (props.event_histories || []).map(item => toCamelCase(item)),
       vendorId: props.vendor_id,
       approvalMode: props.approval_mode,
-      approvedby: props.approved_by,
+      approvedBy: props.approved_by,
       qualificationStatus: props.qualification_status,
     };
   }

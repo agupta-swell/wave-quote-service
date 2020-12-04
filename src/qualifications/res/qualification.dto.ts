@@ -1,9 +1,9 @@
-import { QUALIFICATION_STATUS } from './../constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from '../../app/common';
+import { toCamelCase } from '../../utils/transformProperties';
 import { APPROVAL_MODE, PROCESS_STATUS, VENDOR_ID } from '../constants';
 import { QualificationCredit } from '../qualification.schema';
-import { toCamelCase } from '../../utils/transformProperties';
+import { QUALIFICATION_STATUS } from './../constants';
 
 class CustomerNotificationDto {
   @ApiProperty()
@@ -47,7 +47,7 @@ class QualificationDetailDto {
   approvalMode: APPROVAL_MODE;
 
   @ApiProperty()
-  approvedby: string;
+  approvedBy: string;
 
   @ApiProperty()
   qualificationStatus: QUALIFICATION_STATUS;
@@ -55,13 +55,13 @@ class QualificationDetailDto {
 
 export class QualificationDto {
   @ApiProperty()
-  qualificaitonId: string;
+  qualificationId: string;
 
   @ApiProperty({ type: QualificationDetailDto })
   detail: QualificationDetailDto;
 
   constructor(props: QualificationCredit) {
-    this.qualificaitonId = props._id;
+    this.qualificationId = props._id;
     this.detail = this.transformData(props);
   }
 
@@ -74,7 +74,7 @@ export class QualificationDto {
       eventHistories: (props.event_histories || []).map(item => toCamelCase(item)),
       vendorId: props.vendor_id,
       approvalMode: props.approval_mode,
-      approvedby: props.approved_by,
+      approvedBy: props.approved_by,
       qualificationStatus: props.qualification_status,
     };
   }

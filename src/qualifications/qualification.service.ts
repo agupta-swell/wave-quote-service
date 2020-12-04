@@ -178,12 +178,12 @@ export class QualificationService {
     }
 
     const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
-    if (qualificationCredit.process_status !== PROCESS_STATUS.INITIATED) {
+    if (![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED].includes(qualificationCredit.process_status)) {
       return OperationResult.ok(
         new GetApplicationDetailDto({
           qualificationCreditId,
           processStatus: qualificationCredit.process_status,
-          responseStatus: true,
+          responseStatus: false,
         }),
       );
     }
@@ -240,7 +240,7 @@ export class QualificationService {
       case TOKEN_STATUS.INVALID:
         throw new UnauthorizedException();
       case TOKEN_STATUS.VALID: {
-        const tokenPayload = await this.jwtService.verifyAsync(req.qualificationCreditId, {
+        const tokenPayload = await this.jwtService.verifyAsync(req.authenticationToken, {
           secret: process.env.QUALIFICATION_JWT_SECRET,
           ignoreExpiration: true,
         });
@@ -271,26 +271,26 @@ export class QualificationService {
         state: req.primaryApplicantData.state,
         zipcode: req.primaryApplicantData.zipcode,
       },
-      coApplicantData: {
-        firstName: req.coApplicantData.firstName,
-        middleName: req.coApplicantData.middleName,
-        lastName: req.coApplicantData.lastName,
-        email: req.coApplicantData.email,
-        phoneNumber: req.coApplicantData.phoneNumber,
-        addressLine1: req.coApplicantData.addressLine1,
-        addressLine2: req.coApplicantData.addressLine2,
-        city: req.coApplicantData.city,
-        state: req.coApplicantData.state,
-        zipcode: req.coApplicantData.zipcode,
-      },
+      // coApplicantData: {
+      //   firstName: req.coApplicantData.firstName,
+      //   middleName: req.coApplicantData.middleName,
+      //   lastName: req.coApplicantData.lastName,
+      //   email: req.coApplicantData.email,
+      //   phoneNumber: req.coApplicantData.phoneNumber,
+      //   addressLine1: req.coApplicantData.addressLine1,
+      //   addressLine2: req.coApplicantData.addressLine2,
+      //   city: req.coApplicantData.city,
+      //   state: req.coApplicantData.state,
+      //   zipcode: req.coApplicantData.zipcode,
+      // },
       primaryApplicantSecuredData: {
         soc: req.primaryApplicantSecuredData.soc,
         dob: req.primaryApplicantSecuredData.dob,
       },
-      coApplicantSecuredData: {
-        soc: req.coApplicantSecuredData.soc,
-        dob: req.coApplicantSecuredData.dob,
-      },
+      // coApplicantSecuredData: {
+      //   soc: req.coApplicantSecuredData.soc,
+      //   dob: req.coApplicantSecuredData.dob,
+      // },
     } as IFniApplyReq;
 
     qualificationCredit.process_status = PROCESS_STATUS.IN_PROGRESS;

@@ -38,6 +38,9 @@ export class GetApplicationDetailDto {
   qualificationCreditId: string;
 
   @ApiProperty()
+  opportunityId: string;
+
+  @ApiProperty()
   responseStatus: boolean;
 
   @ApiProperty()
@@ -54,6 +57,7 @@ export class GetApplicationDetailDto {
 
   constructor(props: any) {
     this.qualificationCreditId = props.qualificationCreditId;
+    this.opportunityId = props.opportunityId;
     this.responseStatus = props.responseStatus;
     this.processStatus = props.processStatus;
     this.primaryApplicantData = props.primaryApplicantData;
