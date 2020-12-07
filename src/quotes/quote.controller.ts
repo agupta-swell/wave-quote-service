@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { QuoteService } from './quote.service';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
@@ -18,6 +19,7 @@ export class QuoteController {
   @Post()
   @ApiOperation({ summary: 'Create quote' })
   @ApiOkResponse({ type: QuoteRes })
+  @CheckOpportunity()
   async create(@Body() data: CreateQuoteDto): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.createQuote(data);
     return ServiceResponse.fromResult(res);
@@ -67,6 +69,7 @@ export class QuoteController {
   @Put('/:quoteId')
   @ApiOperation({ summary: 'Update quote' })
   @ApiOkResponse({ type: QuoteRes })
+  @CheckOpportunity()
   async updateQuote(
     @Body() data: UpdateQuoteDto,
     @Param('quoteId') quoteId: string,

@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { CreateSystemDesignDto, UpdateSystemDesignDto } from './req';
 import { SystemDesignDto, SystemDesignListRes, SystemDesignRes } from './res/system-design.dto';
@@ -16,6 +17,7 @@ export class SystemDesignController {
   @Post()
   @ApiOperation({ summary: 'Create system design' })
   @ApiOkResponse({ type: SystemDesignRes })
+  @CheckOpportunity()
   async create(@Body() systemDesign: CreateSystemDesignDto): Promise<ServiceResponse<SystemDesignDto>> {
     const result = await this.systemDesignService.create(systemDesign);
     return ServiceResponse.fromResult(result);
@@ -24,6 +26,7 @@ export class SystemDesignController {
   @Put(':id')
   @ApiOperation({ summary: 'Update system design' })
   @ApiOkResponse({ type: SystemDesignRes })
+  @CheckOpportunity()
   async update(
     @Param('id') id: string,
     @Body() systemDesign: UpdateSystemDesignDto,
@@ -45,6 +48,10 @@ export class SystemDesignController {
 
   @Get()
   @ApiOperation({ summary: 'Get all system designs' })
+  @ApiQuery({ name: 'limit' })
+  @ApiQuery({ name: 'skip' })
+  @ApiQuery({ name: 'selected' })
+  @ApiQuery({ name: 'opportunityId' })
   @ApiOkResponse({ type: SystemDesignListRes })
   async getsystemDesigns(
     @Query('limit') limit: string,

@@ -6,7 +6,18 @@ import { OpportunityService } from './../opportunities/opportunity.service';
 export class OpportunityPipe implements PipeTransform {
   constructor(private readonly opportunityService: OpportunityService) {}
   async transform(value: any, metadata: ArgumentMetadata) {
-    const { opportunityId } = value;
+    let opportunityId: string;
+
+    if (metadata.type === 'param' && metadata.data === 'opportunityId') {
+      opportunityId = value;
+    }
+
+    if (metadata.type === 'body') {
+      opportunityId = value.opportunityId;
+    }
+
+    if (!opportunityId) return value;
+
     const found = await this.opportunityService.isExistedOpportunity(opportunityId);
 
     if (!found) {

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { CreateUtilityDto } from './req/create-utility.dto';
@@ -66,6 +67,7 @@ export class UtilityController {
   @Post()
   @ApiOperation({ summary: 'Create A Utility Usage Detail' })
   @ApiOkResponse({ type: UtilityDetailsDto })
+  @CheckOpportunity()
   async createUtility(@Body() utility: CreateUtilityDto): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.createUtilityUsageDetail(utility);
     return ServiceResponse.fromResult(res);
@@ -74,6 +76,7 @@ export class UtilityController {
   @Put('/:utilityId')
   @ApiOperation({ summary: 'Update A Utility Usage Detail' })
   @ApiOkResponse({ type: UtilityDetailsDto })
+  @CheckOpportunity()
   async updateUtility(
     @Param('utilityId') utilityId: string,
     @Body() utilityDto: CreateUtilityDto,
@@ -85,6 +88,7 @@ export class UtilityController {
   @Get('/:opportunityId')
   @ApiOperation({ summary: 'Get Utility Usage Detail By opportunityId' })
   @ApiOkResponse({ type: UtilityDetailsDto })
+  @CheckOpportunity()
   async getUtilityUsageDetail(
     @Param('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<UtilityDetailsDto>> {

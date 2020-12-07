@@ -318,7 +318,7 @@ export class QualificationService {
   }
 
   // ==============> INTERNAL <==============
-  generateToken(qualificationCreditId: string, opportunityId: string, role: ROLE): string {
+  async generateToken(qualificationCreditId: string, opportunityId: string, role: ROLE): Promise<string> {
     let tokenExpiry: string;
 
     switch (role) {
@@ -332,6 +332,11 @@ export class QualificationService {
       default:
         tokenExpiry = '30m';
         break;
+    }
+
+    const found = await this.qualificationCreditModel.findById(qualificationCreditId);
+    if (!found) {
+      throw ApplicationException.EnitityNotFound(qualificationCreditId);
     }
 
     return this.jwtService.sign(

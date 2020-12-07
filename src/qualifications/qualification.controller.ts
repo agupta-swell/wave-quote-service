@@ -11,7 +11,7 @@ import {
   GenerateTokenReqDto,
   GetApplicationDetailReqDto,
   SendMailReqDto,
-  SetManualApprovalReqDto
+  SetManualApprovalReqDto,
 } from './req';
 import {
   GenerateTokenRes,
@@ -24,7 +24,7 @@ import {
   QualificationDto,
   QualificationRes,
   SendMailDto,
-  SendMailRes
+  SendMailRes,
 } from './res';
 
 @ApiTags('Qualification')
@@ -37,6 +37,7 @@ export class QualificationController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Create Qualification' })
   @ApiOkResponse({ type: QualificationRes })
+  @CheckOpportunity()
   async createQualification(
     @Body() qualificationDto: CreateQualificationReqDto,
   ): Promise<ServiceResponse<QualificationDto>> {
@@ -49,8 +50,9 @@ export class QualificationController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Generate token' })
   @ApiOkResponse({ type: GenerateTokenRes })
-  generateToken(@Body() req: GenerateTokenReqDto): ServiceResponse<{ token: string }> {
-    const res = this.qualificationService.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.AGENT);
+  @CheckOpportunity()
+  async generateToken(@Body() req: GenerateTokenReqDto): Promise<ServiceResponse<{ token: string }>> {
+    const res = await this.qualificationService.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.AGENT);
     return ServiceResponse.fromResult(OperationResult.ok({ token: res }));
   }
 
@@ -104,7 +106,6 @@ export class QualificationController {
   @Post('/apply-credit-qualification')
   @ApiOperation({ summary: 'Apply Credit Qualification' })
   @ApiOkResponse({ type: String })
-  @CheckOpportunity()
   async applyCreditQualification(
     @Body() req: ApplyCreditQualificationReqDto,
   ): Promise<ServiceResponse<{ responseStatus: string }>> {

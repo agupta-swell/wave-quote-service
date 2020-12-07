@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { CurrentUser, PreAuthenticate } from '../app/securities';
 import { CurrentUserType } from './../app/securities/current-user';
 import { ProposalService } from './proposal.service';
@@ -19,6 +20,7 @@ export class ProposalController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Create Proposal' })
   @ApiOkResponse({ type: ProposalRes })
+  @CheckOpportunity()
   async createProposalSectionMaster(@Body() proposalDto: CreateProposalDto): Promise<ServiceResponse<ProposalDto>> {
     const res = await this.proposalService.create(proposalDto);
     return ServiceResponse.fromResult(res);
@@ -29,7 +31,8 @@ export class ProposalController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Update Proposal' })
   @ApiOkResponse({ type: ProposalRes })
-  async updateProposalSectionMaster(
+  @CheckOpportunity()
+  async updateProposal(
     @Param('id') id: string,
     @Body()
     proposalDto: UpdateProposalDto,
