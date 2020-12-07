@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OperationResult, ServiceResponse } from 'src/app/common';
+import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ROLE } from './constants';
 import { QualificationService } from './qualification.service';
@@ -103,6 +104,7 @@ export class QualificationController {
   @Post('/apply-credit-qualification')
   @ApiOperation({ summary: 'Apply Credit Qualification' })
   @ApiOkResponse({ type: String })
+  @CheckOpportunity()
   async applyCreditQualification(
     @Body() req: ApplyCreditQualificationReqDto,
   ): Promise<ServiceResponse<{ responseStatus: string }>> {
