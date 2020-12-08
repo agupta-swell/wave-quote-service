@@ -226,14 +226,27 @@ export class ExternalService {
 
   // TODO: need to delete when having real api
   getFniResponse(data: IApplyRequest): IApplyResponse {
-    console.log('>>>>>>>>>>>>>>>>>>>', 'FNI API', process.env.FNI_API);
+    const primarySSN = data.applicant1.soc;
+    let code: string;
+    console.log('>>>>>>>>>>>>>>>>>>>', 'FNI API', primarySSN.charAt(0), process.env.FNI_API);
+
+    switch (primarySSN.charAt(0)) {
+      case '1':
+        code = 'X';
+        break;
+      case '2':
+        code = 'C';
+      default:
+        code = 'T';
+    }
+
     const obj = {
       transaction: {
         refNum: 'FNI Reference Number',
         status: 'SUCCESS',
       },
       application: {
-        code: 'X',
+        code,
         track: 'External Tracking Number',
       },
       applicant1: {

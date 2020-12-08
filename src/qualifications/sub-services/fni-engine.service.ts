@@ -8,6 +8,7 @@ import { FNI_Communication, FNI_COMMUNICATION } from '../schemas/fni-communicati
 import { IApplyRequest, IFniApplyReq } from '../typing.d';
 import { ExternalService } from './../../external-services/external-service.service';
 import { IFniUpdateReq, IFniUpdateRes } from './../typing.d';
+import { FniCallbackService } from './fni-callback.service';
 
 @Injectable()
 export class FniEngineService {
@@ -19,6 +20,8 @@ export class FniEngineService {
     private readonly externalService: ExternalService,
     @Inject(forwardRef(() => QualificationService))
     private qualificationService: QualificationService,
+    @Inject(forwardRef(() => FniCallbackService))
+    private fniCallbackService: FniCallbackService,
   ) {
     const { AWS_REGION } = process.env;
 
@@ -110,7 +113,13 @@ export class FniEngineService {
         },
       );
     }
-    return this.translateFniResponseCode(applyResponse.application.code);
+
+    const status = this.translateFniResponseCode(applyResponse.application.code);
+    // if (status === 'PENDING') {
+    //   await this.fniCallbackService.updateSighten(applyResponse);
+    // }
+
+    return status;
   }
 
   async update(req: IFniUpdateReq): Promise<IFniUpdateRes> {
@@ -201,6 +210,12 @@ export class FniEngineService {
     }
 
     console.log('>>>>>>>>>>>>>>>>>>>', 'decodedBinarySecret', secret, decodedBinarySecret);
+
+    // FIXME: need to delete later
+    return {
+      userName: 'userName',
+      password: 'password',
+    };
   }
 
   translateFniResponseCode(code: string) {

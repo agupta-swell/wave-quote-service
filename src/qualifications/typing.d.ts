@@ -34,7 +34,7 @@ export interface IFniUpdateReq {
 }
 
 export interface IFniUpdateRes {
-  refnum: string;
+  refNum: string;
   status: string;
   errorMsgs: {
     errorType: string;
@@ -106,5 +106,32 @@ export interface IApplyResponse {
   };
   applicant1: {
     sightenId: string;
+  };
+}
+
+export interface IUpdateSightenRequest {
+  transaction: {
+    username: string;
+    password: string;
+    refNum: string;
+  };
+  application: {
+    code: string;
+    track: string;
+  };
+  applicant1: {
+    sightenId: string;
+  };
+}
+
+export interface IUpdateSightenResponse {
+  transaction: {
+    refNum: string;
+    status: string;
+    errorMsgs?: {
+      errorType: string;
+      fieldId: string;
+      message: string;
+    }[];
   };
 }
