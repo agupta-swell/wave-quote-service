@@ -164,7 +164,7 @@ export class FniEngineService {
 
     if (coinedErrorMessage.length > 0) {
       coinedErrorMessage = `ERROR: ${coinedErrorMessage}`;
-      res.refnum = req.vendorRefId;
+      res.refNum = req.vendorRefId;
       res.status = 'ERROR';
       res.errorMsgs = [{ fieldId: null, errorType: 'GENERAL', message: coinedErrorMessage }];
 
@@ -177,11 +177,11 @@ export class FniEngineService {
     const fniResponseCode = this.translateFniResponseCode(req.code);
     try {
       this.qualificationService.handleFNIResponse(fniResponseCode, 'System - FNI Triggered', qualificationCredit);
-      res.refnum = req.vendorRefId;
+      res.refNum = req.vendorRefId;
       res.status = 'SUCCESS';
       fniCommunication.error_message_sent_to_fni = [JSON.stringify(res), ...fniCommunication.error_message_sent_to_fni];
     } catch (error) {
-      res.refnum = req.vendorRefId;
+      res.refNum = req.vendorRefId;
       res.status = 'ERROR';
       res.errorMsgs = [{ fieldId: null, errorType: 'GENERAL', message: 'System Error' }];
       fniCommunication.error_message_sent_to_fni = [JSON.stringify(res), ...fniCommunication.error_message_sent_to_fni];

@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { IFniUpdateReq, IUpdateSightenRequest, IUpdateSightenResponse } from './../typing.d';
 import { FniEngineService } from './fni-engine.service';
 
 // FIXME: delete after deploying production
 @Injectable()
 export class FniCallbackService {
-  constructor(private readonly fniEngineService: FniEngineService) {}
+  constructor(
+    @Inject(forwardRef(() => FniEngineService))
+    private fniEngineService: FniEngineService,
+  ) {}
 
   async updateSighten(req: IUpdateSightenRequest) {
     const { userName, password } = await this.fniEngineService.getSecretFNIInformation();
