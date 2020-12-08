@@ -72,12 +72,15 @@ export class QualificationService {
       throw ApplicationException.EnitityNotFound(opportunityId);
     }
 
-    const fniCommunication = await this.fniCommunicationModel.findOne({
+    const fniCommunications = await this.fniCommunicationModel.find({
       qualification_credit_id: qualificationCredit._id,
     });
 
     return OperationResult.ok(
-      new GetQualificationDetailDto(qualificationCredit.toObject(), fniCommunication && fniCommunication.toObject()),
+      new GetQualificationDetailDto(
+        qualificationCredit.toObject(),
+        fniCommunications.length ? fniCommunications.map(item => item.toObject()) : [],
+      ),
     );
   }
 
@@ -168,13 +171,28 @@ export class QualificationService {
 
     let { qualificationCreditId, opportunityId } = req;
 
+    const tokenPayload = await this.jwtService.verifyAsync(req.token, {
+      secret: process.env.QUALIFICATION_JWT_SECRET,
+      ignoreExpiration: false,
+    });
+
     if (!opportunityId || !qualificationCreditId) {
-      const tokenPayload = await this.jwtService.verifyAsync(req.token, {
-        secret: process.env.QUALIFICATION_JWT_SECRET,
-        ignoreExpiration: false,
-      });
       qualificationCreditId = tokenPayload.qualificationCreditId;
       opportunityId = tokenPayload.opportunityId;
+    }
+
+    let applicationInitatedBy: string;
+
+    switch (tokenPayload.role) {
+      case ROLE.AGENT:
+        applicationInitatedBy = 'Agent';
+        break;
+      case ROLE.CUSTOMER:
+        applicationInitatedBy = 'Customer';
+        break;
+      default:
+        applicationInitatedBy = 'Unknown';
+        break;
     }
 
     const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
@@ -197,7 +215,7 @@ export class QualificationService {
       {
         issue_date: new Date(),
         by: `${contact.firstName} ${contact.lastName}`,
-        detail: 'Application Started by Customer',
+        detail: `Application Started by ${applicationInitatedBy}`,
       },
     ];
 
@@ -296,12 +314,12 @@ export class QualificationService {
 
     qualificationCredit.process_status = PROCESS_STATUS.IN_PROGRESS;
     qualificationCredit.event_histories = [
+      ...qualificationCredit.event_histories,
       {
         issue_date: new Date(),
         by: `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
         detail: 'Application sent for Credit Check',
       },
-      ...qualificationCredit.event_histories,
     ];
 
     await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, qualificationCredit.toObject());
@@ -387,8 +405,8 @@ export class QualificationService {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
         qualificationCreditRecordInst.process_status = PROCESS_STATUS.COMPLETED;
         qualificationCreditRecordInst.event_histories = [
-          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation Completed' },
           ...qualificationCreditRecordInst.event_histories,
+          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation Completed' },
         ];
         qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.APPROVED;
@@ -399,8 +417,8 @@ export class QualificationService {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
         qualificationCreditRecordInst.process_status = PROCESS_STATUS.COMPLETED;
         qualificationCreditRecordInst.event_histories = [
-          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation Completed' },
           ...qualificationCreditRecordInst.event_histories,
+          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation Completed' },
         ];
         qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.DECLINED;
@@ -411,8 +429,8 @@ export class QualificationService {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
         qualificationCreditRecordInst.process_status = PROCESS_STATUS.IN_PROGRESS;
         qualificationCreditRecordInst.event_histories = [
-          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation In Progress' },
           ...qualificationCreditRecordInst.event_histories,
+          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation In Progress' },
         ];
         qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.PENDING;

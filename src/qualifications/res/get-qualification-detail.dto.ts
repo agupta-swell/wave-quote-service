@@ -64,14 +64,16 @@ export class GetQualificationDetailDto {
   @ApiProperty({ type: QualificationDetailDto })
   qualificationCreditData: QualificationDetailDto;
 
-  @ApiProperty({ type: FniCommunicationDto })
-  fniCommunicationData: FniCommunicationDto;
+  @ApiProperty({ type: FniCommunicationDto, isArray: true })
+  fniCommunicationData: FniCommunicationDto[];
 
-  constructor(qualificationCredit: QualificationCredit, fniCommunication: FNI_Communication) {
+  constructor(qualificationCredit: QualificationCredit, fniCommunications: FNI_Communication[]) {
     this.opportunityId = qualificationCredit.opportunity_id;
     this.qualificationCreditId = qualificationCredit._id;
     this.qualificationCreditData = this.transformQualificationCreditData(qualificationCredit);
-    this.fniCommunicationData = fniCommunication && new FniCommunicationDto(fniCommunication);
+    this.fniCommunicationData = fniCommunications.length
+      ? fniCommunications.map(item => new FniCommunicationDto(item))
+      : [];
   }
 
   transformQualificationCreditData(props: QualificationCredit): QualificationDetailDto {
