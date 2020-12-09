@@ -236,7 +236,12 @@ export class ProposalService {
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
+
   validateCustomerInformation(customerInformation: CustomerInformationDto, tokenPayload): boolean {
     return Object.keys(customerInformation).every(key => customerInformation[key] === tokenPayload[key]);
+  }
+
+  async countByOpportunityId(opportunityId: string): Promise<number> {
+    return await this.proposalModel.countDocuments({ opportunity_id: opportunityId }).exec();
   }
 }

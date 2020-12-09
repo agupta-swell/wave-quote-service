@@ -11,10 +11,18 @@ export class ProgressDto {
   @ApiProperty()
   quoteCounter: number;
 
+  @ApiProperty()
+  proposalCounter: number;
+
+  @ApiProperty()
+  qualificationCounter: number;
+
   constructor(props: any) {
     this.utilityAndUsageCounter = props.utilityAndUsageCounter;
     this.systemDesignCounter = props.systemDesignCounter;
     this.quoteCounter = props.quoteCounter;
+    this.proposalCounter = props.proposalCounter;
+    this.qualificationCounter = props.qualificationCounter;
   }
 }
 

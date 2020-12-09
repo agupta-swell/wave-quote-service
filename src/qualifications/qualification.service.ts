@@ -337,6 +337,7 @@ export class QualificationService {
   }
 
   // ==============> INTERNAL <==============
+
   async generateToken(qualificationCreditId: string, opportunityId: string, role: ROLE): Promise<string> {
     let tokenExpiry: string;
 
@@ -455,5 +456,10 @@ export class QualificationService {
     const res = await this.qualificationCreditModel.findById(id);
     return res;
   }
+
+  async countByOpportunityId(opportunityId: string): Promise<number> {
+    return await this.qualificationCreditModel.countDocuments({ opportunity_id: opportunityId }).exec();
+  }
+
   // ===================== INTERNAL =====================
 }
