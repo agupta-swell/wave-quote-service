@@ -1,0 +1,11 @@
+export enum TEMPLATE_STATUS {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
+
+export enum SYSTEM_TYPE {
+  ALL = 'ALL',
+  SOLAR = 'SOLAR',
+  SOLAR_AND_STORAGE = 'SOLAR_AND_STORAGE',
+  STORAGE = 'STORAGE',
+}
