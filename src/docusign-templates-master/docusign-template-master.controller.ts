@@ -3,12 +3,16 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swa
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { DocusignTemplateMasterService } from './docusign-template-master.service';
-import { SaveTemplateReqDto } from './req';
+import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
 import {
+  GetContractCompositeTemplateDto,
+  GetContractCompositeTemplateRes,
   GetSignerRoleMasterDto,
   GetSignerRoleMasterRes,
   GetTemplateMasterDto,
   GetTemplateMasterRes,
+  SaveContractCompositeTemplateDto,
+  SaveContractCompositeTemplateRes,
   SaveTemplateDto,
   SaveTemplateRes,
 } from './res';
@@ -35,6 +39,28 @@ export class DocusignTemplateMasterController {
   @ApiOkResponse({ type: GetSignerRoleMasterRes })
   async getSignerRoleMasters(): Promise<ServiceResponse<GetSignerRoleMasterDto>> {
     const res = await this.docusignTemplateMasterService.getSignerRoleMasters();
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/composite-templates')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Get Contract Composite Templates' })
+  @ApiOkResponse({ type: GetContractCompositeTemplateRes })
+  async getContractCompositeTemplates(): Promise<ServiceResponse<GetContractCompositeTemplateDto>> {
+    const res = await this.docusignTemplateMasterService.getContractCompositeTemplates();
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/composite-templates')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Save Contract Composite Template' })
+  @ApiOkResponse({ type: SaveContractCompositeTemplateRes })
+  async saveContractCompositeTemplate(
+    @Body() req: SaveContractCompositeTemplateReqDto,
+  ): Promise<ServiceResponse<SaveContractCompositeTemplateDto>> {
+    const res = await this.docusignTemplateMasterService.saveContractCompositeTemplate(req);
     return ServiceResponse.fromResult(res);
   }
 
