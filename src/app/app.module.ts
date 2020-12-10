@@ -1,9 +1,9 @@
-import { ContactModule } from './../contacts/contact.module';
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthencationModule } from 'src/authentication/authentication.module';
 import { CashPaymentConfigModule } from 'src/cash-payment-configs/cash-payment-config.module';
+import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docusign-template-master.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { ProposalModule } from 'src/proposals/proposal.module';
 import { RoleModule } from 'src/roles/role.module';
@@ -16,6 +16,7 @@ import { ProposalTemplateModule } from '../proposal-templates/proposal-template.
 import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from '../utilities/utility.module';
 import { AdderConfigModule } from './../adder-config/adder-config.module';
+import { ContactModule } from './../contacts/contact.module';
 import { ExternalServiceModule } from './../external-services/external-service.module';
 import { OpportunityModule } from './../opportunities/opportunity.module';
 import { ProductModule } from './../products/product.module';
@@ -51,6 +52,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     EmailModule,
     OpportunityModule,
     ContactModule,
+    DocusignTemplateMasterModule,
   ],
 })
 export class AppModule {

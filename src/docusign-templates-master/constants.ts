@@ -9,3 +9,8 @@ export enum SYSTEM_TYPE {
   SOLAR_AND_STORAGE = 'SOLAR_AND_STORAGE',
   STORAGE = 'STORAGE',
 }
+
+export enum SAVE_TEMPLATE_MODE {
+  NEW = 'NEW',
+  UPDATE = 'UPDATE',
+}
