@@ -14,7 +14,7 @@ import {
 } from './res';
 
 @ApiTags('Docusign Template Master')
-@Controller('/docusign-template-master')
+@Controller('/docusign-templates-master')
 export class DocusignTemplateMasterController {
   constructor(private readonly docusignTemplateMasterService: DocusignTemplateMasterService) {}
 

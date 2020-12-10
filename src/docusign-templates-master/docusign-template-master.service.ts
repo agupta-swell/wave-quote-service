@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { OperationResult } from 'src/app/common';
 import { SAVE_TEMPLATE_MODE } from './constants';
 import { DocusignTemplateMaster, DOCUSIGN_TEMPLATE_MASTER } from './docusign-template-master.schema';
@@ -40,12 +40,12 @@ export class DocusignTemplateMasterService {
     )?.map(({ _id, role_name, role_description }) => ({ id: _id, role_name, role_description }));
 
     const model = await this.docusignTemplateMasterModel.findOneAndUpdate(
-      { _id: req.templateData.id },
+      { _id: req.templateData.id || Types.ObjectId() },
       {
         template_name: req.templateData.templateName,
         description: req.templateData.description,
         docusign_template_id: req.templateData.docusignTemplateId,
-        recipientRoles: recipientRoles,
+        recipient_roles: recipientRoles,
         template_status: req.templateData.templateStatus,
       },
       { new: true, upsert: true },
