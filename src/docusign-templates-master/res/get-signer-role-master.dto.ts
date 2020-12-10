@@ -1,21 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { SignerRoleMaster } from '../schemas';
-
-class SignerRoleData {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  roleName: string;
-
-  @ApiProperty()
-  roleDescription: string;
-}
+import { SignerRoleDataResDto } from './sub-dto';
 
 export class GetSignerRoleMasterDto {
-  @ApiProperty({ type: SignerRoleData, isArray: true })
-  recipientRoles: SignerRoleData[];
+  @ApiProperty({ type: SignerRoleDataResDto, isArray: true })
+  recipientRoles: SignerRoleDataResDto[];
 
   constructor(props: SignerRoleMaster[]) {
     this.recipientRoles = props?.map(item => ({

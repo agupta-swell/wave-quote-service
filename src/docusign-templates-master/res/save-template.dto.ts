@@ -3,17 +3,7 @@ import { ServiceResponse } from 'src/app/common';
 import { toCamelCase } from '../../utils/transformProperties';
 import { TEMPLATE_STATUS } from '../constants';
 import { DocusignTemplateMaster } from '../docusign-template-master.schema';
-
-class RecepientRole {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  roleName: string;
-
-  @ApiProperty()
-  roleDescription: string;
-}
+import { SignerRoleDataResDto } from './sub-dto';
 
 class TemplateDataResDto {
   @ApiProperty()
@@ -31,8 +21,8 @@ class TemplateDataResDto {
   @ApiProperty({ enum: TEMPLATE_STATUS })
   templateStatus: TEMPLATE_STATUS;
 
-  @ApiProperty({ type: RecepientRole, isArray: true })
-  recipientRoles: RecepientRole[];
+  @ApiProperty({ type: SignerRoleDataResDto, isArray: true })
+  recipientRoles: SignerRoleDataResDto[];
 
   @ApiProperty()
   createdAt: string;
@@ -52,7 +42,7 @@ export class SaveTemplateDto {
     this.responseStatus = responseStatus;
     this.newUpdatedTemplateMaster = props && {
       ...toCamelCase(props),
-      recipientRoles: props.recepient_roles.map(item => toCamelCase(item)),
+      recipientRoles: props.recipient_roles.map(item => toCamelCase(item)),
     };
   }
 }

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-import { RecepientDto } from './create-proposal.dto';
+import { RecipientDto } from './create-proposal.dto';
 
 class DetailedProposalDto {
   @ApiProperty()
@@ -9,8 +9,8 @@ class DetailedProposalDto {
   @ApiProperty()
   proposalName: string;
 
-  @ApiProperty({ type: RecepientDto, isArray: true })
-  recipients: RecepientDto[];
+  @ApiProperty({ type: RecipientDto, isArray: true })
+  recipients: RecipientDto[];
 
   @ApiProperty()
   proposalValidityPeriod: number;

@@ -35,7 +35,7 @@ export class DocusignTemplateMasterService {
       return OperationResult.ok(new SaveTemplateDto('INVALID_MODE_PARAMETER'));
     }
 
-    const recepientRoles = (
+    const recipientRoles = (
       await Promise.all(req.templateData.recipientRoles.map(id => this.signerRoleMasterModel.findById(id)))
     )?.map(({ _id, role_name, role_description }) => ({ id: _id, role_name, role_description }));
 
@@ -45,7 +45,7 @@ export class DocusignTemplateMasterService {
         template_name: req.templateData.templateName,
         description: req.templateData.description,
         docusign_template_id: req.templateData.docusignTemplateId,
-        recepientRoles: recepientRoles,
+        recipientRoles: recipientRoles,
         template_status: req.templateData.templateStatus,
       },
       { new: true, upsert: true },

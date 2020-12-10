@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class RecepientDto {
+export class RecipientDto {
   @ApiProperty()
   email: string;
 
@@ -15,6 +15,6 @@ export class CreateProposalDto {
   @ApiProperty()
   proposalName: string;
 
-  @ApiProperty({ type: RecepientDto, isArray: true })
-  recipients: RecepientDto[];
+  @ApiProperty({ type: RecipientDto, isArray: true })
+  recipients: RecipientDto[];
 }
