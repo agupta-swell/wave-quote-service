@@ -4,21 +4,6 @@ import { TEMPLATE_STATUS } from './constants';
 
 export const DOCUSIGN_TEMPLATE_MASTER = Symbol('DOCUSIGN_TEMPLATE_MASTER').toString();
 
-// export interface IRecipientRoleSchema {
-//   id: string;
-//   role_name: string;
-//   role_description: string;
-// }
-
-// export const RecipientRoleSchema = new Schema<IRecipientRoleSchema>(
-//   {
-//     id: String,
-//     role_name: String,
-//     role_description: String,
-//   },
-//   { _id: false },
-// );
-
 export interface DocusignTemplateMaster extends Document {
   template_name: string;
   description: string;
