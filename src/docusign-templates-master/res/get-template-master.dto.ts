@@ -9,10 +9,7 @@ export class GetTemplateMasterDto {
   templateMasters: TemplateMasterDataResDto[];
 
   constructor(props: DocusignTemplateMaster[]) {
-    this.templateMasters = props?.map(item => ({
-      ...toCamelCase(item),
-      recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
-    }));
+    this.templateMasters = props?.map(item => toCamelCase(item));
   }
 }
 
