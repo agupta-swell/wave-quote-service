@@ -35,4 +35,9 @@ export class UtilityProgramMasterService {
     const [product] = await this.utilityProgramMaster.find();
     return product;
   }
+
+  async getAll(): Promise<UtilityProgramMaster[]> {
+    const utilityProgramMasters = await this.utilityProgramMaster.find();
+    return utilityProgramMasters.length ? utilityProgramMasters.map(item => item.toObject({ versionKey: false })) : [];
+  }
 }

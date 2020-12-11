@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 
 export class DocusignCompositeTemplateMasterDataResDto {
   @ApiProperty()
@@ -24,6 +25,12 @@ export class DocusignCompositeTemplateMasterDataResDto {
 
   @ApiProperty({ type: String, isArray: true })
   applicableUtilities: string[];
+
+  @ApiProperty({ type: String, isArray: true })
+  applicableStates: string[];
+
+  @ApiProperty({ enum: SYSTEM_TYPE, type: String, isArray: true })
+  applicableSystemTypes: SYSTEM_TYPE[];
 
   @ApiProperty()
   createdAt: Date;

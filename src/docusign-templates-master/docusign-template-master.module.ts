@@ -9,9 +9,7 @@ import {
   SignerRoleMasterSchema,
   SIGNER_ROLE_MASTER,
   UtilityMasterSchema,
-  UtilityProgramMasterSchema,
   UTILITY_MASTER,
-  UTILITY_PROGRAM_MASTER,
 } from './schemas';
 
 @Global()
@@ -27,11 +25,6 @@ import {
         name: DOCUSIGN_COMPOSITE_TEMPLATE_MASTER,
         schema: DocusignCompositeTemplateMasterSchema,
         collection: 'v2_docusign_composite_templates_master',
-      },
-      {
-        name: UTILITY_PROGRAM_MASTER,
-        schema: UtilityProgramMasterSchema,
-        collection: 'v2_utility_programs_master',
       },
       {
         name: UTILITY_MASTER,

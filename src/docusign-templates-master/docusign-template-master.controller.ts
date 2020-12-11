@@ -5,6 +5,8 @@ import { PreAuthenticate } from '../app/securities';
 import { DocusignTemplateMasterService } from './docusign-template-master.service';
 import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
 import {
+  GetContractApplicabilityDataDto,
+  GetContractApplicabilityDataRes,
   GetContractCompositeTemplateDto,
   GetContractCompositeTemplateRes,
   GetSignerRoleMasterDto,
@@ -25,7 +27,7 @@ export class DocusignTemplateMasterController {
   @Get()
   @ApiBearerAuth()
   @PreAuthenticate()
-  @ApiOperation({ summary: 'Get Docusign Template Master' })
+  @ApiOperation({ summary: 'Get Docusign Templates Master' })
   @ApiOkResponse({ type: GetTemplateMasterRes })
   async getDocusignTemplateMaster(): Promise<ServiceResponse<GetTemplateMasterDto>> {
     const res = await this.docusignTemplateMasterService.getTemplateMasters();
@@ -35,7 +37,7 @@ export class DocusignTemplateMasterController {
   @Get('/signer-roles')
   @ApiBearerAuth()
   @PreAuthenticate()
-  @ApiOperation({ summary: 'Get Signer Role Master' })
+  @ApiOperation({ summary: 'Get Signer Roles Master' })
   @ApiOkResponse({ type: GetSignerRoleMasterRes })
   async getSignerRoleMasters(): Promise<ServiceResponse<GetSignerRoleMasterDto>> {
     const res = await this.docusignTemplateMasterService.getSignerRoleMasters();
@@ -52,10 +54,20 @@ export class DocusignTemplateMasterController {
     return ServiceResponse.fromResult(res);
   }
 
+  @Get('/contract-applicabilities')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Get Contract Applicabilities' })
+  @ApiOkResponse({ type: GetContractApplicabilityDataRes })
+  async getContractApplicabilityData(): Promise<ServiceResponse<GetContractApplicabilityDataDto>> {
+    const res = await this.docusignTemplateMasterService.getContractApplicabilityData();
+    return ServiceResponse.fromResult(res);
+  }
+
   @Post('/composite-templates')
   @ApiBearerAuth()
   @PreAuthenticate()
-  @ApiOperation({ summary: 'Save Contract Composite Template' })
+  @ApiOperation({ summary: 'Save Contract Composite Templates' })
   @ApiOkResponse({ type: SaveContractCompositeTemplateRes })
   async saveContractCompositeTemplate(
     @Body() req: SaveContractCompositeTemplateReqDto,

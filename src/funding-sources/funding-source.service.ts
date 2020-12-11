@@ -27,4 +27,9 @@ export class FundingSourceService {
     const product = await this.fundingSource.findById(id);
     return product;
   }
+
+  async getAll(): Promise<FundingSource[]> {
+    const fundingSources = await this.fundingSource.find();
+    return fundingSources.length ? fundingSources.map(item => item.toObject({ versionKey: false })) : [];
+  }
 }

@@ -2,11 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { OperationResult } from 'src/app/common';
+import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { SAVE_TEMPLATE_MODE } from './constants';
 import { DocusignTemplateMaster, DOCUSIGN_TEMPLATE_MASTER } from './docusign-template-master.schema';
 import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
 import {
+  GetContractApplicabilityDataDto,
   GetContractCompositeTemplateDto,
   GetSignerRoleMasterDto,
   SaveContractCompositeTemplateDto,
@@ -18,6 +21,8 @@ import {
   DOCUSIGN_COMPOSITE_TEMPLATE_MASTER,
   SignerRoleMaster,
   SIGNER_ROLE_MASTER,
+  UtilityMaster,
+  UTILITY_MASTER,
 } from './schemas';
 
 @Injectable()
@@ -25,8 +30,11 @@ export class DocusignTemplateMasterService {
   constructor(
     @InjectModel(DOCUSIGN_TEMPLATE_MASTER) private readonly docusignTemplateMasterModel: Model<DocusignTemplateMaster>,
     @InjectModel(SIGNER_ROLE_MASTER) private readonly signerRoleMasterModel: Model<SignerRoleMaster>,
+    @InjectModel(UTILITY_MASTER) private readonly utilityMasterModel: Model<UtilityMaster>,
     @InjectModel(DOCUSIGN_COMPOSITE_TEMPLATE_MASTER)
     private readonly docusignCompositeTemplateMasterModel: Model<DocusignCompositeTemplateMaster>,
+    private readonly utilityProgramMasterService: UtilityProgramMasterService,
+    private readonly fundingSourceService: FundingSourceService,
   ) {}
 
   async getTemplateMasters(): Promise<OperationResult<GetTemplateMasterDto>> {
@@ -93,6 +101,22 @@ export class DocusignTemplateMasterService {
     );
 
     return OperationResult.ok(new GetContractCompositeTemplateDto(compositeTemplateDetails));
+  }
+
+  async getContractApplicabilityData(): Promise<OperationResult<GetContractApplicabilityDataDto>> {
+    const [utilitiesMaster, utilityProgramsMaster, fundingSources] = await Promise.all([
+      this.utilityMasterModel.find(),
+      this.utilityProgramMasterService.getAll(),
+      this.fundingSourceService.getAll(),
+    ]);
+
+    return OperationResult.ok(
+      new GetContractApplicabilityDataDto({
+        applicableUtilities: utilitiesMaster.map(item => item.toObject({ versionKey: false })),
+        applicableFundingSources: fundingSources,
+        applicableUtilityPrograms: utilityProgramsMaster,
+      }),
+    );
   }
 
   async saveContractCompositeTemplate(
