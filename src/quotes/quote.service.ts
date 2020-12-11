@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, max, min, pick, pickBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
-import { UtilityProgramService } from 'src/utility-programs/utility-program.service';
+import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { roundNumber } from 'src/utils/transformNumber';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
 import { toCamelCase } from '../utils/transformProperties';
@@ -34,7 +34,7 @@ export class QuoteService {
     @InjectModel(TAX_CREDIT_CONFIG) private readonly taxCreditConfigModel: Model<TaxCreditConfig>,
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
-    private readonly utilityProgramService: UtilityProgramService,
+    private readonly utilityProgramService: UtilityProgramMasterService,
     private readonly fundingSourceService: FundingSourceService,
     private readonly cashPaymentConfigService: CashPaymentConfigService,
     private readonly calculationService: CalculationService,
@@ -121,11 +121,11 @@ export class QuoteService {
       quoteCostBuildup,
       utilityProgram: {
         utilityProgramId: utilityProgram?.id,
-        utilityProgramName: utilityProgram?.name,
+        utilityProgramName: utilityProgram?.utility_program_name,
         rebateAmount: utilityProgram?.rebate_amount,
         utility_program_data_snapshot: {
           id: utilityProgram?.id,
-          name: utilityProgram?.name,
+          name: utilityProgram?.utility_program_name,
           rebateAmount: utilityProgram?.rebate_amount,
         },
         utility_program_data_snapshot_date: new Date(),

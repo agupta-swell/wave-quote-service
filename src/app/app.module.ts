@@ -8,7 +8,7 @@ import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { ProposalModule } from 'src/proposals/proposal.module';
 import { RoleModule } from 'src/roles/role.module';
 import { UserModule } from 'src/users/user.module';
-import { UtilityProgramModule } from 'src/utility-programs/utility-program.module';
+import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
 import { EmailModule } from '../emails/email.module';
 import { LeaseSolverConfigModule } from '../lease-solver-configs/lease-solver-config.module';
 import { ProposalSectionMasterModule } from '../proposal-section-masters/proposal-section-masters.module';
@@ -40,7 +40,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UtilityModule,
     AdderConfigModule,
     QuoteModule,
-    UtilityProgramModule,
+    UtilityProgramMasterModule,
     FundingSourceModule,
     CashPaymentConfigModule,
     LeaseSolverConfigModule,
