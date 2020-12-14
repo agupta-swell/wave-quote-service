@@ -12,10 +12,10 @@ import {
   GetContractApplicabilityDataDto,
   GetContractCompositeTemplateDto,
   GetSignerRoleMasterDto,
+  GetTemplateMasterDto,
   SaveContractCompositeTemplateDto,
   SaveTemplateDto,
 } from './res';
-import { GetTemplateMasterDto } from './res/get-template-master.dto';
 import {
   DocusignCompositeTemplateMaster,
   DOCUSIGN_COMPOSITE_TEMPLATE_MASTER,
