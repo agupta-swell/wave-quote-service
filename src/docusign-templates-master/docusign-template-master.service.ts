@@ -97,13 +97,9 @@ export class DocusignTemplateMasterService {
         const docusignTemplates = await Promise.all(
           item.docusign_template_ids.map(async templateId => {
             const template = await this.docusignTemplateMasterModel.findById(templateId);
-            const roles = await Promise.all(
-              template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
-            );
 
             return {
               templateDetail: toCamelCase(template.toObject({ versionKey: false })),
-              signerRoleDetails: roles.map(item => toCamelCase(item.toObject({ versionKey: false }))),
             };
           }),
         );
@@ -152,8 +148,8 @@ export class DocusignTemplateMasterService {
         applicable_funding_sources: req.compositeTemplateData.applicableFundingSources,
         applicable_utility_programs: req.compositeTemplateData.applicableUtilityPrograms,
         applicable_utilities: req.compositeTemplateData.applicableUtilities,
-        // applicable_states: req.compositeTemplateData.,
-        // applicable_system_types: SYSTEM_TYPE,
+        applicable_states: req.compositeTemplateData.applicableStates,
+        applicable_system_types: req.compositeTemplateData.applicableSystemTypes,
       },
       { new: true, upsert: true },
     );
@@ -161,13 +157,9 @@ export class DocusignTemplateMasterService {
     const docusignTemplates = await Promise.all(
       req.compositeTemplateData.docusignTemplateIds.map(async templateId => {
         const template = await this.docusignTemplateMasterModel.findById(templateId);
-        const roles = await Promise.all(
-          template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
-        );
 
         return {
           templateDetail: toCamelCase(template.toObject({ versionKey: false })),
-          signerRoleDetails: roles.map(item => toCamelCase(item.toObject({ versionKey: false }))),
         };
       }),
     );
@@ -184,6 +176,25 @@ export class DocusignTemplateMasterService {
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
     return await this.docusignTemplateMasterModel.countDocuments({ opportunity_id: opportunityId }).exec();
+  }
+
+  async getUtilityMaster(utilityMasterName: string): Promise<UtilityMaster> {
+    const res = await this.utilityMasterModel.findOne({ utility_name: utilityMasterName });
+    return res?.toObject({ versionKey: false });
+  }
+
+  async getDocusignCompositeTemplateMaster(
+    fundingSources: string[],
+    utilities: string[],
+    utilityPrograms: string[],
+  ): Promise<DocusignCompositeTemplateMaster[]> {
+    const res = await this.docusignCompositeTemplateMasterModel.find({
+      applicable_funding_sources: { $in: fundingSources },
+      applicable_utilities: { $in: utilities },
+      applicable_utility_programs: { $in: utilityPrograms },
+    });
+
+    return res?.map(item => item.toObject({ versionKey: false }));
   }
 
   // ===================== INTERNAL =====================

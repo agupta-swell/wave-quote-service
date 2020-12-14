@@ -5,7 +5,6 @@ import { DocusignCompositeTemplateMasterDataResDto, SignerRoleDataResDto, Templa
 
 interface ITemplateDetailResDto {
   templateDetail: any;
-  signerRoleDetails: any;
 }
 
 interface ICompositeTemplateResDto {
@@ -16,9 +15,6 @@ interface ICompositeTemplateResDto {
 class TemplateDetailResDto {
   @ApiProperty({ type: TemplateMasterDataResDto })
   templateDetail: TemplateMasterDataResDto;
-
-  @ApiProperty({ type: SignerRoleDataResDto, isArray: true })
-  signerRoleDetails: SignerRoleDataResDto[];
 }
 
 export class CompositeTemplateResDto {

@@ -26,12 +26,17 @@ export class UtilityProgramMasterService {
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getDetail(id: string) {
+  async getDetailById(id: string): Promise<UtilityProgramMaster> {
     const product = await this.utilityProgramMaster.findById(id);
     return product;
   }
 
-  async getFirst() {
+  async getDetailByName(name: string): Promise<UtilityProgramMaster> {
+    const product = await this.utilityProgramMaster.findOne({ utility_program_name: name });
+    return product?.toObject();
+  }
+
+  async getFirst(): Promise<UtilityProgramMaster> {
     const [product] = await this.utilityProgramMaster.find();
     return product;
   }

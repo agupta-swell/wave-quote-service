@@ -12,6 +12,7 @@ import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { CreateUtilityDto } from './req/create-utility.dto';
 import { CostDataDto, TariffDto, UtilityDataDto } from './res';
 import { UtilityDetailsDto } from './res/utility-details.dto';
+import { UTILITIES, Utilities } from './schemas';
 import {
   GenabilityCostData,
   GenabilityTypicalBaseLineModel,
@@ -31,6 +32,8 @@ export class UtilityService {
   constructor(
     @InjectModel(GENABILITY_USAGE_DATA)
     private readonly genabilityUsageDataModel: Model<GenabilityUsageData>,
+    @InjectModel(UTILITIES)
+    private readonly utilitiesModel: Model<Utilities>,
     @InjectModel(GENABILITY_COST_DATA)
     private readonly genabilityCostDataModel: Model<GenabilityCostData>,
     @InjectModel(UTILITY_USAGE_DETAILS)
@@ -357,5 +360,10 @@ export class UtilityService {
       i += 1;
     }
     return hourlyUsage;
+  }
+
+  async getUtilityName(utilityId: string): Promise<string> {
+    const utility = await this.utilitiesModel.findById(utilityId);
+    return utility?.name || '';
   }
 }

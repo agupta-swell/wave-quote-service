@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ContractService } from './contract.service';
-import { GetCurrentContractDto, GetCurrentContractRes } from './res';
+import { GetContractTemplatesDto, GetContractTemplatesRes, GetCurrentContractDto, GetCurrentContractRes } from './res';
 
 @ApiTags('Contract')
 @ApiBearerAuth()
@@ -12,7 +12,7 @@ import { GetCurrentContractDto, GetCurrentContractRes } from './res';
 export class ContractController {
   constructor(private contractService: ContractService) {}
 
-  @Get()
+  @Get('/current-contracts')
   @ApiBearerAuth()
   @PreAuthenticate()
   @ApiOperation({ summary: 'Get Current Contracts' })
@@ -22,6 +22,19 @@ export class ContractController {
     @Query('opportunity-id') opportunityId: string,
   ): Promise<ServiceResponse<GetCurrentContractDto>> {
     const res = await this.contractService.getCurrentContracts(opportunityId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/contract-templates')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Get Contract Templates' })
+  @ApiOkResponse({ type: GetContractTemplatesRes })
+  @ApiQuery({ name: 'opportunity-id' })
+  async getContractTemplates(
+    @Query('opportunity-id') opportunityId: string,
+  ): Promise<ServiceResponse<GetContractTemplatesDto>> {
+    const res = await this.contractService.getContractTemplates(opportunityId);
     return ServiceResponse.fromResult(res);
   }
 }

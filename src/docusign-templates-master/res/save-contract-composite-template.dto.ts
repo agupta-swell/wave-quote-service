@@ -5,7 +5,6 @@ import { CompositeTemplateResDto } from './get-contract-composite-template.dto';
 
 export interface ITemplateDetailResDto {
   templateDetail: any;
-  signerRoleDetails: any;
 }
 
 export interface ICompositeTemplateResDto {

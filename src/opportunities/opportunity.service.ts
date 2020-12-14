@@ -18,4 +18,9 @@ export class OpportunityService {
     const res = await this.opportunityModel.findById(opportunityId);
     return res?.toObject()?.contactId;
   }
+
+  async getDetail(opportunityId: string): Promise<Opportunity> {
+    const res = await this.opportunityModel.findById(opportunityId);
+    return res?.toObject();
+  }
 }

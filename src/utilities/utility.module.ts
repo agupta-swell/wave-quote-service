@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { UTILITIES, UtilitiesSchema } from './schemas';
 import { UtilityController } from './utility.controller';
 import {
   GenabilityCostDataSchema,
@@ -29,6 +30,11 @@ import { UtilityService } from './utility.service';
         name: GENABILITY_COST_DATA,
         schema: GenabilityCostDataSchema,
         collection: 'v2_genability_cost_data',
+      },
+      {
+        name: UTILITIES,
+        schema: UtilitiesSchema,
+        collection: 'utilities',
       },
     ]),
   ],
