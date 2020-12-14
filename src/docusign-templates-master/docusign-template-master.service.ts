@@ -97,9 +97,15 @@ export class DocusignTemplateMasterService {
         const docusignTemplates = await Promise.all(
           item.docusign_template_ids.map(async templateId => {
             const template = await this.docusignTemplateMasterModel.findById(templateId);
+            const roles = await Promise.all(
+              template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+            );
 
             return {
-              templateDetail: toCamelCase(template.toObject({ versionKey: false })),
+              templateDetail: toCamelCase({
+                ...template.toObject({ versionKey: false }),
+                recipient_roles: roles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
+              }),
             };
           }),
         );
@@ -157,9 +163,15 @@ export class DocusignTemplateMasterService {
     const docusignTemplates = await Promise.all(
       req.compositeTemplateData.docusignTemplateIds.map(async templateId => {
         const template = await this.docusignTemplateMasterModel.findById(templateId);
+        const roles = await Promise.all(
+          template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+        );
 
         return {
-          templateDetail: toCamelCase(template.toObject({ versionKey: false })),
+          templateDetail: toCamelCase({
+            ...template.toObject({ versionKey: false }),
+            recipient_roles: roles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
+          }),
         };
       }),
     );
