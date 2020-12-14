@@ -39,7 +39,19 @@ export class DocusignTemplateMasterService {
 
   async getTemplateMasters(): Promise<OperationResult<GetTemplateMasterDto>> {
     const res = await this.docusignTemplateMasterModel.find();
-    return OperationResult.ok(new GetTemplateMasterDto(res?.map(item => item.toObject({ versionKey: false })) || []));
+    const data = await Promise.all(
+      res.map(async item => {
+        const recipientRoles = await Promise.all(
+          item.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+        );
+
+        return {
+          ...item.toObject({ versionKey: false }),
+          recipient_roles: recipientRoles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
+        };
+      }),
+    );
+    return OperationResult.ok(new GetTemplateMasterDto(data || []));
   }
 
   async getSignerRoleMasters(): Promise<OperationResult<GetSignerRoleMasterDto>> {
