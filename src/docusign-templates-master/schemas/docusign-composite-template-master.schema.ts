@@ -19,6 +19,25 @@ export interface DocusignCompositeTemplateMaster extends Document {
   updated_at: Date;
 }
 
+export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<DocusignCompositeTemplateMaster>(
+  {
+    name: String,
+    description: String,
+    docusign_template_ids: [String],
+    is_applicable_for_change_orders: Boolean,
+    applicable_funding_sources: [String],
+    applicable_utility_programs: [String],
+    applicable_utilities: [String],
+    applicable_states: [String],
+    applicable_system_types: [String],
+    created_at: { type: Date, default: Date.now },
+    created_by: String,
+    updated_at: { type: Date, default: Date.now },
+    updated_by: String,
+  },
+  { _id: false },
+);
+
 export const DocusignCompositeTemplateMasterSchema = new Schema<DocusignCompositeTemplateMaster>({
   name: String,
   description: String,
