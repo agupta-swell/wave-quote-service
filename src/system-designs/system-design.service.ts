@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { flatten, pickBy } from 'lodash';
 import { Model, Types } from 'mongoose';
@@ -23,8 +23,10 @@ export class SystemDesignService {
     private readonly productService: ProductService,
     private readonly systemProductService: SystemProductService,
     private readonly uploadImageService: UploadImageService,
+    @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
     private readonly adderConfigService: AdderConfigService,
+    @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
   ) {}
 

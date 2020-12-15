@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { groupBy, sumBy } from 'lodash';
 import { LeaseSolverConfigService } from '../../lease-solver-configs/lease-solver-config.service';
 import { UtilityService } from '../../utilities/utility.service';
@@ -6,7 +6,7 @@ import { roundNumber } from '../../utils/transformNumber';
 import { LeaseProductAttributesDto, LoanProductAttributesDto } from '../req/sub-dto';
 import { IPayPeriodData } from '../typing.d';
 import { ApplicationException } from './../../app/app.exception';
-import { dateAdd, getDaysInMonth, getPaymentDueDateByPeriod } from './../../utils/datetime';
+import { dateAdd, getDaysInMonth } from './../../utils/datetime';
 import { CalculateQuoteDetailDto } from './../req';
 
 const PAYMENT_ROUNDING = 2;
@@ -14,6 +14,7 @@ const PAYMENT_ROUNDING = 2;
 @Injectable()
 export class CalculationService {
   constructor(
+    @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
   ) {}
