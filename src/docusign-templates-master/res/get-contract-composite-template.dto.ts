@@ -1,25 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { toCamelCase } from 'src/utils/transformProperties';
-import { DocusignCompositeTemplateMasterDataResDto, SignerRoleDataResDto, TemplateMasterDataResDto } from './sub-dto';
-
-interface ITemplateDetailResDto {
-  templateDetail: any;
-}
+import { DocusignCompositeTemplateMasterDataResDto, TemplateMasterDataResDto } from './sub-dto';
 
 interface ICompositeTemplateResDto {
-  templateDetails: ITemplateDetailResDto[];
+  templateDetails: any[];
   compositeTemplateData: any;
 }
 
-class TemplateDetailResDto {
-  @ApiProperty({ type: TemplateMasterDataResDto })
-  templateDetail: TemplateMasterDataResDto;
-}
-
 export class CompositeTemplateResDto {
-  @ApiProperty({ type: TemplateDetailResDto, isArray: true })
-  templateDetails: TemplateDetailResDto[];
+  @ApiProperty({ type: TemplateMasterDataResDto, isArray: true })
+  templateDetails: TemplateMasterDataResDto[];
 
   @ApiProperty({ type: DocusignCompositeTemplateMasterDataResDto })
   compositeTemplateData: DocusignCompositeTemplateMasterDataResDto;

@@ -101,12 +101,10 @@ export class DocusignTemplateMasterService {
               template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
             );
 
-            return {
-              templateDetail: toCamelCase({
-                ...template.toObject({ versionKey: false }),
-                recipient_roles: roles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
-              }),
-            };
+            return toCamelCase<any>({
+              ...template.toObject({ versionKey: false }),
+              recipient_roles: roles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
+            });
           }),
         );
 
@@ -167,12 +165,10 @@ export class DocusignTemplateMasterService {
           template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
         );
 
-        return {
-          templateDetail: toCamelCase({
-            ...template.toObject({ versionKey: false }),
-            recipient_roles: roles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
-          }),
-        };
+        return toCamelCase<any>({
+          ...template.toObject({ versionKey: false }),
+          recipient_roles: roles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
+        });
       }),
     );
 
