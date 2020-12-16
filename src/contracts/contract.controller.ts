@@ -11,7 +11,9 @@ import {
   GetCurrentContractRes,
   SaveContractDto,
   SaveContractRes,
+  SendContractRes,
 } from './res';
+import { SendContractDto } from './res/send-contract.dto';
 
 @ApiTags('Contract')
 @ApiBearerAuth()
@@ -53,6 +55,17 @@ export class ContractController {
   @ApiOkResponse({ type: SaveContractRes })
   async saveContract(@Body() contractReq: SaveContractReqDto): Promise<ServiceResponse<SaveContractDto>> {
     const res = await this.contractService.saveContract(contractReq);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/send-contract')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Send Contract' })
+  @ApiOkResponse({ type: SendContractRes })
+  @ApiQuery({ name: 'opportunity-id' })
+  async sendContract(@Query('opportunity-id') opportunityId: string): Promise<ServiceResponse<SendContractDto>> {
+    const res = await this.contractService.sendContract(opportunityId);
     return ServiceResponse.fromResult(res);
   }
 }

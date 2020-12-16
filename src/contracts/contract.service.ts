@@ -1,22 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
+import { SaveTemplateDto } from 'src/docusign-templates-master/res';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { QuoteService } from 'src/quotes/quote.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { UtilityService } from './../utilities/utility.service';
-import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE } from './constants';
+import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveContractReqDto } from './req';
-import { GetContractTemplatesDto, GetCurrentContractDto, SaveContractDto } from './res';
+import { GetContractTemplatesDto, GetCurrentContractDto, SaveContractDto, SendContractDto } from './res';
 
 @Injectable()
 export class ContractService {
   constructor(
     @InjectModel(CONTRACT) private readonly contractModel: Model<Contract>,
     private readonly opportunityService: OpportunityService,
+    private readonly quoteService: QuoteService,
     private readonly utilityService: UtilityService,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
@@ -121,5 +125,47 @@ export class ContractService {
     }
 
     return OperationResult.ok(new SaveContractDto(false, 'Unexpected Operation Mode'));
+  }
+
+  async sendContract(contractId: string): Promise<OperationResult<SendContractDto>> {
+    const contract = await this.contractModel.findById(contractId);
+    if (!contract) {
+      throw ApplicationException.EnitityNotFound(`ContractId: ${contractId}`);
+    }
+
+    const opportunity = await this.opportunityService.getDetail(contract.opportunity_id);
+    if (!opportunity) {
+      throw ApplicationException.EnitityNotFound(`OpportunityId: ${contract.opportunity_id}`);
+    }
+
+    const quote = await this.quoteService.getOneById(contract.associated_quote_id);
+    if (!quote) {
+      throw ApplicationException.EnitityNotFound(`Associated Quote Id: ${contract.associated_quote_id}`);
+    }
+
+    let status: string;
+    let statusDescription: string;
+    // FIXME: need to handle later when docusign engine complete
+    const docusignResponse = 'SUCCESS';
+
+    if (docusignResponse === 'SUCCESS') {
+      status = 'SUCCESS';
+      contract.contract_status = PROCESS_STATUS.IN_PROGRESS;
+      contract.signer_details[0].sign_status = SIGN_STATUS.SENT;
+    } else {
+      status = 'ERROR';
+      statusDescription = 'ERROR';
+      contract.contract_status = PROCESS_STATUS.ERROR;
+    }
+
+    const updatedContract = await this.contractModel.findByIdAndUpdate(
+      contract.id,
+      contract.toObject({ versionKey: false }),
+      { new: true },
+    );
+
+    return OperationResult.ok(
+      new SendContractDto(status, statusDescription, updatedContract.toObject({ versionKey: true })),
+    );
   }
 }
