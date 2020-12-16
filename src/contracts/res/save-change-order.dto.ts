@@ -5,7 +5,7 @@ import { ContractResDto } from './sub-dto';
 
 export class SaveChangeOrderDto {
   @ApiProperty()
-  status: string;
+  status: boolean;
 
   @ApiProperty()
   statusDescription: string;
@@ -13,7 +13,7 @@ export class SaveChangeOrderDto {
   @ApiProperty({ type: ContractResDto })
   newlyUpdatedContract: ContractResDto;
 
-  constructor(status: string, statusDescription: string, contract: Contract) {
+  constructor(status: boolean, statusDescription?: string, contract?: Contract) {
     this.status = status;
     this.statusDescription = statusDescription;
     this.newlyUpdatedContract = new ContractResDto(contract);

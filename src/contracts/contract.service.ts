@@ -4,7 +4,6 @@ import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
-import { SaveTemplateDto } from 'src/docusign-templates-master/res';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -12,8 +11,14 @@ import { toSnakeCase } from 'src/utils/transformProperties';
 import { UtilityService } from './../utilities/utility.service';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
-import { SaveContractReqDto } from './req';
-import { GetContractTemplatesDto, GetCurrentContractDto, SaveContractDto, SendContractDto } from './res';
+import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
+import {
+  GetContractTemplatesDto,
+  GetCurrentContractDto,
+  SaveChangeOrderDto,
+  SaveContractDto,
+  SendContractDto,
+} from './res';
 
 @Injectable()
 export class ContractService {
@@ -167,5 +172,69 @@ export class ContractService {
     return OperationResult.ok(
       new SendContractDto(status, statusDescription, updatedContract.toObject({ versionKey: true })),
     );
+  }
+
+  async saveChangeOrder(req: SaveChangeOrderReqDto): Promise<OperationResult<SaveChangeOrderDto>> {
+    const { mode, contractDetail } = req;
+
+    if (mode === REQUEST_MODE.ADD && contractDetail.id) {
+      return OperationResult.ok(new SaveChangeOrderDto(false, 'Add request cannot have an id value'));
+    }
+
+    if (mode === REQUEST_MODE.UPDATE && !contractDetail.id) {
+      return OperationResult.ok(new SaveChangeOrderDto(false, 'Update request should have an id value'));
+    }
+
+    if (mode === REQUEST_MODE.UPDATE) {
+      const contract = await this.contractModel.findById(contractDetail.id);
+
+      if (!contract) {
+        return OperationResult.ok(
+          new SaveChangeOrderDto(false, `No matching record to update for id ${contractDetail.id}`),
+        );
+      }
+
+      if (contract.contract_status !== PROCESS_STATUS.INITIATED) {
+        return OperationResult.ok(new SaveChangeOrderDto(false, 'Contract is already in progress or completed'));
+      }
+
+      const updatedContract = await this.contractModel.findByIdAndUpdate(
+        contractDetail.id,
+        {
+          primary_contract_id: contract.primary_contract_id,
+          contract_type: CONTRACT_TYPE.CHANGE_ORDER,
+          contract_status: contract.contract_status,
+          contracting_system: 'DOCUSIGN',
+        },
+        { new: true },
+      );
+
+      return OperationResult.ok(new SaveChangeOrderDto(true, null, updatedContract));
+    }
+
+    if (mode === REQUEST_MODE.ADD) {
+      const templateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
+        contractDetail.contractTemplateId,
+      );
+
+      const model = new this.contractModel({
+        opportunity_id: contractDetail.opportunityId,
+        contract_type: CONTRACT_TYPE.CHANGE_ORDER,
+        name: contractDetail.name,
+        associated_quote_id: contractDetail.associatedQuoteId,
+        contract_template_id: contractDetail.contractTemplateId,
+        signer_details: contractDetail.signerDetails.map(item => toSnakeCase(item)),
+        template_detail: templateDetail,
+        contracting_system: 'DOCUSIGN',
+        primary_contract_id: contractDetail.primaryContractId,
+        contract_status: PROCESS_STATUS.INITIATED,
+      });
+
+      await model.save();
+
+      return OperationResult.ok(new SaveChangeOrderDto(true, model.toObject({ versionKey: false })));
+    }
+
+    return OperationResult.ok(new SaveChangeOrderDto(false, 'Unexpected Operation Mode'));
   }
 }
