@@ -14,3 +14,8 @@ export enum PROCESS_STATUS {
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
 }
+
+export enum REQUEST_MODE {
+  ADD = 'ADD',
+  UPDATE = 'UPDATE',
+}

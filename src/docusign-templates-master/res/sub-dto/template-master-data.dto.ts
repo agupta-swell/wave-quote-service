@@ -1,6 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { TEMPLATE_STATUS } from 'src/docusign-templates-master/constants';
 
+class RecipientRoleResDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  roleName: string;
+
+  @ApiProperty()
+  roleDescription: string;
+}
+
 export class TemplateMasterDataResDto {
   @ApiProperty()
   id: string;
@@ -17,8 +28,8 @@ export class TemplateMasterDataResDto {
   @ApiProperty({ enum: TEMPLATE_STATUS })
   templateStatus: TEMPLATE_STATUS;
 
-  @ApiProperty({ isArray: true, type: String })
-  recipientRoles: string[];
+  @ApiProperty({ isArray: true, type: RecipientRoleResDto })
+  recipientRoles: RecipientRoleResDto[];
 
   @ApiProperty()
   createdAt: Date;

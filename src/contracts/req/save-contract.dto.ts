@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { CONTRACT_TYPE, PROCESS_STATUS } from '../constants';
+import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE } from '../constants';
 
 class ContractReqDto {
   @ApiProperty()
@@ -52,8 +52,8 @@ class ContractReqDto {
 }
 
 export class SaveContractReqDto {
-  @ApiProperty()
-  mode: string;
+  @ApiProperty({ enum: REQUEST_MODE })
+  mode: REQUEST_MODE;
 
   @ApiProperty({ type: ContractReqDto })
   contractDetail: ContractReqDto;
