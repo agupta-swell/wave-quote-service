@@ -1,15 +1,18 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
-import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE } from '../constants';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { REQUEST_MODE } from '../constants';
+import { SignerDetailDto } from './sub-dto/signer-detail.dto';
 
 class ContractReqDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  id: string;
+
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   opportunityId: string;
-
-  @ApiProperty({ enum: CONTRACT_TYPE })
-  contractType: CONTRACT_TYPE;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -26,29 +29,20 @@ class ContractReqDto {
   @IsString()
   contractTemplateId: string;
 
-  @ApiProperty()
-  templateDetail;
-
-  @ApiProperty()
+  @ApiProperty({ type: SignerDetailDto, isArray: true })
   @IsNotEmpty()
-  @IsString()
-  contractingSystem: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SignerDetailDto)
+  signerDetails: SignerDetailDto[];
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   primaryContractId: string;
 
-  @ApiProperty({ enum: PROCESS_STATUS })
-  contractStatus: PROCESS_STATUS;
-
-  // @ApiProperty()
-  // @IsNotEmpty()
-  // @IsString()
-  // chnageOrderDescription: string;
-
-  // @ApiProperty()
-  // completionDate: string;
+  @ApiPropertyOptional()
+  chnageOrderDescription: string;
 }
 
 export class SaveContractReqDto {

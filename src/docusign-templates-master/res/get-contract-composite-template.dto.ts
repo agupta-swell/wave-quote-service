@@ -1,11 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { toCamelCase } from 'src/utils/transformProperties';
+import { DocusignTemplateMaster } from '../docusign-template-master.schema';
+import { DocusignCompositeTemplateMaster } from '../schemas';
 import { DocusignCompositeTemplateMasterDataResDto, TemplateMasterDataResDto } from './sub-dto';
 
 interface ICompositeTemplateResDto {
-  templateDetails: any[];
-  compositeTemplateData: any;
+  templateDetails: DocusignTemplateMaster[];
+  compositeTemplateData: DocusignCompositeTemplateMaster;
 }
 
 export class CompositeTemplateResDto {
@@ -24,7 +26,7 @@ export class GetContractCompositeTemplateDto {
     this.compositeTemplates = props?.map(item => this.transformData(item));
   }
 
-  transformData(props: CompositeTemplateResDto): CompositeTemplateResDto {
+  transformData(props: ICompositeTemplateResDto): CompositeTemplateResDto {
     return {
       templateDetails: props.templateDetails.map(item => toCamelCase(item)),
       compositeTemplateData: toCamelCase(props.compositeTemplateData),

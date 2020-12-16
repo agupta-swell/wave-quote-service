@@ -205,5 +205,28 @@ export class DocusignTemplateMasterService {
     return res?.map(item => item.toObject({ versionKey: false }));
   }
 
+  async getCompositeTemplateById(compositeTemplateId: string): Promise<any> {
+    const compositeTemplate = await this.docusignCompositeTemplateMasterModel.findById(compositeTemplateId);
+
+    const docusignTemplates = await Promise.all(
+      compositeTemplate.docusign_template_ids.map(async templateId => {
+        const template = await this.docusignTemplateMasterModel.findById(templateId);
+        const roles = await Promise.all(
+          template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+        );
+
+        return toCamelCase<any>({
+          ...template.toObject({ versionKey: false }),
+          recipient_roles: roles.map(role => role.toObject({ versionKey: false })),
+        });
+      }),
+    );
+
+    return {
+      templateDetails: docusignTemplates,
+      compositeTemplateData: compositeTemplate.toObject({ versionKey: false }),
+    };
+  }
+
   // ===================== INTERNAL =====================
 }
