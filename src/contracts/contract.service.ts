@@ -59,13 +59,14 @@ export class ContractService {
     let { fundingSourceId, utilityId } = await this.opportunityService.getDetail(opportunityId);
     const complexUtilityName = await this.utilityService.getUtilityName(utilityId);
     const [utilityName = '', utilityProgramName = ''] = complexUtilityName.split('-');
-    utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName)).utility_name;
-    const utilityProgramId = (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))
-      .utility_program_name;
+    const utility = await this.docusignTemplateMasterService.getUtilityMaster(utilityName?.trim());
+    const { utility_name } = utility;
+    const utilityProgramId = (await this.utilityProgramMasterService.getDetailByName(utilityProgramName.trim()))
+      ?.utility_program_name;
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId],
-      [utilityId],
-      [utilityProgramId],
+      [utility_name || ''],
+      [utilityProgramId || ''],
     );
 
     return OperationResult.ok(new GetContractTemplatesDto(templateMasterRecords));

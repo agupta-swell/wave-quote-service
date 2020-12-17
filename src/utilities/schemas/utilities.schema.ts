@@ -7,5 +7,6 @@ export interface Utilities extends Document {
 }
 
 export const UtilitiesSchema = new Schema<Utilities>({
+  _id: Schema.Types.Mixed,
   name: String,
 });
