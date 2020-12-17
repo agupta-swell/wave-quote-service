@@ -78,7 +78,7 @@ export interface Contract extends Document {
   associated_quote_id: string;
   contract_template_id: string;
   signer_details: ISignerDetailDataSchema[];
-  template_detail: ICompositeTemplateSchema;
+  contract_template_detail: ICompositeTemplateSchema;
   contracting_system: string;
   primary_contract_id: string;
   contract_status: PROCESS_STATUS;
@@ -98,7 +98,7 @@ export const ContractSchema = new Schema<Contract>({
   contract_template_id: String,
   signer_details: [SignerDetailDataSchema],
   // FIXME: need to declare later
-  template_detail: CompositeTemplateSchema,
+  contract_template_detail: CompositeTemplateSchema,
   contracting_system: String,
   primary_contract_id: String,
   contract_status: String,

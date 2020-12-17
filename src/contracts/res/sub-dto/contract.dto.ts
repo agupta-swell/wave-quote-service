@@ -40,7 +40,7 @@ export class ContractResDto {
   signerDetails: SignerDetailResDto[];
 
   @ApiProperty({ type: TemplateDetailResDto })
-  templateDetail: TemplateDetailResDto;
+  contractTemplateDetail: TemplateDetailResDto;
 
   @ApiProperty()
   contractingSystem: string;
@@ -66,9 +66,9 @@ export class ContractResDto {
   constructor(contract: Contract) {
     Object.assign(this, toCamelCase(contract));
     this.signerDetails = contract?.signer_details?.map(item => toCamelCase(item));
-    this.templateDetail = {
-      templateDetails: contract?.template_detail?.template_details?.map(template => toCamelCase(template)),
-      compositeTemplateData: toCamelCase(contract?.template_detail?.composite_template_data),
+    this.contractTemplateDetail = {
+      templateDetails: contract?.contract_template_detail?.template_details?.map(template => toCamelCase(template)),
+      compositeTemplateData: toCamelCase(contract?.contract_template_detail?.composite_template_data),
     };
   }
 }
