@@ -127,7 +127,7 @@ export class ContractService {
 
       await model.save();
 
-      return OperationResult.ok(new SaveContractDto(true, model.toObject({ versionKey: false })));
+      return OperationResult.ok(new SaveContractDto(true, null, model.toObject({ versionKey: false })));
     }
 
     return OperationResult.ok(new SaveContractDto(false, 'Unexpected Operation Mode'));
