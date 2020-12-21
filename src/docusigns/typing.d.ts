@@ -1,3 +1,6 @@
+import { Contract } from 'src/contracts/contract.schema';
+import { Opportunity } from 'src/opportunities/opportunity.schema';
+import { Quote } from 'src/quotes/quote.schema';
 export interface ITextTabData {
   keyName: string;
 }
@@ -11,7 +14,7 @@ export interface ISignerData {
   name: string;
   recipientId: string;
   roleName: string;
-  routingOrder: string;
+  routingOrder: number;
   tabs: ITabData[];
 }
 
@@ -20,12 +23,12 @@ export interface IRecipientData {
 }
 
 export interface IInlineTemplate {
-  sequence: string;
+  sequence: number;
   recipient: IRecipientData;
 }
 
 export interface IServerTemplate {
-  sequence: string;
+  sequence: number;
   templateId: string;
 }
 
@@ -39,4 +42,10 @@ export interface IDocusignCompositeContract {
   emailBlurb: string;
   status: string;
   compositeTemplates: ICompositeTemplate[];
+}
+
+export interface IGenericObject {
+  contract: Contract;
+  opportunity: Opportunity;
+  quote: Quote;
 }

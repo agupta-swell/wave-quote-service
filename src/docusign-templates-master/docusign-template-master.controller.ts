@@ -16,7 +16,7 @@ import {
   SaveContractCompositeTemplateDto,
   SaveContractCompositeTemplateRes,
   SaveTemplateDto,
-  SaveTemplateRes,
+  SaveTemplateRes
 } from './res';
 
 @ApiTags('Docusign Template Master')
@@ -83,6 +83,15 @@ export class DocusignTemplateMasterController {
   @ApiOkResponse({ type: SaveTemplateRes })
   async saveTemplate(@Body() req: SaveTemplateReqDto): Promise<ServiceResponse<SaveTemplateDto>> {
     const res = await this.docusignTemplateMasterService.saveTemplate(req);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/mock-data')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Create mock data for utilities master and utility programs master' })
+  async createUtilitiesMasterData(): Promise<ServiceResponse<boolean>> {
+    const res = await this.docusignTemplateMasterService.createUtilitiesMasterData();
     return ServiceResponse.fromResult(res);
   }
 }

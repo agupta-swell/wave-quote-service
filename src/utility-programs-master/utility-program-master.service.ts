@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { compact, uniq } from 'lodash';
 import { Model } from 'mongoose';
 import { OperationResult, Pagination } from '../app/common';
 import { UtilityProgramMasterDto } from './res/utility-program-master.dto';
@@ -33,7 +34,7 @@ export class UtilityProgramMasterService {
 
   async getDetailByName(name: string): Promise<UtilityProgramMaster> {
     const product = await this.utilityProgramMaster.findOne({ utility_program_name: name });
-    return product?.toObject();
+    return product?.toObject({ versionKey: false });
   }
 
   async getFirst(): Promise<UtilityProgramMaster> {
@@ -44,5 +45,17 @@ export class UtilityProgramMasterService {
   async getAll(): Promise<UtilityProgramMaster[]> {
     const utilityProgramMasters = await this.utilityProgramMaster.find();
     return utilityProgramMasters.length ? utilityProgramMasters.map(item => item.toObject({ versionKey: false })) : [];
+  }
+
+  // FIXME: need to delete later
+  async createUtilityProgramsMaster(data: string[]): Promise<boolean> {
+    const anotherData = compact(uniq(['ACES', 'ACES+SGIP', 'none', 'PRP2', 'PRP2+SGIP', 'SGIP'].concat(data)));
+    await Promise.all(
+      anotherData.map(item =>
+        new this.utilityProgramMaster({ utility_program_name: item, rebate_amount: 1000 }).save(),
+      ),
+    );
+
+    return true;
   }
 }

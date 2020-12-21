@@ -366,4 +366,9 @@ export class UtilityService {
     const utility = await this.utilitiesModel.findById(utilityId);
     return utility?.name || '';
   }
+
+  async getAllUtilities(): Promise<Utilities[]> {
+    const utilities = await this.utilitiesModel.find();
+    return utilities?.map(item => item.toObject({ versionKey: false }));
+  }
 }
