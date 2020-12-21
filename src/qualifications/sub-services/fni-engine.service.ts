@@ -8,7 +8,6 @@ import { FNI_Communication, FNI_COMMUNICATION } from '../schemas/fni-communicati
 import { IApplyRequest, IFniApplyReq } from '../typing.d';
 import { ExternalService } from './../../external-services/external-service.service';
 import { IFniUpdateReq, IFniUpdateRes } from './../typing.d';
-import { FniCallbackService } from './fni-callback.service';
 
 @Injectable()
 export class FniEngineService {
@@ -20,8 +19,6 @@ export class FniEngineService {
     private readonly externalService: ExternalService,
     @Inject(forwardRef(() => QualificationService))
     private qualificationService: QualificationService,
-    @Inject(forwardRef(() => FniCallbackService))
-    private fniCallbackService: FniCallbackService,
   ) {
     const { AWS_REGION } = process.env;
 
@@ -124,13 +121,13 @@ export class FniEngineService {
 
   async update(req: IFniUpdateReq): Promise<IFniUpdateRes> {
     let coinedErrorMessage: string = '';
-    const fniCommunication = await this.fniCommunicationModel.findById(req.fniCommunicationId);
+    let fniCommunication = await this.fniCommunicationModel.findById(req.fniCommunicationId);
 
     if (!fniCommunication) {
       coinedErrorMessage = `FNI Communication Id: ${req.fniCommunicationId} not found !!!`;
 
       const now = new Date();
-      const fniModel = new this.fniCommunicationModel({
+      fniCommunication = new this.fniCommunicationModel({
         qualification_credit_id: req.qualificationCreditId,
         received_on: now,
         sent_on: now,
@@ -142,7 +139,7 @@ export class FniEngineService {
         raw_data_from_fni: req.rawRequest,
       });
 
-      await fniModel.save();
+      await fniCommunication.save();
     } else {
       fniCommunication.raw_data_from_fni = req.rawRequest;
     }
@@ -193,30 +190,6 @@ export class FniEngineService {
   }
 
   // ======================= INTERNAL ========================
-
-  async getSecretFNIInformation() {
-    let secret: string, decodedBinarySecret: string;
-
-    try {
-      const data = await this.client.getSecretValue({ SecretId: 'fniAPISecret-cpxGGmSQW6jO' }).promise();
-      if ('SecretString' in data) {
-        secret = data.SecretString;
-      } else {
-        let buff = Buffer.from(data.SecretBinary.toString(), 'base64');
-        decodedBinarySecret = buff.toString('ascii');
-      }
-    } catch (error) {
-      console.log('>>>>>>>>>>>>>>>>>>>', 'FniEngineService -> decode secret', error);
-    }
-
-    console.log('>>>>>>>>>>>>>>>>>>>', 'decodedBinarySecret', secret, decodedBinarySecret);
-
-    // FIXME: need to delete later
-    return {
-      userName: 'userName',
-      password: 'password',
-    };
-  }
 
   translateFniResponseCode(code: string) {
     switch (code) {

@@ -26,11 +26,15 @@ import {
   SendMailDto,
   SendMailRes,
 } from './res';
+import { FniCallbackService } from './sub-services/fni-callback.service';
 
 @ApiTags('Qualification')
 @Controller('/qualifications')
 export class QualificationController {
-  constructor(private qualificationService: QualificationService) {}
+  constructor(
+    private readonly qualificationService: QualificationService,
+    private readonly fniCallbackService: FniCallbackService,
+  ) {}
 
   @Post()
   @ApiBearerAuth()
@@ -114,4 +118,12 @@ export class QualificationController {
   }
 
   //  ================= specific token in body ==============
+
+  // FIXME: need to delete later
+  @Put('/sighten')
+  @ApiOperation({ summary: 'Update Sighten' })
+  async updateSighten(@Body() req: any): Promise<any> {
+    const res = await this.fniCallbackService.updateSighten(req);
+    return res;
+  }
 }

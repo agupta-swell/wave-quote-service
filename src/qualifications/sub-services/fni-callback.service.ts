@@ -1,17 +1,24 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { IFniUpdateReq, IUpdateSightenRequest, IUpdateSightenResponse } from './../typing.d';
 import { FniEngineService } from './fni-engine.service';
+import * as AWS from 'aws-sdk';
 
 // FIXME: delete after deploying production
 @Injectable()
 export class FniCallbackService {
-  constructor(
-    @Inject(forwardRef(() => FniEngineService))
-    private fniEngineService: FniEngineService,
-  ) {}
+  AWS_REGION: string;
+  client: AWS.SecretsManager;
+
+  constructor(private readonly fniEngineService: FniEngineService) {
+    const { AWS_REGION } = process.env;
+
+    this.client = new AWS.SecretsManager({
+      region: AWS_REGION,
+    });
+  }
 
   async updateSighten(req: IUpdateSightenRequest) {
-    const { userName, password } = await this.fniEngineService.getSecretFNIInformation();
+    const { userName, password } = await this.getSecretFNIInformation();
 
     if (userName === req.transaction.username && password === req.transaction.password) {
       const request = {
@@ -46,5 +53,27 @@ export class FniCallbackService {
 
       return response;
     }
+  }
+
+  async getSecretFNIInformation() {
+    let secret: string, decodedBinarySecret: string;
+
+    try {
+      const data = await this.client.getSecretValue({ SecretId: 'fniAPISecret-cpxGGmSQW6jO' }).promise();
+      if ('SecretString' in data) {
+        secret = data.SecretString;
+      } else {
+        let buff = Buffer.from(data.SecretBinary.toString(), 'base64');
+        decodedBinarySecret = buff.toString('ascii');
+      }
+    } catch (error) {
+      console.log('>>>>>>>>>>>>>>>>>>>', 'FniEngineService -> decode secret', error);
+    }
+
+    // FIXME: need to delete later
+    return {
+      userName: 'thanghq',
+      password: '1',
+    };
   }
 }
