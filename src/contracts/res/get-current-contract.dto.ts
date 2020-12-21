@@ -27,14 +27,8 @@ export class GetCurrentContractDto {
 
   transformData(contract: IGetCurrentContractDto): ContractDetailDataResDto {
     return {
-      contractData: {
-        ...toCamelCase(contract.contractData),
-        signerDetails: contract.contractData.signer_details.map(signer => toCamelCase(signer)),
-      },
-      changeOrders: contract.changeOrders.map(changeOrder => ({
-        ...toCamelCase(changeOrder),
-        signerDetails: changeOrder.signer_details.map(signer => toCamelCase(signer)),
-      })),
+      contractData: new ContractResDto(contract.contractData),
+      changeOrders: contract.changeOrders.map(changeOrder => new ContractResDto(changeOrder)),
     };
   }
 }

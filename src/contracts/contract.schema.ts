@@ -100,7 +100,6 @@ export const ContractSchema = new Schema<Contract>({
   associated_quote_id: String,
   contract_template_id: String,
   signer_details: [SignerDetailDataSchema],
-  // FIXME: need to declare later
   contract_template_detail: CompositeTemplateSchema,
   contracting_system: String,
   primary_contract_id: String,
