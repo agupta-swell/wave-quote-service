@@ -231,7 +231,9 @@ export class DocusignTemplateMasterService {
     return res?.map(item => item.toObject({ versionKey: false }));
   }
 
-  async getCompositeTemplateById(compositeTemplateId: string): Promise<any> {
+  async getCompositeTemplateById(
+    compositeTemplateId: string,
+  ): Promise<{ template_details: any; composite_template_data: any }> {
     const compositeTemplate = await this.docusignCompositeTemplateMasterModel.findById(compositeTemplateId);
 
     const docusignTemplates = await Promise.all(
@@ -241,16 +243,16 @@ export class DocusignTemplateMasterService {
           template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
         );
 
-        return toCamelCase<any>({
+        return {
           ...template.toObject({ versionKey: false }),
           recipient_roles: roles.map(role => role.toObject({ versionKey: false })),
-        });
+        };
       }),
     );
 
     return {
-      templateDetails: docusignTemplates,
-      compositeTemplateData: compositeTemplate.toObject({ versionKey: false }),
+      template_details: docusignTemplates,
+      composite_template_data: compositeTemplate.toObject({ versionKey: false }),
     };
   }
 

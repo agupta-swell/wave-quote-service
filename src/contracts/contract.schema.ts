@@ -66,10 +66,13 @@ export interface ICompositeTemplateSchema {
   composite_template_data: DocusignCompositeTemplateMaster;
 }
 
-const CompositeTemplateSchema = new Schema<ICompositeTemplateSchema>({
-  template_details: [TemplateDetailSchema],
-  composite_template_data: DocusignCompositeTemplateMasterSchemaWithoutId,
-});
+const CompositeTemplateSchema = new Schema<ICompositeTemplateSchema>(
+  {
+    template_details: [TemplateDetailSchema],
+    composite_template_data: DocusignCompositeTemplateMasterSchemaWithoutId,
+  },
+  { _id: false },
+);
 
 export interface Contract extends Document {
   opportunity_id: string;
