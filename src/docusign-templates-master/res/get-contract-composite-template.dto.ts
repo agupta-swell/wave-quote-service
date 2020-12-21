@@ -28,7 +28,10 @@ export class GetContractCompositeTemplateDto {
 
   transformData(props: ICompositeTemplateResDto): CompositeTemplateResDto {
     return {
-      templateDetails: props.templateDetails.map(item => toCamelCase(item)),
+      templateDetails: props.templateDetails.map(item => ({
+        ...toCamelCase(item),
+        recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
+      })),
       compositeTemplateData: toCamelCase(props.compositeTemplateData),
     };
   }

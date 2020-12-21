@@ -67,7 +67,10 @@ export class ContractResDto {
     Object.assign(this, toCamelCase(contract));
     this.signerDetails = contract?.signer_details?.map(item => toCamelCase(item));
     this.contractTemplateDetail = {
-      templateDetails: contract?.contract_template_detail?.template_details?.map(template => toCamelCase(template)),
+      templateDetails: contract?.contract_template_detail?.template_details?.map(template => ({
+        ...toCamelCase(template),
+        recipientRoles: template.recipient_roles.map(role => toCamelCase(role)),
+      })),
       compositeTemplateData: toCamelCase(contract?.contract_template_detail?.composite_template_data),
     };
   }

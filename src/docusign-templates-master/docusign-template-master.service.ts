@@ -6,7 +6,6 @@ import { OperationResult } from 'src/app/common';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
-import { toCamelCase } from 'src/utils/transformProperties';
 import { SAVE_TEMPLATE_MODE } from './constants';
 import { DocusignTemplateMaster, DOCUSIGN_TEMPLATE_MASTER } from './docusign-template-master.schema';
 import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
@@ -50,7 +49,7 @@ export class DocusignTemplateMasterService {
 
         return {
           ...item.toObject({ versionKey: false }),
-          recipient_roles: recipientRoles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
+          recipient_roles: recipientRoles.map(role => role.toObject({ versionKey: false })),
         };
       }),
     );
@@ -83,6 +82,7 @@ export class DocusignTemplateMasterService {
         docusign_template_id: req.templateData.docusignTemplateId,
         recipient_roles: req.templateData.recipientRoles,
         template_status: req.templateData.templateStatus,
+        createdAt: new Date(),
       },
       { new: true, upsert: true },
     );
@@ -104,10 +104,10 @@ export class DocusignTemplateMasterService {
               template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
             );
 
-            return toCamelCase<any>({
+            return {
               ...template.toObject({ versionKey: false }),
-              recipient_roles: roles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
-            });
+              recipient_roles: roles.map(role => role.toObject({ versionKey: false })),
+            };
           }),
         );
 
@@ -157,6 +157,7 @@ export class DocusignTemplateMasterService {
         applicable_utilities: req.compositeTemplateData.applicableUtilities,
         applicable_states: req.compositeTemplateData.applicableStates,
         applicable_system_types: req.compositeTemplateData.applicableSystemTypes,
+        createdAt: new Date(),
       },
       { new: true, upsert: true },
     );
@@ -168,10 +169,11 @@ export class DocusignTemplateMasterService {
           template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
         );
 
-        return toCamelCase<any>({
+        return {
           ...template.toObject({ versionKey: false }),
-          recipient_roles: roles.map(role => toCamelCase(role.toObject({ versionKey: false }))),
-        });
+          id: template?._id,
+          recipient_roles: roles.map(role => role.toObject({ versionKey: false })),
+        };
       }),
     );
 
@@ -199,7 +201,9 @@ export class DocusignTemplateMasterService {
     const utilityProgramsName = uniq(transformUtilities.map(item => item.utilityProgramName));
 
     await Promise.all([
-      flatten(utilitiesName.map(name => new this.utilityMasterModel({ utility_name: name }).save())),
+      flatten(
+        utilitiesName.map(name => new this.utilityMasterModel({ utility_name: name, createdAt: new Date() }).save()),
+      ),
       this.utilityProgramMasterService.createUtilityProgramsMaster(utilityProgramsName),
     ]);
 
@@ -237,22 +241,23 @@ export class DocusignTemplateMasterService {
     const compositeTemplate = await this.docusignCompositeTemplateMasterModel.findById(compositeTemplateId);
 
     const docusignTemplates = await Promise.all(
-      compositeTemplate.docusign_template_ids.map(async templateId => {
+      compositeTemplate?.docusign_template_ids?.map(async templateId => {
         const template = await this.docusignTemplateMasterModel.findById(templateId);
         const roles = await Promise.all(
-          template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+          template?.recipient_roles?.map(roleId => this.signerRoleMasterModel.findById(roleId)),
         );
 
         return {
           ...template.toObject({ versionKey: false }),
-          recipient_roles: roles.map(role => role.toObject({ versionKey: false })),
+          id: template?._id?.toString(),
+          recipient_roles: roles?.map(role => role.toObject({ versionKey: false })),
         };
       }),
     );
 
     return {
       template_details: docusignTemplates,
-      composite_template_data: compositeTemplate.toObject({ versionKey: false }),
+      composite_template_data: compositeTemplate?.toObject({ versionKey: false }),
     };
   }
 
