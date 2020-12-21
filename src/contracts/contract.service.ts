@@ -55,8 +55,11 @@ export class ContractService {
     return OperationResult.ok(new GetCurrentContractDto(data));
   }
 
-  async getContractTemplates(opportunityId: string): Promise<OperationResult<GetContractTemplatesDto>> {
-    let { fundingSourceId, utilityId } = await this.opportunityService.getDetail(opportunityId);
+  async getContractTemplates(
+    opportunityId: string,
+    fundingSourceId: string,
+  ): Promise<OperationResult<GetContractTemplatesDto>> {
+    let { utilityId } = await this.opportunityService.getDetail(opportunityId);
     const complexUtilityName = await this.utilityService.getUtilityName(utilityId);
     const [utilityName = '', utilityProgramName = ''] = complexUtilityName.split('-');
     const utility = await this.docusignTemplateMasterService.getUtilityMaster(utilityName?.trim());

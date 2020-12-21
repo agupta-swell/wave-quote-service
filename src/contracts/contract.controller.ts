@@ -41,10 +41,12 @@ export class ContractController {
   @ApiOperation({ summary: 'Get Contract Templates' })
   @ApiOkResponse({ type: GetContractTemplatesRes })
   @ApiQuery({ name: 'opportunity-id' })
+  @ApiQuery({ name: 'funding-source-id' })
   async getContractTemplates(
     @Query('opportunity-id') opportunityId: string,
+    @Query('funding-source-id') fundingSourceId: string,
   ): Promise<ServiceResponse<GetContractTemplatesDto>> {
-    const res = await this.contractService.getContractTemplates(opportunityId);
+    const res = await this.contractService.getContractTemplates(opportunityId, fundingSourceId);
     return ServiceResponse.fromResult(res);
   }
 
