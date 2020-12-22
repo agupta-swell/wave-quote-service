@@ -5,6 +5,7 @@ import { QualificationController } from './qualification.controller';
 import { QualificationCreditSchema, QUALIFICATION_CREDIT } from './qualification.schema';
 import { QualificationService } from './qualification.service';
 import { FNI_COMMUNICATION, FNI_CommunicationSchema } from './schemas/fni-communication.schema';
+import { SightenController } from './sighten.controller';
 import { FniCallbackService } from './sub-services/fni-callback.service';
 import { FniEngineService } from './sub-services/fni-engine.service';
 
@@ -23,7 +24,7 @@ import { FniEngineService } from './sub-services/fni-engine.service';
       },
     ]),
   ],
-  controllers: [QualificationController],
+  controllers: [QualificationController, SightenController],
   providers: [QualificationService, FniEngineService, FniCallbackService],
   exports: [QualificationService],
 })
