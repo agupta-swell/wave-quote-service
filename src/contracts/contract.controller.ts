@@ -3,12 +3,14 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ContractService } from './contract.service';
-import { SaveContractReqDto } from './req';
+import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
   GetContractTemplatesDto,
   GetContractTemplatesRes,
   GetCurrentContractDto,
   GetCurrentContractRes,
+  SaveChangeOrderDto,
+  SaveChangeOrderRes,
   SaveContractDto,
   SaveContractRes,
   SendContractRes,
@@ -68,6 +70,16 @@ export class ContractController {
   @ApiQuery({ name: 'opportunity-id' })
   async sendContract(@Query('opportunity-id') opportunityId: string): Promise<ServiceResponse<SendContractDto>> {
     const res = await this.contractService.sendContract(opportunityId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/change-orders')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Save Contract' })
+  @ApiOkResponse({ type: SaveChangeOrderRes })
+  async saveChangeOrder(@Body() contractReq: SaveChangeOrderReqDto): Promise<ServiceResponse<SaveChangeOrderDto>> {
+    const res = await this.contractService.saveChangeOrder(contractReq);
     return ServiceResponse.fromResult(res);
   }
 }
