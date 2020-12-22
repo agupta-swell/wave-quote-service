@@ -120,7 +120,7 @@ export class QualificationController {
   //  ================= specific token in body ==============
 
   // FIXME: need to delete later
-  @Put('/sighten')
+  @Put('/updateSighten')
   @ApiOperation({ summary: 'Update Sighten' })
   async updateSighten(@Body() req: any): Promise<any> {
     const res = await this.fniCallbackService.updateSighten(req);
