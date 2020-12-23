@@ -107,7 +107,7 @@ export class ContractService {
         { new: true },
       );
 
-      return OperationResult.ok(new SaveContractDto(true, null, updatedContract));
+      return OperationResult.ok(new SaveContractDto(true, null, updatedContract.toObject({ versionKey: false })));
     }
 
     if (mode === REQUEST_MODE.ADD) {
