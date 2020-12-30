@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DOCUSIGN, DocusignSchema } from './docusign.schema';
 import { DocusignService } from './docusign.service';
+import { DocusignTemplateService } from './sub-services/docusign-template.service';
 
 @Global()
 @Module({
@@ -14,7 +15,7 @@ import { DocusignService } from './docusign.service';
       },
     ]),
   ],
-  providers: [DocusignService],
+  providers: [DocusignService, DocusignTemplateService],
   exports: [DocusignService],
 })
 export class DocusignModule {}

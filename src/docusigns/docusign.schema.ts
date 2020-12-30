@@ -3,12 +3,12 @@ import { REQUEST_TYPE } from './constants';
 
 export const DOCUSIGN = Symbol('DOCUSIGN').toString();
 
-export interface IDocusignSignAccountDetailSchema {
+export interface IDocusignAccountDetailSchema {
   account_name: string;
   account_reference_id: string;
 }
 
-const DocusignSignAccountDetailSchema = new Schema<IDocusignSignAccountDetailSchema>(
+const DocusignAccountDetailSchema = new Schema<IDocusignAccountDetailSchema>(
   {
     account_name: String,
     account_reference_id: String,
@@ -20,7 +20,7 @@ export interface Docusign extends Document {
   date_time: Date;
   contract_id: string;
   envelop_id: string;
-  docusign_sign_account_detail: IDocusignSignAccountDetailSchema;
+  docusign_account_detail: IDocusignAccountDetailSchema;
   request_type: REQUEST_TYPE;
   payload_from_docusign: string;
   payload_to_docusign: string;
@@ -34,8 +34,8 @@ export const DocusignSchema = new Schema<Docusign>({
   date_time: Date,
   contract_id: String,
   envelop_id: String,
-  docusign_sign_account_detail: DocusignSignAccountDetailSchema,
-  request_type: REQUEST_TYPE,
+  docusign_account_detail: DocusignAccountDetailSchema,
+  request_type: String,
   payload_from_docusign: String,
   payload_to_docusign: String,
   created_at: { type: Date, default: Date.now },

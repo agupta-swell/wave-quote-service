@@ -24,4 +24,11 @@ export class UserService {
     if (!res.length) return null;
     return res[0];
   }
+
+  // ================== INTERNAL ==============
+
+  async getUserById(userId: string): Promise<User> {
+    const res = await this.userModel.findById(userId);
+    return res?.toObject();
+  }
 }

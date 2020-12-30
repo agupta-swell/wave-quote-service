@@ -18,6 +18,7 @@ import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from '../utilities/utility.module';
 import { AdderConfigModule } from './../adder-config/adder-config.module';
 import { ContactModule } from './../contacts/contact.module';
+import { DocusignModule } from './../docusigns/docusign.module';
 import { ExternalServiceModule } from './../external-services/external-service.module';
 import { OpportunityModule } from './../opportunities/opportunity.module';
 import { ProductModule } from './../products/product.module';
@@ -31,30 +32,31 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(process.env.MONGO_URL, { useFindAndModify: false }),
-    MyLoggerModule,
-    UserModule,
-    RoleModule,
-    AuthencationModule,
-    SystemDesignModule,
-    ProductModule,
-    ExternalServiceModule,
-    UtilityModule,
     AdderConfigModule,
-    QuoteModule,
-    UtilityProgramMasterModule,
-    FundingSourceModule,
+    AuthencationModule,
     CashPaymentConfigModule,
+    ContactModule,
+    ContractModule,
+    DocusignModule,
+    DocusignTemplateMasterModule,
+    EmailModule,
+    ExternalServiceModule,
+    FundingSourceModule,
     LeaseSolverConfigModule,
+    OpportunityModule,
+    ProductModule,
     ProgressModule,
+    ProposalModule,
     ProposalSectionMasterModule,
     ProposalTemplateModule,
-    ProposalModule,
     QualificationModule,
-    EmailModule,
-    OpportunityModule,
-    ContactModule,
-    DocusignTemplateMasterModule,
-    ContractModule,
+    QuoteModule,
+    RoleModule,
+    SystemDesignModule,
+    UserModule,
+    UtilityModule,
+    UtilityProgramMasterModule,
+    MyLoggerModule,
   ],
 })
 export class AppModule {

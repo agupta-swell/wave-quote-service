@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
+import { ContactService } from 'src/contacts/contact.service';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
+import { DocusignService } from 'src/docusigns/docusign.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
+import { UserService } from 'src/users/user.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
+import { IDocusignPayload } from './../docusigns/typing.d';
 import { UtilityService } from './../utilities/utility.service';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
@@ -29,6 +33,10 @@ export class ContractService {
     private readonly utilityService: UtilityService,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
+    @Inject(forwardRef(() => DocusignService))
+    private readonly docusignService: DocusignService,
+    private readonly userService: UserService,
+    private readonly contactService: ContactService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -152,10 +160,21 @@ export class ContractService {
       throw ApplicationException.EnitityNotFound(`Associated Quote Id: ${contract.associated_quote_id}`);
     }
 
+    const [contact, recordOwner] = await Promise.all([
+      this.contactService.getContactById(opportunity.contactId),
+      this.userService.getUserById(opportunity.recordOwner),
+    ]);
+
     let status: string;
     let statusDescription: string;
-    // FIXME: need to handle later when docusign engine complete
-    const docusignResponse = 'SUCCESS';
+
+    const docusignResponse = await this.docusignService.sendContractToDocusign(contract, {
+      contract,
+      opportunity,
+      quote,
+      recordOwner,
+      contact,
+    });
 
     if (docusignResponse === 'SUCCESS') {
       status = 'SUCCESS';
@@ -240,5 +259,18 @@ export class ContractService {
     }
 
     return OperationResult.ok(new SaveChangeOrderDto(false, 'Unexpected Operation Mode'));
+  }
+
+  async updateContractByDocusign(payload: IDocusignPayload): Promise<void> {
+
+    // const contract = await this.contractModel.findById()
+
+    const statusDocusign = payload.Status[0];
+    const recipientStatuses = payload.RecipientStatuses.map(item => ({
+      recipientId: item.Email[0],
+      status: item.Status[0],
+    }));
+
+    return;
   }
 }

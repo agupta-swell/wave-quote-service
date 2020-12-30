@@ -13,9 +13,9 @@ import {
   SaveChangeOrderRes,
   SaveContractDto,
   SaveContractRes,
+  SendContractDto,
   SendContractRes,
 } from './res';
-import { SendContractDto } from './res/send-contract.dto';
 
 @ApiTags('Contract')
 @ApiBearerAuth()
@@ -25,8 +25,6 @@ export class ContractController {
   constructor(private contractService: ContractService) {}
 
   @Get('/current-contracts')
-  @ApiBearerAuth()
-  @PreAuthenticate()
   @ApiOperation({ summary: 'Get Current Contracts' })
   @ApiOkResponse({ type: GetCurrentContractRes })
   @ApiQuery({ name: 'opportunity-id' })
@@ -38,8 +36,6 @@ export class ContractController {
   }
 
   @Get('/contract-templates')
-  @ApiBearerAuth()
-  @PreAuthenticate()
   @ApiOperation({ summary: 'Get Contract Templates' })
   @ApiOkResponse({ type: GetContractTemplatesRes })
   @ApiQuery({ name: 'opportunity-id' })
@@ -53,8 +49,6 @@ export class ContractController {
   }
 
   @Post()
-  @ApiBearerAuth()
-  @PreAuthenticate()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveContractRes })
   async saveContract(@Body() contractReq: SaveContractReqDto): Promise<ServiceResponse<SaveContractDto>> {
@@ -63,8 +57,6 @@ export class ContractController {
   }
 
   @Post('/send-contract')
-  @ApiBearerAuth()
-  @PreAuthenticate()
   @ApiOperation({ summary: 'Send Contract' })
   @ApiOkResponse({ type: SendContractRes })
   @ApiQuery({ name: 'opportunity-id' })
@@ -74,8 +66,6 @@ export class ContractController {
   }
 
   @Post('/change-orders')
-  @ApiBearerAuth()
-  @PreAuthenticate()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveChangeOrderRes })
   async saveChangeOrder(@Body() contractReq: SaveChangeOrderReqDto): Promise<ServiceResponse<SaveChangeOrderDto>> {
