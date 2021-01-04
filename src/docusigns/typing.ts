@@ -82,11 +82,13 @@ export interface IDocusignSecretManager {
   };
 }
 
-// DOCUSIGN PAYLOAD
+// ==================== DOCUSIGN PAYLOAD ====================
 
 export interface IRecipientStatus {
   Email: string[];
   Status: string[];
+  Sent: string[];
+  Signed: string[];
 }
 
 export interface IDocusignPayload {
@@ -112,4 +114,27 @@ export interface IDocusignPayload {
   EnvelopeIdStamping: string[];
   AuthoritativeCopy: string[];
   DocumentStatuses: any;
+}
+
+export interface ISendDocusignToContractResponse {
+  status: string;
+  contractingSystemReferenceId?: string;
+}
+
+export enum CONTRACTING_SYSTEM_STATUS {
+  SENT = 'SENT',
+  SIGNED = 'SIGNED',
+}
+
+export interface ISignerDetailFromContractingSystemData {
+  emailId: string;
+  status: CONTRACTING_SYSTEM_STATUS;
+  date: string;
+}
+
+export interface IContractSignerDetails {
+  contractSystemReferenceId: string;
+  contractingSystem: string;
+  overallContractStatus: string;
+  statusesData: ISignerDetailFromContractingSystemData[];
 }

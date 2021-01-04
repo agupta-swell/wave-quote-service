@@ -10,15 +10,19 @@ import { REQUEST_TYPE } from './constants';
 import { DOCUSIGN, Docusign } from './docusign.schema';
 import { DocusignTemplateService } from './sub-services/docusign-template.service';
 import {
+  CONTRACTING_SYSTEM_STATUS,
   ICompositeTemplate,
+  IContractSignerDetails,
   IDefaultContractor,
   IDocusignCompositeContract,
   IDocusignPayload,
   IGenericObject,
   IInlineTemplate,
+  ISendDocusignToContractResponse,
   IServerTemplate,
   ISignerData,
-} from './typing.d';
+  ISignerDetailFromContractingSystemData,
+} from './typing';
 
 @Injectable()
 export class DocusignService {
@@ -34,7 +38,7 @@ export class DocusignService {
   ) {}
 
   // =====================> INTERNAL <=====================
-  async sendContractToDocusign(contract: Contract, data: IGenericObject): Promise<'SUCCESS' | 'FAILURE'> {
+  async sendContractToDocusign(contract: Contract, data: IGenericObject): Promise<ISendDocusignToContractResponse> {
     const docusignPayload = { status: 'sent' } as IDocusignCompositeContract;
     const docusignSecret = await this.docusignAPIService.getDocusignSecret();
     contract.contract_template_detail.template_details.map(template => {
@@ -62,10 +66,10 @@ export class DocusignService {
     await model.save();
 
     if (resDocusign.errorDetails?.errorCode) {
-      return 'FAILURE';
+      return { status: 'FAILURE' };
     }
 
-    return 'SUCCESS';
+    return { status: 'SUCCESS', contractingSystemReferenceId: resDocusign.envelopeId };
   }
 
   getCompositeTemplatePayloadData(
@@ -120,13 +124,36 @@ export class DocusignService {
       contract_id: foundDocusignCommunication.contract_id,
       envelop_id: payloadFromDocusign.EnvelopeID[0],
       request_type: REQUEST_TYPE.INBOUND,
-      payload_from_docusign: JSON.stringify(payloadFromDocusign),
     };
 
     const model = new this.docusignModel(docusignCommunication);
     model.save();
 
-    await this.contractService.updateContractByDocusign(payloadFromDocusign);
+    const contractSignerDetails = {} as IContractSignerDetails;
+    contractSignerDetails.contractSystemReferenceId = payloadFromDocusign.EnvelopeID[0];
+    contractSignerDetails.contractingSystem = 'DOCUSIGN';
+    if (payloadFromDocusign.Status[0] === 'Completed') {
+      contractSignerDetails.overallContractStatus = 'COMPLETED';
+    }
+
+    const statusesData = payloadFromDocusign.RecipientStatuses.map(recipientStatus => {
+      const signerDetail = {} as ISignerDetailFromContractingSystemData;
+      signerDetail.emailId = recipientStatus.Email[0];
+      if (recipientStatus.Status[0] === 'Sent') {
+        signerDetail.status = CONTRACTING_SYSTEM_STATUS.SENT;
+        signerDetail.date = recipientStatus.Sent[0];
+      }
+      if (recipientStatus.Status[0] === 'Completed') {
+        signerDetail.status = CONTRACTING_SYSTEM_STATUS.SIGNED;
+        signerDetail.date = recipientStatus.Signed[0];
+      }
+
+      return signerDetail;
+    });
+
+    contractSignerDetails.statusesData = statusesData;
+
+    await this.contractService.updateContractByDocusign(contractSignerDetails);
     return true;
   }
 }

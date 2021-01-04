@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as dayjs from 'dayjs';
-import { IDefaultContractor, IGenericObject, ITabData } from '../typing.d';
+import { IDefaultContractor, IGenericObject, ITabData } from '../typing';
 
 enum DOCUSIGN_TEMPLATE {
   first = '50bf8fd6-cf25-4ee0-b63d-2720e66a4789',

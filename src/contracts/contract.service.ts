@@ -9,10 +9,10 @@ import { DocusignService } from 'src/docusigns/docusign.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { UserService } from 'src/users/user.service';
+import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
-import { IDocusignPayload } from './../docusigns/typing.d';
-import { UtilityService } from './../utilities/utility.service';
+import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails } from '../docusigns/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
@@ -176,10 +176,11 @@ export class ContractService {
       contact,
     });
 
-    if (docusignResponse === 'SUCCESS') {
+    if (docusignResponse.status === 'SUCCESS') {
       status = 'SUCCESS';
       contract.contract_status = PROCESS_STATUS.IN_PROGRESS;
       contract.signer_details[0].sign_status = SIGN_STATUS.SENT;
+      contract.contracting_system_reference_id = docusignResponse.contractingSystemReferenceId;
     } else {
       status = 'ERROR';
       statusDescription = 'ERROR';
@@ -261,16 +262,28 @@ export class ContractService {
     return OperationResult.ok(new SaveChangeOrderDto(false, 'Unexpected Operation Mode'));
   }
 
-  async updateContractByDocusign(payload: IDocusignPayload): Promise<void> {
+  async updateContractByDocusign(req: IContractSignerDetails): Promise<void> {
+    const contract = await this.contractModel.findOne({
+      contracting_system_reference_id: req.contractSystemReferenceId,
+    });
 
-    // const contract = await this.contractModel.findById()
+    req.statusesData.map(status => {
+      const signerDetails = contract.signer_details.find(signer => signer.email === status.emailId);
+      if (status.status === CONTRACTING_SYSTEM_STATUS.SENT) {
+        signerDetails.sign_status = SIGN_STATUS.SENT;
+        signerDetails.sent_on = new Date(status.date);
+      }
 
-    const statusDocusign = payload.Status[0];
-    const recipientStatuses = payload.RecipientStatuses.map(item => ({
-      recipientId: item.Email[0],
-      status: item.Status[0],
-    }));
+      if (status.status === CONTRACTING_SYSTEM_STATUS.SIGNED) {
+        signerDetails.sign_status = SIGN_STATUS.SIGNED;
+        signerDetails.signed_on = new Date(status.date);
+      }
+    });
 
-    return;
+    if (req.overallContractStatus === 'COMPLETED') {
+      contract.contract_status = PROCESS_STATUS.COMPLETED;
+    }
+
+    await this.contractModel.findByIdAndUpdate(contract._id, contract.toObject({ versionKey: false }));
   }
 }

@@ -9,9 +9,7 @@
     "sourceMap": true,
     "outDir": "dist",
     "baseUrl": "./",
-    "incremental": true,
-    "declarationMap": true,
-    "allowJs": true
+    "incremental": true
   },
   "exclude": ["node_modules", "dist"]
 }

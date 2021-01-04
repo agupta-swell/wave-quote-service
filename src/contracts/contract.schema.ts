@@ -15,7 +15,7 @@ export interface ISignerDetailDataSchema {
   email: string;
   sign_status: SIGN_STATUS;
   sent_on: Date;
-  sign_on: Date;
+  signed_on: Date;
 }
 
 const SignerDetailDataSchema = new Schema<ISignerDetailDataSchema>(
@@ -27,7 +27,7 @@ const SignerDetailDataSchema = new Schema<ISignerDetailDataSchema>(
     email: String,
     sign_status: String,
     sent_on: Date,
-    sign_on: Date,
+    signed_on: Date,
   },
   { _id: false },
 );
@@ -87,6 +87,7 @@ export interface Contract extends Document {
   contract_status: PROCESS_STATUS;
   chnage_order_description: string;
   completion_date: string;
+  contracting_system_reference_id: string;
   created_by: string;
   created_at: Date;
   updated_by: string;
@@ -106,6 +107,7 @@ export const ContractSchema = new Schema<Contract>({
   contract_status: String,
   chnage_order_description: String,
   completion_date: String,
+  contracting_system_reference_id: String,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,
