@@ -1,0 +1,20 @@
+services:
+  web:
+    build: .
+    image: solar-docker-local
+    container_name: solar-docker-local
+    ports:
+      - '3001:3001'
+    environment:
+      - MONGO_URL=mongodb+srv://waveuser:LOXpwcrm2Q43iWcN@wavesandbox.qb4wa.mongodb.net/devel?retryWrites=true&w=majority
+      - JWT_SECRET=xQbceXTU8weFwXB5oCUSezztOnIrME92
+      - JWT_EXPIRE_TIME=1d
+      - AWS_ACCESS_KEY_ID=AKIA3VRUOGHFQURHOTV5
+      - AWS_SECRET_ACCESS_KEY=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
+      - AWS_REGION=us-west-1
+      - AWS_S3_BUCKET=system-design-images
+      - PROPOSAL_JWT_SECRET=JAKyMXgWUD8agnM2uduz4gDq9Dp19on8
+      - PROPOSAL_PAGE=http://solar-design-tool-dev.s3-website-us-west-1.amazonaws.com
+      - QUALIFICATION_JWT_SECRET=JAKyMXgWUD8agnM2uduz4gDq9Dp19on9
+      - QUALIFICATION_PAGE=http://solar-design-tool-dev.s3-website-us-west-1.amazonaws.com
+      - DOCUSIGN_SECRET_NAME=docusign-sandbox-credentials
