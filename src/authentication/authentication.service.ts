@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
 import { ApplicationException } from 'src/app/app.exception';
-import { RoleService } from 'src/roles/role.service';
 import { UserService } from 'src/users/user.service';
 import { AuthenticationDto } from './res/authentication.dto';
 const crypto = require('crypto');
@@ -10,11 +9,7 @@ const crypto = require('crypto');
 @Injectable()
 export class AuthenticationService {
   saltRounds = 10;
-  constructor(
-    private readonly userService: UserService,
-    private readonly roleService: RoleService,
-    private readonly jwtService: JwtService,
-  ) {}
+  constructor(private readonly userService: UserService, private readonly jwtService: JwtService) {}
 
   async login(email: string, password: string): Promise<AuthenticationDto> {
     const user = await this.userService.findByEmail(email);

@@ -19,7 +19,7 @@ export class AuthenticationController {
   @Get()
   @PreAuthenticate()
   @HasRole([ROLES.ADMIN, ROLES.SUPER_MANAGER])
-  async get(@CurrentUser() user: CurrentUserType) {
+  getCurrentUser(@CurrentUser() user: CurrentUserType) {
     return user;
   }
 }
