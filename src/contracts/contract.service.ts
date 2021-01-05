@@ -23,6 +23,7 @@ import {
   SaveContractDto,
   SendContractDto,
 } from './res';
+import { GetDocusignCommunicationDetailsDto } from './res/get-docusign-communication-details.dto';
 
 @Injectable()
 export class ContractService {
@@ -34,7 +35,7 @@ export class ContractService {
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
     @Inject(forwardRef(() => DocusignCommunicationService))
-    private readonly docusignService: DocusignCommunicationService,
+    private readonly docusignCommunicationService: DocusignCommunicationService,
     private readonly userService: UserService,
     private readonly contactService: ContactService,
   ) {}
@@ -168,7 +169,7 @@ export class ContractService {
     let status: string;
     let statusDescription: string;
 
-    const docusignResponse = await this.docusignService.sendContractToDocusign(contract, {
+    const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, {
       contract,
       opportunity,
       quote,
@@ -285,5 +286,12 @@ export class ContractService {
     }
 
     await this.contractModel.findByIdAndUpdate(contract._id, contract.toObject({ versionKey: false }));
+  }
+
+  async getDocusignCommunicationDetails(
+    contractId: string,
+  ): Promise<OperationResult<GetDocusignCommunicationDetailsDto>> {
+    const communications = await this.docusignCommunicationService.getCommunicationsByContractId(contractId);
+    return OperationResult.ok(new GetDocusignCommunicationDetailsDto(communications));
   }
 }

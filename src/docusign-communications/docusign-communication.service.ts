@@ -7,7 +7,7 @@ import { ContractService } from 'src/contracts/contract.service';
 import { DocusignAPIService } from 'src/external-services/sub-services/docusign-api.service';
 import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
 import { REQUEST_TYPE } from './constants';
-import { DOCUSIGN_COMMUNICATION, DocusignCommunication } from './docusign-communication.schema';
+import { DocusignCommunication, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
 import { DocusignTemplateService } from './sub-services/docusign-template.service';
 import {
   CONTRACTING_SYSTEM_STATUS,
@@ -30,7 +30,7 @@ export class DocusignCommunicationService {
   client: AWS.SecretsManager;
 
   constructor(
-    @InjectModel(DOCUSIGN_COMMUNICATION) private readonly docusignModel: Model<DocusignCommunication>,
+    @InjectModel(DOCUSIGN_COMMUNICATION) private readonly docusignCommunicationModel: Model<DocusignCommunication>,
     private readonly docusignTemplateService: DocusignTemplateService,
     private readonly docusignAPIService: DocusignAPIService,
     @Inject(forwardRef(() => ContractService))
@@ -54,7 +54,7 @@ export class DocusignCommunicationService {
 
     const resDocusign = await this.docusignAPIService.sendTemplate(docusignPayload);
 
-    const model = new this.docusignModel({
+    const model = new this.docusignCommunicationModel({
       date_time: new Date(),
       contract_id: contract?._id?.toString(),
       request_type: REQUEST_TYPE.OUTBOUND,
@@ -115,7 +115,7 @@ export class DocusignCommunicationService {
   }
 
   async callBackFromDocusign(payloadFromDocusign: IDocusignPayload): Promise<boolean> {
-    const foundDocusignCommunication = await this.docusignModel.findOne({
+    const foundDocusignCommunication = await this.docusignCommunicationModel.findOne({
       envelop_id: payloadFromDocusign.EnvelopeID[0],
     });
 
@@ -126,7 +126,7 @@ export class DocusignCommunicationService {
       request_type: REQUEST_TYPE.INBOUND,
     };
 
-    const model = new this.docusignModel(docusignCommunication);
+    const model = new this.docusignCommunicationModel(docusignCommunication);
     model.save();
 
     const contractSignerDetails = {} as IContractSignerDetails;
@@ -155,5 +155,12 @@ export class DocusignCommunicationService {
 
     await this.contractService.updateContractByDocusign(contractSignerDetails);
     return true;
+  }
+
+  // ========================= INTERNAL =========================
+
+  async getCommunicationsByContractId(contractId: string): Promise<DocusignCommunication[]> {
+    const res = await this.docusignCommunicationModel.find({ contract_id: contractId });
+    return res?.map(communication => communication.toObject({ versionKey: false })) || [];
   }
 }

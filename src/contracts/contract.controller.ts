@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
@@ -9,6 +9,8 @@ import {
   GetContractTemplatesRes,
   GetCurrentContractDto,
   GetCurrentContractRes,
+  GetDocusignCommunicationDetailsDto,
+  GetDocusignCommunicationDetailsRes,
   SaveChangeOrderDto,
   SaveChangeOrderRes,
   SaveContractDto,
@@ -45,6 +47,16 @@ export class ContractController {
     @Query('funding-source-id') fundingSourceId: string,
   ): Promise<ServiceResponse<GetContractTemplatesDto>> {
     const res = await this.contractService.getContractTemplates(opportunityId, fundingSourceId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/:contractId/docusign-communications')
+  @ApiOperation({ summary: 'Get Docusign Communication Details' })
+  @ApiOkResponse({ type: GetDocusignCommunicationDetailsRes })
+  async getDocusignCommunicationDetails(
+    @Param('contractId') contractId: string,
+  ): Promise<ServiceResponse<GetDocusignCommunicationDetailsDto>> {
+    const res = await this.contractService.getDocusignCommunicationDetails(contractId);
     return ServiceResponse.fromResult(res);
   }
 
