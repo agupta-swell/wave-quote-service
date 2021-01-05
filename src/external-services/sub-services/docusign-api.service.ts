@@ -3,7 +3,7 @@ import * as AWS from 'aws-sdk';
 import * as docusign from 'docusign-esign';
 import { EnvelopeSummary } from 'docusign-esign';
 import { MyLogger } from 'src/app/my-logger/my-logger.service';
-import { IDocusignCompositeContract, IDocusignSecretManager } from '../../docusigns/typing';
+import { IDocusignCompositeContract, IDocusignSecretManager } from '../../docusign-communications/typing';
 
 @Injectable()
 export class DocusignAPIService {

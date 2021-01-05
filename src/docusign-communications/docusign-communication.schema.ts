@@ -1,7 +1,7 @@
 import { Document, Schema } from 'mongoose';
 import { REQUEST_TYPE } from './constants';
 
-export const DOCUSIGN = Symbol('DOCUSIGN').toString();
+export const DOCUSIGN_COMMUNICATION = Symbol('DOCUSIGN_COMMUNICATION').toString();
 
 export interface IDocusignAccountDetailSchema {
   account_name: string;
@@ -16,7 +16,7 @@ const DocusignAccountDetailSchema = new Schema<IDocusignAccountDetailSchema>(
   { _id: false },
 );
 
-export interface Docusign extends Document {
+export interface DocusignCommunication extends Document {
   date_time: Date;
   contract_id: string;
   envelop_id: string;
@@ -30,7 +30,7 @@ export interface Docusign extends Document {
   updated_at: Date;
 }
 
-export const DocusignSchema = new Schema<Docusign>({
+export const DocusignCommunicationSchema = new Schema<DocusignCommunication>({
   date_time: Date,
   contract_id: String,
   envelop_id: String,

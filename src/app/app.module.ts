@@ -10,6 +10,7 @@ import { ProposalModule } from 'src/proposals/proposal.module';
 import { RoleModule } from 'src/roles/role.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
+import { DocusignCommunicationModule } from '../docusign-communications/docusign-communication.module';
 import { EmailModule } from '../emails/email.module';
 import { LeaseSolverConfigModule } from '../lease-solver-configs/lease-solver-config.module';
 import { ProposalSectionMasterModule } from '../proposal-section-masters/proposal-section-masters.module';
@@ -18,7 +19,6 @@ import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from '../utilities/utility.module';
 import { AdderConfigModule } from './../adder-config/adder-config.module';
 import { ContactModule } from './../contacts/contact.module';
-import { DocusignModule } from './../docusigns/docusign.module';
 import { ExternalServiceModule } from './../external-services/external-service.module';
 import { OpportunityModule } from './../opportunities/opportunity.module';
 import { ProductModule } from './../products/product.module';
@@ -37,7 +37,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     CashPaymentConfigModule,
     ContactModule,
     ContractModule,
-    DocusignModule,
+    DocusignCommunicationModule,
     DocusignTemplateMasterModule,
     EmailModule,
     ExternalServiceModule,

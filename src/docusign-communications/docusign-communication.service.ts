@@ -5,9 +5,9 @@ import { Model } from 'mongoose';
 import { Contract } from 'src/contracts/contract.schema';
 import { ContractService } from 'src/contracts/contract.service';
 import { DocusignAPIService } from 'src/external-services/sub-services/docusign-api.service';
-import { ISignerDetailDataSchema, ITemplateDetailSchema } from './../contracts/contract.schema';
+import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
 import { REQUEST_TYPE } from './constants';
-import { DOCUSIGN, Docusign } from './docusign.schema';
+import { DOCUSIGN_COMMUNICATION, DocusignCommunication } from './docusign-communication.schema';
 import { DocusignTemplateService } from './sub-services/docusign-template.service';
 import {
   CONTRACTING_SYSTEM_STATUS,
@@ -25,12 +25,12 @@ import {
 } from './typing';
 
 @Injectable()
-export class DocusignService {
+export class DocusignCommunicationService {
   AWS_REGION: string;
   client: AWS.SecretsManager;
 
   constructor(
-    @InjectModel(DOCUSIGN) private readonly docusignModel: Model<Docusign>,
+    @InjectModel(DOCUSIGN_COMMUNICATION) private readonly docusignModel: Model<DocusignCommunication>,
     private readonly docusignTemplateService: DocusignTemplateService,
     private readonly docusignAPIService: DocusignAPIService,
     @Inject(forwardRef(() => ContractService))

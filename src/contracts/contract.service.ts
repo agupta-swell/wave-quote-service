@@ -5,14 +5,14 @@ import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
-import { DocusignService } from 'src/docusigns/docusign.service';
+import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
-import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails } from '../docusigns/typing';
+import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails } from '../docusign-communications/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
@@ -33,8 +33,8 @@ export class ContractService {
     private readonly utilityService: UtilityService,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
-    @Inject(forwardRef(() => DocusignService))
-    private readonly docusignService: DocusignService,
+    @Inject(forwardRef(() => DocusignCommunicationService))
+    private readonly docusignService: DocusignCommunicationService,
     private readonly userService: UserService,
     private readonly contactService: ContactService,
   ) {}
