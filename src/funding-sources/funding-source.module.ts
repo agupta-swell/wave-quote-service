@@ -11,7 +11,7 @@ import { FundingSourceService } from './funding-source.service';
       {
         name: FUNDING_SOURCE,
         schema: FundingSourceSchema,
-        collection: 'v2_funding_sources',
+        collection: 'funding_sources',
       },
     ]),
   ],

@@ -1,7 +1,9 @@
 import { Contact } from 'src/contacts/contact.schema';
 import { Contract } from 'src/contracts/contract.schema';
+import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
 import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
+import { IRoofTopSchema } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
 
 export interface ITextTabData {
@@ -53,6 +55,10 @@ export interface IGenericObject {
   quote: IDetailedQuoteSchema;
   contact: Contact;
   recordOwner: User;
+  customerPayment: CustomerPayment;
+  utilityName: string;
+  isCash: boolean;
+  roofTopDesign: IRoofTopSchema;
 }
 
 export interface IDefaultContractor {

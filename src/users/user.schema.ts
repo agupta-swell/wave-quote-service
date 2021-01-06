@@ -50,6 +50,7 @@ export interface User extends Document {
   emails: IEmailSchema[];
   profile: IProfileSchema;
   roles: string[];
+  hisNumber: string;
 }
 
 export const UserSchema = new Schema<User>({
@@ -58,6 +59,7 @@ export const UserSchema = new Schema<User>({
   emails: [EmailSchema],
   profile: ProfileSchema,
   roles: [String],
+  hisNumber: String,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

@@ -4,14 +4,16 @@ import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
-import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
+import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
+import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
+import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails } from '../docusign-communications/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
@@ -38,6 +40,8 @@ export class ContractService {
     private readonly docusignCommunicationService: DocusignCommunicationService,
     private readonly userService: UserService,
     private readonly contactService: ContactService,
+    private readonly customerPaymentService: CustomerPaymentService,
+    private readonly systemDesignService: SystemDesignService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -169,12 +173,24 @@ export class ContractService {
     let status: string;
     let statusDescription: string;
 
+    const fundingSourceType = quote.quote_finance_product.finance_product.product_type;
+
+    const [customerPayment, utilityName, roofTopDesign] = await Promise.all([
+      this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunity_id),
+      this.utilityService.getUtilityName(opportunity._id),
+      this.systemDesignService.getRoofTopDesignById(opportunity._id),
+    ]);
+
     const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, {
       contract,
       opportunity,
       quote,
       recordOwner,
       contact,
+      customerPayment,
+      utilityName: utilityName.split(' - ')[1] || 'none',
+      roofTopDesign,
+      isCash: fundingSourceType === 'cash',
     });
 
     if (docusignResponse.status === 'SUCCESS') {

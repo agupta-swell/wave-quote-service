@@ -14,7 +14,7 @@ import { CreateSystemDesignDto } from './req/create-system-design.dto';
 import { UpdateSystemDesignDto } from './req/update-system-design.dto';
 import { SystemDesignDto } from './res/system-design.dto';
 import { SystemProductService, UploadImageService } from './sub-services';
-import { SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
+import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
 @Injectable()
 export class SystemDesignService {
@@ -299,10 +299,16 @@ export class SystemDesignService {
     return OperationResult.ok(new SystemDesignDto(systemDesign.toObject()));
   }
 
-  //  ->>>>>>>>> INTERNAL <<<<<<<<<-
+  //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-
+
   async getOneById(id: string): Promise<SystemDesign> {
     const systemDesign = await this.systemDesignModel.findById(id);
     return systemDesign.toObject();
+  }
+
+  async getRoofTopDesignById(id: string): Promise<IRoofTopSchema> {
+    const systemDesign = await this.systemDesignModel.findById(id);
+    return systemDesign?.toObject({ versionKey: false })?.roof_top_design_data;
   }
 
   async updateListSystemDesign(opportunityId: string, annualUsageKWh: number): Promise<boolean> {

@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthencationModule } from 'src/authentication/authentication.module';
 import { CashPaymentConfigModule } from 'src/cash-payment-configs/cash-payment-config.module';
 import { ContractModule } from 'src/contracts/contract.module';
+import { CustomerPaymentModule } from 'src/customer-payments/customer-payment.module';
 import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docusign-template-master.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { ProposalModule } from 'src/proposals/proposal.module';
@@ -37,6 +38,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     CashPaymentConfigModule,
     ContactModule,
     ContractModule,
+    CustomerPaymentModule,
     DocusignCommunicationModule,
     DocusignTemplateMasterModule,
     EmailModule,
