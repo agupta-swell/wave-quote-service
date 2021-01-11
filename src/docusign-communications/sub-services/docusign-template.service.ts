@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as accounting from 'accounting-js';
 import * as dayjs from 'dayjs';
+import { sumBy } from 'lodash';
 import { IDefaultContractor, IGenericObject, ITabData } from '../typing';
 
 enum DOCUSIGN_TEMPLATE {
@@ -158,6 +159,20 @@ export class DocusignTemplateService {
         obj[`Text Payment 2 Timing 1 - 1`] = isCash ? 'Due upon building department inspection approval' : '';
         obj[`Text Payment 2 Timing 1 - 7`] = isCash ? 'Due upon building department inspection approval' : '';
         obj[`Text Project Adders - 1`] = roofTopDesign.adders.length > 0 ? 'Project Adders:' : '';
+        obj[`Text ES kW rollup - 1`] =
+          sumBy(roofTopDesign.storage, item => item.storage_model_data_snapshot.sizeW) / 1000;
+        obj[`Text kW rollup - 1`] =
+          sumBy(roofTopDesign.panel_array, item => item.panel_model_data_snapshot.sizeW) / 1000;
+        obj[`Text ES kW rollup - 1`] = sumBy(roofTopDesign.storage, item => item.storage_model_data_snapshot.sizekWh);
+        obj[`Text PV Inverter Product - 1`] = roofTopDesign.inverters
+          .map(item => item.inverter_model_data_snapshot.name)
+          .join(' - ');
+        obj[`Text PV Module Product - 1`] = roofTopDesign.panel_array
+          .map(item => item.panel_model_data_snapshot.name)
+          .join(' - ');
+        obj[`Text Storage Product - 1`] = roofTopDesign.storage
+          .map(item => item.storage_model_data_snapshot.name)
+          .join(' - ');
 
         break;
       }
