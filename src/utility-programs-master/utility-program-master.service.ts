@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { compact, uniq } from 'lodash';
 import { Model } from 'mongoose';
 import { OperationResult, Pagination } from '../app/common';
 import { UtilityProgramMasterDto } from './res/utility-program-master.dto';
@@ -15,7 +14,10 @@ export class UtilityProgramMasterService {
       this.utilityProgramMaster.find(),
       this.utilityProgramMaster.estimatedDocumentCount(),
     ]);
-    return OperationResult.ok({ data: utilityPrograms.map(item => new UtilityProgramMasterDto(item)), total });
+
+    return OperationResult.ok(
+      new Pagination({ data: utilityPrograms.map(item => new UtilityProgramMasterDto(item)), total }),
+    );
   }
 
   async createDataFeed() {
@@ -27,19 +29,14 @@ export class UtilityProgramMasterService {
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getDetailById(id: string): Promise<UtilityProgramMaster> {
+  async getDetailById(id: string): Promise<UtilityProgramMaster | null> {
     const product = await this.utilityProgramMaster.findById(id);
     return product;
   }
 
-  async getDetailByName(name: string): Promise<UtilityProgramMaster> {
+  async getDetailByName(name: string): Promise<UtilityProgramMaster | undefined> {
     const product = await this.utilityProgramMaster.findOne({ utility_program_name: name });
     return product?.toObject({ versionKey: false });
-  }
-
-  async getFirst(): Promise<UtilityProgramMaster> {
-    const [product] = await this.utilityProgramMaster.find();
-    return product;
   }
 
   async getAll(): Promise<UtilityProgramMaster[]> {
@@ -48,14 +45,14 @@ export class UtilityProgramMasterService {
   }
 
   // FIXME: need to delete later
-  async createUtilityProgramsMaster(data: string[]): Promise<boolean> {
-    const anotherData = compact(uniq(['ACES', 'ACES+SGIP', 'none', 'PRP2', 'PRP2+SGIP', 'SGIP'].concat(data)));
-    await Promise.all(
-      anotherData.map(item =>
-        new this.utilityProgramMaster({ utility_program_name: item, rebate_amount: 1000 }).save(),
-      ),
-    );
+  // async createUtilityProgramsMaster(data: string[]): Promise<boolean> {
+  //   const anotherData = compact(uniq(['ACES', 'ACES+SGIP', 'none', 'PRP2', 'PRP2+SGIP', 'SGIP'].concat(data)));
+  //   await Promise.all(
+  //     anotherData.map(item =>
+  //       new this.utilityProgramMaster({ utility_program_name: item, rebate_amount: 1000 }).save(),
+  //     ),
+  //   );
 
-    return true;
-  }
+  //   return true;
+  // }
 }

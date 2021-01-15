@@ -2,6 +2,13 @@ import { Injectable, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApplicationException } from 'src/app/app.exception';
 import { JwtAuthGuard } from './pre-authentication';
 
+export enum ROLES {
+  SUPER_MANAGER = 'super_manager',
+  ADMIN = 'admin',
+  AGENT = 'agent',
+  AGENT_BUILDER = 'agent_builder',
+}
+
 @Injectable()
 export class RolesGuard extends JwtAuthGuard {
   constructor(private readonly roles: string[]) {

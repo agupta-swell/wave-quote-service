@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+interface IProps<T> {
+  data: T[];
+  total: number;
+}
+
 export class Pagination<T> {
   @ApiProperty()
   data: T[];
@@ -7,7 +12,7 @@ export class Pagination<T> {
   @ApiProperty()
   total: number;
 
-  constructor(props: any) {
+  constructor(props: IProps<T>) {
     this.total = props.total;
     this.data = props.data;
   }

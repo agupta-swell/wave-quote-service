@@ -114,7 +114,7 @@ export class QuoteService {
     quoteCostBuildup.grossAmount = quoteCostBuildup.totalProductCost - quoteCostBuildup.laborCost.netCost;
 
     const utilityProgram = await this.utilityProgramService.getDetailById(data.utilityProgramId);
-    const fundingSource = await this.fundingSourceService.getDetail(data.fundingSourceId);
+    const fundingSource = await this.fundingSourceService.getDetailById(data.fundingSourceId);
 
     const detailedQuote = {
       systemProduction: systemDesign.system_production_data,
@@ -538,12 +538,12 @@ export class QuoteService {
 
     let leaseSolverConfig: any;
 
-    leaseSolverConfig = await this.leaseSolverConfigService.getDetail(query);
+    leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
     if (leaseSolverConfig) {
       return OperationResult.ok('Found One Entity');
     }
 
-    leaseSolverConfig = await this.leaseSolverConfigService.getListSolverCofigs(
+    leaseSolverConfig = await this.leaseSolverConfigService.getListSolverCofigsByConditions(
       data.isSolar,
       data.isRetrofit,
       data.utilityProgram.utilityProgramName || 'PRP2',

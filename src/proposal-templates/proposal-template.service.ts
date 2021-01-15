@@ -1,14 +1,14 @@
-import { ApplicationException } from '../app/app.exception';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
+import { ProposalSectionMasterService } from '../proposal-section-masters/proposal-section-master.service';
 import { toSnakeCase } from '../utils/transformProperties';
 import { ProposalTemplate, PROPOSAL_TEMPLATE } from './proposal-template.schema';
 import { CreateProposalTemplateDto } from './req/create-proposal-template.dto';
 import { UpdateProposalTemplateDto } from './req/update-proposal-template.dto';
 import { ProposalTemplateDto } from './res/proposal-template.dto';
-import { ProposalSectionMasterService } from '../proposal-section-masters/proposal-section-masters.service';
 
 @Injectable()
 export class ProposalTemplateService {

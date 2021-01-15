@@ -17,7 +17,7 @@ export interface CashPaymentConfig extends Document {
   config: IMilestonePaymentConfigSchema[];
 }
 
-export const CashPaymentConfig = new Schema<CashPaymentConfig>({
+export const CashPaymentConfigSchema = new Schema<CashPaymentConfig>({
   type: String,
   config: [MilestonePaymentConfigSchema],
   created_at: { type: Date, default: Date.now },

@@ -15,13 +15,15 @@ export class AdderConfigService {
       this.adderConfigModel.estimatedDocumentCount(),
     ]);
 
-    return OperationResult.ok({ data: panels.map(adderConfig => new AdderConfigDto(adderConfig)), total });
+    return OperationResult.ok(
+      new Pagination({ data: panels.map(adderConfig => new AdderConfigDto(adderConfig)), total }),
+    );
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getAdderConfigDetail(id: string): Promise<AdderConfig> {
+  async getAdderConfigDetail(id: string): Promise<AdderConfig | undefined> {
     const res = await this.adderConfigModel.findById(id);
-    return res.toObject();
+    return res?.toObject();
   }
 }

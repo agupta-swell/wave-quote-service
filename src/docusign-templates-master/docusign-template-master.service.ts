@@ -186,29 +186,29 @@ export class DocusignTemplateMasterService {
   }
 
   // FIXME: need to delete later
-  async createUtilitiesMasterData(): Promise<OperationResult<boolean>> {
-    const utilities = await this.utilityService.getAllUtilities();
+  // async createUtilitiesMasterData(): Promise<OperationResult<boolean>> {
+  //   const utilities = await this.utilityService.getAllUtilities();
 
-    const transformUtilities = utilities.map(item => {
-      const [utilityName = '', utilityProgramName = ''] = item?.name?.split('-');
-      return {
-        utilityName: utilityName?.trim(),
-        utilityProgramName: utilityProgramName?.trim(),
-      };
-    });
+  //   const transformUtilities = utilities.map(item => {
+  //     const [utilityName = '', utilityProgramName = ''] = item?.name?.split('-');
+  //     return {
+  //       utilityName: utilityName?.trim(),
+  //       utilityProgramName: utilityProgramName?.trim(),
+  //     };
+  //   });
 
-    const utilitiesName = uniq(transformUtilities.map(item => item.utilityName));
-    const utilityProgramsName = uniq(transformUtilities.map(item => item.utilityProgramName));
+  //   const utilitiesName = uniq(transformUtilities.map(item => item.utilityName));
+  //   const utilityProgramsName = uniq(transformUtilities.map(item => item.utilityProgramName));
 
-    await Promise.all([
-      flatten(
-        utilitiesName.map(name => new this.utilityMasterModel({ utility_name: name, createdAt: new Date() }).save()),
-      ),
-      this.utilityProgramMasterService.createUtilityProgramsMaster(utilityProgramsName),
-    ]);
+  //   await Promise.all([
+  //     flatten(
+  //       utilitiesName.map(name => new this.utilityMasterModel({ utility_name: name, createdAt: new Date() }).save()),
+  //     ),
+  //     this.utilityProgramMasterService.createUtilityProgramsMaster(utilityProgramsName),
+  //   ]);
 
-    return OperationResult.ok(true);
-  }
+  //   return OperationResult.ok(true);
+  // }
 
   // ===================== INTERNAL =====================
 

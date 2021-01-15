@@ -13,10 +13,10 @@ module.exports = {
   },
   setupFiles: ['dotenv/config'],
   collectCoverage: true,
-  collectCoverageFrom: ['src/**/*.{js,ts}'],
+  collectCoverageFrom: ['src/**/*.{js,ts}', '!**/*.d.ts'],
   coveragePathIgnorePatterns: ['/node_modules/'],
   coverageDirectory: './coverage',
-  coverageReporters: ['html-spa', 'text-summary'],
+  coverageReporters: ['lcov', 'text-summary'],
   coverageThreshold: {
     global: {
       branches: 80,

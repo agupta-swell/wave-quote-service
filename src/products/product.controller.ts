@@ -18,7 +18,7 @@ export class ProductController {
   @ApiQuery({ name: 'types' })
   @ApiOperation({ summary: 'Get all products by type' })
   @ApiOkResponse({ type: ProductResponse })
-  async getQuotings(
+  async getAllProductsByType(
     @Query() query: { limit: string; skip: string; types: string },
   ): Promise<ServiceResponse<Pagination<ProductDto>>> {
     const limit = Number(query.limit || 100);

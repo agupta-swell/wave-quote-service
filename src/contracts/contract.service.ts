@@ -72,7 +72,7 @@ export class ContractService {
     opportunityId: string,
     fundingSourceId: string,
   ): Promise<OperationResult<GetContractTemplatesDto>> {
-    let { utilityId } = await this.opportunityService.getDetail(opportunityId);
+    let { utilityId } = await this.opportunityService.getDetailById(opportunityId);
     const complexUtilityName = await this.utilityService.getUtilityName(utilityId);
     const [utilityName = '', utilityProgramName = ''] = complexUtilityName.split('-');
     const utility = await this.docusignTemplateMasterService.getUtilityMaster(utilityName?.trim());
@@ -155,7 +155,7 @@ export class ContractService {
       throw ApplicationException.EnitityNotFound(`ContractId: ${contractId}`);
     }
 
-    const opportunity = await this.opportunityService.getDetail(contract.opportunity_id);
+    const opportunity = await this.opportunityService.getDetailById(contract.opportunity_id);
     if (!opportunity) {
       throw ApplicationException.EnitityNotFound(`OpportunityId: ${contract.opportunity_id}`);
     }

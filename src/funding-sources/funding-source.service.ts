@@ -15,15 +15,17 @@ export class FundingSourceService {
       this.fundingSource.countDocuments(),
     ]);
 
-    return OperationResult.ok({
-      data: fundingSources.map(fundingSource => new FundingSourceDto(fundingSource)),
-      total,
-    });
+    return OperationResult.ok(
+      new Pagination({
+        data: fundingSources.map(fundingSource => new FundingSourceDto(fundingSource)),
+        total,
+      }),
+    );
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getDetail(id: string) {
+  async getDetailById(id: string): Promise<FundingSource | null> {
     const product = await this.fundingSource.findById(id);
     return product;
   }

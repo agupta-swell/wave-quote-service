@@ -9,7 +9,7 @@ export class CustomerPaymentService {
 
   // =====================> INTERNAL <=====================
 
-  async getCustomerPaymentByOpportunityId(opportunityId: string): Promise<CustomerPayment> {
+  async getCustomerPaymentByOpportunityId(opportunityId: string): Promise<CustomerPayment | undefined> {
     const res = await this.contactModel.findOne({ opportunityId });
     return res?.toObject();
   }

@@ -13,7 +13,7 @@ export class LeaseSolverConfigController {
 
   @Post()
   @ApiOperation({ summary: 'Handle Data Source From CSV file' })
-  async getQuotings(@Req() req: any): Promise<ServiceResponse<string>> {
+  async createDataFromCSV(@Req() req: any): Promise<ServiceResponse<string>> {
     const result = await this.leaseSolverConfigService.createDataFromCSV(req);
     return ServiceResponse.fromResult(result);
   }

@@ -11,7 +11,7 @@ export class LeaseSolverConfigService {
   constructor(@InjectModel(LEASE_SOLVER_CONFIG) private leaseSolverConfig: Model<LeaseSolverConfig>) {}
 
   async createDataFromCSV(@Req() req: any): Promise<OperationResult<string>> {
-    const [csv] = await Promise.all([fromStream(await req.file())]);
+    const csv = await fromStream(await req.file());
     const header = [
       'solar', // 0
       'retrofit', // 1
@@ -61,7 +61,7 @@ export class LeaseSolverConfigService {
 
   // --->>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<---
 
-  async getDetail(condition: IGetDetail) {
+  async getDetailByConditions(condition: IGetDetail): Promise<LeaseSolverConfig | null> {
     const leaseSolverConfig = await this.leaseSolverConfig.findOne({
       is_solar: condition.isSolar,
       is_retrofit: condition.isRetrofit,
@@ -77,7 +77,7 @@ export class LeaseSolverConfigService {
     return leaseSolverConfig;
   }
 
-  async getListSolverCofigs(
+  async getListSolverCofigsByConditions(
     isSolar: boolean,
     isRetrofit: boolean,
     utilityProgramName: string,

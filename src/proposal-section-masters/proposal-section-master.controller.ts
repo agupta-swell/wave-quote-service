@@ -2,13 +2,13 @@ import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
-import { ProposalSectionMasterService } from './proposal-section-masters.service';
+import { ProposalSectionMasterService } from './proposal-section-master.service';
 import { CreateProposalSectionMasterDto } from './req/create-proposal-section-master.dto';
 import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-master.dto';
 import {
   ProposalSectionMasterDto,
   ProposalSectionMasterListRes,
-  ProposalSectionMasterRes
+  ProposalSectionMasterRes,
 } from './res/proposal-section-master.dto';
 
 @ApiTags('Proposal Section Master')
@@ -52,7 +52,7 @@ export class ProposalSectionMasterController {
   ): Promise<ServiceResponse<Pagination<ProposalSectionMasterDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
-    const products = query?.products?.split(',');
+    const products = query.products?.split(',');
     const financialProducts = query['financial-products']?.split(',');
     const res = await this.proposalSectionMasterService.getList(limit, skip, products, financialProducts);
     return ServiceResponse.fromResult(res);

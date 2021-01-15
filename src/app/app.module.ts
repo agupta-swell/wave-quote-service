@@ -8,13 +8,12 @@ import { CustomerPaymentModule } from 'src/customer-payments/customer-payment.mo
 import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docusign-template-master.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { ProposalModule } from 'src/proposals/proposal.module';
-import { RoleModule } from 'src/roles/role.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
 import { DocusignCommunicationModule } from '../docusign-communications/docusign-communication.module';
 import { EmailModule } from '../emails/email.module';
 import { LeaseSolverConfigModule } from '../lease-solver-configs/lease-solver-config.module';
-import { ProposalSectionMasterModule } from '../proposal-section-masters/proposal-section-masters.module';
+import { ProposalSectionMasterModule } from '../proposal-section-masters/proposal-section-master.module';
 import { ProposalTemplateModule } from '../proposal-templates/proposal-template.module';
 import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from '../utilities/utility.module';
@@ -53,7 +52,6 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     ProposalTemplateModule,
     QualificationModule,
     QuoteModule,
-    RoleModule,
     SystemDesignModule,
     UserModule,
     UtilityModule,

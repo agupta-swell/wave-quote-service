@@ -41,7 +41,7 @@ export class CalculationService {
       productivity: detailedQuote.systemProduction.productivity,
     };
 
-    const leaseSolverConfig = await this.leaseSolverConfigService.getDetail(query);
+    const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
     if (!leaseSolverConfig) {
       throw ApplicationException.NullEnitityFound('Lease Config');

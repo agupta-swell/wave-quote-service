@@ -9,12 +9,7 @@ export class CashPaymentConfigService {
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getDetail(id: string) {
-    const product = await this.cashPaymentConfig.findById(id);
-    return product;
-  }
-
-  async getFirst() {
+  async getFirst(): Promise<CashPaymentConfig | undefined> {
     const [product] = await this.cashPaymentConfig.find();
     return product;
   }

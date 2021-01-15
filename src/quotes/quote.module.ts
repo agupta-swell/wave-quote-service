@@ -3,8 +3,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
-import { CashPaymentConfigSchema, CASH_PAYMENT_CONFIG } from './schemas/cash-payment-config.schema';
-import { LaborCostConfigSchema, LABOR_COST_CONFIG } from './schemas/labor-cost-config.schema';
 import { TaxCreditConfigSchema, TAX_CREDIT_CONFIG } from './schemas/tax-credit-config.schema';
 import { CalculationService } from './sub-services';
 
@@ -13,16 +11,11 @@ import { CalculationService } from './sub-services';
   imports: [
     MongooseModule.forFeature([
       { name: QUOTE, schema: QuoteSchema, collection: 'v2_quotes' },
-      {
-        name: LABOR_COST_CONFIG,
-        schema: LaborCostConfigSchema,
-        collection: 'v2_labor_cost_configs',
-      },
-      {
-        name: CASH_PAYMENT_CONFIG,
-        schema: CashPaymentConfigSchema,
-        collection: 'v2_cash_payment_configs',
-      },
+      // {
+      //   name: LABOR_COST_CONFIG,
+      //   schema: LaborCostConfigSchema,
+      //   collection: 'v2_labor_cost_configs',
+      // },
       {
         name: TAX_CREDIT_CONFIG,
         schema: TaxCreditConfigSchema,

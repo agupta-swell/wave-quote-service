@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { CashPaymentConfig, CASH_PAYMENT_CONFIG } from './cash-payment-config.schema';
+import { CashPaymentConfigSchema, CASH_PAYMENT_CONFIG } from './cash-payment-config.schema';
 import { CashPaymentConfigService } from './cash-payment-config.service';
 
 @Global()
@@ -9,7 +9,7 @@ import { CashPaymentConfigService } from './cash-payment-config.service';
     MongooseModule.forFeature([
       {
         name: CASH_PAYMENT_CONFIG,
-        schema: CashPaymentConfig,
+        schema: CashPaymentConfigSchema,
         collection: 'v2_cash_payment_config',
       },
     ]),

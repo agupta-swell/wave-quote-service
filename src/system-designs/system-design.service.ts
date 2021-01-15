@@ -47,7 +47,7 @@ export class SystemDesignService {
             item.array_id = Types.ObjectId();
             const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
             item.panel_model_id = panelModelId;
-            const panelModelData = await this.productService.getDetail(panelModelId);
+            const panelModelData = await this.productService.getDetailById(panelModelId);
             const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
             systemDesign.setPanelModelDataSnapshot(data, index);
             const capacity = (item.number_of_panels * panelModelData.sizeW) / 1000;
@@ -66,12 +66,12 @@ export class SystemDesignService {
             systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
           }),
           systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
-            const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
+            const inverterModelData = await this.productService.getDetailById(inverter.inverter_model_id);
             const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
             systemDesign.setInverter(data, index);
           }),
           systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
-            const storageModelData = await this.productService.getDetail(storage.storage_model_id);
+            const storageModelData = await this.productService.getDetailById(storage.storage_model_id);
             const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
             systemDesign.setStorage(data, index);
           }),
@@ -169,7 +169,7 @@ export class SystemDesignService {
               item.array_id = Types.ObjectId();
               const panelModelId = systemDesignDto.roofTopDesignData.panelArray[index].panelModelId;
               item.panel_model_id = panelModelId;
-              const panelModelData = await this.productService.getDetail(panelModelId);
+              const panelModelData = await this.productService.getDetailById(panelModelId);
               const data = { ...panelModelData.toObject(), part_number: panelModelData.partNumber };
               systemDesign.setPanelModelDataSnapshot(data, index);
               const capacity = (item.number_of_panels * panelModelData.sizeW) / 1000;
@@ -188,12 +188,12 @@ export class SystemDesignService {
               systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
             }),
             systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
-              const inverterModelData = await this.productService.getDetail(inverter.inverter_model_id);
+              const inverterModelData = await this.productService.getDetailById(inverter.inverter_model_id);
               const data = { ...inverterModelData.toObject(), part_number: inverterModelData.partNumber };
               systemDesign.setInverter(data, index);
             }),
             systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
-              const storageModelData = await this.productService.getDetail(storage.storage_model_id);
+              const storageModelData = await this.productService.getDetailById(storage.storage_model_id);
               const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
               systemDesign.setStorage(data, index);
             }),
@@ -313,14 +313,18 @@ export class SystemDesignService {
 
   async updateListSystemDesign(opportunityId: string, annualUsageKWh: number): Promise<boolean> {
     const systemDesigns = await this.systemDesignModel.find({ opportunity_id: opportunityId });
-    await Promise.all(
-      systemDesigns.map(item => {
-        item.system_production_data.annual_usageKWh = annualUsageKWh;
-        item.system_production_data.offset_percentage =
-          annualUsageKWh > 0 ? item.system_production_data.generationKWh / annualUsageKWh : 0;
-        return item.updateOne(item.toObject());
-      }),
-    );
+    try {
+      await Promise.all(
+        systemDesigns.map(item => {
+          item.system_production_data.annual_usageKWh = annualUsageKWh;
+          item.system_production_data.offset_percentage =
+            annualUsageKWh > 0 ? item.system_production_data.generationKWh / annualUsageKWh : 0;
+          return item.updateOne(item.toObject());
+        }),
+      );
+    } catch (error) {
+      return false;
+    }
 
     return true;
   }

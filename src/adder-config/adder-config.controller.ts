@@ -17,7 +17,7 @@ export class AdderConfigController {
   @ApiQuery({ name: 'limit' })
   @ApiQuery({ name: 'skip' })
   @ApiOkResponse({ type: AdderConfigResponseDto })
-  async getQuotings(
+  async getAllAdderConfigs(
     @Query() query: { limit: string; skip: string },
   ): Promise<ServiceResponse<Pagination<AdderConfigDto>>> {
     const limit = Number(query.limit || 100);

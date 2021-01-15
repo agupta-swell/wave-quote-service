@@ -32,7 +32,7 @@ export class SystemProductService {
   async calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<number[]> {
     const pvProductionArray = await Promise.all(
       systemDesignDto.roofTopDesignData.panelArray.map(async item => {
-        const panelModelData = await this.productService.getDetail(item.panelModelId);
+        const panelModelData = await this.productService.getDetailById(item.panelModelId);
         const systemCapacityInkWh = item.numberOfPanels * panelModelData.sizeW;
 
         const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({

@@ -45,12 +45,6 @@ export class UtilityService {
     private readonly quoteService: QuoteService,
   ) {}
 
-  async getUtilityDetails(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
-    const loadServingEntityData = await this.externalService.getLoadServingEntity(zipCode);
-    const data = { loadServingEntityData };
-    return OperationResult.ok(new UtilityDataDto(data));
-  }
-
   async getTypicalBaseline(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
     const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
     if (typicalBaseLine) {
@@ -80,6 +74,9 @@ export class UtilityService {
   async getTariffs(zipCode: number, lseId: number): Promise<OperationResult<TariffDto>> {
     const data = await this.externalService.getTariff(zipCode);
     const result = data.filter((item: any) => item.lseId === lseId);
+    if (!result[0]) {
+      return OperationResult.error(new Error(`No Tariff with zipCode: ${zipCode} and lseId: ${lseId}`), null);
+    }
     const newResult = {
       zipCode: result[0].zipCode,
       lseId: result[0].lseId,
@@ -148,7 +145,7 @@ export class UtilityService {
     return OperationResult.ok(new CostDataDto(costData));
   }
 
-  async getActualUsages(data: GetActualUsageDto): Promise<OperationResult<UtilityDataDto>> {
+  async createActualUsages(data: GetActualUsageDto): Promise<OperationResult<UtilityDataDto>> {
     const { costData, utilityData } = data;
 
     costData.actualUsageCost.cost.map((costDetail, index) => {
@@ -240,6 +237,7 @@ export class UtilityService {
     if (hour <= 7296) return 10;
     if (hour <= 8016) return 11;
     if (hour <= 8760) return 12;
+    return -1;
   }
 
   getLastDay(month: number, year: number) {
@@ -316,9 +314,9 @@ export class UtilityService {
     return costData;
   }
 
-  async getUtilityByOpportunityId(opportunityId: string): Promise<UtilityUsageDetails> {
+  async getUtilityByOpportunityId(opportunityId: string): Promise<UtilityUsageDetails | null> {
     const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
-    return utility || null;
+    return utility;
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
@@ -367,8 +365,8 @@ export class UtilityService {
     return utility?.name || '';
   }
 
-  async getAllUtilities(): Promise<Utilities[]> {
-    const utilities = await this.utilitiesModel.find();
-    return utilities?.map(item => item.toObject({ versionKey: false }));
-  }
+  // async getAllUtilities(): Promise<Utilities[]> {
+  //   const utilities = await this.utilitiesModel.find();
+  //   return utilities?.map(item => item.toObject({ versionKey: false }));
+  // }
 }

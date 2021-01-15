@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { identity, pickBy } from 'lodash';
 import { Model } from 'mongoose';
+import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { toSnakeCase } from '../utils/transformProperties';
-import { ApplicationException } from './../app/app.exception';
-import { ProposalSectionMaster, PROPOSAL_SECTION_MASTER } from './proposal-section-masters.schema';
+import { ProposalSectionMaster, PROPOSAL_SECTION_MASTER } from './proposal-section-master.schema';
 import { CreateProposalSectionMasterDto } from './req/create-proposal-section-master.dto';
 import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-master.dto';
 import { ProposalSectionMasterDto } from './res/proposal-section-master.dto';
@@ -61,17 +61,19 @@ export class ProposalSectionMasterService {
       this.proposalSectionMaster.countDocuments(condition),
     ]);
 
-    return OperationResult.ok({
-      data: proposalSectionMasters.map(
-        proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster.toObject()),
-      ),
-      total,
-    });
+    return OperationResult.ok(
+      new Pagination({
+        data: proposalSectionMasters.map(
+          proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster.toObject()),
+        ),
+        total,
+      }),
+    );
   }
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getProposalSectionMasterById(id: string): Promise<ProposalSectionMaster> {
+  async getProposalSectionMasterById(id: string): Promise<ProposalSectionMaster | undefined> {
     const found = await this.proposalSectionMaster.findOne({ _id: id });
-    return found.toObject();
+    return found?.toObject();
   }
 }

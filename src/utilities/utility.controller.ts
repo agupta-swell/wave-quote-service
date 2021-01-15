@@ -29,7 +29,7 @@ export class UtilityController {
   @ApiOperation({ summary: 'Get Tariff List' })
   @ApiOkResponse({ type: TariffDto, isArray: true })
   async getTariff(@Query() query: { zipCode: string; lseId: string }): Promise<ServiceResponse<TariffDto>> {
-    const res = await this.utilityService.getTariffs(Number(query.zipCode), Number(query.lseId || 734));
+    const res = await this.utilityService.getTariffs(Number(query.zipCode), Number(query.lseId));
     return ServiceResponse.fromResult(res);
   }
 
@@ -41,10 +41,7 @@ export class UtilityController {
   async calculateTypicalUsageCost(
     @Query() query: { zipCode: string; masterTariffId: string },
   ): Promise<ServiceResponse<CostDataDto>> {
-    const res = await this.utilityService.calculateTypicalUsageCost(
-      Number(query.zipCode),
-      query.masterTariffId || '522',
-    );
+    const res = await this.utilityService.calculateTypicalUsageCost(Number(query.zipCode), query.masterTariffId);
     return ServiceResponse.fromResult(res);
   }
 
@@ -59,8 +56,8 @@ export class UtilityController {
   @Post('/actual-usages')
   @ApiOperation({ summary: 'Create Actual Usage' })
   @ApiOkResponse({ type: UtilityDataDto })
-  async getActualUsages(@Body() data: GetActualUsageDto): Promise<ServiceResponse<UtilityDataDto>> {
-    const res = await this.utilityService.getActualUsages(data);
+  async createActualUsages(@Body() data: GetActualUsageDto): Promise<ServiceResponse<UtilityDataDto>> {
+    const res = await this.utilityService.createActualUsages(data);
     return ServiceResponse.fromResult(res);
   }
 

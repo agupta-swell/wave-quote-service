@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { ProposalSectionMaster } from '../proposal-section-masters.schema';
+import { ProposalSectionMaster } from '../proposal-section-master.schema';
 
 export class ProposalSectionMasterDto {
   @ApiProperty()

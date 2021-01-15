@@ -112,3 +112,5 @@ tags*
 
 .env
 .vscode
+
+__snapshots__

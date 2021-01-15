@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ProposalSectionMasterController } from './proposal-section-masters.controller';
-import { ProposalSectionMasterSchema, PROPOSAL_SECTION_MASTER } from './proposal-section-masters.schema';
-import { ProposalSectionMasterService } from './proposal-section-masters.service';
+import { ProposalSectionMasterController } from './proposal-section-master.controller';
+import { ProposalSectionMasterSchema, PROPOSAL_SECTION_MASTER } from './proposal-section-master.schema';
+import { ProposalSectionMasterService } from './proposal-section-master.service';
 
 @Global()
 @Module({

@@ -14,12 +14,12 @@ export class OpportunityService {
     return !!res?._id;
   }
 
-  async getContactIdById(opportunityId: string): Promise<string> {
+  async getContactIdById(opportunityId: string): Promise<string | undefined> {
     const res = await this.opportunityModel.findById(opportunityId);
     return res?.toObject()?.contactId;
   }
 
-  async getDetail(opportunityId: string): Promise<Opportunity> {
+  async getDetailById(opportunityId: string): Promise<Opportunity | undefined> {
     const res = await this.opportunityModel.findById(opportunityId);
     return res?.toObject();
   }

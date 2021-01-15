@@ -86,12 +86,12 @@ export class DocusignTemplateMasterController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Post('/mock-data')
-  @ApiBearerAuth()
-  @PreAuthenticate()
-  @ApiOperation({ summary: 'Create mock data for utilities master and utility programs master' })
-  async createUtilitiesMasterData(): Promise<ServiceResponse<boolean>> {
-    const res = await this.docusignTemplateMasterService.createUtilitiesMasterData();
-    return ServiceResponse.fromResult(res);
-  }
+  // @Post('/mock-data')
+  // @ApiBearerAuth()
+  // @PreAuthenticate()
+  // @ApiOperation({ summary: 'Create mock data for utilities master and utility programs master' })
+  // async createUtilitiesMasterData(): Promise<ServiceResponse<boolean>> {
+  //   const res = await this.docusignTemplateMasterService.createUtilitiesMasterData();
+  //   return ServiceResponse.fromResult(res);
+  // }
 }

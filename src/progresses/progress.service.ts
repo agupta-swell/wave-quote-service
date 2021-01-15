@@ -1,8 +1,8 @@
-import { QualificationService } from '../qualifications/qualification.service';
 import { Injectable } from '@nestjs/common';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
+import { QualificationService } from '../qualifications/qualification.service';
 import { OperationResult } from './../app/common/operation-result';
 import { UtilityService } from './../utilities/utility.service';
 import { ProgressDto } from './res/progress.dto';
@@ -19,11 +19,11 @@ export class ProgressService {
 
   async countEachProgress(opportunityId: string): Promise<OperationResult<ProgressDto>> {
     const [
-      utilityCounter = 0,
-      systemDesignCounter = 0,
-      quoteCounter = 0,
-      proposalCounter = 0,
-      qualificationCounter = 0,
+      utilityCounter,
+      systemDesignCounter,
+      quoteCounter,
+      proposalCounter,
+      qualificationCounter,
     ] = await Promise.all([
       this.utilityService.countByOpportunityId(opportunityId),
       this.systemDesignSerivce.countByOpportunityId(opportunityId),

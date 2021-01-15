@@ -5,16 +5,16 @@ import { Contact, CONTACT } from './contact.schema';
 
 @Injectable()
 export class ContactService {
-  constructor(@InjectModel(CONTACT) private contactModel: Model<Contact>) {}
+  constructor(@InjectModel(CONTACT) private readonly contactModel: Model<Contact>) {}
 
   // =====================> INTERNAL <=====================
 
-  async getEmailById(contactId: string): Promise<string> {
+  async getEmailById(contactId: string): Promise<string | undefined> {
     const res = await this.contactModel.findById(contactId);
     return res?.toObject()?.email;
   }
 
-  async getContactById(contactId: string): Promise<Contact> {
+  async getContactById(contactId: string): Promise<Contact | undefined> {
     const res = await this.contactModel.findById(contactId);
     return res?.toObject();
   }
