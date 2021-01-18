@@ -16,7 +16,7 @@ import {
   SaveContractCompositeTemplateDto,
   SaveContractCompositeTemplateRes,
   SaveTemplateDto,
-  SaveTemplateRes
+  SaveTemplateRes,
 } from './res';
 
 @ApiTags('Docusign Template Master')
@@ -29,8 +29,8 @@ export class DocusignTemplateMasterController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Get Docusign Templates Master' })
   @ApiOkResponse({ type: GetTemplateMasterRes })
-  async getDocusignTemplateMaster(): Promise<ServiceResponse<GetTemplateMasterDto>> {
-    const res = await this.docusignTemplateMasterService.getTemplateMasters();
+  async getDocusignTemplatesMaster(): Promise<ServiceResponse<GetTemplateMasterDto>> {
+    const res = await this.docusignTemplateMasterService.getTemplatesMaster();
     return ServiceResponse.fromResult(res);
   }
 

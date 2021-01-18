@@ -19,13 +19,15 @@ export class SaveContractCompositeTemplateDto {
 
   constructor(responseStatus: string, props?: ICompositeTemplateResDto) {
     this.responseStatus = responseStatus;
-    this.newUpdatedCompositeTemplate = {
-      templateDetails: props.templateDetails.map(item => ({
-        ...toCamelCase(item),
-        recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
-      })),
-      compositeTemplateData: toCamelCase(props.compositeTemplateData),
-    };
+    this.newUpdatedCompositeTemplate = props
+      ? {
+          templateDetails: props?.templateDetails.map(item => ({
+            ...toCamelCase(item),
+            recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
+          })),
+          compositeTemplateData: toCamelCase(props?.compositeTemplateData),
+        }
+      : null;
   }
 }
 

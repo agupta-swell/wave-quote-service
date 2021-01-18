@@ -228,7 +228,6 @@ export class ExternalService {
   getFniResponse(data: IApplyRequest): IApplyResponse {
     const primarySSN = data.applicant1.soc;
     let code: string;
-    console.log('>>>>>>>>>>>>>>>>>>>', 'FNI API', primarySSN.charAt(0), process.env.FNI_API);
 
     switch (primarySSN.charAt(0)) {
       case '1':
