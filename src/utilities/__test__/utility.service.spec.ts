@@ -392,7 +392,6 @@ describe('Utility Service', () => {
       utilityService = new UtilityService(null, mockUtilitiesModelModel as any, null, null, null, null, null);
       const res = await utilityService.getUtilityName('oppId');
 
-      console.log('>>>>>>>>>>>>>>>>>>>', 'ressss', res);
       expect(res).toMatchSnapshot();
       expect(res).toBe('');
       expect(mockUtilitiesModelModel.findById).toHaveBeenCalledTimes(1);
