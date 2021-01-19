@@ -169,8 +169,8 @@ describe('Docusign Template Master Controller', () => {
         applicableUtilities: ['string'],
         applicableStates: ['string'],
         applicableSystemTypes: [SYSTEM_TYPE.ALL],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date('1/19/2020'),
+        updatedAt: new Date('1/19/2020'),
       },
     };
     const res = await docusignTemplateMasterController.saveContractCompositeTemplate(req);

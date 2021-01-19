@@ -160,8 +160,8 @@ describe('Docusign Template Master Service', () => {
           applicableUtilities: ['string'],
           applicableStates: ['string'],
           applicableSystemTypes: [SYSTEM_TYPE.ALL],
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date('1/19/2020'),
+          updatedAt: new Date('1/19/2020'),
         },
       };
 
@@ -199,8 +199,8 @@ describe('Docusign Template Master Service', () => {
           applicableUtilities: ['string'],
           applicableStates: ['string'],
           applicableSystemTypes: [SYSTEM_TYPE.ALL],
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date('1/19/2020'),
+          updatedAt: new Date('1/19/2020'),
         },
       };
 
@@ -350,8 +350,8 @@ describe('Docusign Template Master Service', () => {
         applicable_utilities: ['string'],
         applicable_states: ['string'],
         applicable_system_types: [SYSTEM_TYPE.ALL],
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: new Date('1/19/2020'),
+        updated_at: new Date('1/19/2020'),
       };
       const mockDocusignCompositeTemplateMaster = {
         findById: jest.fn().mockResolvedValue({ ...mockRes, toObject: jest.fn().mockReturnValue(mockRes) }),
