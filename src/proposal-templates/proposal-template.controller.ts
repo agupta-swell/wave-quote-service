@@ -12,27 +12,27 @@ import { ProposalTemplateDto, ProposalTemplateListRes, ProposalTemplateRes } fro
 @Controller('/proposal-templates')
 @PreAuthenticate()
 export class ProposalTemplateController {
-  constructor(private readonly proposalSectionMasterService: ProposalTemplateService) {}
+  constructor(private readonly proposalTemplateService: ProposalTemplateService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create Proposal Template' })
   @ApiOkResponse({ type: ProposalTemplateRes })
-  async createProposalSectionMaster(
-    @Body() proposalSectionMasterDto: CreateProposalTemplateDto,
+  async createProposalTemplate(
+    @Body() proposalTemplateDto: CreateProposalTemplateDto,
   ): Promise<ServiceResponse<ProposalTemplateDto>> {
-    const res = await this.proposalSectionMasterService.create(proposalSectionMasterDto);
+    const res = await this.proposalTemplateService.create(proposalTemplateDto);
     return ServiceResponse.fromResult(res);
   }
 
   @Put('/:id')
   @ApiOperation({ summary: 'Update Proposal Template' })
   @ApiOkResponse({ type: ProposalTemplateRes })
-  async updateProposalSectionMaster(
+  async updateProposalTemplate(
     @Param('id') id: string,
     @Body()
-    proposalSectionMasterDto: UpdateProposalTemplateDto,
+    proposalTemplateDto: UpdateProposalTemplateDto,
   ): Promise<ServiceResponse<ProposalTemplateDto>> {
-    const res = await this.proposalSectionMasterService.update(id, proposalSectionMasterDto);
+    const res = await this.proposalTemplateService.update(id, proposalTemplateDto);
     return ServiceResponse.fromResult(res);
   }
 
@@ -46,7 +46,7 @@ export class ProposalTemplateController {
   ): Promise<ServiceResponse<Pagination<ProposalTemplateDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
-    const res = await this.proposalSectionMasterService.getList(limit, skip);
+    const res = await this.proposalTemplateService.getList(limit, skip);
     return ServiceResponse.fromResult(res);
   }
 }

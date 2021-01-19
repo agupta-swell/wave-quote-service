@@ -2,10 +2,10 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { flatten, pickBy } from 'lodash';
 import { Model, Types } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { QuoteService } from 'src/quotes/quote.service';
 import { AdderConfigService } from '../adder-config/adder-config.service';
-import { ApplicationException } from '../app/app.exception';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { ProductService } from './../products/product.service';
@@ -264,39 +264,40 @@ export class SystemDesignService {
     switch (selected) {
       case undefined:
       case '-1':
-        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).exec();
+        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip);
         break;
       case '0':
         query = this.systemDesignModel
           .find({ is_selected: false, opportunity_id: opportunityId })
           .limit(limit)
-          .skip(skip)
-          .exec();
+          .skip(skip);
         break;
       case '1':
         query = this.systemDesignModel
           .find({ is_selected: true, opportunity_id: opportunityId })
           .limit(limit)
-          .skip(skip)
-          .exec();
+          .skip(skip);
         break;
       default:
-        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).exec();
+        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip);
         break;
     }
 
     const [systemDesigns, total] = await Promise.all([query, this.systemDesignModel.estimatedDocumentCount()]);
-    const data = (systemDesigns || []).map(item => new SystemDesignDto(item.toObject()));
+    const data = systemDesigns.map(item => new SystemDesignDto(item.toObject()));
     const result = {
       data,
       total,
     };
-    return OperationResult.ok(result);
+    return OperationResult.ok(new Pagination(result));
   }
 
   async getDetails(id: string): Promise<OperationResult<SystemDesignDto>> {
-    const systemDesign = await this.systemDesignModel.findById(id);
-    return OperationResult.ok(new SystemDesignDto(systemDesign.toObject()));
+    const foundSystemDesign = await this.systemDesignModel.findById(id);
+    if (!foundSystemDesign) {
+      throw ApplicationException.EnitityNotFound(id);
+    }
+    return OperationResult.ok(new SystemDesignDto(foundSystemDesign.toObject()));
   }
 
   //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-

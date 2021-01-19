@@ -46,7 +46,7 @@ export class ProposalTemplateService {
 
     const proposalSections = proposalTemplateDto.sections
       ? await Promise.all(
-          proposalTemplateDto?.sections?.map(id => this.proposalSectionMasterService.getProposalSectionMasterById(id)),
+          proposalTemplateDto.sections.map(id => this.proposalSectionMasterService.getProposalSectionMasterById(id)),
         )
       : [];
 
@@ -77,10 +77,12 @@ export class ProposalTemplateService {
       this.proposalTemplate.estimatedDocumentCount(),
     ]);
 
-    return OperationResult.ok({
-      data: proposalTemplates.map(proposalTemplate => new ProposalTemplateDto(proposalTemplate.toObject())),
-      total,
-    });
+    return OperationResult.ok(
+      new Pagination({
+        data: proposalTemplates.map(proposalTemplate => new ProposalTemplateDto(proposalTemplate.toObject())),
+        total,
+      }),
+    );
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
