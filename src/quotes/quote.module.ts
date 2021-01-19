@@ -1,5 +1,7 @@
 import { Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
@@ -9,13 +11,11 @@ import { CalculationService } from './sub-services';
 @Global()
 @Module({
   imports: [
+    JwtModule.registerAsync({
+      useClass: JwtConfigService,
+    }),
     MongooseModule.forFeature([
       { name: QUOTE, schema: QuoteSchema, collection: 'v2_quotes' },
-      // {
-      //   name: LABOR_COST_CONFIG,
-      //   schema: LaborCostConfigSchema,
-      //   collection: 'v2_labor_cost_configs',
-      // },
       {
         name: TAX_CREDIT_CONFIG,
         schema: TaxCreditConfigSchema,

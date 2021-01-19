@@ -1,5 +1,7 @@
 import { Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { UTILITIES, UtilitiesSchema } from './schemas';
 import { UtilityController } from './utility.controller';
 import {
@@ -15,6 +17,9 @@ import { UtilityService } from './utility.service';
 @Global()
 @Module({
   imports: [
+    JwtModule.registerAsync({
+      useClass: JwtConfigService,
+    }),
     MongooseModule.forFeature([
       {
         name: GENABILITY_USAGE_DATA,

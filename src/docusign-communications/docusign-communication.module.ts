@@ -1,12 +1,17 @@
 import { Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
-import { DOCUSIGN_COMMUNICATION, DocusignCommunicationSchema } from './docusign-communication.schema';
+import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { DocusignCommunicationSchema, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
 import { DocusignCommunicationService } from './docusign-communication.service';
 import { DocusignTemplateService } from './sub-services/docusign-template.service';
 
 @Global()
 @Module({
   imports: [
+    JwtModule.registerAsync({
+      useClass: JwtConfigService,
+    }),
     MongooseModule.forFeature([
       {
         name: DOCUSIGN_COMMUNICATION,

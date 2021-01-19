@@ -1,5 +1,7 @@
 import { Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { DocusignTemplateMasterController } from './docusign-template-master.controller';
 import { DocusignTemplateMasterSchema, DOCUSIGN_TEMPLATE_MASTER } from './docusign-template-master.schema';
 import { DocusignTemplateMasterService } from './docusign-template-master.service';
@@ -15,6 +17,9 @@ import {
 @Global()
 @Module({
   imports: [
+    JwtModule.registerAsync({
+      useClass: JwtConfigService,
+    }),
     MongooseModule.forFeature([
       {
         name: DOCUSIGN_TEMPLATE_MASTER,

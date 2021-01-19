@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { CurrentUser, CurrentUserType, HasRole, PreAuthenticate, ROLES } from 'src/app/securities';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser, CurrentUserType, PreAuthenticate } from 'src/app/securities';
 import { AuthenticationService } from './authentication.service';
 import { LoginDto } from './req';
 import { AuthenticationDto } from './res/authentication.dto';
@@ -16,8 +16,8 @@ export class AuthenticationController {
   }
 
   @Get()
+  @ApiBearerAuth()
   @PreAuthenticate()
-  @HasRole([ROLES.ADMIN, ROLES.SUPER_MANAGER])
   getCurrentUser(@CurrentUser() user: CurrentUserType) {
     return user;
   }

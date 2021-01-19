@@ -1,7 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthencationModule } from 'src/authentication/authentication.module';
+import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { CashPaymentConfigModule } from 'src/cash-payment-configs/cash-payment-config.module';
 import { ContractModule } from 'src/contracts/contract.module';
 import { CustomerPaymentModule } from 'src/customer-payments/customer-payment.module';
