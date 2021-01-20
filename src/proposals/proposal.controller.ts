@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
-import { CurrentUser, PreAuthenticate } from '../app/securities';
+import { CurrentUser, CustomJWTSecretKey, PreAuthenticate } from '../app/securities';
 import { CurrentUserType } from './../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto } from './req/create-proposal.dto';
@@ -94,6 +94,7 @@ export class ProposalController {
   @Post('/validations')
   @ApiOperation({ summary: 'Validate and Reponse Data' })
   @ApiOkResponse({ type: ProposalRes })
+  @CustomJWTSecretKey(process.env.PROPOSAL_JWT_SECRET)
   async getProposalLink(
     @Body() body: ValidateProposalDto,
   ): Promise<ServiceResponse<{ isAgent: boolean; proposalDetail: ProposalDto }>> {

@@ -144,7 +144,7 @@ export class ProposalService {
         zipCode: 'need to fix later',
         isAgent: true,
       },
-      { expiresIn: '5m' },
+      { expiresIn: '5m', secret: process.env.PROPOSAL_JWT_SECRET },
     );
 
     return OperationResult.ok({ proposalLink: process.env.PROPOSAL_PAGE.concat(`?s=${token}`) });

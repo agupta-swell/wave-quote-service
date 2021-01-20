@@ -11,10 +11,9 @@ export class JwtConfigService implements JwtOptionsFactory {
   }
 
   async createJwtOptions(): Promise<JwtModuleOptions> {
-    const res = await this.getJWTSecretKey();
-    console.log('>>>>>>>>>>>>>>>>>>>', 'ressssssss', res);
+    const appSecret = await this.getJWTSecretKey();
     return {
-      secret: await this.getJWTSecretKey(),
+      secret: appSecret,
       signOptions: {
         expiresIn: '1h',
       },
@@ -33,7 +32,7 @@ export class JwtConfigService implements JwtOptionsFactory {
         decodedBinarySecret = buff.toString('ascii');
       }
     } catch (error) {
-      console.error('>>>>>>>>>>>>>>>>>>>', 'DocusignAPIService -> decode secret error', error);
+      console.error('>>>>>>>>>>>>>>>>>>>', 'JwtConfigService -> decode secret error', error);
     }
 
     return JSON.parse(secret ? secret : decodedBinarySecret)?.JWT_SECRET as string;

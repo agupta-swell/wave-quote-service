@@ -365,7 +365,7 @@ export class QualificationService {
         opportunityId,
         qualificationCreditId,
       },
-      { expiresIn: tokenExpiry },
+      { expiresIn: tokenExpiry, secret: process.env.QUALIFICATION_JWT_SECRET },
     );
   }
 

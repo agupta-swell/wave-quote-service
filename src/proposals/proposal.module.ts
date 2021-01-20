@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
 import { ProposalService } from './proposal.service';
@@ -9,8 +10,8 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
 @Global()
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.PROPOSAL_JWT_SECRET,
+    JwtModule.registerAsync({
+      useClass: JwtConfigService,
     }),
     MongooseModule.forFeature([
       {
