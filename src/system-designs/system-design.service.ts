@@ -31,7 +31,7 @@ export class SystemDesignService {
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
-    if (systemDesignDto.roofTopDesignData && systemDesignDto.capacityProductionDesignData) {
+    if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
       throw new Error('Please put your data in body');
     }
 

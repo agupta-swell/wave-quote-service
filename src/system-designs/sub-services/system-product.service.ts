@@ -44,32 +44,32 @@ export class SystemProductService {
         });
 
         if (pvWattSystemProduction) {
-          return pvWattSystemProduction.toObject().ac_annual_hourly_production;
-        } else {
-          const payload = {
-            lat: systemDesignDto.latitude,
-            lon: systemDesignDto.longtitude,
-            systemCapacity: systemCapacityInkWh,
-            azimuth: item.azimuth,
-            tilt: item.pitch,
-            losses: 5.5,
-          } as IPvWatCalculation;
-          const res = await this.externalService.calculateSystemProduction(payload);
-
-          const createdPvWattSystemProduction = new this.pvWattSystemProduction({
-            lat: systemDesignDto.latitude,
-            lon: systemDesignDto.longtitude,
-            system_capacity_kW: systemCapacityInkWh,
-            azimuth: item.azimuth,
-            tilt: item.pitch,
-            losses: 5.5,
-            array_type: 1,
-            module_type: 1,
-            ac_annual_hourly_production: res.ac,
-          });
-          await createdPvWattSystemProduction.save();
-          return res.ac as number[];
+          return pvWattSystemProduction.ac_annual_hourly_production;
         }
+
+        const payload = {
+          lat: systemDesignDto.latitude,
+          lon: systemDesignDto.longtitude,
+          systemCapacity: systemCapacityInkWh,
+          azimuth: item.azimuth,
+          tilt: item.pitch,
+          losses: 5.5,
+        } as IPvWatCalculation;
+        const res = await this.externalService.calculateSystemProduction(payload);
+
+        const createdPvWattSystemProduction = new this.pvWattSystemProduction({
+          lat: systemDesignDto.latitude,
+          lon: systemDesignDto.longtitude,
+          system_capacity_kW: systemCapacityInkWh,
+          azimuth: item.azimuth,
+          tilt: item.pitch,
+          losses: 5.5,
+          array_type: 1,
+          module_type: 1,
+          ac_annual_hourly_production: res.ac,
+        });
+        await createdPvWattSystemProduction.save();
+        return res.ac as number[];
       }),
     );
 
