@@ -81,6 +81,7 @@ export class SystemDesignDto {
   }
 
   transformRoofTopData = (data: IRoofTopSchema): RoofTopDataDto => {
+    if (!data) return {} as any;
     const { panel_array, inverters, storage, adders } = data;
 
     return {

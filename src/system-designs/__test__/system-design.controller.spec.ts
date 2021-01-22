@@ -474,8 +474,8 @@ describe('System Design Controller', () => {
       })
       .compile();
 
-    const a = moduleRef.get<SystemProductService>(SystemProductService);
-    jest.spyOn(a, 'pvWatCalculation').mockImplementation(async () => 6);
+    const systemProductService = moduleRef.get<SystemProductService>(SystemProductService);
+    jest.spyOn(systemProductService, 'pvWatCalculation').mockImplementation(async () => 6);
 
     const res = await moduleRef.get<SystemDesignController>(SystemDesignController).create(req as any);
 
@@ -484,11 +484,91 @@ describe('System Design Controller', () => {
     expect(res.data).toBeInstanceOf(SystemDesignDto);
   });
 
-  // test('should update work correctly', async () => {
-  //   const res = await systemDesignController.update('systemDesignId', req as any);
+  test('should update work correctly', async () => {
+    class MockRespository {
+      data: any;
+      constructor(data) {
+        this.data = data;
+      }
+      save(data) {
+        return data;
+      }
+      toObject() {
+        return this.data;
+      }
+      static find = jest.fn().mockReturnValueOnce({
+        limit: jest.fn().mockReturnValueOnce({
+          skip: jest.fn().mockReturnValueOnce([
+            {
+              ...mockSystemDesignModel,
+              toObject: jest.fn().mockReturnValue(mockSystemDesignModel),
+            },
+          ]),
+        }),
+      });
 
-  //   expect(res).toMatchSnapshot();
-  //   expect(res).toBeInstanceOf(ServiceResponse);
-  //   expect(res.data).toEqual(expect.any(String));
-  // });
+      static findById = jest.fn().mockResolvedValue({
+        ...mockSystemDesignModel,
+        toObject: jest.fn().mockReturnValue(mockSystemDesignModel),
+        updateOne: jest.fn().mockReturnValue(mockSystemDesignModel),
+      });
+      static findOne = jest.fn().mockResolvedValue({
+        ...mockSystemDesignModel,
+        deleteOne: jest.fn(),
+      });
+      static estimatedDocumentCount = jest.fn().mockReturnValueOnce(1);
+    }
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        SystemDesignModule,
+        ProductModule,
+        UtilityModule,
+        AdderConfigModule,
+        QuoteModule,
+        ExternalServiceModule,
+        MyLoggerModule,
+        UtilityProgramMasterModule,
+        FundingSourceModule,
+        CashPaymentConfigModule,
+        LeaseSolverConfigModule,
+        MongooseModule.forRoot(process.env.MONGO_URL, { useFindAndModify: false }),
+        OpportunityModule,
+      ],
+    })
+      .overrideProvider(getModelToken(SYSTEM_DESIGN))
+      .useValue(MockRespository)
+      .overrideProvider(getModelToken(PRODUCT))
+      .useValue({ findById: jest.fn().mockResolvedValue({ toObject: jest.fn().mockReturnValue({}) }) })
+      .overrideProvider(getModelToken(ADDER_CONFIG))
+      .useValue({
+        findById: jest.fn().mockResolvedValue({ toObject: jest.fn().mockReturnValue({ modifiedAt: '21/01/2021' }) }),
+      })
+      .overrideProvider(getModelToken(PV_WATT_SYSTEM_PRODUCTION))
+      .useValue({
+        findOne: jest.fn().mockResolvedValue({ ac_annual_hourly_production: [1, 2, 3] }),
+      })
+      .overrideProvider(getModelToken(UTILITY_USAGE_DETAILS))
+      .useValue({
+        findOne: jest.fn().mockResolvedValue({
+          utility_data: {
+            actual_usage: { hourly_usage: [{ i: 1, v: 2 }] },
+            typical_baseline_usage: { zip_code: 123123 },
+          },
+          cost_data: { master_tariff_id: '123' },
+        }),
+      })
+      .compile();
+
+    const systemProductService = moduleRef.get<SystemProductService>(SystemProductService);
+    jest.spyOn(systemProductService, 'pvWatCalculation').mockImplementation(async () => 6);
+
+    const res = await moduleRef
+      .get<SystemDesignController>(SystemDesignController)
+      .update('systemDesignId', req as any);
+
+    expect(res).toMatchSnapshot();
+    expect(res).toBeInstanceOf(ServiceResponse);
+    expect(res.data).toBeInstanceOf(SystemDesignDto);
+  });
 });

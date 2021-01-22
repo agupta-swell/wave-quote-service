@@ -1,51 +1,70 @@
+import { OperationResult } from 'src/app/common';
+import { SystemDesignDto } from '../res/system-design.dto';
 import { SystemDesignService } from '../system-design.service';
 
 describe('System Design Service', () => {
-  let proposalSectionMasterService: SystemDesignService;
+  let systemDesignService: SystemDesignService;
 
-  // describe('getProposalSectionMasterById function', () => {
-  //   test(`should return null `, async () => {
-  //     const mockProposalSectionMaster = {
-  //       findOne: jest.fn().mockResolvedValue(null),
-  //     } as any;
+  describe('create function', () => {
+    test(`should return error `, async () => {
+      systemDesignService = new SystemDesignService(null, null, null, null, null, null, null);
+      try {
+        await systemDesignService.create({} as any);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+      }
+    });
 
-  //     proposalSectionMasterService = new SystemDesignService(mockProposalSectionMaster);
-  //     const res = await proposalSectionMasterService.getProposalSectionMasterById('id');
+    test('should return System Design model', async () => {
+      const mockUtilityService = {
+        getUtilityByOpportunityId: jest.fn().mockResolvedValue({
+          utility_data: {
+            actual_usage: {
+              hourly_usage: [{ v: 12 }],
+            },
+            typical_baseline_usage: { zip_code: 123 },
+          },
+          cost_data: { master_tariff_id: '123' },
+        }),
+        calculateCost: jest.fn(),
+      } as any;
+      const mockSystemProductService = {
+        calculateSystemProductionByHour: jest.fn().mockResolvedValue({}),
+        calculateNetUsagePostSystemInstallation: jest.fn().mockResolvedValue({}),
+      } as any;
 
-  //     expect(res).toMatchSnapshot();
-  //     expect(res).toBeUndefined();
-  //     expect(mockProposalSectionMaster.findOne).toHaveBeenCalledTimes(1);
-  //   });
+      class MockSystemDesign {
+        data: any;
+        constructor(data) {
+          this.data = data;
+        }
+        save(data) {
+          return data;
+        }
+        toObject() {
+          return this.data;
+        }
+      }
 
-  //   test('should return System Design model', async () => {
-  //     const mockModelResponse = {
-  //       name: 'name',
-  //       component_name: 'componentName',
-  //       applicable_products: ['applicableProducts'],
-  //       applicable_financial_products: ['applicableFinancialProducts'],
-  //     };
-  //     const mockModel = {
-  //       ...mockModelResponse,
-  //       toObject: jest.fn().mockReturnValue({
-  //         name: 'name',
-  //         component_name: 'componentName',
-  //         applicable_products: ['applicableProducts'],
-  //         applicable_financial_products: ['applicableFinancialProducts'],
-  //       }),
-  //     };
-  //     const mockProposalSectionMaster = {
-  //       findOne: jest.fn().mockResolvedValue(mockModel),
-  //     } as any;
+      systemDesignService = new SystemDesignService(
+        MockSystemDesign as any,
+        null,
+        mockSystemProductService,
+        null,
+        mockUtilityService,
+        null,
+        null,
+      );
+      const res = await systemDesignService.create({
+        capacityProductionDesignData: {},
+        designMode: 'capacityProduction',
+      } as any);
 
-  //     proposalSectionMasterService = new SystemDesignService(mockProposalSectionMaster);
-  //     const res = await proposalSectionMasterService.getProposalSectionMasterById('id');
-
-  //     expect(res).toMatchSnapshot();
-  //     expect(res).not.toBeUndefined();
-  //     expect(res).toMatchObject(mockModelResponse);
-  //     expect(mockProposalSectionMaster.findOne).toHaveBeenCalledTimes(1);
-  //   });
-  // });
+      expect(res).toMatchSnapshot();
+      expect(res).toBeInstanceOf(OperationResult);
+      expect(res.data).toBeInstanceOf(SystemDesignDto);
+    });
+  });
 
   // describe('getList function', () => {
   //   test(`should return System Design array `, async () => {
