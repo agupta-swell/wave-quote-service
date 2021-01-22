@@ -7,14 +7,14 @@ import { CUSTOM_JWT_SECRET_KEY } from './custom-jwt-secret-key.decorator';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  jwtConfigService: JwtConfigService;
-  constructor(private jwtService: JwtService, private readonly reflector: Reflector) {
-    this.jwtConfigService = new JwtConfigService();
-  }
+  constructor(private jwtService: JwtService, private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext) {
     const key = this.reflector.get<string>(CUSTOM_JWT_SECRET_KEY, context.getHandler());
-    let secretKey = await this.jwtConfigService.getJWTSecretKey();
+    let secretKey = '';
+    if (!secretKey && !key) {
+      secretKey = JwtConfigService.appSecret;
+    }
     if (key) {
       secretKey = key;
     }
