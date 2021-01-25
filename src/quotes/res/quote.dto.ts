@@ -1,4 +1,3 @@
-import { TaxCreditConfig } from './../schemas/tax-credit-config.schema';
 import { ApiProperty } from '@nestjs/swagger';
 import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
 import { toCamelCase } from 'src/utils/transformProperties';
@@ -129,7 +128,7 @@ export class QuoteDto {
     this.isRetrofit = props.detailed_quote.is_retrofit;
     this.isSolar = props.detailed_quote.is_solar;
     this.systemProduction = toCamelCase(props.detailed_quote.system_production);
-    this.utilityProgram = toCamelCase(props.detailed_quote.utility_program);
+    this.utilityProgram = props.detailed_quote.utility_program && toCamelCase(props.detailed_quote.utility_program);
     this.quoteFinanceProduct = this.transformQuoteFinanceProduct(props.detailed_quote.quote_finance_product);
     this.savingsDetails = this.transformSavingsDetails(props.detailed_quote.savings_details);
     this.quoteCostBuildup = this.transformQuoteCostBuildup(props.detailed_quote.quote_cost_buildup);

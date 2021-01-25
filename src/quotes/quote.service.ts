@@ -119,17 +119,19 @@ export class QuoteService {
     const detailedQuote = {
       systemProduction: systemDesign.system_production_data,
       quoteCostBuildup,
-      utilityProgram: {
-        utilityProgramId: utilityProgram?.id,
-        utilityProgramName: utilityProgram?.utility_program_name,
-        rebateAmount: utilityProgram?.rebate_amount,
-        utility_program_data_snapshot: {
-          id: utilityProgram?.id,
-          name: utilityProgram?.utility_program_name,
-          rebateAmount: utilityProgram?.rebate_amount,
-        },
-        utility_program_data_snapshot_date: new Date(),
-      },
+      utilityProgram: utilityProgram
+        ? {
+            utilityProgramId: utilityProgram.id,
+            utilityProgramName: utilityProgram.utility_program_name,
+            rebateAmount: utilityProgram.rebate_amount,
+            utility_program_data_snapshot: {
+              id: utilityProgram.id,
+              name: utilityProgram.utility_program_name,
+              rebateAmount: utilityProgram.rebate_amount,
+            },
+            utility_program_data_snapshot_date: new Date(),
+          }
+        : null,
       quoteFinanceProduct: {
         financeProduct: {
           productType: fundingSource.type,
