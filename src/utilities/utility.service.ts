@@ -320,7 +320,7 @@ export class UtilityService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId }).exec();
+    return await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId });
   }
 
   getHourlyUsageFromMonthlyUsage(utilityDto: CreateUtilityDto, typicalHourlyUsage: ITypicalUsage[]): ITypicalUsage[] {

@@ -434,9 +434,9 @@ export class QuoteService {
     systemDesignId: string,
     opportunityId: string,
   ): Promise<OperationResult<Pagination<QuoteDto>>> {
-    let query = this.quoteModel.find({ system_design_id: systemDesignId }).limit(limit).skip(skip).exec();
+    let query = this.quoteModel.find({ system_design_id: systemDesignId }).limit(limit).skip(skip);
     if (opportunityId) {
-      query = this.quoteModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).exec();
+      query = this.quoteModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip);
     }
 
     const [quotes, total] = await Promise.all([query, this.quoteModel.estimatedDocumentCount()]);
@@ -450,7 +450,7 @@ export class QuoteService {
 
   async getAllTaxCredits(): Promise<OperationResult<Pagination<TaxCreditDto>>> {
     const [taxCredits, total] = await Promise.all([
-      this.taxCreditConfigModel.find().exec(),
+      this.taxCreditConfigModel.find(),
       this.taxCreditConfigModel.estimatedDocumentCount(),
     ]);
     const data = (taxCredits || []).map(item => new TaxCreditDto(item.toObject()));
@@ -737,6 +737,6 @@ export class QuoteService {
   };
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.quoteModel.countDocuments({ opportunity_id: opportunityId }).exec();
+    return await this.quoteModel.countDocuments({ opportunity_id: opportunityId });
   }
 }

@@ -36,6 +36,8 @@ export class SystemDesignService {
     }
 
     const systemDesign = new SystemDesignModel(systemDesignDto);
+    const utilityAndUsage = await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId);
+
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -81,9 +83,7 @@ export class SystemDesignService {
       systemDesign.setThumbnail(thumbnail);
       systemDesign.setIsSelected(systemDesignDto.isSelected);
 
-      const annualUsageKWh =
-        (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.utility_data
-          .typical_baseline_usage?.annual_consumption || 0;
+      const annualUsageKWh = utilityAndUsage?.utility_data.typical_baseline_usage?.annual_consumption || 0;
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
@@ -94,22 +94,19 @@ export class SystemDesignService {
       });
     }
 
-    const [utilityAndUsage, systemProductionArray] = await Promise.all([
-      this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
-      this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
-    ]);
+    const systemProductionArray = await this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
 
     const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-      utilityAndUsage.utility_data.actual_usage.hourly_usage.map(item => item.v),
+      utilityAndUsage?.utility_data?.actual_usage?.hourly_usage?.map(item => item.v),
       systemProductionArray,
     );
 
     const costPostInstallation = await this.utilityService.calculateCost(
       netUsagePostInstallation.hourly_net_usage,
-      utilityAndUsage.cost_data.master_tariff_id,
+      utilityAndUsage?.cost_data?.master_tariff_id,
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
-      utilityAndUsage.utility_data.typical_baseline_usage.zip_code,
+      utilityAndUsage?.utility_data?.typical_baseline_usage?.zip_code,
     );
 
     systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
@@ -158,11 +155,8 @@ export class SystemDesignService {
         systemDesign.setThumbnail(thumbnail);
       }
 
-      if (typeof systemDesignDto.isSelected === 'boolean') {
-        systemDesign.setIsSelected(systemDesignDto.isSelected);
-      }
-
       if (systemDesignDto.roofTopDesignData) {
+        const utilityAndUsage = await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId);
         await Promise.all(
           flatten([
             systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
@@ -200,9 +194,7 @@ export class SystemDesignService {
           ]),
         );
 
-        const annualUsageKWh =
-          (await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId))?.utility_data
-            .typical_baseline_usage?.annual_consumption || 0;
+        const annualUsageKWh = utilityAndUsage?.utility_data.typical_baseline_usage?.annual_consumption || 0;
 
         systemDesign.setSystemProductionData({
           capacityKW: cumulativeCapacityKW,
@@ -212,22 +204,19 @@ export class SystemDesignService {
           offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         });
 
-        const [utilityAndUsage, systemProductionArray] = await Promise.all([
-          this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
-          this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
-        ]);
+        const systemProductionArray = await this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
 
         const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-          utilityAndUsage.utility_data.actual_usage.hourly_usage.map(item => item.v),
+          utilityAndUsage?.utility_data.actual_usage.hourly_usage.map(item => item.v),
           systemProductionArray,
         );
 
         const costPostInstallation = await this.utilityService.calculateCost(
           netUsagePostInstallation.hourly_net_usage,
-          utilityAndUsage.cost_data.master_tariff_id,
+          utilityAndUsage?.cost_data.master_tariff_id,
           CALCULATION_MODE.TYPICAL,
           new Date().getFullYear(),
-          utilityAndUsage.utility_data.typical_baseline_usage.zip_code,
+          utilityAndUsage?.utility_data.typical_baseline_usage.zip_code,
         );
 
         systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
@@ -302,12 +291,12 @@ export class SystemDesignService {
 
   //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-
 
-  async getOneById(id: string): Promise<SystemDesign> {
+  async getOneById(id: string): Promise<SystemDesign | undefined> {
     const systemDesign = await this.systemDesignModel.findById(id);
-    return systemDesign.toObject();
+    return systemDesign?.toObject();
   }
 
-  async getRoofTopDesignById(id: string): Promise<IRoofTopSchema> {
+  async getRoofTopDesignById(id: string): Promise<IRoofTopSchema | undefined> {
     const systemDesign = await this.systemDesignModel.findById(id);
     return systemDesign?.toObject({ versionKey: false })?.roof_top_design_data;
   }
@@ -331,6 +320,6 @@ export class SystemDesignService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.systemDesignModel.countDocuments({ opportunity_id: opportunityId }).exec();
+    return await this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
   }
 }

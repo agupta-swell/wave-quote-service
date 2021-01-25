@@ -458,7 +458,7 @@ export class QualificationService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.qualificationCreditModel.countDocuments({ opportunity_id: opportunityId }).exec();
+    return await this.qualificationCreditModel.countDocuments({ opportunity_id: opportunityId });
   }
 
   // ===================== INTERNAL =====================

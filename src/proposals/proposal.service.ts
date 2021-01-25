@@ -242,6 +242,6 @@ export class ProposalService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.proposalModel.countDocuments({ opportunity_id: opportunityId }).exec();
+    return await this.proposalModel.countDocuments({ opportunity_id: opportunityId });
   }
 }
