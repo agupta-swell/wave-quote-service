@@ -18,8 +18,4 @@ export class ProductDto {
 
   @ApiProperty()
   partNumber: string[];
-
-  constructor(props: any) {
-    Object.assign(this, { ...props, partNumber: props.part_number });
-  }
 }

@@ -18,7 +18,7 @@ export class UploadImageService {
   }
 
   async uploadToAWSS3(imageData: string) {
-    if (!imageData || !imageData.length) return '';
+    if (!imageData) return '';
     const s3 = new AWS.S3();
     const base64Data = Buffer.from(imageData.replace(/^data:image\/\w+;base64,/, ''), 'base64');
 
