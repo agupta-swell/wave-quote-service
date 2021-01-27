@@ -69,7 +69,12 @@ export class QualificationService {
   async getQualificationDetail(opportunityId: string): Promise<OperationResult<GetQualificationDetailDto>> {
     const qualificationCredit = await this.qualificationCreditModel.findOne({ opportunity_id: opportunityId });
     if (!qualificationCredit) {
-      throw ApplicationException.EnitityNotFound(opportunityId);
+      return OperationResult.ok({
+        qualificationCreditData: null,
+        qualificationCreditId: '',
+        fniCommunicationData: [],
+        opportunityId,
+      } as any);
     }
 
     const fniCommunications = await this.fniCommunicationModel.find({
