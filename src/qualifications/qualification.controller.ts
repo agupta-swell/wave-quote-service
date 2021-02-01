@@ -82,7 +82,7 @@ export class QualificationController {
   @Get(':opportunityId')
   @ApiBearerAuth()
   @PreAuthenticate()
-  @ApiOperation({ summary: 'Get Qualification Detail' })
+  @ApiOperation({ summary: 'Get Qualification Detail By Opportunity Id' })
   @ApiOkResponse({ type: GetQualificationDetailRes })
   async getQualificationDetail(
     @Param('opportunityId') opportunityId: string,

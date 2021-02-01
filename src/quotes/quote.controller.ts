@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
@@ -43,18 +43,16 @@ export class QuoteController {
   @Get()
   @ApiOperation({ summary: 'Get all quotes' })
   @ApiOkResponse({ type: QuoteListRes })
+  @ApiQuery({ name: 'limit' })
+  @ApiQuery({ name: 'skip' })
+  @ApiQuery({ name: 'opportunityId', required: false })
   async getListQuotes(
-    @Query('limit') limit: string,
-    @Query('skip') skip: string,
+    @Query('limit', ParseIntPipe) limit: number,
+    @Query('skip', ParseIntPipe) skip: number,
     @Query('systemDesignId') systemDesignId: string,
     @Query('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<Pagination<QuoteDto>>> {
-    const res = await this.quoteService.getAllQuotes(
-      Number(limit || 0),
-      Number(skip || 0),
-      systemDesignId,
-      opportunityId,
-    );
+    const res = await this.quoteService.getAllQuotes(limit, skip, systemDesignId, opportunityId);
     return ServiceResponse.fromResult(res);
   }
 
@@ -79,13 +77,13 @@ export class QuoteController {
   }
 
   @Put('/:quoteId/latest')
-  @ApiOperation({ summary: 'Get Latest Quote' })
+  @ApiOperation({ summary: 'Update Latest Quote' })
   @ApiOkResponse({ type: QuoteRes })
   async updateLatestQuote(
     @Body() data: CreateQuoteDto,
     @Param('quoteId') quoteId: string,
   ): Promise<ServiceResponse<QuoteDto>> {
-    const res = await this.quoteService.getLatestQuote(data, quoteId);
+    const res = await this.quoteService.updateLatestQuote(data, quoteId);
     return ServiceResponse.fromResult(res);
   }
 

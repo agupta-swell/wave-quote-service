@@ -126,12 +126,12 @@ export class QuoteService {
             utilityProgramId: utilityProgram.id,
             utilityProgramName: utilityProgram.utility_program_name,
             rebateAmount: utilityProgram.rebate_amount,
-            utility_program_data_snapshot: {
+            utilityProgramDataSnapshot: {
               id: utilityProgram.id,
               name: utilityProgram.utility_program_name,
               rebateAmount: utilityProgram.rebate_amount,
             },
-            utility_program_data_snapshot_date: new Date(),
+            utilityProgramDataSnapshotDate: new Date(),
           }
         : null,
       quoteFinanceProduct: {
@@ -233,14 +233,13 @@ export class QuoteService {
         template = {
           upfrontPayment: 0,
           balance: netAmount,
-          milestonePayment: cashQuoteConfig
-            ? cashQuoteConfig
-                .toObject()
-                .config.map(item => ({ ...item, amount: roundNumber(netAmount * item.percentage, 2) }))
-            : [],
+          milestonePayment: (cashQuoteConfig?.config || []).map(item => ({
+            ...item,
+            amount: roundNumber(netAmount * item.percentage, 2),
+          })),
           cashQuoteConfigSnapshot: {
-            type: cashQuoteConfig.type,
-            config: cashQuoteConfig.config,
+            type: cashQuoteConfig?.type,
+            config: cashQuoteConfig?.config,
           },
           cashQuoteConfigSnapShotDate: '',
           currentAverageMonthlyBill: 0,
@@ -252,7 +251,7 @@ export class QuoteService {
     }
   }
 
-  async getLatestQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
+  async updateLatestQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
     const foundQuote = await this.quoteModel.findById(quoteId);
 
     if (!foundQuote) {
@@ -392,16 +391,19 @@ export class QuoteService {
     const detailedQuote = {
       systemProduction: systemDesign.system_production_data,
       quoteCostBuildup,
-      utilityProgram: {
-        utilityProgramId: utility_program?.utility_program_id,
-        utilityProgramName: utility_program?.utility_program_name,
-        rebateAmount: utility_program?.rebate_amount,
-        utilityProgramDataSnapshot: {
-          id: utility_program?.utility_program_id,
-          name: utility_program?.utility_program_name,
-        },
-        utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
-      },
+      utilityProgram: utility_program
+        ? {
+            utilityProgramId: utility_program.utility_program_id,
+            utilityProgramName: utility_program.utility_program_name,
+            rebateAmount: utility_program.rebate_amount,
+            utilityProgramDataSnapshot: {
+              id: utility_program.utility_program_id,
+              name: utility_program.utility_program_name,
+              rebateAmount: utility_program.rebate_amount,
+            },
+            utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
+          }
+        : null,
       quoteFinanceProduct: {
         financeProduct: {
           productType: finance_product.product_type,
@@ -429,7 +431,7 @@ export class QuoteService {
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
 
-    return OperationResult.ok(new QuoteDto({ ...model, _id: foundQuote._id } as any)) as any;
+    return OperationResult.ok(new QuoteDto({ ...model, _id: foundQuote._id } as any));
   }
 
   async getAllQuotes(
@@ -444,12 +446,12 @@ export class QuoteService {
     }
 
     const [quotes, total] = await Promise.all([query, this.quoteModel.estimatedDocumentCount()]);
-    const data = (quotes || []).map(item => new QuoteDto(item.toObject()));
+    const data = quotes.map(item => new QuoteDto(item.toObject()));
     const result = {
       data,
       total,
     };
-    return OperationResult.ok(result);
+    return OperationResult.ok(new Pagination(result));
   }
 
   async getAllTaxCredits(): Promise<OperationResult<Pagination<TaxCreditDto>>> {
@@ -457,12 +459,12 @@ export class QuoteService {
       this.taxCreditConfigModel.find(),
       this.taxCreditConfigModel.estimatedDocumentCount(),
     ]);
-    const data = (taxCredits || []).map(item => new TaxCreditDto(item.toObject()));
+    const data = taxCredits.map(item => new TaxCreditDto(item.toObject()));
     const result = {
       data,
       total,
     };
-    return OperationResult.ok(result);
+    return OperationResult.ok(new Pagination(result));
   }
 
   async getDetailQuote(quoteId: string): Promise<OperationResult<QuoteDto>> {
@@ -482,7 +484,7 @@ export class QuoteService {
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
 
     const taxCreditData = await Promise.all(
-      data.taxCreditData?.map(item => this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId })),
+      (data.taxCreditData || []).map(item => this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId })),
     );
 
     const detailedQuote = {
@@ -567,12 +569,11 @@ export class QuoteService {
         solarSizeMaximumArr,
       )} and productivity should be between ${min(productivityMinArr)} and ${max(productivityMaxArr)}`,
     );
-    return;
   }
 
   // ->>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<-\
 
-  async getOneById(id: string): Promise<IDetailedQuoteSchema> {
+  async getOneById(id: string): Promise<IDetailedQuoteSchema | undefined> {
     const res = await this.quoteModel.findById(id);
     return res?.toObject().detailed_quote;
   }

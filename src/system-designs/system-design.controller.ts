@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
@@ -54,17 +54,12 @@ export class SystemDesignController {
   @ApiQuery({ name: 'opportunityId' })
   @ApiOkResponse({ type: SystemDesignListRes })
   async getsystemDesigns(
-    @Query('limit') limit: string,
-    @Query('skip') skip: string,
+    @Query('limit', ParseIntPipe) limit: number,
+    @Query('skip', ParseIntPipe) skip: number,
     @Query('selected') selected: string,
     @Query('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<Pagination<SystemDesignDto>>> {
-    const result = await this.systemDesignService.getAllSystemDesigns(
-      Number(limit),
-      Number(skip),
-      selected,
-      opportunityId,
-    );
+    const result = await this.systemDesignService.getAllSystemDesigns(limit, skip, selected, opportunityId);
     return ServiceResponse.fromResult(result);
   }
 

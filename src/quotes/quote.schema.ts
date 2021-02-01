@@ -188,7 +188,7 @@ const ProjectDiscountDetailSchema = new Schema<IProjectDiscountDetailSchema>(
 export interface IQuoteFinanceProductSchema {
   finance_product: IFinanceProductSchema;
   net_amount: number;
-  incentive_details: IIncentiveDetailsSchema[]; ///////////////////////////////////////////////
+  incentive_details: IIncentiveDetailsSchema[];
   rebate_details: IRebateDetailsSchema[];
   project_discount_details: IProjectDiscountDetailSchema[];
 }

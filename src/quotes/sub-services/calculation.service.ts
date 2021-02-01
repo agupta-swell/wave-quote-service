@@ -441,13 +441,7 @@ export class CalculationService {
     let value1 = dataParam.monthlyPayment - dataParam.interestComponent - dataParam.unpaidInterest;
 
     if (dataParam.prePaymentAmount > 0) {
-      let value3: number;
-      if (dataParam.prePaymentAmount > 0) {
-        value3 = dataParam.prePaymentAmount + dataParam.unpaidInterestCumulative;
-      } else {
-        value3 = 0;
-      }
-
+      const value3 = dataParam.prePaymentAmount + dataParam.unpaidInterestCumulative;
       value2 = Math.max(0, value1 + value3);
     } else {
       value2 = Math.max(0, value1);
