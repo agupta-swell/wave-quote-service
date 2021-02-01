@@ -5,6 +5,7 @@ export const OPPORTUNITY = Symbol('OPPORTUNITY').toString();
 export interface Opportunity extends Document {
   contactId: string;
   utilityId: string;
+  utilityProgramId: string;
   fundingSourceId: string;
   contractorCompanyName: string;
   contractorAddress1: string;
@@ -21,6 +22,7 @@ export const OpportunitySchema = new Schema<Opportunity>({
   _id: Schema.Types.Mixed,
   contactId: String,
   utilityId: String,
+  utilityProgramId: String,
   fundingSourceId: String,
   contractorCompanyName: String,
   contractorAddress1: String,

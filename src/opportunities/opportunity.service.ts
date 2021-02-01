@@ -1,11 +1,39 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
+import { OperationResult } from 'src/app/common';
+import { ContactService } from 'src/contacts/contact.service';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
+import { GetRelatedInformationDto } from './res/get-related-information.dto';
 
 @Injectable()
 export class OpportunityService {
-  constructor(@InjectModel(OPPORTUNITY) private opportunityModel: Model<Opportunity>) {}
+  constructor(
+    @InjectModel(OPPORTUNITY) private readonly opportunityModel: Model<Opportunity>,
+    private readonly contactService: ContactService,
+  ) {}
+
+  async getRelatedInformation(opportunityId: string): Promise<OperationResult<GetRelatedInformationDto>> {
+    const foundOpportunity = await this.opportunityModel.findById(opportunityId);
+    if (!foundOpportunity) {
+      throw ApplicationException.EnitityNotFound(opportunityId);
+    }
+
+    const contact = await this.contactService.getContactById(foundOpportunity.contactId);
+
+    const data = {
+      address: contact.address1,
+      city: contact.city,
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      email: contact.email,
+      opportunityId: opportunityId,
+      state: contact.state,
+      utilityProgramId: foundOpportunity.utilityProgramId ?? '',
+    };
+    return OperationResult.ok(new GetRelatedInformationDto(data));
+  }
 
   // =====================> INTERNAL <=====================
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
@@ -43,16 +43,21 @@ export class QuoteController {
   @Get()
   @ApiOperation({ summary: 'Get all quotes' })
   @ApiOkResponse({ type: QuoteListRes })
-  @ApiQuery({ name: 'limit' })
-  @ApiQuery({ name: 'skip' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'opportunityId', required: false })
   async getListQuotes(
-    @Query('limit', ParseIntPipe) limit: number,
-    @Query('skip', ParseIntPipe) skip: number,
+    @Query('limit') limit: string,
+    @Query('skip') skip: string,
     @Query('systemDesignId') systemDesignId: string,
     @Query('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<Pagination<QuoteDto>>> {
-    const res = await this.quoteService.getAllQuotes(limit, skip, systemDesignId, opportunityId);
+    const res = await this.quoteService.getAllQuotes(
+      Number(limit || 100),
+      Number(skip || 0),
+      systemDesignId,
+      opportunityId,
+    );
     return ServiceResponse.fromResult(res);
   }
 

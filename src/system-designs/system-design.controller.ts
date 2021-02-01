@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
@@ -48,18 +48,23 @@ export class SystemDesignController {
 
   @Get()
   @ApiOperation({ summary: 'Get all system designs' })
-  @ApiQuery({ name: 'limit' })
-  @ApiQuery({ name: 'skip' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'selected' })
   @ApiQuery({ name: 'opportunityId' })
   @ApiOkResponse({ type: SystemDesignListRes })
   async getsystemDesigns(
-    @Query('limit', ParseIntPipe) limit: number,
-    @Query('skip', ParseIntPipe) skip: number,
+    @Query('limit') limit: string,
+    @Query('skip') skip: string,
     @Query('selected') selected: string,
     @Query('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<Pagination<SystemDesignDto>>> {
-    const result = await this.systemDesignService.getAllSystemDesigns(limit, skip, selected, opportunityId);
+    const result = await this.systemDesignService.getAllSystemDesigns(
+      Number(limit || 100),
+      Number(skip || 0),
+      selected,
+      opportunityId,
+    );
     return ServiceResponse.fromResult(result);
   }
 
