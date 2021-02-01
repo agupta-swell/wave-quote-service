@@ -375,7 +375,7 @@ describe('System Design Controller', () => {
   });
 
   test('should getList work correctly', async () => {
-    const res = await systemDesignController.getsystemDesigns('100', '0', '-1', 'opportunityId');
+    const res = await systemDesignController.getsystemDesigns(100, 0, '-1', 'opportunityId');
 
     expect(res).toMatchSnapshot();
     expect(res).toBeInstanceOf(ServiceResponse);
