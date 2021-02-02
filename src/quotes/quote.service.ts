@@ -441,15 +441,17 @@ export class QuoteService {
     opportunityId: string,
   ): Promise<OperationResult<Pagination<QuoteDto>>> {
     let query = this.quoteModel.find({ system_design_id: systemDesignId }).limit(limit).skip(skip);
+    let total = this.quoteModel.countDocuments({ system_design_id: systemDesignId });
     if (opportunityId) {
       query = this.quoteModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip);
+      total = this.quoteModel.countDocuments({ opportunity_id: opportunityId });
     }
 
-    const [quotes, total] = await Promise.all([query, this.quoteModel.estimatedDocumentCount()]);
+    const [quotes, count] = await Promise.all([query, total]);
     const data = quotes.map(item => new QuoteDto(item.toObject()));
     const result = {
       data,
-      total,
+      total: count,
     };
     return OperationResult.ok(new Pagination(result));
   }
