@@ -13,6 +13,8 @@ export interface Contact extends Document {
   zip: string;
   cellPhone: string;
   contactId: string;
+  lat: string;
+  long: string;
 }
 
 export const ContactSchema = new Schema<Contact>({
@@ -27,4 +29,6 @@ export const ContactSchema = new Schema<Contact>({
   zip: String,
   cellPhone: String,
   contactId: String,
+  lat: String,
+  long: String,
 });

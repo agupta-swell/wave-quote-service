@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -11,6 +11,7 @@ import { GetRelatedInformationDto } from './res/get-related-information.dto';
 export class OpportunityService {
   constructor(
     @InjectModel(OPPORTUNITY) private readonly opportunityModel: Model<Opportunity>,
+    @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
   ) {}
 
