@@ -31,6 +31,7 @@ export class OpportunityService {
       opportunityId: opportunityId,
       state: contact.state,
       utilityProgramId: foundOpportunity.utilityProgramId ?? '',
+      zipCode: contact.zip,
     };
     return OperationResult.ok(new GetRelatedInformationDto(data));
   }
