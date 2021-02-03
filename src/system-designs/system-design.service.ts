@@ -250,33 +250,38 @@ export class SystemDesignService {
     opportunityId: string,
   ): Promise<OperationResult<Pagination<SystemDesignDto>>> {
     let query: any;
+    let total: any;
     switch (selected) {
       case undefined:
       case '-1':
         query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip);
+        total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
         break;
       case '0':
         query = this.systemDesignModel
           .find({ is_selected: false, opportunity_id: opportunityId })
           .limit(limit)
           .skip(skip);
+        total = this.systemDesignModel.countDocuments({ is_selected: false, opportunity_id: opportunityId });
         break;
       case '1':
         query = this.systemDesignModel
           .find({ is_selected: true, opportunity_id: opportunityId })
           .limit(limit)
           .skip(skip);
+        total = this.systemDesignModel.countDocuments({ is_selected: true, opportunity_id: opportunityId });
         break;
       default:
         query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip);
+        total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
         break;
     }
 
-    const [systemDesigns, total] = await Promise.all([query, this.systemDesignModel.estimatedDocumentCount()]);
+    const [systemDesigns, count] = await Promise.all([query, total]);
     const data = systemDesigns.map(item => new SystemDesignDto(item.toObject()));
     const result = {
       data,
-      total,
+      total: count,
     };
     return OperationResult.ok(new Pagination(result));
   }
