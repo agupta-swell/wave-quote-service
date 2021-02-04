@@ -57,6 +57,17 @@ export const ProductSchema = new Schema<Product>({
     width: Number,
   },
   partNumber: [String],
+  // for panel
+  pv_watt_module_type: String,
+  panel_output_mode: String,
+  watt_class_stcdc: Number,
+  // for inverter
+  inverter_type: String,
+  // for storage
+  battery_type: String,
+  related_component: String,
+  related_component_category: String,
+  unit: String,
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
 });
