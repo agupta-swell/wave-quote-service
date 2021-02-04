@@ -32,10 +32,12 @@ export interface IStorageProductSchema extends IBatteryProduct {
     length: number;
     width: number;
   };
+  manufacturer: string;
 }
 
 export const StorageProductSchema = new Schema<IStorageProductSchema>(
   {
+    manufacturer: String,
     name: String,
     type: String,
     price: Number,

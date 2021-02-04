@@ -18,4 +18,7 @@ export class ProductDto {
 
   @ApiProperty()
   partNumber: string[];
+
+  @ApiProperty()
+  manufacturer?: string;
 }

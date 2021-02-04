@@ -107,12 +107,31 @@ export class SystemDesignDto {
       }),
       storage: storage.map(item => {
         const {
-          storage_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type, battery_type },
+          storage_model_data_snapshot: {
+            name,
+            part_number,
+            price,
+            sizeW,
+            sizekWh,
+            dimension,
+            type,
+            manufacturer,
+            battery_type,
+          },
         } = item;
 
         return {
           ...toCamelCase(item),
-          storageModelDataSnapshot: { name, partNumber: part_number, price, sizeW, sizekWh, dimension, type },
+          storageModelDataSnapshot: {
+            name,
+            partNumber: part_number,
+            price,
+            sizeW,
+            sizekWh,
+            dimension,
+            type,
+            manufacturer,
+          },
         };
       }),
       adders: adders.map(item => toCamelCase(item)),
