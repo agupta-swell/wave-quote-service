@@ -64,6 +64,7 @@ export interface IInverterProductSchema extends IProductCommonSchema, IInverterP
 
 export const InverterProductSchema = new Schema<IInverterProductSchema>(
   {
+    manufacturer: String,
     name: String,
     type: String,
     price: Number,
@@ -86,6 +87,7 @@ export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct
 
 export const PanelProductSchema = new Schema<IPanelProductSchema>(
   {
+    manufacturer: String,
     name: String,
     type: String,
     price: Number,
