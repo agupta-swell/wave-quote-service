@@ -30,6 +30,8 @@ export const PvWattSystemProductionSchema = new Schema<PvWattSystemProduction>({
   module_type: Number,
   losses: Number,
   ac_annual_hourly_production: [Number],
+  ac_monthly_production: [Number],
+  ac_annual_production: Number,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
