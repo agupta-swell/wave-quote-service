@@ -97,12 +97,21 @@ export class SystemDesignDto {
       }),
       inverters: inverters.map(item => {
         const {
-          inverter_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type },
+          inverter_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type, manufacturer },
         } = item;
 
         return {
           ...toCamelCase(item),
-          inverterModelDataSnapshot: { name, partNumber: part_number, price, sizeW, sizekWh, dimension, type },
+          inverterModelDataSnapshot: {
+            name,
+            partNumber: part_number,
+            price,
+            sizeW,
+            sizekWh,
+            dimension,
+            type,
+            manufacturer,
+          },
         };
       }),
       storage: storage.map(item => {
