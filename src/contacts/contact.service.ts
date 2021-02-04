@@ -15,7 +15,7 @@ export class ContactService {
   ) {}
 
   async saveGeolocation(req: UpdateGeoLocation): Promise<OperationResult<string>> {
-    const { opportunityId, lat, long } = req;
+    const { opportunityId, lat, lng } = req;
     const foundOpportunity = await this.opportunityService.getDetailById(opportunityId);
     if (!foundOpportunity) {
       throw ApplicationException.EnitityNotFound(opportunityId);
@@ -27,7 +27,7 @@ export class ContactService {
     }
 
     foundContact.lat = lat;
-    foundContact.long = long;
+    foundContact.lng = lng;
 
     await foundContact.save();
 

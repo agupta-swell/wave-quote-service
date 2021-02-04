@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsNumber, IsString } from 'class-validator';
 
 export class UpdateGeoLocation {
   @ApiProperty()
@@ -7,10 +7,10 @@ export class UpdateGeoLocation {
   opportunityId: string;
 
   @ApiProperty()
-  @IsString()
-  lat: string;
+  @IsNumber()
+  lat: number;
 
   @ApiProperty()
-  @IsString()
-  long: string;
+  @IsNumber()
+  lng: number;
 }
