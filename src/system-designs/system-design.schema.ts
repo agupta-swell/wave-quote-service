@@ -1,5 +1,4 @@
 import { Document, Schema, Types } from 'mongoose';
-import { PANEL_OUTPUT_MODE, PV_WATT_MODULE_TYPE } from 'src/products/constants';
 import { IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
@@ -21,7 +20,7 @@ const LatLngSchema = new Schema<ILatLngSchema>(
   { _id: false },
 );
 
-export interface IStorageProductSchema extends IBatteryProduct {
+interface IProductCommonSchema {
   name: string;
   type: string;
   price: number;
@@ -33,7 +32,12 @@ export interface IStorageProductSchema extends IBatteryProduct {
     width: number;
   };
   manufacturer: string;
+  model_name: string;
+  approved_for_gsa: boolean;
+  approved_for_esa: boolean;
 }
+
+export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct {}
 
 export const StorageProductSchema = new Schema<IStorageProductSchema>(
   {
@@ -48,23 +52,15 @@ export const StorageProductSchema = new Schema<IStorageProductSchema>(
       length: Number,
       width: Number,
     },
+    model_name: String,
+    approved_for_gsa: Boolean,
+    approved_for_esa: Boolean,
     battery_type: String,
   },
   { _id: false },
 );
 
-export interface IInverterProductSchema extends IInverterProduct {
-  name: string;
-  type: string;
-  price: number;
-  sizeW: number;
-  sizekWh: number;
-  part_number: string[];
-  dimension: {
-    length: number;
-    width: number;
-  };
-}
+export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct {}
 
 export const InverterProductSchema = new Schema<IInverterProductSchema>(
   {
@@ -78,26 +74,15 @@ export const InverterProductSchema = new Schema<IInverterProductSchema>(
       length: Number,
       width: Number,
     },
+    model_name: String,
+    approved_for_gsa: Boolean,
+    approved_for_esa: Boolean,
     inverter_type: String,
   },
   { _id: false },
 );
 
-export interface IPanelProductSchema extends IPanelProduct {
-  name: string;
-  type: string;
-  price: number;
-  sizeW: number;
-  sizekWh: number;
-  part_number: string[];
-  dimension: {
-    length: number;
-    width: number;
-  };
-  pv_watt_module_type: PV_WATT_MODULE_TYPE;
-  panel_output_mode: PANEL_OUTPUT_MODE;
-  watt_class_stcdc: number;
-}
+export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct {}
 
 export const PanelProductSchema = new Schema<IPanelProductSchema>(
   {
@@ -111,6 +96,9 @@ export const PanelProductSchema = new Schema<IPanelProductSchema>(
       length: Number,
       width: Number,
     },
+    model_name: String,
+    approved_for_gsa: Boolean,
+    approved_for_esa: Boolean,
     pv_watt_module_type: String,
     panel_output_mode: String,
     watt_class_stcdc: Number,

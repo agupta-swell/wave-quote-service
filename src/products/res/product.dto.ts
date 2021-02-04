@@ -34,6 +34,30 @@ export class ProductDto {
     width: number;
   };
 
+  @ApiProperty()
+  modelName: string;
+
+  @ApiProperty()
+  approvedForGsa: boolean;
+
+  @ApiProperty()
+  approvedForEsa: boolean;
+
+  @ApiProperty()
+  pvWattModuleType: string;
+
+  @ApiProperty()
+  panelOutputMode: string;
+
+  @ApiProperty()
+  wattClassStcdc: number;
+
+  @ApiProperty()
+  inverterType: string;
+
+  @ApiProperty()
+  batteryType: string;
+
   constructor(props: Product) {
     this.id = props.id;
     this.manufacturer = props.manufacturer;
@@ -44,6 +68,17 @@ export class ProductDto {
     this.sizekWh = props.sizekWh;
     this.partNumber = props.partNumber;
     this.dimension = props.dimension;
+    this.modelName = props.model_name;
+    this.approvedForGsa = props.approved_for_gsa;
+    this.approvedForEsa = props.approved_for_esa;
+    // For Panel
+    this.pvWattModuleType = props.pv_watt_module_type;
+    this.panelOutputMode = props.panel_output_mode;
+    this.wattClassStcdc = props.watt_class_stcdc;
+    // For Inverter
+    this.inverterType = props.inverter_type;
+    // For Storage/Battery
+    this.batteryType = props.battery_type;
   }
 }
 

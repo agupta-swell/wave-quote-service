@@ -1,9 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Pagination } from '../../app/common';
-import { toCamelCase } from '../../utils/transformProperties';
-import { SystemDesign } from '../system-design.schema';
-import { ServiceResponse } from './../../app/common/service-response';
-import { IRoofTopSchema, ISystemProductionSchema } from './../system-design.schema';
+import { Pagination } from 'src/app/common';
+import { ServiceResponse } from 'src/app/common/service-response';
+import { toCamelCase } from 'src/utils/transformProperties';
+import {
+  IInverterProductSchema,
+  IPanelProductSchema,
+  IRoofTopSchema,
+  IStorageProductSchema,
+  ISystemProductionSchema,
+  SystemDesign,
+} from '../system-design.schema';
 import { CapacityProductionDataDto, RoofTopDataDto } from './sub-dto';
 
 export class SystemProductionDto {
@@ -21,6 +27,9 @@ export class SystemProductionDto {
 
   @ApiProperty()
   offsetPercentage: number;
+
+  @ApiProperty()
+  generationMonthlyKWh: number[];
 }
 
 export class SystemDesignDto {
@@ -84,62 +93,59 @@ export class SystemDesignDto {
     if (!data) return {} as any;
     const { panel_array, inverters, storage, adders, ancillary_equipments, balance_of_systems } = data;
 
+    const getProductCommon = (item: IPanelProductSchema | IInverterProductSchema | IStorageProductSchema) => ({
+      manufacturer: item.manufacturer,
+      name: item.name,
+      partNumber: item.part_number,
+      price: item.price,
+      sizeW: item.sizeW,
+      sizekWh: item.sizekWh,
+      dimension: item.dimension,
+      type: item.type,
+      modelName: item.model_name,
+      approvedForEsa: item.approved_for_esa,
+      approvedForGsa: item.approved_for_gsa,
+    });
+
     return {
       panelArray: panel_array.map(item => {
         const {
-          panel_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type },
+          panel_model_data_snapshot: { watt_class_stcdc, panel_output_mode, pv_watt_module_type },
         } = item;
 
         return {
           ...toCamelCase(item),
-          panelModelDataSnapshot: { name, partNumber: part_number, price, sizeW, sizekWh, dimension, type },
+          panelModelDataSnapshot: {
+            ...getProductCommon(item.panel_model_data_snapshot),
+            wattClassStcdc: watt_class_stcdc,
+            panelOutputMode: panel_output_mode,
+            pvWattModuleType: pv_watt_module_type,
+          },
         };
       }),
       inverters: inverters.map(item => {
         const {
-          inverter_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type, manufacturer },
+          inverter_model_data_snapshot: { inverter_type },
         } = item;
 
         return {
           ...toCamelCase(item),
           inverterModelDataSnapshot: {
-            name,
-            partNumber: part_number,
-            price,
-            sizeW,
-            sizekWh,
-            dimension,
-            type,
-            manufacturer,
+            ...getProductCommon(item.inverter_model_data_snapshot),
+            inverterType: inverter_type,
           },
         };
       }),
       storage: storage.map(item => {
         const {
-          storage_model_data_snapshot: {
-            name,
-            part_number,
-            price,
-            sizeW,
-            sizekWh,
-            dimension,
-            type,
-            manufacturer,
-            battery_type,
-          },
+          storage_model_data_snapshot: { battery_type },
         } = item;
 
         return {
           ...toCamelCase(item),
           storageModelDataSnapshot: {
-            name,
-            partNumber: part_number,
-            price,
-            sizeW,
-            sizekWh,
-            dimension,
-            type,
-            manufacturer,
+            ...getProductCommon(item.storage_model_data_snapshot),
+            batteryType: battery_type,
           },
         };
       }),
@@ -156,6 +162,7 @@ export class SystemDesignDto {
       productivity: systemProduction?.productivity || 0,
       annualUsageKWh: systemProduction?.annual_usageKWh || 0,
       offsetPercentage: systemProduction?.offset_percentage || 0,
+      generationMonthlyKWh: systemProduction?.generationMonthlyKWh || [],
     };
   };
 

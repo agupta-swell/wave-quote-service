@@ -20,5 +20,32 @@ export class ProductDto {
   partNumber: string[];
 
   @ApiProperty()
-  manufacturer?: string;
+  manufacturer: string;
+
+  @ApiProperty()
+  modelName: string;
+
+  @ApiProperty()
+  approvedForGsa: boolean;
+
+  @ApiProperty()
+  approvedForEsa: boolean;
+
+  // For Panel
+  @ApiProperty()
+  pvWattModuleType?: string;
+
+  @ApiProperty()
+  panelOutputMode?: string;
+
+  @ApiProperty()
+  wattClassStcdc?: number;
+
+  // For Inverter
+  @ApiProperty()
+  inverterType?: string;
+
+  // For Storage/Battery
+  @ApiProperty()
+  batteryType?: string;
 }
