@@ -1,10 +1,14 @@
 import { Document, Schema } from 'mongoose';
 import {
   AdderModelSchema,
+  StorageProductSchema,
   IAdderModel,
-  IProductSchema,
+  IStorageProductSchema,
+  IInverterProductSchema,
+  InverterProductSchema,
+  IPanelProductSchema,
   ISystemProductionSchema,
-  ProductSchema,
+  PanelProductSchema,
   SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
@@ -296,7 +300,7 @@ const LaborCostSchema = new Schema<ILaborCostSchema>(
 
 export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
   panel_model_id: string;
-  panel_model_data_snapshot: IProductSchema;
+  panel_model_data_snapshot: IPanelProductSchema;
   panel_model_snapshot_date: Date;
   quantity: number;
 }
@@ -304,7 +308,7 @@ export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const PanelQuoteDetailsSchema = new Schema<IPanelQuoteDetailsSchema>(
   {
     panel_model_id: String,
-    panel_model_data_snapshot: ProductSchema,
+    panel_model_data_snapshot: PanelProductSchema,
     panel_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
@@ -317,7 +321,7 @@ const PanelQuoteDetailsSchema = new Schema<IPanelQuoteDetailsSchema>(
 
 export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
   inverter_model_id: string;
-  inverter_model_data_snapshot: IProductSchema;
+  inverter_model_data_snapshot: IInverterProductSchema;
   inverter_model_snapshot_date: Date;
   quantity: number;
 }
@@ -325,7 +329,7 @@ export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const InverterQuoteDetailsSchema = new Schema<IInverterQuoteDetailsSchema>(
   {
     inverter_model_id: String,
-    inverter_model_data_snapshot: ProductSchema,
+    inverter_model_data_snapshot: InverterProductSchema,
     inverter_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
@@ -338,7 +342,7 @@ const InverterQuoteDetailsSchema = new Schema<IInverterQuoteDetailsSchema>(
 
 export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
   storage_model_id: string;
-  storage_model_data_snapshot: IProductSchema;
+  storage_model_data_snapshot: IStorageProductSchema;
   storage_model_snapshot_date: Date;
   quantity: number;
 }
@@ -346,7 +350,7 @@ export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const StorageQuoteDetailsSchema = new Schema<IStorageQuoteDetailsSchema>(
   {
     storage_model_id: String,
-    storage_model_data_snapshot: ProductSchema,
+    storage_model_data_snapshot: StorageProductSchema,
     storage_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,

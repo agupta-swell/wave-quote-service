@@ -1,6 +1,9 @@
 import { Document, Schema, Types } from 'mongoose';
+import { PANEL_OUTPUT_MODE, PV_WATT_MODULE_TYPE } from 'src/products/constants';
+import { IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
+import { COMPONENT_CATEGORY_TYPE, COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
 import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
@@ -18,7 +21,7 @@ const LatLngSchema = new Schema<ILatLngSchema>(
   { _id: false },
 );
 
-export interface IProductSchema {
+export interface IStorageProductSchema extends IBatteryProduct {
   name: string;
   type: string;
   price: number;
@@ -31,7 +34,7 @@ export interface IProductSchema {
   };
 }
 
-export const ProductSchema = new Schema<IProductSchema>(
+export const StorageProductSchema = new Schema<IStorageProductSchema>(
   {
     name: String,
     type: String,
@@ -43,19 +46,75 @@ export const ProductSchema = new Schema<IProductSchema>(
       length: Number,
       width: Number,
     },
+    battery_type: String,
   },
   { _id: false },
 );
 
-export interface IDiscountDetails {
-  amount: number;
-  description: string;
+export interface IInverterProductSchema extends IInverterProduct {
+  name: string;
+  type: string;
+  price: number;
+  sizeW: number;
+  sizekWh: number;
+  part_number: string[];
+  dimension: {
+    length: number;
+    width: number;
+  };
 }
 
-const DiscountDetailsSchema = new Schema<IDiscountDetails>({
-  amount: Number,
-  description: String,
-});
+export const InverterProductSchema = new Schema<IInverterProductSchema>(
+  {
+    name: String,
+    type: String,
+    price: Number,
+    sizeW: Number,
+    sizekWh: Number,
+    part_number: [String],
+    dimension: {
+      length: Number,
+      width: Number,
+    },
+    inverter_type: String,
+  },
+  { _id: false },
+);
+
+export interface IPanelProductSchema extends IPanelProduct {
+  name: string;
+  type: string;
+  price: number;
+  sizeW: number;
+  sizekWh: number;
+  part_number: string[];
+  dimension: {
+    length: number;
+    width: number;
+  };
+  pv_watt_module_type: PV_WATT_MODULE_TYPE;
+  panel_output_mode: PANEL_OUTPUT_MODE;
+  watt_class_stcdc: number;
+}
+
+export const PanelProductSchema = new Schema<IPanelProductSchema>(
+  {
+    name: String,
+    type: String,
+    price: Number,
+    sizeW: Number,
+    sizekWh: Number,
+    part_number: [String],
+    dimension: {
+      length: Number,
+      width: Number,
+    },
+    pv_watt_module_type: String,
+    panel_output_mode: String,
+    watt_class_stcdc: Number,
+  },
+  { _id: false },
+);
 
 export interface ISolarPanelArraySchema {
   array_id: Types.ObjectId;
@@ -65,14 +124,13 @@ export interface ISolarPanelArraySchema {
   panels: ILatLngSchema[][];
   setbacks: Object;
   setbacks_polygon: ILatLngSchema[];
-  // FIXME: need to change type
   keepouts: ILatLngSchema[][];
   pitch: number;
   azimuth: number;
   row_spacing: number;
   panel_model_id: string;
   number_of_panels: number;
-  panel_model_data_snapshot: IProductSchema;
+  panel_model_data_snapshot: IPanelProductSchema;
   panel_model_snapshot_date: Date;
 }
 
@@ -85,14 +143,13 @@ const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
     panels: [[LatLngSchema]],
     setbacks: Object,
     setbacks_polygon: [LatLngSchema],
-    // FIXME: need to change type
     keepouts: [[LatLngSchema]],
     pitch: Number,
     azimuth: Number,
     row_spacing: Number,
     panel_model_id: String,
     number_of_panels: Number,
-    panel_model_data_snapshot: ProductSchema,
+    panel_model_data_snapshot: PanelProductSchema,
     panel_model_snapshot_date: Date,
   },
   { _id: false },
@@ -101,7 +158,7 @@ const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
 export interface IInverterSchema {
   type: string;
   inverter_model_id: string;
-  inverter_model_data_snapshot: IProductSchema;
+  inverter_model_data_snapshot: IInverterProductSchema;
   inverter_model_snapshot_date: Date;
   quantity: number;
 }
@@ -110,7 +167,7 @@ const InverterSchema = new Schema<IInverterSchema>(
   {
     type: String,
     inverter_model_id: String,
-    inverter_model_data_snapshot: ProductSchema,
+    inverter_model_data_snapshot: InverterProductSchema,
     inverter_model_snapshot_date: Date,
     quantity: Number,
   },
@@ -121,7 +178,7 @@ export interface IStorageSchema {
   type: string;
   quantity: number;
   storage_model_id: string;
-  storage_model_data_snapshot: IProductSchema;
+  storage_model_data_snapshot: IStorageProductSchema;
   storage_model_snapshot_date: Date;
   reserve: number;
   purpose: string;
@@ -132,7 +189,7 @@ const StorageSchema = new Schema<IStorageSchema>(
     type: String,
     quantity: Number,
     storage_model_id: String,
-    storage_model_data_snapshot: ProductSchema,
+    storage_model_data_snapshot: StorageProductSchema,
     storage_model_snapshot_date: Date,
     reserve: Number,
     purpose: String,
@@ -176,11 +233,57 @@ const AdderSchema = new Schema<IAdderSchema>(
   { _id: false },
 );
 
+export interface IBalanceOfSystemSchema {
+  manufacturer: string;
+  model: string;
+  related_component_category: COMPONENT_CATEGORY_TYPE;
+  related_component: COMPONENT_TYPE;
+  description: string;
+  unit: COST_UNIT_TYPE;
+  unit_price: number;
+}
+
+export const BalanceOfSystemSchema = new Schema<IBalanceOfSystemSchema>(
+  {
+    manufacturer: String,
+    model: String,
+    related_component_category: String,
+    related_component: String,
+    description: String,
+    unit: String,
+    unit_price: Number,
+  },
+  { _id: false },
+);
+
+export interface IAncillaryEquipmentSchema {
+  manufacturer: string;
+  model: string;
+  related_component: COMPONENT_TYPE;
+  description: string;
+  average_whole_sale_price: number;
+  applicable_product_manufacturer: string;
+}
+
+export const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
+  {
+    manufacturer: String,
+    model: String,
+    related_component: String,
+    description: String,
+    average_whole_sale_price: Number,
+    applicable_product_manufacturer: String,
+  },
+  { _id: false },
+);
+
 export interface IRoofTopSchema {
   panel_array: ISolarPanelArraySchema[];
   inverters: IInverterSchema[];
   storage: IStorageSchema[];
   adders: IAdderSchema[];
+  balance_of_systems: IBalanceOfSystemSchema[];
+  ancillary_equipments: IAncillaryEquipmentSchema[];
 }
 
 export const RoofTopSchema = new Schema<IRoofTopSchema>(
@@ -189,6 +292,8 @@ export const RoofTopSchema = new Schema<IRoofTopSchema>(
     inverters: [InverterSchema],
     storage: [StorageSchema],
     adders: [AdderSchema],
+    balance_of_systems: [BalanceOfSystemSchema],
+    ancillary_equipments: [AncillaryEquipmentSchema],
   },
   { _id: false },
 );
@@ -199,6 +304,7 @@ export interface ISystemProductionSchema {
   productivity: number;
   annual_usageKWh: number;
   offset_percentage: number;
+  generationMonthlyKWh: number[];
 }
 
 export const SystemProductionSchema = new Schema<ISystemProductionSchema>(
@@ -208,6 +314,7 @@ export const SystemProductionSchema = new Schema<ISystemProductionSchema>(
     productivity: Number,
     annual_usageKWh: Number,
     offset_percentage: Number,
+    generationMonthlyKWh: [Number],
   },
   { _id: false },
 );
@@ -304,16 +411,19 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray, adders } = data;
+    const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
     return {
       panel_array: panelArray.map(item => toSnakeCase(item)),
       inverters: inverters.map(item => toSnakeCase(item)),
       storage: storage.map(item => toSnakeCase(item)),
       adders: adders.map(item => toSnakeCase(item)),
+      // FIXME: need to change this when modified req dto
+      balance_of_systems: balanceOfSystems.map(item => toSnakeCase(item)),
+      ancillary_equipments: ancillaryEquipments.map(item => toSnakeCase(item)),
     };
   };
 
-  setPanelModelDataSnapshot(panelModelData: IProductSchema, index: number) {
+  setPanelModelDataSnapshot(panelModelData: IPanelProductSchema, index: number) {
     this.roof_top_design_data.panel_array[index].panel_model_data_snapshot = panelModelData;
     this.roof_top_design_data.panel_array[index].panel_model_snapshot_date = new Date();
   }
@@ -323,12 +433,12 @@ export class SystemDesignModel {
     this.roof_top_design_data.adders[index].adder_model_snapshot_date = new Date();
   }
 
-  setInverter(inverter: IProductSchema, index: number) {
+  setInverter(inverter: IInverterProductSchema, index: number) {
     this.roof_top_design_data.inverters[index].inverter_model_data_snapshot = inverter;
     this.roof_top_design_data.inverters[index].inverter_model_snapshot_date = new Date();
   }
 
-  setStorage(storage: IProductSchema, index: number) {
+  setStorage(storage: IStorageProductSchema, index: number) {
     this.roof_top_design_data.storage[index].storage_model_data_snapshot = storage;
     this.roof_top_design_data.storage[index].storage_model_snapshot_date = new Date();
   }

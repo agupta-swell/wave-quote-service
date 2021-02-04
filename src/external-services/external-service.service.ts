@@ -5,7 +5,13 @@ import * as path from 'path';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
 import { IApplyRequest, IApplyResponse } from '../qualifications/typing';
-import { ICalculateSystemProduction, ILoadServingEntity, ITypicalBaseLine, ITypicalUsage } from './typing';
+import {
+  ICalculateSystemProduction,
+  ILoadServingEntity,
+  IPvWattV6Responses,
+  ITypicalBaseLine,
+  ITypicalUsage,
+} from './typing';
 
 @Injectable()
 export class ExternalService {
@@ -18,7 +24,7 @@ export class ExternalService {
     azimuth,
     tilt = 0,
     losses = 0,
-  }: ICalculateSystemProduction): Promise<any> {
+  }: ICalculateSystemProduction): Promise<IPvWattV6Responses> {
     const url = 'https://developer.nrel.gov/api/pvwatts/v6.json';
     const apiKey = 'Jfd68KJSvs2xJCe2zrFz8muiVLKh9G25CayoZSND';
 

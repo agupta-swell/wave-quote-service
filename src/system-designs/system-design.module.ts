@@ -2,7 +2,12 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
-import { PvWattSystemProductionSchema, PV_WATT_SYSTEM_PRODUCTION } from './schemas/pv-watt-system-production.schema';
+import {
+  PvWattSystemProductionSchema,
+  PV_WATT_SYSTEM_PRODUCTION,
+  SystemDesignAncillaryMasterSchema,
+  SYSTEM_DESIGN_ANCILLARY_MASTER,
+} from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { SystemDesignController } from './system-design.controller';
 import { SystemDesignSchema, SYSTEM_DESIGN } from './system-design.schema';
@@ -20,6 +25,11 @@ import { SystemDesignService } from './system-design.service';
         name: PV_WATT_SYSTEM_PRODUCTION,
         schema: PvWattSystemProductionSchema,
         collection: 'v2_pv_watt_system_productions',
+      },
+      {
+        name: SYSTEM_DESIGN_ANCILLARY_MASTER,
+        schema: SystemDesignAncillaryMasterSchema,
+        collection: 'v2_system_design_ancillaries_master',
       },
     ]),
   ],

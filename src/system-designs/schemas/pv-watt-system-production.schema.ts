@@ -1,4 +1,4 @@
-import { Schema, Document } from 'mongoose';
+import { Document, Schema } from 'mongoose';
 
 export const PV_WATT_SYSTEM_PRODUCTION = Symbol('PV_WATT_SYSTEM_PRODUCTION').toString();
 
@@ -12,6 +12,8 @@ export interface PvWattSystemProduction extends Document {
   module_type: number;
   losses: number;
   ac_annual_hourly_production: number[];
+  ac_monthly_production: number[];
+  ac_annual_production: number;
   created_by: string;
   created_at: Date;
   updated_by: string;

@@ -36,7 +36,10 @@ export class SystemDesignService {
     }
 
     const systemDesign = new SystemDesignModel(systemDesignDto);
-    const utilityAndUsage = await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId);
+    const [utilityAndUsage, systemProductionArray] = await Promise.all([
+      this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
+      this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
+    ]);
 
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
@@ -91,14 +94,13 @@ export class SystemDesignService {
         productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
         annual_usageKWh: annualUsageKWh,
         offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+        generationMonthlyKWh: systemProductionArray.monthly,
       });
     }
 
-    const systemProductionArray = await this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
-
     const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
       utilityAndUsage?.utility_data?.actual_usage?.hourly_usage?.map(item => item.v),
-      systemProductionArray,
+      systemProductionArray.hourly,
     );
 
     const costPostInstallation = await this.utilityService.calculateCost(
@@ -156,7 +158,11 @@ export class SystemDesignService {
       }
 
       if (systemDesignDto.roofTopDesignData) {
-        const utilityAndUsage = await this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId);
+        const [utilityAndUsage, systemProductionArray] = await Promise.all([
+          this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
+          this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
+        ]);
+
         await Promise.all(
           flatten([
             systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
@@ -202,13 +208,12 @@ export class SystemDesignService {
           productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
           annual_usageKWh: annualUsageKWh,
           offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+          generationMonthlyKWh: systemProductionArray.monthly,
         });
-
-        const systemProductionArray = await this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
 
         const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
           utilityAndUsage?.utility_data.actual_usage.hourly_usage.map(item => item.v),
-          systemProductionArray,
+          systemProductionArray.hourly,
         );
 
         const costPostInstallation = await this.utilityService.calculateCost(

@@ -16,6 +16,12 @@ interface IPvWatCalculation {
   losses?: number;
 }
 
+export interface ISystemProduction {
+  hourly: number[];
+  monthly: number[];
+  annual: number;
+}
+
 @Injectable()
 export class SystemProductService {
   constructor(
@@ -25,15 +31,43 @@ export class SystemProductService {
   ) {}
 
   async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
-    const { ac_annual: acAnnual } = await this.externalService.calculateSystemProduction(data);
-    return acAnnual;
+    const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
+      lat: data.lat,
+      lon: data.lon,
+      system_capacity_kW: data.systemCapacity,
+      azimuth: data.azimuth,
+      tilt: data.tilt,
+    });
+
+    if (pvWattSystemProduction) {
+      return pvWattSystemProduction.ac_annual_production;
+    }
+
+    const res = await this.externalService.calculateSystemProduction(data);
+    const createdPvWattSystemProduction = new this.pvWattSystemProduction({
+      lat: data.lat,
+      lon: data.lon,
+      system_capacity_kW: data.systemCapacity,
+      azimuth: data.azimuth,
+      tilt: data.tilt,
+      losses: 5.5,
+      array_type: 1,
+      module_type: 1,
+      ac_annual_hourly_production: res.ac,
+      ac_monthly_production: res.ac_monthly,
+      ac_annual_production: res.ac_annual,
+    });
+
+    await createdPvWattSystemProduction.save();
+    return res.ac_annual;
   }
 
-  async calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<number[]> {
+  async calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
     const pvProductionArray = await Promise.all(
       systemDesignDto.roofTopDesignData.panelArray.map(async item => {
         const panelModelData = await this.productService.getDetailById(item.panelModelId);
-        const systemCapacityInkWh = item.numberOfPanels * panelModelData.sizeW;
+        const systemCapacityInkWh = (item.numberOfPanels * panelModelData.sizeW) / 1000;
+        const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
 
         const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
           lat: systemDesignDto.latitude,
@@ -44,7 +78,8 @@ export class SystemProductService {
         });
 
         if (pvWattSystemProduction) {
-          return pvWattSystemProduction.ac_annual_hourly_production;
+          arrayProductionData.hourly = pvWattSystemProduction.ac_annual_hourly_production;
+          return arrayProductionData;
         }
 
         const payload = {
@@ -67,22 +102,36 @@ export class SystemProductService {
           array_type: 1,
           module_type: 1,
           ac_annual_hourly_production: res.ac,
+          ac_monthly_production: res.ac_monthly,
+          ac_annual_production: res.ac_annual,
         });
         await createdPvWattSystemProduction.save();
-        return res.ac as number[];
+
+        arrayProductionData.annual = res.ac_annual;
+        arrayProductionData.hourly = res.ac_monthly;
+        arrayProductionData.hourly = res.ac;
+        return arrayProductionData;
       }),
     );
 
-    let cumulativePvProduction = [];
+    let cumulativePvProduction: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
     if (pvProductionArray.length === 1) {
-      cumulativePvProduction = pvProductionArray[0];
+      cumulativePvProduction.hourly = pvProductionArray[0].hourly;
     } else {
-      pvProductionArray.forEach(item =>
-        item.forEach((value, index) => (cumulativePvProduction[index] = (cumulativePvProduction[index] || 0) + value)),
-      );
+      pvProductionArray.forEach(item => {
+        item.hourly.forEach(
+          (value, index) =>
+            (cumulativePvProduction[index].hourly = (cumulativePvProduction[index].hourly || 0) + value),
+        );
+        item.monthly.forEach(
+          (value, index) =>
+            (cumulativePvProduction[index].monthly = (cumulativePvProduction[index].monthly || 0) + value),
+        );
+        cumulativePvProduction.annual += item.annual;
+      });
     }
 
-    return cumulativePvProduction as number[];
+    return cumulativePvProduction;
   }
 
   calculateNetUsagePostSystemInstallation(
@@ -98,4 +147,6 @@ export class SystemProductService {
 
     return netUsagePostInstallation;
   }
+
+  // ==================== INTERNAL ====================
 }

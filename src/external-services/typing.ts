@@ -31,3 +31,21 @@ export interface ITypicalBaseLine {
   typicalHourlyUsage: ITypicalUsage[];
   typicalMonthlyUsage: ITypicalUsage[];
 }
+
+export interface IPvWattV6Responses {
+  poa_monthly: number[];
+  dc_monthly: number[];
+  ac_monthly: number[];
+  ac_annual: number;
+  solrad_monthly: number[];
+  solrad_annual: number;
+  capacity_factor: number;
+  ac: number[];
+  poa: number[];
+  dn: number[];
+  dc: number[];
+  df: number[];
+  tamb: number[];
+  tcell: number[];
+  wspd: number[];
+}

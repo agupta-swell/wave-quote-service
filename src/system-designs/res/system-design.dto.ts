@@ -82,7 +82,7 @@ export class SystemDesignDto {
 
   transformRoofTopData = (data: IRoofTopSchema): RoofTopDataDto => {
     if (!data) return {} as any;
-    const { panel_array, inverters, storage, adders } = data;
+    const { panel_array, inverters, storage, adders, ancillary_equipments, balance_of_systems } = data;
 
     return {
       panelArray: panel_array.map(item => {
@@ -107,7 +107,7 @@ export class SystemDesignDto {
       }),
       storage: storage.map(item => {
         const {
-          storage_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type },
+          storage_model_data_snapshot: { name, part_number, price, sizeW, sizekWh, dimension, type, battery_type },
         } = item;
 
         return {
@@ -116,6 +116,8 @@ export class SystemDesignDto {
         };
       }),
       adders: adders.map(item => toCamelCase(item)),
+      ancillaryEquipments: ancillary_equipments.map(item => toCamelCase(item)),
+      balanceOfSystems: balance_of_systems.map(item => toCamelCase(item)),
     };
   };
 
