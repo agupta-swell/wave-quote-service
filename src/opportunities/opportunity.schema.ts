@@ -16,6 +16,7 @@ export interface Opportunity extends Document {
   contractorEmail: string;
   contractorSigner: string;
   recordOwner: string;
+  accountId: string;
 }
 
 export const OpportunitySchema = new Schema<Opportunity>({
@@ -33,4 +34,5 @@ export const OpportunitySchema = new Schema<Opportunity>({
   contractorEmail: String,
   contractorSigner: String,
   recordOwner: String,
+  accountId: String,
 });

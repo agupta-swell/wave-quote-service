@@ -33,6 +33,7 @@ export class OpportunityService {
       state: contact.state,
       utilityProgramId: foundOpportunity.utilityProgramId ?? '',
       zipCode: contact.zip,
+      partnerId: foundOpportunity.accountId,
     };
     return OperationResult.ok(new GetRelatedInformationDto(data));
   }
