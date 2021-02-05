@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { flatten, pickBy } from 'lodash';
+import { flatten, pickBy, sumBy } from 'lodash';
 import { Model, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
@@ -10,9 +10,9 @@ import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { ProductService } from './../products/product.service';
 import { DESIGN_MODE } from './constants';
-import { CreateSystemDesignDto } from './req/create-system-design.dto';
-import { UpdateSystemDesignDto } from './req/update-system-design.dto';
-import { SystemDesignDto } from './res/system-design.dto';
+import { CreateSystemDesignDto, GetInverterClippingDetailDto, UpdateSystemDesignDto } from './req';
+import { GetInverterClippingDetailResDto, SystemDesignDto } from './res';
+import { QuotePartnerConfig, QUOTE_PARTNER_CONFIG } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
@@ -20,6 +20,7 @@ import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from '
 export class SystemDesignService {
   constructor(
     @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
+    @InjectModel(QUOTE_PARTNER_CONFIG) private readonly quotePartnerConfigModel: Model<QuotePartnerConfig>,
     private readonly productService: ProductService,
     private readonly systemProductService: SystemProductService,
     private readonly uploadImageService: UploadImageService,
@@ -237,6 +238,61 @@ export class SystemDesignService {
     ]);
 
     return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedUndefined } as any));
+  }
+
+  async getInverterClippingDetails(
+    req: GetInverterClippingDetailDto,
+  ): Promise<OperationResult<GetInverterClippingDetailResDto>> {
+    const partnerConfigData = await this.quotePartnerConfigModel.findOne({ partner_id: req.partnerId });
+    if (!partnerConfigData) {
+      return;
+    }
+
+    const { invertersDetail, panelsDetail } = req.panelAndInverterDetail;
+    const totalPvSTCRating = sumBy(panelsDetail, panel => panel.numberOfPanels * panel.panelSTCRating);
+    const totalInverterRating = sumBy(
+      invertersDetail,
+      inverter => inverter.numberOfInverters * inverter.inverterRating,
+    );
+
+    const response = new GetInverterClippingDetailResDto(req.panelAndInverterDetail, {
+      totalSTCProductionInWatt: totalPvSTCRating,
+      totalInverterCapacityInWatt: totalInverterRating,
+    });
+
+    if (partnerConfigData.default_dc_clipping === null || !response.clippingDetails.currentClippingRatio) {
+      response.clippingDetails.isDCClippingRestrictionEnabled = false;
+      return OperationResult.ok(response);
+    } else {
+      response.clippingDetails.isDCClippingRestrictionEnabled = true;
+    }
+
+    response.clippingDetails.defaultClippingRatio = partnerConfigData.default_dc_clipping;
+    response.clippingDetails.maximumAllowedClippingRatio = partnerConfigData.max_module_dc_clipping;
+    response.clippingDetails.currentClippingRatio = totalPvSTCRating / totalInverterRating;
+
+    if (response.clippingDetails.currentClippingRatio <= partnerConfigData.max_module_dc_clipping) {
+      response.clippingDetails.isDcToAcRatioWithinAllowedLimit = true;
+    } else {
+      response.clippingDetails.isDcToAcRatioWithinAllowedLimit = false;
+    }
+
+    response.clippingDetails.recommendationDetail.requiredInverterCapacityForDefaultRatio =
+      totalPvSTCRating / partnerConfigData.default_dc_clipping;
+    response.clippingDetails.recommendationDetail.maxClippedWattForDefaultRatio =
+      totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForDefaultRatio;
+
+    response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio =
+      totalPvSTCRating / partnerConfigData.max_module_dc_clipping;
+    response.clippingDetails.recommendationDetail.maxClippedWattForDefaultRatio =
+      totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio;
+
+    const inverterRatingInWattUsedForRecommendation = req.panelAndInverterDetail.invertersDetail[0].inverterRating;
+    response.clippingDetails.recommendationDetail.recommendedInverterCountForDefaultRatioBasedOnRating = inverterRatingInWattUsedForRecommendation;
+    response.clippingDetails.recommendationDetail.recommendedInverterCountForDefaultRatio =
+      totalPvSTCRating / (partnerConfigData.default_dc_clipping * inverterRatingInWattUsedForRecommendation);
+
+    return OperationResult.ok(response);
   }
 
   async delete(id: string, opportunityId: string): Promise<OperationResult<string>> {

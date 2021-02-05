@@ -41,9 +41,7 @@ export enum COST_UNIT_TYPE {
 }
 
 export enum PRODUCT_CATEGORY_TYPE {
-  ALL = 'all',
   BASE = 'base',
   ANCILLARY = 'ancillary',
-  BOM = 'bom',
-  LABOR = 'labor',
+  BOS = 'bos',
 }

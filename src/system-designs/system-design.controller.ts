@@ -2,8 +2,9 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
-import { PreAuthenticate } from '../app/securities';
-import { CreateSystemDesignDto, UpdateSystemDesignDto } from './req';
+import { PreAuthenticate } from 'src/app/securities';
+import { CreateSystemDesignDto, GetInverterClippingDetailDto, UpdateSystemDesignDto } from './req';
+import { GetInverterClippingDetailRes, GetInverterClippingDetailResDto } from './res';
 import { SystemDesignDto, SystemDesignListRes, SystemDesignRes } from './res/system-design.dto';
 import { SystemDesignService } from './system-design.service';
 
@@ -20,6 +21,16 @@ export class SystemDesignController {
   @CheckOpportunity()
   async create(@Body() systemDesign: CreateSystemDesignDto): Promise<ServiceResponse<SystemDesignDto>> {
     const result = await this.systemDesignService.create(systemDesign);
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Post('/inverter-clipping-details')
+  @ApiOperation({ summary: 'Get Inverter Clipping Detail' })
+  @ApiOkResponse({ type: GetInverterClippingDetailRes })
+  async getInverterClippingDetails(
+    @Body() inverterClippingDetailDto: GetInverterClippingDetailDto,
+  ): Promise<ServiceResponse<GetInverterClippingDetailResDto>> {
+    const result = await this.systemDesignService.getInverterClippingDetails(inverterClippingDetailDto);
     return ServiceResponse.fromResult(result);
   }
 

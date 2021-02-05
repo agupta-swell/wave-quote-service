@@ -5,6 +5,8 @@ import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import {
   PvWattSystemProductionSchema,
   PV_WATT_SYSTEM_PRODUCTION,
+  QuotePartnerConfigSchema,
+  QUOTE_PARTNER_CONFIG,
   SystemDesignAncillaryMasterSchema,
   SYSTEM_DESIGN_ANCILLARY_MASTER,
 } from './schemas';
@@ -30,6 +32,11 @@ import { SystemDesignService } from './system-design.service';
         name: SYSTEM_DESIGN_ANCILLARY_MASTER,
         schema: SystemDesignAncillaryMasterSchema,
         collection: 'v2_system_design_ancillaries_master',
+      },
+      {
+        name: QUOTE_PARTNER_CONFIG,
+        schema: QuotePartnerConfigSchema,
+        collection: 'v2_quote_partners_config',
       },
     ]),
   ],
