@@ -79,6 +79,8 @@ export class SystemProductService {
 
         if (pvWattSystemProduction) {
           arrayProductionData.hourly = pvWattSystemProduction.ac_annual_hourly_production;
+          arrayProductionData.monthly = pvWattSystemProduction.ac_monthly_production;
+          arrayProductionData.annual = pvWattSystemProduction.ac_annual_production;
           return arrayProductionData;
         }
 
@@ -117,8 +119,11 @@ export class SystemProductService {
     let cumulativePvProduction: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
     if (pvProductionArray.length === 1) {
       cumulativePvProduction.hourly = pvProductionArray[0].hourly;
+      cumulativePvProduction.monthly = pvProductionArray[0].monthly;
+      cumulativePvProduction.annual = pvProductionArray[0].annual;
     } else {
       pvProductionArray.forEach(item => {
+        // TODO: need to consider below logic here
         item.hourly.forEach(
           (value, index) =>
             (cumulativePvProduction[index].hourly = (cumulativePvProduction[index].hourly || 0) + value),
