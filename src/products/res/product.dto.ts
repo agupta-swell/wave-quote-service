@@ -58,6 +58,9 @@ export class ProductDto {
   @ApiProperty()
   batteryType: string;
 
+  @ApiProperty()
+  relatedComponent: string;
+
   constructor(props: Product) {
     this.id = props.id;
     this.manufacturer = props.manufacturer;
@@ -79,6 +82,8 @@ export class ProductDto {
     this.inverterType = props.inverter_type;
     // For Storage/Battery
     this.batteryType = props.battery_type;
+    // For Balance of System
+    this.relatedComponent = props.related_component;
   }
 }
 
