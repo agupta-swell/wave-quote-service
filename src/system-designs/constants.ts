@@ -4,8 +4,8 @@ export enum DESIGN_MODE {
 }
 
 export enum INVERTER_TYPE {
-  CENTRAL = 'central',
-  MICRO = 'mirco',
+  MICRO = 'MICRO',
+  STRING = 'STRING',
 }
 
 export enum STORAGE_TYPE {

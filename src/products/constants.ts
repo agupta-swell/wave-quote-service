@@ -9,7 +9,8 @@ export enum PANEL_OUTPUT_MODE {
 }
 
 export enum INVERTER_TYPE {
-  MICRO = 'micro',
+  MICRO = 'MICRO',
+  STRING = 'STRING',
 }
 
 export enum BATTERY_TYPE {

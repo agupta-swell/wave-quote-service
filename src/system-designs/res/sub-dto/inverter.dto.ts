@@ -6,7 +6,7 @@ export class InverterDto {
   @ApiProperty()
   id: string;
 
-  @ApiProperty({ enum: [INVERTER_TYPE.CENTRAL, INVERTER_TYPE.MICRO] })
+  @ApiProperty({ enum: [INVERTER_TYPE.MICRO, INVERTER_TYPE.STRING] })
   type: INVERTER_TYPE;
 
   @ApiProperty()

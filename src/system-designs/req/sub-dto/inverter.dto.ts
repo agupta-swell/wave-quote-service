@@ -3,7 +3,7 @@ import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { INVERTER_TYPE } from '../../constants';
 
 export class InverterDto {
-  @ApiProperty({ enum: [INVERTER_TYPE.CENTRAL, INVERTER_TYPE.MICRO] })
+  @ApiProperty({ enum: [INVERTER_TYPE.MICRO, INVERTER_TYPE.STRING] })
   @IsNotEmpty()
   type: INVERTER_TYPE;
 
