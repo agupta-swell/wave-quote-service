@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
 import { AdderDto } from './adder.dto';
 import { AncillaryEquipmentDto } from './ancillary-equipment.dto';
 import { BalanceOfSystemDto } from './balance-of-system.dto';
@@ -9,11 +9,11 @@ import { SolarPanelArrayDto1 } from './solar-panel-array.dto';
 import { StorageDto } from './storage.dto';
 
 export class RoofTopDataReqDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: SolarPanelArrayDto1,
     isArray: true,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => SolarPanelArrayDto1)
   panelArray: SolarPanelArrayDto1[];

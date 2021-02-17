@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { COMPONENT_CATEGORY_TYPE, COMPONENT_TYPE, COST_UNIT_TYPE } from 'src/system-designs/constants';
 
 export class BalanceOfSystemDto {
@@ -7,27 +7,33 @@ export class BalanceOfSystemDto {
   @IsString()
   manufacturer: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   model: string;
 
-  @ApiProperty({ enum: COMPONENT_CATEGORY_TYPE })
-  @IsString()
+  @ApiPropertyOptional({ enum: COMPONENT_CATEGORY_TYPE })
+  @IsOptional()
+  @IsEnum(COMPONENT_CATEGORY_TYPE)
   relatedComponentCategory: COMPONENT_CATEGORY_TYPE;
 
-  @ApiProperty({ enum: COMPONENT_TYPE })
-  @IsString()
+  @ApiPropertyOptional({ enum: COMPONENT_TYPE })
+  @IsOptional()
+  @IsEnum(COMPONENT_TYPE)
   relatedComponent: COMPONENT_TYPE;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   description: string;
 
-  @ApiProperty({ enum: COST_UNIT_TYPE })
-  @IsString()
+  @ApiPropertyOptional({ enum: COST_UNIT_TYPE })
+  @IsOptional()
+  @IsEnum(COST_UNIT_TYPE)
   unit: COST_UNIT_TYPE;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   unitPrice: number;
 }

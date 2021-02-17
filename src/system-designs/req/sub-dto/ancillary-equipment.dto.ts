@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { COMPONENT_TYPE } from 'src/system-designs/constants';
 
 export class AncillaryEquipmentDto {
@@ -7,15 +7,18 @@ export class AncillaryEquipmentDto {
   @IsString()
   manufacturer: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   model: string;
 
-  @ApiProperty({ enum: COMPONENT_TYPE })
-  @IsString()
+  @ApiPropertyOptional({ enum: COMPONENT_TYPE })
+  @IsOptional()
+  @IsEnum(COMPONENT_TYPE)
   relatedComponent: COMPONENT_TYPE;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   description: string;
 

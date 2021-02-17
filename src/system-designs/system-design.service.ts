@@ -36,6 +36,10 @@ export class SystemDesignService {
       throw new Error('Please put your data in body');
     }
 
+    if (!systemDesignDto.isRetrofit && !systemDesignDto.roofTopDesignData.panelArray.length) {
+      throw ApplicationException.ValidationFailed('Panel Array');
+    }
+
     const systemDesign = new SystemDesignModel(systemDesignDto);
     const [utilityAndUsage, systemProductionArray] = await Promise.all([
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
@@ -122,6 +126,10 @@ export class SystemDesignService {
   }
 
   async update(id: string, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
+    if (!systemDesignDto.isRetrofit && !systemDesignDto.roofTopDesignData.panelArray.length) {
+      throw ApplicationException.ValidationFailed('Panel Array');
+    }
+
     const foundSystemDesign = await this.systemDesignModel.findById(id);
 
     if (!foundSystemDesign) {

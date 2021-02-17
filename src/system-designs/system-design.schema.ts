@@ -405,7 +405,7 @@ export class SystemDesignModel {
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
     const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
     return {
-      panel_array: panelArray.map(item => toSnakeCase(item)),
+      panel_array: (panelArray || []).map(item => toSnakeCase(item)),
       inverters: inverters.map(item => toSnakeCase(item)),
       storage: storage.map(item => toSnakeCase(item)),
       adders: adders.map(item => toSnakeCase(item)),
