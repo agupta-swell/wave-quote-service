@@ -1,15 +1,14 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthencationModule } from 'src/authentication/authentication.module';
-import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { CashPaymentConfigModule } from 'src/cash-payment-configs/cash-payment-config.module';
 import { ContractModule } from 'src/contracts/contract.module';
 import { CustomerPaymentModule } from 'src/customer-payments/customer-payment.module';
 import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docusign-template-master.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { ProposalModule } from 'src/proposals/proposal.module';
+import { QuotePartnerConfigModule } from 'src/quote-partner-configs/quote-partner-config.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
 import { DocusignCommunicationModule } from '../docusign-communications/docusign-communication.module';
@@ -59,6 +58,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UtilityModule,
     UtilityProgramMasterModule,
     MyLoggerModule,
+    QuotePartnerConfigModule,
   ],
 })
 export class AppModule {
