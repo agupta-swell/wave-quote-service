@@ -4,7 +4,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import * as Handlebars from 'handlebars';
 import { identity, pickBy } from 'lodash';
 import { Model } from 'mongoose';
+import { ContactService } from 'src/contacts/contact.service';
+import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
+import { UserService } from 'src/users/user.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CurrentUserType } from '../app/securities';
 import { EmailService } from '../emails/email.service';
@@ -28,6 +31,9 @@ export class ProposalService {
     private readonly jwtService: JwtService,
     private readonly proposalTemplateService: ProposalTemplateService,
     private readonly emailService: EmailService,
+    private readonly opportunityService: OpportunityService,
+    private readonly userService: UserService,
+    private readonly contactService: ContactService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -125,9 +131,30 @@ export class ProposalService {
       throw ApplicationException.EnitityNotFound(id);
     }
 
-    const template = await this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id);
+    const opportunity = await this.opportunityService.getDetailById(proposal.opportunity_id);
+    if (!opportunity) {
+      throw ApplicationException.EnitityNotFound(`OpportunityId: ${proposal.opportunity_id}`);
+    }
 
-    return OperationResult.ok(new ProposalDto({ ...proposal.toObject(), template }));
+    const [contact, recordOwner, template] = await Promise.all([
+      this.contactService.getContactById(opportunity.contactId),
+      this.userService.getUserById(opportunity.recordOwner),
+      this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id),
+    ]);
+
+    return OperationResult.ok(
+      new ProposalDto({
+        ...proposal.toObject(),
+        template,
+        customer: { ...contact, address: contact.address1, zipCode: contact.zip },
+        agent: {
+          firstName: recordOwner.profile.firstName,
+          lastName: recordOwner.profile.lastName,
+          email: recordOwner.emails[0].address,
+          phoneNumber: recordOwner.profile.cellPhone,
+        },
+      }),
+    );
   }
 
   async generateLinkByAgent(proposalId: string): Promise<OperationResult<{ proposalLink: string }>> {

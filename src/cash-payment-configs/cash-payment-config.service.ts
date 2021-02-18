@@ -11,6 +11,6 @@ export class CashPaymentConfigService {
 
   async getFirst(): Promise<CashPaymentConfig | undefined> {
     const [product] = await this.cashPaymentConfig.find();
-    return product;
+    return product?.toObject();
   }
 }

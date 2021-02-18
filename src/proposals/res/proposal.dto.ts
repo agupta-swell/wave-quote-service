@@ -17,6 +17,43 @@ class RecipientDto {
   componentName: string;
 }
 
+class UserInformationDto {
+  @ApiProperty()
+  address: string;
+
+  @ApiProperty()
+  city: string;
+
+  @ApiProperty()
+  firstName: string;
+
+  @ApiProperty()
+  lastName: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  state: string;
+
+  @ApiProperty()
+  zipCode: string;
+
+  @ApiProperty()
+  phoneNumber: string;
+
+  constructor(props: UserInformationDto) {
+    this.address = props.address;
+    this.city = props.city;
+    this.firstName = props.firstName;
+    this.lastName = props.lastName;
+    this.email = props.email;
+    this.state = props.state;
+    this.zipCode = props.zipCode;
+    this.phoneNumber = props.phoneNumber;
+  }
+}
+
 export class ProposalDto {
   @ApiProperty()
   id: string;
@@ -63,6 +100,12 @@ export class ProposalDto {
   @ApiProperty({ type: ProposalTemplateDto })
   template: ProposalTemplateDto;
 
+  @ApiProperty({ type: UserInformationDto })
+  agent: UserInformationDto;
+
+  @ApiProperty({ type: UserInformationDto })
+  customer: UserInformationDto;
+
   constructor(props: Proposal) {
     this.id = props._id;
     if (props.detailed_proposal) {
@@ -84,6 +127,8 @@ export class ProposalDto {
       this.template = (props as any)?.template && new ProposalTemplateDto((props as any)?.template);
       this.status = props.detailed_proposal.status;
       this.pdfFileUrl = props.detailed_proposal.pdf_file_url;
+      this.agent = (props as any)?.agent && new UserInformationDto((props as any)?.agent);
+      this.customer = (props as any)?.customer && new UserInformationDto((props as any)?.customer);
     }
   }
 }
