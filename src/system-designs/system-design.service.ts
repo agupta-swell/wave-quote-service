@@ -130,8 +130,10 @@ export class SystemDesignService {
   }
 
   async update(id: string, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
-    if (!systemDesignDto.isRetrofit && !systemDesignDto.roofTopDesignData.panelArray.length) {
-      throw ApplicationException.ValidationFailed('Panel Array');
+    if (typeof systemDesignDto.isRetrofit !== 'undefined') {
+      if (!systemDesignDto.isRetrofit && !systemDesignDto.roofTopDesignData?.panelArray?.length) {
+        throw ApplicationException.ValidationFailed('Panel Array');
+      }
     }
 
     const foundSystemDesign = await this.systemDesignModel.findById(id);
