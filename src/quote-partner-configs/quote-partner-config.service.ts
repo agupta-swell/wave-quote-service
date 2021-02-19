@@ -3,21 +3,26 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from '../app/common';
-import { V2QuotePartnerConfig, V2_QUOTE_PARTNER_CONFIG } from './quote-partner-config.schema';
-import { V2QuotePartnerConfigDto } from './res/quote-partner-config.dto';
+import { QuotePartnerConfig, QUOTE_PARTNER_CONFIG } from './quote-partner-config.schema';
+import { QuotePartnerConfigDto } from './res/quote-partner-config.dto';
 
 @Injectable()
 export class QuotePartnerConfigService {
-  constructor(
-    @InjectModel(V2_QUOTE_PARTNER_CONFIG) private readonly v2QuotePartnerConfigModel: Model<V2QuotePartnerConfig>,
-  ) {}
+  constructor(@InjectModel(QUOTE_PARTNER_CONFIG) private readonly quotePartnerConfigModel: Model<QuotePartnerConfig>) {}
 
-  async getConfigByPartnerId(partnerId: string): Promise<OperationResult<V2QuotePartnerConfigDto>> {
-    const foundConfig = await this.v2QuotePartnerConfigModel.findOne({ partnerId });
+  async getConfigByPartnerId(partnerId: string): Promise<OperationResult<QuotePartnerConfigDto>> {
+    const foundConfig = await this.quotePartnerConfigModel.findOne({ partnerId });
     if (!foundConfig) {
       throw ApplicationException.EnitityNotFound(partnerId);
     }
 
-    return OperationResult.ok(new V2QuotePartnerConfigDto(foundConfig));
+    return OperationResult.ok(new QuotePartnerConfigDto(foundConfig));
+  }
+
+  // ========================== INTERNAL ==========================
+
+  async getDetailByPartnerId(partnerId: string): Promise<QuotePartnerConfig | undefined> {
+    const foundConfig = await this.quotePartnerConfigModel.findOne({ partnerId });
+    return foundConfig?.toObject();
   }
 }

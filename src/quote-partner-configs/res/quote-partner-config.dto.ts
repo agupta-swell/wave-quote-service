@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from '../../app/common/service-response';
-import { V2QuotePartnerConfig } from '../quote-partner-config.schema';
+import { QuotePartnerConfig } from '../quote-partner-config.schema';
 
-export class V2QuotePartnerConfigDto {
+export class QuotePartnerConfigDto {
   @ApiProperty()
   id: string;
 
@@ -42,7 +42,7 @@ export class V2QuotePartnerConfigDto {
   @ApiProperty()
   swellStandardMarkup: number;
 
-  constructor(props: V2QuotePartnerConfig) {
+  constructor(props: QuotePartnerConfig) {
     this.id = props.id;
     this.partnerId = props.partnerId;
     this.enableCostBuildup = props.enableCostBuildup;
@@ -59,10 +59,10 @@ export class V2QuotePartnerConfigDto {
   }
 }
 
-export class V2QuotePartnerConfigResponse implements ServiceResponse<V2QuotePartnerConfigDto> {
+export class QuotePartnerConfigResponse implements ServiceResponse<QuotePartnerConfigDto> {
   @ApiProperty()
   status: string;
 
-  @ApiProperty({ type: V2QuotePartnerConfigDto })
-  data: V2QuotePartnerConfigDto;
+  @ApiProperty({ type: QuotePartnerConfigDto })
+  data: QuotePartnerConfigDto;
 }

@@ -1,8 +1,8 @@
 import { Document, Schema } from 'mongoose';
 
-export const V2_QUOTE_PARTNER_CONFIG = Symbol('V2_QUOTE_PARTNER_CONFIG').toString();
+export const QUOTE_PARTNER_CONFIG = Symbol('QUOTE_PARTNER_CONFIG').toString();
 
-export interface V2QuotePartnerConfig extends Document {
+export interface QuotePartnerConfig extends Document {
   partnerId: string;
   enableCostBuildup: boolean;
   enablePricePerWatt: boolean;
@@ -17,7 +17,7 @@ export interface V2QuotePartnerConfig extends Document {
   swellStandardMarkup: number;
 }
 
-export const V2QuotePartnerConfigSchema = new Schema<V2QuotePartnerConfig>({
+export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
   _id: Schema.Types.Mixed,
   partnerId: String,
   enableCostBuildup: Boolean,

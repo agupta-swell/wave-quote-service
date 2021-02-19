@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { QuotePartnerConfigController } from './quote-partner-config.controller';
-import { V2QuotePartnerConfigSchema, V2_QUOTE_PARTNER_CONFIG } from './quote-partner-config.schema';
+import { QuotePartnerConfigSchema, QUOTE_PARTNER_CONFIG } from './quote-partner-config.schema';
 import { QuotePartnerConfigService } from './quote-partner-config.service';
 
 @Global()
@@ -13,7 +13,7 @@ import { QuotePartnerConfigService } from './quote-partner-config.service';
       useClass: JwtConfigService,
     }),
     MongooseModule.forFeature([
-      { name: V2_QUOTE_PARTNER_CONFIG, schema: V2QuotePartnerConfigSchema, collection: 'v2_quotePartnerConfig' },
+      { name: QUOTE_PARTNER_CONFIG, schema: QuotePartnerConfigSchema, collection: 'v2_quotePartnerConfig' },
     ]),
   ],
   controllers: [QuotePartnerConfigController],

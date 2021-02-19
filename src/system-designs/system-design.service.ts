@@ -4,15 +4,15 @@ import { flatten, pickBy, sumBy } from 'lodash';
 import { Model, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
+import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { ProductService } from './../products/product.service';
-import { DESIGN_MODE } from './constants';
+import { COST_UNIT_TYPE, DESIGN_MODE } from './constants';
 import { CreateSystemDesignDto, GetInverterClippingDetailDto, UpdateSystemDesignDto } from './req';
 import { GetInverterClippingDetailResDto, SystemDesignDto } from './res';
-import { QuotePartnerConfig, QUOTE_PARTNER_CONFIG } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
@@ -20,7 +20,6 @@ import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from '
 export class SystemDesignService {
   constructor(
     @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
-    @InjectModel(QUOTE_PARTNER_CONFIG) private readonly quotePartnerConfigModel: Model<QuotePartnerConfig>,
     private readonly productService: ProductService,
     private readonly systemProductService: SystemProductService,
     private readonly uploadImageService: UploadImageService,
@@ -29,6 +28,7 @@ export class SystemDesignService {
     private readonly adderConfigService: AdderConfigService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
+    private readonly quotePartnerConfigService: QuotePartnerConfigService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -73,7 +73,11 @@ export class SystemDesignService {
           }),
           systemDesign.roof_top_design_data.adders.map(async (item, index) => {
             const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
-            systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
+            systemDesign.setAdder(
+              { ...adder, modified_at: adder.modifiedAt },
+              this.convertIncrementAdder(adder.increment as string),
+              index,
+            );
           }),
           systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
             const inverterModelData = await this.productService.getDetailById(inverter.inverter_model_id);
@@ -194,7 +198,11 @@ export class SystemDesignService {
             }),
             systemDesign.roof_top_design_data.adders.map(async (item, index) => {
               const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
-              systemDesign.setAdder({ ...adder, modified_at: adder.modifiedAt }, index);
+              systemDesign.setAdder(
+                { ...adder, modified_at: adder.modifiedAt },
+                this.convertIncrementAdder(adder.increment as string),
+                index,
+              );
             }),
             systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
               const inverterModelData = await this.productService.getDetailById(inverter.inverter_model_id);
@@ -251,7 +259,7 @@ export class SystemDesignService {
   async getInverterClippingDetails(
     req: GetInverterClippingDetailDto,
   ): Promise<OperationResult<GetInverterClippingDetailResDto>> {
-    const partnerConfigData = await this.quotePartnerConfigModel.findOne({ partner_id: req.partnerId });
+    const partnerConfigData = await this.quotePartnerConfigService.getDetailByPartnerId(req.partnerId);
     if (!partnerConfigData) {
       return;
     }
@@ -268,37 +276,37 @@ export class SystemDesignService {
       totalInverterCapacityInWatt: totalInverterRating,
     });
 
-    if (partnerConfigData.default_dc_clipping === null || !response.clippingDetails.currentClippingRatio) {
+    if (partnerConfigData.defaultDCClipping === null || !response.clippingDetails.currentClippingRatio) {
       response.clippingDetails.isDCClippingRestrictionEnabled = false;
       return OperationResult.ok(response);
     } else {
       response.clippingDetails.isDCClippingRestrictionEnabled = true;
     }
 
-    response.clippingDetails.defaultClippingRatio = partnerConfigData.default_dc_clipping;
-    response.clippingDetails.maximumAllowedClippingRatio = partnerConfigData.max_module_dc_clipping;
+    response.clippingDetails.defaultClippingRatio = partnerConfigData.defaultDCClipping;
+    response.clippingDetails.maximumAllowedClippingRatio = partnerConfigData.maxModuleDCClipping;
     response.clippingDetails.currentClippingRatio = totalPvSTCRating / totalInverterRating;
 
-    if (response.clippingDetails.currentClippingRatio <= partnerConfigData.max_module_dc_clipping) {
+    if (response.clippingDetails.currentClippingRatio <= partnerConfigData.maxModuleDCClipping) {
       response.clippingDetails.isDcToAcRatioWithinAllowedLimit = true;
     } else {
       response.clippingDetails.isDcToAcRatioWithinAllowedLimit = false;
     }
 
     response.clippingDetails.recommendationDetail.requiredInverterCapacityForDefaultRatio =
-      totalPvSTCRating / partnerConfigData.default_dc_clipping;
+      totalPvSTCRating / partnerConfigData.defaultDCClipping;
     response.clippingDetails.recommendationDetail.maxClippedWattForDefaultRatio =
       totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForDefaultRatio;
 
     response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio =
-      totalPvSTCRating / partnerConfigData.max_module_dc_clipping;
+      totalPvSTCRating / partnerConfigData.maxModuleDCClipping;
     response.clippingDetails.recommendationDetail.maxClippedWattForDefaultRatio =
       totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio;
 
     const inverterRatingInWattUsedForRecommendation = req.panelAndInverterDetail.invertersDetail[0].inverterRating;
     response.clippingDetails.recommendationDetail.recommendedInverterCountForDefaultRatioBasedOnRating = inverterRatingInWattUsedForRecommendation;
     response.clippingDetails.recommendationDetail.recommendedInverterCountForDefaultRatio =
-      totalPvSTCRating / (partnerConfigData.default_dc_clipping * inverterRatingInWattUsedForRecommendation);
+      totalPvSTCRating / (partnerConfigData.defaultDCClipping * inverterRatingInWattUsedForRecommendation);
 
     return OperationResult.ok(response);
   }
@@ -395,5 +403,18 @@ export class SystemDesignService {
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
     return await this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
+  }
+
+  convertIncrementAdder(increment: string): COST_UNIT_TYPE {
+    switch (increment) {
+      case 'watt':
+        return COST_UNIT_TYPE.PER_WATT;
+      case 'foot':
+        return COST_UNIT_TYPE.PER_FEET;
+      case 'each':
+        return COST_UNIT_TYPE.PER_EACH;
+      default:
+        return '' as any;
+    }
   }
 }
