@@ -128,14 +128,13 @@ export class SystemProductService {
       cumulativePvProduction.annual = pvProductionArray[0].annual || 0;
     } else {
       pvProductionArray.forEach(item => {
-        // TODO: need to consider below logic here
         item.hourly.forEach(
           (value, index) =>
-            (cumulativePvProduction[index].hourly = (cumulativePvProduction[index].hourly || 0) + value),
+            (cumulativePvProduction.hourly[index] = (cumulativePvProduction.hourly[index] || 0) + value),
         );
         item.monthly.forEach(
           (value, index) =>
-            (cumulativePvProduction[index].monthly = (cumulativePvProduction[index].monthly || 0) + value),
+            (cumulativePvProduction.monthly[index] = (cumulativePvProduction.monthly[index] || 0) + value),
         );
         cumulativePvProduction.annual += item.annual;
       });
