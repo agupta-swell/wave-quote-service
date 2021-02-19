@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, max, min, pick, pickBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { roundNumber } from 'src/utils/transformNumber';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -46,8 +47,6 @@ export class QuoteService {
 
     const quoteCostCommon = {
       cost: 0,
-      markup: 0,
-      discountDetails: [{ amount: 0, description: '' }],
       netCost: 0,
     };
 
@@ -174,6 +173,10 @@ export class QuoteService {
       isSolar: systemDesign.is_solar,
       isRetrofit: systemDesign.is_retrofit,
       quoteName: data.quoteName,
+      allowedQuoteModes: data.allowedQuoteModes,
+      selectedQuoteMode: data.selectedQuoteMode,
+      quotePricePerWatt: data.quotePricePerWatt,
+      quotePriceOverride: data.quotePriceOverride,
     };
 
     const model = new QuoteModel(data, detailedQuote);
@@ -261,8 +264,6 @@ export class QuoteService {
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
 
     const quoteCostCommon = {
-      markup: 0,
-      discountDetails: [{ amount: 0, description: '' }],
       netCost: 0,
     };
 
@@ -497,6 +498,10 @@ export class QuoteService {
       isSolar: systemDesign.is_solar,
       isRetrofit: systemDesign.is_retrofit,
       taxCreditData: taxCreditData.map(item => toCamelCase(item.toObject())),
+      allowedQuoteModes: data.allowedQuoteModes,
+      selectedQuoteMode: data.selectedQuoteMode,
+      quotePricePerWatt: data.quotePricePerWatt,
+      quotePriceOverride: data.quotePriceOverride,
     };
 
     const model = new QuoteModel(data, detailedQuote);
@@ -745,5 +750,18 @@ export class QuoteService {
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
     return await this.quoteModel.countDocuments({ opportunity_id: opportunityId });
+  }
+
+  convertIncrementAdder(increment: string): COST_UNIT_TYPE {
+    switch (increment) {
+      case 'watt':
+        return COST_UNIT_TYPE.PER_WATT;
+      case 'foot':
+        return COST_UNIT_TYPE.PER_FEET;
+      case 'each':
+        return COST_UNIT_TYPE.PER_EACH;
+      default:
+        return '' as any;
+    }
   }
 }

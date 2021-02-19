@@ -19,3 +19,9 @@ export enum PROJECT_DISCOUNT_UNITS {
   PERCENTAGE = 'percentage',
   AMOUNT = 'amount',
 }
+
+export enum QUOTE_MODE_TYPE {
+  PRICE_PER_WATT = 'price_per_watt',
+  COST_BUILD_UP = 'cost_build_up',
+  PRICE_OVERRIDE = 'price_override',
+}

@@ -1,17 +1,18 @@
 import { Document, Schema } from 'mongoose';
 import {
   AdderModelSchema,
-  StorageProductSchema,
   IAdderModel,
-  IStorageProductSchema,
   IInverterProductSchema,
   InverterProductSchema,
   IPanelProductSchema,
+  IStorageProductSchema,
   ISystemProductionSchema,
   PanelProductSchema,
+  StorageProductSchema,
   SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
+import { QUOTE_MODE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
 
@@ -261,24 +262,10 @@ const SavingsDetailsSchema = new Schema<ISavingsDetailsSchema>(
   { _id: false },
 );
 
-export interface IDiscountDetailSchema {
-  amount: number;
-  description: string;
-}
-
-const DiscountDetailSchema = new Schema<IDiscountDetailSchema>(
-  {
-    amount: Number,
-    description: String,
-  },
-  { _id: false },
-);
-
 export interface IQuoteCostCommonSchema {
   cost: number;
-  markup: number;
-  discount_details: IDiscountDetailSchema[];
   net_cost: number;
+  subcontractor_markup: number;
 }
 
 export interface ILaborCostSchema extends IQuoteCostCommonSchema {
@@ -291,8 +278,6 @@ const LaborCostSchema = new Schema<ILaborCostSchema>(
     labor_cost_data_snapshot: new Schema({ calculation_type: String, unit: String }),
     labor_cost_snapshot_date: Date,
     cost: Number,
-    markup: Number,
-    discount_details: [DiscountDetailSchema],
     net_cost: Number,
   },
   { _id: false },
@@ -312,9 +297,8 @@ const PanelQuoteDetailsSchema = new Schema<IPanelQuoteDetailsSchema>(
     panel_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
-    markup: Number,
-    discount_details: [DiscountDetailSchema],
     net_cost: Number,
+    subcontractor_markup: Number,
   },
   { _id: false },
 );
@@ -333,9 +317,8 @@ const InverterQuoteDetailsSchema = new Schema<IInverterQuoteDetailsSchema>(
     inverter_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
-    markup: Number,
-    discount_details: [DiscountDetailSchema],
     net_cost: Number,
+    subcontractor_markup: Number,
   },
   { _id: false },
 );
@@ -354,9 +337,8 @@ const StorageQuoteDetailsSchema = new Schema<IStorageQuoteDetailsSchema>(
     storage_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
-    markup: Number,
-    discount_details: [DiscountDetailSchema],
     net_cost: Number,
+    subcontractor_markup: Number,
   },
   { _id: false },
 );
@@ -375,9 +357,8 @@ const AdderQuoteDetailsSchema = new Schema<IAdderQuoteDetailsSchema>(
     adder_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
-    markup: Number,
-    discount_details: [DiscountDetailSchema],
     net_cost: Number,
+    subcontractor_markup: Number,
   },
   { _id: false },
 );
@@ -440,6 +421,30 @@ const TaxCreditDataSchema = new Schema<ITaxCreditDataSchema>(
   { _id: false },
 );
 
+export interface IQuotePricePerWattSchema {
+  price_per_watt: number;
+  gross_price: number;
+}
+
+const QuotePricePerWattSchema = new Schema<IQuotePricePerWattSchema>(
+  {
+    price_per_watt: Number,
+    gross_price: Number,
+  },
+  { _id: false },
+);
+
+export interface IQuotePriceOverride {
+  gross_price: number;
+}
+
+const QuotePriceOverride = new Schema<IQuotePriceOverride>(
+  {
+    gross_price: Number,
+  },
+  { _id: false },
+);
+
 export interface IDetailedQuoteSchema {
   system_production: ISystemProductionSchema;
   utility_program: IUtilityProgramSchema;
@@ -453,6 +458,10 @@ export interface IDetailedQuoteSchema {
   tax_credit_data: ITaxCreditDataSchema[];
   utility_program_selected_for_reinvestment: boolean;
   tax_credit_selected_for_reinvestment: boolean;
+  allowed_quote_modes: QUOTE_MODE_TYPE[];
+  selected_quote_mode: QUOTE_MODE_TYPE;
+  quote_price_per_watt: IQuotePricePerWattSchema;
+  quote_price_override: IQuotePriceOverride;
 }
 
 export const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
@@ -469,6 +478,10 @@ export const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
     tax_credit_data: [TaxCreditDataSchema],
     utility_program_selected_for_reinvestment: Boolean,
     tax_credit_selected_for_reinvestment: Boolean,
+    allowed_quote_modes: [String],
+    selected_quote_mode: String,
+    quote_price_per_watt: QuotePricePerWattSchema,
+    quote_price_override: QuotePriceOverride,
   },
   { _id: false },
 );
@@ -534,6 +547,10 @@ export class QuoteModel {
       taxCreditData,
       utilityProgramSelectedForReinvestment,
       taxCreditSelectedForReinvestment,
+      allowedQuoteModes,
+      selectedQuoteMode,
+      quotePricePerWatt,
+      quotePriceOverride,
     } = data;
     return {
       system_production: systemProduction,
@@ -576,6 +593,10 @@ export class QuoteModel {
           tax_credit_config_data_snapshot_date: new Date(),
         };
       }),
+      allowed_quote_modes: allowedQuoteModes,
+      selected_quote_mode: selectedQuoteMode,
+      quote_price_per_watt: toSnakeCase(quotePricePerWatt),
+      quote_price_override: toSnakeCase(quotePriceOverride),
     };
   }
 

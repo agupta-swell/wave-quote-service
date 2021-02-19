@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { QUOTE_MODE_TYPE } from '../constants';
+import { QuotePriceOverride, QuotePricePerWatt } from './create-quote.dto';
 import { QuoteCostBuildupDto, QuoteFinanceProductDto, SavingsDetailsDto } from './sub-dto';
 
 class TaxCreditDto {
@@ -78,4 +80,16 @@ export class UpdateQuoteDto {
 
   @ApiProperty()
   taxCreditSelectedForReinvestment: boolean;
+
+  @ApiProperty({ enum: QUOTE_MODE_TYPE, isArray: true })
+  allowedQuoteModes: QUOTE_MODE_TYPE[];
+
+  @ApiProperty()
+  selectedQuoteMode: string;
+
+  @ApiProperty({ type: QuotePricePerWatt })
+  quotePricePerWatt: QuotePricePerWatt;
+
+  @ApiProperty({ type: QuotePriceOverride })
+  quotePriceOverride: QuotePriceOverride;
 }

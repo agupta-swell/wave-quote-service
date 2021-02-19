@@ -1,8 +1,8 @@
 import { Document, Schema, Types } from 'mongoose';
-import { IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
+import { IBatteryProduct, IBOSProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
-import { COMPONENT_CATEGORY_TYPE, COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
+import { COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
 import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
@@ -209,6 +209,7 @@ export const AdderModelSchema = new Schema<IAdderModel>(
 export interface IAdderSchema {
   adder_description: string;
   quantity: number;
+  unit: COST_UNIT_TYPE;
   adder_id: string;
   adder_model_data_snapshot: IAdderModel;
   adder_model_snapshot_date: Date;
@@ -219,23 +220,16 @@ const AdderSchema = new Schema<IAdderSchema>(
     adder_description: String,
     quantity: Number,
     adder_id: String,
+    unit: String,
     adder_model_data_snapshot: AdderModelSchema,
     adder_model_snapshot_date: Date,
   },
   { _id: false },
 );
 
-export interface IBalanceOfSystemSchema {
-  manufacturer: string;
-  model: string;
-  related_component_category: COMPONENT_CATEGORY_TYPE;
-  related_component: COMPONENT_TYPE;
-  description: string;
-  unit: COST_UNIT_TYPE;
-  unit_price: number;
-}
+export interface IBOSProductSchema extends IProductCommonSchema, IBOSProduct {}
 
-export const BalanceOfSystemSchema = new Schema<IBalanceOfSystemSchema>(
+export const BOSProductSchema = new Schema<IBOSProductSchema>(
   {
     manufacturer: String,
     model: String,
@@ -244,11 +238,30 @@ export const BalanceOfSystemSchema = new Schema<IBalanceOfSystemSchema>(
     description: String,
     unit: String,
     unit_price: Number,
+    model_name: String,
+    approved_for_gsa: Boolean,
+    approved_for_esa: Boolean,
+    pv_watt_module_type: String,
+    panel_output_mode: String,
+    watt_class_stcdc: Number,
   },
   { _id: false },
 );
 
-export interface IAncillaryEquipmentSchema {
+export interface IBalanceOfSystemSchema {
+  balance_of_system_model_data_snapshot: IBOSProductSchema;
+  balance_of_system_snapshot_date: Date;
+}
+
+export const BalanceOfSystemSchema = new Schema<IBalanceOfSystemSchema>(
+  {
+    balance_of_system_model_data_snapshot: BOSProductSchema,
+    balance_of_system_snapshot_date: Date,
+  },
+  { _id: false },
+);
+
+interface IAncillaryEquipment {
   manufacturer: string;
   model: string;
   related_component: COMPONENT_TYPE;
@@ -257,7 +270,7 @@ export interface IAncillaryEquipmentSchema {
   applicable_product_manufacturer: string;
 }
 
-export const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
+const AncillaryEquipment = new Schema<IAncillaryEquipment>(
   {
     manufacturer: String,
     model: String,
@@ -265,6 +278,21 @@ export const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
     description: String,
     average_whole_sale_price: Number,
     applicable_product_manufacturer: String,
+  },
+  { _id: false },
+);
+
+export interface IAncillaryEquipmentSchema {
+  ancillary_equipment_model_data_snapshot: IAncillaryEquipment;
+  ancillary_equipment_snapshot_date: Date;
+  quantity: number;
+}
+
+export const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
+  {
+    ancillary_equipment_model_data_snapshot: AncillaryEquipment,
+    ancillary_equipment_snapshot_date: Date,
+    quantity: Number,
   },
   { _id: false },
 );
@@ -410,8 +438,15 @@ export class SystemDesignModel {
       storage: storage.map(item => toSnakeCase(item)),
       adders: adders.map(item => toSnakeCase(item)),
       // FIXME: need to change this when modified req dto
-      balance_of_systems: balanceOfSystems.map(item => toSnakeCase(item)),
-      ancillary_equipments: ancillaryEquipments.map(item => toSnakeCase(item)),
+      balance_of_systems: balanceOfSystems.map(item => ({
+        balance_of_system_model_data_snapshot: toSnakeCase(item),
+        balance_of_system_snapshot_date: new Date(),
+      })),
+      ancillary_equipments: ancillaryEquipments.map(item => ({
+        ancillary_equipment_model_data_snapshot: toSnakeCase(item),
+        ancillary_equipment_snapshot_date: new Date(),
+        quantity: 0, // FIXME: need to replace later
+      })),
     };
   };
 
@@ -420,8 +455,9 @@ export class SystemDesignModel {
     this.roof_top_design_data.panel_array[index].panel_model_snapshot_date = new Date();
   }
 
-  setAdder(adder: IAdderModel, index: number) {
+  setAdder(adder: IAdderModel, unit: COST_UNIT_TYPE, index: number) {
     this.roof_top_design_data.adders[index].adder_model_data_snapshot = adder;
+    this.roof_top_design_data.adders[index].unit = unit;
     this.roof_top_design_data.adders[index].adder_model_snapshot_date = new Date();
   }
 
@@ -433,6 +469,16 @@ export class SystemDesignModel {
   setStorage(storage: IStorageProductSchema, index: number) {
     this.roof_top_design_data.storage[index].storage_model_data_snapshot = storage;
     this.roof_top_design_data.storage[index].storage_model_snapshot_date = new Date();
+  }
+
+  setBOS(bos: IBOSProductSchema, index: number) {
+    this.roof_top_design_data.balance_of_systems[index].balance_of_system_model_data_snapshot = bos;
+    this.roof_top_design_data.balance_of_systems[index].balance_of_system_snapshot_date = new Date();
+  }
+
+  setAncillaryEquipment(ancillaryEquipment: IAncillaryEquipment, index: number) {
+    this.roof_top_design_data.ancillary_equipments[index].ancillary_equipment_model_data_snapshot = ancillaryEquipment;
+    this.roof_top_design_data.ancillary_equipments[index].ancillary_equipment_snapshot_date = new Date();
   }
 
   setThumbnail(link: string) {
@@ -462,4 +508,6 @@ export class SystemDesignModel {
   setCostPostInstallation(data: IUtilityCostData) {
     this.cost_post_installation = data;
   }
+
+  transformUnit() {}
 }

@@ -38,6 +38,7 @@ export enum COST_UNIT_TYPE {
   PER_PANEL = 'per_panel',
   PER_ARRAY = 'per_array',
   PER_INVERTER = 'per_inverter',
+  PER_EACH = 'per_each',
 }
 
 export enum PRODUCT_CATEGORY_TYPE {

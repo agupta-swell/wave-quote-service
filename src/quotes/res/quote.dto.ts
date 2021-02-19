@@ -70,6 +70,19 @@ class TaxCreditDto {
   taxCreditConfigDataSnapshotDate: Date;
 }
 
+class QuotePricePerWatt {
+  @ApiProperty()
+  pricePerWatt: number;
+
+  @ApiProperty()
+  grossPrice: number;
+}
+
+class QuotePriceOverride {
+  @ApiProperty()
+  grossPrice: number;
+}
+
 export class QuoteDto {
   @ApiProperty()
   quoteId: string;
@@ -119,6 +132,18 @@ export class QuoteDto {
   @ApiProperty()
   taxCreditSelectedForReinvestment: boolean;
 
+  @ApiProperty({ type: String, isArray: true })
+  allowedQuoteModes: string[];
+
+  @ApiProperty()
+  selectedQuoteMode: string;
+
+  @ApiProperty({ type: QuotePricePerWatt })
+  quotePricePerWatt: QuotePricePerWatt;
+
+  @ApiProperty({ type: QuotePriceOverride })
+  quotePriceOverride: QuotePriceOverride;
+
   constructor(props: Quote) {
     this.quoteId = props._id;
     this.quoteName = props.detailed_quote.quote_name;
@@ -136,6 +161,10 @@ export class QuoteDto {
     this.utilityProgramSelectedForReinvestment = props.detailed_quote.utility_program_selected_for_reinvestment;
     this.taxCreditSelectedForReinvestment = props.detailed_quote.tax_credit_selected_for_reinvestment;
     this.isSync = props.is_sync;
+    this.allowedQuoteModes = props.detailed_quote.allowed_quote_modes;
+    this.selectedQuoteMode = props.detailed_quote.selected_quote_mode;
+    this.quotePricePerWatt = toCamelCase(props.detailed_quote.quote_price_per_watt);
+    this.quotePriceOverride = toCamelCase(props.detailed_quote.quote_price_override);
   }
 
   transformQuoteCostBuildup(quoteCostBuildup: IQuoteCostBuildupSchema): QuoteCostBuildupDto {
