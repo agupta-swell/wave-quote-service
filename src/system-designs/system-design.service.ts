@@ -12,7 +12,8 @@ import { UtilityService } from '../utilities/utility.service';
 import { ProductService } from './../products/product.service';
 import { COST_UNIT_TYPE, DESIGN_MODE } from './constants';
 import { CreateSystemDesignDto, GetInverterClippingDetailDto, UpdateSystemDesignDto } from './req';
-import { GetInverterClippingDetailResDto, SystemDesignDto } from './res';
+import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
+import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
@@ -20,6 +21,8 @@ import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from '
 export class SystemDesignService {
   constructor(
     @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
+    @InjectModel(SYSTEM_DESIGN_ANCILLARY_MASTER)
+    private readonly ancillaryMasterModel: Model<SystemDesignAncillaryMaster>,
     private readonly productService: ProductService,
     private readonly systemProductService: SystemProductService,
     private readonly uploadImageService: UploadImageService,
@@ -371,6 +374,13 @@ export class SystemDesignService {
       throw ApplicationException.EnitityNotFound(id);
     }
     return OperationResult.ok(new SystemDesignDto(foundSystemDesign.toObject()));
+  }
+
+  async getAncillaryList(): Promise<OperationResult<Pagination<SystemDesignAncillaryMasterDto>>> {
+    const res = await this.ancillaryMasterModel.find();
+    return OperationResult.ok(
+      new Pagination({ data: res.map(item => new SystemDesignAncillaryMasterDto(item)), total: res.length }),
+    );
   }
 
   //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-

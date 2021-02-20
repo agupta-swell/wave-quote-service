@@ -4,7 +4,12 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { CreateSystemDesignDto, GetInverterClippingDetailDto, UpdateSystemDesignDto } from './req';
-import { GetInverterClippingDetailRes, GetInverterClippingDetailResDto } from './res';
+import {
+  GetInverterClippingDetailRes,
+  GetInverterClippingDetailResDto,
+  SystemDesignAncillaryMasterDto,
+  SystemDesignAncillaryMasterListRes,
+} from './res';
 import { SystemDesignDto, SystemDesignListRes, SystemDesignRes } from './res/system-design.dto';
 import { SystemDesignService } from './system-design.service';
 
@@ -76,6 +81,14 @@ export class SystemDesignController {
       selected,
       opportunityId,
     );
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Get('/ancillaries-master')
+  @ApiOperation({ summary: 'Get all ancillaries master' })
+  @ApiOkResponse({ type: SystemDesignAncillaryMasterListRes })
+  async getAncillaryList(): Promise<ServiceResponse<Pagination<SystemDesignAncillaryMasterDto>>> {
+    const result = await this.systemDesignService.getAncillaryList();
     return ServiceResponse.fromResult(result);
   }
 

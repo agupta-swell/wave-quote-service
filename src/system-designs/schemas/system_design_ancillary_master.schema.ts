@@ -5,7 +5,7 @@ export const SYSTEM_DESIGN_ANCILLARY_MASTER = Symbol('SYSTEM_DESIGN_ANCILLARY_MA
 
 export interface SystemDesignAncillaryMaster extends Document {
   manufacturer: string;
-  modelName: string;
+  model_name: string;
   related_component: COMPONENT_TYPE;
   description: string;
   average_whole_sale_price: number;
@@ -19,7 +19,7 @@ export interface SystemDesignAncillaryMaster extends Document {
 
 export const SystemDesignAncillaryMasterSchema = new Schema<SystemDesignAncillaryMaster>({
   manufacturer: String,
-  ancillary_model: String,
+  model_name: String,
   related_component: String,
   description: String,
   average_whole_sale_price: Number,
