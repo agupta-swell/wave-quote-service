@@ -45,9 +45,12 @@ export class QuoteController {
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'skip', required: false })
   @ApiQuery({ name: 'opportunityId', required: false })
+  @ApiQuery({ name: 'systemDesignId', required: false })
+  @ApiQuery({ name: 'selected', required: false })
   async getListQuotes(
     @Query('limit') limit: string,
     @Query('skip') skip: string,
+    @Query('selected') selected: string,
     @Query('systemDesignId') systemDesignId: string,
     @Query('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<Pagination<QuoteDto>>> {
@@ -56,6 +59,7 @@ export class QuoteController {
       Number(skip || 0),
       systemDesignId,
       opportunityId,
+      selected,
     );
     return ServiceResponse.fromResult(res);
   }

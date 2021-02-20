@@ -1,10 +1,11 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy, max, min, pick, pickBy, sumBy } from 'lodash';
+import { groupBy, isNil, max, min, omitBy, pick, pickBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
+import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
 import { toCamelCase } from '../utils/transformProperties';
@@ -440,13 +441,19 @@ export class QuoteService {
     skip: number,
     systemDesignId: string,
     opportunityId: string,
+    selected: string,
   ): Promise<OperationResult<Pagination<QuoteDto>>> {
-    let query = this.quoteModel.find({ system_design_id: systemDesignId }).limit(limit).skip(skip);
-    let total = this.quoteModel.countDocuments({ system_design_id: systemDesignId });
-    if (opportunityId) {
-      query = this.quoteModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip);
-      total = this.quoteModel.countDocuments({ opportunity_id: opportunityId });
-    }
+    const condition = omitBy(
+      {
+        system_design_id: systemDesignId,
+        opportunity_id: opportunityId,
+        'detailed_quote.is_selected': typeof selected === 'undefined' ? undefined : getBooleanString(selected),
+      },
+      isNil,
+    );
+
+    let query = this.quoteModel.find(condition).limit(limit).skip(skip);
+    let total = this.quoteModel.countDocuments(condition);
 
     const [quotes, count] = await Promise.all([query, total]);
     const data = quotes.map(item => new QuoteDto(item.toObject()));
