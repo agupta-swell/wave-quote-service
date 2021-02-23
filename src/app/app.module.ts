@@ -7,6 +7,7 @@ import { ContractModule } from 'src/contracts/contract.module';
 import { CustomerPaymentModule } from 'src/customer-payments/customer-payment.module';
 import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docusign-template-master.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
+import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { ProposalModule } from 'src/proposals/proposal.module';
 import { QuotePartnerConfigModule } from 'src/quote-partner-configs/quote-partner-config.module';
 import { UserModule } from 'src/users/user.module';
@@ -59,8 +60,9 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UtilityProgramMasterModule,
     MyLoggerModule,
     QuotePartnerConfigModule,
+    ManufacturerModule,
   ],
 })
 export class AppModule {
-  constructor() {}
+  constructor() { }
 }
