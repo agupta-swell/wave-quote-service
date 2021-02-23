@@ -32,7 +32,7 @@ export class SystemDesignService {
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
-  ) {}
+  ) { }
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
@@ -98,7 +98,7 @@ export class SystemDesignService {
       systemDesign.setThumbnail(thumbnail);
       systemDesign.setIsSelected(systemDesignDto.isSelected);
 
-      const annualUsageKWh = utilityAndUsage?.utility_data.typical_baseline_usage?.annual_consumption || 0;
+      const annualUsageKWh = utilityAndUsage?.utility_data.actual_usage?.annual_consumption || 0;
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,

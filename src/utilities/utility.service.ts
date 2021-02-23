@@ -24,7 +24,7 @@ import {
   IUtilityCostData,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
-  UTILITY_USAGE_DETAILS,
+  UTILITY_USAGE_DETAILS
 } from './utility.schema';
 
 @Injectable()
@@ -43,7 +43,7 @@ export class UtilityService {
     private readonly systemDesignService: SystemDesignService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
-  ) {}
+  ) { }
 
   async getTypicalBaseline(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
     const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
@@ -207,7 +207,7 @@ export class UtilityService {
     const [isUpdated] = await Promise.all([
       this.systemDesignService.updateListSystemDesign(
         utilityDto.opportunityId,
-        utilityDto.utilityData.typicalBaselineUsage.annualConsumption,
+        utilityDto.utilityData.actualUsage.annualConsumption,
       ),
       this.quoteService.setOutdatedData(utilityDto.opportunityId),
     ]);
