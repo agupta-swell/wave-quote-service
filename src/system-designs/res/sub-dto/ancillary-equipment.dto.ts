@@ -1,12 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber } from 'class-validator';
 
 export class AncillaryEquipmentDto {
   @ApiProperty()
-  manufacturer: string;
+  manufacturerId: string;
 
   @ApiProperty()
-  model: string;
+  modelName: string;
 
   @ApiProperty()
   relatedComponent: string;
@@ -15,9 +14,8 @@ export class AncillaryEquipmentDto {
   description: string;
 
   @ApiProperty()
-  @IsNumber()
   averageWholeSalePrice: number;
 
   @ApiProperty()
-  applicableProductManufacturer: string;
+  applicableProductManufacturerId: string;
 }

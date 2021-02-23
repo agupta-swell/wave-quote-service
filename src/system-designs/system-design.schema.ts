@@ -31,7 +31,7 @@ interface IProductCommonSchema {
     length: number;
     width: number;
   };
-  manufacturer: string;
+  manufacturer_id: string;
   model_name: string;
   approved_for_gsa: boolean;
   approved_for_esa: boolean;
@@ -41,7 +41,7 @@ export interface IStorageProductSchema extends IProductCommonSchema, IBatteryPro
 
 export const StorageProductSchema = new Schema<IStorageProductSchema>(
   {
-    manufacturer: String,
+    manufacturer_id: String,
     name: String,
     type: String,
     price: Number,
@@ -64,7 +64,7 @@ export interface IInverterProductSchema extends IProductCommonSchema, IInverterP
 
 export const InverterProductSchema = new Schema<IInverterProductSchema>(
   {
-    manufacturer: String,
+    manufacturer_id: String,
     name: String,
     type: String,
     price: Number,
@@ -87,7 +87,7 @@ export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct
 
 export const PanelProductSchema = new Schema<IPanelProductSchema>(
   {
-    manufacturer: String,
+    manufacturer_id: String,
     name: String,
     type: String,
     price: Number,
@@ -249,19 +249,24 @@ export const BOSProductSchema = new Schema<IBOSProductSchema>(
 );
 
 export interface IBalanceOfSystemSchema {
+  balance_of_system_id: string;
   balance_of_system_model_data_snapshot: IBOSProductSchema;
   balance_of_system_snapshot_date: Date;
+  unit: COST_UNIT_TYPE;
 }
 
 export const BalanceOfSystemSchema = new Schema<IBalanceOfSystemSchema>(
   {
+    balance_of_system_id: String,
     balance_of_system_model_data_snapshot: BOSProductSchema,
     balance_of_system_snapshot_date: Date,
+    unit: String,
   },
   { _id: false },
 );
 
-interface IAncillaryEquipment {
+export interface IAncillaryEquipment {
+  ancillary_id: string;
   manufacturer: string;
   model: string;
   related_component: COMPONENT_TYPE;
@@ -270,8 +275,9 @@ interface IAncillaryEquipment {
   applicable_product_manufacturer: string;
 }
 
-const AncillaryEquipment = new Schema<IAncillaryEquipment>(
+export const AncillaryEquipment = new Schema<IAncillaryEquipment>(
   {
+    ancillary_id: String,
     manufacturer: String,
     model: String,
     related_component: String,
@@ -283,6 +289,7 @@ const AncillaryEquipment = new Schema<IAncillaryEquipment>(
 );
 
 export interface IAncillaryEquipmentSchema {
+  ancillary_id: string;
   ancillary_equipment_model_data_snapshot: IAncillaryEquipment;
   ancillary_equipment_snapshot_date: Date;
   quantity: number;
@@ -290,6 +297,7 @@ export interface IAncillaryEquipmentSchema {
 
 export const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
   {
+    ancillary_id: String,
     ancillary_equipment_model_data_snapshot: AncillaryEquipment,
     ancillary_equipment_snapshot_date: Date,
     quantity: Number,
@@ -437,16 +445,8 @@ export class SystemDesignModel {
       inverters: inverters.map(item => toSnakeCase(item)),
       storage: storage.map(item => toSnakeCase(item)),
       adders: adders.map(item => toSnakeCase(item)),
-      // FIXME: need to change this when modified req dto
-      balance_of_systems: balanceOfSystems.map(item => ({
-        balance_of_system_model_data_snapshot: toSnakeCase(item),
-        balance_of_system_snapshot_date: new Date(),
-      })),
-      ancillary_equipments: ancillaryEquipments.map(item => ({
-        ancillary_equipment_model_data_snapshot: toSnakeCase(item),
-        ancillary_equipment_snapshot_date: new Date(),
-        quantity: 0, // FIXME: need to replace later
-      })),
+      balance_of_systems: balanceOfSystems.map(item => toSnakeCase(item)),
+      ancillary_equipments: ancillaryEquipments.map(item => toSnakeCase(item)),
     };
   };
 

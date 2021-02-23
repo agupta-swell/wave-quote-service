@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, isNil, max, min, omitBy, pick, pickBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
@@ -41,6 +42,7 @@ export class QuoteService {
     private readonly cashPaymentConfigService: CashPaymentConfigService,
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
+    private readonly quotePartnerConfigService: QuotePartnerConfigService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -48,6 +50,7 @@ export class QuoteService {
 
     const quoteCostCommon = {
       cost: 0,
+      subcontractorMarkup: 0,
       netCost: 0,
     };
 
@@ -93,10 +96,33 @@ export class QuoteService {
           ...quoteCostCommon,
           quantity: item.quantity,
           cost: item.quantity * item.adder_model_data_snapshot.price,
+          unit: item.unit,
         })),
         'adderModelId',
       ),
-      overallMarkup: 0,
+      bosDetails: this.groupData(
+        systemDesign.roof_top_design_data.balance_of_systems.map(item => ({
+          bosModelId: item.balance_of_system_id,
+          bosModelDataSnapshot: item.balance_of_system_model_data_snapshot,
+          bosModelSnapshotDate: new Date(),
+          ...quoteCostCommon,
+          cost: item.balance_of_system_model_data_snapshot.price,
+          unit: item.unit,
+        })),
+        'bosModelId',
+      ),
+      ancillaryEquipmentDetails: this.groupData(
+        systemDesign.roof_top_design_data.ancillary_equipments.map(item => ({
+          ancillaryEquipmentId: item.ancillary_id,
+          ancillaryEquipmentSnapshot: item.ancillary_equipment_model_data_snapshot,
+          ancillaryEquipmentSnapshotDate: new Date(),
+          ...quoteCostCommon,
+          quantity: item.quantity,
+          cost: item.quantity * item.ancillary_equipment_model_data_snapshot.average_whole_sale_price,
+        })),
+        'ancillaryEquipmentId',
+      ),
+      totalWithStandardMarkup: 0,
       totalProductCost: 0,
       laborCost: {
         laborCostDataSnapshot: {
@@ -269,7 +295,14 @@ export class QuoteService {
     };
 
     const {
-      quote_cost_buildup: { panel_quote_details, inverter_quote_details, storage_quote_details, adder_quote_details },
+      quote_cost_buildup: {
+        panel_quote_details,
+        inverter_quote_details,
+        storage_quote_details,
+        adder_quote_details,
+        bos_details,
+        ancillary_equipment_details,
+      },
       quote_finance_product: { incentive_details, project_discount_details, rebate_details, finance_product },
       utility_program,
     } = foundQuote.toObject().detailed_quote;
@@ -290,6 +323,11 @@ export class QuoteService {
       (acc, item) => ({ ...acc, [item.adder_model_id]: toCamelCase(item) }),
       {},
     );
+    const oldBos = bos_details.reduce((acc, item) => ({ ...acc, [item.bos_model_id]: toCamelCase(item) }), {});
+    const oldAncillaries = ancillary_equipment_details.reduce(
+      (acc, item) => ({ ...acc, [item.ancillary_equipment_id]: toCamelCase(item) }),
+      {},
+    );
 
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
@@ -299,7 +337,7 @@ export class QuoteService {
           panelModelSnapshotDate: new Date(),
           quantity: item.number_of_panels,
           ...quoteCostCommon,
-          ...pick(oldPanels[item.panel_model_id], ['markup', 'discountDetails', 'netCost']),
+          ...pick(oldPanels[item.panel_model_id], ['subcontractorMarkup', 'netCost']),
           cost: item.number_of_panels * item.panel_model_data_snapshot.price,
         })),
         'panelModelId',
@@ -311,7 +349,7 @@ export class QuoteService {
           inverterModelSnapshotDate: new Date(),
           quantity: item.quantity,
           ...quoteCostCommon,
-          ...pick(oldInverters[item.inverter_model_id], ['markup', 'discountDetails', 'netCost']),
+          ...pick(oldInverters[item.inverter_model_id], ['subcontractorMarkup', 'netCost']),
           cost: item.quantity * item.inverter_model_data_snapshot.price,
         })),
         'inverterModelId',
@@ -323,7 +361,7 @@ export class QuoteService {
           storageModelSnapshotDate: new Date(),
           quantity: item.quantity,
           ...quoteCostCommon,
-          ...pick(oldStorage[item.storage_model_id], ['markup', 'discountDetails', 'netCost']),
+          ...pick(oldStorage[item.storage_model_id], ['subcontractorMarkup', 'netCost']),
           cost: item.quantity * item.storage_model_data_snapshot.price,
         })),
         'storageModelId',
@@ -335,12 +373,37 @@ export class QuoteService {
           adderModelSnapshotDate: new Date(),
           quantity: item.quantity,
           ...quoteCostCommon,
-          ...pick(oldAdders[item.adder_id], ['markup', 'discountDetails', 'netCost']),
+          ...pick(oldAdders[item.adder_id], ['subcontractorMarkup', 'netCost']),
           cost: item.quantity * item.adder_model_data_snapshot.price,
+          unit: item.unit,
         })),
         'adderModelId',
       ),
-      overallMarkup: foundQuote.detailed_quote.quote_cost_buildup.overall_markup,
+      bosDetails: this.groupData(
+        systemDesign.roof_top_design_data.balance_of_systems.map(item => ({
+          bosModelId: item.balance_of_system_id,
+          bosModelDataSnapshot: item.balance_of_system_model_data_snapshot,
+          bosModelSnapshotDate: new Date(),
+          ...quoteCostCommon,
+          ...pick(oldBos[item.balance_of_system_id], ['subcontractorMarkup', 'netCost']),
+          cost: item.balance_of_system_model_data_snapshot.price,
+          unit: item.unit,
+        })),
+        'bosModelId',
+      ),
+      ancillaryEquipmentDetails: this.groupData(
+        systemDesign.roof_top_design_data.ancillary_equipments.map(item => ({
+          ancillaryEquipmentId: item.ancillary_id,
+          ancillaryEquipmentSnapshot: item.ancillary_equipment_model_data_snapshot,
+          ancillaryEquipmentSnapshotDate: new Date(),
+          ...quoteCostCommon,
+          ...pick(oldAncillaries[item.ancillary_id], ['subcontractorMarkup', 'netCost']),
+          quantity: item.quantity,
+          cost: item.quantity * item.ancillary_equipment_model_data_snapshot.average_whole_sale_price,
+        })),
+        'ancillaryEquipmentId',
+      ),
+      totalWithStandardMarkup: foundQuote.detailed_quote.quote_cost_buildup.total_with_standard_markup,
       totalProductCost: 0,
       laborCost: {
         laborCostDataSnapshot: {
@@ -619,28 +682,28 @@ export class QuoteService {
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
 
-  calculateNetCostData = (totalCost = 0, discountAmount = 0, markupPercentage = 0) => {
-    return roundNumber((totalCost - discountAmount) * (1 + markupPercentage), 2);
+  calculateNetCostData = (totalCost = 0, markupPercentage = 0) => {
+    return roundNumber(totalCost * (1 + markupPercentage), 2);
   };
 
   calculateTotalProductCost(data: any) {
     const adderNetCost = data.adderQuoteDetails.reduce(
-      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.subcontractorMarkup)),
       0,
     );
 
     const storageNetCost = data.storageQuoteDetails.reduce(
-      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.subcontractorMarkup)),
       0,
     );
 
     const inverterNetCost = data.inverterQuoteDetails.reduce(
-      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.subcontractorMarkup)),
       0,
     );
 
     const panelNetCost = data.panelQuoteDetails.reduce(
-      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+      (accu, item) => (accu += this.calculateNetCostData(item.cost, item.subcontractorMarkup)),
       0,
     );
 
@@ -659,8 +722,7 @@ export class QuoteService {
     switch (appliesTo) {
       case INCENTIVE_APPLIES_TO_VALUE.SOLAR: {
         const solarNetCost = quoteCostBuildup.panelQuoteDetails.reduce(
-          (accu, item) =>
-            (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+          (accu, item) => (accu += this.calculateNetCostData(item.cost, item.subcontractorMarkup)),
           0,
         );
         return roundNumber(incentiveDetail.unitValue * solarNetCost, 2);
@@ -668,8 +730,7 @@ export class QuoteService {
 
       case INCENTIVE_APPLIES_TO_VALUE.STORAGE: {
         const storageNetCost = quoteCostBuildup.storageQuoteDetails.reduce(
-          (accu, item) =>
-            (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+          (accu, item) => (accu += this.calculateNetCostData(item.cost, item.subcontractorMarkup)),
           0,
         );
         return roundNumber(incentiveDetail.unitValue * storageNetCost, 2);
@@ -677,13 +738,11 @@ export class QuoteService {
 
       case INCENTIVE_APPLIES_TO_VALUE.SOLAR_AND_STORAGE: {
         const storageNetCost = quoteCostBuildup.storageQuoteDetails.reduce(
-          (accu, item) =>
-            (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+          (accu, item) => (accu += this.calculateNetCostData(item.cost, item.subcontractorMarkup)),
           0,
         );
         const solarNetCost = quoteCostBuildup.panelQuoteDetails.reduce(
-          (accu, item) =>
-            (accu += this.calculateNetCostData(item.cost, item.discountDetails?.[0]?.amount, item.markup)),
+          (accu, item) => (accu += this.calculateNetCostData(item.cost, item.subcontractorMarkup)),
           0,
         );
         return roundNumber(incentiveDetail.unitValue * (storageNetCost + solarNetCost), 2);

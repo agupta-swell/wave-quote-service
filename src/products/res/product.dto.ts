@@ -1,14 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Pagination } from '../../app/common';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Pagination, ServiceResponse } from 'src/app/common';
 import { Product } from '../product.schema';
-import { ServiceResponse } from './../../app/common/service-response';
 
 export class ProductDto {
   @ApiProperty()
   id: string;
 
   @ApiProperty()
-  manufacturer: string;
+  manufacturerId: string;
 
   @ApiProperty()
   name: string;
@@ -43,27 +42,27 @@ export class ProductDto {
   @ApiProperty()
   approvedForEsa: boolean;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   pvWattModuleType: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   panelOutputMode: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   wattClassStcdc: number;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   inverterType: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   batteryType: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   relatedComponent: string;
 
   constructor(props: Product) {
     this.id = props.id;
-    this.manufacturer = props.manufacturer;
+    this.manufacturerId = props.manufacturer_id;
     this.name = props.name;
     this.type = props.type;
     this.price = props.price;

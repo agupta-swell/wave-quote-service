@@ -92,6 +92,16 @@ export class SystemDesignService {
             const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
             systemDesign.setStorage(data, index);
           }),
+          systemDesign.roof_top_design_data.balance_of_systems.map(async (bos, index) => {
+            const bosModelData = await this.productService.getDetailById(bos.balance_of_system_id);
+            const data = { ...bosModelData.toObject(), part_number: bosModelData.partNumber };
+            systemDesign.setBOS(data, index);
+          }),
+          systemDesign.roof_top_design_data.ancillary_equipments.map(async (ancillary, index) => {
+            const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillary_id);
+            const data = { ...ancillaryModelData.toObject() };
+            systemDesign.setAncillaryEquipment(data, index);
+          }),
         ]),
       );
 
@@ -219,6 +229,16 @@ export class SystemDesignService {
               const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
               systemDesign.setStorage(data, index);
             }),
+            systemDesign.roof_top_design_data.balance_of_systems.map(async (bos, index) => {
+              const bosModelData = await this.productService.getDetailById(bos.balance_of_system_id);
+              const data = { ...bosModelData.toObject(), part_number: bosModelData.partNumber };
+              systemDesign.setBOS(data, index);
+            }),
+            systemDesign.roof_top_design_data.ancillary_equipments.map(async (ancillary, index) => {
+              const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillary_id);
+              const data = { ...ancillaryModelData.toObject() };
+              systemDesign.setAncillaryEquipment(data, index);
+            }),
           ]),
         );
 
@@ -281,7 +301,7 @@ export class SystemDesignService {
       totalInverterCapacityInWatt: totalInverterRating,
     });
 
-    if (partnerConfigData.defaultDCClipping === null || !response.clippingDetails.currentClippingRatio) {
+    if (partnerConfigData.defaultDCClipping === null || !partnerConfigData.enableModuleDCClipping) {
       response.clippingDetails.isDCClippingRestrictionEnabled = false;
       return OperationResult.ok(response);
     } else {

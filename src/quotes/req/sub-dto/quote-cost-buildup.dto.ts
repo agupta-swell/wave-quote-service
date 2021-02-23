@@ -1,13 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ProductDto } from './../../../products/res/product.dto';
-
-class DiscountDetailDto {
-  @ApiProperty()
-  amount: number;
-
-  @ApiProperty()
-  description: string;
-}
+import { ProductDto } from 'src/products/res/product.dto';
+import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
 
 class QuoteCostBuildupCommon {
   @ApiProperty()
@@ -17,13 +10,10 @@ class QuoteCostBuildupCommon {
   cost: number;
 
   @ApiProperty()
-  markup: number;
+  subcontractorMarkup: number;
 
   @ApiProperty()
   netCost: number;
-
-  @ApiProperty({ type: () => DiscountDetailDto, isArray: true })
-  discountDetails: DiscountDetailDto[];
 }
 
 class PanelQuoteDetailsDto extends QuoteCostBuildupCommon {
@@ -56,14 +46,56 @@ class AdderQuoteDetailsDto extends QuoteCostBuildupCommon {
 
   @ApiProperty()
   adderModelSnapshotDate: Date;
+
+  @ApiProperty()
+  unit: string;
 }
 
-class LaborCostDto extends QuoteCostBuildupCommon {
+class BosDetailsDto extends QuoteCostBuildupCommon {
+  @ApiProperty({ type: ProductDto })
+  bosModelDataSnapshot: ProductDto;
+
   @ApiProperty()
-  laborCostDataSnapshot: { calculationType: string; unit: string };
+  bosModelSnapshotDate: Date;
+
+  @ApiProperty()
+  unit: string;
+}
+
+class AncillaryDetailsDto extends QuoteCostBuildupCommon {
+  @ApiProperty({ type: AncillaryEquipmentDto })
+  ancillaryEquipmentSnapshot: AncillaryEquipmentDto;
+
+  @ApiProperty()
+  ancillaryEquipmentSnapshotDate: Date;
+}
+
+class LaborCostDetails {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  solarOnlyLaborFeePerWatt: number;
+
+  @ApiProperty()
+  storageRetrofitLaborFeePerProject: number;
+
+  @ApiProperty()
+  solarWithAcStorageLaborFeePerProject: number;
+
+  @ApiProperty()
+  solarWithDcStorageLaborFeePerProject: number;
+}
+
+class LaborCostDto {
+  @ApiProperty({ type: LaborCostDetails })
+  laborCostDataSnapshot: LaborCostDetails;
 
   @ApiProperty()
   laborCostSnapshotDate: Date;
+
+  @ApiProperty()
+  cost: number;
 }
 
 export class QuoteCostBuildupDto {
@@ -79,8 +111,17 @@ export class QuoteCostBuildupDto {
   @ApiProperty({ type: () => AdderQuoteDetailsDto, isArray: true })
   adderQuoteDetails: AdderQuoteDetailsDto[];
 
+  @ApiProperty({ type: () => BosDetailsDto, isArray: true })
+  bosDetails: BosDetailsDto[];
+
+  @ApiProperty({ type: () => AncillaryDetailsDto, isArray: true })
+  ancillaryEquipmentDetails: AncillaryDetailsDto[];
+
   @ApiProperty()
-  overallMarkup: number;
+  swellStandardMarkup: number;
+
+  @ApiProperty()
+  totalWithStandardMarkup: number;
 
   @ApiProperty()
   totalProductCost: number;

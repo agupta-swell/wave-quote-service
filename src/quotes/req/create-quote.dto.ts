@@ -30,6 +30,9 @@ export class CreateQuoteDto {
   @ApiProperty()
   quoteName: string;
 
+  @ApiProperty()
+  partnerId: string;
+
   @ApiProperty({ enum: QUOTE_MODE_TYPE, isArray: true })
   allowedQuoteModes: QUOTE_MODE_TYPE[];
 

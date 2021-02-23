@@ -4,7 +4,7 @@ import { SystemDesignAncillaryMaster } from '../schemas';
 
 export class SystemDesignAncillaryMasterDto {
   @ApiProperty()
-  manufacturer: string;
+  manufacturerId: string;
 
   @ApiProperty()
   modelName: string;
@@ -19,15 +19,15 @@ export class SystemDesignAncillaryMasterDto {
   averageWholeSalePrice: number;
 
   @ApiProperty()
-  applicableProductManufacturer: number;
+  applicableProductManufacturerId: string;
 
   constructor(props: SystemDesignAncillaryMaster) {
-    this.manufacturer = props.manufacturer;
+    this.manufacturerId = props.manufacturer_id;
     this.modelName = props.model_name;
     this.relatedComponent = props.related_component;
     this.description = props.description;
     this.averageWholeSalePrice = props.average_whole_sale_price;
-    this.applicableProductManufacturer = props.applicable_product_manufacturer;
+    this.applicableProductManufacturerId = props.applicable_product_manufacturer_id;
   }
 }
 

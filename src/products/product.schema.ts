@@ -25,7 +25,6 @@ export interface IBOSProduct {
 }
 
 export interface Product extends Document, IPanelProduct, IInverterProduct, IBatteryProduct, IBOSProduct {
-  manufacturer: string;
   name: string;
   type: string;
   price: number; // averageWholesalePrice
@@ -39,6 +38,7 @@ export interface Product extends Document, IPanelProduct, IInverterProduct, IBat
   created_at: Date;
   updated_at: Date;
   // add new fields
+  manufacturer_id: string;
   model_name: string;
   approved_for_gsa: boolean;
   approved_for_esa: boolean;
@@ -46,7 +46,7 @@ export interface Product extends Document, IPanelProduct, IInverterProduct, IBat
 
 export const ProductSchema = new Schema<Product>({
   _id: Schema.Types.Mixed,
-  manufacturer: String,
+  manufacturer_id: String,
   name: String,
   type: String,
   price: Number,

@@ -94,7 +94,7 @@ export class SystemDesignDto {
     const { panel_array, inverters, storage, adders, ancillary_equipments, balance_of_systems } = data;
 
     const getProductCommon = (item: IPanelProductSchema | IInverterProductSchema | IStorageProductSchema) => ({
-      manufacturer: item.manufacturer,
+      manufacturerId: item.manufacturer_id,
       name: item.name,
       partNumber: item.part_number,
       price: item.price,

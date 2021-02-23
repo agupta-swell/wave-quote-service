@@ -1,7 +1,12 @@
 import { Document, Schema } from 'mongoose';
+import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import {
   AdderModelSchema,
+  AncillaryEquipment,
+  BOSProductSchema,
   IAdderModel,
+  IAncillaryEquipment,
+  IBOSProductSchema,
   IInverterProductSchema,
   InverterProductSchema,
   IPanelProductSchema,
@@ -268,8 +273,16 @@ export interface IQuoteCostCommonSchema {
   subcontractor_markup: number;
 }
 
+interface IQuotePartnerConfig {
+  id: string;
+  solar_only_labor_fee_per_watt: number;
+  storage_retrofit_labor_fee_per_project: number;
+  solar_with_ac_storage_labor_fee_per_project: number;
+  solar_with_dc_storage_labor_fee_per_project: number;
+}
+
 export interface ILaborCostSchema extends IQuoteCostCommonSchema {
-  labor_cost_data_snapshot: { calculation_type: string; unit: string };
+  labor_cost_data_snapshot: IQuotePartnerConfig;
   labor_cost_snapshot_date: Date;
 }
 
@@ -278,7 +291,6 @@ const LaborCostSchema = new Schema<ILaborCostSchema>(
     labor_cost_data_snapshot: new Schema({ calculation_type: String, unit: String }),
     labor_cost_snapshot_date: Date,
     cost: Number,
-    net_cost: Number,
   },
   { _id: false },
 );
@@ -348,6 +360,7 @@ export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
   adder_model_data_snapshot: IAdderModel;
   adder_model_snapshot_date: Date;
   quantity: number;
+  unit: COST_UNIT_TYPE;
 }
 
 const AdderQuoteDetailsSchema = new Schema<IAdderQuoteDetailsSchema>(
@@ -355,6 +368,47 @@ const AdderQuoteDetailsSchema = new Schema<IAdderQuoteDetailsSchema>(
     adder_model_id: String,
     adder_model_data_snapshot: AdderModelSchema,
     adder_model_snapshot_date: Date,
+    quantity: Number,
+    cost: Number,
+    net_cost: Number,
+    subcontractor_markup: Number,
+    unit: String,
+  },
+  { _id: false },
+);
+
+export interface IBOSDetailsSchema extends IQuoteCostCommonSchema {
+  bos_model_id: string;
+  bos_model_data_snapshot: IBOSProductSchema;
+  bos_model_snapshot_date: Date;
+  unit: COST_UNIT_TYPE;
+}
+
+const BOSDetailsSchema = new Schema<IBOSDetailsSchema>(
+  {
+    bos_model_id: String,
+    bos_model_data_snapshot: BOSProductSchema,
+    bos_model_snapshot_date: Date,
+    unit: String,
+    cost: Number,
+    net_cost: Number,
+    subcontractor_markup: Number,
+  },
+  { _id: false },
+);
+
+export interface IAncillaryEquipmentSchema extends IQuoteCostCommonSchema {
+  ancillary_equipment_id: string;
+  ancillary_equipment_snapshot: IAncillaryEquipment;
+  ancillary_equipment_snapshot_date: Date;
+  quantity: number;
+}
+
+const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
+  {
+    ancillary_equipment_id: String,
+    ancillary_equipment_snapshot: AncillaryEquipment,
+    ancillary_equipment_snapshot_date: Date,
     quantity: Number,
     cost: Number,
     net_cost: Number,
@@ -368,7 +422,10 @@ export interface IQuoteCostBuildupSchema {
   inverter_quote_details: IInverterQuoteDetailsSchema[];
   storage_quote_details: IStorageQuoteDetailsSchema[];
   adder_quote_details: IAdderQuoteDetailsSchema[];
-  overall_markup: number;
+  bos_details: IBOSDetailsSchema[];
+  ancillary_equipment_details: IAncillaryEquipmentSchema[];
+  swell_standard_markup: number;
+  total_with_standard_markup: number;
   total_product_cost: number;
   labor_cost: ILaborCostSchema;
   gross_amount: number;
@@ -379,7 +436,10 @@ const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
   inverter_quote_details: [InverterQuoteDetailsSchema],
   storage_quote_details: [StorageQuoteDetailsSchema],
   adder_quote_details: [AdderQuoteDetailsSchema],
-  overall_markup: Number,
+  bos_details: [BOSDetailsSchema],
+  ancillary_equipment_details: [AncillaryEquipmentSchema],
+  swell_standard_markup: Number,
+  total_with_standard_markup: Number,
   total_product_cost: Number,
   labor_cost: LaborCostSchema,
   gross_amount: Number,
@@ -535,7 +595,10 @@ export class QuoteModel {
         inverterQuoteDetails,
         storageQuoteDetails,
         adderQuoteDetails,
-        overallMarkup,
+        bosDetails,
+        ancillaryEquipmentDetails,
+        standardMarkupPercentage,
+        totalWithStandardMarkup,
         totalProductCost,
         laborCost,
         grossAmount,
@@ -572,7 +635,10 @@ export class QuoteModel {
         inverter_quote_details: inverterQuoteDetails.map(inverterQuote => toSnakeCase(inverterQuote)),
         storage_quote_details: storageQuoteDetails.map(storageQuote => toSnakeCase(storageQuote)),
         adder_quote_details: adderQuoteDetails.map(adderQuote => toSnakeCase(adderQuote)),
-        overall_markup: overallMarkup,
+        bos_details: bosDetails.map(bosDetail => toSnakeCase(bosDetail)),
+        ancillary_equipment_details: ancillaryEquipmentDetails.map(item => toSnakeCase(item)),
+        swell_standard_markup: standardMarkupPercentage,
+        total_with_standard_markup: totalWithStandardMarkup,
         total_product_cost: totalProductCost,
         labor_cost: toSnakeCase(laborCost),
         gross_amount: grossAmount,

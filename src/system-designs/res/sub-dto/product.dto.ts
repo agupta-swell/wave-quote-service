@@ -20,7 +20,7 @@ export class ProductDto {
   partNumber: string[];
 
   @ApiProperty()
-  manufacturer: string;
+  manufacturerId: string;
 
   @ApiProperty()
   modelName: string;
