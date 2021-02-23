@@ -18,3 +18,5 @@ services:
       - QUALIFICATION_JWT_SECRET=JAKyMXgWUD8agnM2uduz4gDq9Dp19on9
       - QUALIFICATION_PAGE=http://solar-design-tool-dev.s3-website-us-west-1.amazonaws.com
       - DOCUSIGN_SECRET_NAME=docusign-sandbox-credentials
+      - GENABILITY_APP_ID=docusign-sandbox-credentials
+      - GENABILITY_APP_KEY=docusign-sandbox-credentials

@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
-import * as fs from 'fs';
-import * as path from 'path';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
 import { IApplyRequest, IApplyResponse } from '../qualifications/typing';
@@ -15,7 +13,10 @@ import {
 
 @Injectable()
 export class ExternalService {
-  constructor(private readonly logger: MyLogger) {}
+  private genabilityToken: string;
+  constructor(private readonly logger: MyLogger) {
+    this.genabilityToken = this.getGenabilityToken();
+  }
 
   async calculateSystemProduction({
     lat,
@@ -124,25 +125,21 @@ export class ExternalService {
 
   async getTypicalBaseLine(zipCode: number): Promise<ITypicalBaseLine> {
     const url = 'https://api.genability.com/rest/v1/typicals/baselines/best';
-    const token = 'hello world';
 
-    // let typicalBaseLine: AxiosResponse;
-    // try {
-    //   typicalBaseLine = await axios.get(
-    //     `${url}?addressString=${zipCode}&buildingType=singleFamilyDetached&excludeMeasures=false&sizingKeyName=loadSize&sizingDataValue=12000&sizingUnit=kWh`,
-    //     {
-    //       headers: {
-    //         Authorization: token,
-    //       },
-    //     },
-    //   );
-    // } catch (error) {
-    //   this.logger.errorAPICalling(url, error.message);
-    //   throw ApplicationException.ServiceError();
-    // }
-    const typicalBaseLine = {
-      data: JSON.parse(fs.readFileSync(path.join(__dirname, '../assets/mock-data/genabilityDataRes.json'), 'utf8')),
-    };
+    let typicalBaseLine: any;
+    try {
+      typicalBaseLine = await axios.get(
+        `${url}?addressString=${zipCode}&buildingType=singleFamilyDetached&excludeMeasures=false&sizingKeyName=loadSize&sizingDataValue=12000&sizingUnit=kWh`,
+        {
+          headers: {
+            Authorization: this.genabilityToken,
+          },
+        },
+      );
+    } catch (error) {
+      this.logger.errorAPICalling(url, error.message);
+      throw ApplicationException.ServiceError();
+    }
 
     const result = typicalBaseLine.data.results[0];
     const typicalMonthlyUsage = this.calculateMonthlyUsage(result.measures);
@@ -164,32 +161,27 @@ export class ExternalService {
 
   async getTariff(zipCode: number) {
     const url = 'https://api.genability.com/rest/public/tariffs';
-    const token = 'hello world';
 
-    // let tariff: any;
-    // try {
-    //   tariff = await axios.get(
-    //     `${url}?zipCode=${zipCode}&populateProperties=true&customerClasses=RESIDENTIAL&isActive=True`,
-    //     {
-    //       headers: {
-    //         Authorization: token,
-    //       },
-    //     },
-    //   );
-    // } catch (error) {
-    //   this.logger.errorAPICalling(url, error.message);
-    //   throw ApplicationException.ServiceError();
-    // }
+    let tariff: any;
+    try {
+      tariff = await axios.get(
+        `${url}?zipCode=${zipCode}&populateProperties=true&customerClasses=RESIDENTIAL&isActive=True`,
+        {
+          headers: {
+            Authorization: this.genabilityToken,
+          },
+        },
+      );
+    } catch (error) {
+      this.logger.errorAPICalling(url, error.message);
+      throw ApplicationException.ServiceError();
+    }
 
-    let tariff = {
-      data: JSON.parse(fs.readFileSync(path.join(__dirname, '../assets/mock-data/tariffDataRes.json'), 'utf8')),
-    };
     return tariff.data.results;
   }
 
   async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string) {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
-    const token = 'hello world';
 
     const payload = {
       fromDateTime: '2019-01-01T00:00:00-07:00',
@@ -209,24 +201,18 @@ export class ExternalService {
       ],
     };
 
-    // let tariff: any;
-    // try {
-    //   tariff = await axios.post(
-    //     `${url}`,
-    //     {
-    //       headers: {
-    //         Authorization: token,
-    //       },
-    //     },
-    //   );
-    // } catch (error) {
-    //   this.logger.errorAPICalling(url, error.message);
-    //   throw ApplicationException.ServiceError();
-    // }
+    let tariff: any;
+    try {
+      tariff = await axios.post(`${url}`, {
+        headers: {
+          Authorization: this.genabilityToken,
+        },
+      });
+    } catch (error) {
+      this.logger.errorAPICalling(url, error.message);
+      throw ApplicationException.ServiceError();
+    }
 
-    let tariff = {
-      data: JSON.parse(fs.readFileSync(path.join(__dirname, '../assets/mock-data/costDataRes.json'), 'utf8')),
-    };
     return tariff.data.results;
   }
 
@@ -260,5 +246,12 @@ export class ExternalService {
     } as IApplyResponse;
 
     return obj;
+  }
+
+  getGenabilityToken(): string {
+    const appId = process.env.GENABILITY_APP_ID;
+    const appKey = process.env.GENABILITY_APP_KEY;
+    const credentials = Buffer.from(appId + ':' + appKey).toString('base64');
+    return `Basic ${credentials}`;
   }
 }
