@@ -32,7 +32,7 @@ export class SystemDesignService {
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
-  ) { }
+  ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {

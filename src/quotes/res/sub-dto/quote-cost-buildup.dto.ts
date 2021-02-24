@@ -121,14 +121,11 @@ export class QuoteCostBuildupDto {
   swellStandardMarkup: number;
 
   @ApiProperty()
-  totalWithStandardMarkup: number;
-
-  @ApiProperty()
   totalProductCost: number;
 
   @ApiProperty({ type: LaborCostDto })
   laborCost: LaborCostDto;
 
   @ApiProperty()
-  grossAmount: number;
+  grossPrice: number;
 }

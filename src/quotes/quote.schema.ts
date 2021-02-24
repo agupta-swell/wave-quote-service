@@ -281,6 +281,17 @@ interface IQuotePartnerConfig {
   solar_with_dc_storage_labor_fee_per_project: number;
 }
 
+const QuotePartnerConfig = new Schema<IQuotePartnerConfig>(
+  {
+    id: String,
+    solar_only_labor_fee_per_watt: Number,
+    storage_retrofit_labor_fee_per_project: Number,
+    solar_with_ac_storage_labor_fee_per_project: Number,
+    solar_with_dc_storage_labor_fee_per_project: Number,
+  },
+  { _id: false },
+);
+
 export interface ILaborCostSchema extends IQuoteCostCommonSchema {
   labor_cost_data_snapshot: IQuotePartnerConfig;
   labor_cost_snapshot_date: Date;
@@ -288,7 +299,7 @@ export interface ILaborCostSchema extends IQuoteCostCommonSchema {
 
 const LaborCostSchema = new Schema<ILaborCostSchema>(
   {
-    labor_cost_data_snapshot: new Schema({ calculation_type: String, unit: String }),
+    labor_cost_data_snapshot: QuotePartnerConfig,
     labor_cost_snapshot_date: Date,
     cost: Number,
   },
@@ -425,10 +436,9 @@ export interface IQuoteCostBuildupSchema {
   bos_details: IBOSDetailsSchema[];
   ancillary_equipment_details: IAncillaryEquipmentSchema[];
   swell_standard_markup: number;
-  total_with_standard_markup: number;
   total_product_cost: number;
   labor_cost: ILaborCostSchema;
-  gross_amount: number;
+  gross_price: number;
 }
 
 const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
@@ -439,10 +449,9 @@ const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
   bos_details: [BOSDetailsSchema],
   ancillary_equipment_details: [AncillaryEquipmentSchema],
   swell_standard_markup: Number,
-  total_with_standard_markup: Number,
   total_product_cost: Number,
   labor_cost: LaborCostSchema,
-  gross_amount: Number,
+  gross_price: Number,
 });
 
 export interface ITaxCreditConfigDataSnapshotSchema {
@@ -597,11 +606,10 @@ export class QuoteModel {
         adderQuoteDetails,
         bosDetails,
         ancillaryEquipmentDetails,
-        standardMarkupPercentage,
-        totalWithStandardMarkup,
+        swellStandardMarkup,
         totalProductCost,
         laborCost,
-        grossAmount,
+        grossPrice,
       },
       quoteName,
       isSelected,
@@ -637,11 +645,10 @@ export class QuoteModel {
         adder_quote_details: adderQuoteDetails.map(adderQuote => toSnakeCase(adderQuote)),
         bos_details: bosDetails.map(bosDetail => toSnakeCase(bosDetail)),
         ancillary_equipment_details: ancillaryEquipmentDetails.map(item => toSnakeCase(item)),
-        swell_standard_markup: standardMarkupPercentage,
-        total_with_standard_markup: totalWithStandardMarkup,
+        swell_standard_markup: swellStandardMarkup,
         total_product_cost: totalProductCost,
         labor_cost: toSnakeCase(laborCost),
-        gross_amount: grossAmount,
+        gross_price: grossPrice,
       } as IQuoteCostBuildupSchema,
       tax_credit_selected_for_reinvestment: taxCreditSelectedForReinvestment,
       utility_program_selected_for_reinvestment: utilityProgramSelectedForReinvestment,

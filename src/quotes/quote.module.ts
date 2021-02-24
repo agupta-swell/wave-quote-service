@@ -5,7 +5,7 @@ import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
-import { TaxCreditConfigSchema, TAX_CREDIT_CONFIG } from './schemas/tax-credit-config.schema';
+import { QuoteMarkupConfigSchema, QUOTE_MARKUP_CONFIG, TaxCreditConfigSchema, TAX_CREDIT_CONFIG } from './schemas';
 import { CalculationService } from './sub-services';
 
 @Global()
@@ -16,6 +16,7 @@ import { CalculationService } from './sub-services';
     }),
     MongooseModule.forFeature([
       { name: QUOTE, schema: QuoteSchema, collection: 'v2_quotes' },
+      { name: QUOTE_MARKUP_CONFIG, schema: QuoteMarkupConfigSchema, collection: 'v2_quote_markup_config' },
       {
         name: TAX_CREDIT_CONFIG,
         schema: TaxCreditConfigSchema,

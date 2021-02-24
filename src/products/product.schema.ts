@@ -65,6 +65,7 @@ export const ProductSchema = new Schema<Product>({
   inverter_type: String,
   // for storage
   battery_type: String,
+  // for BOS
   related_component: String,
   related_component_category: String,
   unit: String,
