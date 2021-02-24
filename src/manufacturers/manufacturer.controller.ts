@@ -1,19 +1,22 @@
-import { Controller, Get, Query } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { Pagination, ServiceResponse } from "src/app/common";
-import { PreAuthenticate } from "src/app/securities";
-import { ManufacturerService } from "./manufacturer.service";
-import { ManufacturerDto } from "./res/manufacturer.dto";
+import { Controller, Get, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from 'src/app/securities';
+import { ManufacturerService } from './manufacturer.service';
+import { ManufacturerDto, ManufacturerPaginationRes } from './res/manufacturer.dto';
 
 @ApiTags('Manufacturer')
 @ApiBearerAuth()
 @Controller('/manufacturers')
 @PreAuthenticate()
 export class ManufacturerController {
-  constructor(private readonly manufacturerService: ManufacturerService) { }
+  constructor(private readonly manufacturerService: ManufacturerService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Update Geo Location' })
+  @ApiOperation({ summary: 'Get All Manufacturers' })
+  @ApiQuery({ name: 'limit' })
+  @ApiQuery({ name: 'skip' })
+  @ApiOkResponse({ type: ManufacturerPaginationRes })
   async getManufacturers(
     @Query() query: { limit: string; skip: string },
   ): Promise<ServiceResponse<Pagination<ManufacturerDto>>> {
@@ -23,5 +26,4 @@ export class ManufacturerController {
 
     return ServiceResponse.fromResult(manufacturers);
   }
-
 }

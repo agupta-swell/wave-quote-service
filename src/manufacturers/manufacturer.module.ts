@@ -7,20 +7,20 @@ import { MANUFACTURER, ManufacturerSchema } from './manufacturer.schema';
 import { ManufacturerService } from './manufacturer.service';
 
 @Module({
-	imports: [
-		JwtModule.registerAsync({
-			useClass: JwtConfigService,
-		}),
-		MongooseModule.forFeature([
-			{
-				name: MANUFACTURER,
-				schema: ManufacturerSchema,
-				collection: 'v2_manufacturers',
-			},
-		]),
-	],
-	controllers: [ManufacturerController],
-	providers: [ManufacturerService],
-	exports: [ManufacturerService],
+  imports: [
+    JwtModule.registerAsync({
+      useClass: JwtConfigService,
+    }),
+    MongooseModule.forFeature([
+      {
+        name: MANUFACTURER,
+        schema: ManufacturerSchema,
+        collection: 'v2_manufacturers',
+      },
+    ]),
+  ],
+  controllers: [ManufacturerController],
+  providers: [ManufacturerService],
+  exports: [ManufacturerService],
 })
-export class ManufacturerModule { }
+export class ManufacturerModule {}
