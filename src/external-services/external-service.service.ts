@@ -8,7 +8,7 @@ import {
   ILoadServingEntity,
   IPvWattV6Responses,
   ITypicalBaseLine,
-  ITypicalUsage,
+  ITypicalUsage
 } from './typing';
 
 @Injectable()
@@ -159,17 +159,24 @@ export class ExternalService {
     return enitity;
   }
 
-  async getTariff(zipCode: number) {
+  async getTariff(zipCode: number, lseId: number) {
     const url = 'https://api.genability.com/rest/public/tariffs';
 
     let tariff: any;
     try {
       tariff = await axios.get(
-        `${url}?zipCode=${zipCode}&populateProperties=true&customerClasses=RESIDENTIAL&isActive=True`,
+        'https://api.genability.com/rest/public/tariffs',
         {
           headers: {
             Authorization: this.genabilityToken,
           },
+          params: {
+            lseId,
+            zipCode,
+            populateProperties: true,
+            isActive: true,
+            customerClasses: "RESIDENTIAL"
+          }
         },
       );
     } catch (error) {

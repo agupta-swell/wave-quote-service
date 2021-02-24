@@ -24,7 +24,7 @@ import {
   IUtilityCostData,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
-  UTILITY_USAGE_DETAILS,
+  UTILITY_USAGE_DETAILS
 } from './utility.schema';
 
 @Injectable()
@@ -43,7 +43,7 @@ export class UtilityService {
     private readonly systemDesignService: SystemDesignService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
-  ) {}
+  ) { }
 
   async getTypicalBaseline(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
     const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
@@ -72,7 +72,7 @@ export class UtilityService {
   }
 
   async getTariffs(zipCode: number, lseId: number): Promise<OperationResult<TariffDto>> {
-    const data = await this.externalService.getTariff(zipCode);
+    const data = await this.externalService.getTariff(zipCode, lseId);
     const result = data.filter((item: any) => item.lseId === lseId);
     if (!result[0]) {
       throw ApplicationException.UnprocessableEnity(`No Tariff with zipCode: ${zipCode} and lseId: ${lseId}`);
