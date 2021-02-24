@@ -16,7 +16,7 @@ export class QuotePartnerConfigDto {
   enablePricePerWatt: boolean;
 
   @ApiProperty()
-  enablePriceOverrideMode: boolean;
+  enablePriceOverride: boolean;
 
   @ApiProperty()
   enableModuleDCClipping: boolean;
@@ -50,7 +50,7 @@ export class QuotePartnerConfigDto {
     this.partnerId = props.partnerId;
     this.enableCostBuildup = props.enableCostBuildup;
     this.enablePricePerWatt = props.enablePricePerWatt;
-    this.enablePriceOverrideMode = props.enablePriceOverrideMode;
+    this.enablePriceOverride = props.enablePriceOverride;
     this.enableModuleDCClipping = props.enableModuleDCClipping;
     this.pricePerWatt = props.pricePerWatt;
     this.defaultDCClipping = props.defaultDCClipping;

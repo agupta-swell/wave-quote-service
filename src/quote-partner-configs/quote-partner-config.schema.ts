@@ -6,7 +6,7 @@ export interface QuotePartnerConfig extends Document {
   partnerId: string;
   enableCostBuildup: boolean;
   enablePricePerWatt: boolean;
-  enablePriceOverrideMode: boolean;
+  enablePriceOverride: boolean;
   enableModuleDCClipping: boolean;
   pricePerWatt: number;
   defaultDCClipping: number;
@@ -23,7 +23,7 @@ export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
   partnerId: String,
   enableCostBuildup: Boolean,
   enablePricePerWatt: Boolean,
-  enablePriceOverrideMode: Boolean,
+  enablePriceOverride: Boolean,
   enableModuleDCClipping: Boolean,
   pricePerWatt: Number,
   defaultDCClipping: Number,
