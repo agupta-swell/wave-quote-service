@@ -50,7 +50,7 @@ export class QuoteService {
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
-  ) {}
+  ) { }
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const [systemDesign, markupConfigData, quoteConfigData] = await Promise.all([
@@ -203,16 +203,16 @@ export class QuoteService {
       quoteCostBuildup,
       utilityProgram: utilityProgram
         ? {
-            utilityProgramId: utilityProgram.id,
-            utilityProgramName: utilityProgram.utility_program_name,
+          utilityProgramId: utilityProgram.id,
+          utilityProgramName: utilityProgram.utility_program_name,
+          rebateAmount: utilityProgram.rebate_amount,
+          utilityProgramDataSnapshot: {
+            id: utilityProgram.id,
+            name: utilityProgram.utility_program_name,
             rebateAmount: utilityProgram.rebate_amount,
-            utilityProgramDataSnapshot: {
-              id: utilityProgram.id,
-              name: utilityProgram.utility_program_name,
-              rebateAmount: utilityProgram.rebate_amount,
-            },
-            utilityProgramDataSnapshotDate: new Date(),
-          }
+          },
+          utilityProgramDataSnapshotDate: new Date(),
+        }
         : null,
       quoteFinanceProduct: {
         financeProduct: {
@@ -542,16 +542,16 @@ export class QuoteService {
       quoteCostBuildup,
       utilityProgram: utility_program
         ? {
-            utilityProgramId: utility_program.utility_program_id,
-            utilityProgramName: utility_program.utility_program_name,
+          utilityProgramId: utility_program.utility_program_id,
+          utilityProgramName: utility_program.utility_program_name,
+          rebateAmount: utility_program.rebate_amount,
+          utilityProgramDataSnapshot: {
+            id: utility_program.utility_program_id,
+            name: utility_program.utility_program_name,
             rebateAmount: utility_program.rebate_amount,
-            utilityProgramDataSnapshot: {
-              id: utility_program.utility_program_id,
-              name: utility_program.utility_program_name,
-              rebateAmount: utility_program.rebate_amount,
-            },
-            utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
-          }
+          },
+          utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
+        }
         : null,
       quoteFinanceProduct: {
         financeProduct: {
@@ -663,6 +663,7 @@ export class QuoteService {
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
     const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
+    console.log('savedQuote::', savedQuote);
     return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
   }
 
