@@ -4,6 +4,9 @@ import { SystemDesignAncillaryMaster } from '../schemas';
 
 export class SystemDesignAncillaryMasterDto {
   @ApiProperty()
+  id: string;
+
+  @ApiProperty()
   manufacturerId: string;
 
   @ApiProperty()
@@ -22,6 +25,7 @@ export class SystemDesignAncillaryMasterDto {
   applicableProductManufacturerId: string;
 
   constructor(props: SystemDesignAncillaryMaster) {
+    this.id = props._id;
     this.manufacturerId = props.manufacturer_id;
     this.modelName = props.model_name;
     this.relatedComponent = props.related_component;
