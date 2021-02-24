@@ -293,9 +293,11 @@ export class UtilityService {
       return [...acc, data];
     }, []);
 
+    const currentYear = new Date().getFullYear();
+
     const costData = {
-      start_date: new Date('2019-01-01'),
-      end_date: new Date('2020-01-01'),
+      start_date: new Date(`${currentYear - 1}-01-01`),
+      end_date: new Date(`${currentYear}-01-01`),
       interval: INTERVAL_VALUE.MONTH,
       cost: monthlyCosts,
     } as IUtilityCostData;

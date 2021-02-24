@@ -189,10 +189,10 @@ export class ExternalService {
 
   async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string) {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
-
+    const currentYear = new Date().getFullYear()
     const payload = {
-      fromDateTime: '2019-01-01T00:00:00-07:00',
-      toDateTime: '2020-01-01T00:00:00-07:00',
+      fromDateTime: `${currentYear - 1}-01-01T00:00:00`,
+      toDateTime: `${currentYear}-01-01T00:00:00`,
       masterTariffId,
       groupBy: 'DAY',
       detailLevel: 'RATE',
@@ -200,7 +200,7 @@ export class ExternalService {
       propertyInputs: [
         {
           keyName: 'consumption',
-          fromDateTime: '2019-01-01T00:00:00-07:00',
+          fromDateTime: `${currentYear - 1}-01-01T00:00:00`,
           duration: 3600000,
           dataSeries: hourlyDataForTheYear,
           unit: 'kWh',
@@ -210,7 +210,7 @@ export class ExternalService {
 
     let tariff: any;
     try {
-      tariff = await axios.post(`${url}`, {
+      tariff = await axios.post(`${url}`, payload, {
         headers: {
           Authorization: this.genabilityToken,
         },
