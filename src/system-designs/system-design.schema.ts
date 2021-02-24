@@ -37,7 +37,7 @@ interface IProductCommonSchema {
   approved_for_esa: boolean;
 }
 
-export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct {}
+export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct { }
 
 export const StorageProductSchema = new Schema<IStorageProductSchema>(
   {
@@ -60,7 +60,7 @@ export const StorageProductSchema = new Schema<IStorageProductSchema>(
   { _id: false },
 );
 
-export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct {}
+export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct { }
 
 export const InverterProductSchema = new Schema<IInverterProductSchema>(
   {
@@ -83,7 +83,7 @@ export const InverterProductSchema = new Schema<IInverterProductSchema>(
   { _id: false },
 );
 
-export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct {}
+export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct { }
 
 export const PanelProductSchema = new Schema<IPanelProductSchema>(
   {
@@ -227,23 +227,28 @@ const AdderSchema = new Schema<IAdderSchema>(
   { _id: false },
 );
 
-export interface IBOSProductSchema extends IProductCommonSchema, IBOSProduct {}
+export interface IBOSProductSchema extends IProductCommonSchema, IBOSProduct { }
 
 export const BOSProductSchema = new Schema<IBOSProductSchema>(
   {
-    manufacturer: String,
-    model: String,
-    related_component_category: String,
-    related_component: String,
-    description: String,
-    unit: String,
-    unit_price: Number,
+    name: String,
+    type: String,
+    price: Number,
+    sizeW: Number,
+    sizekWh: Number,
+    part_number: [String],
+    dimension: {
+      length: Number,
+      width: Number,
+    },
+
+    manufacturer_id: String,
     model_name: String,
     approved_for_gsa: Boolean,
     approved_for_esa: Boolean,
-    pv_watt_module_type: String,
-    panel_output_mode: String,
-    watt_class_stcdc: Number,
+    unit: String,
+    related_component_category: String,
+    related_component: String,
   },
   { _id: false },
 );
@@ -267,23 +272,23 @@ export const BalanceOfSystemSchema = new Schema<IBalanceOfSystemSchema>(
 
 export interface IAncillaryEquipment {
   ancillary_id: string;
-  manufacturer: string;
-  model: string;
+  manufacturer_id: string;
+  model_name: string;
   related_component: COMPONENT_TYPE;
   description: string;
   average_whole_sale_price: number;
-  applicable_product_manufacturer: string;
+  applicable_product_manufacturer_id: string;
 }
 
 export const AncillaryEquipment = new Schema<IAncillaryEquipment>(
   {
     ancillary_id: String,
-    manufacturer: String,
-    model: String,
+    manufacturer_id: String,
+    model_name: String,
     related_component: String,
     description: String,
     average_whole_sale_price: Number,
-    applicable_product_manufacturer: String,
+    applicable_product_manufacturer_id: String,
   },
   { _id: false },
 );
@@ -509,5 +514,5 @@ export class SystemDesignModel {
     this.cost_post_installation = data;
   }
 
-  transformUnit() {}
+  transformUnit() { }
 }

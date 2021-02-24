@@ -28,7 +28,7 @@ export class SystemProductService {
     @InjectModel(PV_WATT_SYSTEM_PRODUCTION) private readonly pvWattSystemProduction: Model<PvWattSystemProduction>,
     private readonly externalService: ExternalService,
     private readonly productService: ProductService,
-  ) {}
+  ) { }
 
   async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
     const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
@@ -114,7 +114,7 @@ export class SystemProductService {
           await createdPvWattSystemProduction.save();
 
           arrayProductionData.annual = res.ac_annual;
-          arrayProductionData.hourly = res.ac_monthly;
+          arrayProductionData.monthly = res.ac_monthly;
           arrayProductionData.hourly = res.ac;
           return arrayProductionData;
         }),

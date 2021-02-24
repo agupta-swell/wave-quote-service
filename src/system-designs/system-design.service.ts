@@ -99,7 +99,7 @@ export class SystemDesignService {
           }),
           systemDesign.roof_top_design_data.ancillary_equipments.map(async (ancillary, index) => {
             const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillary_id);
-            const data = { ...ancillaryModelData.toObject() };
+            const data = { ...ancillaryModelData.toObject(), ancillary_id: ancillary.ancillary_id };
             systemDesign.setAncillaryEquipment(data, index);
           }),
         ]),
