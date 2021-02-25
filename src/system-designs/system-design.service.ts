@@ -32,7 +32,7 @@ export class SystemDesignService {
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
-  ) {}
+  ) { }
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
@@ -299,6 +299,7 @@ export class SystemDesignService {
     const response = new GetInverterClippingDetailResDto(req.panelAndInverterDetail, {
       totalSTCProductionInWatt: totalPvSTCRating,
       totalInverterCapacityInWatt: totalInverterRating,
+      recommendationDetail: {} as any
     });
 
     if (partnerConfigData.defaultDCClipping === null || !partnerConfigData.enableModuleDCClipping) {
@@ -325,7 +326,7 @@ export class SystemDesignService {
 
     response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio =
       totalPvSTCRating / partnerConfigData.maxModuleDCClipping;
-    response.clippingDetails.recommendationDetail.maxClippedWattForDefaultRatio =
+    response.clippingDetails.recommendationDetail.maxClippedWattForMaxRatio =
       totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio;
 
     const inverterRatingInWattUsedForRecommendation = req.panelAndInverterDetail.invertersDetail[0].inverterRating;
