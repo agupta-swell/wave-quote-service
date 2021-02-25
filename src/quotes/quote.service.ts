@@ -95,6 +95,7 @@ export class QuoteService {
             cost,
             subcontractorMarkup,
             netCost,
+            quantity: item.quantity
           };
         }),
         'inverterModelId',
@@ -112,6 +113,7 @@ export class QuoteService {
             cost,
             subcontractorMarkup,
             netCost,
+            quantity: item.quantity
           };
         }),
         'storageModelId',
@@ -186,6 +188,7 @@ export class QuoteService {
       grossPrice: 0,
     };
 
+
     quoteCostBuildup.grossPrice = this.calculateGrossPrice(quoteCostBuildup);
 
     const utilityProgram = data.utilityProgramId
@@ -216,7 +219,7 @@ export class QuoteService {
           fundingSourceName: fundingSource.name,
           productAttribute: await this.createProductAttribute(fundingSource.type, quoteCostBuildup.grossPrice),
         },
-        netAmount: quoteCostBuildup.grossPrice,
+        netAmount: 0,
         incentiveDetails: [
           {
             unit: 'percentage',
@@ -258,20 +261,18 @@ export class QuoteService {
     if (quoteConfigData) {
       if (quoteConfigData.enableCostBuildup) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.COST_BUILD_UP);
-        detailedQuote.selectedQuoteMode = QUOTE_MODE_TYPE.COST_BUILD_UP;
       }
 
       if (quoteConfigData.enablePricePerWatt) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_PER_WATT);
         detailedQuote.quotePricePerWatt.pricePerWatt = quoteConfigData.pricePerWatt;
-        if (!detailedQuote.selectedQuoteMode) {
-          detailedQuote.selectedQuoteMode = QUOTE_MODE_TYPE.COST_BUILD_UP;
-        }
       }
 
       if (quoteConfigData.enablePriceOverride) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_OVERRIDE);
       }
+
+      detailedQuote.selectedQuoteMode = '';
     }
 
     const model = new QuoteModel(data, detailedQuote);
@@ -279,6 +280,7 @@ export class QuoteService {
 
     const obj = new this.quoteModel(model);
     await obj.save();
+
 
     return OperationResult.ok(new QuoteDto(obj.toObject())) as any;
   }
@@ -500,6 +502,7 @@ export class QuoteService {
       },
       grossPrice: 0,
     };
+
 
     quoteCostBuildup.grossPrice = this.calculateGrossPrice(quoteCostBuildup);
 
@@ -779,7 +782,7 @@ export class QuoteService {
     const { appliesTo } = incentiveDetail;
 
     if (!appliesTo) {
-      return roundNumber(incentiveDetail.unitValue * quoteCostBuildup.grossAmount, 2);
+      return roundNumber(incentiveDetail.unitValue * quoteCostBuildup.grossPrice, 2);
     }
 
     switch (appliesTo) {
@@ -819,11 +822,11 @@ export class QuoteService {
 
     const projectDiscountAmount = projectDiscountDetails.reduce((accu, item) => {
       if (item.unit === PROJECT_DISCOUNT_UNITS.AMOUNT) return (accu += item.unitValue);
-      return (accu += roundNumber(item.unitValue * quoteCostBuildup.grossAmount, 2));
+      return (accu += roundNumber(item.unitValue * quoteCostBuildup.grossPrice, 2));
     }, 0);
 
     newQuoteFinanceProduct.netAmount = roundNumber(
-      quoteCostBuildup.grossAmount - incentiveAmount - rebateAmount - projectDiscountAmount,
+      quoteCostBuildup.grossPrice - incentiveAmount - rebateAmount - projectDiscountAmount,
       2,
     );
     newQuoteFinanceProduct.financeProduct.productAttribute = this.handleUpdateProductAttribute(newQuoteFinanceProduct);

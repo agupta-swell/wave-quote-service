@@ -491,7 +491,7 @@ describe('Quote Controller', () => {
           laborCostDataSnapshot: {},
           laborCostSnapshotDate: '2021-01-26T03:13:03.190Z',
         },
-        grossAmount: 0,
+        grossPrice: 0,
       },
       quoteFinanceProduct: {
         incentiveDetails: [
@@ -715,7 +715,7 @@ describe('Quote Controller', () => {
           laborCostDataSnapshot: {},
           laborCostSnapshotDate: '2021-01-26T04:34:30.740Z',
         },
-        grossAmount: 0,
+        grossPrice: 0,
       },
       quoteFinanceProduct: {
         incentiveDetails: [
@@ -904,7 +904,7 @@ describe('Quote Controller', () => {
           laborCostDataSnapshot: {},
           laborCostSnapshotDate: '2021-01-26T04:34:30.740Z',
         },
-        grossAmount: 0,
+        grossPrice: 0,
       },
       quoteFinanceProduct: {
         incentiveDetails: [
@@ -1093,7 +1093,7 @@ describe('Quote Controller', () => {
           laborCostDataSnapshot: {},
           laborCostSnapshotDate: '2021-01-26T08:07:55.388Z',
         },
-        grossAmount: 0,
+        grossPrice: 0,
       },
       quoteFinanceProduct: {
         incentiveDetails: [

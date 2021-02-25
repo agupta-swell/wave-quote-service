@@ -25,7 +25,7 @@ describe('Calculation Service in Quotes', () => {
         {
           opportunityId: 'opportunityId',
           quoteFinanceProduct: { financeProduct: { productAttribute: { leaseAmount: 100, leaseTerm: 12 } } },
-          quoteCostBuildup: { grossAmount: 101, storageQuoteDetails: [{ storageModelDataSnapshot: { sizekWh: 30 } }] },
+          quoteCostBuildup: { grossPrice: 101, storageQuoteDetails: [{ storageModelDataSnapshot: { sizekWh: 30 } }] },
           isSolar: true,
           isRetrofit: true,
           utilityProgram: {},
@@ -57,7 +57,7 @@ describe('Calculation Service in Quotes', () => {
             opportunityId: 'opportunityId',
             quoteFinanceProduct: { financeProduct: { productAttribute: { leaseAmount: 100 } } },
             quoteCostBuildup: {
-              grossAmount: 101,
+              grossPrice: 101,
               storageQuoteDetails: [{ storageModelDataSnapshot: { sizekWh: 30 } }],
             },
             isSolar: true,
@@ -99,7 +99,7 @@ describe('Calculation Service in Quotes', () => {
               },
             },
           },
-          quoteCostBuildup: { grossAmount: 101, storageQuoteDetails: [{ storageModelDataSnapshot: { sizekWh: 30 } }] },
+          quoteCostBuildup: { grossPrice: 101, storageQuoteDetails: [{ storageModelDataSnapshot: { sizekWh: 30 } }] },
           isSolar: true,
           isRetrofit: true,
           utilityProgram: {},

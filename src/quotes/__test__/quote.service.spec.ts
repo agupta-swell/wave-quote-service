@@ -603,7 +603,7 @@ describe('Quote Service', () => {
           laborCostDataSnapshot: {},
           laborCostSnapshotDate: '2021-01-26T04:34:30.740Z',
         },
-        grossAmount: 0,
+        grossPrice: 0,
       },
       quoteFinanceProduct: {
         incentiveDetails: [
@@ -1080,7 +1080,7 @@ describe('Quote Service', () => {
             laborCostDataSnapshot: {},
             laborCostSnapshotDate: '2021-01-26T04:34:30.740Z',
           },
-          grossAmount: 0,
+          grossPrice: 0,
         },
         quoteFinanceProduct: {
           incentiveDetails: [
@@ -1375,7 +1375,7 @@ describe('Quote Service', () => {
       quoteService = new QuoteService(null, null, null, null, null, null, null, null);
       const res = quoteService.calculateIncentiveValueAmount(
         { unit: INCENTIVE_UNITS.PERCENTAGE, appliesTo: null, unitValue: 10 } as any,
-        { grossAmount: 10 } as any,
+        { grossPrice: 10 } as any,
       );
 
       expect(res).toBe(100);

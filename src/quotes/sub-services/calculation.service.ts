@@ -25,7 +25,7 @@ export class CalculationService {
   ): Promise<CalculateQuoteDetailDto> {
     const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
       .productAttribute as LeaseProductAttributesDto;
-    productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossAmount;
+    productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossPrice;
 
     const query = {
       isSolar: detailedQuote.isSolar,
