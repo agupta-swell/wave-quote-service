@@ -174,7 +174,7 @@ export class QuoteService {
       swellStandardMarkup: quoteConfigData.swellStandardMarkup || 0,
       laborCost: {
         laborCostDataSnapshot: {
-          id: quoteConfigData._id || '',
+          id: quoteConfigData._id.toString() || '',
           solarOnlyLaborFeePerWatt: quoteConfigData.solarOnlyLaborFeePerWatt || 0,
           storageRetrofitLaborFeePerProject: quoteConfigData.storageRetrofitLaborFeePerProject || 0,
           solarWithACStorageLaborFeePerProject: quoteConfigData.solarWithACStorageLaborFeePerProject || 0,
