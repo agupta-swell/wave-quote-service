@@ -51,12 +51,12 @@ class AdderQuoteDetailsDto extends QuoteCostBuildupCommon {
   unit: string;
 }
 
-class BosDetailsDto extends QuoteCostBuildupCommon {
+class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon {
   @ApiProperty({ type: ProductDto })
-  bosModelDataSnapshot: ProductDto;
+  balanceOfSystemModelDataSnapshot: ProductDto;
 
   @ApiProperty()
-  bosModelSnapshotDate: Date;
+  balanceOfSystemModelDataSnapshotDate: Date;
 
   @ApiProperty()
   unit: string;
@@ -111,8 +111,8 @@ export class QuoteCostBuildupDto {
   @ApiProperty({ type: () => AdderQuoteDetailsDto, isArray: true })
   adderQuoteDetails: AdderQuoteDetailsDto[];
 
-  @ApiProperty({ type: () => BosDetailsDto, isArray: true })
-  bosDetails: BosDetailsDto[];
+  @ApiProperty({ type: () => BalanceOfSystemDetailsDto, isArray: true })
+  balanceOfSystemDetails: BalanceOfSystemDetailsDto[];
 
   @ApiProperty({ type: () => AncillaryDetailsDto, isArray: true })
   ancillaryEquipmentDetails: AncillaryDetailsDto[];

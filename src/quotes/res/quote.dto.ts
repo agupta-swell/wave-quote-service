@@ -173,7 +173,7 @@ export class QuoteDto {
       inverterQuoteDetails: quoteCostBuildup.inverter_quote_details.map(item => toCamelCase(item)),
       storageQuoteDetails: quoteCostBuildup.storage_quote_details.map(item => toCamelCase(item)),
       adderQuoteDetails: quoteCostBuildup.adder_quote_details.map(item => toCamelCase(item)),
-      bosDetails: quoteCostBuildup.bos_details.map(item => toCamelCase(item)),
+      balanceOfSystemDetails: quoteCostBuildup.balance_of_system_details.map(item => toCamelCase(item)),
       ancillaryEquipmentDetails: quoteCostBuildup.ancillary_equipment_details.map(item => toCamelCase(item)),
       swellStandardMarkup: quoteCostBuildup.swell_standard_markup,
       laborCost: toCamelCase(quoteCostBuildup.labor_cost),

@@ -137,23 +137,23 @@ export class QuoteService {
         }),
         'adderModelId',
       ),
-      bosDetails: this.groupData(
-        systemDesign.roof_top_design_data.balance_of_systems.map(item => {
+        balanceOfSystemDetails: this.groupData(
+        systemDesign.roof_top_design_data.balance_of_system.map(item => {
           const cost = item.balance_of_system_model_data_snapshot.price;
           const subcontractorMarkup = markupConfigData.subcontractorMarkup || 0;
           const netCost = cost * (1 + subcontractorMarkup);
 
           return {
-            bosModelId: item.balance_of_system_id,
-            bosModelDataSnapshot: item.balance_of_system_model_data_snapshot,
-            bosModelSnapshotDate: new Date(),
+            balanceOfSystemModelId: item.balance_of_system_id,
+            balanceOfSystemModelDataSnapshot: item.balance_of_system_model_data_snapshot,
+            balanceOfSystemModelDataSnapshotDate: new Date(),
             unit: item.unit,
             cost,
             subcontractorMarkup,
             netCost,
           };
         }),
-        'bosModelId',
+        'balanceOfSystemModelId',
       ),
       ancillaryEquipmentDetails: this.groupData(
         systemDesign.roof_top_design_data.ancillary_equipments.map(item => {
@@ -368,9 +368,39 @@ export class QuoteService {
     }
 
     const {
+      quote_cost_buildup: {
+        panel_quote_details,
+        inverter_quote_details,
+        storage_quote_details,
+        adder_quote_details,
+        balance_of_system_details,
+        ancillary_equipment_details,
+      },
       quote_finance_product: { incentive_details, project_discount_details, rebate_details, finance_product },
       utility_program,
     } = foundQuote.toObject().detailed_quote;
+
+    const oldPanels = panel_quote_details.reduce(
+      (acc, item) => ({ ...acc, [item.panel_model_id]: toCamelCase(item) }),
+      {},
+    );
+    const oldInverters = inverter_quote_details.reduce(
+      (acc, item) => ({ ...acc, [item.inverter_model_id]: toCamelCase(item) }),
+      {},
+    );
+    const oldStorage = storage_quote_details.reduce(
+      (acc, item) => ({ ...acc, [item.storage_model_id]: toCamelCase(item) }),
+      {},
+    );
+    const oldAdders = adder_quote_details.reduce(
+      (acc, item) => ({ ...acc, [item.adder_model_id]: toCamelCase(item) }),
+      {},
+    );
+    const oldBalanceOfSystem = balance_of_system_details.reduce((acc, item) => ({ ...acc, [item.balance_of_system_model_id]: toCamelCase(item) }), {});
+    const oldAncillaries = ancillary_equipment_details.reduce(
+      (acc, item) => ({ ...acc, [item.ancillary_equipment_id]: toCamelCase(item) }),
+      {},
+    );
 
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
@@ -444,23 +474,23 @@ export class QuoteService {
         }),
         'adderModelId',
       ),
-      bosDetails: this.groupData(
-        systemDesign.roof_top_design_data.balance_of_systems.map(item => {
+      balanceOfSystemDetails: this.groupData(
+        systemDesign.roof_top_design_data.balance_of_system.map(item => {
           const cost = item.balance_of_system_model_data_snapshot.price;
           const subcontractorMarkup = markupConfigData.subcontractorMarkup || 0;
           const netCost = cost * (1 + subcontractorMarkup);
 
           return {
-            bosModelId: item.balance_of_system_id,
-            bosModelDataSnapshot: item.balance_of_system_model_data_snapshot,
-            bosModelSnapshotDate: new Date(),
+            balanceOfSystemModelId: item.balance_of_system_id,
+            balanceOfSystemModelDataSnapshot: item.balance_of_system_model_data_snapshot,
+            balanceOfSystemModelDataSnapshotDate: new Date(),
             unit: item.unit,
             cost,
             subcontractorMarkup,
             netCost,
           };
         }),
-        'bosModelId',
+        'balanceOfSystemModelId',
       ),
       ancillaryEquipmentDetails: this.groupData(
         systemDesign.roof_top_design_data.ancillary_equipments.map(item => {
@@ -656,12 +686,15 @@ export class QuoteService {
       quotePricePerWatt: data.quotePricePerWatt,
       quotePriceOverride: data.quotePriceOverride,
     };
-
+    console.log('detailedQuote::', detailedQuote);
     const model = new QuoteModel(data, detailedQuote);
+    console.log('model::', model.detailed_quote.quote_cost_buildup.balance_of_system_details);
     model.setIsSync(data.isSync);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
+    console.log('remove::', removedUndefined.detailed_quote.quote_cost_buildup.balance_of_system_details);
     const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
+    console.log('savedQuote::', savedQuote.detailed_quote.quote_cost_buildup.balance_of_system_details);
     return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
   }
 

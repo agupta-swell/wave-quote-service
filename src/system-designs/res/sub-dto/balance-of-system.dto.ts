@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class BalanceOfSystemDto {
   @ApiProperty()
-  manufacturer: string;
+  manufacturerId: string;
 
   @ApiProperty()
   model: string;

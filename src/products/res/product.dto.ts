@@ -33,8 +33,8 @@ export class ProductDto {
     width: number;
   };
 
-  @ApiProperty()
-  modelName: string;
+  // @ApiProperty()
+  // modelName: string;
 
   @ApiProperty()
   approvedForGsa: boolean;
@@ -70,7 +70,7 @@ export class ProductDto {
     this.sizekWh = props.sizekWh;
     this.partNumber = props.partNumber;
     this.dimension = props.dimension;
-    this.modelName = props.model_name;
+    // this.modelName = props.model_name;
     this.approvedForGsa = props.approved_for_gsa;
     this.approvedForEsa = props.approved_for_esa;
     // For Panel

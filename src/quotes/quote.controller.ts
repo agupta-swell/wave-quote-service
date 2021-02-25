@@ -13,7 +13,7 @@ import { TaxCreditDto, TaxCreditListRes } from './res/tax-credit.dto';
 @Controller('/quotes')
 @PreAuthenticate()
 export class QuoteController {
-  constructor(private quoteService: QuoteService) {}
+  constructor(private quoteService: QuoteService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create quote' })
@@ -69,6 +69,7 @@ export class QuoteController {
   @ApiOkResponse({ type: QuoteListRes })
   async getDetails(@Param('quoteId') quoteId: string): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.getDetailQuote(quoteId);
+    console.log('res line 72:::', res.data.quoteCostBuildup.balanceOfSystemDetails);
     return ServiceResponse.fromResult(res);
   }
 

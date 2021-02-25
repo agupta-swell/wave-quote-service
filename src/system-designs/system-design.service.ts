@@ -92,10 +92,10 @@ export class SystemDesignService {
             const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
             systemDesign.setStorage(data, index);
           }),
-          systemDesign.roof_top_design_data.balance_of_systems.map(async (bos, index) => {
-            const bosModelData = await this.productService.getDetailById(bos.balance_of_system_id);
-            const data = { ...bosModelData.toObject(), part_number: bosModelData.partNumber };
-            systemDesign.setBOS(data, index);
+          systemDesign.roof_top_design_data.balance_of_system.map(async (balanceOfSystem, index) => {
+            const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balance_of_system_id);
+            const data = { ...balanceOfSystemModelData.toObject(), part_number: balanceOfSystemModelData.partNumber };
+            systemDesign.setBalanceOfSystem(data, index);
           }),
           systemDesign.roof_top_design_data.ancillary_equipments.map(async (ancillary, index) => {
             const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillary_id);
@@ -229,10 +229,10 @@ export class SystemDesignService {
               const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
               systemDesign.setStorage(data, index);
             }),
-            systemDesign.roof_top_design_data.balance_of_systems.map(async (bos, index) => {
-              const bosModelData = await this.productService.getDetailById(bos.balance_of_system_id);
-              const data = { ...bosModelData.toObject(), part_number: bosModelData.partNumber };
-              systemDesign.setBOS(data, index);
+            systemDesign.roof_top_design_data.balance_of_system.map(async (balanceOfSystem, index) => {
+              const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balance_of_system_id);
+              const data = { ...balanceOfSystemModelData.toObject(), part_number: balanceOfSystemModelData.partNumber };
+              systemDesign.setBalanceOfSystem(data, index);
             }),
             systemDesign.roof_top_design_data.ancillary_equipments.map(async (ancillary, index) => {
               const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillary_id);

@@ -18,13 +18,13 @@ export interface IBatteryProduct {
   battery_type: BATTERY_TYPE;
 }
 
-export interface IBOSProduct {
+export interface IBalanceOfSystemProduct {
   related_component: COMPONENT_TYPE;
   related_component_category: COMPONENT_CATEGORY_TYPE;
   unit: COST_UNIT_TYPE;
 }
 
-export interface Product extends Document, IPanelProduct, IInverterProduct, IBatteryProduct, IBOSProduct {
+export interface Product extends Document, IPanelProduct, IInverterProduct, IBatteryProduct, IBalanceOfSystemProduct {
   name: string;
   type: string;
   price: number; // averageWholesalePrice

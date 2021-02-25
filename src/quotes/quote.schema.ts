@@ -3,10 +3,10 @@ import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import {
   AdderModelSchema,
   AncillaryEquipment,
-  BOSProductSchema,
+  BalanceOfSystemProductSchema,
   IAdderModel,
   IAncillaryEquipment,
-  IBOSProductSchema,
+  IBalanceOfSystemProductSchema,
   IInverterProductSchema,
   InverterProductSchema,
   IPanelProductSchema,
@@ -388,18 +388,18 @@ const AdderQuoteDetailsSchema = new Schema<IAdderQuoteDetailsSchema>(
   { _id: false },
 );
 
-export interface IBOSDetailsSchema extends IQuoteCostCommonSchema {
-  bos_model_id: string;
-  bos_model_data_snapshot: IBOSProductSchema;
-  bos_model_snapshot_date: Date;
+export interface IBalanceOfSystemDetailsSchema extends IQuoteCostCommonSchema {
+  balance_of_system_model_id: string;
+  balance_of_system_model_data_snapshot: IBalanceOfSystemProductSchema;
+  balance_of_system_model_data_snapshot_date: Date;
   unit: COST_UNIT_TYPE;
 }
 
-const BOSDetailsSchema = new Schema<IBOSDetailsSchema>(
+const BalanceOfSystemDetailsSchema = new Schema<IBalanceOfSystemDetailsSchema>(
   {
-    bos_model_id: String,
-    bos_model_data_snapshot: BOSProductSchema,
-    bos_model_snapshot_date: Date,
+    balance_of_system_model_id: String,
+    balance_of_system_model_data_snapshot: BalanceOfSystemProductSchema,
+    balance_of_system_model_data_snapshot_date: Date,
     unit: String,
     cost: Number,
     net_cost: Number,
@@ -433,7 +433,7 @@ export interface IQuoteCostBuildupSchema {
   inverter_quote_details: IInverterQuoteDetailsSchema[];
   storage_quote_details: IStorageQuoteDetailsSchema[];
   adder_quote_details: IAdderQuoteDetailsSchema[];
-  bos_details: IBOSDetailsSchema[];
+  balance_of_system_details: IBalanceOfSystemDetailsSchema[];
   ancillary_equipment_details: IAncillaryEquipmentSchema[];
   swell_standard_markup: number;
   labor_cost: ILaborCostSchema;
@@ -445,7 +445,7 @@ const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
   inverter_quote_details: [InverterQuoteDetailsSchema],
   storage_quote_details: [StorageQuoteDetailsSchema],
   adder_quote_details: [AdderQuoteDetailsSchema],
-  bos_details: [BOSDetailsSchema],
+  balance_of_system_details: [BalanceOfSystemDetailsSchema],
   ancillary_equipment_details: [AncillaryEquipmentSchema],
   swell_standard_markup: Number,
   labor_cost: LaborCostSchema,
@@ -589,6 +589,7 @@ export class QuoteModel {
     this.system_design_id = data.systemDesignId;
     this.quote_model_type = 'detailed';
     this.detailed_quote = this.transformDetailedQuote(detailedQuote);
+    console.log('this.detailed_quote:::', this.detailed_quote.quote_cost_buildup.balance_of_system_details);
   }
 
   transformDetailedQuote(data: any): IDetailedQuoteSchema {
@@ -602,7 +603,7 @@ export class QuoteModel {
         inverterQuoteDetails,
         storageQuoteDetails,
         adderQuoteDetails,
-        bosDetails,
+        balanceOfSystemDetails,
         ancillaryEquipmentDetails,
         swellStandardMarkup,
         laborCost,
@@ -620,6 +621,7 @@ export class QuoteModel {
       quotePricePerWatt,
       quotePriceOverride,
     } = data;
+    console.log('balanceOfSystemDetails:1::', balanceOfSystemDetails);
     return {
       system_production: systemProduction,
       quote_name: quoteName,
@@ -640,7 +642,7 @@ export class QuoteModel {
         inverter_quote_details: inverterQuoteDetails.map(inverterQuote => toSnakeCase(inverterQuote)),
         storage_quote_details: storageQuoteDetails.map(storageQuote => toSnakeCase(storageQuote)),
         adder_quote_details: adderQuoteDetails.map(adderQuote => toSnakeCase(adderQuote)),
-        bos_details: bosDetails.map(bosDetail => toSnakeCase(bosDetail)),
+        balance_of_system_details: balanceOfSystemDetails.map(balanceOfSystemDetail => toSnakeCase(balanceOfSystemDetail)),
         ancillary_equipment_details: ancillaryEquipmentDetails.map(item => toSnakeCase(item)),
         swell_standard_markup: swellStandardMarkup,
         labor_cost: toSnakeCase(laborCost),

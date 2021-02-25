@@ -91,7 +91,7 @@ export class SystemDesignDto {
 
   transformRoofTopData = (data: IRoofTopSchema): RoofTopDataDto => {
     if (!data) return {} as any;
-    const { panel_array, inverters, storage, adders, ancillary_equipments, balance_of_systems } = data;
+    const { panel_array, inverters, storage, adders, ancillary_equipments, balance_of_system } = data;
 
     const getProductCommon = (item: IPanelProductSchema | IInverterProductSchema | IStorageProductSchema) => ({
       manufacturerId: item.manufacturer_id,
@@ -151,7 +151,7 @@ export class SystemDesignDto {
       }),
       adders: adders.map(item => toCamelCase(item)),
       ancillaryEquipments: ancillary_equipments.map(item => toCamelCase(item)),
-      balanceOfSystems: balance_of_systems.map(item => toCamelCase(item)),
+      balanceOfSystem: balance_of_system.map(item => toCamelCase(item)),
     };
   };
 

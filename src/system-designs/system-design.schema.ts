@@ -1,8 +1,8 @@
 import { Document, Schema, Types } from 'mongoose';
-import { IBatteryProduct, IBOSProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
+import { IBatteryProduct, IBalanceOfSystemProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
-import { COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
+import { COMPONENT_CATEGORY_TYPE, COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
 import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
@@ -227,9 +227,9 @@ const AdderSchema = new Schema<IAdderSchema>(
   { _id: false },
 );
 
-export interface IBOSProductSchema extends IProductCommonSchema, IBOSProduct { }
+export interface IBalanceOfSystemProductSchema extends IProductCommonSchema, IBalanceOfSystemProduct { }
 
-export const BOSProductSchema = new Schema<IBOSProductSchema>(
+export const BalanceOfSystemProductSchema = new Schema<IBalanceOfSystemProductSchema>(
   {
     name: String,
     type: String,
@@ -241,13 +241,13 @@ export const BOSProductSchema = new Schema<IBOSProductSchema>(
       length: Number,
       width: Number,
     },
-
     manufacturer_id: String,
     model_name: String,
     approved_for_gsa: Boolean,
     approved_for_esa: Boolean,
     unit: String,
     related_component_category: String,
+    inverter_type: String,
     related_component: String,
   },
   { _id: false },
@@ -255,7 +255,7 @@ export const BOSProductSchema = new Schema<IBOSProductSchema>(
 
 export interface IBalanceOfSystemSchema {
   balance_of_system_id: string;
-  balance_of_system_model_data_snapshot: IBOSProductSchema;
+  balance_of_system_model_data_snapshot: IBalanceOfSystemProductSchema;
   balance_of_system_snapshot_date: Date;
   unit: COST_UNIT_TYPE;
 }
@@ -263,7 +263,7 @@ export interface IBalanceOfSystemSchema {
 export const BalanceOfSystemSchema = new Schema<IBalanceOfSystemSchema>(
   {
     balance_of_system_id: String,
-    balance_of_system_model_data_snapshot: BOSProductSchema,
+    balance_of_system_model_data_snapshot: BalanceOfSystemProductSchema,
     balance_of_system_snapshot_date: Date,
     unit: String,
   },
@@ -315,7 +315,7 @@ export interface IRoofTopSchema {
   inverters: IInverterSchema[];
   storage: IStorageSchema[];
   adders: IAdderSchema[];
-  balance_of_systems: IBalanceOfSystemSchema[];
+  balance_of_system: IBalanceOfSystemSchema[];
   ancillary_equipments: IAncillaryEquipmentSchema[];
 }
 
@@ -325,7 +325,7 @@ export const RoofTopSchema = new Schema<IRoofTopSchema>(
     inverters: [InverterSchema],
     storage: [StorageSchema],
     adders: [AdderSchema],
-    balance_of_systems: [BalanceOfSystemSchema],
+    balance_of_system: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
   },
   { _id: false },
@@ -444,13 +444,13 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
+    const { inverters, storage, panelArray, adders, balanceOfSystem, ancillaryEquipments } = data;
     return {
       panel_array: (panelArray || []).map(item => toSnakeCase(item)),
       inverters: inverters.map(item => toSnakeCase(item)),
       storage: storage.map(item => toSnakeCase(item)),
       adders: adders.map(item => toSnakeCase(item)),
-      balance_of_systems: balanceOfSystems.map(item => toSnakeCase(item)),
+      balance_of_system: balanceOfSystem.map(item => toSnakeCase(item)),
       ancillary_equipments: ancillaryEquipments.map(item => toSnakeCase(item)),
     };
   };
@@ -476,9 +476,9 @@ export class SystemDesignModel {
     this.roof_top_design_data.storage[index].storage_model_snapshot_date = new Date();
   }
 
-  setBOS(bos: IBOSProductSchema, index: number) {
-    this.roof_top_design_data.balance_of_systems[index].balance_of_system_model_data_snapshot = bos;
-    this.roof_top_design_data.balance_of_systems[index].balance_of_system_snapshot_date = new Date();
+  setBalanceOfSystem(balanceOfSystem: IBalanceOfSystemProductSchema, index: number) {
+    this.roof_top_design_data.balance_of_system[index].balance_of_system_model_data_snapshot = balanceOfSystem;
+    this.roof_top_design_data.balance_of_system[index].balance_of_system_snapshot_date = new Date();
   }
 
   setAncillaryEquipment(ancillaryEquipment: IAncillaryEquipment, index: number) {
