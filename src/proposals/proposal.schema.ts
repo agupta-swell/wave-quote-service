@@ -30,6 +30,7 @@ export interface IDetailedProposalSchema {
   template_id: string;
   status: PROPOSAL_STATUS;
   pdf_file_url: string;
+  html_file_url: string;
 }
 
 const DetailedProposalSchema = new Schema<IDetailedProposalSchema>(
@@ -45,6 +46,7 @@ const DetailedProposalSchema = new Schema<IDetailedProposalSchema>(
     template_id: String,
     status: String,
     pdf_file_url: String,
+    html_file_url: String,
   },
   { _id: false },
 );

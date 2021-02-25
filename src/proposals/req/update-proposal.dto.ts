@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
 import { RecipientDto } from './create-proposal.dto';
 
-class DetailedProposalDto {
+export class UpdateProposalDto {
   @ApiProperty()
   isSelected: boolean;
 
@@ -16,22 +15,8 @@ class DetailedProposalDto {
   proposalValidityPeriod: number;
 
   @ApiProperty()
-  templateId: string;
-}
-
-export class UpdateProposalDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  opportunityId: string;
+  pdfFileUrl: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  systemDesignId: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  quoteId: string;
-
-  @ApiProperty({ type: DetailedProposalDto })
-  detailedProposal: DetailedProposalDto;
+  htmlFileUrl: string;
 }

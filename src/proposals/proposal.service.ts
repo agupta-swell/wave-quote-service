@@ -37,11 +37,25 @@ export class ProposalService {
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
+    const [systemDesign, detailedQuote] = await Promise.all([
+      this.systemDesignService.getOneById(proposalDto.systemDesignId),
+      this.quoteService.getOneById(proposalDto.quoteId),
+    ]);
+
     const model = new this.proposalModel({
       opportunity_id: proposalDto.opportunityId,
+      system_design_id: proposalDto.systemDesignId,
+      quote_id: proposalDto.quoteId,
       detailed_proposal: {
         proposal_name: proposalDto.proposalName,
-        recipients: proposalDto.recipients,
+        recipients: proposalDto.detailedProposal.recipients,
+        is_selected: proposalDto.detailedProposal.isSelected,
+        proposal_validity_period: proposalDto.detailedProposal.proposalValidityPeriod,
+        template_id: proposalDto.detailedProposal.templateId,
+        proposal_creation_date: new Date(),
+        status: PROPOSAL_STATUS.CREATED,
+        quote_data: detailedQuote,
+        system_design_data: systemDesign,
       },
     });
     await model.save();
@@ -59,42 +73,33 @@ export class ProposalService {
       detailed_proposal: {} as IDetailedProposalSchema,
     } as Proposal;
 
-    const { detailedProposal } = proposalDto;
+    const { isSelected, proposalValidityPeriod, proposalName, recipients, pdfFileUrl, htmlFileUrl } = proposalDto;
 
-    if (detailedProposal.isSelected) {
-      newData.detailed_proposal.is_selected = detailedProposal.isSelected;
+    if (isSelected) {
+      newData.detailed_proposal.is_selected = isSelected;
     }
 
-    if (detailedProposal.proposalName) {
-      newData.detailed_proposal.proposal_name = detailedProposal.proposalName;
+    if (proposalName) {
+      newData.detailed_proposal.proposal_name = proposalName;
     }
 
-    if (detailedProposal.proposalValidityPeriod) {
-      newData.detailed_proposal.proposal_validity_period = detailedProposal.proposalValidityPeriod;
+    if (proposalValidityPeriod) {
+      newData.detailed_proposal.proposal_validity_period = proposalValidityPeriod;
     }
 
-    if (detailedProposal.recipients) {
-      newData.detailed_proposal.recipients = detailedProposal.recipients.filter(item => item.email !== '');
+    if (recipients) {
+      newData.detailed_proposal.recipients = recipients.filter(item => item.email !== '');
     }
 
-    if (detailedProposal.templateId) {
-      newData.detailed_proposal.template_id = detailedProposal.templateId;
+    if (pdfFileUrl) {
+      newData.detailed_proposal.pdf_file_url = pdfFileUrl;
     }
 
-    if (!foundProposal.detailed_proposal.quote_data) {
-      newData.system_design_id = proposalDto.systemDesignId;
-      newData.quote_id = proposalDto.quoteId;
-      newData.detailed_proposal.proposal_creation_date = new Date();
-      newData.detailed_proposal.status = PROPOSAL_STATUS.CREATED;
-      const [systemDesign, detailedQuote] = await Promise.all([
-        this.systemDesignService.getOneById(proposalDto.systemDesignId),
-        this.quoteService.getOneById(proposalDto.quoteId),
-      ]);
-      newData.detailed_proposal.system_design_data = systemDesign;
-      newData.detailed_proposal.quote_data = detailedQuote;
-    } else {
-      newData.detailed_proposal = { ...foundProposal.toObject().detailed_proposal, ...newData.detailed_proposal };
+    if (htmlFileUrl) {
+      newData.detailed_proposal.html_file_url = htmlFileUrl;
     }
+
+    newData.detailed_proposal = { ...foundProposal.toObject().detailed_proposal, ...newData.detailed_proposal };
 
     const updatedModel = await this.proposalModel.findByIdAndUpdate(id, newData, { new: true });
     return OperationResult.ok(new ProposalDto(updatedModel.toObject()));

@@ -89,6 +89,9 @@ export class ProposalDto {
   pdfFileUrl: string;
 
   @ApiProperty()
+  htmlFileUrl: string;
+
+  @ApiProperty()
   quoteId: string;
 
   @ApiProperty()
@@ -127,6 +130,7 @@ export class ProposalDto {
       this.template = (props as any)?.template && new ProposalTemplateDto((props as any)?.template);
       this.status = props.detailed_proposal.status;
       this.pdfFileUrl = props.detailed_proposal.pdf_file_url;
+      this.htmlFileUrl = props.detailed_proposal.html_file_url;
       this.agent = (props as any)?.agent && new UserInformationDto((props as any)?.agent);
       this.customer = (props as any)?.customer && new UserInformationDto((props as any)?.customer);
     }
