@@ -168,7 +168,6 @@ export class QuoteService {
         'ancillaryEquipmentId',
       ),
       swellStandardMarkup: quoteConfigData?.swellStandardMarkup || 0,
-      totalProductCost: 0,
       laborCost: {
         laborCostDataSnapshot: {
           id: quoteConfigData?._id || '',
@@ -183,15 +182,7 @@ export class QuoteService {
       grossPrice: 0,
     };
 
-    quoteCostBuildup.totalProductCost = this.calculateTotalProductCost(quoteCostBuildup);
-    // quoteCostBuildup.grossPrice = quoteCostBuildup.totalProductCost - quoteCostBuildup.laborCost.netCost;
     quoteCostBuildup.grossPrice = this.calculateGrossPrice(quoteCostBuildup);
-    console.log(
-      '>>>>>>>>>>>>>>>>>>>',
-      'quoteCostBuildup.grossPrice',
-      quoteCostBuildup.totalProductCost,
-      quoteCostBuildup.grossPrice,
-    );
 
     const utilityProgram = data.utilityProgramId
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
@@ -480,7 +471,6 @@ export class QuoteService {
         'ancillaryEquipmentId',
       ),
       swellStandardMarkup: foundQuote.detailed_quote.quote_cost_buildup.swell_standard_markup || 0,
-      totalProductCost: 0,
       laborCost: {
         laborCostDataSnapshot: {
           id: foundQuote.detailed_quote.quote_cost_buildup.labor_cost.labor_cost_data_snapshot.id,
@@ -503,8 +493,6 @@ export class QuoteService {
       grossPrice: 0,
     };
 
-    quoteCostBuildup.totalProductCost = this.calculateTotalProductCost(quoteCostBuildup);
-    // quoteCostBuildup.grossPrice = quoteCostBuildup.totalProductCost - quoteCostBuildup.laborCost.netCost;
     quoteCostBuildup.grossPrice = this.calculateGrossPrice(quoteCostBuildup);
 
     let productAttribute = await this.createProductAttribute(finance_product.product_type, quoteCostBuildup.grossPrice);
@@ -766,18 +754,6 @@ export class QuoteService {
   }
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
-
-  calculateTotalProductCost(data: any) {
-    const adderNetCost = sumBy(data.adderQuoteDetails, (i: any) => i.netCost);
-    const storageNetCost = sumBy(data.storageQuoteDetails, (i: any) => i.netCost);
-    const inverterNetCost = sumBy(data.inverterQuoteDetails, (i: any) => i.netCost);
-    const panelNetCost = sumBy(data.panelQuoteDetails, (i: any) => i.netCost);
-    const bosNetCost = sumBy(data.bosDetails, (i: any) => i.netCost);
-    const ancillaryNetCost = sumBy(data.ancillaryEquipmentDetails, (i: any) => i.netCost);
-
-    const totalNetCost = adderNetCost + storageNetCost + inverterNetCost + panelNetCost + bosNetCost + ancillaryNetCost;
-    return totalNetCost * (1 + data.swellStandardMarkup || 0);
-  }
 
   calculateGrossPrice(data: any) {
     const adderNetCost = sumBy(data.adderQuoteDetails, (i: any) => i.netCost);

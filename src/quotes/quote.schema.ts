@@ -436,7 +436,6 @@ export interface IQuoteCostBuildupSchema {
   bos_details: IBOSDetailsSchema[];
   ancillary_equipment_details: IAncillaryEquipmentSchema[];
   swell_standard_markup: number;
-  total_product_cost: number;
   labor_cost: ILaborCostSchema;
   gross_price: number;
 }
@@ -449,7 +448,6 @@ const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
   bos_details: [BOSDetailsSchema],
   ancillary_equipment_details: [AncillaryEquipmentSchema],
   swell_standard_markup: Number,
-  total_product_cost: Number,
   labor_cost: LaborCostSchema,
   gross_price: Number,
 });
@@ -607,7 +605,6 @@ export class QuoteModel {
         bosDetails,
         ancillaryEquipmentDetails,
         swellStandardMarkup,
-        totalProductCost,
         laborCost,
         grossPrice,
       },
@@ -646,7 +643,6 @@ export class QuoteModel {
         bos_details: bosDetails.map(bosDetail => toSnakeCase(bosDetail)),
         ancillary_equipment_details: ancillaryEquipmentDetails.map(item => toSnakeCase(item)),
         swell_standard_markup: swellStandardMarkup,
-        total_product_cost: totalProductCost,
         labor_cost: toSnakeCase(laborCost),
         gross_price: grossPrice,
       } as IQuoteCostBuildupSchema,

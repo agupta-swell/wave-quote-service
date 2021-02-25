@@ -73,16 +73,16 @@ class AncillaryDetailsDto extends QuoteCostBuildupCommon {
 class LaborCostDetails {
   @ApiProperty()
   id: string;
- 
+
   @ApiProperty()
   solarOnlyLaborFeePerWatt: number;
- 
+
   @ApiProperty()
   storageRetrofitLaborFeePerProject: number;
- 
+
   @ApiProperty()
   solarWithAcStorageLaborFeePerProject: number;
- 
+
   @ApiProperty()
   solarWithDcStorageLaborFeePerProject: number;
 }
@@ -119,9 +119,6 @@ export class QuoteCostBuildupDto {
 
   @ApiProperty()
   swellStandardMarkup: number;
-
-  @ApiProperty()
-  totalProductCost: number;
 
   @ApiProperty({ type: LaborCostDto })
   laborCost: LaborCostDto;

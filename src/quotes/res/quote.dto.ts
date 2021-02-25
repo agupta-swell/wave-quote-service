@@ -176,7 +176,6 @@ export class QuoteDto {
       bosDetails: quoteCostBuildup.bos_details.map(item => toCamelCase(item)),
       ancillaryEquipmentDetails: quoteCostBuildup.ancillary_equipment_details.map(item => toCamelCase(item)),
       swellStandardMarkup: quoteCostBuildup.swell_standard_markup,
-      totalProductCost: quoteCostBuildup.total_product_cost,
       laborCost: toCamelCase(quoteCostBuildup.labor_cost),
       grossPrice: quoteCostBuildup.gross_price,
     };
