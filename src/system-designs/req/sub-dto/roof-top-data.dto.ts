@@ -51,7 +51,7 @@ export class RoofTopDataReqDto {
   })
   @ValidateNested({ each: true })
   @Type(() => BalanceOfSystemDto)
-  balanceOfSystem: BalanceOfSystemDto[];
+  balanceOfSystems: BalanceOfSystemDto[];
 
   @ApiPropertyOptional({
     type: AncillaryEquipmentDto,

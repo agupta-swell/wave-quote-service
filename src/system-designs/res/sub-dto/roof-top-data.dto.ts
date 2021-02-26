@@ -35,7 +35,7 @@ export class RoofTopDataDto {
     type: BalanceOfSystemDto,
     isArray: true,
   })
-  balanceOfSystem: BalanceOfSystemDto[];
+  balanceOfSystems: BalanceOfSystemDto[];
 
   @ApiProperty({
     type: AncillaryEquipmentDto,

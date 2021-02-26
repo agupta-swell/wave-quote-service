@@ -5,8 +5,8 @@ export const QUOTE_MARKUP_CONFIG = Symbol('QUOTE_MARKUP_CONFIG').toString();
 
 export interface QuoteMarkupConfig extends Document {
   partnerId: string;
-  productCategory: COMPONENT_TYPE;
-  productType: PRODUCT_CATEGORY_TYPE;
+  productCategory: PRODUCT_CATEGORY_TYPE;
+  productType: COMPONENT_TYPE;
   subcontractorMarkup: number;
 }
 

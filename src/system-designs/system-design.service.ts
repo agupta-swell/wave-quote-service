@@ -92,7 +92,7 @@ export class SystemDesignService {
             const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
             systemDesign.setStorage(data, index);
           }),
-          systemDesign.roof_top_design_data.balance_of_system.map(async (balanceOfSystem, index) => {
+          systemDesign.roof_top_design_data.balance_of_systems.map(async (balanceOfSystem, index) => {
             const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balance_of_system_id);
             const data = { ...balanceOfSystemModelData.toObject(), part_number: balanceOfSystemModelData.partNumber };
             systemDesign.setBalanceOfSystem(data, index);
@@ -229,7 +229,7 @@ export class SystemDesignService {
               const data = { ...storageModelData.toObject(), part_number: storageModelData.partNumber };
               systemDesign.setStorage(data, index);
             }),
-            systemDesign.roof_top_design_data.balance_of_system.map(async (balanceOfSystem, index) => {
+            systemDesign.roof_top_design_data.balance_of_systems.map(async (balanceOfSystem, index) => {
               const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balance_of_system_id);
               const data = { ...balanceOfSystemModelData.toObject(), part_number: balanceOfSystemModelData.partNumber };
               systemDesign.setBalanceOfSystem(data, index);

@@ -1,8 +1,8 @@
 import { Document, Schema, Types } from 'mongoose';
-import { IBatteryProduct, IBalanceOfSystemProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
+import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
-import { COMPONENT_CATEGORY_TYPE, COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
+import { COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
 import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
@@ -315,7 +315,7 @@ export interface IRoofTopSchema {
   inverters: IInverterSchema[];
   storage: IStorageSchema[];
   adders: IAdderSchema[];
-  balance_of_system: IBalanceOfSystemSchema[];
+  balance_of_systems: IBalanceOfSystemSchema[];
   ancillary_equipments: IAncillaryEquipmentSchema[];
 }
 
@@ -325,7 +325,7 @@ export const RoofTopSchema = new Schema<IRoofTopSchema>(
     inverters: [InverterSchema],
     storage: [StorageSchema],
     adders: [AdderSchema],
-    balance_of_system: [BalanceOfSystemSchema],
+    balance_of_systems: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
   },
   { _id: false },
@@ -444,13 +444,13 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray, adders, balanceOfSystem, ancillaryEquipments } = data;
+    const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
     return {
       panel_array: (panelArray || []).map(item => toSnakeCase(item)),
       inverters: inverters.map(item => toSnakeCase(item)),
       storage: storage.map(item => toSnakeCase(item)),
       adders: adders.map(item => toSnakeCase(item)),
-      balance_of_system: balanceOfSystem.map(item => toSnakeCase(item)),
+      balance_of_systems: balanceOfSystems.map(item => toSnakeCase(item)),
       ancillary_equipments: ancillaryEquipments.map(item => toSnakeCase(item)),
     };
   };
@@ -476,9 +476,9 @@ export class SystemDesignModel {
     this.roof_top_design_data.storage[index].storage_model_snapshot_date = new Date();
   }
 
-  setBalanceOfSystem(balanceOfSystem: IBalanceOfSystemProductSchema, index: number) {
-    this.roof_top_design_data.balance_of_system[index].balance_of_system_model_data_snapshot = balanceOfSystem;
-    this.roof_top_design_data.balance_of_system[index].balance_of_system_snapshot_date = new Date();
+  setBalanceOfSystem(balanceOfSystems: IBalanceOfSystemProductSchema, index: number) {
+    this.roof_top_design_data.balance_of_systems[index].balance_of_system_model_data_snapshot = balanceOfSystems;
+    this.roof_top_design_data.balance_of_systems[index].balance_of_system_snapshot_date = new Date();
   }
 
   setAncillaryEquipment(ancillaryEquipment: IAncillaryEquipment, index: number) {
