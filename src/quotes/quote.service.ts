@@ -265,7 +265,7 @@ export class QuoteService {
 
       if (quoteConfigData.enablePricePerWatt) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_PER_WATT);
-        detailedQuote.quotePricePerWatt.pricePerWatt = quoteConfigData.pricePerWatt;
+        detailedQuote.quotePricePerWatt.pricePerWatt = 0;
       }
 
       if (quoteConfigData.enablePriceOverride) {
