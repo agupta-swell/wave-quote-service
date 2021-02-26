@@ -163,7 +163,7 @@ export class QuoteService {
 
           return {
             ancillaryEquipmentId: item.ancillary_id,
-            ancillaryEquipmentSnapshot: item.ancillary_equipment_model_data_snapshot,
+            ancillaryEquipmentModelDataSnapshot: item.ancillary_equipment_model_data_snapshot,
             ancillaryEquipmentSnapshotDate: new Date(),
             quantity: item.quantity,
             cost,
@@ -471,7 +471,7 @@ export class QuoteService {
 
           return {
             ancillaryEquipmentId: item.ancillary_id,
-            ancillaryEquipmentSnapshot: item.ancillary_equipment_model_data_snapshot,
+            ancillaryEquipmentModelDataSnapshot: item.ancillary_equipment_model_data_snapshot,
             ancillaryEquipmentSnapshotDate: new Date(),
             quantity: item.quantity,
             cost,

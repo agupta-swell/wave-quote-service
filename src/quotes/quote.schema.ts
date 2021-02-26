@@ -14,7 +14,7 @@ import {
   ISystemProductionSchema,
   PanelProductSchema,
   StorageProductSchema,
-  SystemProductionSchema,
+  SystemProductionSchema
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { QUOTE_MODE_TYPE } from './constants';
@@ -410,16 +410,16 @@ const BalanceOfSystemDetailsSchema = new Schema<IBalanceOfSystemDetailsSchema>(
 
 export interface IAncillaryEquipmentSchema extends IQuoteCostCommonSchema {
   ancillary_equipment_id: string;
-  ancillary_equipment_snapshot: IAncillaryEquipment;
-  ancillary_equipment_snapshot_date: Date;
+  ancillary_equipment_model_data_snapshot: IAncillaryEquipment;
+  ancillary_equipment_model_data_snapshot_date: Date;
   quantity: number;
 }
 
 const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
   {
     ancillary_equipment_id: String,
-    ancillary_equipment_snapshot: AncillaryEquipment,
-    ancillary_equipment_snapshot_date: Date,
+    ancillary_equipment_model_data_snapshot: AncillaryEquipment,
+    ancillary_equipment_model_data_snapshot_date: Date,
     quantity: Number,
     cost: Number,
     net_cost: Number,

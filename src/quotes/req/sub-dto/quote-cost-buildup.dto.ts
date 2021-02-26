@@ -64,7 +64,7 @@ class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon {
 
 class AncillaryDetailsDto extends QuoteCostBuildupCommon {
   @ApiProperty({ type: AncillaryEquipmentDto })
-  ancillaryEquipmentSnapshot: AncillaryEquipmentDto;
+  ancillaryEquipmentModelDataSnapshot: AncillaryEquipmentDto;
 
   @ApiProperty()
   ancillaryEquipmentSnapshotDate: Date;

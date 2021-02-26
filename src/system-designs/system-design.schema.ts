@@ -296,7 +296,7 @@ export const AncillaryEquipment = new Schema<IAncillaryEquipment>(
 export interface IAncillaryEquipmentSchema {
   ancillary_id: string;
   ancillary_equipment_model_data_snapshot: IAncillaryEquipment;
-  ancillary_equipment_snapshot_date: Date;
+  ancillary_equipment_model_data_snapshot_date: Date;
   quantity: number;
 }
 
@@ -304,7 +304,7 @@ export const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
   {
     ancillary_id: String,
     ancillary_equipment_model_data_snapshot: AncillaryEquipment,
-    ancillary_equipment_snapshot_date: Date,
+    ancillary_equipment_model_data_snapshot_date: Date,
     quantity: Number,
   },
   { _id: false },
@@ -483,7 +483,7 @@ export class SystemDesignModel {
 
   setAncillaryEquipment(ancillaryEquipment: IAncillaryEquipment, index: number) {
     this.roof_top_design_data.ancillary_equipments[index].ancillary_equipment_model_data_snapshot = ancillaryEquipment;
-    this.roof_top_design_data.ancillary_equipments[index].ancillary_equipment_snapshot_date = new Date();
+    this.roof_top_design_data.ancillary_equipments[index].ancillary_equipment_model_data_snapshot_date = new Date();
   }
 
   setThumbnail(link: string) {
