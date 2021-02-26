@@ -780,7 +780,7 @@ export class QuoteService {
     const ancillaryNetCost = sumBy(data.ancillaryEquipmentDetails, (i: any) => i.netCost);
 
     const totalNetCost = adderNetCost + storageNetCost + inverterNetCost + panelNetCost + bosNetCost + ancillaryNetCost;
-    return totalNetCost * (1 + data.swellStandardMarkup || 0);
+    return totalNetCost * (1 + data.swellStandardMarkup / 100 || 0);
   }
 
   calculateIncentiveValueAmount(incentiveDetail: IncentiveDetailsDto, quoteCostBuildup: QuoteCostBuildupDto) {

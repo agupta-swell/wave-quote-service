@@ -589,7 +589,6 @@ export class QuoteModel {
     this.system_design_id = data.systemDesignId;
     this.quote_model_type = 'detailed';
     this.detailed_quote = this.transformDetailedQuote(detailedQuote);
-    console.log('this.detailed_quote:::', this.detailed_quote.quote_cost_buildup.balance_of_system_details);
   }
 
   transformDetailedQuote(data: any): IDetailedQuoteSchema {
@@ -621,7 +620,6 @@ export class QuoteModel {
       quotePricePerWatt,
       quotePriceOverride,
     } = data;
-    console.log('balanceOfSystemDetails:1::', balanceOfSystemDetails);
     return {
       system_production: systemProduction,
       quote_name: quoteName,

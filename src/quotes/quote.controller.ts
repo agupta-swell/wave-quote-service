@@ -69,7 +69,6 @@ export class QuoteController {
   @ApiOkResponse({ type: QuoteListRes })
   async getDetails(@Param('quoteId') quoteId: string): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.getDetailQuote(quoteId);
-    console.log('res line 72:::', res.data.quoteCostBuildup.balanceOfSystemDetails);
     return ServiceResponse.fromResult(res);
   }
 
