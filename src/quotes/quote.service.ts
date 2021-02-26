@@ -570,6 +570,7 @@ export class QuoteService {
       isSelected: foundQuote.detailed_quote.is_selected,
       isSolar: foundQuote.detailed_quote.is_solar,
       isRetrofit: foundQuote.detailed_quote.is_retrofit,
+      selectedQuoteMode: foundQuote.detailed_quote.selected_quote_mode,
     };
 
     detailedQuote.quoteFinanceProduct = this.handleUpdateQuoteFinanceProduct(
