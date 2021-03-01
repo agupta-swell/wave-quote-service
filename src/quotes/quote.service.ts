@@ -212,9 +212,12 @@ export class QuoteService {
         cost: 0,
       },
       grossPrice: 0,
+      totalNetCost: 0,
     };
 
-    quoteCostBuildup.grossPrice = this.calculateGrossPrice(quoteCostBuildup);
+    const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
+    quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
+    quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
 
     const utilityProgram = data.utilityProgramId
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
@@ -548,9 +551,12 @@ export class QuoteService {
         cost: 0,
       },
       grossPrice: 0,
+      totalNetCost: 0,
     };
 
-    quoteCostBuildup.grossPrice = this.calculateGrossPrice(quoteCostBuildup);
+    const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
+    quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
+    quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
 
     let productAttribute = await this.createProductAttribute(finance_product.product_type, quoteCostBuildup.grossPrice);
     const { product_attribute } = finance_product as any;
@@ -823,7 +829,7 @@ export class QuoteService {
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
 
-  calculateGrossPrice(data: any) {
+  calculateGrossPrice(data: any): { totalNetCost: number; grossPrice: number } {
     const adderNetCost = sumBy(data.adderQuoteDetails, (i: any) => i.netCost);
     const storageNetCost = sumBy(data.storageQuoteDetails, (i: any) => i.netCost);
     const inverterNetCost = sumBy(data.inverterQuoteDetails, (i: any) => i.netCost);
@@ -832,7 +838,10 @@ export class QuoteService {
     const ancillaryNetCost = sumBy(data.ancillaryEquipmentDetails, (i: any) => i.netCost);
 
     const totalNetCost = adderNetCost + storageNetCost + inverterNetCost + panelNetCost + bosNetCost + ancillaryNetCost;
-    return totalNetCost * (1 + data.swellStandardMarkup / 100 || 0);
+    return {
+      totalNetCost,
+      grossPrice: totalNetCost * (1 + data.swellStandardMarkup / 100 || 0),
+    };
   }
 
   calculateIncentiveValueAmount(incentiveDetail: IncentiveDetailsDto, quoteCostBuildup: QuoteCostBuildupDto) {

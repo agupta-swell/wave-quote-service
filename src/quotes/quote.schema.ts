@@ -438,6 +438,7 @@ export interface IQuoteCostBuildupSchema {
   swell_standard_markup: number;
   labor_cost: ILaborCostSchema;
   gross_price: number;
+  total_net_cost: number
 }
 
 const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
@@ -450,6 +451,7 @@ const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
   swell_standard_markup: Number,
   labor_cost: LaborCostSchema,
   gross_price: Number,
+  total_net_cost: Number
 });
 
 export interface ITaxCreditConfigDataSnapshotSchema {
@@ -613,6 +615,7 @@ export class QuoteModel {
         swellStandardMarkup,
         laborCost,
         grossPrice,
+        totalNetCost,
       },
       quoteName,
       isSelected,
@@ -651,6 +654,7 @@ export class QuoteModel {
         swell_standard_markup: swellStandardMarkup,
         labor_cost: toSnakeCase(laborCost),
         gross_price: grossPrice,
+        total_net_cost: totalNetCost,
       } as IQuoteCostBuildupSchema,
       tax_credit_selected_for_reinvestment: taxCreditSelectedForReinvestment,
       utility_program_selected_for_reinvestment: utilityProgramSelectedForReinvestment,

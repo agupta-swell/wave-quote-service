@@ -125,4 +125,7 @@ export class QuoteCostBuildupDto {
 
   @ApiProperty()
   grossPrice: number;
+
+  @ApiProperty()
+  totalNetCost: number;
 }

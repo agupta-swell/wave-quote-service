@@ -4,7 +4,7 @@ import {
 import {
   ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
 } from '@nestjs/swagger';
-import { Pagination, ServiceResponse } from 'src/app/common';
+import { OperationResult, Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { QuoteService } from './quote.service';
@@ -17,14 +17,15 @@ import { TaxCreditDto, TaxCreditListRes } from './res/tax-credit.dto';
 @Controller('/quotes')
 @PreAuthenticate()
 export class QuoteController {
-  constructor(private quoteService: QuoteService) { }
+  // eslint-disable-next-line no-empty-function
+  constructor(private quoteService: QuoteService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create quote' })
   @ApiOkResponse({ type: QuoteRes })
   @CheckOpportunity()
   async create(@Body() data: CreateQuoteDto): Promise<ServiceResponse<QuoteDto>> {
-    const res = await this.quoteService.createQuote(data);
+    const res: OperationResult<QuoteDto> = await this.quoteService.createQuote(data);
     return ServiceResponse.fromResult(res);
   }
 

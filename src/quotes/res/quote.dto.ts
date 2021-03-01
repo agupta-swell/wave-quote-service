@@ -180,6 +180,7 @@ export class QuoteDto {
       swellStandardMarkup: quoteCostBuildup.swell_standard_markup,
       laborCost: toCamelCase(quoteCostBuildup.labor_cost),
       grossPrice: quoteCostBuildup.gross_price,
+      totalNetCost: quoteCostBuildup.total_net_cost
     };
   }
 
