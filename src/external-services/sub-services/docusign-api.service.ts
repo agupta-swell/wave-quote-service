@@ -8,6 +8,7 @@ import { IDocusignCompositeContract, IDocusignSecretManager } from '../../docusi
 @Injectable()
 export class DocusignAPIService {
   client: AWS.SecretsManager;
+
   apiClient: docusign.ApiClient;
 
   constructor(private readonly logger: MyLogger) {
@@ -49,7 +50,7 @@ export class DocusignAPIService {
   async sendTemplate(templateData: IDocusignCompositeContract): Promise<EnvelopeSummary | null> {
     const account = await this.createConnection();
 
-    let envelopesApi = new docusign.EnvelopesApi(this.apiClient);
+    const envelopesApi = new docusign.EnvelopesApi(this.apiClient);
     let results: EnvelopeSummary;
 
     try {
@@ -62,7 +63,8 @@ export class DocusignAPIService {
   }
 
   async getDocusignSecret(docusignSecretsName?: string): Promise<IDocusignSecretManager> {
-    let secret: string, decodedBinarySecret: string;
+    let secret: string; let
+      decodedBinarySecret: string;
 
     try {
       const data = await this.client
@@ -71,13 +73,13 @@ export class DocusignAPIService {
       if ('SecretString' in data) {
         secret = data.SecretString;
       } else {
-        let buff = Buffer.from(data.SecretBinary.toString(), 'base64');
+        const buff = Buffer.from(data.SecretBinary.toString(), 'base64');
         decodedBinarySecret = buff.toString('ascii');
       }
     } catch (error) {
       console.error('>>>>>>>>>>>>>>>>>>>', 'DocusignAPIService -> decode secret error', error);
     }
 
-    return JSON.parse(secret ? secret : decodedBinarySecret) as IDocusignSecretManager;
+    return JSON.parse(secret || decodedBinarySecret) as IDocusignSecretManager;
   }
 }

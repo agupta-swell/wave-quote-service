@@ -1,6 +1,6 @@
-import { Manufacturer } from './../manufacturer.schema';
 import { ApiProperty } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { Manufacturer } from '../manufacturer.schema';
 
 export class ManufacturerDto {
   @ApiProperty()

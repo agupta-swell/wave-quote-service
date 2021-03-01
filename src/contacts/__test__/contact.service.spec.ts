@@ -4,7 +4,7 @@ describe('Contact Service', () => {
   let contactService: ContactService;
 
   describe('getEmailById function', () => {
-    it(`should return undefined value`, async () => {
+    it('should return undefined value', async () => {
       const mockContact = {
         findById: jest.fn().mockResolvedValue(undefined),
       } as any;
@@ -36,7 +36,7 @@ describe('Contact Service', () => {
   });
 
   describe('getContactById function', () => {
-    it(`should return undefined value`, async () => {
+    it('should return undefined value', async () => {
       const mockContact = {
         findById: jest.fn().mockResolvedValue(undefined),
       } as any;

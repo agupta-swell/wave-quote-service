@@ -4,18 +4,20 @@ import { compare } from 'bcrypt';
 import { ApplicationException } from 'src/app/app.exception';
 import { UserService } from 'src/users/user.service';
 import { AuthenticationDto } from './res/authentication.dto';
+
 const crypto = require('crypto');
 
 @Injectable()
 export class AuthenticationService {
   saltRounds = 10;
+
   constructor(private readonly userService: UserService, private readonly jwtService: JwtService) {}
 
   async login(email: string, password: string): Promise<AuthenticationDto> {
     const user = await this.userService.findByEmail(email);
     if (!user) throw ApplicationException.EmailNotFound();
 
-    //TODO: need to hash sha256 in front-end
+    // TODO: need to hash sha256 in front-end
     const hashPassword = crypto.createHash('sha256').update(password).digest('hex');
 
     const match = await compare(hashPassword, (user.services as any).password.bcrypt);

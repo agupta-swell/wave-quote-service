@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { toCamelCase } from 'src/utils/transformProperties';
-import { Contract } from './../contract.schema';
+import { Contract } from '../contract.schema';
 import { ContractResDto } from './sub-dto';
 
 interface IGetCurrentContractDto {
@@ -22,13 +22,13 @@ export class GetCurrentContractDto {
   contracts: ContractDetailDataResDto[];
 
   constructor(props: IGetCurrentContractDto[]) {
-    this.contracts = props.map(item => this.transformData(item));
+    this.contracts = props.map((item) => this.transformData(item));
   }
 
   transformData(contract: IGetCurrentContractDto): ContractDetailDataResDto {
     return {
       contractData: new ContractResDto(contract.contractData),
-      changeOrders: contract.changeOrders.map(changeOrder => new ContractResDto(changeOrder)),
+      changeOrders: contract.changeOrders.map((changeOrder) => new ContractResDto(changeOrder)),
     };
   }
 }

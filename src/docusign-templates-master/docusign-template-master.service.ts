@@ -41,14 +41,14 @@ export class DocusignTemplateMasterService {
   async getTemplatesMaster(): Promise<OperationResult<GetTemplateMasterDto>> {
     const res = await this.docusignTemplateMasterModel.find();
     const data = await Promise.all(
-      res.map(async item => {
+      res.map(async (item) => {
         const recipientRoles = await Promise.all(
-          item.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+          item.recipient_roles.map((roleId) => this.signerRoleMasterModel.findById(roleId)),
         );
 
         return {
           ...item.toObject({ versionKey: false }),
-          recipient_roles: recipientRoles.map(role => role.toObject({ versionKey: false })),
+          recipient_roles: recipientRoles.map((role) => role.toObject({ versionKey: false })),
         };
       }),
     );
@@ -57,7 +57,7 @@ export class DocusignTemplateMasterService {
 
   async getSignerRoleMasters(): Promise<OperationResult<GetSignerRoleMasterDto>> {
     const res = await this.signerRoleMasterModel.find();
-    return OperationResult.ok(new GetSignerRoleMasterDto(res.map(item => item.toObject({ versionKey: false }))));
+    return OperationResult.ok(new GetSignerRoleMasterDto(res.map((item) => item.toObject({ versionKey: false }))));
   }
 
   async saveTemplate(req: SaveTemplateReqDto): Promise<OperationResult<SaveTemplateDto>> {
@@ -70,7 +70,7 @@ export class DocusignTemplateMasterService {
     }
 
     const recipientRoles = (
-      await Promise.all(req.templateData.recipientRoles.map(id => this.signerRoleMasterModel.findById(id)))
+      await Promise.all(req.templateData.recipientRoles.map((id) => this.signerRoleMasterModel.findById(id)))
     ).map(({ _id, role_name, role_description }) => ({ id: _id, role_name, role_description }));
 
     const model = await this.docusignTemplateMasterModel.findOneAndUpdate(
@@ -95,17 +95,17 @@ export class DocusignTemplateMasterService {
     const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find();
 
     const compositeTemplateDetails = await Promise.all(
-      compositeTemplate.map(async item => {
+      compositeTemplate.map(async (item) => {
         const docusignTemplates = await Promise.all(
-          item.docusign_template_ids.map(async templateId => {
+          item.docusign_template_ids.map(async (templateId) => {
             const template = await this.docusignTemplateMasterModel.findById(templateId);
             const roles = await Promise.all(
-              template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+              template.recipient_roles.map((roleId) => this.signerRoleMasterModel.findById(roleId)),
             );
 
             return {
               ...template.toObject({ versionKey: false }),
-              recipient_roles: roles.map(role => role.toObject({ versionKey: false })),
+              recipient_roles: roles.map((role) => role.toObject({ versionKey: false })),
             };
           }),
         );
@@ -126,7 +126,7 @@ export class DocusignTemplateMasterService {
 
     return OperationResult.ok(
       new GetContractApplicabilityDataDto({
-        applicableUtilities: utilitiesMaster.map(item => item.toObject({ versionKey: false })),
+        applicableUtilities: utilitiesMaster.map((item) => item.toObject({ versionKey: false })),
         applicableFundingSources: fundingSources,
         applicableUtilityPrograms: utilityProgramsMaster,
       }),
@@ -162,16 +162,16 @@ export class DocusignTemplateMasterService {
     );
 
     const docusignTemplates = await Promise.all(
-      req.compositeTemplateData.docusignTemplateIds.map(async templateId => {
+      req.compositeTemplateData.docusignTemplateIds.map(async (templateId) => {
         const template = await this.docusignTemplateMasterModel.findById(templateId);
         const roles = await Promise.all(
-          template.recipient_roles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+          template.recipient_roles.map((roleId) => this.signerRoleMasterModel.findById(roleId)),
         );
 
         return {
           ...template.toObject({ versionKey: false }),
           id: template._id,
-          recipient_roles: roles.map(role => role.toObject({ versionKey: false })),
+          recipient_roles: roles.map((role) => role.toObject({ versionKey: false })),
         };
       }),
     );
@@ -232,7 +232,7 @@ export class DocusignTemplateMasterService {
       applicable_utility_programs: { $in: utilityPrograms },
     });
 
-    return res.map(item => item.toObject({ versionKey: false }));
+    return res.map((item) => item.toObject({ versionKey: false }));
   }
 
   async getCompositeTemplateById(
@@ -240,19 +240,18 @@ export class DocusignTemplateMasterService {
   ): Promise<{ template_details: any; composite_template_data: any }> {
     const compositeTemplate = await this.docusignCompositeTemplateMasterModel.findById(compositeTemplateId);
 
-    const docusignTemplates =
-      compositeTemplate &&
-      (await Promise.all(
-        compositeTemplate.docusign_template_ids?.map(async templateId => {
+    const docusignTemplates = compositeTemplate
+      && (await Promise.all(
+        compositeTemplate.docusign_template_ids?.map(async (templateId) => {
           const template = await this.docusignTemplateMasterModel.findById(templateId);
           const roles = await Promise.all(
-            template?.recipient_roles?.map(roleId => this.signerRoleMasterModel.findById(roleId)),
+            template?.recipient_roles?.map((roleId) => this.signerRoleMasterModel.findById(roleId)),
           );
 
           return {
             ...template.toObject({ versionKey: false }),
             id: template?._id?.toString(),
-            recipient_roles: roles?.map(role => role.toObject({ versionKey: false })),
+            recipient_roles: roles?.map((role) => role.toObject({ versionKey: false })),
           };
         }),
       ));

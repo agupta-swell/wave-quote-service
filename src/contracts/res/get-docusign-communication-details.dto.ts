@@ -44,7 +44,7 @@ export class GetDocusignCommunicationDetailsDto {
   docusignCommunicationDetails: DocusignCommunicationDetailResDto[];
 
   constructor(props: DocusignCommunication[]) {
-    this.docusignCommunicationDetails = props.map(item => this.transformData(item));
+    this.docusignCommunicationDetails = props.map((item) => this.transformData(item));
   }
 
   transformData(docusignCommunication: DocusignCommunication): DocusignCommunicationDetailResDto {

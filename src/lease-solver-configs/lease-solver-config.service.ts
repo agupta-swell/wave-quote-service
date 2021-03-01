@@ -2,7 +2,7 @@ import { Injectable, Req } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { fromStream } from '../utils/convertToCSV';
-import { OperationResult } from './../app/common/operation-result';
+import { OperationResult } from '../app/common/operation-result';
 import { LeaseSolverConfig, LEASE_SOLVER_CONFIG } from './lease-solver-config.schema';
 import { IGetDetail } from './typing.d';
 

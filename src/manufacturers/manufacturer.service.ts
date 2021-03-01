@@ -15,7 +15,7 @@ export class ManufacturerService {
 
     return OperationResult.ok(
       new Pagination({
-        data: manufacturers.map(manufacturer => new ManufacturerDto(manufacturer)),
+        data: manufacturers.map((manufacturer) => new ManufacturerDto(manufacturer)),
         total,
       }),
     );

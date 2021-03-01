@@ -5,7 +5,7 @@ import { ProposalSectionMasterController } from '../proposal-section-master.cont
 import { ProposalSectionMasterModule } from '../proposal-section-master.module';
 import { PROPOSAL_SECTION_MASTER } from '../proposal-section-master.schema';
 import { ProposalSectionMasterService } from '../proposal-section-master.service';
-import { ApplicationException } from './../../app/app.exception';
+import { ApplicationException } from '../../app/app.exception';
 
 describe('Proposal Section Master Controller', () => {
   let proposalSectionMasterController: ProposalSectionMasterController;
@@ -48,9 +48,7 @@ describe('Proposal Section Master Controller', () => {
   test('should createProposalSectionMaster work correctly', async () => {
     function mockProposalSectionMasterModel(dto: any) {
       this.data = dto;
-      this.save = () => {
-        return { ...this.data, _id: 'id' };
-      };
+      this.save = () => ({ ...this.data, _id: 'id' });
       this.toObject = jest.fn().mockReturnValueOnce({ ...this.data, _id: 'id' });
     }
     const moduleRef = await Test.createTestingModule({

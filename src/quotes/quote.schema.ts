@@ -14,7 +14,7 @@ import {
   ISystemProductionSchema,
   PanelProductSchema,
   StorageProductSchema,
-  SystemProductionSchema
+  SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { QUOTE_MODE_TYPE } from './constants';
@@ -579,9 +579,13 @@ export const QuoteSchema = new Schema<Quote>({
 
 export class QuoteModel {
   opportunity_id: string;
+
   system_design_id: string;
+
   quote_model_type: string;
+
   detailed_quote: IDetailedQuoteSchema;
+
   is_sync: boolean;
 
   constructor(data: CreateQuoteDto | UpdateQuoteDto, detailedQuote: any) {
@@ -595,7 +599,9 @@ export class QuoteModel {
     const {
       systemProduction,
       utilityProgram,
-      quoteFinanceProduct: { netAmount, incentiveDetails, rebateDetails, projectDiscountDetails, financeProduct },
+      quoteFinanceProduct: {
+        netAmount, incentiveDetails, rebateDetails, projectDiscountDetails, financeProduct,
+      },
       savingsDetails,
       quoteCostBuildup: {
         panelQuoteDetails,
@@ -628,40 +634,38 @@ export class QuoteModel {
       is_retrofit: isRetrofit,
       utility_program: toSnakeCase(utilityProgram),
       quote_finance_product: {
-        incentive_details: incentiveDetails.map(item => toSnakeCase(item)),
-        rebate_details: rebateDetails.map(item => toSnakeCase(item)),
+        incentive_details: incentiveDetails.map((item) => toSnakeCase(item)),
+        rebate_details: rebateDetails.map((item) => toSnakeCase(item)),
         finance_product: toSnakeCase(financeProduct),
         net_amount: netAmount,
-        project_discount_details: projectDiscountDetails.map(item => toSnakeCase(item)),
+        project_discount_details: projectDiscountDetails.map((item) => toSnakeCase(item)),
       },
-      savings_details: savingsDetails.map(item => toSnakeCase(item)),
+      savings_details: savingsDetails.map((item) => toSnakeCase(item)),
       quote_cost_buildup: {
-        panel_quote_details: panelQuoteDetails.map(panelQuote => toSnakeCase(panelQuote)),
-        inverter_quote_details: inverterQuoteDetails.map(inverterQuote => toSnakeCase(inverterQuote)),
-        storage_quote_details: storageQuoteDetails.map(storageQuote => toSnakeCase(storageQuote)),
-        adder_quote_details: adderQuoteDetails.map(adderQuote => toSnakeCase(adderQuote)),
-        balance_of_system_details: balanceOfSystemDetails.map(balanceOfSystemDetail => toSnakeCase(balanceOfSystemDetail)),
-        ancillary_equipment_details: ancillaryEquipmentDetails.map(item => toSnakeCase(item)),
+        panel_quote_details: panelQuoteDetails.map((panelQuote) => toSnakeCase(panelQuote)),
+        inverter_quote_details: inverterQuoteDetails.map((inverterQuote) => toSnakeCase(inverterQuote)),
+        storage_quote_details: storageQuoteDetails.map((storageQuote) => toSnakeCase(storageQuote)),
+        adder_quote_details: adderQuoteDetails.map((adderQuote) => toSnakeCase(adderQuote)),
+        balance_of_system_details: balanceOfSystemDetails.map((balanceOfSystemDetail) => toSnakeCase(balanceOfSystemDetail)),
+        ancillary_equipment_details: ancillaryEquipmentDetails.map((item) => toSnakeCase(item)),
         swell_standard_markup: swellStandardMarkup,
         labor_cost: toSnakeCase(laborCost),
         gross_price: grossPrice,
       } as IQuoteCostBuildupSchema,
       tax_credit_selected_for_reinvestment: taxCreditSelectedForReinvestment,
       utility_program_selected_for_reinvestment: utilityProgramSelectedForReinvestment,
-      tax_credit_data: (taxCreditData || []).map(item => {
-        return {
-          tax_credit_config_data_id: item.id,
+      tax_credit_data: (taxCreditData || []).map((item) => ({
+        tax_credit_config_data_id: item.id,
+        name: item.name,
+        percentage: item.percentage,
+        tax_credit_config_data_snapshot: {
           name: item.name,
           percentage: item.percentage,
-          tax_credit_config_data_snapshot: {
-            name: item.name,
-            percentage: item.percentage,
-            start_date: item.startDate,
-            end_date: item.endDate,
-          },
-          tax_credit_config_data_snapshot_date: new Date(),
-        };
-      }),
+          start_date: item.startDate,
+          end_date: item.endDate,
+        },
+        tax_credit_config_data_snapshot_date: new Date(),
+      })),
       allowed_quote_modes: allowedQuoteModes,
       selected_quote_mode: selectedQuoteMode,
       quote_price_per_watt: toSnakeCase(quotePricePerWatt),

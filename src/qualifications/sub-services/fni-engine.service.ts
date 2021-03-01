@@ -5,13 +5,15 @@ import { Model } from 'mongoose';
 import { REQUEST_CATEGORY, REQUEST_TYPE } from '../constants';
 import { QualificationService } from '../qualification.service';
 import { FNI_Communication, FNI_COMMUNICATION } from '../schemas/fni-communication.schema';
-import { IApplyRequest, IFniApplyReq } from '../typing.d';
-import { ExternalService } from './../../external-services/external-service.service';
-import { IFniUpdateReq, IFniUpdateRes } from './../typing.d';
+import {
+  IApplyRequest, IFniApplyReq, IFniUpdateReq, IFniUpdateRes,
+} from '../typing.d';
+import { ExternalService } from '../../external-services/external-service.service';
 
 @Injectable()
 export class FniEngineService {
   AWS_REGION: string;
+
   client: AWS.SecretsManager;
 
   constructor(
@@ -27,9 +29,9 @@ export class FniEngineService {
     });
   }
 
-  //NOTE: NEVER NEVER NEVER NEVER store the fniApplyRequestParam or applyRequestInst in the database
-  //NOTE: NEVER NEVER NEVER NEVER log the fniApplyRequestParam or applyRequestInst
-  //NOTE: Copy this warning and paste it in the code at the top and bottom of this method
+  // NOTE: NEVER NEVER NEVER NEVER store the fniApplyRequestParam or applyRequestInst in the database
+  // NOTE: NEVER NEVER NEVER NEVER log the fniApplyRequestParam or applyRequestInst
+  // NOTE: Copy this warning and paste it in the code at the top and bottom of this method
 
   async apply(req: IFniApplyReq): Promise<string> {
     const fniModel = new this.fniCommunicationModel({
@@ -157,7 +159,7 @@ export class FniEngineService {
       coinedErrorMessage = `${coinedErrorMessage} - Credit Qualification Id: ${req.qualificationCreditId} not found !!!`;
     }
 
-    let res = {} as IFniUpdateRes;
+    const res = {} as IFniUpdateRes;
 
     if (coinedErrorMessage.length > 0) {
       coinedErrorMessage = `ERROR: ${coinedErrorMessage}`;

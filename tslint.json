@@ -1,10 +1,9 @@
 {
-  "extends": ["airbnb"],
   "plugins": ["@typescript-eslint"],
   "parser": "@typescript-eslint/parser",
   "rules": {
     "import/no-unresolved": 0,
-    "max-line-length": [
+    "max-len": [
       true,
       {
         "limit": 120

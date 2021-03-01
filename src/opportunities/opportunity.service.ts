@@ -29,7 +29,7 @@ export class OpportunityService {
       firstName: contact.firstName,
       lastName: contact.lastName,
       email: contact.email,
-      opportunityId: opportunityId,
+      opportunityId,
       state: contact.state,
       utilityProgramId: foundOpportunity.utilityProgramId ?? '',
       zipCode: contact.zip,

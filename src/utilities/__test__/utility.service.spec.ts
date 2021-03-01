@@ -7,22 +7,26 @@ describe('Utility Service', () => {
   let utilityService: UtilityService;
 
   describe('getTypicalBaseline function', () => {
-    test(`should return null `, async () => {
+    test('should return null ', async () => {
       const mockExternalService = {
         getTypicalBaseLine: jest.fn().mockResolvedValue({ zipCode: 123, lseId: 'lseId' }),
       };
 
       class mockGenabilityUsageDataModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -64,29 +68,37 @@ describe('Utility Service', () => {
 
       class mockUtilityUsageDetailModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
       class mockGenabilityUsageDataModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -189,15 +201,19 @@ describe('Utility Service', () => {
 
       class mockUtilityUsageDetailModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -233,31 +249,41 @@ describe('Utility Service', () => {
 
       class mockUtilityUsageDetailModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findByIdAndUpdate = jest.fn().mockResolvedValue(null);
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
       class mockGenabilityUsageDataModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findByIdAndUpdate = jest.fn().mockResolvedValue(null);
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -292,15 +318,19 @@ describe('Utility Service', () => {
 
       class mockGenabilityCostDataModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -336,15 +366,19 @@ describe('Utility Service', () => {
     test('should return null', async () => {
       class mockUtilityUsageDetailModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -359,15 +393,19 @@ describe('Utility Service', () => {
     test('should return utility model', async () => {
       class mockUtilityUsageDetailModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest
           .fn()
           .mockResolvedValue({ opportunity_id: 'opportunity_id', utility_data: {}, cost_data: {} });

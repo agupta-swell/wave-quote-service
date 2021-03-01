@@ -5,7 +5,7 @@ describe('Proposal Section Master Service', () => {
   let proposalSectionMasterService: ProposalSectionMasterService;
 
   describe('getProposalSectionMasterById function', () => {
-    test(`should return null `, async () => {
+    test('should return null ', async () => {
       const mockProposalSectionMaster = {
         findOne: jest.fn().mockResolvedValue(null),
       } as any;
@@ -49,7 +49,7 @@ describe('Proposal Section Master Service', () => {
   });
 
   describe('getList function', () => {
-    test(`should return Proposal Section Master array `, async () => {
+    test('should return Proposal Section Master array ', async () => {
       const mockProposalSectionMaster = {
         find: jest.fn().mockReturnValueOnce({
           limit: jest.fn().mockReturnValueOnce({

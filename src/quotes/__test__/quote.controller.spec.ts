@@ -119,12 +119,15 @@ describe('Quote Controller', () => {
     };
 
     data: any;
+
     constructor(data) {
       this.data = data;
     }
+
     save(data) {
       return data;
     }
+
     toObject() {
       return this.data;
     }
@@ -133,6 +136,7 @@ describe('Quote Controller', () => {
       ...MockRespository.mockModel,
       toObject: jest.fn().mockReturnValue(MockRespository.mockModel),
     });
+
     static find = jest.fn().mockReturnValueOnce({
       limit: jest.fn().mockReturnValueOnce({
         skip: jest.fn().mockReturnValueOnce([
@@ -143,7 +147,9 @@ describe('Quote Controller', () => {
         ]),
       }),
     });
+
     static estimatedDocumentCount = jest.fn().mockResolvedValue(1);
+
     static findByIdAndUpdate = jest
       .fn()
       .mockResolvedValue({ toObject: jest.fn().mockReturnValue(MockRespository.mockModel) });

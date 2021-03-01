@@ -8,7 +8,9 @@ import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, ROLE, TOKEN_STATUS, VENDOR_ID } from './constants';
+import {
+  APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, ROLE, TOKEN_STATUS, VENDOR_ID,
+} from './constants';
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
   ApplyCreditQualificationReqDto,
@@ -84,7 +86,7 @@ export class QualificationService {
     return OperationResult.ok(
       new GetQualificationDetailDto(
         qualificationCredit.toObject(),
-        fniCommunications.length ? fniCommunications.map(item => item.toObject()) : [],
+        fniCommunications.length ? fniCommunications.map((item) => item.toObject()) : [],
       ),
     );
   }
@@ -253,9 +255,9 @@ export class QualificationService {
   async applyCreditQualification(
     req: ApplyCreditQualificationReqDto,
   ): Promise<OperationResult<{ responseStatus: string }>> {
-    //NOTE: NEVER NEVER NEVER NEVER store the applyCreditQualificationRequestParam or fniApplyRequestInst in the database
-    //NOTE: NEVER NEVER NEVER NEVER log the applyCreditQualificationRequestParam or fniApplyRequestInst
-    //NOTE: Copy this warning and paste it in the code at the top and bottom of this method
+    // NOTE: NEVER NEVER NEVER NEVER store the applyCreditQualificationRequestParam or fniApplyRequestInst in the database
+    // NOTE: NEVER NEVER NEVER NEVER log the applyCreditQualificationRequestParam or fniApplyRequestInst
+    // NOTE: Copy this warning and paste it in the code at the top and bottom of this method
 
     const tokenStatus = await this.checkToken(req.authenticationToken);
     switch (tokenStatus) {

@@ -5,8 +5,8 @@ import { Model } from 'mongoose';
 import { QuoteService } from 'src/quotes/quote.service';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { ApplicationException } from './../app/app.exception';
-import { OperationResult } from './../app/common';
+import { ApplicationException } from '../app/app.exception';
+import { OperationResult } from '../app/common';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { CreateUtilityDto } from './req/create-utility.dto';
@@ -24,7 +24,7 @@ import {
   IUtilityCostData,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
-  UTILITY_USAGE_DETAILS
+  UTILITY_USAGE_DETAILS,
 } from './utility.schema';
 
 @Injectable()
@@ -81,7 +81,7 @@ export class UtilityService {
       zipCode: result[0].zipCode,
       lseId: result[0].lseId,
       lseName: result[0].name,
-      tariffDetails: result.map(item => ({
+      tariffDetails: result.map((item) => ({
         tariffCode: item.tariffCode,
         masterTariffId: item.masterTariffId,
         tariffName: item.tariffName,
@@ -94,7 +94,7 @@ export class UtilityService {
     const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
 
     const monthlyCost = await this.calculateCost(
-      typicalBaseLine.typical_baseline.typical_hourly_usage.map(item => item.v),
+      typicalBaseLine.typical_baseline.typical_hourly_usage.map((item) => item.v),
       masterTariffId,
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
@@ -130,7 +130,7 @@ export class UtilityService {
     }
 
     const monthlyCost = await this.calculateCost(
-      typical_hourly_usage.map(item => item.v),
+      typical_hourly_usage.map((item) => item.v),
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       new Date().getFullYear(),
@@ -149,10 +149,8 @@ export class UtilityService {
     const { costData, utilityData } = data;
 
     costData.actualUsageCost.cost.map((costDetail, index) => {
-      const deltaValueFactor =
-        (costDetail.v - costData.typicalUsageCost.cost[index].v) / costData.typicalUsageCost.cost[index].v;
-      utilityData.actualUsage.monthlyUsage[index].v =
-        utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
+      const deltaValueFactor = (costDetail.v - costData.typicalUsageCost.cost[index].v) / costData.typicalUsageCost.cost[index].v;
+      utilityData.actualUsage.monthlyUsage[index].v = utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
     });
     return OperationResult.ok(UtilityDataDto.actualUsages(utilityData));
   }
@@ -280,7 +278,7 @@ export class UtilityService {
     }
 
     const data = await this.externalService.calculateCost(hourlyDataForTheYear, masterTariffId);
-    const groupByMonth = groupBy(data[0].items, item => item.fromDateTime.substring(0, 7));
+    const groupByMonth = groupBy(data[0].items, (item) => item.fromDateTime.substring(0, 7));
     const monthlyCosts = Object.keys(groupByMonth).reduce((acc, item) => {
       const [year, month] = item.split('-');
       const lastDay = this.getLastDay(Number(month), Number(year));

@@ -9,7 +9,7 @@ export class GetContractTemplatesDto {
   templates: DocusignCompositeTemplateMasterDataResDto[];
 
   constructor(props: DocusignCompositeTemplateMaster[]) {
-    this.templates = props?.map(template => toCamelCase(template));
+    this.templates = props?.map((template) => toCamelCase(template));
   }
 }
 

@@ -1,6 +1,6 @@
-import { QualificationCredit } from './../qualification.schema';
-import { QualificationDto } from './qualification.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { QualificationCredit } from '../qualification.schema';
+import { QualificationDto } from './qualification.dto';
 import { ServiceResponse } from '../../app/common';
 
 interface IProps {

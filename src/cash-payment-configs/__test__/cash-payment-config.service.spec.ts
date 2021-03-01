@@ -4,7 +4,7 @@ describe('Cash Payment Config Service', () => {
   let cashPaymentConfigService: CashPaymentConfigService;
 
   describe('getDetail function', () => {
-    it(`should return undefined value`, async () => {
+    it('should return undefined value', async () => {
       const mockCashPaymentConfig = {
         find: jest.fn().mockResolvedValue([]),
       } as any;

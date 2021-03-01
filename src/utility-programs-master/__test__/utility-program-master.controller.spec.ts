@@ -39,9 +39,7 @@ describe('Utility Program Master Controller', () => {
   test('should createDataFeed work correctly', async () => {
     function mockUtilityProgramMasterModel(dto: any) {
       this.data = dto;
-      this.save = () => {
-        return this.data;
-      };
+      this.save = () => this.data;
     }
 
     const moduleRef = await Test.createTestingModule({

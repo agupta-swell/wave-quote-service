@@ -1,5 +1,6 @@
 export class AuthenticationDto {
   accessToken: string;
+
   type: string;
 
   constructor(props: any) {

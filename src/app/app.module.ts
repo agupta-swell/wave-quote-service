@@ -19,14 +19,14 @@ import { ProposalSectionMasterModule } from '../proposal-section-masters/proposa
 import { ProposalTemplateModule } from '../proposal-templates/proposal-template.module';
 import { SystemDesignModule } from '../system-designs/system-design.module';
 import { UtilityModule } from '../utilities/utility.module';
-import { AdderConfigModule } from './../adder-config/adder-config.module';
-import { ContactModule } from './../contacts/contact.module';
-import { ExternalServiceModule } from './../external-services/external-service.module';
-import { OpportunityModule } from './../opportunities/opportunity.module';
-import { ProductModule } from './../products/product.module';
-import { ProgressModule } from './../progresses/progress.module';
-import { QualificationModule } from './../qualifications/qualification.module';
-import { QuoteModule } from './../quotes/quote.module';
+import { AdderConfigModule } from '../adder-config/adder-config.module';
+import { ContactModule } from '../contacts/contact.module';
+import { ExternalServiceModule } from '../external-services/external-service.module';
+import { OpportunityModule } from '../opportunities/opportunity.module';
+import { ProductModule } from '../products/product.module';
+import { ProgressModule } from '../progresses/progress.module';
+import { QualificationModule } from '../qualifications/qualification.module';
+import { QuoteModule } from '../quotes/quote.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()

@@ -4,7 +4,7 @@ describe('User Service', () => {
   let userService: UserService;
 
   describe('getUserById function', () => {
-    test(`should return undefined value`, async () => {
+    test('should return undefined value', async () => {
       const mockUser = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;
@@ -36,7 +36,7 @@ describe('User Service', () => {
   });
 
   describe('findByEmail function', () => {
-    test(`should return empty array`, async () => {
+    test('should return empty array', async () => {
       const mockUser = {
         find: jest.fn().mockResolvedValue([]),
       } as any;

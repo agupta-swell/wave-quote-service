@@ -15,7 +15,9 @@ import { UtilityProgramMasterService } from 'src/utility-programs-master/utility
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails } from '../docusign-communications/typing';
-import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
+import {
+  CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS,
+} from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
@@ -51,7 +53,7 @@ export class ContractService {
     });
 
     const data = await Promise.all(
-      primaryContractRecords?.map(async contract => {
+      primaryContractRecords?.map(async (contract) => {
         const changeOrders = await this.contractModel.find({
           opportunity_id: opportunityId,
           contract_type: CONTRACT_TYPE.CHANGE_ORDER,
@@ -60,7 +62,7 @@ export class ContractService {
 
         return {
           contractData: contract?.toObject({ versionKey: false }),
-          changeOrders: changeOrders?.map(item => item?.toObject({ versionKey: false })) || [],
+          changeOrders: changeOrders?.map((item) => item?.toObject({ versionKey: false })) || [],
         };
       }),
     );
@@ -72,7 +74,7 @@ export class ContractService {
     opportunityId: string,
     fundingSourceId: string,
   ): Promise<OperationResult<GetContractTemplatesDto>> {
-    let { utilityId } = await this.opportunityService.getDetailById(opportunityId);
+    const { utilityId } = await this.opportunityService.getDetailById(opportunityId);
     const complexUtilityName = await this.utilityService.getUtilityName(utilityId);
     const [utilityName = '', utilityProgramName = ''] = complexUtilityName.split('-');
     const utility = await this.docusignTemplateMasterService.getUtilityMaster(utilityName?.trim());
@@ -134,7 +136,7 @@ export class ContractService {
         name: contractDetail.name,
         associated_quote_id: contractDetail.associatedQuoteId,
         contract_template_id: contractDetail.contractTemplateId,
-        signer_details: contractDetail.signerDetails.map(item => toSnakeCase(item)),
+        signer_details: contractDetail.signerDetails.map((item) => toSnakeCase(item)),
         contract_template_detail: templateDetail,
         contracting_system: 'DOCUSIGN',
         primary_contract_id: contractDetail.primaryContractId,
@@ -264,7 +266,7 @@ export class ContractService {
         name: contractDetail.name,
         associated_quote_id: contractDetail.associatedQuoteId,
         contract_template_id: contractDetail.contractTemplateId,
-        signer_details: contractDetail.signerDetails.map(item => toSnakeCase(item)),
+        signer_details: contractDetail.signerDetails.map((item) => toSnakeCase(item)),
         contract_template_detail: templateDetail,
         contracting_system: 'DOCUSIGN',
         primary_contract_id: contractDetail.primaryContractId,
@@ -284,8 +286,8 @@ export class ContractService {
       contracting_system_reference_id: req.contractSystemReferenceId,
     });
 
-    req.statusesData.map(status => {
-      const signerDetails = contract.signer_details.find(signer => signer.email === status.emailId);
+    req.statusesData.map((status) => {
+      const signerDetails = contract.signer_details.find((signer) => signer.email === status.emailId);
       if (status.status === CONTRACTING_SYSTEM_STATUS.SENT) {
         signerDetails.sign_status = SIGN_STATUS.SENT;
         signerDetails.sent_on = new Date(status.date);

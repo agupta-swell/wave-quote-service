@@ -78,8 +78,8 @@ export class UtilityDataDto {
 
   constructor(props: any) {
     this.loadServingEntityData = toCamelCase(props?.loadServingEntityData);
-    props?.typicalBaselineUsage?.typical_baseline &&
-      delete props.typicalBaselineUsage.typical_baseline.typical_hourly_usage;
+    props?.typicalBaselineUsage?.typical_baseline
+      && delete props.typicalBaselineUsage.typical_baseline.typical_hourly_usage;
     this.typicalBaselineUsage = toCamelCase(props?.typicalBaselineUsage.typical_baseline);
   }
 

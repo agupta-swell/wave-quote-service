@@ -65,15 +65,19 @@ describe('Proposal Template Controller', () => {
   test('should createProposalSectionMaster work correctly', async () => {
     class mockProposalTemplate {
       data: any;
+
       constructor(data) {
         this.data = data;
       }
+
       save(data) {
         return data;
       }
+
       toObject() {
         return this.data;
       }
+
       static findOne = jest.fn().mockResolvedValue(null);
     }
 
@@ -116,15 +120,19 @@ describe('Proposal Template Controller', () => {
   test('should updateProposalSectionMaster work correctly', async () => {
     class mockProposalTemplate {
       data: any;
+
       constructor(data) {
         this.data = data;
       }
+
       save(data) {
         return data;
       }
+
       toObject() {
         return this.data;
       }
+
       static findOne = jest.fn().mockResolvedValue({
         id: 'string',
         name: 'string',
@@ -140,6 +148,7 @@ describe('Proposal Template Controller', () => {
           applicableProducts: ['string'],
         },
       });
+
       static findByIdAndUpdate = jest.fn().mockResolvedValue({
         id: 'string',
         name: 'string',

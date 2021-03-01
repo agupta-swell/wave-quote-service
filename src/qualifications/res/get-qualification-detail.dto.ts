@@ -1,9 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { toCamelCase } from '../../utils/transformProperties';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
+import {
+  APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID,
+} from '../constants';
 import { QualificationCredit } from '../qualification.schema';
-import { FNI_Communication } from './../schemas/fni-communication.schema';
+import { FNI_Communication } from '../schemas/fni-communication.schema';
 import { FniCommunicationDto } from './sub-dto/fni-communication.dto';
 
 class CustomerNotificationDto {
@@ -72,7 +74,7 @@ export class GetQualificationDetailDto {
     this.qualificationCreditId = qualificationCredit._id;
     this.qualificationCreditData = this.transformQualificationCreditData(qualificationCredit);
     this.fniCommunicationData = fniCommunications.length
-      ? fniCommunications.map(item => new FniCommunicationDto(item))
+      ? fniCommunications.map((item) => new FniCommunicationDto(item))
       : [];
   }
 
@@ -81,8 +83,8 @@ export class GetQualificationDetailDto {
       opportunityId: props.opportunity_id,
       startedOn: props.started_on,
       processStatus: props.process_status,
-      customerNotifications: (props.customer_notifications || []).map(item => toCamelCase(item)),
-      eventHistories: (props.event_histories || []).map(item => toCamelCase(item)),
+      customerNotifications: (props.customer_notifications || []).map((item) => toCamelCase(item)),
+      eventHistories: (props.event_histories || []).map((item) => toCamelCase(item)),
       vendorId: props.vendor_id,
       approvalMode: props.approval_mode,
       approvedBy: props.approved_by,

@@ -25,7 +25,7 @@ async function bootstrap() {
 
   app.use(
     morgan(
-      `[:date[clf]] :remote-addr HTTP/:http-version :method :url HTTP-Code: :status Size: :res[content-length] bytes - Response-time: :response-time ms`,
+      '[:date[clf]] :remote-addr HTTP/:http-version :method :url HTTP-Code: :status Size: :res[content-length] bytes - Response-time: :response-time ms',
     ),
   );
   // app.useLogger(app.get(MyLogger));

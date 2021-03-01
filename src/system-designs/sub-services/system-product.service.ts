@@ -68,7 +68,7 @@ export class SystemProductService {
       pvProductionArray = [{ hourly: [], monthly: [], annual: 0 }];
     } else {
       pvProductionArray = await Promise.all(
-        systemDesignDto.roofTopDesignData.panelArray.map(async item => {
+        systemDesignDto.roofTopDesignData.panelArray.map(async (item) => {
           const panelModelData = await this.productService.getDetailById(item.panelModelId);
           const systemCapacityInkWh = (item.numberOfPanels * panelModelData.sizeW) / 1000;
           const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
@@ -121,20 +121,18 @@ export class SystemProductService {
       );
     }
 
-    let cumulativePvProduction: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
+    const cumulativePvProduction: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
     if (pvProductionArray.length === 1) {
       cumulativePvProduction.hourly = pvProductionArray[0].hourly || [];
       cumulativePvProduction.monthly = pvProductionArray[0].monthly || [];
       cumulativePvProduction.annual = pvProductionArray[0].annual || 0;
     } else {
-      pvProductionArray.forEach(item => {
+      pvProductionArray.forEach((item) => {
         item.hourly.forEach(
-          (value, index) =>
-            (cumulativePvProduction.hourly[index] = (cumulativePvProduction.hourly[index] || 0) + value),
+          (value, index) => (cumulativePvProduction.hourly[index] = (cumulativePvProduction.hourly[index] || 0) + value),
         );
         item.monthly.forEach(
-          (value, index) =>
-            (cumulativePvProduction.monthly[index] = (cumulativePvProduction.monthly[index] || 0) + value),
+          (value, index) => (cumulativePvProduction.monthly[index] = (cumulativePvProduction.monthly[index] || 0) + value),
         );
         cumulativePvProduction.annual += item.annual;
       });

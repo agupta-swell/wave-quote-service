@@ -4,10 +4,14 @@ import * as AWS from 'aws-sdk';
 @Injectable()
 export class UploadImageService {
   AWS_S3_BUCKET: string;
+
   AWS_REGION: string;
+
   constructor() {
     // Configure AWS with your access and secret key.
-    const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET } = process.env;
+    const {
+      AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET,
+    } = process.env;
 
     // Configure AWS to use promise
     AWS.config.setPromisesDependency(require('bluebird'));

@@ -2,9 +2,7 @@ import { Injectable, Logger, LoggerService } from '@nestjs/common';
 import * as path from 'path';
 import * as winston from 'winston';
 
-const dateFormat = () => {
-  return new Date(Date.now()).toUTCString();
-};
+const dateFormat = () => new Date(Date.now()).toUTCString();
 
 @Injectable()
 export class MyLogger extends Logger {
@@ -28,7 +26,7 @@ export class MyLogger extends Logger {
       ],
       format: winston.format.combine(
         winston.format.splat(),
-        winston.format.printf(info => `${dateFormat()} | ${info.level.toUpperCase()} | ${info.message}`),
+        winston.format.printf((info) => `${dateFormat()} | ${info.level.toUpperCase()} | ${info.message}`),
         winston.format.colorize({ all: true }),
       ),
     });
@@ -46,7 +44,7 @@ export class MyLogger extends Logger {
   }
 
   errorAPICalling(url: string, message: string) {
-    this.logger.log('error', `Calling to %s is failed with message: %s`, url, message);
+    this.logger.log('error', 'Calling to %s is failed with message: %s', url, message);
   }
 
   log(message: string, meta?: any) {

@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString,
+} from 'class-validator';
 import { QUOTE_MODE_TYPE } from '../constants';
 import { QuotePriceOverride, QuotePricePerWatt } from './create-quote.dto';
 import { QuoteCostBuildupDto, QuoteFinanceProductDto, SavingsDetailsDto } from './sub-dto';

@@ -1,6 +1,6 @@
 import { Document, Schema } from 'mongoose';
-import { DetailedQuoteSchema, IDetailedQuoteSchema } from './../quotes/quote.schema';
-import { SystemDesign, SystemDesignSchema } from './../system-designs/system-design.schema';
+import { DetailedQuoteSchema, IDetailedQuoteSchema } from '../quotes/quote.schema';
+import { SystemDesign, SystemDesignSchema } from '../system-designs/system-design.schema';
 import { PROPOSAL_STATUS } from './constants';
 
 export const PROPOSAL = Symbol('PROPOSAL').toString();

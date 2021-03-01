@@ -1,5 +1,7 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags,
+} from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { ProgressService } from './progress.service';

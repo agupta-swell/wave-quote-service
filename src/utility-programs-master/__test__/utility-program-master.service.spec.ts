@@ -4,7 +4,7 @@ describe('Utility Program Master Service', () => {
   let utilityProgramMasterService: UtilityProgramMasterService;
 
   describe('getDetailById function', () => {
-    test(`should return undefined value`, async () => {
+    test('should return undefined value', async () => {
       const mockUtilityProgramMaster = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;
@@ -36,7 +36,7 @@ describe('Utility Program Master Service', () => {
   });
 
   describe('getDetailByName function', () => {
-    test(`should return undefined value`, async () => {
+    test('should return undefined value', async () => {
       const mockUtilityProgramMaster = {
         findOne: jest.fn().mockResolvedValue(null),
       } as any;
@@ -72,7 +72,7 @@ describe('Utility Program Master Service', () => {
   });
 
   describe('getAll function', () => {
-    test(`should return empty array`, async () => {
+    test('should return empty array', async () => {
       const mockUtilityProgramMaster = {
         find: jest.fn().mockResolvedValue([]),
       } as any;

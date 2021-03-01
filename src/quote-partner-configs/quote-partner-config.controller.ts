@@ -1,5 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
+} from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { QuotePartnerConfigService } from './quote-partner-config.service';
