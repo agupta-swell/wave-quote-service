@@ -1,5 +1,9 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Body, Controller, Get, Param, Post, Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
+} from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ContractService } from './contract.service';

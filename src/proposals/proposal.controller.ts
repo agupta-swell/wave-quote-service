@@ -1,9 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Body, Controller, Get, Param, Post, Put, Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
+} from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { CurrentUser, CustomJWTSecretKey, PreAuthenticate } from '../app/securities';
-import { CurrentUserType } from './../app/securities/current-user';
+import { CurrentUserType } from '../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto } from './req/create-proposal.dto';
 import { UpdateProposalDto } from './req/update-proposal.dto';
@@ -35,7 +39,7 @@ export class ProposalController {
   async updateProposal(
     @Param('id') id: string,
     @Body()
-    proposalDto: UpdateProposalDto,
+      proposalDto: UpdateProposalDto,
   ): Promise<ServiceResponse<ProposalDto>> {
     const res = await this.proposalService.update(id, proposalDto);
     return ServiceResponse.fromResult(res);

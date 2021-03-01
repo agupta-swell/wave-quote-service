@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SIGN_STATUS } from './../../constants';
+import { SIGN_STATUS } from '../../constants';
 
 export class SignerDetailResDto {
   @ApiProperty()

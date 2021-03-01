@@ -1,5 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth, ApiOperation, ApiQuery, ApiTags,
+} from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { FundingSourceService } from './funding-source.service';

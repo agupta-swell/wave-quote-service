@@ -8,7 +8,9 @@ describe('System Product Service', () => {
       const mockExternalService = { calculateSystemProduction: jest.fn().mockResolvedValue({ ac_annual: 100 }) } as any;
 
       systemProductService = new SystemProductService(null, mockExternalService, null);
-      const res = await systemProductService.pvWatCalculation({ lat: 0, lon: 0, systemCapacity: 0, azimuth: 0 });
+      const res = await systemProductService.pvWatCalculation({
+        lat: 0, lon: 0, systemCapacity: 0, azimuth: 0,
+      });
 
       expect(res).toMatchSnapshot();
       expect(res).toEqual(expect.any(Number));
@@ -19,15 +21,19 @@ describe('System Product Service', () => {
     test('should work correctly with pvProductionArray has one element', async () => {
       class mockPvWattSystemProduction {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -41,7 +47,9 @@ describe('System Product Service', () => {
       );
       const res = await systemProductService.calculateSystemProductionByHour({
         roofTopDesignData: {
-          panelArray: [{ panelModelId: 'panelModelId', numberOfPanels: 123, azimuth: 12, pitch: 21 }],
+          panelArray: [{
+            panelModelId: 'panelModelId', numberOfPanels: 123, azimuth: 12, pitch: 21,
+          }],
         },
       } as any);
 
@@ -52,15 +60,19 @@ describe('System Product Service', () => {
     test('should work correctly with pvProductionArray has more than one element', async () => {
       class mockPvWattSystemProduction {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -75,8 +87,12 @@ describe('System Product Service', () => {
       const res = await systemProductService.calculateSystemProductionByHour({
         roofTopDesignData: {
           panelArray: [
-            { panelModelId: 'panelModelId', numberOfPanels: 123, azimuth: 12, pitch: 21 },
-            { panelModelId: 'panelModelId', numberOfPanels: 123, azimuth: 12, pitch: 21 },
+            {
+              panelModelId: 'panelModelId', numberOfPanels: 123, azimuth: 12, pitch: 21,
+            },
+            {
+              panelModelId: 'panelModelId', numberOfPanels: 123, azimuth: 12, pitch: 21,
+            },
           ],
         },
       } as any);

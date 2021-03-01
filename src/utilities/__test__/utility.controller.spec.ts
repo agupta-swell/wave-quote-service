@@ -13,7 +13,9 @@ import { ProductModule } from 'src/products/product.module';
 import { QuoteModule } from 'src/quotes/quote.module';
 import { SystemDesignModule } from 'src/system-designs/system-design.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
-import { CostDataDto, TariffDto, UtilityDataDto, UtilityDetailsDto } from '../res';
+import {
+  CostDataDto, TariffDto, UtilityDataDto, UtilityDetailsDto,
+} from '../res';
 import { UtilityController } from '../utility.controller';
 import { UtilityModule } from '../utility.module';
 import { GENABILITY_USAGE_DATA, UTILITY_USAGE_DETAILS } from '../utility.schema';

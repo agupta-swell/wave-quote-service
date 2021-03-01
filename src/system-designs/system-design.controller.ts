@@ -1,5 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Body, Controller, Delete, Get, Param, Post, Put, Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
+} from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';

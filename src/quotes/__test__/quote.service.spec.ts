@@ -252,12 +252,15 @@ describe('Quote Service', () => {
 
   class MockQuoteModel {
     data: any;
+
     constructor(data) {
       this.data = data;
     }
+
     save(data) {
       return data;
     }
+
     toObject() {
       return this.data;
     }
@@ -277,7 +280,9 @@ describe('Quote Service', () => {
         ]),
       }),
     });
+
     static estimatedDocumentCount = jest.fn().mockResolvedValue(1);
+
     static findByIdAndUpdate = jest.fn().mockResolvedValue({ toObject: jest.fn().mockReturnValue(mockModelRes) });
   }
 
@@ -365,12 +370,15 @@ describe('Quote Service', () => {
 
   class MockQuoteModel1 {
     data: any;
+
     constructor(data) {
       this.data = data;
     }
+
     save(data) {
       return data;
     }
+
     toObject() {
       return this.data;
     }
@@ -390,23 +398,29 @@ describe('Quote Service', () => {
         ]),
       }),
     });
+
     static estimatedDocumentCount = jest.fn().mockResolvedValue(1);
+
     static findByIdAndUpdate = jest.fn().mockResolvedValue({ toObject: jest.fn().mockReturnValue(mockModelRes1) });
   }
 
   describe('createQuote function', () => {
-    test(`should return undefined value`, async () => {
+    test('should return undefined value', async () => {
       class mockQuoteModel {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
+
         static findOne = jest.fn().mockResolvedValue(null);
       }
 
@@ -456,7 +470,7 @@ describe('Quote Service', () => {
   });
 
   describe('createProductAttribute function', () => {
-    test(`should return Object wuith FINANCE_PRODUCT_TYPE.LEASE`, async () => {
+    test('should return Object wuith FINANCE_PRODUCT_TYPE.LEASE', async () => {
       quoteService = new QuoteService(null, null, null, null, null, null, null, null);
 
       const res = await quoteService.createProductAttribute(FINANCE_PRODUCT_TYPE.LEASE, 1000);
@@ -883,7 +897,7 @@ describe('Quote Service', () => {
   });
 
   describe('getAllQuotes function', () => {
-    test(`should return data with OpportunityId`, async () => {
+    test('should return data with OpportunityId', async () => {
       class mockQuoteModel {
         static find = jest.fn().mockReturnValue({
           limit: jest.fn().mockReturnValue({
@@ -895,6 +909,7 @@ describe('Quote Service', () => {
             ]),
           }),
         });
+
         static estimatedDocumentCount = jest.fn().mockResolvedValue(1);
       }
 
@@ -910,7 +925,7 @@ describe('Quote Service', () => {
   });
 
   describe('getAllTaxCredits function', () => {
-    test(`should work correctly`, async () => {
+    test('should work correctly', async () => {
       class mockTaxCreditConfigModel {
         static find = jest.fn().mockReturnValue([
           {
@@ -922,6 +937,7 @@ describe('Quote Service', () => {
             }),
           },
         ]);
+
         static estimatedDocumentCount = jest.fn().mockResolvedValue(1);
       }
 
@@ -1140,6 +1156,7 @@ describe('Quote Service', () => {
             end_date: new Date('1/19/2020'),
           }),
         });
+
         static estimatedDocumentCount = jest.fn().mockResolvedValue(1);
       }
 
@@ -1306,12 +1323,15 @@ describe('Quote Service', () => {
     test('should work correctly', async () => {
       class MockQuoteModel2 {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }

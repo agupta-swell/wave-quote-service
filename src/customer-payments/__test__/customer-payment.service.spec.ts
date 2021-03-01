@@ -4,7 +4,7 @@ describe('Customer Payment Service', () => {
   let customerPaymentService: CustomerPaymentService;
 
   describe('getCustomerPaymentByOpportunityId function', () => {
-    it(`should return undefined value`, async () => {
+    it('should return undefined value', async () => {
       const mockCustomerPayment = {
         findOne: jest.fn().mockResolvedValue(undefined),
       } as any;

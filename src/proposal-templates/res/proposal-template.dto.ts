@@ -38,7 +38,7 @@ export class ProposalTemplateDto {
   constructor(props: ProposalTemplate) {
     this.id = props._id;
     this.name = props.name;
-    this.sections = props.sections?.map(item => toCamelCase(item));
+    this.sections = props.sections?.map((item) => toCamelCase(item));
     this.proposalSectionMaster = toCamelCase(props.proposal_section_master);
   }
 }

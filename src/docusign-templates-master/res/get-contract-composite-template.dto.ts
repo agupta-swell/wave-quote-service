@@ -23,14 +23,14 @@ export class GetContractCompositeTemplateDto {
   compositeTemplates: CompositeTemplateResDto[];
 
   constructor(props?: ICompositeTemplateResDto[]) {
-    this.compositeTemplates = props?.map(item => this.transformData(item));
+    this.compositeTemplates = props?.map((item) => this.transformData(item));
   }
 
   transformData(props: ICompositeTemplateResDto): CompositeTemplateResDto {
     return {
-      templateDetails: props.templateDetails.map(item => ({
+      templateDetails: props.templateDetails.map((item) => ({
         ...toCamelCase(item),
-        recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
+        recipientRoles: item.recipient_roles.map((role) => toCamelCase(role)),
       })),
       compositeTemplateData: toCamelCase(props.compositeTemplateData),
     };

@@ -27,7 +27,7 @@ import {
   SaveTemplateDto,
 } from '../res';
 import { DOCUSIGN_COMPOSITE_TEMPLATE_MASTER } from '../schemas';
-import { SIGNER_ROLE_MASTER } from './../schemas/signer-role-master.schema';
+import { SIGNER_ROLE_MASTER } from '../schemas/signer-role-master.schema';
 
 describe('Docusign Template Master Controller', () => {
   let docusignTemplateMasterController: DocusignTemplateMasterController;

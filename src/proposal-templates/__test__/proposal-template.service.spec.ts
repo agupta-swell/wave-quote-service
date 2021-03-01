@@ -4,7 +4,7 @@ describe('Proposal Template Service', () => {
   let proposalTemplateService: ProposalTemplateService;
 
   describe('getOneById function', () => {
-    test(`should return null `, async () => {
+    test('should return null ', async () => {
       const mockProposalTemplate = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;
@@ -51,7 +51,7 @@ describe('Proposal Template Service', () => {
   });
 
   describe('update function', () => {
-    test(`should return work correctly`, async () => {
+    test('should return work correctly', async () => {
       const mockProposalTemplate = {
         findOne: jest.fn().mockReturnValueOnce({
           id: 'string',

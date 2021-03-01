@@ -42,7 +42,7 @@ export class SaveTemplateDto {
     this.responseStatus = responseStatus;
     this.newUpdatedTemplateMaster = props && {
       ...toCamelCase(props),
-      recipientRoles: props.recipient_roles.map(item => toCamelCase(item)),
+      recipientRoles: props.recipient_roles.map((item) => toCamelCase(item)),
     };
   }
 }

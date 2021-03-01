@@ -21,16 +21,16 @@ export class ApplicationException extends HttpException {
   }
 
   static NoPermission() {
-    return new ApplicationException(`You don't have permission to do this.`, HttpStatus.UNAUTHORIZED);
+    return new ApplicationException('You don\'t have permission to do this.', HttpStatus.UNAUTHORIZED);
   }
 
   static WrongEmail() {
-    return new ApplicationException(`Please check your email for change password`, HttpStatus.UNAUTHORIZED);
+    return new ApplicationException('Please check your email for change password', HttpStatus.UNAUTHORIZED);
   }
 
   static ServiceError() {
     return new ApplicationException(
-      `Service is not available, please try again later`,
+      'Service is not available, please try again later',
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }
@@ -55,11 +55,11 @@ export class ApplicationException extends HttpException {
   }
 
   static ValidationFailed(message?: string) {
-    return new ApplicationException(`Validation failed${message ? ': ' + message : ''}`, HttpStatus.BAD_REQUEST);
+    return new ApplicationException(`Validation failed${message ? `: ${message}` : ''}`, HttpStatus.BAD_REQUEST);
   }
 
   static ExpiredToken(data?: any) {
-    return new ApplicationException({ message: `Your token is expired!!!`, data }, HttpStatus.BAD_REQUEST);
+    return new ApplicationException({ message: 'Your token is expired!!!', data }, HttpStatus.BAD_REQUEST);
   }
 
   static ExistedEntity(type: string, id?: string) {

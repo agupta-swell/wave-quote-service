@@ -21,12 +21,12 @@ export class SaveContractCompositeTemplateDto {
     this.responseStatus = responseStatus;
     this.newUpdatedCompositeTemplate = props
       ? {
-          templateDetails: props?.templateDetails.map(item => ({
-            ...toCamelCase(item),
-            recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
-          })),
-          compositeTemplateData: toCamelCase(props?.compositeTemplateData),
-        }
+        templateDetails: props?.templateDetails.map((item) => ({
+          ...toCamelCase(item),
+          recipientRoles: item.recipient_roles.map((role) => toCamelCase(role)),
+        })),
+        compositeTemplateData: toCamelCase(props?.compositeTemplateData),
+      }
       : null;
   }
 }

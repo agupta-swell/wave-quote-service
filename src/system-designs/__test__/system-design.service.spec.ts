@@ -2,13 +2,13 @@ import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { SystemDesignDto } from '../res/system-design.dto';
 import { SystemDesignService } from '../system-design.service';
-import { DESIGN_MODE } from './../constants';
+import { DESIGN_MODE } from '../constants';
 
 describe('System Design Service', () => {
   let systemDesignService: SystemDesignService;
 
   describe('create function', () => {
-    test(`should return error `, async () => {
+    test('should return error ', async () => {
       systemDesignService = new SystemDesignService(null, null, null, null, null, null, null);
       try {
         await systemDesignService.create({} as any);
@@ -42,12 +42,15 @@ describe('System Design Service', () => {
       const mockAdderConfigService = { getAdderConfigDetail: jest.fn().mockResolvedValue({}) } as any;
       class MockSystemDesign {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
@@ -230,12 +233,15 @@ describe('System Design Service', () => {
       const mockAdderConfigService = { getAdderConfigDetail: jest.fn().mockResolvedValue({}) } as any;
       class MockSystemDesign {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
@@ -413,12 +419,15 @@ describe('System Design Service', () => {
 
       class MockSystemDesign {
         data: any;
+
         constructor(data) {
           this.data = data;
         }
+
         save(data) {
           return data;
         }
+
         toObject() {
           return this.data;
         }
@@ -445,7 +454,7 @@ describe('System Design Service', () => {
   });
 
   describe('update function', () => {
-    test(`should return Entity Not Found `, async () => {
+    test('should return Entity Not Found ', async () => {
       const mockSystemDesignModel = { findById: jest.fn().mockResolvedValue(null) } as any;
 
       systemDesignService = new SystemDesignService(mockSystemDesignModel, null, null, null, null, null, null);
@@ -457,7 +466,7 @@ describe('System Design Service', () => {
       }
     });
 
-    test(`should update successfully`, async () => {
+    test('should update successfully', async () => {
       const mockSystemDesignModel = {
         findById: jest
           .fn()
@@ -471,7 +480,7 @@ describe('System Design Service', () => {
       expect(res).toBeInstanceOf(OperationResult);
     });
 
-    test(`should update successfully without Utility model`, async () => {
+    test('should update successfully without Utility model', async () => {
       const mockSystemDesignModel = {
         findById: jest
           .fn()
@@ -651,7 +660,7 @@ describe('System Design Service', () => {
       expect(res).toBeInstanceOf(OperationResult);
     });
 
-    test(`should update successfully with Utility model`, async () => {
+    test('should update successfully with Utility model', async () => {
       const mockSystemDesignModel = {
         findById: jest
           .fn()
@@ -839,7 +848,7 @@ describe('System Design Service', () => {
       expect(res).toBeInstanceOf(OperationResult);
     });
 
-    test(`should update successfully without RoofTopDeisgn`, async () => {
+    test('should update successfully without RoofTopDeisgn', async () => {
       const mockSystemDesignModel = {
         findById: jest
           .fn()
@@ -974,7 +983,7 @@ describe('System Design Service', () => {
       expect(res.data.data).toEqual(expect.arrayContaining(Array<SystemDesignDto>()));
     });
 
-    test(`should cover selected is '0'`, async () => {
+    test('should cover selected is \'0\'', async () => {
       const mockSystemDesignModel = {
         find: jest.fn().mockReturnValueOnce({
           limit: jest.fn().mockReturnValueOnce({
@@ -998,7 +1007,7 @@ describe('System Design Service', () => {
       expect(res.data.data).toEqual(expect.arrayContaining(Array<SystemDesignDto>()));
     });
 
-    test(`should cover selected is '1'`, async () => {
+    test('should cover selected is \'1\'', async () => {
       const mockSystemDesignModel = {
         find: jest.fn().mockReturnValueOnce({
           limit: jest.fn().mockReturnValueOnce({
@@ -1022,7 +1031,7 @@ describe('System Design Service', () => {
       expect(res.data.data).toEqual(expect.arrayContaining(Array<SystemDesignDto>()));
     });
 
-    test(`should cover selected is '2'`, async () => {
+    test('should cover selected is \'2\'', async () => {
       const mockSystemDesignModel = {
         find: jest.fn().mockReturnValueOnce({
           limit: jest.fn().mockReturnValueOnce({
@@ -1063,7 +1072,7 @@ describe('System Design Service', () => {
   });
 
   describe('getOneById function', () => {
-    test(`should return undefined `, async () => {
+    test('should return undefined ', async () => {
       const mockSystemDesignModel = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;
@@ -1252,7 +1261,7 @@ describe('System Design Service', () => {
   });
 
   describe('getRoofTopDesignById function', () => {
-    test(`should return undefined `, async () => {
+    test('should return undefined ', async () => {
       const mockSystemDesignModel = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;

@@ -39,7 +39,7 @@ export class FinanceProductDto {
 
   @ApiProperty()
   fundingSourceName: string;
-  //FIXME: need to implement later
+  // FIXME: need to implement later
 
   @ApiProperty({
     type: () => Object,

@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { IFniUpdateReq, IUpdateSightenRequest, IUpdateSightenResponse } from './../typing.d';
-import { FniEngineService } from './fni-engine.service';
 import * as AWS from 'aws-sdk';
+import { IFniUpdateReq, IUpdateSightenRequest, IUpdateSightenResponse } from '../typing.d';
+import { FniEngineService } from './fni-engine.service';
 
 // FIXME: delete after deploying production
 @Injectable()
 export class FniCallbackService {
   AWS_REGION: string;
+
   client: AWS.SecretsManager;
 
   constructor(private readonly fniEngineService: FniEngineService) {
@@ -37,33 +38,33 @@ export class FniCallbackService {
       } as IUpdateSightenResponse;
 
       return response;
-    } else {
-      const response = {
-        transaction: {
-          refNum: req.transaction.refNum,
-          status: 'ERROR',
-          errorMsgs: [
-            {
-              errorType: 'GENERAL',
-              message: 'Authentication Failure',
-            },
-          ],
-        },
-      } as IUpdateSightenResponse;
-
-      return response;
     }
+    const response = {
+      transaction: {
+        refNum: req.transaction.refNum,
+        status: 'ERROR',
+        errorMsgs: [
+          {
+            errorType: 'GENERAL',
+            message: 'Authentication Failure',
+          },
+        ],
+      },
+    } as IUpdateSightenResponse;
+
+    return response;
   }
 
   async getSecretFNIInformation() {
-    let secret: string, decodedBinarySecret: string;
+    let secret: string; let
+      decodedBinarySecret: string;
 
     try {
       const data = await this.client.getSecretValue({ SecretId: 'fniAPISecret-cpxGGmSQW6jO' }).promise();
       if ('SecretString' in data) {
         secret = data.SecretString;
       } else {
-        let buff = Buffer.from(data.SecretBinary.toString(), 'base64');
+        const buff = Buffer.from(data.SecretBinary.toString(), 'base64');
         decodedBinarySecret = buff.toString('ascii');
       }
     } catch (error) {

@@ -1,7 +1,7 @@
 import { isValidObjectId, Types } from 'mongoose';
 
 export const isObjectId = (id: string) => {
-  const ObjectId = Types.ObjectId;
+  const { ObjectId } = Types;
   isValidObjectId;
   ObjectId.isValid(id);
   if (!ObjectId.isValid(id)) {

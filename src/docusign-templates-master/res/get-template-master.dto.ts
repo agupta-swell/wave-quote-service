@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { DocusignTemplateMaster } from '../docusign-template-master.schema';
-import { toCamelCase } from './../../utils/transformProperties';
+import { toCamelCase } from '../../utils/transformProperties';
 import { TemplateMasterDataResDto } from './sub-dto';
 
 export class GetTemplateMasterDto {
@@ -9,9 +9,9 @@ export class GetTemplateMasterDto {
   templateMasters: TemplateMasterDataResDto[];
 
   constructor(props: DocusignTemplateMaster[]) {
-    this.templateMasters = props?.map(item => ({
+    this.templateMasters = props?.map((item) => ({
       ...toCamelCase(item),
-      recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
+      recipientRoles: item.recipient_roles.map((role) => toCamelCase(role)),
     }));
   }
 }

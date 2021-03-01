@@ -8,12 +8,13 @@ import {
   ILoadServingEntity,
   IPvWattV6Responses,
   ITypicalBaseLine,
-  ITypicalUsage
+  ITypicalUsage,
 } from './typing';
 
 @Injectable()
 export class ExternalService {
   private genabilityToken: string;
+
   constructor(private readonly logger: MyLogger) {
     this.genabilityToken = this.getGenabilityToken();
   }
@@ -48,8 +49,7 @@ export class ExternalService {
 
   async getLoadServingEntity(zipCode: number): Promise<ILoadServingEntity> {
     const url = 'https://api.genability.com/rest/public';
-    const token =
-      'Basic MmZkOWMwNzUtZWZmYi00M2QyLWI1MWUtNjk1Y2I3NzI2ODk3OmZlMzk1NzZmLTExM2ItNGViZC05ZDU4LWM2ZTY5ODgyY2FjMg==';
+    const token = 'Basic MmZkOWMwNzUtZWZmYi00M2QyLWI1MWUtNjk1Y2I3NzI2ODk3OmZlMzk1NzZmLTExM2ItNGViZC05ZDU4LWM2ZTY5ODgyY2FjMg==';
 
     let systemProduction: any;
     try {
@@ -175,8 +175,8 @@ export class ExternalService {
             zipCode,
             populateProperties: true,
             isActive: true,
-            customerClasses: "RESIDENTIAL"
-          }
+            customerClasses: 'RESIDENTIAL',
+          },
         },
       );
     } catch (error) {
@@ -189,7 +189,7 @@ export class ExternalService {
 
   async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string) {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
-    const currentYear = new Date().getFullYear()
+    const currentYear = new Date().getFullYear();
     const payload = {
       fromDateTime: `${currentYear - 1}-01-01T00:00:00`,
       toDateTime: `${currentYear}-01-01T00:00:00`,
@@ -258,7 +258,7 @@ export class ExternalService {
   getGenabilityToken(): string {
     const appId = process.env.GENABILITY_APP_ID;
     const appKey = process.env.GENABILITY_APP_KEY;
-    const credentials = Buffer.from(appId + ':' + appKey).toString('base64');
+    const credentials = Buffer.from(`${appId}:${appKey}`).toString('base64');
     return `Basic ${credentials}`;
   }
 }

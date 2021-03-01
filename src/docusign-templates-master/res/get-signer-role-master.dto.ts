@@ -8,7 +8,7 @@ export class GetSignerRoleMasterDto {
   recipientRoles: SignerRoleDataResDto[];
 
   constructor(props: SignerRoleMaster[]) {
-    this.recipientRoles = props?.map(item => ({
+    this.recipientRoles = props?.map((item) => ({
       id: item._id,
       roleName: item.role_name,
       roleDescription: item.role_description,

@@ -10,7 +10,7 @@ export class CashProductAttributesDto {
   @IsNumber()
   balance: number;
 
-  //FIXME: need to implement later
+  // FIXME: need to implement later
   @ApiProperty()
   milestonePayment: any;
 

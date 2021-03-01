@@ -46,13 +46,21 @@ const GenabilityTypicalBaseLineSchema = new Schema<IGenabilityTypicalBaseLine>({
 
 export class GenabilityTypicalBaseLineModel {
   zip_code: number;
+
   building_type: string;
+
   customer_class: string;
+
   lse_name: string;
+
   lse_id: number;
+
   source_type: string;
+
   annual_consumption: number;
+
   typical_hourly_usage: ITypicalUsage[];
+
   typical_monthly_usage: ITypicalUsage[];
 
   constructor(props: ITypicalBaseLine) {
@@ -218,7 +226,9 @@ export const GenabilityCostDataSchema = new Schema<GenabilityCostData>({
 
 export class UtilityUsageDetailsModel {
   opportunity_id: string;
+
   utility_data: IUtilityData;
+
   cost_data: ICostData;
 
   constructor(props: CreateUtilityDto | any) {

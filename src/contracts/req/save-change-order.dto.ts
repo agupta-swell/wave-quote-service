@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested,
+} from 'class-validator';
 import { REQUEST_MODE } from '../constants';
 import { SignerDetailDto } from './sub-dto/signer-detail.dto';
 

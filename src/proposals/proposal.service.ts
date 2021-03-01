@@ -12,8 +12,8 @@ import { OperationResult, Pagination } from '../app/common';
 import { CurrentUserType } from '../app/securities';
 import { EmailService } from '../emails/email.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { ApplicationException } from './../app/app.exception';
-import { QuoteService } from './../quotes/quote.service';
+import { ApplicationException } from '../app/app.exception';
+import { QuoteService } from '../quotes/quote.service';
 import { PROPOSAL_STATUS } from './constants';
 import { IDetailedProposalSchema, Proposal, PROPOSAL } from './proposal.schema';
 import { CreateProposalDto } from './req/create-proposal.dto';
@@ -73,7 +73,9 @@ export class ProposalService {
       detailed_proposal: {} as IDetailedProposalSchema,
     } as Proposal;
 
-    const { isSelected, proposalValidityPeriod, proposalName, recipients, pdfFileUrl, htmlFileUrl } = proposalDto;
+    const {
+      isSelected, proposalValidityPeriod, proposalName, recipients, pdfFileUrl, htmlFileUrl,
+    } = proposalDto;
 
     if (isSelected) {
       newData.detailed_proposal.is_selected = isSelected;
@@ -88,7 +90,7 @@ export class ProposalService {
     }
 
     if (recipients) {
-      newData.detailed_proposal.recipients = recipients.filter(item => item.email !== '');
+      newData.detailed_proposal.recipients = recipients.filter((item) => item.email !== '');
     }
 
     if (pdfFileUrl) {
@@ -125,7 +127,7 @@ export class ProposalService {
     ]);
 
     return OperationResult.ok({
-      data: proposals.map(proposal => new ProposalDto(proposal.toObject())),
+      data: proposals.map((proposal) => new ProposalDto(proposal.toObject())),
       total,
     });
   }
@@ -188,20 +190,18 @@ export class ProposalService {
       throw ApplicationException.EnitityNotFound(proposalId);
     }
 
-    const tokensByRecipients = foundProposal.detailed_proposal.recipients.map(item =>
-      this.jwtService.sign(
-        {
-          proposalId: foundProposal._id,
-          email: item.email,
-          houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
-          zipCode: 7000000, // TO BE REMOVED AFTER MERGED
-        },
-        { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
-      ),
-    );
+    const tokensByRecipients = foundProposal.detailed_proposal.recipients.map((item) => this.jwtService.sign(
+      {
+        proposalId: foundProposal._id,
+        email: item.email,
+        houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
+        zipCode: 7000000, // TO BE REMOVED AFTER MERGED
+      },
+      { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
+    ));
 
-    const linksByToken = tokensByRecipients.map(token => process.env.PROPOSAL_PAGE.concat(`?s=${token}`));
-    const recipients = foundProposal.detailed_proposal.recipients.map(item => item.email);
+    const linksByToken = tokensByRecipients.map((token) => process.env.PROPOSAL_PAGE.concat(`?s=${token}`));
+    const recipients = foundProposal.detailed_proposal.recipients.map((item) => item.email);
 
     const source = proposalTemplate;
     const template = Handlebars.compile(source);
@@ -211,10 +211,10 @@ export class ProposalService {
         const data = {
           customerName: recipient.split('@')?.[0] ? recipient.split('@')[0] : 'Customer',
           proposalValidityPeriod: foundProposal.detailed_proposal.proposal_validity_period,
-          recipientNotice: recipients.filter(i => i !== recipient).join(', ')
+          recipientNotice: recipients.filter((i) => i !== recipient).join(', ')
             ? `Please note, this proposal has been shared with additinal email IDs as per your request: ${recipients
-                .filter(i => i !== recipient)
-                .join(', ')}`
+              .filter((i) => i !== recipient)
+              .join(', ')}`
             : '',
           proposalLink: linksByToken[index],
         };
@@ -270,7 +270,7 @@ export class ProposalService {
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
   validateCustomerInformation(customerInformation: CustomerInformationDto, tokenPayload): boolean {
-    return Object.keys(customerInformation).every(key => customerInformation[key] === tokenPayload[key]);
+    return Object.keys(customerInformation).every((key) => customerInformation[key] === tokenPayload[key]);
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {

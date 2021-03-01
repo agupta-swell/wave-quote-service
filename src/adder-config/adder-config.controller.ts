@@ -1,5 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
+} from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { AdderConfigService } from './adder-config.service';

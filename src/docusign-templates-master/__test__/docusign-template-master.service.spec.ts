@@ -7,7 +7,7 @@ describe('Docusign Template Master Service', () => {
   let docusignTemplateMasterService: DocusignTemplateMasterService;
 
   describe('saveTemplate function', () => {
-    test(`should save successfully `, async () => {
+    test('should save successfully ', async () => {
       const mockSignerRoleMaster = {
         findById: jest
           .fn()
@@ -56,7 +56,7 @@ describe('Docusign Template Master Service', () => {
       expect(mockDocusignTemplateMaster.findOneAndUpdate).toHaveBeenCalledTimes(1);
     });
 
-    test(`should return status: INVALID_MODE_PARAMETER `, async () => {
+    test('should return status: INVALID_MODE_PARAMETER ', async () => {
       const mockSignerRoleMaster = {
         findById: jest
           .fn()
@@ -107,7 +107,7 @@ describe('Docusign Template Master Service', () => {
   });
 
   describe('saveContractCompositeTemplate function', () => {
-    test(`should save successfully `, async () => {
+    test('should save successfully ', async () => {
       const mockSignerRoleMaster = {
         findById: jest.fn().mockResolvedValue({
           _id: 'id',
@@ -185,7 +185,7 @@ describe('Docusign Template Master Service', () => {
       expect(mockDocusignCompositeTemplateMaster.findOneAndUpdate).toHaveBeenCalledTimes(1);
     });
 
-    test(`should return status: INVALID_MODE_PARAMETER `, async () => {
+    test('should return status: INVALID_MODE_PARAMETER ', async () => {
       const req = {
         mode: SAVE_TEMPLATE_MODE.UPDATE,
         compositeTemplateData: {

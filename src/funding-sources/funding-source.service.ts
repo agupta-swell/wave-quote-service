@@ -17,7 +17,7 @@ export class FundingSourceService {
 
     return OperationResult.ok(
       new Pagination({
-        data: fundingSources.map(fundingSource => new FundingSourceDto(fundingSource)),
+        data: fundingSources.map((fundingSource) => new FundingSourceDto(fundingSource)),
         total,
       }),
     );
@@ -32,6 +32,6 @@ export class FundingSourceService {
 
   async getAll(): Promise<FundingSource[]> {
     const fundingSources = await this.fundingSource.find();
-    return fundingSources.length ? fundingSources.map(item => item.toObject({ versionKey: false })) : [];
+    return fundingSources.length ? fundingSources.map((item) => item.toObject({ versionKey: false })) : [];
   }
 }

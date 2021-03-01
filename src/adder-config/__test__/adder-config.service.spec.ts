@@ -4,7 +4,7 @@ describe('Adder Config Service', () => {
   let adderConfigService: AdderConfigService;
 
   describe('getAdderConfigDetail function', () => {
-    test(`should return undefined `, async () => {
+    test('should return undefined ', async () => {
       const mockAdderConfig = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;

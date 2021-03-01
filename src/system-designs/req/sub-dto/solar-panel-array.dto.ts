@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested,
+} from 'class-validator';
 import { ORIENTATION } from '../../constants';
 
 class LatLng {

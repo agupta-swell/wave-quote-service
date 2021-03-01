@@ -1,5 +1,7 @@
 import { Document, Schema } from 'mongoose';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from './constants';
+import {
+  APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID,
+} from './constants';
 
 export const QUALIFICATION_CREDIT = Symbol('QUALIFICATION_CREDIT').toString();
 

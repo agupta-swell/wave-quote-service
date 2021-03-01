@@ -4,7 +4,7 @@ describe('Opportunity Service', () => {
   let opportunityService: OpportunityService;
 
   describe('getDetailById function', () => {
-    test(`should return undefined value `, async () => {
+    test('should return undefined value ', async () => {
       const mockFundingSource = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;
@@ -53,7 +53,7 @@ describe('Opportunity Service', () => {
   });
 
   describe('getContactIdById function', () => {
-    test(`should return undefined value `, async () => {
+    test('should return undefined value ', async () => {
       const mockFundingSource = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;
@@ -102,7 +102,7 @@ describe('Opportunity Service', () => {
   });
 
   describe('isExistedOpportunity function', () => {
-    test(`should return falsy value `, async () => {
+    test('should return falsy value ', async () => {
       const mockFundingSource = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;

@@ -15,7 +15,7 @@ describe('Lease Solver Config Service', () => {
       productivity: 0,
     };
 
-    test(`should return null `, async () => {
+    test('should return null ', async () => {
       const mockFundingSource = {
         findOne: jest.fn().mockResolvedValue(null),
       } as any;
@@ -62,7 +62,7 @@ describe('Lease Solver Config Service', () => {
   });
 
   describe('getListSolverCofigsByConditions function', () => {
-    test(`should return empty array`, async () => {
+    test('should return empty array', async () => {
       const mockFundingSource = {
         find: jest.fn().mockResolvedValue([]),
       } as any;

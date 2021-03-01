@@ -90,7 +90,7 @@ describe('Progress Controller', () => {
         JwtModule.register({
           secret: '123',
           signOptions: {
-            expiresIn: `1000s`,
+            expiresIn: '1000s',
           },
         }),
         MongooseModule.forRoot(process.env.MONGO_URL, { useFindAndModify: false }),

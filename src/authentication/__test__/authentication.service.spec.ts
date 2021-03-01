@@ -10,7 +10,7 @@ describe('Authentication Service', () => {
   });
 
   describe('login function', () => {
-    it(`should not find email in system`, async () => {
+    it('should not find email in system', async () => {
       const mockUserService = {
         findByEmail: () => null,
       } as any;

@@ -1,5 +1,7 @@
 import { Document, Schema, Types } from 'mongoose';
-import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
+import {
+  IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct,
+} from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
 import { COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
@@ -410,23 +412,41 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
 
 export class SystemDesignModel {
   _id: string;
+
   name: string;
+
   latitude: number;
+
   longtitude: number;
+
   opportunity_id: string;
+
   design_mode: string;
+
   thumbnail: string;
+
   is_selected: boolean;
+
   is_solar: boolean;
+
   is_retrofit: boolean;
+
   roof_top_design_data: IRoofTopSchema;
+
   capacity_production_design_data: string;
+
   system_production_data: ISystemProductionSchema;
+
   net_usage_post_installation: INetUsagePostInstallationSchema;
+
   cost_post_installation: IUtilityCostData;
+
   created_by: string;
+
   created_at: Date;
+
   updated_by: string;
+
   updated_at: Date;
 
   constructor(systemDesign: CreateSystemDesignDto) {
@@ -438,20 +458,21 @@ export class SystemDesignModel {
     this.longtitude = systemDesign.longtitude;
     this.opportunity_id = systemDesign.opportunityId;
     this.design_mode = systemDesign.designMode;
-    this.roof_top_design_data =
-      systemDesign.roofTopDesignData && this.transformRoofTopData(systemDesign.roofTopDesignData);
+    this.roof_top_design_data = systemDesign.roofTopDesignData && this.transformRoofTopData(systemDesign.roofTopDesignData);
     this.capacity_production_design_data = systemDesign.capacityProductionDesignData as any;
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
+    const {
+      inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments,
+    } = data;
     return {
-      panel_array: (panelArray || []).map(item => toSnakeCase(item)),
-      inverters: inverters.map(item => toSnakeCase(item)),
-      storage: storage.map(item => toSnakeCase(item)),
-      adders: adders.map(item => toSnakeCase(item)),
-      balance_of_systems: balanceOfSystems.map(item => toSnakeCase(item)),
-      ancillary_equipments: ancillaryEquipments.map(item => toSnakeCase(item)),
+      panel_array: (panelArray || []).map((item) => toSnakeCase(item)),
+      inverters: inverters.map((item) => toSnakeCase(item)),
+      storage: storage.map((item) => toSnakeCase(item)),
+      adders: adders.map((item) => toSnakeCase(item)),
+      balance_of_systems: balanceOfSystems.map((item) => toSnakeCase(item)),
+      ancillary_equipments: ancillaryEquipments.map((item) => toSnakeCase(item)),
     };
   };
 

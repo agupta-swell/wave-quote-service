@@ -50,8 +50,8 @@ export class ProposalSectionMasterService {
   ): Promise<OperationResult<Pagination<ProposalSectionMasterDto>>> {
     const condition = pickBy(
       {
-        applicable_products: { $in: ['all', ...(products ? products : [])] },
-        applicable_financial_products: { $in: ['all', ...(financialProducts ? financialProducts : [])] },
+        applicable_products: { $in: ['all', ...(products || [])] },
+        applicable_financial_products: { $in: ['all', ...(financialProducts || [])] },
       },
       identity,
     );
@@ -64,7 +64,7 @@ export class ProposalSectionMasterService {
     return OperationResult.ok(
       new Pagination({
         data: proposalSectionMasters.map(
-          proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster.toObject()),
+          (proposalSectionMaster) => new ProposalSectionMasterDto(proposalSectionMaster.toObject()),
         ),
         total,
       }),

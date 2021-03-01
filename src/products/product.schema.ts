@@ -1,6 +1,8 @@
 import { Document, Schema } from 'mongoose';
 import { COMPONENT_CATEGORY_TYPE, COMPONENT_TYPE, COST_UNIT_TYPE } from 'src/system-designs/constants';
-import { BATTERY_TYPE, INVERTER_TYPE, PANEL_OUTPUT_MODE, PV_WATT_MODULE_TYPE } from './constants';
+import {
+  BATTERY_TYPE, INVERTER_TYPE, PANEL_OUTPUT_MODE, PV_WATT_MODULE_TYPE,
+} from './constants';
 
 export const PRODUCT = Symbol('Product').toString();
 

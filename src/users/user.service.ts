@@ -6,6 +6,7 @@ import { USER, User } from './user.schema';
 @Injectable()
 export class UserService {
   exprieTime = 86400000;
+
   constructor(@InjectModel(USER) private userModel: Model<User>) {}
 
   // ================== INTERNAL ==============

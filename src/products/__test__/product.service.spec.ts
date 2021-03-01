@@ -5,7 +5,7 @@ describe('Product Service', () => {
   let productService: ProductService;
 
   describe('getDetailById function', () => {
-    test(`should return null `, async () => {
+    test('should return null ', async () => {
       const mockFundingSource = {
         findById: jest.fn().mockResolvedValue(null),
       } as any;

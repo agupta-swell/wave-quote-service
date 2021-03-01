@@ -402,15 +402,19 @@ describe('System Design Controller', () => {
   test('should create work correctly', async () => {
     class MockRespository {
       data: any;
+
       constructor(data) {
         this.data = data;
       }
+
       save(data) {
         return data;
       }
+
       toObject() {
         return this.data;
       }
+
       static find = jest.fn().mockReturnValueOnce({
         limit: jest.fn().mockReturnValueOnce({
           skip: jest.fn().mockReturnValueOnce([
@@ -426,10 +430,12 @@ describe('System Design Controller', () => {
         ...mockSystemDesignModel,
         toObject: jest.fn().mockReturnValue(mockSystemDesignModel),
       });
+
       static findOne = jest.fn().mockResolvedValue({
         ...mockSystemDesignModel,
         deleteOne: jest.fn(),
       });
+
       static estimatedDocumentCount = jest.fn().mockReturnValueOnce(1);
     }
 
@@ -487,15 +493,19 @@ describe('System Design Controller', () => {
   test('should update work correctly', async () => {
     class MockRespository {
       data: any;
+
       constructor(data) {
         this.data = data;
       }
+
       save(data) {
         return data;
       }
+
       toObject() {
         return this.data;
       }
+
       static find = jest.fn().mockReturnValueOnce({
         limit: jest.fn().mockReturnValueOnce({
           skip: jest.fn().mockReturnValueOnce([
@@ -512,10 +522,12 @@ describe('System Design Controller', () => {
         toObject: jest.fn().mockReturnValue(mockSystemDesignModel),
         updateOne: jest.fn().mockReturnValue(mockSystemDesignModel),
       });
+
       static findOne = jest.fn().mockResolvedValue({
         ...mockSystemDesignModel,
         deleteOne: jest.fn(),
       });
+
       static estimatedDocumentCount = jest.fn().mockReturnValueOnce(1);
     }
 
