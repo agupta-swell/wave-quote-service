@@ -56,7 +56,7 @@ export class QuoteService {
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
-  ) {}
+  ) {} // eslint-disable-line no-empty-function
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const [systemDesign, markupConfigs, quoteConfigData] = await Promise.all([
@@ -303,6 +303,7 @@ export class QuoteService {
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
 
+    // eslint-disable-next-line new-cap
     const obj = new this.quoteModel(model);
     await obj.save();
 
