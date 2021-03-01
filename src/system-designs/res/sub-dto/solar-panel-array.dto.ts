@@ -73,4 +73,7 @@ export class SolarPanelArrayDto {
 
   @ApiProperty()
   numberOfPanels: Number;
+
+  @ApiProperty()
+  shadingPercentage: Number;
 }

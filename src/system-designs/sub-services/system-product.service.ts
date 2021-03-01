@@ -37,6 +37,7 @@ export class SystemProductService {
       system_capacity_kW: data.systemCapacity,
       azimuth: data.azimuth,
       tilt: data.tilt,
+      losses: data.losses
     });
 
     if (pvWattSystemProduction) {
@@ -50,7 +51,7 @@ export class SystemProductService {
       system_capacity_kW: data.systemCapacity,
       azimuth: data.azimuth,
       tilt: data.tilt,
-      losses: 5.5,
+      losses: data.losses,
       array_type: 1,
       module_type: 1,
       ac_annual_hourly_production: res.ac,
@@ -94,7 +95,7 @@ export class SystemProductService {
             systemCapacity: systemCapacityInkWh,
             azimuth: item.azimuth,
             tilt: item.pitch,
-            losses: 5.5,
+            losses: item.shadingPercentage,
           } as IPvWatCalculation;
           const res = await this.externalService.calculateSystemProduction(payload);
 
@@ -104,7 +105,7 @@ export class SystemProductService {
             system_capacity_kW: systemCapacityInkWh,
             azimuth: item.azimuth,
             tilt: item.pitch,
-            losses: 5.5,
+            losses: item.shadingPercentage,
             array_type: 1,
             module_type: 1,
             ac_annual_hourly_production: res.ac,

@@ -101,4 +101,10 @@ export class SolarPanelArrayDto1 {
   @IsNumber()
   @IsPositive()
   numberOfPanels: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  @IsPositive()
+  shadingPercentage: number;
 }

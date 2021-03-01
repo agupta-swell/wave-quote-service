@@ -32,9 +32,20 @@ export class ExternalService {
 
     let systemProduction: any;
     try {
-      systemProduction = await axios.get(
-        `${url}?lat=${lat}&lon=${lon}&system_capacity=${systemCapacity}&azimuth=${azimuth}&tilt=${tilt}&array_type=1&module_type=1&losses=${losses}&timeframe=hourly`,
+      systemProduction = await axios.get(url,
         {
+          params: {
+            lat,
+            lon,
+            system_capacity: systemCapacity,
+            azimuth,
+            tilt,
+            losses,
+            module_type: 1,
+            array_type: 1,
+            timeframe: 'hourly'
+
+          },
           headers: {
             'X-Api-Key': apiKey,
           },
