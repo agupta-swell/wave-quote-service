@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsNotEmpty, IsNumber, IsPositive, IsString, ValidateNested,
+  IsNotEmpty, IsNumber, IsPositive, IsString, Max, Min, ValidateNested
 } from 'class-validator';
 import { ORIENTATION } from '../../constants';
 
@@ -105,6 +105,7 @@ export class SolarPanelArrayDto1 {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  @IsPositive()
+  @Min(0)
+  @Max(99)
   shadingPercentage: number;
 }
