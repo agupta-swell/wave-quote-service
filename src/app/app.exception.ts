@@ -21,7 +21,7 @@ export class ApplicationException extends HttpException {
   }
 
   static NoPermission() {
-    return new ApplicationException('You don\'t have permission to do this.', HttpStatus.UNAUTHORIZED);
+    return new ApplicationException("You don't have permission to do this.", HttpStatus.UNAUTHORIZED);
   }
 
   static WrongEmail() {
@@ -64,5 +64,12 @@ export class ApplicationException extends HttpException {
 
   static ExistedEntity(type: string, id?: string) {
     return new ApplicationException(`Can not process with ${type}: ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+
+  static NoQuoteConfigAvailable() {
+    return new ApplicationException(
+      'Your partner account is not configured with any quoting modes. Please contact Swell to finish setting up your partner account.',
+      HttpStatus.NOT_FOUND,
+    );
   }
 }

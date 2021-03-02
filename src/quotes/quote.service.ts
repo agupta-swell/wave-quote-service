@@ -65,7 +65,16 @@ export class QuoteService {
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
     ]);
 
-    if (!markupConfigs?.length || !quoteConfigData) {
+    if (
+      !quoteConfigData
+      || (!quoteConfigData.enableCostBuildup
+        && !quoteConfigData.enablePricePerWatt
+        && !quoteConfigData.enablePriceOverride)
+    ) {
+      throw ApplicationException.NoQuoteConfigAvailable();
+    }
+
+    if (!markupConfigs?.length) {
       throw ApplicationException.EnitityNotFound('Quote Config');
     }
 
