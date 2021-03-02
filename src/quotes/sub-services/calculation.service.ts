@@ -47,6 +47,8 @@ export class CalculationService {
       throw ApplicationException.NullEnitityFound('Lease Config');
     }
 
+    //IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
+    //    IN calculateLeaseQuoteForECom() ALSO.
     const actualSystemCostPerkW = leaseSolverConfig.adjusted_install_cost + 0.1;
     const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
     const averageProductivity = (leaseSolverConfig.productivity_min + leaseSolverConfig.productivity_max) / 2;
@@ -56,6 +58,13 @@ export class CalculationService {
       * 1000;
     const adjustedSolarRate = leaseSolverConfig.rate_per_kWh + rateDeltaPerkWh;
     const monthlyLeasePayment = (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
+
+    //IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
+    //    IN calculateLeaseQuoteForECom() ALSO.
+
+
+
+
 
     productAttribute.monthlyLeasePayment = monthlyLeasePayment;
     productAttribute.ratePerkWh = leaseSolverConfig.rate_per_kWh;
@@ -70,6 +79,83 @@ export class CalculationService {
     productAttribute.monthlyUtilityPayment = monthlyUtilityPayment;
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
     return detailedQuote;
+  }
+
+  async calculateLeaseQuoteForECom(
+     isSolar: boolean,
+     isRetrofit: boolean,
+     leaseAmount: number, //NOTE : FUTURE USE
+     contractTerm: number,
+     storageSize: number,
+     capacitykW: number,
+     rateEscalator: number,
+     productivity: number,
+     addGridServiceDiscount: boolean,  //NOTE : FUTURE USE
+     utilityProgramName : string
+  ): Promise<number> {
+
+
+    var utilityProgram : string;
+
+    if(utilityProgramName){
+      utilityProgram = utilityProgramName;
+    }else{
+      utilityProgram = 'none';
+    }
+
+    const query = {
+      isSolar: isSolar,
+      isRetrofit: isRetrofit,
+      utilityProgramName: utilityProgram,
+      contractTerm: contractTerm,
+      storageSize: storageSize,
+      rateEscalator: rateEscalator,
+      capacityKW: capacitykW,
+      productivity: productivity,
+    };
+
+    const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
+
+    if (!leaseSolverConfig) {
+      throw ApplicationException.NullEnitityFound('Lease Config');
+    }
+
+    //IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
+    //    IN calculateLeaseQuote() ALSO.
+    const actualSystemCostPerkW = leaseSolverConfig.adjusted_install_cost + 0.1;
+    const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
+    const averageProductivity = (leaseSolverConfig.productivity_min + leaseSolverConfig.productivity_max) / 2;
+    const rateDeltaPerkWh =
+      (actualSystemCostPerkW - leaseSolverConfig.adjusted_install_cost) *
+      leaseSolverConfig.rate_factor *
+      averageSystemSize *
+      1000;
+    const adjustedSolarRate = leaseSolverConfig.rate_per_kWh + rateDeltaPerkWh;
+    const monthlyLeasePayment =
+      (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
+    //IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
+    //    IN calculateLeaseQuote() ALSO.
+
+
+    /*
+    productAttribute.monthlyLeasePayment = monthlyLeasePayment;
+    productAttribute.ratePerkWh = leaseSolverConfig.rate_per_kWh;
+    productAttribute.yearlyLoanPaymentDetails = this.getYearlyLeasePaymentDetails(
+      productAttribute.leaseTerm,
+      monthlyLeasePayment,
+    );
+    productAttribute.currentMonthlyAverageUtilityPayment = await this.getCurrentMonthlyAverageUtilityPayment(
+      detailedQuote.opportunityId,
+    );
+    productAttribute.monthlyEnergyPayment = monthlyLeasePayment + productAttribute.currentMonthlyAverageUtilityPayment;
+    productAttribute.monthlyUtilityPayment = monthlyUtilityPayment;
+    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
+    return detailedQuote;
+
+    */
+
+
+    return monthlyLeasePayment;
   }
 
   private getYearlyLeasePaymentDetails(leaseTerm: number, monthlyLeasePayment: number) {

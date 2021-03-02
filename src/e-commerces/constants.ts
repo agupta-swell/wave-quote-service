@@ -9,6 +9,8 @@ export enum PAYMENT_TYPE {
   CASH = 'cash',
   LEASE_WITHOUT_GRID_SERVICE = 'lease_without_grid_service',
   LEASE_WITH_GRID_SERVICE = 'lease_with_grid_service',
+  LEASE_ESSENTIAL_BACKUP = 'lease_essential_backup',
+  LEASE_WHOLE_HOME_BACKUP = 'lease_whole_home_backup',
 }
 
 export enum ECOM_PRODUCT_TYPE {
