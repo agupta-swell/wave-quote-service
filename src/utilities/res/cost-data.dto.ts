@@ -38,7 +38,7 @@ export class CostDataDto {
   @ApiProperty({ type: UtilityCostData })
   typicalUsageCost: UtilityCostData;
 
-  @ApiProperty()
+  @ApiProperty({ type: UtilityCostData })
   actualUsageCost: UtilityCostData | null;
 
   constructor(props: ICostData) {

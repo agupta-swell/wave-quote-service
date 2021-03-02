@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
+import { ILoadServingEntity } from 'src/external-services/typing';
 import { QuoteService } from 'src/quotes/quote.service';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
@@ -43,15 +44,23 @@ export class UtilityService {
     private readonly systemDesignService: SystemDesignService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
-  ) { }
+  ) {}
 
-  async getTypicalBaseline(zipCode: number): Promise<OperationResult<UtilityDataDto>> {
+  async getLoadServingEntity(zipCode: number): Promise<ILoadServingEntity> {
+    const res = await this.externalService.getLoadServingEntity(zipCode);
+    return res;
+  }
+
+  async getTypicalBaseline(zipCode: number, isInternal = false): Promise<OperationResult<UtilityDataDto>> {
     const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
     if (typicalBaseLine) {
       const typicalBaseLineObj = typicalBaseLine.toObject();
-      delete typicalBaseLineObj.typical_hourly_usage;
+      if (!isInternal) {
+        delete typicalBaseLineObj.typical_hourly_usage;
+      }
+
       const data = { typicalBaselineUsage: typicalBaseLineObj };
-      return OperationResult.ok(new UtilityDataDto(data));
+      return OperationResult.ok(new UtilityDataDto(data, isInternal));
     }
 
     const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
@@ -66,9 +75,11 @@ export class UtilityService {
     await createdTypicalBaseLine.save();
 
     const createdTypicalBaseLineObj = createdTypicalBaseLine.toObject();
-    delete createdTypicalBaseLineObj.typical_baseline.typical_hourly_usage;
+    if (!isInternal) {
+      delete createdTypicalBaseLineObj.typical_baseline.typical_hourly_usage;
+    }
     const data = { typicalBaselineUsage: createdTypicalBaseLineObj };
-    return OperationResult.ok(new UtilityDataDto(data));
+    return OperationResult.ok(new UtilityDataDto(data, isInternal));
   }
 
   async getTariffs(zipCode: number, lseId: number): Promise<OperationResult<TariffDto>> {
@@ -242,7 +253,7 @@ export class UtilityService {
     return new Date(year, month, 0).getDate();
   }
 
-  async getTypicalBaselineData(zipCode: number) {
+  async getTypicalBaselineData(zipCode: number): Promise<GenabilityUsageData> {
     let typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
     if (typicalBaseLine) {
       const typicalBaseLineObj = typicalBaseLine.toObject();

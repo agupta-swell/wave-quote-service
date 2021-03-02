@@ -32,25 +32,22 @@ export class ExternalService {
 
     let systemProduction: any;
     try {
-      systemProduction = await axios.get(url,
-        {
-          params: {
-            lat,
-            lon,
-            system_capacity: systemCapacity,
-            azimuth,
-            tilt,
-            losses,
-            module_type: 1,
-            array_type: 1,
-            timeframe: 'hourly'
-
-          },
-          headers: {
-            'X-Api-Key': apiKey,
-          },
+      systemProduction = await axios.get(url, {
+        params: {
+          lat,
+          lon,
+          system_capacity: systemCapacity,
+          azimuth,
+          tilt,
+          losses,
+          module_type: 1,
+          array_type: 1,
+          timeframe: 'hourly',
         },
-      );
+        headers: {
+          'X-Api-Key': apiKey,
+        },
+      });
     } catch (error) {
       this.logger.errorAPICalling(url, error.message);
       throw ApplicationException.ServiceError();
@@ -60,7 +57,6 @@ export class ExternalService {
 
   async getLoadServingEntity(zipCode: number): Promise<ILoadServingEntity> {
     const url = 'https://api.genability.com/rest/public';
-    const token = 'Basic MmZkOWMwNzUtZWZmYi00M2QyLWI1MWUtNjk1Y2I3NzI2ODk3OmZlMzk1NzZmLTExM2ItNGViZC05ZDU4LWM2ZTY5ODgyY2FjMg==';
 
     let systemProduction: any;
     try {
@@ -68,7 +64,7 @@ export class ExternalService {
         `${url}/lses?zipCode=${zipCode}&country=US&residentialServiceTypes=ELECTRICITY&fields=ext`,
         {
           headers: {
-            Authorization: token,
+            Authorization: this.genabilityToken,
           },
         },
       );
@@ -175,21 +171,18 @@ export class ExternalService {
 
     let tariff: any;
     try {
-      tariff = await axios.get(
-        'https://api.genability.com/rest/public/tariffs',
-        {
-          headers: {
-            Authorization: this.genabilityToken,
-          },
-          params: {
-            lseId,
-            zipCode,
-            populateProperties: true,
-            isActive: true,
-            customerClasses: 'RESIDENTIAL',
-          },
+      tariff = await axios.get('https://api.genability.com/rest/public/tariffs', {
+        headers: {
+          Authorization: this.genabilityToken,
         },
-      );
+        params: {
+          lseId,
+          zipCode,
+          populateProperties: true,
+          isActive: true,
+          customerClasses: 'RESIDENTIAL',
+        },
+      });
     } catch (error) {
       this.logger.errorAPICalling(url, error.message);
       throw ApplicationException.ServiceError();
@@ -235,6 +228,7 @@ export class ExternalService {
   }
 
   // TODO: need to delete when having real api
+  // eslint-disable-next-line class-methods-use-this
   getFniResponse(data: IApplyRequest): IApplyResponse {
     const primarySSN = data.applicant1.soc;
     let code: string;
@@ -245,6 +239,7 @@ export class ExternalService {
         break;
       case '2':
         code = 'C';
+      // eslint-disable-next-line no-fallthrough
       default:
         code = 'T';
     }

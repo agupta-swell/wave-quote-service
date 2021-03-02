@@ -35,6 +35,6 @@ import { SystemDesignService } from './system-design.service';
   ],
   controllers: [SystemDesignController],
   providers: [SystemDesignService, SystemProductService, UploadImageService],
-  exports: [SystemDesignService],
+  exports: [SystemDesignService, SystemProductService],
 })
 export class SystemDesignModule {}

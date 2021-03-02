@@ -50,6 +50,8 @@ export class TypicalBaseLine {
 
   @ApiProperty({ type: TypicalUsage })
   typicalMonthlyUsage: TypicalUsage[];
+
+  typicalHourlyUsage: TypicalUsage[];
 }
 
 export class ActualUsageDto {
@@ -76,11 +78,15 @@ export class UtilityDataDto {
   @ApiProperty({ type: ActualUsageDto })
   actualUsage: ActualUsageDto;
 
-  constructor(props: any) {
+  constructor(props: any, isInternal = false) {
     this.loadServingEntityData = toCamelCase(props?.loadServingEntityData);
-    props?.typicalBaselineUsage?.typical_baseline
-      && delete props.typicalBaselineUsage.typical_baseline.typical_hourly_usage;
-    this.typicalBaselineUsage = toCamelCase(props?.typicalBaselineUsage.typical_baseline);
+    if (!isInternal) {
+      props?.typicalBaselineUsage?.typical_baseline &&
+        delete props.typicalBaselineUsage.typical_baseline.typical_hourly_usage;
+    }
+    this.typicalBaselineUsage = toCamelCase(props?.typicalBaselineUsage?.typical_baseline);
+    // FIXME: need to fix later
+    this.actualUsage = {} as any;
   }
 
   static actualUsages(props: any) {
