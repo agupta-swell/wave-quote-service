@@ -12,7 +12,7 @@ import { ITypicalUsage } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { OperationResult } from '../app/common';
-import { ECOM_PRODUCT_TYPE, PAYMENT_TYPE } from './constants';
+import { ECOM_PRODUCT_TYPE, PAYMENT_TYPE, ENERGY_SERVICE_TYPE } from './constants';
 import { GetEcomSystemDesignAndQuoteReq } from './req/get-ecom-system-design-and-quote.dto';
 import { GetEcomSystemDesignAndQuoteDto } from './res/get-ecom-system-design-and-quote.dto';
 import {
@@ -31,7 +31,7 @@ import {
 import { LoanProductAttributesDto } from 'src/quotes/req/sub-dto/loan-product-attributes.dto';
 import { CalculationService } from 'src/quotes/sub-services/calculation.service';
 import { CalculateQuoteDetailDto } from 'src/quotes/req/calculate-quote-detail.dto'
-import { PaymentOptionDataDto } from './res/sub-dto';
+import { PaymentOptionDataDto, CostDetailDataDto } from './res/sub-dto';
 
 
 @Injectable()
@@ -236,25 +236,68 @@ export class ECommerceService {
     cashPaymentOptionDataDtoInst.paymentDetail.savingsFiveYear = 0; //NOTE: TODO - PENDING JON'S SAVING DATA
     cashPaymentOptionDataDtoInst.paymentDetail.savingTwentyFiveYear = 0; //NOTE: TODO - PENDING JON'S SAVING DATA
     cashPaymentOptionDataDtoInst.paymentDetail.deposit = depositAmount;
+    getEcomSystemDesignAndQuoteResponseInst.paymentOptionData.push(cashPaymentOptionDataDtoInst);
 
     //CALCULATE THE LEASE AMOUNT USING WAVE 2.0 QUOTE
     var rateEscalator : number = 2.9; //"Rate escalator is currently assumed to be 2.9"
     var contractTerm : number = 25; //"Contract term is currently assumed to be 25"
-
+    var utilityProgramName : string = 'none';
     //LEASE FOR ESSENTIAL BACKUP
+    var pricePerWattForEssentialBackup = overAllCost / netGenerationKWh;
+    var monthlyEsaAmountForEssentialBackup : number =   await this.calculationService.calculateLeaseQuoteForECom( true, false, overAllCost, contractTerm,  1, netGenerationKWh, rateEscalator, systemProduction.productivity, false, utilityProgramName ); 
+
+    //LEASE FOR WHOLE HOME BACKUP
+    var overallCostForWholeHomeBackup : number = overAllCost + (1 * storage_price) //Add 1 battery additional on top of essential backup
+    var pricePerWattForWholeHomeBackup : number = overallCostForWholeHomeBackup / netGenerationKWh
+    var monthlyEsaAmountForWholeHomeBackup : number =   await this.calculationService.calculateLeaseQuoteForECom(   true, false, overallCostForWholeHomeBackup, contractTerm,  2, netGenerationKWh, rateEscalator, systemProduction.productivity, false, utilityProgramName );
+
+    //BUILD getEcomSystemDesignAndQuote RESPONSE FOR QUOTE OPTIONS
+
+    getEcomSystemDesignAndQuoteResponseInst.pvModuleDetailData.systemKw = numberOfPanels * panelSTCRating;
+    getEcomSystemDesignAndQuoteResponseInst.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
+    getEcomSystemDesignAndQuoteResponseInst.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
+    getEcomSystemDesignAndQuoteResponseInst.pvModuleDetailData.estimatedTwentyFiveYearsSavings = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+    getEcomSystemDesignAndQuoteResponseInst.storageSystemDetailData.storageSystemCount = numberOfBatteries;
+    getEcomSystemDesignAndQuoteResponseInst.storageSystemDetailData.storageSystemKwh = numberOfBatteries * storagePerBatteryInkWh;
+    getEcomSystemDesignAndQuoteResponseInst.storageSystemDetailData.numberOfDaysBackup = 0; // TO DO: CALCULATION TBD
 
 
-    -.  //LEASE FOR ESSENTIAL BACKUP
-    -.  monthlyEsaAmountForEssentialBackup : number =   quoteEngine.calculateLeaseQuoteForEcom(   true, false, overallCost, contractTerm,  1, netGenerationKWh, rateEscalator, systemDesignData.productivity, false ) 
+    var essentialBackupCostDetailDataDtoInst : CostDetailDataDto;
+    essentialBackupCostDetailDataDtoInst.energyServiceType = ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP;
+    essentialBackupCostDetailDataDtoInst.quoteDetail.monthlyCost = monthlyEsaAmountForEssentialBackup;
+    essentialBackupCostDetailDataDtoInst.quoteDetail.pricePerWatt = pricePerWattForEssentialBackup;
+    essentialBackupCostDetailDataDtoInst.quoteDetail.estimatedIncrease = null; // TO DO: CALCULATION TBD
+    essentialBackupCostDetailDataDtoInst.quoteDetail.estimatedBillInTenYears = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+    essentialBackupCostDetailDataDtoInst.quoteDetail.cumulativeSavingsOverTwentyFiveYears = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+    getEcomSystemDesignAndQuoteResponseInst.costDetailsData.push(essentialBackupCostDetailDataDtoInst);
 
-    -.  //LEASE FOR WHOLE HOME BACKUP
-    -.  overallCostForWholeHomeBackup : number = overallCost + (1 * storagePrice) //PLEAE ADD THIS NOTE IN THE CODE : "Add 1 battery additional on top of essential backup"
-    -.  pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / netGenerationKWh
-    -.  monthlyEsaAmountForWholeHomeBackup : number =   quoteEngine.calculateLeaseQuoteForEcom(   true, false, overallCost, contractTerm,  2, netGenerationKWh, rateEscalator, systemDesignData.productivity, false ) 
+
+    var whBackupCostDetailDataDtoInst : CostDetailDataDto;
+    whBackupCostDetailDataDtoInst.energyServiceType = ENERGY_SERVICE_TYPE.SWELL_ESA_WHOLE_HOME;
+    whBackupCostDetailDataDtoInst.quoteDetail.monthlyCost = monthlyEsaAmountForWholeHomeBackup;
+    whBackupCostDetailDataDtoInst.quoteDetail.pricePerWatt = pricePerWattForWholeHomeBackup;
+    whBackupCostDetailDataDtoInst.quoteDetail.estimatedIncrease = null; // TO DO: CALCULATION TBD
+    whBackupCostDetailDataDtoInst.quoteDetail.estimatedBillInTenYears = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+    whBackupCostDetailDataDtoInst.quoteDetail.cumulativeSavingsOverTwentyFiveYears = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+    getEcomSystemDesignAndQuoteResponseInst.costDetailsData.push(whBackupCostDetailDataDtoInst);
 
 
+    // SET THE QUOTE FOR ESSENTIAL BACKUP AND WHOLE HOME PACKUP
+    var essentialBackupPaymentOptionDataDtoInst : PaymentOptionDataDto;
+    essentialBackupPaymentOptionDataDtoInst.paymentType = PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP;
+    essentialBackupPaymentOptionDataDtoInst.paymentDetail.monthlyPaymentAmount = monthlyEsaAmountForEssentialBackup;
+    essentialBackupPaymentOptionDataDtoInst.paymentDetail.savingsFiveYear = 0; //NOTE: TO DO - PENDING JON'S SAVING DATA
+    essentialBackupPaymentOptionDataDtoInst.paymentDetail.savingTwentyFiveYear = 0; //NOTE: TO DO - PENDING JON'S SAVING DATA
+    essentialBackupPaymentOptionDataDtoInst.paymentDetail.deposit = 0;//NOTE: TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
+    getEcomSystemDesignAndQuoteResponseInst.paymentOptionData.push(essentialBackupPaymentOptionDataDtoInst);
 
-
+    var whBackupPaymentOptionDataDtoInst : PaymentOptionDataDto;
+    whBackupPaymentOptionDataDtoInst.paymentType = PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP;
+    whBackupPaymentOptionDataDtoInst.paymentDetail.monthlyPaymentAmount = monthlyEsaAmountForWholeHomeBackup;
+    whBackupPaymentOptionDataDtoInst.paymentDetail.savingsFiveYear = 0; //NOTE: TO DO - PENDING JON'S SAVING DATA
+    whBackupPaymentOptionDataDtoInst.paymentDetail.savingTwentyFiveYear = 0; //NOTE: TO DO - PENDING JON'S SAVING DATA
+    whBackupPaymentOptionDataDtoInst.paymentDetail.deposit = 0;//NOTE: TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
+    getEcomSystemDesignAndQuoteResponseInst.paymentOptionData.push(whBackupPaymentOptionDataDtoInst);
 
 
     return OperationResult.ok(true as any);
