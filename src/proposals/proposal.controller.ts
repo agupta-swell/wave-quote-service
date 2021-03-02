@@ -10,6 +10,7 @@ import { CurrentUser, CustomJWTSecretKey, PreAuthenticate } from '../app/securit
 import { CurrentUserType } from '../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto } from './req/create-proposal.dto';
+import { SaveProposalAnalyticDto } from './req/save-proposal-analytic.dto';
 import { UpdateProposalDto } from './req/update-proposal.dto';
 import { ValidateProposalDto } from './req/validate-proposal.dto';
 import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
@@ -96,13 +97,43 @@ export class ProposalController {
   }
 
   @Post('/validations')
-  @ApiOperation({ summary: 'Validate and Reponse Data' })
+  @ApiOperation({ summary: 'Validate and Response Data' })
   @ApiOkResponse({ type: ProposalRes })
   @CustomJWTSecretKey(process.env.PROPOSAL_JWT_SECRET)
   async getProposalLink(
     @Body() body: ValidateProposalDto,
   ): Promise<ServiceResponse<{ isAgent: boolean; proposalDetail: ProposalDto }>> {
     const res = await this.proposalService.verifyProposalToken(body);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/save-analytics')
+  @ApiOperation({ summary: 'Validate and Save Analytic Information' })
+  @ApiOkResponse({ type: Boolean })
+  @CustomJWTSecretKey(process.env.PROPOSAL_JWT_SECRET)
+  async saveProposalAnalytic(@Body() body: SaveProposalAnalyticDto): Promise<ServiceResponse<Boolean>> {
+    const res = await this.proposalService.saveProposalAnalytic(body);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/get-presigned-url')
+  @ApiOperation({ summary: 'Validate and Response Url' })
+  @ApiOkResponse({ type: String })
+  @CustomJWTSecretKey(process.env.PROPOSAL_JWT_SECRET)
+  async getPresignedUrlProposalApp(
+    @Body() body: { fileName: string; fileType: string; token: string },
+  ): Promise<ServiceResponse<String>> {
+    const res = await this.proposalService.getPreSignedObjectUrl(body.fileName, body.fileType, body.token, false);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/get-presigned-url-sqt')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Validate and Response Url' })
+  @ApiOkResponse({ type: String })
+  async getPresignedUrl(@Body() body: { fileName: string; fileType: string }): Promise<ServiceResponse<String>> {
+    const res = await this.proposalService.getPreSignedObjectUrl(body.fileName, body.fileType, '', true);
     return ServiceResponse.fromResult(res);
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import axios from 'axios';
 import * as Handlebars from 'handlebars';
 import { identity, pickBy } from 'lodash';
 import { Model } from 'mongoose';
@@ -14,18 +15,23 @@ import { EmailService } from '../emails/email.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { ApplicationException } from '../app/app.exception';
 import { QuoteService } from '../quotes/quote.service';
-import { PROPOSAL_STATUS } from './constants';
+import { PROPOSAL_ANALYTIC_TYPE, PROPOSAL_STATUS } from './constants';
 import { IDetailedProposalSchema, Proposal, PROPOSAL } from './proposal.schema';
 import { CreateProposalDto } from './req/create-proposal.dto';
 import { UpdateProposalDto } from './req/update-proposal.dto';
 import { CustomerInformationDto, ValidateProposalDto } from './req/validate-proposal.dto';
 import { ProposalDto } from './res/proposal.dto';
 import proposalTemplate from './template-html/proposal-template';
+import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
+import { SaveProposalAnalyticDto } from './req/save-proposal-analytic.dto';
+import { GetPresignedUrlService } from './sub-services/s3.service';
+import { stringify } from 'querystring';
 
 @Injectable()
 export class ProposalService {
   constructor(
     @InjectModel(PROPOSAL) private proposalModel: Model<Proposal>,
+    @InjectModel(PROPOSAL_ANALYTIC) private proposalAnalyticModel: Model<ProposalAnalytic>,
     private readonly systemDesignService: SystemDesignService,
     private readonly quoteService: QuoteService,
     private readonly jwtService: JwtService,
@@ -34,6 +40,7 @@ export class ProposalService {
     private readonly opportunityService: OpportunityService,
     private readonly userService: UserService,
     private readonly contactService: ContactService,
+    private readonly getPresignedUrlService: GetPresignedUrlService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -58,8 +65,39 @@ export class ProposalService {
         system_design_data: systemDesign,
       },
     });
-    await model.save();
-    return OperationResult.ok(new ProposalDto(model.toObject()));
+
+    // Generate PDF and HTML file then get File Url
+    const infoProposalAfterInsert = await model.save();
+    const token = this.jwtService.sign(
+      {
+        proposalId: infoProposalAfterInsert._id,
+        isAgent: true,
+      },
+      { expiresIn: '5m', secret: process.env.PROPOSAL_JWT_SECRET },
+    );
+
+    const { data } = await axios.get(`${process.env.PROPOSAL_URL}/generate?token=${token}`);
+    const newData = {
+      detailed_proposal: {} as IDetailedProposalSchema,
+      opportunity_id: proposalDto.opportunityId,
+      system_design_id: proposalDto.systemDesignId,
+      quote_id: proposalDto.quoteId,
+    } as Proposal;
+
+    if (data?.pdfFileUrl) {
+      newData.detailed_proposal.pdf_file_url = data.pdfFileUrl;
+    }
+    if (data?.htmlFileUrl) {
+      newData.detailed_proposal.html_file_url = data.htmlFileUrl;
+    }
+
+    newData.detailed_proposal = { ...model.toObject().detailed_proposal, ...newData.detailed_proposal };
+
+    await this.proposalModel.findByIdAndUpdate(infoProposalAfterInsert._id, newData, {
+      new: true,
+    });
+
+    return OperationResult.ok(new ProposalDto(newData));
   }
 
   async update(id: string, proposalDto: UpdateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -178,10 +216,10 @@ export class ProposalService {
         zipCode: 'need to fix later',
         isAgent: true,
       },
-      { expiresIn: '5m', secret: process.env.PROPOSAL_JWT_SECRET },
+      { expiresIn: '1d', secret: process.env.PROPOSAL_JWT_SECRET },
     );
 
-    return OperationResult.ok({ proposalLink: process.env.PROPOSAL_PAGE.concat(`?s=${token}`) });
+    return OperationResult.ok({ proposalLink: process.env.PROPOSAL_URL.concat(`/?s=${token}`) });
   }
 
   async sendRecipients(proposalId: string, user: CurrentUserType): Promise<OperationResult<boolean>> {
@@ -200,8 +238,8 @@ export class ProposalService {
       { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
     ));
 
-    const linksByToken = tokensByRecipients.map((token) => process.env.PROPOSAL_PAGE.concat(`?s=${token}`));
-    const recipients = foundProposal.detailed_proposal.recipients.map((item) => item.email);
+    const linksByToken = tokensByRecipients.map(token => process.env.PROPOSAL_URL.concat(`/?s=${token}`));
+    const recipients = foundProposal.detailed_proposal.recipients.map(item => item.email);
 
     const source = proposalTemplate;
     const template = Handlebars.compile(source);
@@ -211,10 +249,10 @@ export class ProposalService {
         const data = {
           customerName: recipient.split('@')?.[0] ? recipient.split('@')[0] : 'Customer',
           proposalValidityPeriod: foundProposal.detailed_proposal.proposal_validity_period,
-          recipientNotice: recipients.filter((i) => i !== recipient).join(', ')
-            ? `Please note, this proposal has been shared with additinal email IDs as per your request: ${recipients
-              .filter((i) => i !== recipient)
-              .join(', ')}`
+          recipientNotice: recipients.filter(i => i !== recipient).join(', ')
+            ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipients
+                .filter(i => i !== recipient)
+                .join(', ')}`
             : '',
           proposalLink: linksByToken[index],
         };
@@ -275,5 +313,70 @@ export class ProposalService {
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
     return await this.proposalModel.countDocuments({ opportunity_id: opportunityId });
+  }
+
+  async saveProposalAnalytic(analyticInfo: SaveProposalAnalyticDto): Promise<OperationResult<boolean>> {
+    try {
+      await this.jwtService.verifyAsync(analyticInfo.token, {
+        secret: process.env.PROPOSAL_JWT_SECRET,
+        ignoreExpiration: false,
+      });
+    } catch (error) {
+      throw new UnauthorizedException();
+    }
+
+    const { proposalId, type, viewBy } = analyticInfo;
+    const foundProposal = await this.proposalModel.exists({ _id: proposalId });
+    if (!foundProposal) {
+      throw ApplicationException.EnitityNotFound(proposalId);
+    }
+    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposal_id: proposalId, view_by: viewBy });
+    if (!foundAnalytic) {
+      const dataToSave =
+        type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
+          ? { downloads: [new Date()], views: [] }
+          : { views: [new Date()], downloads: [] };
+      const model = new this.proposalAnalyticModel({
+        proposal_id: proposalId,
+        view_by: viewBy,
+        ...dataToSave,
+      });
+      await model.save();
+      return OperationResult.ok(true);
+    } else {
+      const dataToUpdate =
+        type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
+          ? {
+              downloads: [...foundAnalytic.toObject().downloads, new Date()],
+              views: foundAnalytic.toObject().views,
+            }
+          : {
+              views: [...foundAnalytic.toObject().views, new Date()],
+              downloads: foundAnalytic.toObject().downloads,
+            };
+      await this.proposalAnalyticModel.findByIdAndUpdate(foundAnalytic._id, dataToUpdate);
+      return OperationResult.ok(true);
+    }
+  }
+
+  async getPreSignedObjectUrl(
+    fileName: string,
+    fileType: string,
+    token: string,
+    isSolarQuoteTool: boolean,
+  ): Promise<OperationResult<string>> {
+    if (!isSolarQuoteTool) {
+      try {
+        await this.jwtService.verifyAsync(token, {
+          secret: process.env.PROPOSAL_JWT_SECRET,
+          ignoreExpiration: false,
+        });
+      } catch (error) {
+        throw new UnauthorizedException();
+      }
+    }
+
+    const url = await this.getPresignedUrlService.getPresignedUrl(fileName, fileType);
+    return OperationResult.ok(url);
   }
 }

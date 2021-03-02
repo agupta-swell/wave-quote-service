@@ -6,6 +6,7 @@ import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
 import { ProposalService } from './proposal.service';
 import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
+import { GetPresignedUrlService } from './sub-services/s3.service';
 
 @Global()
 @Module({
@@ -27,7 +28,7 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
     ]),
   ],
   controllers: [ProposalController],
-  providers: [ProposalService],
+  providers: [ProposalService, GetPresignedUrlService],
   exports: [ProposalService],
 })
 export class ProposalModule {}

@@ -3,3 +3,8 @@ export enum PROPOSAL_STATUS {
   SENT = 'sent',
   VIEWED = 'viewed',
 }
+
+export enum PROPOSAL_ANALYTIC_TYPE {
+  VIEW = 'view',
+  DOWNLOAD = 'download',
+}
