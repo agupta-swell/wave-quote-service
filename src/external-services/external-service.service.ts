@@ -55,12 +55,12 @@ export class ExternalService {
     return systemProduction.data.outputs;
   }
 
-  async getLoadServingEntity(zipCode: number): Promise<ILoadServingEntity> {
+  async getLoadServingEntities(zipCode: number): Promise<ILoadServingEntity[]> {
     const url = 'https://api.genability.com/rest/public';
+    let result: any;
 
-    let systemProduction: any;
     try {
-      systemProduction = await axios.get(
+      result = await axios.get(
         `${url}/lses?zipCode=${zipCode}&country=US&residentialServiceTypes=ELECTRICITY&fields=ext`,
         {
           headers: {
@@ -72,16 +72,24 @@ export class ExternalService {
       this.logger.errorAPICalling(url, error.message);
       throw ApplicationException.ServiceError();
     }
-
-    const enitity = {
+    // The actual response:
+    // data: {
+    //   status: 'success',
+    //   count: 3,
+    //   type: 'LoadServingEntity',
+    //   results: [ [Object], [Object], [Object] ],
+    //   pageCount: 25,
+    //   pageStart: 0
+    // }
+    // TODO: implement pagination
+    const loadServingEntities = result.data.results.map(lse => ({
       zipCode,
-      lseName: systemProduction.data.results[0].name,
-      lseCode: systemProduction.data.results[0].lseCode,
-      serviceType: systemProduction.data.results[0].serviceTypes,
-      lseId: systemProduction.data.results[0].lseId,
-    };
-
-    return enitity;
+      lseName: lse.name,
+      lseCode: lse.lseCode,
+      serviceType: lse.serviceTypes,
+      lseId: lse.lseId,
+    }));
+    return loadServingEntities;
   }
 
   calculateMonthlyUsage = (data: { i: number; v: number }[]) => {

@@ -57,12 +57,14 @@ export class ECommerceService {
 
     const utilityDataInst = new UtilityDataDto({});
     const costDataInst = new CostDataDto({} as any);
-    const loadServingEntityInst = await this.utilityService.getLoadServingEntity(zipCode);
-    const utilityTariffDataInst = (await this.utilityService.getTariffs(zipCode, Number(loadServingEntityInst.lseId)))
+    const loadServingEntityInst = (await this.utilityService.getLoadServingEntities(zipCode)).data?.find(
+      item => item.zipCode === zipCode,
+    );
+    const utilityTariffDataInst = (await this.utilityService.getTariffs(zipCode, Number(loadServingEntityInst?.lseId)))
       .data;
     const typicalBaselineInst = (await this.utilityService.getTypicalBaseline(zipCode, true)).data;
 
-    utilityDataInst.loadServingEntityData = loadServingEntityInst;
+    utilityDataInst.loadServingEntityData = loadServingEntityInst as any;
     utilityDataInst.typicalBaselineUsage = typicalBaselineInst?.typicalBaselineUsage || ({} as any);
 
     const utilityTypicalCostDataInst = await this.utilityService.calculateCost(

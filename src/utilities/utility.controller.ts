@@ -1,11 +1,11 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { CreateUtilityDto } from './req/create-utility.dto';
-import { TariffDto, UtilityDataDto } from './res';
+import { LoadServingEntity, TariffDto, UtilityDataDto } from './res';
 import { CostDataDto } from './res/cost-data.dto';
 import { UtilityDetailsDto } from './res/utility-details.dto';
 import { UtilityService } from './utility.service';
@@ -16,6 +16,17 @@ import { UtilityService } from './utility.service';
 @PreAuthenticate()
 export class UtilityController {
   constructor(private readonly utilityService: UtilityService) {}
+
+  @Get('/load-serving-entities')
+  @ApiOperation({ summary: 'Get Load Serving Entity' })
+  @ApiOkResponse({ type: UtilityDataDto })
+  async getLoadServingEntities(
+    @Query('zipCode', ParseIntPipe) zipCode: string,
+  ): Promise<ServiceResponse<LoadServingEntity[]>> {
+    console.log('here');
+    const res = await this.utilityService.getLoadServingEntities(Number(zipCode));
+    return ServiceResponse.fromResult(res);
+  }
 
   @Get('/typical-baselines')
   @ApiOperation({ summary: 'Get Typical Baselines' })

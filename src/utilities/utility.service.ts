@@ -2,7 +2,6 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
-import { ILoadServingEntity } from 'src/external-services/typing';
 import { QuoteService } from 'src/quotes/quote.service';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
@@ -11,7 +10,7 @@ import { SystemDesignService } from '../system-designs/system-design.service';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { CreateUtilityDto } from './req/create-utility.dto';
-import { CostDataDto, TariffDto, UtilityDataDto } from './res';
+import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto } from './res';
 import { UtilityDetailsDto } from './res/utility-details.dto';
 import { UTILITIES, Utilities } from './schemas';
 import {
@@ -46,9 +45,10 @@ export class UtilityService {
     private readonly quoteService: QuoteService,
   ) {}
 
-  async getLoadServingEntity(zipCode: number): Promise<ILoadServingEntity> {
-    const res = await this.externalService.getLoadServingEntity(zipCode);
-    return res;
+  async getLoadServingEntities(zipCode: number): Promise<OperationResult<LoadServingEntity[]>> {
+    const lseList = await this.externalService.getLoadServingEntities(zipCode);
+    // console.log(lseList)
+    return OperationResult.ok(lseList);
   }
 
   async getTypicalBaseline(zipCode: number, isInternal = false): Promise<OperationResult<UtilityDataDto>> {
