@@ -92,6 +92,7 @@ export class ProposalService {
     }
 
     newData.detailed_proposal = { ...model.toObject().detailed_proposal, ...newData.detailed_proposal };
+    newData._id = infoProposalAfterInsert._id;
 
     await this.proposalModel.findByIdAndUpdate(infoProposalAfterInsert._id, newData, {
       new: true,
@@ -111,9 +112,7 @@ export class ProposalService {
       detailed_proposal: {} as IDetailedProposalSchema,
     } as Proposal;
 
-    const {
-      isSelected, proposalValidityPeriod, proposalName, recipients, pdfFileUrl, htmlFileUrl,
-    } = proposalDto;
+    const { isSelected, proposalValidityPeriod, proposalName, recipients, pdfFileUrl, htmlFileUrl } = proposalDto;
 
     if (isSelected) {
       newData.detailed_proposal.is_selected = isSelected;
@@ -128,7 +127,7 @@ export class ProposalService {
     }
 
     if (recipients) {
-      newData.detailed_proposal.recipients = recipients.filter((item) => item.email !== '');
+      newData.detailed_proposal.recipients = recipients.filter(item => item.email !== '');
     }
 
     if (pdfFileUrl) {
@@ -165,7 +164,7 @@ export class ProposalService {
     ]);
 
     return OperationResult.ok({
-      data: proposals.map((proposal) => new ProposalDto(proposal.toObject())),
+      data: proposals.map(proposal => new ProposalDto(proposal.toObject())),
       total,
     });
   }
@@ -228,15 +227,17 @@ export class ProposalService {
       throw ApplicationException.EnitityNotFound(proposalId);
     }
 
-    const tokensByRecipients = foundProposal.detailed_proposal.recipients.map((item) => this.jwtService.sign(
-      {
-        proposalId: foundProposal._id,
-        email: item.email,
-        houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
-        zipCode: 7000000, // TO BE REMOVED AFTER MERGED
-      },
-      { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
-    ));
+    const tokensByRecipients = foundProposal.detailed_proposal.recipients.map(item =>
+      this.jwtService.sign(
+        {
+          proposalId: foundProposal._id,
+          email: item.email,
+          houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
+          zipCode: 7000000, // TO BE REMOVED AFTER MERGED
+        },
+        { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
+      ),
+    );
 
     const linksByToken = tokensByRecipients.map(token => process.env.PROPOSAL_URL.concat(`/?s=${token}`));
     const recipients = foundProposal.detailed_proposal.recipients.map(item => item.email);
@@ -308,7 +309,7 @@ export class ProposalService {
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
   validateCustomerInformation(customerInformation: CustomerInformationDto, tokenPayload): boolean {
-    return Object.keys(customerInformation).every((key) => customerInformation[key] === tokenPayload[key]);
+    return Object.keys(customerInformation).every(key => customerInformation[key] === tokenPayload[key]);
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
