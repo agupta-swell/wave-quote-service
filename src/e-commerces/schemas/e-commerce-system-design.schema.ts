@@ -10,9 +10,9 @@ export interface IEcomSystemDesignProductSchema {
   total_labor_cost: number;
   total_cost: number;
   ecom_config_snapshot: ECommerceConfig;
-  ecom_config_snapshotDate: Date;
+  ecom_config_snapshot_date: Date;
   ecom_products_snapshot: ECommerceProduct;
-  ecom_products_snapshotDate: Date;
+  ecom_products_snapshot_date: Date;
 }
 
 export const EcomSystemDesignProductSchema = new Schema<IEcomSystemDesignProductSchema>({
@@ -21,19 +21,19 @@ export const EcomSystemDesignProductSchema = new Schema<IEcomSystemDesignProduct
   total_labor_cost: Number,
   total_cost: Number,
   ecom_config_snapshot: ECommerceConfigSchema,
-  ecom_config_snapshotDate: Date,
+  ecom_config_snapshot_date: Date,
   ecom_products_snapshot: ECommerceProductSchema,
-  ecom_products_snapshotDate: Date,
+  ecom_products_snapshot_date: Date,
 });
 
 export interface ECommerceSystemDesign extends Document {
   e_com_reference_id: string;
   system_design_product: IEcomSystemDesignProductSchema;
 
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  created_by?: string;
+  created_at?: Date;
+  updated_by?: string;
+  updated_at?: Date;
 }
 
 export const ECommerceSystemDesignSchema = new Schema<ECommerceSystemDesign>({

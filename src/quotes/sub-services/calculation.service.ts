@@ -1,14 +1,15 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { groupBy, sumBy } from 'lodash';
-import { LeaseSolverConfigService } from '../../lease-solver-configs/lease-solver-config.service';
-import { UtilityService } from '../../utilities/utility.service';
-import { roundNumber } from '../../utils/transformNumber';
+import { ApplicationException } from 'src/app/app.exception';
+import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
+import { UtilityService } from 'src/utilities/utility.service';
+import { dateAdd, getDaysInMonth } from 'src/utils/datetime';
+import { roundNumber } from 'src/utils/transformNumber';
+import { CalculateQuoteDetailDto } from '../req';
 import { LeaseProductAttributesDto, LoanProductAttributesDto } from '../req/sub-dto';
 import { IPayPeriodData } from '../typing.d';
-import { ApplicationException } from '../../app/app.exception';
-import { dateAdd, getDaysInMonth } from '../../utils/datetime';
-import { CalculateQuoteDetailDto } from '../req';
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 const PAYMENT_ROUNDING = 2;
 
 @Injectable()
@@ -34,7 +35,7 @@ export class CalculationService {
       contractTerm: productAttribute.leaseTerm,
       storageSize: sumBy(
         detailedQuote.quoteCostBuildup.storageQuoteDetails,
-        (item) => item.storageModelDataSnapshot.sizekWh,
+        item => item.storageModelDataSnapshot.sizekWh,
       ),
       rateEscalator: productAttribute.rateEscalator,
       capacityKW: detailedQuote.systemProduction.capacityKW,
@@ -52,19 +53,17 @@ export class CalculationService {
     const actualSystemCostPerkW = leaseSolverConfig.adjusted_install_cost + 0.1;
     const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
     const averageProductivity = (leaseSolverConfig.productivity_min + leaseSolverConfig.productivity_max) / 2;
-    const rateDeltaPerkWh = (actualSystemCostPerkW - leaseSolverConfig.adjusted_install_cost)
-      * leaseSolverConfig.rate_factor
-      * averageSystemSize
-      * 1000;
+    const rateDeltaPerkWh =
+      (actualSystemCostPerkW - leaseSolverConfig.adjusted_install_cost) *
+      leaseSolverConfig.rate_factor *
+      averageSystemSize *
+      1000;
     const adjustedSolarRate = leaseSolverConfig.rate_per_kWh + rateDeltaPerkWh;
-    const monthlyLeasePayment = (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
+    const monthlyLeasePayment =
+      (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
 
     //IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuoteForECom() ALSO.
-
-
-
-
 
     productAttribute.monthlyLeasePayment = monthlyLeasePayment;
     productAttribute.ratePerkWh = leaseSolverConfig.rate_per_kWh;
@@ -82,36 +81,26 @@ export class CalculationService {
   }
 
   async calculateLeaseQuoteForECom(
-     isSolar: boolean,
-     isRetrofit: boolean,
-     leaseAmount: number, //NOTE : FUTURE USE
-     contractTerm: number,
-     storageSize: number,
-     capacitykW: number,
-     rateEscalator: number,
-     productivity: number,
-     addGridServiceDiscount: boolean,  //NOTE : FUTURE USE
-     utilityProgramName : string
+    isSolar: boolean,
+    isRetrofit: boolean,
+    leaseAmount: number, //NOTE : FUTURE USE
+    contractTerm: number,
+    storageSize: number,
+    capacityKW: number,
+    rateEscalator: number,
+    productivity: number,
+    addGridServiceDiscount: boolean, //NOTE : FUTURE USE
+    utilityProgramName: string,
   ): Promise<number> {
-
-
-    var utilityProgram : string;
-
-    if(utilityProgramName){
-      utilityProgram = utilityProgramName;
-    }else{
-      utilityProgram = 'none';
-    }
-
     const query = {
-      isSolar: isSolar,
-      isRetrofit: isRetrofit,
-      utilityProgramName: utilityProgram,
-      contractTerm: contractTerm,
-      storageSize: storageSize,
-      rateEscalator: rateEscalator,
-      capacityKW: capacitykW,
-      productivity: productivity,
+      isSolar,
+      isRetrofit,
+      utilityProgramName: utilityProgramName || 'none',
+      contractTerm,
+      storageSize,
+      rateEscalator,
+      capacityKW,
+      productivity,
     };
 
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
@@ -136,7 +125,6 @@ export class CalculationService {
     //IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuote() ALSO.
 
-
     /*
     productAttribute.monthlyLeasePayment = monthlyLeasePayment;
     productAttribute.ratePerkWh = leaseSolverConfig.rate_per_kWh;
@@ -153,7 +141,6 @@ export class CalculationService {
     return detailedQuote;
 
     */
-
 
     return monthlyLeasePayment;
   }
@@ -184,7 +171,7 @@ export class CalculationService {
 
   private async getCurrentMonthlyAverageUtilityPayment(opportunityId: string) {
     const utility = await this.utilityService.getUtilityByOpportunityId(opportunityId);
-    const totalCost = sumBy(utility.cost_data.typical_usage_cost.cost, (item) => item.v);
+    const totalCost = sumBy(utility.cost_data.typical_usage_cost.cost, item => item.v);
     const lenCost = utility.cost_data.typical_usage_cost.cost.length;
     return totalCost / lenCost;
   }
@@ -237,7 +224,8 @@ export class CalculationService {
         v2_cls_AmortTableInstanceWithPrePay,
       );
 
-      endingBalanceVariation = 0 - v2_cls_AmortTableInstanceWithPrePay?.[v2_cls_AmortTableInstanceWithPrePay.length - 1]?.endingBalance || 0;
+      endingBalanceVariation =
+        0 - v2_cls_AmortTableInstanceWithPrePay?.[v2_cls_AmortTableInstanceWithPrePay.length - 1]?.endingBalance || 0;
 
       if (endingBalanceVariation > 0) {
         if (endingBalanceVariation > approximateAccuracy) {
@@ -267,7 +255,8 @@ export class CalculationService {
 
     // FIXME: CALCULATE SECOND SET WITHOUT PREPAYMENT
 
-    const endingBalanceAtTheEndOfPrePaymentMonth = v2_cls_AmortTableInstanceWithPrePay[periodPrepayment - 1].endingBalance;
+    const endingBalanceAtTheEndOfPrePaymentMonth =
+      v2_cls_AmortTableInstanceWithPrePay[periodPrepayment - 1].endingBalance;
     startingMonthlyPaymentAmount = this.monthlyPaymentAmount(
       endingBalanceAtTheEndOfPrePaymentMonth,
       annualInterestRate,
@@ -300,9 +289,10 @@ export class CalculationService {
         v2_cls_AmortTableInstanceWithPrePay,
       );
 
-      endingBalanceVariation = 0
-          - v2_cls_AmortTableInstanceWithoutPrePay?.[v2_cls_AmortTableInstanceWithoutPrePay.length - 1]?.endingBalance
-        || 0;
+      endingBalanceVariation =
+        0 -
+          v2_cls_AmortTableInstanceWithoutPrePay?.[v2_cls_AmortTableInstanceWithoutPrePay.length - 1]?.endingBalance ||
+        0;
       if (endingBalanceVariation > 0) {
         if (endingBalanceVariation > approximateAccuracy) {
           startingMonthlyPaymentAmount -= iterationInterval;
@@ -329,7 +319,8 @@ export class CalculationService {
       }
     }
 
-    const lastWithoutPaymentElement = v2_cls_AmortTableInstanceWithoutPrePay[v2_cls_AmortTableInstanceWithoutPrePay.length - 1];
+    const lastWithoutPaymentElement =
+      v2_cls_AmortTableInstanceWithoutPrePay[v2_cls_AmortTableInstanceWithoutPrePay.length - 1];
 
     const adjustedWithoutPayment = this.adjustLastMonthPayment(
       lastWithoutPaymentElement.monthlyPayment,
@@ -347,7 +338,9 @@ export class CalculationService {
     lastWithPaymentElement.monthlyPayment = adjustedWithPayment.monthlyPayment;
 
     /// TAO DA SUA O DAY
-    const groupByYears = groupBy(v2_cls_AmortTableInstanceWithoutPrePay, (item) => new Date(item.paymentDueDate).getFullYear());
+    const groupByYears = groupBy(v2_cls_AmortTableInstanceWithoutPrePay, item =>
+      new Date(item.paymentDueDate).getFullYear(),
+    );
     const monthlyCosts = Object.keys(groupByYears).reduce(
       (acc, item) => [...acc, { year: item, monthlyPaymentDetails: groupByYears[item] }],
       [],
@@ -364,9 +357,10 @@ export class CalculationService {
 
   private monthlyPaymentAmount(principle: number, interestRateAPR: number, numberOfPayments: number): number {
     const interestRateMonthly = this.getMonthlyInterestRate(interestRateAPR);
-    const monthlyPayment = principle
-      * ((interestRateMonthly * (interestRateMonthly + 1) ** numberOfPayments)
-        / ((interestRateMonthly + 1) ** numberOfPayments - 1));
+    const monthlyPayment =
+      principle *
+      ((interestRateMonthly * (interestRateMonthly + 1) ** numberOfPayments) /
+        ((interestRateMonthly + 1) ** numberOfPayments - 1));
 
     return monthlyPayment;
   }
@@ -466,8 +460,9 @@ export class CalculationService {
         payPeriodData.prePaymentAmount = amountOfPrePayment;
       }
 
-      payPeriodData.interestComponent = ((annaualInterestRate / 100) * payPeriodData.startingBalance * payPeriodData.daysInPeriod)
-        / payPeriodData.daysInYear;
+      payPeriodData.interestComponent =
+        ((annaualInterestRate / 100) * payPeriodData.startingBalance * payPeriodData.daysInPeriod) /
+        payPeriodData.daysInYear;
 
       payPeriodData.unpaidInterestCumulative = this.getUnPaidInterestCumulative(
         newAmortTable[newAmortTable.length - 1],

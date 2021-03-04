@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class PvModuleDetailDataDto {
   @ApiProperty()
-  systemKw: number;
+  systemKW: number;
 
   @ApiProperty()
   percentageOfSelfPower: number;

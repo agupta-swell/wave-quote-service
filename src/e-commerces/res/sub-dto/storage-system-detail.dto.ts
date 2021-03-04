@@ -5,7 +5,7 @@ export class StorageSystemDetailDataDto {
   storageSystemCount: number;
 
   @ApiProperty()
-  storageSystemKwh: number;
+  storageSystemKWh: number;
 
   @ApiProperty()
   numberOfDaysBackup: number;

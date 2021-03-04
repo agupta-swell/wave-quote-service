@@ -14,6 +14,22 @@ export class GetEcomSystemDesignAndQuoteDto {
 
   @ApiProperty({ type: PaymentOptionDataDto, isArray: true })
   paymentOptionData: PaymentOptionDataDto[];
+
+  constructor() {
+    this.pvModuleDetailData = {
+      systemKW: 0,
+      percentageOfSelfPower: 0,
+      estimatedTwentyFiveYearsSavings: 0,
+    };
+    this.storageSystemDetailData = {
+      storageSystemCount: 0,
+      storageSystemKWh: 0,
+      numberOfDaysBackup: 0,
+      backupDetailsTest: '',
+    };
+    this.costDetailsData = [];
+    this.paymentOptionData = [];
+  }
 }
 
 export class GetEcomSystemDesignAndQuoteRes implements ServiceResponse<GetEcomSystemDesignAndQuoteDto> {

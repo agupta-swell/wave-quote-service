@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
-import { ExternalService } from 'src/external-services/external-service.service';
-import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
+import { EmailService } from 'src/emails/email.service';
+import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
+import { CalculateQuoteDetailDto } from 'src/quotes/req/calculate-quote-detail.dto';
+import { LoanProductAttributesDto } from 'src/quotes/req/sub-dto/loan-product-attributes.dto';
+import { CalculationService } from 'src/quotes/sub-services/calculation.service';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { ISystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { CALCULATION_MODE } from 'src/utilities/constants';
@@ -12,9 +15,10 @@ import { ITypicalUsage } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { OperationResult } from '../app/common';
-import { ECOM_PRODUCT_TYPE, PAYMENT_TYPE, ENERGY_SERVICE_TYPE } from './constants';
+import { ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
 import { GetEcomSystemDesignAndQuoteReq } from './req/get-ecom-system-design-and-quote.dto';
 import { GetEcomSystemDesignAndQuoteDto } from './res/get-ecom-system-design-and-quote.dto';
+import { CostDetailDataDto, PaymentOptionDataDto } from './res/sub-dto';
 import {
   ECommerceConfig,
   ECommerceProduct,
@@ -27,21 +31,14 @@ import {
   ZipCodeRegionMap,
   ZIP_CODE_REGION_MAP,
 } from './schemas';
-//import { IDetailedQuoteSchema, ILoanProductAttributes } from 'src/quotes/quote.schema';
-import { LoanProductAttributesDto } from 'src/quotes/req/sub-dto/loan-product-attributes.dto';
-import { CalculationService } from 'src/quotes/sub-services/calculation.service';
-import { CalculateQuoteDetailDto } from 'src/quotes/req/calculate-quote-detail.dto'
-import { PaymentOptionDataDto, CostDetailDataDto } from './res/sub-dto';
-
 
 @Injectable()
 export class ECommerceService {
   constructor(
     private readonly utilityService: UtilityService,
-    private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly systemProductService: SystemProductService,
-    private readonly externalService: ExternalService,
     private readonly calculationService: CalculationService,
+    private readonly emailService: EmailService,
     @InjectModel(E_COMMERCE_CONFIG) private readonly eCommerceConfigModel: Model<ECommerceConfig>,
     @InjectModel(REGION) private readonly regionModel: Model<Region>,
     @InjectModel(ZIP_CODE_REGION_MAP) private readonly zipCodeRegionMapModel: Model<ZipCodeRegionMap>,
@@ -54,7 +51,7 @@ export class ECommerceService {
       addressDataDetail: { lat, long, zip: zipCode },
       monthlyUtilityBill,
       ecomReferenceId,
-      depositAmount      
+      depositAmount,
     } = req;
 
     const utilityDataInst = new UtilityDataDto({});
@@ -107,26 +104,34 @@ export class ECommerceService {
     // FIXME: not yet testing
 
     // MODULE DESIGN SECTION
-    // TODO: need to consider this logic when haing data ----- zipCode is an unique value.
     const foundZipCode = await this.zipCodeRegionMapModel.findOne({ zip_codes: [zipCode] });
-    if(!foundZipCode){ //CODE ADDED BY HARI  
-      TAHNG TO DO
-      //SEND EMAIL TO WAVE SUPPORT TEAM. EMAIL BODY: 'eCommerce system request for zip code [' +  zipCode   + '] could not be fulfilled as the ZIP code could not be mapped to a region.' // EMAIL SUBJECT : 'Undefined Zipcode Mapping [' + zipCode + ']'
-      //RETURN ERROR 'No detail available for zip code'
+    if (!foundZipCode) {
+      const subject = `Undefined Zipcode Mapping ${zipCode}`;
+      const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the ZIP code could not be mapped to a region.`;
+      this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
+      return OperationResult.ok('No detail available for zip code' as any);
     }
+
     const foundRegion = await this.regionModel.findById(foundZipCode.region_id);
-    if(!foundRegion){ //CODE ADDED BY HARI  
-      TAHNG TO DO
-      //SEND EMAIL TO WAVE SUPPORT TEAM. EMAIL BODY: 'eCommerce system request for zip code [' +  zipCode   + '] could not be fulfilled as the REGION code could not be mapped to a region.' // EMAIL SUBJECT : 'Undefined region Mapping [' + foundZipCode.region_id + ']'
-      //RETURN ERROR 'No detail available for zip code'
+    if (!foundRegion) {
+      const subject = `Undefined region Mapping ${foundZipCode.region_id}`;
+      const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the REGION code could not be mapped to a region.`;
+      this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
+      return OperationResult.ok('No detail available for zip code' as any);
     }
+
     const foundECommerceConfig = await this.eCommerceConfigModel.findOne({ region_id: foundRegion._id });
-    const { design_factor, loan_terms_in_months, loan_interest_rate, module_price_per_watt, storage_price, labor_cost_perWatt } = foundECommerceConfig;
+    const {
+      design_factor,
+      loan_terms_in_months,
+      loan_interest_rate,
+      module_price_per_watt,
+      storage_price,
+      labor_cost_perWatt,
+    } = foundECommerceConfig;
     const requiredpVGeneration = annualUsage / design_factor;
     const panelSTCRating = (await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL })).sizeW;
     const numberOfPanels = (requiredpVGeneration * 1000) / panelSTCRating;
-
-
 
     //CALCULATE PROJECT PARAMETERS (TYPICALLY USED FOR LEASE QUOTE)
     const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
@@ -153,179 +158,185 @@ export class ECommerceService {
 
     //STORAGE DESIGN SECTION
     const numberOfBatteries = 1; //CURRENTLY ASSUMED TO BE 1.
-    const storagePerBatteryInkWh = (await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL })).sizeW;
+    const storagePerBatteryInkWh =
+      ((await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL })).sizeW ?? 0) / 1000;
 
-
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP 
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP 
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP 
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP 
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP 
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP 
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP 
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP 
+    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
+    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
+    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
+    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
+    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
+    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
+    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
+    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
 
     //QUOTE CALCULATION SECTION
-    var regionId : string;
-    regionId = '1000'; //TO DO: DELETE THIS LINE AFTER IMPLEMENTING THE ABOVE LOGIC. FOR NOW, ASSUMING 1000 AS THE VALUE TO MOVE FORWARD
-    var laborCost : number = requiredpVGeneration * labor_cost_perWatt ; // LOGIC TO BE VALIDATED WITH SALES TEAM
-    var overAllCost : number = requiredpVGeneration * module_price_per_watt + numberOfBatteries * storage_price + laborCost //TO DO: THIS LOGIC NEEDS TO BE VALIDATED WITH BUSINESS, ESPECIALLY THE  STORAGE COST CALCULATIONS AND THE LABOR COST CALCULATIONS.
 
+    //TODO: DELETE THIS LINE AFTER IMPLEMENTING THE ABOVE LOGIC. FOR NOW, ASSUMING 1000 AS THE VALUE TO MOVE FORWARD
+    const regionId = '1000';
+    // LOGIC TO BE VALIDATED WITH SALES TEAM
+    const laborCost = requiredpVGeneration * labor_cost_perWatt;
+    //TODO: THIS LOGIC NEEDS TO BE VALIDATED WITH BUSINESS, ESPECIALLY THE  STORAGE COST CALCULATIONS AND THE LABOR COST CALCULATIONS.
+    const overAllCost = requiredpVGeneration * module_price_per_watt + numberOfBatteries * storage_price + laborCost;
 
-   //BUILD ECOM SYSTEM DESIGN OBJECT
-   var ecomSystemDesign : ECommerceSystemDesign;
-   ecomSystemDesign.e_com_reference_id = ecomReferenceId;
-   ecomSystemDesign.system_design_product.number_of_modules = numberOfPanels;
-   ecomSystemDesign.system_design_product.number_of_batteries = numberOfBatteries;
-   ecomSystemDesign.system_design_product.total_labor_cost = laborCost;
-   ecomSystemDesign.system_design_product.total_cost = overAllCost;
-   ecomSystemDesign.system_design_product.ecom_config_snapshot = foundECommerceConfig;
-   ecomSystemDesign.system_design_product.ecom_products_snapshotDate = <currentDateTime>;
-   ecomSystemDesign.system_design_product.ecom_products_snapshot = <snapshot of ALL records from v2_ecomProducts data>;
-   ecomSystemDesign.system_design_product.ecom_products_snapshotDate = <currentDateTime>;
+    //BUILD ECOM SYSTEM DESIGN OBJECT
+    const ecomSystemDesign = {
+      e_com_reference_id: ecomReferenceId,
+      system_design_product: {
+        number_of_modules: numberOfPanels,
+        number_of_batteries: numberOfBatteries,
+        total_labor_cost: laborCost,
+        total_cost: overAllCost,
+        ecom_config_snapshot: foundECommerceConfig,
+        ecom_config_snapshot_date: new Date(),
+        ecom_products_snapshot: {},
+        ecom_products_snapshot_date: new Date(),
+      },
+    };
 
     //CALCULATE LOAN AMOUNT USING WAVE 2.0
-    //>>>>>>>>>>>> HARI : QUESTION TO THANG: LOOKS LIKE CalculationService.calculateLoanSolver ACCEPTS UpdateQuoteDto, AN api PAYLOAD) AS PARAMETERS. IS THERE A SPECIFIC REASON WHY IT SHOULD ACCEPT THE API PAYLOD INSTEAD OF SAY 'IDetailedQuoteSchema'
 
-    /*
-    var detailedQuoteDataInst : IDetailedQuoteSchema;
-    detailedQuoteDataInst.system_production.capacityKW = numberOfPanels * panelSTCRating;
-    detailedQuoteDataInst.quote_price_per_watt = module_price_per_watt;
-    detailedQuoteDataInst.quote_finance_product.finance_product.product_type = "LOAN"; THANG TO VALIDATE IF THIS HANDLING OF ENUM IS CORRECT
-    var ILoanProductAttributesInst : ILoanProductAttributes;
-    ILoanProductAttributesInst.upfront_payment = depositAmount;
-    ILoanProductAttributesInst.loan_amount = overAllCost - depositAmount;
-    ILoanProductAttributesInst.interest_rate = loan_interest_rate;
-    ILoanProductAttributesInst.loan_term = loan_terms_in_months;
-    ILoanProductAttributesInst.reinvestment = null;
-    ILoanProductAttributesInst.tax_credit_prepayment_amount = 0;
-    detailedQuoteDataInst.quote_finance_product.finance_product.product_attribute = ILoanProductAttributesInst;
-    detailedQuoteDataResponse : detailedQuoteData =   calculationService.calculateLoanSolver(detailedQuoteDataInst) 
-    */
+    let calculateQuoteDetailDto: CalculateQuoteDetailDto;
+    calculateQuoteDetailDto.systemProduction.capacityKW = numberOfPanels * panelSTCRating;
+    // calculateQuoteDetailDto.quotePricePerWatt = module_price_per_watt;
+    calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productType = FINANCE_PRODUCT_TYPE.LOAN;
+    let loanProductAttributesDto: LoanProductAttributesDto;
+    loanProductAttributesDto.upfrontPayment = depositAmount;
+    loanProductAttributesDto.loanAmount = overAllCost - depositAmount;
+    loanProductAttributesDto.interestRate = loan_interest_rate;
+    loanProductAttributesDto.loanTerm = loan_terms_in_months;
+    loanProductAttributesDto.reinvestment = null;
+    calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productAttribute = loanProductAttributesDto;
+    // FIXME: GOTO QUOTE SERVIVE, LINE 673 OR ON LUCIDCHART HARI : QUESTION TO THANG: WHAT IS THE SECOND PARAMETER TO THE calculateLoanSolver 'monthlyUtilityPayment'?
+    const calculateQuoteDetailDtoResponse: CalculateQuoteDetailDto = await this.calculationService.calculateLoanSolver(
+      calculateQuoteDetailDto,
+      0,
+    );
 
+    const getEcomSystemDesignAndQuoteResponse = new GetEcomSystemDesignAndQuoteDto();
 
-    var CalculateQuoteDetailDtoInst : CalculateQuoteDetailDto; 
-    CalculateQuoteDetailDtoInst.systemProduction.capacityKW = numberOfPanels * panelSTCRating;
-    CalculateQuoteDetailDtoInst.quotePricePerWatt = module_price_per_watt;
-    CalculateQuoteDetailDtoInst.quoteFinanceProduct.financeProduct.productType = "LOAN"; //>>>>>>>>>>>> HARI :THANG TO VALIDATE IF THIS HANDLING OF ENUM IS CORRECT
-    var LoanProductAttributesDtoInst : LoanProductAttributesDto;
-    LoanProductAttributesDtoInst.upfrontPayment = depositAmount;
-    LoanProductAttributesDtoInst.loanAmount = overAllCost - depositAmount;
-    LoanProductAttributesDtoInst.interestRate = loan_interest_rate;
-    LoanProductAttributesDtoInst.loanTerm = loan_terms_in_months;
-    LoanProductAttributesDtoInst.reinvestment = null;
-    CalculateQuoteDetailDtoInst.quoteFinanceProduct.financeProduct.productAttribute = LoanProductAttributesDtoInst;
-    var CalculateQuoteDetailDtoResponse : CalculateQuoteDetailDto =   await this.calculationService.calculateLoanSolver(CalculateQuoteDetailDtoInst, 0 );     //>>>>>>>>>>>> HARI : QUESTION TO THANG: WHAT IS THE SECOND PARAMETER TO THE calculateLoanSolver 'monthlyUtilityPayment'?
+    let loanPaymentOptionDataDto: PaymentOptionDataDto = {
+      paymentType: PAYMENT_TYPE.LOAN,
+      paymentDetail: {
+        monthlyPaymentAmount: (<LoanProductAttributesDto>(
+          calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute
+        )).monthlyLoanPayment,
+        savingsFiveYear: 0, //NOTE: TODO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: 0, //NOTE: TODO - PENDING JON'S SAVING DATA
+        deposit: depositAmount,
+      },
+    };
 
-
-    var getEcomSystemDesignAndQuoteResponseInst : GetEcomSystemDesignAndQuoteDto;
-
-    var loanPaymentOptionDataDtoInst : PaymentOptionDataDto;
-    loanPaymentOptionDataDtoInst.paymentType = PAYMENT_TYPE.LOAN; 
-    loanPaymentOptionDataDtoInst.paymentDetail.monthlyPaymentAmount = (<LoanProductAttributesDto>CalculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute).monthlyLoanPayment;
-    loanPaymentOptionDataDtoInst.paymentDetail.savingsFiveYear = 0; //NOTE: TODO - PENDING JON'S SAVING DATA
-    loanPaymentOptionDataDtoInst.paymentDetail.savingTwentyFiveYear = 0; //NOTE: TODO - PENDING JON'S SAVING DATA
-    loanPaymentOptionDataDtoInst.paymentDetail.deposit = depositAmount;
-    getEcomSystemDesignAndQuoteResponseInst.paymentOptionData.push(loanPaymentOptionDataDtoInst);
-
+    getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(loanPaymentOptionDataDto);
 
     // SET THE CASH QUOTE DETAILS
-    var cashPaymentOptionDataDtoInst : PaymentOptionDataDto;
-    cashPaymentOptionDataDtoInst.paymentType = PAYMENT_TYPE.CASH;
-    cashPaymentOptionDataDtoInst.paymentDetail.monthlyPaymentAmount = overAllCost - depositAmount;
-    cashPaymentOptionDataDtoInst.paymentDetail.savingsFiveYear = 0; //NOTE: TODO - PENDING JON'S SAVING DATA
-    cashPaymentOptionDataDtoInst.paymentDetail.savingTwentyFiveYear = 0; //NOTE: TODO - PENDING JON'S SAVING DATA
-    cashPaymentOptionDataDtoInst.paymentDetail.deposit = depositAmount;
-    getEcomSystemDesignAndQuoteResponseInst.paymentOptionData.push(cashPaymentOptionDataDtoInst);
+    let cashPaymentOptionDataDtoInst: PaymentOptionDataDto = {
+      paymentType: PAYMENT_TYPE.CASH,
+      paymentDetail: {
+        monthlyPaymentAmount: overAllCost - depositAmount,
+        savingsFiveYear: 0,
+        savingTwentyFiveYear: 0,
+        deposit: depositAmount || 500,
+      },
+    };
+
+    getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(cashPaymentOptionDataDtoInst);
 
     //CALCULATE THE LEASE AMOUNT USING WAVE 2.0 QUOTE
-    var rateEscalator : number = 2.9; //"Rate escalator is currently assumed to be 2.9"
-    var contractTerm : number = 25; //"Contract term is currently assumed to be 25"
-    var utilityProgramName : string = 'none';
+    const rateEscalator = 2.9; // "Rate escalator is currently assumed to be 2.9"
+    const contractTerm = 25; // "Contract term is currently assumed to be 25"
+    const utilityProgramName = 'none';
+
     //LEASE FOR ESSENTIAL BACKUP
-    var pricePerWattForEssentialBackup = overAllCost / netGenerationKWh;
-    var monthlyEsaAmountForEssentialBackup : number =   await this.calculationService.calculateLeaseQuoteForECom( true, false, overAllCost, contractTerm,  1, netGenerationKWh, rateEscalator, systemProduction.productivity, false, utilityProgramName ); 
+    const pricePerWattForEssentialBackup = overAllCost / systemProduction.capacityKW; // old: netGenerationKWh // FIXME: need to ask Hari or Michael why using netGenerationKWh ... it's not same on lucidChart
+    const monthlyEsaAmountForEssentialBackup = await this.calculationService.calculateLeaseQuoteForECom(
+      true,
+      false,
+      overAllCost,
+      contractTerm,
+      1,
+      netGenerationKWh,
+      rateEscalator,
+      systemProduction.productivity,
+      false,
+      utilityProgramName,
+    );
 
     //LEASE FOR WHOLE HOME BACKUP
-    var overallCostForWholeHomeBackup : number = overAllCost + (1 * storage_price) //Add 1 battery additional on top of essential backup
-    var pricePerWattForWholeHomeBackup : number = overallCostForWholeHomeBackup / netGenerationKWh
-    var monthlyEsaAmountForWholeHomeBackup : number =   await this.calculationService.calculateLeaseQuoteForECom(   true, false, overallCostForWholeHomeBackup, contractTerm,  2, netGenerationKWh, rateEscalator, systemProduction.productivity, false, utilityProgramName );
+    const overallCostForWholeHomeBackup = overAllCost + 1 * storage_price; // Add 1 battery additional on top of essential backup
+    const pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW; // old: netGenerationKWh // FIXME: need to ask Hari or Michael why using netGenerationKWh ... it's not same on lucidChart
+    const monthlyEsaAmountForWholeHomeBackup = await this.calculationService.calculateLeaseQuoteForECom(
+      true,
+      false,
+      overallCostForWholeHomeBackup,
+      contractTerm,
+      2,
+      netGenerationKWh,
+      rateEscalator,
+      systemProduction.productivity,
+      false,
+      utilityProgramName,
+    );
 
     //BUILD getEcomSystemDesignAndQuote RESPONSE FOR QUOTE OPTIONS
 
-    getEcomSystemDesignAndQuoteResponseInst.pvModuleDetailData.systemKw = numberOfPanels * panelSTCRating;
-    getEcomSystemDesignAndQuoteResponseInst.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
-    getEcomSystemDesignAndQuoteResponseInst.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
-    getEcomSystemDesignAndQuoteResponseInst.pvModuleDetailData.estimatedTwentyFiveYearsSavings = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-    getEcomSystemDesignAndQuoteResponseInst.storageSystemDetailData.storageSystemCount = numberOfBatteries;
-    getEcomSystemDesignAndQuoteResponseInst.storageSystemDetailData.storageSystemKwh = numberOfBatteries * storagePerBatteryInkWh;
-    getEcomSystemDesignAndQuoteResponseInst.storageSystemDetailData.numberOfDaysBackup = 0; // TO DO: CALCULATION TBD
+    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.systemKW = numberOfPanels * panelSTCRating;
+    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
+    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
+    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.estimatedTwentyFiveYearsSavings = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.storageSystemCount = numberOfBatteries;
+    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.storageSystemKWh =
+      numberOfBatteries * storagePerBatteryInkWh;
+    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.numberOfDaysBackup = 0; // TO DO: CALCULATION TBD
 
+    const essentialBackupCostDetailDataDtoInst: CostDetailDataDto = {
+      energyServiceType: ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP,
+      quoteDetail: {
+        monthlyCost: monthlyEsaAmountForEssentialBackup,
+        pricePerWatt: pricePerWattForEssentialBackup,
+        estimatedIncrease: null, // TO DO: CALCULATION TBD
+        estimatedBillInTenYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+        cumulativeSavingsOverTwentyFiveYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+      },
+    };
+    getEcomSystemDesignAndQuoteResponse.costDetailsData.push(essentialBackupCostDetailDataDtoInst);
 
-    var essentialBackupCostDetailDataDtoInst : CostDetailDataDto;
-    essentialBackupCostDetailDataDtoInst.energyServiceType = ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP;
-    essentialBackupCostDetailDataDtoInst.quoteDetail.monthlyCost = monthlyEsaAmountForEssentialBackup;
-    essentialBackupCostDetailDataDtoInst.quoteDetail.pricePerWatt = pricePerWattForEssentialBackup;
-    essentialBackupCostDetailDataDtoInst.quoteDetail.estimatedIncrease = null; // TO DO: CALCULATION TBD
-    essentialBackupCostDetailDataDtoInst.quoteDetail.estimatedBillInTenYears = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-    essentialBackupCostDetailDataDtoInst.quoteDetail.cumulativeSavingsOverTwentyFiveYears = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-    getEcomSystemDesignAndQuoteResponseInst.costDetailsData.push(essentialBackupCostDetailDataDtoInst);
-
-
-    var whBackupCostDetailDataDtoInst : CostDetailDataDto;
-    whBackupCostDetailDataDtoInst.energyServiceType = ENERGY_SERVICE_TYPE.SWELL_ESA_WHOLE_HOME;
-    whBackupCostDetailDataDtoInst.quoteDetail.monthlyCost = monthlyEsaAmountForWholeHomeBackup;
-    whBackupCostDetailDataDtoInst.quoteDetail.pricePerWatt = pricePerWattForWholeHomeBackup;
-    whBackupCostDetailDataDtoInst.quoteDetail.estimatedIncrease = null; // TO DO: CALCULATION TBD
-    whBackupCostDetailDataDtoInst.quoteDetail.estimatedBillInTenYears = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-    whBackupCostDetailDataDtoInst.quoteDetail.cumulativeSavingsOverTwentyFiveYears = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-    getEcomSystemDesignAndQuoteResponseInst.costDetailsData.push(whBackupCostDetailDataDtoInst);
-
+    const whBackupCostDetailDataDtoInst: CostDetailDataDto = {
+      energyServiceType: ENERGY_SERVICE_TYPE.SWELL_ESA_WHOLE_HOME,
+      quoteDetail: {
+        monthlyCost: monthlyEsaAmountForWholeHomeBackup,
+        pricePerWatt: pricePerWattForWholeHomeBackup,
+        estimatedIncrease: null, // TO DO: CALCULATION TBD
+        estimatedBillInTenYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+        cumulativeSavingsOverTwentyFiveYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+      },
+    };
+    getEcomSystemDesignAndQuoteResponse.costDetailsData.push(whBackupCostDetailDataDtoInst);
 
     // SET THE QUOTE FOR ESSENTIAL BACKUP AND WHOLE HOME PACKUP
-    var essentialBackupPaymentOptionDataDtoInst : PaymentOptionDataDto;
-    essentialBackupPaymentOptionDataDtoInst.paymentType = PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP;
-    essentialBackupPaymentOptionDataDtoInst.paymentDetail.monthlyPaymentAmount = monthlyEsaAmountForEssentialBackup;
-    essentialBackupPaymentOptionDataDtoInst.paymentDetail.savingsFiveYear = 0; //NOTE: TO DO - PENDING JON'S SAVING DATA
-    essentialBackupPaymentOptionDataDtoInst.paymentDetail.savingTwentyFiveYear = 0; //NOTE: TO DO - PENDING JON'S SAVING DATA
-    essentialBackupPaymentOptionDataDtoInst.paymentDetail.deposit = 0;//NOTE: TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
-    getEcomSystemDesignAndQuoteResponseInst.paymentOptionData.push(essentialBackupPaymentOptionDataDtoInst);
+    const essentialBackupPaymentOptionDataDtoInst: PaymentOptionDataDto = {
+      paymentType: PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP,
+      paymentDetail: {
+        monthlyPaymentAmount: monthlyEsaAmountForEssentialBackup,
+        savingsFiveYear: 0, //TO DO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: 0, //TO DO - PENDING JON'S SAVING DATA
+        deposit: 0, //TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
+      },
+    };
+    getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(essentialBackupPaymentOptionDataDtoInst);
 
-    var whBackupPaymentOptionDataDtoInst : PaymentOptionDataDto;
-    whBackupPaymentOptionDataDtoInst.paymentType = PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP;
-    whBackupPaymentOptionDataDtoInst.paymentDetail.monthlyPaymentAmount = monthlyEsaAmountForWholeHomeBackup;
-    whBackupPaymentOptionDataDtoInst.paymentDetail.savingsFiveYear = 0; //NOTE: TO DO - PENDING JON'S SAVING DATA
-    whBackupPaymentOptionDataDtoInst.paymentDetail.savingTwentyFiveYear = 0; //NOTE: TO DO - PENDING JON'S SAVING DATA
-    whBackupPaymentOptionDataDtoInst.paymentDetail.deposit = 0;//NOTE: TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
-    getEcomSystemDesignAndQuoteResponseInst.paymentOptionData.push(whBackupPaymentOptionDataDtoInst);
+    const whBackupPaymentOptionDataDtoInst: PaymentOptionDataDto = {
+      paymentType: PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP,
+      paymentDetail: {
+        monthlyPaymentAmount: monthlyEsaAmountForWholeHomeBackup,
+        savingsFiveYear: 0, //TO DO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: 0, //TO DO - PENDING JON'S SAVING DATA
+        deposit: 0, //TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
+      },
+    };
 
+    getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(whBackupPaymentOptionDataDtoInst);
 
-    return OperationResult.ok(true as any);
+    return OperationResult.ok(getEcomSystemDesignAndQuoteResponse);
   }
-
-  // ===================== INTERNAL =====================
-
-  // async calculateLeaseQuoteForECom(
-  //   isSolar: boolean,
-  //   isRetrofit: boolean,
-  //   leaseAmount: number,
-  //   contractTerm: number,
-  //   storageSize: number,
-  //   capacitykW: number,
-  //   rateEscalator: number,
-  //   productivity: number,
-  //   addGridServiceDiscount: boolean,
-  // ): Promise<number> {
-  //   const foundLeaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions({
-  //     isSolar,
-  //     isRetrofit,
-  //     utilityProgramName: 'none',
-  //     contractTerm,
-  //     storageSize,
-  //     capacityKW,
-  //     rateEscalator,
-  //     productivity,
-  //   });
-  //   return 0;
-  // }
 }

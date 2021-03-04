@@ -730,6 +730,7 @@ export class QuoteService {
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
     const cost = systemDesign?.cost_post_installation?.cost || [];
 
+    // I think this below variable show average money that customer have to pay monthly
     const monthlyUtilityPayment = cost.reduce((acc, item) => (acc += item.v), 0) / cost.length;
 
     let res: CalculateQuoteDetailDto;

@@ -28,6 +28,6 @@ import { CalculationService } from './sub-services';
   ],
   controllers: [QuoteController],
   providers: [QuoteService, CalculationService],
-  exports: [QuoteService],
+  exports: [QuoteService, CalculationService],
 })
 export class QuoteModule {}

@@ -4,7 +4,7 @@ import {
   IsNotEmpty, IsNumber, IsString, ValidateNested,
 } from 'class-validator';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
-import { INCENTIVE_APPLIES_TO_VALUE } from '../../constants';
+import { FINANCE_PRODUCT_TYPE, INCENTIVE_APPLIES_TO_VALUE } from '../../constants';
 
 export class IncentiveDetailsDto {
   @ApiProperty()
@@ -55,7 +55,7 @@ export class FinanceProductDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  productType: string;
+  productType: FINANCE_PRODUCT_TYPE;
 
   @ApiProperty()
   @IsNotEmpty()
