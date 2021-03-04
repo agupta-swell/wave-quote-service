@@ -561,6 +561,7 @@ export interface Quote extends Document {
   quote_model_type: string;
   detailed_quote: IDetailedQuoteSchema;
   is_sync: boolean;
+  is_sync_messages: string[];
   created_by: string;
   created_at: Date;
   updated_by: string;
@@ -573,6 +574,7 @@ export const QuoteSchema = new Schema<Quote>({
   quote_model_type: String,
   detailed_quote: DetailedQuoteSchema,
   is_sync: Boolean,
+  is_sync_messages: [String],
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
@@ -589,6 +591,8 @@ export class QuoteModel {
   detailed_quote: IDetailedQuoteSchema;
 
   is_sync: boolean;
+
+  is_sync_messages: string[];
 
   constructor(data: CreateQuoteDto | UpdateQuoteDto, detailedQuote: any) {
     this.opportunity_id = data.opportunityId;
@@ -684,5 +688,8 @@ export class QuoteModel {
 
   setIsSync(isSync: boolean): void {
     this.is_sync = isSync;
+    if (this.is_sync) {
+      this.is_sync_messages = [];
+    }
   }
 }

@@ -23,7 +23,6 @@ export class UtilityController {
   async getLoadServingEntities(
     @Query('zipCode', ParseIntPipe) zipCode: string,
   ): Promise<ServiceResponse<LoadServingEntity[]>> {
-    console.log('here');
     const res = await this.utilityService.getLoadServingEntities(Number(zipCode));
     return ServiceResponse.fromResult(res);
   }

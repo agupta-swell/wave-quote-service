@@ -221,7 +221,7 @@ export class UtilityService {
         utilityDto.opportunityId,
         utilityDto.utilityData.actualUsage.annualConsumption,
       ),
-      this.quoteService.setOutdatedData(utilityDto.opportunityId),
+      this.quoteService.setOutdatedData(utilityDto.opportunityId, 'Utility and Usage'),
     ]);
 
     if (!isUpdated) {

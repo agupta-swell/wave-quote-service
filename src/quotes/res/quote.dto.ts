@@ -123,6 +123,9 @@ export class QuoteDto {
   @ApiProperty()
   isSync: boolean;
 
+  @ApiProperty()
+  isSyncMessages: string[];
+
   @ApiProperty({ type: TaxCreditDto, isArray: true })
   taxCreditData: TaxCreditDto[];
 
@@ -161,6 +164,7 @@ export class QuoteDto {
     this.utilityProgramSelectedForReinvestment = props.detailed_quote.utility_program_selected_for_reinvestment;
     this.taxCreditSelectedForReinvestment = props.detailed_quote.tax_credit_selected_for_reinvestment;
     this.isSync = props.is_sync;
+    this.isSyncMessages = props.is_sync_messages;
     this.allowedQuoteModes = props.detailed_quote.allowed_quote_modes;
     this.selectedQuoteMode = props.detailed_quote.selected_quote_mode;
     this.quotePricePerWatt = toCamelCase(props.detailed_quote.quote_price_per_watt);

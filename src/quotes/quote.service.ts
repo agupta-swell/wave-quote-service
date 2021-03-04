@@ -695,6 +695,7 @@ export class QuoteService {
 
   async getDetailQuote(quoteId: string): Promise<OperationResult<QuoteDto>> {
     const quote = await this.quoteModel.findById(quoteId);
+
     if (!quote) {
       throw ApplicationException.EnitityNotFound(quoteId);
     }
@@ -726,6 +727,7 @@ export class QuoteService {
       taxCreditData: taxCreditData.map(item => toCamelCase(item?.toObject())),
     };
     const model = new QuoteModel(data, detailedQuote);
+
     model.setIsSync(data.isSync);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
@@ -822,12 +824,13 @@ export class QuoteService {
     );
   }
 
-  async setOutdatedData(opportunityId: string): Promise<void> {
+  async setOutdatedData(opportunityId: string, outdatedMessage: string): Promise<void> {
     const quotes = await this.quoteModel.find({ opportunity_id: opportunityId });
 
     await Promise.all(
       quotes.map(item => {
         item.is_sync = false;
+        item.is_sync_messages.push(outdatedMessage);
         return item.save(item.toObject());
       }),
     );
