@@ -25,7 +25,7 @@ export interface IProfileSchema {
   linkedInLink?: string;
   twitterLink?: string;
   avatar: string;
-  color?: object;
+  color?: Record<string, unknown>;
   cellPhone?: string;
 }
 
@@ -46,7 +46,7 @@ const ProfileSchema = new Schema<IProfileSchema>(
 
 export interface User extends Document {
   _id: string;
-  services: object;
+  services: Record<string, unknown>;
   emails: IEmailSchema[];
   profile: IProfileSchema;
   roles: string[];

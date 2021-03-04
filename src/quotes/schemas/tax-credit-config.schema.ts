@@ -1,4 +1,4 @@
-import { Schema, Document } from 'mongoose';
+import { Document, Schema } from 'mongoose';
 
 export const TAX_CREDIT_CONFIG = Symbol('TAX_CREDIT_CONFIG').toString();
 

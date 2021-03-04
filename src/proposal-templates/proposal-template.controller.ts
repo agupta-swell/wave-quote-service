@@ -1,9 +1,5 @@
-import {
-  Body, Controller, Get, Param, Post, Put, Query,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { ProposalTemplateService } from './proposal-template.service';
@@ -34,7 +30,7 @@ export class ProposalTemplateController {
   async updateProposalTemplate(
     @Param('id') id: string,
     @Body()
-      proposalTemplateDto: UpdateProposalTemplateDto,
+    proposalTemplateDto: UpdateProposalTemplateDto,
   ): Promise<ServiceResponse<ProposalTemplateDto>> {
     const res = await this.proposalTemplateService.update(id, proposalTemplateDto);
     return ServiceResponse.fromResult(res);

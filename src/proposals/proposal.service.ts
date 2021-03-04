@@ -9,23 +9,22 @@ import { ContactService } from 'src/contacts/contact.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { UserService } from 'src/users/user.service';
+import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { CurrentUserType } from '../app/securities';
 import { EmailService } from '../emails/email.service';
-import { SystemDesignService } from '../system-designs/system-design.service';
-import { ApplicationException } from '../app/app.exception';
 import { QuoteService } from '../quotes/quote.service';
+import { SystemDesignService } from '../system-designs/system-design.service';
 import { PROPOSAL_ANALYTIC_TYPE, PROPOSAL_STATUS } from './constants';
 import { IDetailedProposalSchema, Proposal, PROPOSAL } from './proposal.schema';
 import { CreateProposalDto } from './req/create-proposal.dto';
+import { SaveProposalAnalyticDto } from './req/save-proposal-analytic.dto';
 import { UpdateProposalDto } from './req/update-proposal.dto';
 import { CustomerInformationDto, ValidateProposalDto } from './req/validate-proposal.dto';
 import { ProposalDto } from './res/proposal.dto';
-import proposalTemplate from './template-html/proposal-template';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
-import { SaveProposalAnalyticDto } from './req/save-proposal-analytic.dto';
 import { GetPresignedUrlService } from './sub-services/s3.service';
-import { stringify } from 'querystring';
+import proposalTemplate from './template-html/proposal-template';
 
 @Injectable()
 export class ProposalService {
@@ -141,7 +140,7 @@ export class ProposalService {
     newData.detailed_proposal = { ...foundProposal.toObject().detailed_proposal, ...newData.detailed_proposal };
 
     const updatedModel = await this.proposalModel.findByIdAndUpdate(id, newData, { new: true });
-    return OperationResult.ok(new ProposalDto(updatedModel.toObject()));
+    return OperationResult.ok(new ProposalDto(updatedModel?.toObject()));
   }
 
   async getList(
@@ -190,12 +189,12 @@ export class ProposalService {
       new ProposalDto({
         ...proposal.toObject(),
         template,
-        customer: { ...contact, address: contact.address1, zipCode: contact.zip },
+        customer: { ...contact, address: contact?.address1, zipCode: contact?.zip },
         agent: {
-          firstName: recordOwner.profile.firstName,
-          lastName: recordOwner.profile.lastName,
-          email: recordOwner.emails[0].address,
-          phoneNumber: recordOwner.profile.cellPhone,
+          firstName: recordOwner?.profile.firstName,
+          lastName: recordOwner?.profile.lastName,
+          email: recordOwner?.emails[0].address,
+          phoneNumber: recordOwner?.profile.cellPhone,
         },
       }),
     );
@@ -218,7 +217,7 @@ export class ProposalService {
       { expiresIn: '1d', secret: process.env.PROPOSAL_JWT_SECRET },
     );
 
-    return OperationResult.ok({ proposalLink: process.env.PROPOSAL_URL.concat(`/?s=${token}`) });
+    return OperationResult.ok({ proposalLink: (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`) });
   }
 
   async sendRecipients(proposalId: string, user: CurrentUserType): Promise<OperationResult<boolean>> {
@@ -239,7 +238,7 @@ export class ProposalService {
       ),
     );
 
-    const linksByToken = tokensByRecipients.map(token => process.env.PROPOSAL_URL.concat(`/?s=${token}`));
+    const linksByToken = tokensByRecipients.map(token => (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`));
     const recipients = foundProposal.detailed_proposal.recipients.map(item => item.email);
 
     const source = proposalTemplate;
@@ -284,7 +283,7 @@ export class ProposalService {
     if (!tokenPayload.isAgent && !data.customerInformation) {
       return OperationResult.ok({
         isAgent: false,
-        proposalDetail: null,
+        proposalDetail: null as any,
       });
     }
 
@@ -313,7 +312,8 @@ export class ProposalService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.proposalModel.countDocuments({ opportunity_id: opportunityId });
+    const counter = await this.proposalModel.countDocuments({ opportunity_id: opportunityId });
+    return counter;
   }
 
   async saveProposalAnalytic(analyticInfo: SaveProposalAnalyticDto): Promise<OperationResult<boolean>> {
@@ -344,20 +344,19 @@ export class ProposalService {
       });
       await model.save();
       return OperationResult.ok(true);
-    } else {
-      const dataToUpdate =
-        type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
-          ? {
-              downloads: [...foundAnalytic.toObject().downloads, new Date()],
-              views: foundAnalytic.toObject().views,
-            }
-          : {
-              views: [...foundAnalytic.toObject().views, new Date()],
-              downloads: foundAnalytic.toObject().downloads,
-            };
-      await this.proposalAnalyticModel.findByIdAndUpdate(foundAnalytic._id, dataToUpdate);
-      return OperationResult.ok(true);
     }
+    const dataToUpdate =
+      type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
+        ? {
+            downloads: [...foundAnalytic.toObject().downloads, new Date()],
+            views: foundAnalytic.toObject().views,
+          }
+        : {
+            views: [...foundAnalytic.toObject().views, new Date()],
+            downloads: foundAnalytic.toObject().downloads,
+          };
+    await this.proposalAnalyticModel.findByIdAndUpdate(foundAnalytic._id, dataToUpdate);
+    return OperationResult.ok(true);
   }
 
   async getPreSignedObjectUrl(

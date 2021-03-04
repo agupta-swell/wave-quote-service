@@ -1,4 +1,4 @@
-import { Schema, Document } from 'mongoose';
+import { Document, Schema } from 'mongoose';
 
 export const PROPOSAL_ANALYTIC = Symbol('PROPOSAL_ANALYTIC').toString();
 export interface ProposalAnalytic extends Document {

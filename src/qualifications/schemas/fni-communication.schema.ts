@@ -1,4 +1,4 @@
-import { Schema, Document } from 'mongoose';
+import { Document, Schema } from 'mongoose';
 import { REQUEST_CATEGORY, REQUEST_TYPE } from '../constants';
 
 export const FNI_COMMUNICATION = Symbol('FNI_COMMUNICATION').toString();

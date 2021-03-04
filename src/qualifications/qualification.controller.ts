@@ -1,9 +1,5 @@
-import {
-  Body, Controller, Get, Param, Post, Put,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { OperationResult, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from '../app/securities';

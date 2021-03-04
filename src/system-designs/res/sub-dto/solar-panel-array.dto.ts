@@ -4,15 +4,15 @@ import { ProductDto } from './product.dto';
 
 export class LatLng {
   @ApiProperty()
-  lat: Number;
+  lat: number;
 
   @ApiProperty()
-  lng: Number;
+  lng: number;
 }
 
 export class SolarPanelArrayDto {
   @ApiProperty()
-  primaryOrientationSide: Number;
+  primaryOrientationSide: number;
 
   @ApiProperty()
   panelOrientation: ORIENTATION;
@@ -60,7 +60,7 @@ export class SolarPanelArrayDto {
   pitch: number;
 
   @ApiProperty()
-  azimuth: Number;
+  azimuth: number;
 
   @ApiPropertyOptional()
   rowSpacing: number;
@@ -72,8 +72,8 @@ export class SolarPanelArrayDto {
   panelModelSnapshotDate: Date;
 
   @ApiProperty()
-  numberOfPanels: Number;
+  numberOfPanels: number;
 
   @ApiProperty()
-  shadingPercentage: Number;
+  shadingPercentage: number;
 }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as dayjs from 'dayjs';
 import { Model } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { EmailService } from 'src/emails/email.service';
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
 import { CalculateQuoteDetailDto } from 'src/quotes/req/calculate-quote-detail.dto';
@@ -62,30 +63,30 @@ export class ECommerceService {
     const typicalBaselineInst = (await this.utilityService.getTypicalBaseline(zipCode, true)).data;
 
     utilityDataInst.loadServingEntityData = loadServingEntityInst;
-    utilityDataInst.typicalBaselineUsage = typicalBaselineInst.typicalBaselineUsage;
+    utilityDataInst.typicalBaselineUsage = typicalBaselineInst?.typicalBaselineUsage || ({} as any);
 
     const utilityTypicalCostDataInst = await this.utilityService.calculateCost(
-      typicalBaselineInst.typicalBaselineUsage.typicalHourlyUsage.map(i => i.v),
-      utilityTariffDataInst.tariffDetails[0].masterTariffId,
+      (typicalBaselineInst?.typicalBaselineUsage.typicalHourlyUsage || []).map(i => i.v),
+      utilityTariffDataInst?.tariffDetails[0].masterTariffId || '',
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
       zipCode,
     );
 
-    costDataInst.masterTariffId = utilityTariffDataInst.tariffDetails[0].masterTariffId;
+    costDataInst.masterTariffId = utilityTariffDataInst?.tariffDetails[0].masterTariffId || '';
     costDataInst.typicalUsageCost = toCamelCase(utilityTypicalCostDataInst);
 
     // TODO: January as 0, December as 11
     // in lucidchart, we substract 2 but this dayjs count January equal 0 hence we just write 1 in subtract function of dayjs
     const monthToAdjust = dayjs().subtract(1, 'month').get('month'); // ASSUME THE AMOUNT ENTERED BY THE USER IS TWO MONTH OLDER
     const deltaValueRatio =
-      (monthlyUtilityBill - utilityTypicalCostDataInst.cost?.find(item => item.i === monthToAdjust)?.v) /
+      (monthlyUtilityBill - (utilityTypicalCostDataInst.cost?.find(item => item.i === monthToAdjust)?.v || 0)) /
       monthlyUtilityBill;
 
     const actualMonthlyUsage: ITypicalUsage[] = [];
     let annualUsage = 0;
 
-    typicalBaselineInst.typicalBaselineUsage.typicalMonthlyUsage.forEach(item => {
+    typicalBaselineInst?.typicalBaselineUsage.typicalMonthlyUsage.forEach(item => {
       actualMonthlyUsage.push({ i: item.i, v: item.v * (1 + deltaValueRatio) });
       annualUsage += item.v * deltaValueRatio;
     });
@@ -94,12 +95,12 @@ export class ECommerceService {
 
     const actualCostDataInst = (
       await this.utilityService.calculateActualUsageCost({
-        masterTariffId: utilityTariffDataInst.tariffDetails[0].masterTariffId,
+        masterTariffId: utilityTariffDataInst?.tariffDetails[0].masterTariffId || '',
         zipCode,
         utilityData: utilityDataInst,
       })
     ).data?.actualUsageCost;
-    costDataInst.actualUsageCost = actualCostDataInst;
+    costDataInst.actualUsageCost = actualCostDataInst || undefined;
 
     // FIXME: not yet testing
 
@@ -108,7 +109,7 @@ export class ECommerceService {
     if (!foundZipCode) {
       const subject = `Undefined Zipcode Mapping ${zipCode}`;
       const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the ZIP code could not be mapped to a region.`;
-      await this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
       return OperationResult.ok('No detail available for zip code' as any);
     }
 
@@ -116,11 +117,15 @@ export class ECommerceService {
     if (!foundRegion) {
       const subject = `Undefined region Mapping ${foundZipCode.region_id}`;
       const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the REGION code could not be mapped to a region.`;
-      await this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
       return OperationResult.ok('No detail available for zip code' as any);
     }
 
     const foundECommerceConfig = await this.eCommerceConfigModel.findOne({ region_id: foundRegion._id });
+    if (!foundECommerceConfig) {
+      throw ApplicationException.EnitityNotFound('E Commerce Config');
+    }
+
     const {
       design_factor,
       loan_terms_in_months,
@@ -130,10 +135,10 @@ export class ECommerceService {
       labor_cost_perWatt,
     } = foundECommerceConfig;
     const requiredpVGeneration = annualUsage / design_factor;
-    const panelSTCRating = (await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL })).sizeW;
+    const panelSTCRating = (await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }))?.sizeW || 1;
     const numberOfPanels = (requiredpVGeneration * 1000) / panelSTCRating;
 
-    //CALCULATE PROJECT PARAMETERS (TYPICALLY USED FOR LEASE QUOTE)
+    // CALCULATE PROJECT PARAMETERS (TYPICALLY USED FOR LEASE QUOTE)
     const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
     const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
     const losses = 5.5; // "Assuming a loss factor of 5.5"
@@ -156,19 +161,19 @@ export class ECommerceService {
       generationMonthlyKWh: [],
     };
 
-    //STORAGE DESIGN SECTION
-    const numberOfBatteries = 1; //CURRENTLY ASSUMED TO BE 1.
+    // STORAGE DESIGN SECTION
+    const numberOfBatteries = 1; // CURRENTLY ASSUMED TO BE 1.
     const storagePerBatteryInkWh =
-      ((await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL })).sizeW ?? 0) / 1000;
+      ((await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }))?.sizeW ?? 0) / 1000;
 
-    //QUOTE CALCULATION SECTION
+    // QUOTE CALCULATION SECTION
     const regionId = '1000';
     // LOGIC TO BE VALIDATED WITH SALES TEAM
     const laborCost = requiredpVGeneration * labor_cost_perWatt;
-    //TODO: THIS LOGIC NEEDS TO BE VALIDATED WITH BUSINESS, ESPECIALLY THE  STORAGE COST CALCULATIONS AND THE LABOR COST CALCULATIONS.
+    // TODO: THIS LOGIC NEEDS TO BE VALIDATED WITH BUSINESS, ESPECIALLY THE  STORAGE COST CALCULATIONS AND THE LABOR COST CALCULATIONS.
     const overAllCost = requiredpVGeneration * module_price_per_watt + numberOfBatteries * storage_price + laborCost;
 
-    //BUILD ECOM SYSTEM DESIGN OBJECT
+    // BUILD ECOM SYSTEM DESIGN OBJECT
     const ecomSystemDesign = {
       e_com_reference_id: ecomReferenceId,
       system_design_product: {
@@ -183,18 +188,18 @@ export class ECommerceService {
       },
     };
 
-    //CALCULATE LOAN AMOUNT USING WAVE 2.0
+    // CALCULATE LOAN AMOUNT USING WAVE 2.0
 
-    let calculateQuoteDetailDto: CalculateQuoteDetailDto;
+    const calculateQuoteDetailDto: CalculateQuoteDetailDto = {} as any;
     calculateQuoteDetailDto.systemProduction.capacityKW = numberOfPanels * panelSTCRating;
     // calculateQuoteDetailDto.quotePricePerWatt = module_price_per_watt;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productType = FINANCE_PRODUCT_TYPE.LOAN;
-    let loanProductAttributesDto: LoanProductAttributesDto;
+    const loanProductAttributesDto: LoanProductAttributesDto = {} as any;
     loanProductAttributesDto.upfrontPayment = depositAmount;
     loanProductAttributesDto.loanAmount = overAllCost - depositAmount;
     loanProductAttributesDto.interestRate = loan_interest_rate;
     loanProductAttributesDto.loanTerm = loan_terms_in_months;
-    loanProductAttributesDto.reinvestment = null;
+    loanProductAttributesDto.reinvestment = null as any;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productAttribute = loanProductAttributesDto;
     // FIXME: GOTO QUOTE SERVIVE, LINE 673 OR ON LUCIDCHART HARI : QUESTION TO THANG: WHAT IS THE SECOND PARAMETER TO THE calculateLoanSolver 'monthlyUtilityPayment'?
     const calculateQuoteDetailDtoResponse: CalculateQuoteDetailDto = await this.calculationService.calculateLoanSolver(
@@ -204,14 +209,14 @@ export class ECommerceService {
 
     const getEcomSystemDesignAndQuoteResponse = new GetEcomSystemDesignAndQuoteDto();
 
-    let loanPaymentOptionDataDto: PaymentOptionDataDto = {
+    const loanPaymentOptionDataDto: PaymentOptionDataDto = {
       paymentType: PAYMENT_TYPE.LOAN,
       paymentDetail: {
         monthlyPaymentAmount: (<LoanProductAttributesDto>(
           calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute
         )).monthlyLoanPayment,
-        savingsFiveYear: 0, //NOTE: TODO - PENDING JON'S SAVING DATA
-        savingTwentyFiveYear: 0, //NOTE: TODO - PENDING JON'S SAVING DATA
+        savingsFiveYear: 0, // NOTE: TODO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: 0, // NOTE: TODO - PENDING JON'S SAVING DATA
         deposit: depositAmount,
       },
     };
@@ -219,7 +224,7 @@ export class ECommerceService {
     getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(loanPaymentOptionDataDto);
 
     // SET THE CASH QUOTE DETAILS
-    let cashPaymentOptionDataDtoInst: PaymentOptionDataDto = {
+    const cashPaymentOptionDataDtoInst: PaymentOptionDataDto = {
       paymentType: PAYMENT_TYPE.CASH,
       paymentDetail: {
         monthlyPaymentAmount: overAllCost - depositAmount,
@@ -231,12 +236,12 @@ export class ECommerceService {
 
     getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(cashPaymentOptionDataDtoInst);
 
-    //CALCULATE THE LEASE AMOUNT USING WAVE 2.0 QUOTE
+    // CALCULATE THE LEASE AMOUNT USING WAVE 2.0 QUOTE
     const rateEscalator = 2.9; // "Rate escalator is currently assumed to be 2.9"
     const contractTerm = 25; // "Contract term is currently assumed to be 25"
     const utilityProgramName = 'none';
 
-    //LEASE FOR ESSENTIAL BACKUP
+    // LEASE FOR ESSENTIAL BACKUP
     const pricePerWattForEssentialBackup = overAllCost / systemProduction.capacityKW;
     const monthlyEsaAmountForEssentialBackup = await this.calculationService.calculateLeaseQuoteForECom(
       true,
@@ -251,7 +256,7 @@ export class ECommerceService {
       utilityProgramName,
     );
 
-    //LEASE FOR WHOLE HOME BACKUP
+    // LEASE FOR WHOLE HOME BACKUP
     const overallCostForWholeHomeBackup = overAllCost + 1 * storage_price; // Add 1 battery additional on top of essential backup
     const pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW;
     const monthlyEsaAmountForWholeHomeBackup = await this.calculationService.calculateLeaseQuoteForECom(
@@ -267,7 +272,7 @@ export class ECommerceService {
       utilityProgramName,
     );
 
-    //BUILD getEcomSystemDesignAndQuote RESPONSE FOR QUOTE OPTIONS
+    // BUILD getEcomSystemDesignAndQuote RESPONSE FOR QUOTE OPTIONS
 
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.systemKW = numberOfPanels * panelSTCRating;
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
@@ -283,7 +288,7 @@ export class ECommerceService {
       quoteDetail: {
         monthlyCost: monthlyEsaAmountForEssentialBackup,
         pricePerWatt: pricePerWattForEssentialBackup,
-        estimatedIncrease: null, // TO DO: CALCULATION TBD
+        estimatedIncrease: null as any, // TO DO: CALCULATION TBD
         estimatedBillInTenYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
         cumulativeSavingsOverTwentyFiveYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
       },
@@ -295,7 +300,7 @@ export class ECommerceService {
       quoteDetail: {
         monthlyCost: monthlyEsaAmountForWholeHomeBackup,
         pricePerWatt: pricePerWattForWholeHomeBackup,
-        estimatedIncrease: null, // TO DO: CALCULATION TBD
+        estimatedIncrease: null as any, // TO DO: CALCULATION TBD
         estimatedBillInTenYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
         cumulativeSavingsOverTwentyFiveYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
       },
@@ -307,9 +312,9 @@ export class ECommerceService {
       paymentType: PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP,
       paymentDetail: {
         monthlyPaymentAmount: monthlyEsaAmountForEssentialBackup,
-        savingsFiveYear: 0, //TO DO - PENDING JON'S SAVING DATA
-        savingTwentyFiveYear: 0, //TO DO - PENDING JON'S SAVING DATA
-        deposit: 0, //TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
+        savingsFiveYear: 0, // TO DO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: 0, // TO DO - PENDING JON'S SAVING DATA
+        deposit: 0, // TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
       },
     };
     getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(essentialBackupPaymentOptionDataDtoInst);
@@ -318,9 +323,9 @@ export class ECommerceService {
       paymentType: PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP,
       paymentDetail: {
         monthlyPaymentAmount: monthlyEsaAmountForWholeHomeBackup,
-        savingsFiveYear: 0, //TO DO - PENDING JON'S SAVING DATA
-        savingTwentyFiveYear: 0, //TO DO - PENDING JON'S SAVING DATA
-        deposit: 0, //TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
+        savingsFiveYear: 0, // TO DO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: 0, // TO DO - PENDING JON'S SAVING DATA
+        deposit: 0, // TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
       },
     };
 

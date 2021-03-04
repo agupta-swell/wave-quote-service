@@ -1,21 +1,21 @@
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-return-assign */
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import {
-  groupBy, isNil, max, min, omitBy, pickBy, sumBy,
-} from 'lodash';
+import { groupBy, isNil, max, min, omitBy, pickBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { COMPONENT_TYPE, COST_UNIT_TYPE, PRODUCT_CATEGORY_TYPE } from 'src/system-designs/constants';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
-import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
-import { toCamelCase } from '../utils/transformProperties';
-import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
+import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
+import { toCamelCase } from '../utils/transformProperties';
 import {
   FINANCE_PRODUCT_TYPE,
   INCENTIVE_APPLIES_TO_VALUE,
@@ -23,9 +23,7 @@ import {
   PROJECT_DISCOUNT_UNITS,
   QUOTE_MODE_TYPE,
 } from './constants';
-import {
-  IDetailedQuoteSchema, Quote, QUOTE, QuoteModel,
-} from './quote.schema';
+import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
   CashProductAttributesDto,
@@ -37,9 +35,7 @@ import {
 } from './req/sub-dto';
 import { QuoteDto } from './res/quote.dto';
 import { TaxCreditDto } from './res/tax-credit.dto';
-import {
-  QuoteMarkupConfig, QUOTE_MARKUP_CONFIG, TaxCreditConfig, TAX_CREDIT_CONFIG,
-} from './schemas';
+import { QuoteMarkupConfig, QUOTE_MARKUP_CONFIG, TaxCreditConfig, TAX_CREDIT_CONFIG } from './schemas';
 import { CalculationService } from './sub-services/calculation.service';
 
 @Injectable()
@@ -56,7 +52,7 @@ export class QuoteService {
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
-  ) {} // eslint-disable-line no-empty-function
+  ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const [systemDesign, markupConfigs, quoteConfigData] = await Promise.all([
@@ -65,11 +61,15 @@ export class QuoteService {
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
     ]);
 
+    if (!systemDesign) {
+      throw ApplicationException.EnitityNotFound('system Design');
+    }
+
     if (
-      !quoteConfigData
-      || (!quoteConfigData.enableCostBuildup
-        && !quoteConfigData.enablePricePerWatt
-        && !quoteConfigData.enablePriceOverride)
+      !quoteConfigData ||
+      (!quoteConfigData.enableCostBuildup &&
+        !quoteConfigData.enablePricePerWatt &&
+        !quoteConfigData.enablePriceOverride)
     ) {
       throw ApplicationException.NoQuoteConfigAvailable();
     }
@@ -80,7 +80,7 @@ export class QuoteService {
 
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
-        systemDesign.roof_top_design_data.panel_array.map((item) => {
+        systemDesign.roof_top_design_data.panel_array.map(item => {
           const cost = item.number_of_panels * item.panel_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.SOLAR,
@@ -102,7 +102,7 @@ export class QuoteService {
         'panelModelId',
       ),
       inverterQuoteDetails: this.groupData(
-        systemDesign.roof_top_design_data.inverters.map((item) => {
+        systemDesign.roof_top_design_data.inverters.map(item => {
           const cost = item.quantity * item.inverter_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.INVERTER,
@@ -124,7 +124,7 @@ export class QuoteService {
         'inverterModelId',
       ),
       storageQuoteDetails: this.groupData(
-        systemDesign.roof_top_design_data.storage.map((item) => {
+        systemDesign.roof_top_design_data.storage.map(item => {
           const cost = item.quantity * item.storage_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.STORAGE,
@@ -146,7 +146,7 @@ export class QuoteService {
         'storageModelId',
       ),
       adderQuoteDetails: this.groupData(
-        systemDesign.roof_top_design_data.adders.map((item) => {
+        systemDesign.roof_top_design_data.adders.map(item => {
           const cost = item.quantity * item.adder_model_data_snapshot.price;
           const subcontractorMarkup = 0;
           const netCost = cost * (1 + subcontractorMarkup / 100);
@@ -165,7 +165,7 @@ export class QuoteService {
         'adderModelId',
       ),
       balanceOfSystemDetails: this.groupData(
-        systemDesign.roof_top_design_data.balance_of_systems.map((item) => {
+        systemDesign.roof_top_design_data.balance_of_systems.map(item => {
           const cost = item.balance_of_system_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.balance_of_system_model_data_snapshot.related_component,
@@ -187,7 +187,7 @@ export class QuoteService {
         'balanceOfSystemModelId',
       ),
       ancillaryEquipmentDetails: this.groupData(
-        systemDesign.roof_top_design_data.ancillary_equipments.map((item) => {
+        systemDesign.roof_top_design_data.ancillary_equipments.map(item => {
           const cost = item.quantity * item.ancillary_equipment_model_data_snapshot.average_whole_sale_price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.ancillary_equipment_model_data_snapshot.related_component,
@@ -232,22 +232,25 @@ export class QuoteService {
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
       : null;
     const fundingSource = await this.fundingSourceService.getDetailById(data.fundingSourceId);
+    if (!fundingSource) {
+      throw ApplicationException.EnitityNotFound('funding Source');
+    }
 
     const detailedQuote = {
       systemProduction: systemDesign.system_production_data,
       quoteCostBuildup,
       utilityProgram: utilityProgram
         ? {
-          utilityProgramId: utilityProgram.id,
-          utilityProgramName: utilityProgram.utility_program_name,
-          rebateAmount: utilityProgram.rebate_amount,
-          utilityProgramDataSnapshot: {
-            id: utilityProgram.id,
-            name: utilityProgram.utility_program_name,
+            utilityProgramId: utilityProgram.id,
+            utilityProgramName: utilityProgram.utility_program_name,
             rebateAmount: utilityProgram.rebate_amount,
-          },
-          utilityProgramDataSnapshotDate: new Date(),
-        }
+            utilityProgramDataSnapshot: {
+              id: utilityProgram.id,
+              name: utilityProgram.utility_program_name,
+              rebateAmount: utilityProgram.rebate_amount,
+            },
+            utilityProgramDataSnapshotDate: new Date(),
+          }
         : null,
       quoteFinanceProduct: {
         financeProduct: {
@@ -315,7 +318,6 @@ export class QuoteService {
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
 
-    // eslint-disable-next-line new-cap
     const obj = new this.quoteModel(model);
     await obj.save();
 
@@ -365,12 +367,12 @@ export class QuoteService {
         };
         return template;
 
-      default:
+      default: {
         const cashQuoteConfig = await this.cashPaymentConfigService.getFirst();
         template = {
           upfrontPayment: 0,
           balance: netAmount,
-          milestonePayment: (cashQuoteConfig?.config || []).map((item) => ({
+          milestonePayment: (cashQuoteConfig?.config || []).map(item => ({
             ...item,
             amount: roundNumber(netAmount * item.percentage, 2),
           })),
@@ -385,6 +387,7 @@ export class QuoteService {
           newPricePerKwh: 0,
         };
         return template;
+      }
     }
   }
 
@@ -400,20 +403,22 @@ export class QuoteService {
       this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }),
     ]);
 
+    if (!systemDesign) {
+      throw ApplicationException.EnitityNotFound('system Design');
+    }
+
     if (!markupConfigs?.length) {
       throw ApplicationException.EnitityNotFound('Quote Config');
     }
 
     const {
-      quote_finance_product: {
-        incentive_details, project_discount_details, rebate_details, finance_product,
-      },
+      quote_finance_product: { incentive_details, project_discount_details, rebate_details, finance_product },
       utility_program,
     } = foundQuote.toObject().detailed_quote;
 
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
-        systemDesign.roof_top_design_data.panel_array.map((item) => {
+        systemDesign.roof_top_design_data.panel_array.map(item => {
           const cost = item.number_of_panels * item.panel_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.SOLAR,
@@ -435,7 +440,7 @@ export class QuoteService {
         'panelModelId',
       ),
       inverterQuoteDetails: this.groupData(
-        systemDesign.roof_top_design_data.inverters.map((item) => {
+        systemDesign.roof_top_design_data.inverters.map(item => {
           const cost = item.quantity * item.inverter_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.INVERTER,
@@ -456,7 +461,7 @@ export class QuoteService {
         'inverterModelId',
       ),
       storageQuoteDetails: this.groupData(
-        systemDesign.roof_top_design_data.storage.map((item) => {
+        systemDesign.roof_top_design_data.storage.map(item => {
           const cost = item.quantity * item.storage_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.STORAGE,
@@ -477,7 +482,7 @@ export class QuoteService {
         'storageModelId',
       ),
       adderQuoteDetails: this.groupData(
-        systemDesign.roof_top_design_data.adders.map((item) => {
+        systemDesign.roof_top_design_data.adders.map(item => {
           const cost = item.quantity * item.adder_model_data_snapshot.price;
           const subcontractorMarkup = 0;
           const netCost = cost * (1 + subcontractorMarkup / 100);
@@ -496,7 +501,7 @@ export class QuoteService {
         'adderModelId',
       ),
       balanceOfSystemDetails: this.groupData(
-        systemDesign.roof_top_design_data.balance_of_systems.map((item) => {
+        systemDesign.roof_top_design_data.balance_of_systems.map(item => {
           const cost = item.balance_of_system_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.balance_of_system_model_data_snapshot.related_component,
@@ -518,7 +523,7 @@ export class QuoteService {
         'balanceOfSystemModelId',
       ),
       ancillaryEquipmentDetails: this.groupData(
-        systemDesign.roof_top_design_data.ancillary_equipments.map((item) => {
+        systemDesign.roof_top_design_data.ancillary_equipments.map(item => {
           const cost = item.quantity * item.ancillary_equipment_model_data_snapshot.average_whole_sale_price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.ancillary_equipment_model_data_snapshot.related_component,
@@ -602,16 +607,16 @@ export class QuoteService {
       quoteCostBuildup,
       utilityProgram: utility_program
         ? {
-          utilityProgramId: utility_program.utility_program_id,
-          utilityProgramName: utility_program.utility_program_name,
-          rebateAmount: utility_program.rebate_amount,
-          utilityProgramDataSnapshot: {
-            id: utility_program.utility_program_id,
-            name: utility_program.utility_program_name,
+            utilityProgramId: utility_program.utility_program_id,
+            utilityProgramName: utility_program.utility_program_name,
             rebateAmount: utility_program.rebate_amount,
-          },
-          utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
-        }
+            utilityProgramDataSnapshot: {
+              id: utility_program.utility_program_id,
+              name: utility_program.utility_program_name,
+              rebateAmount: utility_program.rebate_amount,
+            },
+            utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
+          }
         : null,
       quoteFinanceProduct: {
         financeProduct: {
@@ -664,7 +669,7 @@ export class QuoteService {
     const total = this.quoteModel.countDocuments(condition);
 
     const [quotes, count] = await Promise.all([query, total]);
-    const data = quotes.map((item) => new QuoteDto(item.toObject()));
+    const data = quotes.map(item => new QuoteDto(item.toObject()));
     const result = {
       data,
       total: count,
@@ -677,7 +682,7 @@ export class QuoteService {
       this.taxCreditConfigModel.find(),
       this.taxCreditConfigModel.estimatedDocumentCount(),
     ]);
-    const data = taxCredits.map((item) => new TaxCreditDto(item.toObject()));
+    const data = taxCredits.map(item => new TaxCreditDto(item.toObject()));
     const result = {
       data,
       total,
@@ -700,9 +705,12 @@ export class QuoteService {
     }
 
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
+    if (!systemDesign) {
+      throw ApplicationException.EnitityNotFound('system Design');
+    }
 
     const taxCreditData = await Promise.all(
-      (data.taxCreditData || []).map((item) => this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId })),
+      (data.taxCreditData || []).map(item => this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId })),
     );
 
     const detailedQuote = {
@@ -712,7 +720,7 @@ export class QuoteService {
       isSelected: typeof data.isSelected === 'boolean' ? data.isSelected : foundQuote.detailed_quote.is_selected,
       isSolar: systemDesign.is_solar,
       isRetrofit: systemDesign.is_retrofit,
-      taxCreditData: taxCreditData.map((item) => toCamelCase(item.toObject())),
+      taxCreditData: taxCreditData.map(item => toCamelCase(item?.toObject())),
       allowedQuoteModes: data.allowedQuoteModes,
       selectedQuoteMode: data.selectedQuoteMode,
       quotePricePerWatt: data.quotePricePerWatt,
@@ -721,9 +729,9 @@ export class QuoteService {
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(data.isSync);
 
-    const removedUndefined = pickBy(model, (item) => typeof item !== 'undefined');
+    const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
     const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
-    return OperationResult.ok(new QuoteDto({ ...savedQuote.toObject() }));
+    return OperationResult.ok(new QuoteDto({ ...savedQuote?.toObject() }));
   }
 
   async calculateQuoteDetail(data: CalculateQuoteDetailDto): Promise<OperationResult<QuoteDto>> {
@@ -733,7 +741,7 @@ export class QuoteService {
     // I think this below variable show average money that customer have to pay monthly
     const monthlyUtilityPayment = cost.reduce((acc, item) => (acc += item.v), 0) / cost.length;
 
-    let res: CalculateQuoteDetailDto;
+    let res: CalculateQuoteDetailDto = {} as any;
     switch (data.quoteFinanceProduct.financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE:
         res = await this.calculationService.calculateLeaseQuote(data, monthlyUtilityPayment);
@@ -758,7 +766,7 @@ export class QuoteService {
       isRetrofit: data.isRetrofit,
       utilityProgramName: data.utilityProgram.utilityProgramName || 'PRP2',
       contractTerm: productAttribute.leaseTerm,
-      storageSize: sumBy(data.quoteCostBuildup.storageQuoteDetails, (item) => item.storageModelDataSnapshot.sizekWh),
+      storageSize: sumBy(data.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
       rateEscalator: productAttribute.rateEscalator,
       capacityKW: data.systemProduction.capacityKW,
       productivity: data.systemProduction.productivity,
@@ -800,8 +808,8 @@ export class QuoteService {
     return res?.toObject().detailed_quote;
   }
 
-  groupData(data: any[], field: string) {
-    const groupByField = groupBy(data, (item) => item[field]);
+  groupData(data: any[], field: string): any {
+    const groupByField = groupBy(data, item => item[field]);
     return Object.keys(groupByField).reduce(
       (acc, item) => [
         ...acc,
@@ -815,11 +823,11 @@ export class QuoteService {
     );
   }
 
-  async setOutdatedData(opportunityId: string) {
+  async setOutdatedData(opportunityId: string): Promise<void> {
     const quotes = await this.quoteModel.find({ opportunity_id: opportunityId });
 
     await Promise.all(
-      quotes.map((item) => {
+      quotes.map(item => {
         item.is_sync = false;
         return item.save(item.toObject());
       }),
@@ -832,7 +840,7 @@ export class QuoteService {
     quoteMarkupConfigs: QuoteMarkupConfig[],
   ): number {
     const found = quoteMarkupConfigs.find(
-      (item) => item.productType === productType && item.productCategory == productCategory,
+      item => item.productType === productType && item.productCategory === productCategory,
     );
     return found?.subcontractorMarkup || 0;
   }
@@ -854,7 +862,7 @@ export class QuoteService {
     };
   }
 
-  calculateIncentiveValueAmount(incentiveDetail: IncentiveDetailsDto, quoteCostBuildup: QuoteCostBuildupDto) {
+  calculateIncentiveValueAmount(incentiveDetail: IncentiveDetailsDto, quoteCostBuildup: QuoteCostBuildupDto): number {
     if (incentiveDetail.unit === INCENTIVE_UNITS.AMOUNT) return incentiveDetail.unitValue;
     const { appliesTo } = incentiveDetail;
 
@@ -864,18 +872,18 @@ export class QuoteService {
 
     switch (appliesTo) {
       case INCENTIVE_APPLIES_TO_VALUE.SOLAR: {
-        const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, (i) => i.netCost);
+        const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
         return roundNumber(incentiveDetail.unitValue * solarNetCost, 2);
       }
 
       case INCENTIVE_APPLIES_TO_VALUE.STORAGE: {
-        const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, (i) => i.netCost);
+        const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, i => i.netCost);
         return roundNumber(incentiveDetail.unitValue * storageNetCost, 2);
       }
 
       case INCENTIVE_APPLIES_TO_VALUE.SOLAR_AND_STORAGE: {
-        const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, (i) => i.netCost);
-        const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, (i) => i.netCost);
+        const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
+        const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, i => i.netCost);
 
         return roundNumber(incentiveDetail.unitValue * (storageNetCost + solarNetCost), 2);
       }
@@ -885,7 +893,10 @@ export class QuoteService {
     }
   }
 
-  handleUpdateQuoteFinanceProduct(quoteFinanceProduct: QuoteFinanceProductDto, quoteCostBuildup: QuoteCostBuildupDto) {
+  handleUpdateQuoteFinanceProduct(
+    quoteFinanceProduct: QuoteFinanceProductDto,
+    quoteCostBuildup: QuoteCostBuildupDto,
+  ): QuoteFinanceProductDto {
     const { incentiveDetails, projectDiscountDetails, rebateDetails } = quoteFinanceProduct;
 
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
@@ -910,7 +921,7 @@ export class QuoteService {
     return newQuoteFinanceProduct;
   }
 
-  handleUpdateProductAttribute(quoteFinanceProduct: QuoteFinanceProductDto) {
+  handleUpdateProductAttribute(quoteFinanceProduct: QuoteFinanceProductDto): any {
     const { financeProduct, netAmount } = quoteFinanceProduct;
 
     switch (financeProduct.productType) {
@@ -943,7 +954,8 @@ export class QuoteService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.quoteModel.countDocuments({ opportunity_id: opportunityId });
+    const counter = await this.quoteModel.countDocuments({ opportunity_id: opportunityId });
+    return counter;
   }
 
   convertIncrementAdder(increment: string): COST_UNIT_TYPE {

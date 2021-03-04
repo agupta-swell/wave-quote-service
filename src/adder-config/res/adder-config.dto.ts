@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Pagination } from '../../app/common';
+import { Pagination } from 'src/app/common';
 import { AdderConfig } from '../adder-config.schema';
 
 export class AdderConfigDto {

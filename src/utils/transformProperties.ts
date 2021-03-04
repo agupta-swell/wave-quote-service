@@ -1,14 +1,17 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+/* eslint-disable no-restricted-syntax */
 import { isValidObjectId } from 'mongoose';
 
-const snakeToCamel = (str: string) => str.replace(/([-_][a-zA-Z])/g, (group) => group[1].toUpperCase().replace('-', ''));
+const snakeToCamel = (str: string) => str.replace(/([-_][a-zA-Z])/g, group => group[1].toUpperCase().replace('-', ''));
 
-const camelToUnderscore = (str: string) => str
-  .replace(/([A-Z])/g, '_$1')
-  .split(' ')
-  .join('_')
-  .toLowerCase();
+const camelToUnderscore = (str: string) =>
+  str
+    .replace(/([A-Z])/g, '_$1')
+    .split(' ')
+    .join('_')
+    .toLowerCase();
 
-export const toCamelCase = <T extends unknown>(obj: Object) => {
+export const toCamelCase = <T extends unknown>(obj) => {
   const newObj = {};
 
   for (const key in obj) {
@@ -27,12 +30,12 @@ export const toCamelCase = <T extends unknown>(obj: Object) => {
   return newObj as T;
 };
 
-export const toSnakeCase = <T extends unknown>(obj: Object) => {
+export const toSnakeCase = <T extends unknown>(obj) => {
   const newObj = {};
   const exceptValues = ['sizekWh', 'sizeW'];
 
   for (const key in obj) {
-    if (exceptValues.find((item) => item === key)) {
+    if (exceptValues.find(item => item === key)) {
       newObj[key] = obj[key];
     } else if (typeof obj[key] === 'object') {
       if (obj[key] instanceof Date || Array.isArray(obj[key])) {

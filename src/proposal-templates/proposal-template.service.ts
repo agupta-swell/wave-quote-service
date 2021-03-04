@@ -19,15 +19,15 @@ export class ProposalTemplateService {
 
   async create(proposalTemplateDto: CreateProposalTemplateDto): Promise<OperationResult<ProposalTemplateDto>> {
     const proposalSections = await Promise.all(
-      proposalTemplateDto.sections.map((id) => this.proposalSectionMasterService.getProposalSectionMasterById(id)),
+      proposalTemplateDto.sections.map(id => this.proposalSectionMasterService.getProposalSectionMasterById(id)),
     );
 
     const model = new this.proposalTemplate({
       name: proposalTemplateDto.name,
-      sections: proposalSections.map((item) => ({
-        id: item._id,
-        name: item.name,
-        component_name: item.component_name,
+      sections: proposalSections.map(item => ({
+        id: item?._id,
+        name: item?.name,
+        component_name: item?.component_name,
       })),
       proposal_section_master: toSnakeCase(proposalTemplateDto.proposalSectionMaster),
     });
@@ -46,8 +46,8 @@ export class ProposalTemplateService {
 
     const proposalSections = proposalTemplateDto.sections
       ? await Promise.all(
-        proposalTemplateDto.sections.map((id) => this.proposalSectionMasterService.getProposalSectionMasterById(id)),
-      )
+          proposalTemplateDto.sections.map(id => this.proposalSectionMasterService.getProposalSectionMasterById(id)),
+        )
       : [];
 
     const updatedModel = await this.proposalTemplate.findByIdAndUpdate(
@@ -55,11 +55,11 @@ export class ProposalTemplateService {
       {
         name: proposalTemplateDto.name || foundProposalSectionMaster.name,
         sections: proposalSections.length
-          ? proposalSections.map((item) => ({
-            id: item._id,
-            name: item.name,
-            component_name: item.component_name,
-          }))
+          ? proposalSections.map(item => ({
+              id: item?._id || '',
+              name: item?.name || '',
+              component_name: item?.component_name || '',
+            }))
           : foundProposalSectionMaster.sections,
         proposal_section_master: proposalTemplateDto.proposalSectionMaster
           ? toSnakeCase(proposalTemplateDto.proposalSectionMaster)
@@ -68,7 +68,7 @@ export class ProposalTemplateService {
       { new: true },
     );
 
-    return OperationResult.ok(new ProposalTemplateDto(updatedModel.toObject()));
+    return OperationResult.ok(new ProposalTemplateDto(updatedModel?.toObject()));
   }
 
   async getList(limit: number, skip: number): Promise<OperationResult<Pagination<ProposalTemplateDto>>> {
@@ -79,7 +79,7 @@ export class ProposalTemplateService {
 
     return OperationResult.ok(
       new Pagination({
-        data: proposalTemplates.map((proposalTemplate) => new ProposalTemplateDto(proposalTemplate.toObject())),
+        data: proposalTemplates.map(proposalTemplate => new ProposalTemplateDto(proposalTemplate.toObject())),
         total,
       }),
     );

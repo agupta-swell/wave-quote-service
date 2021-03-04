@@ -1,8 +1,6 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsNotEmpty, IsNumber, IsString, ValidateNested,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FINANCE_PRODUCT_TYPE, INCENTIVE_APPLIES_TO_VALUE } from '../../constants';
 

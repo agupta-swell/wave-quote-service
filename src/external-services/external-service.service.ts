@@ -85,7 +85,7 @@ export class ExternalService {
   }
 
   calculateMonthlyUsage = (data: { i: number; v: number }[]) => {
-    const typicalMonthlyUsage = [];
+    const typicalMonthlyUsage: any[] = [];
     let month = 1;
     let i = 0;
     const totalkWhMonthly = {
@@ -122,7 +122,7 @@ export class ExternalService {
       totalkWhMonthly[month] += data[i].v;
       if (data[i].i === condition[month]) {
         typicalMonthlyUsage.push({ i: month, v: totalkWhMonthly[month] });
-        month++;
+        month += 1;
       }
       i += 1;
     }

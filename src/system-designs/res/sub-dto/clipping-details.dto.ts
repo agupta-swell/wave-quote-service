@@ -43,7 +43,7 @@ export class ClippingDetailsDto {
   isDcToAcRatioWithinAllowedLimit?: boolean;
 
   @ApiProperty({ type: RecommendationDetailDataDto })
-  recommendationDetail?: RecommendationDetailDataDto;
+  recommendationDetail: RecommendationDetailDataDto;
 
   constructor(props: ClippingDetailsDto) {
     this.currentClippingRatio = props.currentClippingRatio;

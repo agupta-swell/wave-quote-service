@@ -24,14 +24,17 @@ export class JwtConfigService implements JwtOptionsFactory {
   }
 
   async getJWTSecretKey(): Promise<string> {
-    let secret: string; let
-      decodedBinarySecret: string;
+    let secret = '';
+    let decodedBinarySecret = '';
+
     try {
-      const data = await this.client.getSecretValue({ SecretId: process.env.SOLAR_QUOTING_TOOL_INTEGRATION }).promise();
+      const data = await this.client
+        .getSecretValue({ SecretId: process.env.SOLAR_QUOTING_TOOL_INTEGRATION || '' })
+        .promise();
       if ('SecretString' in data) {
-        secret = data.SecretString;
+        secret = data.SecretString ?? '';
       } else {
-        const buff = Buffer.from(data.SecretBinary.toString(), 'base64');
+        const buff = Buffer.from((data.SecretBinary ?? '').toString(), 'base64');
         decodedBinarySecret = buff.toString('ascii');
       }
     } catch (error) {

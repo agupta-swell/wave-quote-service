@@ -1,6 +1,4 @@
-import {
-  Body, Controller, Get, Post,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, CurrentUserType, PreAuthenticate } from 'src/app/securities';
 import { AuthenticationService } from './authentication.service';

@@ -1,9 +1,5 @@
-import {
-  Body, Controller, Get, Param, Post, Put, Query,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { ProposalSectionMasterService } from './proposal-section-master.service';
@@ -38,7 +34,7 @@ export class ProposalSectionMasterController {
   async updateProposalSectionMaster(
     @Param('id') id: string,
     @Body()
-      proposalSectionMasterDto: UpdateProposalSectionMasterDto,
+    proposalSectionMasterDto: UpdateProposalSectionMasterDto,
   ): Promise<ServiceResponse<ProposalSectionMasterDto>> {
     const res = await this.proposalSectionMasterService.update(id, proposalSectionMasterDto);
     return ServiceResponse.fromResult(res);

@@ -39,17 +39,17 @@ export class CostDataDto {
   typicalUsageCost: UtilityCostData;
 
   @ApiProperty({ type: UtilityCostData })
-  actualUsageCost: UtilityCostData | null;
+  actualUsageCost: UtilityCostData | undefined;
 
   constructor(props: ICostData) {
     this.masterTariffId = props.master_tariff_id;
     this.typicalUsageCost = props.typical_usage_cost && {
       ...toCamelCase(props.typical_usage_cost),
-      cost: props.typical_usage_cost.cost.map((item) => toCamelCase(item)),
+      cost: props.typical_usage_cost.cost.map(item => toCamelCase(item)),
     };
     this.actualUsageCost = props.actual_usage_cost && {
       ...toCamelCase(props.actual_usage_cost),
-      cost: props.actual_usage_cost.cost.map((item) => toCamelCase(item)),
-    };
+      cost: props.actual_usage_cost.cost.map(item => toCamelCase(item)),
+    } as any;
   }
 }

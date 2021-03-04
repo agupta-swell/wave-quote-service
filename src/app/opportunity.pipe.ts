@@ -1,6 +1,4 @@
-import {
-  ArgumentMetadata, Injectable, PipeTransform, UsePipes,
-} from '@nestjs/common';
+import { ArgumentMetadata, Injectable, PipeTransform, UsePipes } from '@nestjs/common';
 import { ApplicationException } from 'src/app/app.exception';
 import { OpportunityService } from '../opportunities/opportunity.service';
 
@@ -9,7 +7,7 @@ export class OpportunityPipe implements PipeTransform {
   constructor(private readonly opportunityService: OpportunityService) {}
 
   async transform(value: any, metadata: ArgumentMetadata) {
-    let opportunityId: string;
+    let opportunityId = '';
 
     if (metadata.type === 'param' && metadata.data === 'opportunityId') {
       opportunityId = value;

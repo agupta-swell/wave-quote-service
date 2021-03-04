@@ -4,10 +4,10 @@ import { groupBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { ILoadServingEntity } from 'src/external-services/typing';
 import { QuoteService } from 'src/quotes/quote.service';
-import { ExternalService } from '../external-services/external-service.service';
-import { SystemDesignService } from '../system-designs/system-design.service';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
+import { ExternalService } from '../external-services/external-service.service';
+import { SystemDesignService } from '../system-designs/system-design.service';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
 import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
 import { CreateUtilityDto } from './req/create-utility.dto';
@@ -92,7 +92,7 @@ export class UtilityService {
       zipCode: result[0].zipCode,
       lseId: result[0].lseId,
       lseName: result[0].name,
-      tariffDetails: result.map((item) => ({
+      tariffDetails: result.map(item => ({
         tariffCode: item.tariffCode,
         masterTariffId: item.masterTariffId,
         tariffName: item.tariffName,
@@ -105,7 +105,7 @@ export class UtilityService {
     const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
 
     const monthlyCost = await this.calculateCost(
-      typicalBaseLine.typical_baseline.typical_hourly_usage.map((item) => item.v),
+      typicalBaseLine.typical_baseline.typical_hourly_usage.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
@@ -114,7 +114,7 @@ export class UtilityService {
     const costData = {
       master_tariff_id: masterTariffId,
       typical_usage_cost: monthlyCost,
-      actual_usage_cost: null,
+      actual_usage_cost: null as any,
     } as ICostData;
 
     return OperationResult.ok(new CostDataDto(costData));
@@ -136,12 +136,13 @@ export class UtilityService {
     const { typical_hourly_usage = [] } = typicalBaseLine.typical_baseline;
     const len = typical_hourly_usage.length;
     while (i < len) {
+      // eslint-disable-next-line operator-assignment
       typical_hourly_usage[i].v = (deltaValues[this.getMonth(i)] + 1) * typical_hourly_usage[i].v;
-      i++;
+      i += 1;
     }
 
     const monthlyCost = await this.calculateCost(
-      typical_hourly_usage.map((item) => item.v),
+      typical_hourly_usage.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       new Date().getFullYear(),
@@ -149,7 +150,7 @@ export class UtilityService {
 
     const costData = {
       master_tariff_id: masterTariffId,
-      typical_usage_cost: null,
+      typical_usage_cost: null as any,
       actual_usage_cost: monthlyCost,
     } as ICostData;
 
@@ -160,8 +161,10 @@ export class UtilityService {
     const { costData, utilityData } = data;
 
     costData.actualUsageCost.cost.map((costDetail, index) => {
-      const deltaValueFactor = (costDetail.v - costData.typicalUsageCost.cost[index].v) / costData.typicalUsageCost.cost[index].v;
-      utilityData.actualUsage.monthlyUsage[index].v = utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
+      const deltaValueFactor =
+        (costDetail.v - costData.typicalUsageCost.cost[index].v) / costData.typicalUsageCost.cost[index].v;
+      utilityData.actualUsage.monthlyUsage[index].v =
+        utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
     });
     return OperationResult.ok(UtilityDataDto.actualUsages(utilityData));
   }
@@ -191,7 +194,7 @@ export class UtilityService {
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
     const res = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
     if (!res) {
-      return OperationResult.ok(null);
+      return OperationResult.ok(null as any);
     }
     const obj = res.toObject();
     delete obj.utility_data.typical_baseline_usage._id;
@@ -225,7 +228,7 @@ export class UtilityService {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
     }
 
-    const updatedUtilityObj = updatedUtility.toObject();
+    const updatedUtilityObj = updatedUtility?.toObject();
     delete updatedUtilityObj.utility_data.typical_baseline_usage._id;
 
     return OperationResult.ok(new UtilityDetailsDto(updatedUtilityObj));
@@ -233,7 +236,7 @@ export class UtilityService {
 
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----
 
-  getMonth(hour: number) {
+  getMonth(hour: number): number {
     if (hour <= 744) return 1;
     if (hour <= 1416) return 2;
     if (hour <= 2160) return 3;
@@ -249,7 +252,7 @@ export class UtilityService {
     return -1;
   }
 
-  getLastDay(month: number, year: number) {
+  getLastDay(month: number, year: number): number {
     return new Date(year, month, 0).getDate();
   }
 
@@ -289,7 +292,7 @@ export class UtilityService {
     }
 
     const data = await this.externalService.calculateCost(hourlyDataForTheYear, masterTariffId);
-    const groupByMonth = groupBy(data[0].items, (item) => item.fromDateTime.substring(0, 7));
+    const groupByMonth = groupBy(data[0].items, item => item.fromDateTime.substring(0, 7));
     const monthlyCosts = Object.keys(groupByMonth).reduce((acc, item) => {
       const [year, month] = item.split('-');
       const lastDay = this.getLastDay(Number(month), Number(year));
@@ -331,12 +334,13 @@ export class UtilityService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId });
+    const counter = await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId });
+    return counter;
   }
 
   getHourlyUsageFromMonthlyUsage(utilityDto: CreateUtilityDto, typicalHourlyUsage: ITypicalUsage[]): ITypicalUsage[] {
-    const deltaValue = [];
-    const hourlyUsage = [];
+    const deltaValue: any[] = [];
+    const hourlyUsage: any[] = [];
 
     const condition = {
       1: 744,

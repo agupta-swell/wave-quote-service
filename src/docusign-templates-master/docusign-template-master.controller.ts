@@ -1,9 +1,5 @@
-import {
-  Body, Controller, Get, Post,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { DocusignTemplateMasterService } from './docusign-template-master.service';

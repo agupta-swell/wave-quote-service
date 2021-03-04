@@ -2,9 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { Pagination, ServiceResponse } from '../../app/common';
-import {
-  IQuoteCostBuildupSchema, IQuoteFinanceProductSchema, ISavingsDetailsSchema, Quote,
-} from '../quote.schema';
+import { IQuoteCostBuildupSchema, IQuoteFinanceProductSchema, ISavingsDetailsSchema, Quote } from '../quote.schema';
 import { QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
 
 class UtilityProgramDto {
@@ -159,7 +157,7 @@ export class QuoteDto {
     this.quoteFinanceProduct = this.transformQuoteFinanceProduct(props.detailed_quote.quote_finance_product);
     this.savingsDetails = this.transformSavingsDetails(props.detailed_quote.savings_details);
     this.quoteCostBuildup = this.transformQuoteCostBuildup(props.detailed_quote.quote_cost_buildup);
-    this.taxCreditData = props.detailed_quote.tax_credit_data.map((item) => toCamelCase(item));
+    this.taxCreditData = props.detailed_quote.tax_credit_data.map(item => toCamelCase(item));
     this.utilityProgramSelectedForReinvestment = props.detailed_quote.utility_program_selected_for_reinvestment;
     this.taxCreditSelectedForReinvestment = props.detailed_quote.tax_credit_selected_for_reinvestment;
     this.isSync = props.is_sync;
@@ -171,16 +169,16 @@ export class QuoteDto {
 
   transformQuoteCostBuildup(quoteCostBuildup: IQuoteCostBuildupSchema): QuoteCostBuildupDto {
     return {
-      panelQuoteDetails: quoteCostBuildup.panel_quote_details.map((item) => toCamelCase(item)),
-      inverterQuoteDetails: quoteCostBuildup.inverter_quote_details.map((item) => toCamelCase(item)),
-      storageQuoteDetails: quoteCostBuildup.storage_quote_details.map((item) => toCamelCase(item)),
-      adderQuoteDetails: quoteCostBuildup.adder_quote_details.map((item) => toCamelCase(item)),
-      balanceOfSystemDetails: quoteCostBuildup.balance_of_system_details.map((item) => toCamelCase(item)),
-      ancillaryEquipmentDetails: quoteCostBuildup.ancillary_equipment_details.map((item) => toCamelCase(item)),
+      panelQuoteDetails: quoteCostBuildup.panel_quote_details.map(item => toCamelCase(item)),
+      inverterQuoteDetails: quoteCostBuildup.inverter_quote_details.map(item => toCamelCase(item)),
+      storageQuoteDetails: quoteCostBuildup.storage_quote_details.map(item => toCamelCase(item)),
+      adderQuoteDetails: quoteCostBuildup.adder_quote_details.map(item => toCamelCase(item)),
+      balanceOfSystemDetails: quoteCostBuildup.balance_of_system_details.map(item => toCamelCase(item)),
+      ancillaryEquipmentDetails: quoteCostBuildup.ancillary_equipment_details.map(item => toCamelCase(item)),
       swellStandardMarkup: quoteCostBuildup.swell_standard_markup,
       laborCost: toCamelCase(quoteCostBuildup.labor_cost),
       grossPrice: quoteCostBuildup.gross_price,
-      totalNetCost: quoteCostBuildup.total_net_cost
+      totalNetCost: quoteCostBuildup.total_net_cost,
     };
   }
 
@@ -188,14 +186,14 @@ export class QuoteDto {
     return {
       financeProduct: toCamelCase(quoteFinanceProduct.finance_product),
       netAmount: quoteFinanceProduct.net_amount,
-      incentiveDetails: quoteFinanceProduct.incentive_details.map((item) => toCamelCase(item)),
-      rebateDetails: quoteFinanceProduct.rebate_details.map((item) => toCamelCase(item)),
-      projectDiscountDetails: quoteFinanceProduct.project_discount_details.map((item) => toCamelCase(item)),
+      incentiveDetails: quoteFinanceProduct.incentive_details.map(item => toCamelCase(item)),
+      rebateDetails: quoteFinanceProduct.rebate_details.map(item => toCamelCase(item)),
+      projectDiscountDetails: quoteFinanceProduct.project_discount_details.map(item => toCamelCase(item)),
     };
   }
 
   transformSavingsDetails(savingsDetails: ISavingsDetailsSchema[]): SavingsDetailDto[] {
-    return savingsDetails.map((item) => toCamelCase(item));
+    return savingsDetails.map(item => toCamelCase(item));
   }
 }
 

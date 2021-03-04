@@ -1,9 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Pagination, ServiceResponse } from '../../app/common';
-import { toCamelCase } from '../../utils/transformProperties';
-import {
-  APPROVAL_MODE, PROCESS_STATUS, VENDOR_ID, QUALIFICATION_STATUS,
-} from '../constants';
+import { Pagination, ServiceResponse } from 'src/app/common';
+import { toCamelCase } from 'src/utils/transformProperties';
+import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
 import { QualificationCredit } from '../qualification.schema';
 
 class CustomerNotificationDto {
@@ -71,8 +69,8 @@ export class QualificationDto {
       opportunityId: props.opportunity_id,
       startedOn: props.started_on,
       processStatus: props.process_status,
-      customerNotifications: (props.customer_notifications || []).map((item) => toCamelCase(item)),
-      eventHistories: (props.event_histories || []).map((item) => toCamelCase(item)),
+      customerNotifications: (props.customer_notifications || []).map(item => toCamelCase(item)),
+      eventHistories: (props.event_histories || []).map(item => toCamelCase(item)),
       vendorId: props.vendor_id,
       approvalMode: props.approval_mode,
       approvedBy: props.approved_by,

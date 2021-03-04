@@ -1,4 +1,3 @@
-import { String } from 'aws-sdk/clients/appstream';
 import { Document, Schema } from 'mongoose';
 import { TEMPLATE_STATUS } from './constants';
 
@@ -8,7 +7,7 @@ export interface DocusignTemplateMaster extends Document {
   template_name: string;
   description: string;
   docusign_template_id: string;
-  recipient_roles: String[];
+  recipient_roles: string[];
   template_status: TEMPLATE_STATUS;
   created_by: string;
   created_at: Date;

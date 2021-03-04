@@ -1,4 +1,4 @@
-import { Injectable, Logger, LoggerService } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as winston from 'winston';
 
@@ -26,7 +26,7 @@ export class MyLogger extends Logger {
       ],
       format: winston.format.combine(
         winston.format.splat(),
-        winston.format.printf((info) => `${dateFormat()} | ${info.level.toUpperCase()} | ${info.message}`),
+        winston.format.printf(info => `${dateFormat()} | ${info.level.toUpperCase()} | ${info.message}`),
         winston.format.colorize({ all: true }),
       ),
     });

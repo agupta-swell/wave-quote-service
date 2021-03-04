@@ -2,8 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { DocusignCommunication } from 'src/docusign-communications/docusign-communication.schema';
 import { toCamelCase } from 'src/utils/transformProperties';
-import { Contract } from '../contract.schema';
-import { ContractResDto } from './sub-dto';
 
 class DocusignAccountDetail {
   @ApiProperty()
@@ -44,7 +42,7 @@ export class GetDocusignCommunicationDetailsDto {
   docusignCommunicationDetails: DocusignCommunicationDetailResDto[];
 
   constructor(props: DocusignCommunication[]) {
-    this.docusignCommunicationDetails = props.map((item) => this.transformData(item));
+    this.docusignCommunicationDetails = props.map(item => this.transformData(item));
   }
 
   transformData(docusignCommunication: DocusignCommunication): DocusignCommunicationDetailResDto {

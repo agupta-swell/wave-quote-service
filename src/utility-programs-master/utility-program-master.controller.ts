@@ -1,7 +1,5 @@
 import { Controller, Get, Post } from '@nestjs/common';
-import {
-  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { UtilityProgramMasterDto, UtilityProgramMasterListRes } from './res/utility-program-master.dto';
@@ -24,7 +22,7 @@ export class UtilityProgramMasterController {
 
   @Post()
   @ApiOperation({ summary: 'Create Data Feed' })
-  async dataFeed() {
+  async dataFeed(): Promise<string> {
     await this.utilityProgramMasterService.createDataFeed();
     return 'OK';
   }

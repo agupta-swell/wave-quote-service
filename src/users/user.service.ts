@@ -13,7 +13,7 @@ export class UserService {
 
   async findByEmail(email: string): Promise<User | undefined> {
     const res = await this.userModel.find({ 'emails.address': email });
-    if (!res.length) return null;
+    if (!res.length) return undefined;
     return res[0];
   }
 

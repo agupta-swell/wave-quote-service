@@ -438,7 +438,7 @@ export interface IQuoteCostBuildupSchema {
   swell_standard_markup: number;
   labor_cost: ILaborCostSchema;
   gross_price: number;
-  total_net_cost: number
+  total_net_cost: number;
 }
 
 const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
@@ -451,7 +451,7 @@ const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
   swell_standard_markup: Number,
   labor_cost: LaborCostSchema,
   gross_price: Number,
-  total_net_cost: Number
+  total_net_cost: Number,
 });
 
 export interface ITaxCreditConfigDataSnapshotSchema {
@@ -601,9 +601,7 @@ export class QuoteModel {
     const {
       systemProduction,
       utilityProgram,
-      quoteFinanceProduct: {
-        netAmount, incentiveDetails, rebateDetails, projectDiscountDetails, financeProduct,
-      },
+      quoteFinanceProduct: { netAmount, incentiveDetails, rebateDetails, projectDiscountDetails, financeProduct },
       savingsDetails,
       quoteCostBuildup: {
         panelQuoteDetails,
@@ -637,20 +635,22 @@ export class QuoteModel {
       is_retrofit: isRetrofit,
       utility_program: toSnakeCase(utilityProgram),
       quote_finance_product: {
-        incentive_details: incentiveDetails.map((item) => toSnakeCase(item)),
-        rebate_details: rebateDetails.map((item) => toSnakeCase(item)),
+        incentive_details: incentiveDetails.map(item => toSnakeCase(item)),
+        rebate_details: rebateDetails.map(item => toSnakeCase(item)),
         finance_product: toSnakeCase(financeProduct),
         net_amount: netAmount,
-        project_discount_details: projectDiscountDetails.map((item) => toSnakeCase(item)),
+        project_discount_details: projectDiscountDetails.map(item => toSnakeCase(item)),
       },
-      savings_details: savingsDetails.map((item) => toSnakeCase(item)),
+      savings_details: savingsDetails.map(item => toSnakeCase(item)),
       quote_cost_buildup: {
-        panel_quote_details: panelQuoteDetails.map((panelQuote) => toSnakeCase(panelQuote)),
-        inverter_quote_details: inverterQuoteDetails.map((inverterQuote) => toSnakeCase(inverterQuote)),
-        storage_quote_details: storageQuoteDetails.map((storageQuote) => toSnakeCase(storageQuote)),
-        adder_quote_details: adderQuoteDetails.map((adderQuote) => toSnakeCase(adderQuote)),
-        balance_of_system_details: balanceOfSystemDetails.map((balanceOfSystemDetail) => toSnakeCase(balanceOfSystemDetail)),
-        ancillary_equipment_details: ancillaryEquipmentDetails.map((item) => toSnakeCase(item)),
+        panel_quote_details: panelQuoteDetails.map(panelQuote => toSnakeCase(panelQuote)),
+        inverter_quote_details: inverterQuoteDetails.map(inverterQuote => toSnakeCase(inverterQuote)),
+        storage_quote_details: storageQuoteDetails.map(storageQuote => toSnakeCase(storageQuote)),
+        adder_quote_details: adderQuoteDetails.map(adderQuote => toSnakeCase(adderQuote)),
+        balance_of_system_details: balanceOfSystemDetails.map(balanceOfSystemDetail =>
+          toSnakeCase(balanceOfSystemDetail),
+        ),
+        ancillary_equipment_details: ancillaryEquipmentDetails.map(item => toSnakeCase(item)),
         swell_standard_markup: swellStandardMarkup,
         labor_cost: toSnakeCase(laborCost),
         gross_price: grossPrice,
@@ -658,7 +658,7 @@ export class QuoteModel {
       } as IQuoteCostBuildupSchema,
       tax_credit_selected_for_reinvestment: taxCreditSelectedForReinvestment,
       utility_program_selected_for_reinvestment: utilityProgramSelectedForReinvestment,
-      tax_credit_data: (taxCreditData || []).map((item) => ({
+      tax_credit_data: (taxCreditData || []).map(item => ({
         tax_credit_config_data_id: item.id,
         name: item.name,
         percentage: item.percentage,
@@ -677,7 +677,7 @@ export class QuoteModel {
     };
   }
 
-  setIsSync(isSync: boolean) {
+  setIsSync(isSync: boolean): void {
     this.is_sync = isSync;
   }
 }

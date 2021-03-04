@@ -42,7 +42,7 @@ export class DocusignCommunicationService {
   async sendContractToDocusign(contract: Contract, data: IGenericObject): Promise<ISendDocusignToContractResponse> {
     const docusignPayload = { status: 'sent' } as IDocusignCompositeContract;
     const docusignSecret = await this.docusignAPIService.getDocusignSecret();
-    contract.contract_template_detail.template_details.map((template) => {
+    contract.contract_template_detail.template_details.map(template => {
       const compositeTempalteDataPayload = this.getCompositeTemplatePayloadData(
         template,
         contract.signer_details,
@@ -61,16 +61,16 @@ export class DocusignCommunicationService {
       request_type: REQUEST_TYPE.OUTBOUND,
       docusign_account_detail: { account_name: 'docusign', account_reference_id: docusignSecret.docusign.email },
       payload_from_docusign: JSON.stringify(resDocusign),
-      envelop_id: resDocusign.envelopeId,
+      envelop_id: resDocusign?.envelopeId,
     });
 
     await model.save();
 
-    if (resDocusign.errorDetails?.errorCode) {
+    if (resDocusign?.errorDetails?.errorCode) {
       return { status: 'FAILURE' };
     }
 
-    return { status: 'SUCCESS', contractingSystemReferenceId: resDocusign.envelopeId };
+    return { status: 'SUCCESS', contractingSystemReferenceId: resDocusign?.envelopeId };
   }
 
   getCompositeTemplatePayloadData(
@@ -95,12 +95,12 @@ export class DocusignCommunicationService {
 
     template.recipient_roles.map((role, index) => {
       const signerDataPayload: ISignerData = {} as any;
-      const signerDetailData = signerDetails.find((signer) => signer.role_id === role._id);
+      const signerDetailData = signerDetails.find(signer => signer.role_id === role._id) || ({} as any);
 
-      signerDataPayload.email = signerDetailData.email;
-      signerDataPayload.name = `${signerDetailData.first_name} ${signerDetailData.last_name}`;
-      signerDataPayload.recipientId = signerDetailData.email;
-      signerDataPayload.roleName = signerDetailData.role;
+      signerDataPayload.email = signerDetailData?.email;
+      signerDataPayload.name = `${signerDetailData?.first_name} ${signerDetailData?.last_name}`;
+      signerDataPayload.recipientId = signerDetailData?.email;
+      signerDataPayload.roleName = signerDetailData?.role;
       signerDataPayload.routingOrder = index + 1;
       signerDataPayload.tabs = this.docusignTemplateService.buildTemplateData(
         template.docusign_template_id,
@@ -122,7 +122,7 @@ export class DocusignCommunicationService {
 
     const docusignCommunication = {
       date_time: new Date(),
-      contract_id: foundDocusignCommunication.contract_id,
+      contract_id: foundDocusignCommunication?.contract_id,
       envelop_id: payloadFromDocusign.EnvelopeID[0],
       request_type: REQUEST_TYPE.INBOUND,
     };
@@ -137,7 +137,7 @@ export class DocusignCommunicationService {
       contractSignerDetails.overallContractStatus = 'COMPLETED';
     }
 
-    const statusesData = payloadFromDocusign.RecipientStatuses.map((recipientStatus) => {
+    const statusesData = payloadFromDocusign.RecipientStatuses.map(recipientStatus => {
       const signerDetail = {} as ISignerDetailFromContractingSystemData;
       signerDetail.emailId = recipientStatus.Email[0];
       if (recipientStatus.Status[0] === 'Sent') {
@@ -162,6 +162,6 @@ export class DocusignCommunicationService {
 
   async getCommunicationsByContractId(contractId: string): Promise<DocusignCommunication[]> {
     const res = await this.docusignCommunicationModel.find({ contract_id: contractId });
-    return res?.map((communication) => communication.toObject({ versionKey: false })) || [];
+    return res?.map(communication => communication.toObject({ versionKey: false })) || [];
   }
 }

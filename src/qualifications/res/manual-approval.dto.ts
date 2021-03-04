@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ServiceResponse } from '../../app/common';
 import { QualificationCredit } from '../qualification.schema';
 import { QualificationDto } from './qualification.dto';
-import { ServiceResponse } from '../../app/common';
 
 interface IProps {
   status: boolean;

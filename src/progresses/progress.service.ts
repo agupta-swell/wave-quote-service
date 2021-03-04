@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
-import { QualificationService } from '../qualifications/qualification.service';
 import { OperationResult } from '../app/common/operation-result';
+import { QualificationService } from '../qualifications/qualification.service';
 import { UtilityService } from '../utilities/utility.service';
 import { ProgressDto } from './res/progress.dto';
 

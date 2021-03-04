@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
@@ -8,9 +9,7 @@ import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
-import {
-  APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, ROLE, TOKEN_STATUS, VENDOR_ID,
-} from './constants';
+import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, ROLE, TOKEN_STATUS, VENDOR_ID } from './constants';
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
   ApplyCreditQualificationReqDto,
@@ -86,7 +85,7 @@ export class QualificationService {
     return OperationResult.ok(
       new GetQualificationDetailDto(
         qualificationCredit.toObject(),
-        fniCommunications.length ? fniCommunications.map((item) => item.toObject()) : [],
+        fniCommunications.length ? fniCommunications.map(item => item.toObject()) : [],
       ),
     );
   }
@@ -128,21 +127,21 @@ export class QualificationService {
     }
 
     const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunity_id);
-    const email = await this.contactService.getEmailById(contactId);
+    const email = await this.contactService.getEmailById(contactId || '');
     const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunity_id, ROLE.CUSTOMER);
 
     const data = {
       customerName: 'Customer',
       qualificationValidityPeriod: '48h',
       recipientNotice: 'No Content',
-      qualificationLink: process.env.QUALIFICATION_PAGE.concat(`/${token}`),
+      qualificationLink: (process.env.QUALIFICATION_PAGE || '').concat(`/${token}`),
     };
 
     const source = qualificationTemplate;
     const template = Handlebars.compile(source);
     const htmlToSend = template(data);
 
-    await this.emailService.sendMail(email, htmlToSend, 'Qualification Invitation');
+    await this.emailService.sendMail(email || '', htmlToSend, 'Qualification Invitation');
     const now = new Date();
 
     qualificationCredit.event_histories = [
@@ -156,7 +155,7 @@ export class QualificationService {
         sent_on: now,
         email,
       },
-    ];
+    ] as any;
 
     const res = await this.qualificationCreditModel.findByIdAndUpdate(
       qualificationCredit.id,
@@ -164,11 +163,12 @@ export class QualificationService {
       { new: true },
     );
 
-    return OperationResult.ok(new SendMailDto({ status: true, detail: res }));
+    return OperationResult.ok(new SendMailDto({ status: true, detail: res || ({} as any) }));
   }
 
   async getApplicationDetail(req: GetApplicationDetailReqDto): Promise<OperationResult<GetApplicationDetailDto>> {
     const tokenStatus = await this.checkToken(req.token);
+    // eslint-disable-next-line default-case
     switch (tokenStatus) {
       case TOKEN_STATUS.EXPIRED:
         throw ApplicationException.ExpiredToken({ responseStatus: false });
@@ -203,6 +203,10 @@ export class QualificationService {
     }
 
     const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
+    if (!qualificationCredit) {
+      throw ApplicationException.EnitityNotFound('Qualification Credit');
+    }
+
     if (![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED].includes(qualificationCredit.process_status)) {
       return OperationResult.ok(
         new GetApplicationDetailDto({
@@ -214,14 +218,14 @@ export class QualificationService {
     }
 
     const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunity_id);
-    const contact = await this.contactService.getContactById(contactId);
+    const contact = await this.contactService.getContactById(contactId || '');
 
     qualificationCredit.process_status = PROCESS_STATUS.STARTED;
     qualificationCredit.event_histories = [
       ...qualificationCredit.event_histories,
       {
         issue_date: new Date(),
-        by: `${contact.firstName} ${contact.lastName}`,
+        by: `${contact?.firstName} ${contact?.lastName}`,
         detail: `Application Started by ${applicationInitatedBy}`,
       },
     ];
@@ -237,15 +241,15 @@ export class QualificationService {
         responseStatus: true,
         processStatus: qualificationCredit.process_status,
         primaryApplicantData: {
-          firstName: contact.firstName,
-          lastName: contact.lastName,
-          email: contact.email,
-          phoneNumber: contact.cellPhone,
-          addressLine1: contact.address1,
-          addressLine2: contact.address2,
-          city: contact.city,
-          state: contact.state,
-          zipcode: contact.zip,
+          firstName: contact?.firstName,
+          lastName: contact?.lastName,
+          email: contact?.email,
+          phoneNumber: contact?.cellPhone,
+          addressLine1: contact?.address1,
+          addressLine2: contact?.address2,
+          city: contact?.city,
+          state: contact?.state,
+          zipcode: contact?.zip,
         },
         newJWTToken: newToken,
       }),
@@ -260,6 +264,7 @@ export class QualificationService {
     // NOTE: Copy this warning and paste it in the code at the top and bottom of this method
 
     const tokenStatus = await this.checkToken(req.authenticationToken);
+    // eslint-disable-next-line default-case
     switch (tokenStatus) {
       case TOKEN_STATUS.EXPIRED:
         throw ApplicationException.ExpiredToken({ responseStatus: 'EXPIRED_TOKEN' });
@@ -278,6 +283,10 @@ export class QualificationService {
     }
 
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+    if (!qualificationCredit) {
+      throw ApplicationException.EnitityNotFound('Qualification Credit');
+    }
+
     if (qualificationCredit.process_status !== PROCESS_STATUS.STARTED) {
       return OperationResult.ok({ responseStatus: 'NO_ACTIVE_VALIDATION' });
     }
@@ -406,8 +415,9 @@ export class QualificationService {
     customerNameInst: string,
     qualificationCreditRecordInst: QualificationCredit,
   ): Promise<string> {
-    let applyCreditQualificationResponseStatus: string;
+    let applyCreditQualificationResponseStatus = '';
 
+    // eslint-disable-next-line default-case
     switch (fniResponse) {
       case 'SUCCESS': {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
@@ -459,13 +469,14 @@ export class QualificationService {
     return applyCreditQualificationResponseStatus;
   }
 
-  async getOneById(id: string): Promise<QualificationCredit> {
+  async getOneById(id: string): Promise<QualificationCredit | null> {
     const res = await this.qualificationCreditModel.findById(id);
     return res;
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.qualificationCreditModel.countDocuments({ opportunity_id: opportunityId });
+    const counter = await this.qualificationCreditModel.countDocuments({ opportunity_id: opportunityId });
+    return counter;
   }
 
   // ===================== INTERNAL =====================

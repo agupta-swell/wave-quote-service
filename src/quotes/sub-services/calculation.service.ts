@@ -48,7 +48,7 @@ export class CalculationService {
       throw ApplicationException.NullEnitityFound('Lease Config');
     }
 
-    //IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
+    // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuoteForECom() ALSO.
     const actualSystemCostPerkW = leaseSolverConfig.adjusted_install_cost + 0.1;
     const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
@@ -62,7 +62,7 @@ export class CalculationService {
     const monthlyLeasePayment =
       (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
 
-    //IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
+    // IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuoteForECom() ALSO.
 
     productAttribute.monthlyLeasePayment = monthlyLeasePayment;
@@ -76,6 +76,7 @@ export class CalculationService {
     );
     productAttribute.monthlyEnergyPayment = monthlyLeasePayment + productAttribute.currentMonthlyAverageUtilityPayment;
     productAttribute.monthlyUtilityPayment = monthlyUtilityPayment;
+    // eslint-disable-next-line no-param-reassign
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
     return detailedQuote;
   }
@@ -83,13 +84,13 @@ export class CalculationService {
   async calculateLeaseQuoteForECom(
     isSolar: boolean,
     isRetrofit: boolean,
-    leaseAmount: number, //NOTE : FUTURE USE
+    leaseAmount: number, // NOTE : FUTURE USE
     contractTerm: number,
     storageSize: number,
     capacityKW: number,
     rateEscalator: number,
     productivity: number,
-    addGridServiceDiscount: boolean, //NOTE : FUTURE USE
+    addGridServiceDiscount: boolean, // NOTE : FUTURE USE
     utilityProgramName: string,
   ): Promise<number> {
     const query = {
@@ -109,7 +110,7 @@ export class CalculationService {
       throw ApplicationException.NullEnitityFound('Lease Config');
     }
 
-    //IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
+    // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuote() ALSO.
     const actualSystemCostPerkW = leaseSolverConfig.adjusted_install_cost + 0.1;
     const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
@@ -122,7 +123,7 @@ export class CalculationService {
     const adjustedSolarRate = leaseSolverConfig.rate_per_kWh + rateDeltaPerkWh;
     const monthlyLeasePayment =
       (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
-    //IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
+    // IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuote() ALSO.
 
     /*
@@ -151,8 +152,8 @@ export class CalculationService {
     let accumulationMonth = 0;
     let month = currentDate.getMonth() + 1;
     let startYear = currentDate.getFullYear();
-    const yearlyLeasePaymentDetails = [];
-    let monthlyPaymentDetails = [];
+    const yearlyLeasePaymentDetails: any[] = [];
+    let monthlyPaymentDetails: any[] = [];
 
     while (accumulationMonth < totalMonth) {
       monthlyPaymentDetails.push({ month, paymentAmount: monthlyLeasePayment });
@@ -169,8 +170,9 @@ export class CalculationService {
     return yearlyLeasePaymentDetails;
   }
 
-  private async getCurrentMonthlyAverageUtilityPayment(opportunityId: string) {
+  private async getCurrentMonthlyAverageUtilityPayment(opportunityId: string): Promise<number> {
     const utility = await this.utilityService.getUtilityByOpportunityId(opportunityId);
+    if (!utility) return 0;
     const totalCost = sumBy(utility.cost_data.typical_usage_cost.cost, item => item.v);
     const lenCost = utility.cost_data.typical_usage_cost.cost.length;
     return totalCost / lenCost;
@@ -351,6 +353,7 @@ export class CalculationService {
       detailedQuote.opportunityId,
     );
     productAttribute.monthlyUtilityPayment = monthlyUtilityPayment;
+    // eslint-disable-next-line no-param-reassign
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
     return detailedQuote;
   }
@@ -365,7 +368,7 @@ export class CalculationService {
     return monthlyPayment;
   }
 
-  getMonthlyInterestRate(annualInterestRate: number) {
+  getMonthlyInterestRate(annualInterestRate: number): number {
     return annualInterestRate / 100 / 12;
   }
 
@@ -380,14 +383,14 @@ export class CalculationService {
     processingMode: string,
     startingPeriod: number,
     previousAmortTale: IPayPeriodData[],
-  ) {
+  ): any {
     let periodCounter: number;
     let paymentNumberCounter: number;
     let currentlyProcessingDate: Date;
     let unpaidInterestForNextMonth: number;
     let previousCycleEndingBalance: number;
     let monthlyPayment: number;
-    let adjustedBuildModeFirstPayment: number;
+    let adjustedBuildModeFirstPayment = 0;
 
     let newAmortTable: IPayPeriodData[] = [];
 
@@ -488,13 +491,9 @@ export class CalculationService {
     if (!dataParam || dataParam.prePaymentAmount > 0) {
       tmpUnpaidInterest = 0;
     } else {
-      let monthlyPaymentMinusCurrentMonthInterest: number;
-      let value2: number;
-      let value3: number;
-
-      monthlyPaymentMinusCurrentMonthInterest = dataParam.monthlyPayment - dataParam.interestComponent;
-      value3 = Math.min(0, monthlyPaymentMinusCurrentMonthInterest);
-      value2 = value3 + dataParam.unpaidInterestCumulative + dataParam.unpaidInterest;
+      const monthlyPaymentMinusCurrentMonthInterest = dataParam.monthlyPayment - dataParam.interestComponent;
+      const value3 = Math.min(0, monthlyPaymentMinusCurrentMonthInterest);
+      const value2 = value3 + dataParam.unpaidInterestCumulative + dataParam.unpaidInterest;
 
       tmpUnpaidInterest = Math.min(0, value2);
     }
@@ -502,12 +501,12 @@ export class CalculationService {
     return tmpUnpaidInterest;
   }
 
-  getCurrentMonthUnpaidInterest(dataParam: IPayPeriodData) {
+  getCurrentMonthUnpaidInterest(dataParam: IPayPeriodData): number {
     const max = Math.max(dataParam.unpaidInterestCumulative, dataParam.interestComponent - dataParam.monthlyPayment);
     return -1 * Math.min(0, max);
   }
 
-  getCurrentMonthPrincipleComponent(dataParam: IPayPeriodData) {
+  getCurrentMonthPrincipleComponent(dataParam: IPayPeriodData): number {
     let value2 = 0;
     const value1 = dataParam.monthlyPayment - dataParam.interestComponent - dataParam.unpaidInterest;
 
@@ -521,7 +520,10 @@ export class CalculationService {
     return value2;
   }
 
-  adjustLastMonthPayment(monthlyPayment: number, endingBalance: number) {
+  adjustLastMonthPayment(
+    monthlyPayment: number,
+    endingBalance: number,
+  ): { monthlyPayment: number; endingBalance: number } {
     if (!PAYMENT_ROUNDING) {
       return { monthlyPayment, endingBalance };
     }

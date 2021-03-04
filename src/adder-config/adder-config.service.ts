@@ -16,7 +16,7 @@ export class AdderConfigService {
     ]);
 
     return OperationResult.ok(
-      new Pagination({ data: panels.map((adderConfig) => new AdderConfigDto(adderConfig)), total }),
+      new Pagination({ data: panels.map(adderConfig => new AdderConfigDto(adderConfig)), total }),
     );
   }
 

@@ -5,9 +5,7 @@ import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
-import {
-  QuoteMarkupConfigSchema, QUOTE_MARKUP_CONFIG, TaxCreditConfigSchema, TAX_CREDIT_CONFIG,
-} from './schemas';
+import { QuoteMarkupConfigSchema, QUOTE_MARKUP_CONFIG, TaxCreditConfigSchema, TAX_CREDIT_CONFIG } from './schemas';
 import { CalculationService } from './sub-services';
 
 @Global()

@@ -23,7 +23,7 @@ export class ProductService {
       this.productModel.countDocuments({ type: { $in: types } }),
     ]);
 
-    return OperationResult.ok(new Pagination({ data: panels.map((panel) => new ProductDto(panel)), total }));
+    return OperationResult.ok(new Pagination({ data: panels.map(panel => new ProductDto(panel)), total }));
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

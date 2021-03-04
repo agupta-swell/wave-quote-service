@@ -7,6 +7,7 @@ import { ValidationPipe } from './app/validation.pipe';
 
 async function bootstrap() {
   const fAdapt = new FastifyAdapter();
+  // eslint-disable-next-line
   fAdapt.register(require('fastify-multipart'));
   fAdapt.enableCors({ origin: '*', methods: ['GET', 'PUT', 'POST', 'DELETE'] });
 
@@ -34,25 +35,4 @@ async function bootstrap() {
 
 bootstrap().then(() => {
   console.log('Service listening 👍:', process.env.PORT);
-
-  const {
-    PORT,
-    MONGO_URL,
-    JWT_SECRET,
-    JWT_EXPIRE_TIME,
-    AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY,
-    AWS_REGION,
-    AWS_S3_BUCKET,
-  } = process.env;
-  console.log('>>>>>>>>>>>>>>>>>>>', {
-    PORT,
-    MONGO_URL,
-    JWT_SECRET,
-    JWT_EXPIRE_TIME,
-    AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY,
-    AWS_REGION,
-    AWS_S3_BUCKET,
-  });
 });

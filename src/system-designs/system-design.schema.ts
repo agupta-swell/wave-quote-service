@@ -1,7 +1,5 @@
 import { Document, Schema, Types } from 'mongoose';
-import {
-  IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct,
-} from 'src/products/product.schema';
+import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
 import { COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
@@ -39,7 +37,7 @@ interface IProductCommonSchema {
   approved_for_esa: boolean;
 }
 
-export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct { }
+export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct {}
 
 export const StorageProductSchema = new Schema<IStorageProductSchema>(
   {
@@ -62,7 +60,7 @@ export const StorageProductSchema = new Schema<IStorageProductSchema>(
   { _id: false },
 );
 
-export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct { }
+export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct {}
 
 export const InverterProductSchema = new Schema<IInverterProductSchema>(
   {
@@ -85,7 +83,7 @@ export const InverterProductSchema = new Schema<IInverterProductSchema>(
   { _id: false },
 );
 
-export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct { }
+export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct {}
 
 export const PanelProductSchema = new Schema<IPanelProductSchema>(
   {
@@ -231,7 +229,7 @@ const AdderSchema = new Schema<IAdderSchema>(
   { _id: false },
 );
 
-export interface IBalanceOfSystemProductSchema extends IProductCommonSchema, IBalanceOfSystemProduct { }
+export interface IBalanceOfSystemProductSchema extends IProductCommonSchema, IBalanceOfSystemProduct {}
 
 export const BalanceOfSystemProductSchema = new Schema<IBalanceOfSystemProductSchema>(
   {
@@ -460,21 +458,20 @@ export class SystemDesignModel {
     this.longtitude = systemDesign.longtitude;
     this.opportunity_id = systemDesign.opportunityId;
     this.design_mode = systemDesign.designMode;
-    this.roof_top_design_data = systemDesign.roofTopDesignData && this.transformRoofTopData(systemDesign.roofTopDesignData);
+    this.roof_top_design_data =
+      systemDesign.roofTopDesignData && this.transformRoofTopData(systemDesign.roofTopDesignData);
     this.capacity_production_design_data = systemDesign.capacityProductionDesignData as any;
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const {
-      inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments,
-    } = data;
+    const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
     return {
-      panel_array: (panelArray || []).map((item) => toSnakeCase(item)),
-      inverters: inverters.map((item) => toSnakeCase(item)),
-      storage: storage.map((item) => toSnakeCase(item)),
-      adders: adders.map((item) => toSnakeCase(item)),
-      balance_of_systems: balanceOfSystems.map((item) => toSnakeCase(item)),
-      ancillary_equipments: ancillaryEquipments.map((item) => toSnakeCase(item)),
+      panel_array: (panelArray || []).map(item => toSnakeCase(item)),
+      inverters: inverters.map(item => toSnakeCase(item)),
+      storage: storage.map(item => toSnakeCase(item)),
+      adders: adders.map(item => toSnakeCase(item)),
+      balance_of_systems: balanceOfSystems.map(item => toSnakeCase(item)),
+      ancillary_equipments: ancillaryEquipments.map(item => toSnakeCase(item)),
     };
   };
 
@@ -537,5 +534,5 @@ export class SystemDesignModel {
     this.cost_post_installation = data;
   }
 
-  transformUnit() { }
+  transformUnit() {}
 }

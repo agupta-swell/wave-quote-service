@@ -25,9 +25,9 @@ export class GetContractApplicabilityDataDto {
   applicableUtilities: UtilityMasterResDto[];
 
   constructor(props: IGetContractApplicabilityDataDto) {
-    this.applicableFundingSources = props.applicableFundingSources.map((item) => toCamelCase(item));
-    this.applicableUtilityPrograms = props.applicableUtilityPrograms.map((item) => toCamelCase(item));
-    this.applicableUtilities = props.applicableUtilities.map((item) => toCamelCase(item));
+    this.applicableFundingSources = props.applicableFundingSources.map(item => toCamelCase(item));
+    this.applicableUtilityPrograms = props.applicableUtilityPrograms.map(item => toCamelCase(item));
+    this.applicableUtilities = props.applicableUtilities.map(item => toCamelCase(item));
   }
 }
 

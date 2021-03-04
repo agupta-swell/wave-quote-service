@@ -16,10 +16,8 @@ export class DocusignTemplateService {
     genericObject: IGenericObject,
     defaultContractor: IDefaultContractor,
   ): ITabData {
-    const tabsData: ITabData = {} as any;
-    const {
-      contact, opportunity, recordOwner, customerPayment, roofTopDesign, isCash, utilityName,
-    } = genericObject;
+    const tabsData: ITabData = { textTabs: [] } as any;
+    const { contact, opportunity, recordOwner, customerPayment, roofTopDesign, isCash, utilityName } = genericObject;
     const now = dayjs().format('MM/DD/YYYY');
     const next3Date = dayjs(new Date().getTime() + 3 * 24 * 60 * 60 * 1000);
 
@@ -28,9 +26,9 @@ export class DocusignTemplateService {
       case DOCUSIGN_TEMPLATE.first: {
         obj['Text Owner Name 1 - 2'] = contact.firstName;
         obj['Text Owner Name 2 - 2'] = contact.lastName;
-        obj['Text Contractor\'s Company Name 1 - 2'] = opportunity.contractorCompanyName;
+        obj["Text Contractor's Company Name 1 - 2"] = opportunity.contractorCompanyName;
         obj['Text Name Signer 1 - 3'] = opportunity.contractorSigner;
-        obj['Text Contractor\'s Title'] = 'CEO';
+        obj["Text Contractor's Title"] = 'CEO';
         tabsData.textTabs.push(obj);
         return tabsData;
       }
@@ -47,42 +45,42 @@ export class DocusignTemplateService {
           : opportunity.contractorCompanyName;
         obj['Gross contract amount'] = accounting.formatMoney(opportunity.amount);
         obj['Text Base Price - 1'] = accounting.formatMoney(customerPayment.amount);
-        obj['Text Contractor\'s Address - 10'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Address - 10"] = opportunity.isPrimeContractor
           ? `${defaultContractor.address1}, ${defaultContractor.address2}`
           : `${opportunity.contractorAddress1}, ${opportunity.contractorAddress2}`;
-        obj['Text Contractor\'s Address - 9'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Address - 9"] = opportunity.isPrimeContractor
           ? `${defaultContractor.address1}, ${defaultContractor.address2}`
           : `${opportunity.contractorAddress1}, ${opportunity.contractorAddress2}`;
-        obj['Text Contractor\'s Address 1 - 1'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Address 1 - 1"] = opportunity.isPrimeContractor
           ? defaultContractor.address1
           : opportunity.contractorAddress1;
-        obj['Text Contractor\'s Address 1 - 7'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Address 1 - 7"] = opportunity.isPrimeContractor
           ? defaultContractor.address1
           : opportunity.contractorAddress1;
-        obj['Text Contractor\'s Address 2 - 1'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Address 2 - 1"] = opportunity.isPrimeContractor
           ? defaultContractor.address2
           : opportunity.contractorAddress2;
-        obj['Text Contractor\'s Address 2 - 7'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Address 2 - 7"] = opportunity.isPrimeContractor
           ? defaultContractor.address2
           : opportunity.contractorAddress2;
-        obj['Text Contractor\'s Company Name - 10'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Company Name - 10"] = opportunity.isPrimeContractor
           ? defaultContractor.companyName
           : opportunity.contractorCompanyName;
-        obj['Text Contractor\'s Company Name - 7'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Company Name - 7"] = opportunity.isPrimeContractor
           ? defaultContractor.companyName
           : opportunity.contractorCompanyName;
-        obj['Text Contractor\'s Company Name - 9'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Company Name - 9"] = opportunity.isPrimeContractor
           ? defaultContractor.companyName
           : opportunity.contractorCompanyName;
-        obj['Text Contractor\'s Company Name 1 - 1'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Company Name 1 - 1"] = opportunity.isPrimeContractor
           ? defaultContractor.companyName
           : opportunity.contractorCompanyName;
-        obj['Text Contractor\'s Company Name 2 - 1'] = opportunity.isPrimeContractor
+        obj["Text Contractor's Company Name 2 - 1"] = opportunity.isPrimeContractor
           ? defaultContractor.companyName
           : opportunity.contractorCompanyName;
-        obj['Text Contractor\'s Email - 10'] = opportunity.contractorEmail;
-        obj['Text Contractor\'s Email - 9'] = opportunity.contractorEmail;
-        obj['Text Contractor\'s Tittle 2'] = 'CEO';
+        obj["Text Contractor's Email - 10"] = opportunity.contractorEmail;
+        obj["Text Contractor's Email - 9"] = opportunity.contractorEmail;
+        obj["Text Contractor's Tittle 2"] = 'CEO';
         obj['Text Credits - 1'] = customerPayment.credit || 0;
         obj['Text CSCB License # - 1'] = `CSLB# ${
           opportunity.isPrimeContractor ? defaultContractor.license : opportunity.contractorLicense
@@ -161,24 +159,30 @@ export class DocusignTemplateService {
         obj['Text Payment 2 Timing 1 - 1'] = isCash ? 'Due upon building department inspection approval' : '';
         obj['Text Payment 2 Timing 1 - 7'] = isCash ? 'Due upon building department inspection approval' : '';
         obj['Text Project Adders - 1'] = roofTopDesign.adders.length > 0 ? 'Project Adders:' : '';
-        obj['Text ES kW rollup - 1'] = sumBy(roofTopDesign.storage, (item) => item.quantity * item.storage_model_data_snapshot.sizeW) / 1000;
-        obj['Text kW rollup - 1'] = sumBy(roofTopDesign.panel_array, (item) => item.number_of_panels * item.panel_model_data_snapshot.sizeW) / 1000;
-        obj['Text ES kWh rollup - 1'] = sumBy(roofTopDesign.storage, (item) => item.quantity * item.storage_model_data_snapshot.sizekWh);
+        obj['Text ES kW rollup - 1'] =
+          sumBy(roofTopDesign.storage, item => item.quantity * item.storage_model_data_snapshot.sizeW) / 1000;
+        obj['Text kW rollup - 1'] =
+          sumBy(roofTopDesign.panel_array, item => item.number_of_panels * item.panel_model_data_snapshot.sizeW) / 1000;
+        obj['Text ES kWh rollup - 1'] = sumBy(
+          roofTopDesign.storage,
+          item => item.quantity * item.storage_model_data_snapshot.sizekWh,
+        );
         obj['Text PV Inverter Product - 1'] = roofTopDesign.inverters
-          .map((item) => item.inverter_model_data_snapshot.name)
+          .map(item => item.inverter_model_data_snapshot.name)
           .join(', ');
         obj['Text PV Module Product - 1'] = roofTopDesign.panel_array
-          .map((item) => item.panel_model_data_snapshot.name)
+          .map(item => item.panel_model_data_snapshot.name)
           .join(', ');
         obj['Text Storage Product - 1'] = roofTopDesign.storage
-          .map((item) => item.storage_model_data_snapshot.name)
+          .map(item => item.storage_model_data_snapshot.name)
           .join(', ');
 
-        break;
+        tabsData.textTabs.push(obj);
+        return tabsData;
       }
 
       default:
-        break;
+        return tabsData;
     }
   }
 }

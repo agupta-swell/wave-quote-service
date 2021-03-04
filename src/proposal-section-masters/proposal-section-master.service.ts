@@ -39,7 +39,7 @@ export class ProposalSectionMasterService {
       { new: true },
     );
 
-    return OperationResult.ok(new ProposalSectionMasterDto(updatedModel.toObject()));
+    return OperationResult.ok(new ProposalSectionMasterDto(updatedModel?.toObject()));
   }
 
   async getList(
@@ -64,7 +64,7 @@ export class ProposalSectionMasterService {
     return OperationResult.ok(
       new Pagination({
         data: proposalSectionMasters.map(
-          (proposalSectionMaster) => new ProposalSectionMasterDto(proposalSectionMaster.toObject()),
+          proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster.toObject()),
         ),
         total,
       }),

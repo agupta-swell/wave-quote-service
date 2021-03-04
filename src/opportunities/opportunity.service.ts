@@ -24,15 +24,15 @@ export class OpportunityService {
     const contact = await this.contactService.getContactById(foundOpportunity.contactId);
 
     const data = {
-      address: contact.address1,
-      city: contact.city,
-      firstName: contact.firstName,
-      lastName: contact.lastName,
-      email: contact.email,
+      address: contact?.address1 || '',
+      city: contact?.city || '',
+      firstName: contact?.firstName || '',
+      lastName: contact?.lastName || '',
+      email: contact?.email || '',
       opportunityId,
-      state: contact.state,
+      state: contact?.state || '',
       utilityProgramId: foundOpportunity.utilityProgramId ?? '',
-      zipCode: contact.zip,
+      zipCode: contact?.zip || '',
       partnerId: foundOpportunity.accountId,
     };
     return OperationResult.ok(new GetRelatedInformationDto(data));

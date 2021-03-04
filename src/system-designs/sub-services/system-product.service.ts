@@ -28,7 +28,7 @@ export class SystemProductService {
     @InjectModel(PV_WATT_SYSTEM_PRODUCTION) private readonly pvWattSystemProduction: Model<PvWattSystemProduction>,
     private readonly externalService: ExternalService,
     private readonly productService: ProductService,
-  ) { }
+  ) {}
 
   async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
     const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
@@ -37,7 +37,7 @@ export class SystemProductService {
       system_capacity_kW: data.systemCapacity,
       azimuth: data.azimuth,
       tilt: data.tilt,
-      losses: data.losses
+      losses: data.losses,
     });
 
     if (pvWattSystemProduction) {
@@ -69,9 +69,9 @@ export class SystemProductService {
       pvProductionArray = [{ hourly: [], monthly: [], annual: 0 }];
     } else {
       pvProductionArray = await Promise.all(
-        systemDesignDto.roofTopDesignData.panelArray.map(async (item) => {
+        systemDesignDto.roofTopDesignData.panelArray.map(async item => {
           const panelModelData = await this.productService.getDetailById(item.panelModelId);
-          const systemCapacityInkWh = (item.numberOfPanels * panelModelData.sizeW) / 1000;
+          const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
           const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
 
           const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
@@ -128,12 +128,16 @@ export class SystemProductService {
       cumulativePvProduction.monthly = pvProductionArray[0].monthly || [];
       cumulativePvProduction.annual = pvProductionArray[0].annual || 0;
     } else {
-      pvProductionArray.forEach((item) => {
+      pvProductionArray.forEach(item => {
         item.hourly.forEach(
-          (value, index) => (cumulativePvProduction.hourly[index] = (cumulativePvProduction.hourly[index] || 0) + value),
+          // eslint-disable-next-line no-return-assign
+          (value, index) =>
+            (cumulativePvProduction.hourly[index] = (cumulativePvProduction.hourly[index] || 0) + value),
         );
         item.monthly.forEach(
-          (value, index) => (cumulativePvProduction.monthly[index] = (cumulativePvProduction.monthly[index] || 0) + value),
+          // eslint-disable-next-line no-return-assign
+          (value, index) =>
+            (cumulativePvProduction.monthly[index] = (cumulativePvProduction.monthly[index] || 0) + value),
         );
         cumulativePvProduction.annual += item.annual;
       });
@@ -146,7 +150,7 @@ export class SystemProductService {
     currentUtilityUsage: number[],
     pvProduction: number[],
   ): INetUsagePostInstallationSchema {
-    const netUsagePostInstallation = { hourly_net_usage: [] } as INetUsagePostInstallationSchema;
+    const netUsagePostInstallation = ({ hourly_net_usage: [] } as unknown) as INetUsagePostInstallationSchema;
     currentUtilityUsage.forEach((value, index) => {
       netUsagePostInstallation.hourly_net_usage[index] = value - (pvProduction[index] || 0);
     });

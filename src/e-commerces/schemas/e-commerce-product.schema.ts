@@ -1,5 +1,5 @@
-import { ECOM_PRODUCT_TYPE } from './../constants';
 import { Document, Schema } from 'mongoose';
+import { ECOM_PRODUCT_TYPE } from '../constants';
 
 export const E_COMMERCE_PRODUCT = Symbol('E_COMMERCE_PRODUCT').toString();
 

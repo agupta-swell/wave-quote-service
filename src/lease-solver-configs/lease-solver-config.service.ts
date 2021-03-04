@@ -1,8 +1,8 @@
 import { Injectable, Req } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { fromStream } from '../utils/convertToCSV';
 import { OperationResult } from '../app/common/operation-result';
+import { fromStream } from '../utils/convertToCSV';
 import { LeaseSolverConfig, LEASE_SOLVER_CONFIG } from './lease-solver-config.schema';
 import { IGetDetail } from './typing.d';
 
@@ -52,6 +52,7 @@ export class LeaseSolverConfigService {
         storage_payment: values[13],
         grid_services_discount: values[14],
       });
+      // eslint-disable-next-line consistent-return
       return leaseConfig.save();
     });
 

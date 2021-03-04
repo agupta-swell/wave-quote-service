@@ -17,11 +17,12 @@ export class DocusignAPIService {
     });
   }
 
-  async createConnection() {
+  // eslint-disable-next-line consistent-return
+  async createConnection(): Promise<docusign.LoginAccount | void> {
     const docusignKeys = await this.getDocusignSecret();
 
     const docusignAPI = docusignKeys?.docusign;
-    this.apiClient = new docusign.ApiClient({ basePath: docusignAPI.baseUrl, oAuthBasePath: null });
+    this.apiClient = new docusign.ApiClient({ basePath: docusignAPI.baseUrl, oAuthBasePath: null as any });
 
     // create JSON formatted auth header
     const creds = JSON.stringify({
@@ -37,8 +38,8 @@ export class DocusignAPIService {
     try {
       const res = await authApi.login({ apiPassword: 'true', includeAccountIdGuid: 'true' });
       const { loginAccounts } = res;
-      const loginAccount = loginAccounts[0];
-      const { baseUrl } = loginAccount;
+      const loginAccount = loginAccounts?.[0];
+      const baseUrl = loginAccount?.baseUrl || '';
       const accountDomain = baseUrl.split('/v2');
       this.apiClient.setBasePath(accountDomain[0]);
       return loginAccount;
@@ -48,13 +49,13 @@ export class DocusignAPIService {
   }
 
   async sendTemplate(templateData: IDocusignCompositeContract): Promise<EnvelopeSummary | null> {
-    const account = await this.createConnection();
+    const account = (await this.createConnection()) as docusign.LoginAccount;
 
     const envelopesApi = new docusign.EnvelopesApi(this.apiClient);
     let results: EnvelopeSummary;
 
     try {
-      results = await envelopesApi.createEnvelope(account.accountId, { envelopeDefinition: templateData });
+      results = await envelopesApi.createEnvelope(account.accountId || '', { envelopeDefinition: templateData });
       return results;
     } catch (error) {
       this.logger.error(error);
@@ -63,17 +64,17 @@ export class DocusignAPIService {
   }
 
   async getDocusignSecret(docusignSecretsName?: string): Promise<IDocusignSecretManager> {
-    let secret: string; let
-      decodedBinarySecret: string;
+    let secret = '';
+    let decodedBinarySecret = '';
 
     try {
       const data = await this.client
-        .getSecretValue({ SecretId: docusignSecretsName || process.env.DOCUSIGN_SECRET_NAME })
+        .getSecretValue({ SecretId: docusignSecretsName || process.env.DOCUSIGN_SECRET_NAME || '' })
         .promise();
       if ('SecretString' in data) {
-        secret = data.SecretString;
+        secret = data.SecretString || '';
       } else {
-        const buff = Buffer.from(data.SecretBinary.toString(), 'base64');
+        const buff = Buffer.from((data.SecretBinary || '').toString(), 'base64');
         decodedBinarySecret = buff.toString('ascii');
       }
     } catch (error) {

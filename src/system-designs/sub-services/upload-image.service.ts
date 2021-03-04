@@ -9,16 +9,15 @@ export class UploadImageService {
 
   constructor() {
     // Configure AWS with your access and secret key.
-    const {
-      AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET,
-    } = process.env;
+    const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET } = process.env;
 
     // Configure AWS to use promise
+    // eslint-disable-next-line
     AWS.config.setPromisesDependency(require('bluebird'));
     AWS.config.update({ accessKeyId: AWS_ACCESS_KEY_ID, secretAccessKey: AWS_SECRET_ACCESS_KEY, region: AWS_REGION });
 
-    this.AWS_S3_BUCKET = AWS_S3_BUCKET;
-    this.AWS_REGION = AWS_REGION;
+    this.AWS_S3_BUCKET = AWS_S3_BUCKET || '';
+    this.AWS_REGION = AWS_REGION || '';
   }
 
   async uploadToAWSS3(imageData: string) {
@@ -73,6 +72,8 @@ export class UploadImageService {
     try {
       const data = await s3.deleteObject(params).promise();
       console.log('delete image successfully', data); // => {} Empty object when successful
-    } catch (error) {}
+    } catch (error) {
+      console.log('>>>>>>>>>>>>>>>>>>>', 'delete image fail');
+    }
   }
 }

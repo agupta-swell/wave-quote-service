@@ -56,15 +56,15 @@ export class FniCallbackService {
   }
 
   async getSecretFNIInformation() {
-    let secret: string; let
-      decodedBinarySecret: string;
+    let secret = '';
+    let decodedBinarySecret = '';
 
     try {
       const data = await this.client.getSecretValue({ SecretId: 'fniAPISecret-cpxGGmSQW6jO' }).promise();
       if ('SecretString' in data) {
-        secret = data.SecretString;
+        secret = data.SecretString || '';
       } else {
-        const buff = Buffer.from(data.SecretBinary.toString(), 'base64');
+        const buff = Buffer.from((data.SecretBinary || '').toString(), 'base64');
         decodedBinarySecret = buff.toString('ascii');
       }
     } catch (error) {

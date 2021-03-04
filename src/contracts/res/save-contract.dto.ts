@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { Contract } from '../contract.schema';
 import { ContractResDto } from './sub-dto';
@@ -8,15 +8,15 @@ export class SaveContractDto {
   status: boolean;
 
   @ApiProperty()
-  statusDescription: string;
+  statusDescription: string | undefined;
 
-  @ApiProperty({ type: ContractResDto })
-  newlyUpdatedContract: ContractResDto;
+  @ApiPropertyOptional({ type: ContractResDto })
+  newlyUpdatedContract?: ContractResDto;
 
-  constructor(status: boolean, statusDescription?: string, contract?: Contract) {
+  constructor(status: boolean, statusDescription?: string | undefined, contract?: Contract) {
     this.status = status;
     this.statusDescription = statusDescription;
-    this.newlyUpdatedContract = new ContractResDto(contract);
+    this.newlyUpdatedContract = contract && new ContractResDto(contract);
   }
 }
 

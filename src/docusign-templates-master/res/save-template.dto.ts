@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { toCamelCase } from '../../utils/transformProperties';
 import { TEMPLATE_STATUS } from '../constants';
@@ -35,15 +35,15 @@ export class SaveTemplateDto {
   @ApiProperty()
   responseStatus: string;
 
-  @ApiProperty({ type: () => TemplateDataResDto })
-  newUpdatedTemplateMaster: TemplateDataResDto;
+  @ApiPropertyOptional({ type: () => TemplateDataResDto })
+  newUpdatedTemplateMaster: TemplateDataResDto | undefined;
 
   constructor(responseStatus: string, props?: DocusignTemplateMaster) {
     this.responseStatus = responseStatus;
     this.newUpdatedTemplateMaster = props && {
       ...toCamelCase(props),
-      recipientRoles: props.recipient_roles.map((item) => toCamelCase(item)),
-    };
+      recipientRoles: props.recipient_roles.map(item => toCamelCase(item)),
+    } as any;
   }
 }
 

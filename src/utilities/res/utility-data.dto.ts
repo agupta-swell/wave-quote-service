@@ -81,6 +81,7 @@ export class UtilityDataDto {
   constructor(props: any, isInternal = false) {
     this.loadServingEntityData = toCamelCase(props?.loadServingEntityData);
     if (!isInternal) {
+      // eslint-disable-next-line no-unused-expressions
       props?.typicalBaselineUsage?.typical_baseline &&
         delete props.typicalBaselineUsage.typical_baseline.typical_hourly_usage;
     }
@@ -89,7 +90,7 @@ export class UtilityDataDto {
     this.actualUsage = {} as any;
   }
 
-  static actualUsages(props: any) {
+  static actualUsages(props: any): UtilityDataDto {
     const utility = new UtilityDataDto(null);
     utility.loadServingEntityData = props.loadServingEntityData;
     utility.typicalBaselineUsage = props.typicalBaselineUsage;

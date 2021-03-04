@@ -34,7 +34,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(process.env.MONGO_URL, { useFindAndModify: false }),
+    MongooseModule.forRoot(process.env.MONGO_URL || 'mongodb://locahost:27017', { useFindAndModify: false }),
     AdderConfigModule,
     AuthencationModule,
     CashPaymentConfigModule,

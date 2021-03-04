@@ -85,15 +85,13 @@ export class SystemDesignDto {
     this.isRetrofit = props.is_retrofit;
     this.systemProductionData = this.transformSystemProductionData(props.system_production_data);
     this.roofTopDesignData = this.transformRoofTopData(props.roof_top_design_data);
-    this.capacityProductionDesignData = (null
-      || this.transformCapacityProductionData(props.capacity_production_design_data || '')) as any;
+    this.capacityProductionDesignData = (null ||
+      this.transformCapacityProductionData(props.capacity_production_design_data || '')) as any;
   }
 
   transformRoofTopData = (data: IRoofTopSchema): RoofTopDataDto => {
     if (!data) return {} as any;
-    const {
-      panel_array, inverters, storage, adders, ancillary_equipments, balance_of_systems,
-    } = data;
+    const { panel_array, inverters, storage, adders, ancillary_equipments, balance_of_systems } = data;
 
     const getProductCommon = (item: IPanelProductSchema | IInverterProductSchema | IStorageProductSchema) => ({
       manufacturerId: item.manufacturer_id,
@@ -110,7 +108,7 @@ export class SystemDesignDto {
     });
 
     return {
-      panelArray: panel_array.map((item) => {
+      panelArray: panel_array.map(item => {
         const {
           panel_model_data_snapshot: { watt_class_stcdc, panel_output_mode, pv_watt_module_type },
         } = item;
@@ -125,7 +123,7 @@ export class SystemDesignDto {
           },
         };
       }),
-      inverters: inverters.map((item) => {
+      inverters: inverters.map(item => {
         const {
           inverter_model_data_snapshot: { inverter_type },
         } = item;
@@ -138,7 +136,7 @@ export class SystemDesignDto {
           },
         };
       }),
-      storage: storage.map((item) => {
+      storage: storage.map(item => {
         const {
           storage_model_data_snapshot: { battery_type },
         } = item;
@@ -151,9 +149,9 @@ export class SystemDesignDto {
           },
         };
       }),
-      adders: adders.map((item) => toCamelCase(item)),
-      ancillaryEquipments: ancillary_equipments.map((item) => toCamelCase(item)),
-      balanceOfSystems: balance_of_systems.map((item) => toCamelCase(item)),
+      adders: adders.map(item => toCamelCase(item)),
+      ancillaryEquipments: ancillary_equipments.map(item => toCamelCase(item)),
+      balanceOfSystems: balance_of_systems.map(item => toCamelCase(item)),
     };
   };
 
@@ -166,10 +164,7 @@ export class SystemDesignDto {
     generationMonthlyKWh: systemProduction?.generationMonthlyKWh || [],
   });
 
-  transformCapacityProductionData = (data: any): CapacityProductionDataDto =>
-    // TODO: will implement when data is ready
-    null
-  ;
+  transformCapacityProductionData = (data: any): CapacityProductionDataDto => null as any;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {

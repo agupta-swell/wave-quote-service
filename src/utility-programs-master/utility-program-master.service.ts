@@ -16,14 +16,14 @@ export class UtilityProgramMasterService {
     ]);
 
     return OperationResult.ok(
-      new Pagination({ data: utilityPrograms.map((item) => new UtilityProgramMasterDto(item)), total }),
+      new Pagination({ data: utilityPrograms.map(item => new UtilityProgramMasterDto(item)), total }),
     );
   }
 
-  async createDataFeed() {
+  async createDataFeed(): Promise<void> {
     const data = ['ACES', 'ACES+SGIP', 'none', 'PRP2', 'PRP2+SGIP', 'SGIP'];
     await Promise.all(
-      data.map((item) => new this.utilityProgramMaster({ utility_program_name: item, rebate_amount: 1000 }).save()),
+      data.map(item => new this.utilityProgramMaster({ utility_program_name: item, rebate_amount: 1000 }).save()),
     );
   }
 
@@ -41,7 +41,7 @@ export class UtilityProgramMasterService {
 
   async getAll(): Promise<UtilityProgramMaster[]> {
     const utilityProgramMasters = await this.utilityProgramMaster.find();
-    return utilityProgramMasters.length ? utilityProgramMasters.map((item) => item.toObject({ versionKey: false })) : [];
+    return utilityProgramMasters.length ? utilityProgramMasters.map(item => item.toObject({ versionKey: false })) : [];
   }
 
   // FIXME: need to delete later

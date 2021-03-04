@@ -1,8 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested,
-} from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { SAVE_TEMPLATE_MODE, TEMPLATE_STATUS } from '../constants';
 
 class TemplateDataReqDto {

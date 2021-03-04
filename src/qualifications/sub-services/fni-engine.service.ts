@@ -2,13 +2,11 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as AWS from 'aws-sdk';
 import { Model } from 'mongoose';
+import { ExternalService } from '../../external-services/external-service.service';
 import { REQUEST_CATEGORY, REQUEST_TYPE } from '../constants';
 import { QualificationService } from '../qualification.service';
 import { FNI_Communication, FNI_COMMUNICATION } from '../schemas/fni-communication.schema';
-import {
-  IApplyRequest, IFniApplyReq, IFniUpdateReq, IFniUpdateRes,
-} from '../typing.d';
-import { ExternalService } from '../../external-services/external-service.service';
+import { IApplyRequest, IFniApplyReq, IFniUpdateReq, IFniUpdateRes } from '../typing.d';
 
 @Injectable()
 export class FniEngineService {
@@ -122,7 +120,7 @@ export class FniEngineService {
   }
 
   async update(req: IFniUpdateReq): Promise<IFniUpdateRes> {
-    let coinedErrorMessage: string = '';
+    let coinedErrorMessage = '';
     let fniCommunication = await this.fniCommunicationModel.findById(req.fniCommunicationId);
 
     if (!fniCommunication) {
@@ -165,7 +163,7 @@ export class FniEngineService {
       coinedErrorMessage = `ERROR: ${coinedErrorMessage}`;
       res.refNum = req.vendorRefId;
       res.status = 'ERROR';
-      res.errorMsgs = [{ fieldId: null, errorType: 'GENERAL', message: coinedErrorMessage }];
+      res.errorMsgs = [{ fieldId: null as any, errorType: 'GENERAL', message: coinedErrorMessage }];
 
       fniCommunication.error_message_sent_to_fni = [JSON.stringify(res), ...fniCommunication.error_message_sent_to_fni];
       await this.fniCommunicationModel.updateOne({ _id: fniCommunication._id }, fniCommunication.toObject());
@@ -175,14 +173,18 @@ export class FniEngineService {
 
     const fniResponseCode = this.translateFniResponseCode(req.code);
     try {
-      this.qualificationService.handleFNIResponse(fniResponseCode, 'System - FNI Triggered', qualificationCredit);
+      this.qualificationService.handleFNIResponse(
+        fniResponseCode,
+        'System - FNI Triggered',
+        qualificationCredit as any,
+      );
       res.refNum = req.vendorRefId;
       res.status = 'SUCCESS';
       fniCommunication.error_message_sent_to_fni = [JSON.stringify(res), ...fniCommunication.error_message_sent_to_fni];
     } catch (error) {
       res.refNum = req.vendorRefId;
       res.status = 'ERROR';
-      res.errorMsgs = [{ fieldId: null, errorType: 'GENERAL', message: 'System Error' }];
+      res.errorMsgs = [{ fieldId: null as any, errorType: 'GENERAL', message: 'System Error' }];
       fniCommunication.error_message_sent_to_fni = [JSON.stringify(res), ...fniCommunication.error_message_sent_to_fni];
     }
 
@@ -193,7 +195,7 @@ export class FniEngineService {
 
   // ======================= INTERNAL ========================
 
-  translateFniResponseCode(code: string) {
+  translateFniResponseCode(code: string): string {
     switch (code) {
       case 'A':
       case 'X':

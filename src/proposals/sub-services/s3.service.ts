@@ -4,7 +4,9 @@ import * as AWS from 'aws-sdk';
 @Injectable()
 export class GetPresignedUrlService {
   AWS_BUCKET: string;
+
   AWS_REGION: string;
+
   constructor() {
     // Configure AWS with your access and secret key.
     const { AWS_BUCKET, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } = process.env;
@@ -33,12 +35,8 @@ export class GetPresignedUrlService {
           Expires: 300,
         };
         s3.getSignedUrlPromise('getObject', params).then(
-          url => {
-            return resolve(url);
-          },
-          err => {
-            return reject(err);
-          },
+          url => resolve(url),
+          err => reject(err),
         );
       } catch (error) {
         return reject(error);
