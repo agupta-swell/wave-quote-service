@@ -38,27 +38,27 @@ export class FniEngineService {
       request_category: REQUEST_CATEGORY.CREDIT,
       request_type: REQUEST_TYPE.OUTBOUND,
     });
-
+    const fniKey: any = JSON.parse(await this.getSecretManager(process.env.FNI_SECRET_MANAGER_NAME));
     await fniModel.save();
-
     const applyReq = {
       transaction: {
         // FIXME: need to change if Hari notify
-        username: 'thanghq',
-        password: 'thang',
-        partnerId: 'swell',
+        username: fniKey.fni.username,
+        password: fniKey.fni.password,
+        partnerId: fniKey.fni.partnerId,
       },
       application: {
-        track: fniModel._id,
+        track: fniModel._id.toString(),
         waveId: req.opportunityId,
       },
       applicant1: {
-        sightenId: req.qualificationCreditId,
+        sightenId: req.qualificationCreditId.toString(),
         first: req.primaryApplicantData.firstName,
         mi: req.primaryApplicantData.middleName,
         last: req.primaryApplicantData.lastName,
-        email: req.primaryApplicantData.email,
-        phoneNumber: req.primaryApplicantData.phoneNumber,
+        eMail: req.primaryApplicantData.email,
+        phnum: req.primaryApplicantData.phoneNumber,
+        primSmsFlag: 'Y',
         dob: req.primaryApplicantSecuredData.dob.toString(),
         soc: req.primaryApplicantSecuredData.soc.toString(),
         primAddr: req.primaryApplicantData.addressLine1,
@@ -70,10 +70,11 @@ export class FniEngineService {
       applicant2: {
         first: req.coApplicantData.firstName,
         mi: req.coApplicantData.middleName,
-        sightenId: req.qualificationCreditId,
+        sightenId: req.qualificationCreditId.toString(),
         last: req.coApplicantData.lastName,
-        email: req.coApplicantData.email,
-        phoneNumber: req.coApplicantData.phoneNumber,
+        eMail: req.coApplicantData.email,
+        phnum: req.coApplicantData.phoneNumber,
+        primSmsFlag: 'Y',
         dob: req.coApplicantSecuredData.dob.toString(),
         soc: req.coApplicantSecuredData.soc.toString(),
         coAddr: req.coApplicantData.addressLine1,
@@ -84,7 +85,7 @@ export class FniEngineService {
       },
     } as IApplyRequest;
 
-    const applyResponse = this.externalService.getFniResponse(applyReq);
+    const applyResponse = await this.externalService.getFniResponse(applyReq);
     if (applyResponse.transaction.status === 'ERROR') {
       await this.fniCommunicationModel.updateOne(
         { _id: fniModel._id },
@@ -192,6 +193,27 @@ export class FniEngineService {
 
     return res;
   }
+
+  getSecretManager = (secretName: string): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const { AWS_REGION } = process.env;
+      const client = new AWS.SecretsManager({ region: AWS_REGION });
+      let returnValue: string;
+      client.getSecretValue({ SecretId: secretName }, (err, data) => {
+        if (err) {
+          console.log('error line 203::fni-engine.service.ts::', err);
+          return reject(err);
+        }
+
+        if ('SecretString' in data) {
+          returnValue = data.SecretString;
+        } else {
+          returnValue = Buffer.from(data.SecretBinary as any, 'base64').toString('ascii');
+        }
+
+        return resolve(returnValue);
+      });
+    });
 
   // ======================= INTERNAL ========================
 

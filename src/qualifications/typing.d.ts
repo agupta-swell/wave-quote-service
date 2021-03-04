@@ -61,8 +61,8 @@ export interface IApplyRequest {
     mi?: string;
     sightenId: string;
     last: string;
-    email: string;
-    phoneNumber: string;
+    eMail: string;
+    phnum: string;
     primSmsFlag?: string;
     dob: string;
     soc: string;
@@ -77,8 +77,8 @@ export interface IApplyRequest {
     mi?: string;
     sightenId: string;
     last: string;
-    email: string;
-    phoneNumber: string;
+    eMail: string;
+    phnum: string;
     primSmsFlag?: string;
     dob: string;
     soc: string;

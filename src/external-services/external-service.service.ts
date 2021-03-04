@@ -235,40 +235,21 @@ export class ExternalService {
     return tariff.data.results;
   }
 
-  // TODO: need to delete when having real api
-  // eslint-disable-next-line class-methods-use-this
-  getFniResponse(data: IApplyRequest): IApplyResponse {
-    const primarySSN = data.applicant1.soc;
-    let code: string;
-
-    switch (primarySSN.charAt(0)) {
-      case '1':
-        code = 'X';
-        break;
-      case '2':
-        code = 'C';
-      // eslint-disable-next-line no-fallthrough
-      default:
-        code = 'T';
-    }
-
-    const obj = {
-      transaction: {
-        refNum: 'FNI Reference Number',
-        status: 'SUCCESS',
-      },
-      application: {
-        code,
-        track: 'External Tracking Number',
-      },
-      applicant1: {
-        sightenId: 'Sighten Site UUID',
-      },
-    } as IApplyResponse;
-
-    return obj;
-  }
-
+  getFniResponse = (data: IApplyRequest): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      axios
+        .post(process.env.FNI_END_POINT, data)
+        .then(result => {
+          resolve(result.data);
+        })
+        .catch(error => {
+          if (error) {
+            console.log('Error when call FNI API in line 232', error);
+            reject(error);
+          }
+        });
+    });
+  };
   getGenabilityToken(): string {
     const appId = process.env.GENABILITY_APP_ID;
     const appKey = process.env.GENABILITY_APP_KEY;
