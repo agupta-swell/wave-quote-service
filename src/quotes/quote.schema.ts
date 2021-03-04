@@ -672,8 +672,13 @@ export class QuoteModel {
       })),
       allowed_quote_modes: allowedQuoteModes,
       selected_quote_mode: selectedQuoteMode,
-      quote_price_per_watt: toSnakeCase(quotePricePerWatt),
-      quote_price_override: toSnakeCase(quotePriceOverride),
+      quote_price_per_watt: {
+        price_per_watt: quotePricePerWatt?.pricePerWatt,
+        gross_price: quotePricePerWatt?.grossPrice,
+      },
+      quote_price_override: {
+        gross_price: quotePriceOverride?.grossPrice,
+      },
     };
   }
 

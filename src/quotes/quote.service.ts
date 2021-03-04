@@ -324,7 +324,7 @@ export class QuoteService {
     return OperationResult.ok(new QuoteDto(obj.toObject())) as any;
   }
 
-  async createProductAttribute(productType: string, netAmount: number) {
+  async createProductAttribute(productType: string, netAmount: number): Promise<any> {
     let template = {};
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
@@ -636,6 +636,9 @@ export class QuoteService {
       isSolar: foundQuote.detailed_quote.is_solar,
       isRetrofit: foundQuote.detailed_quote.is_retrofit,
       selectedQuoteMode: foundQuote.detailed_quote.selected_quote_mode,
+      allowedQuoteModes: foundQuote.detailed_quote.allowed_quote_modes,
+      quotePricePerWatt: foundQuote.detailed_quote.quote_price_per_watt,
+      quotePriceOverride: foundQuote.detailed_quote.quote_price_override,
     };
 
     detailedQuote.quoteFinanceProduct = this.handleUpdateQuoteFinanceProduct(
@@ -721,10 +724,6 @@ export class QuoteService {
       isSolar: systemDesign.is_solar,
       isRetrofit: systemDesign.is_retrofit,
       taxCreditData: taxCreditData.map(item => toCamelCase(item?.toObject())),
-      allowedQuoteModes: data.allowedQuoteModes,
-      selectedQuoteMode: data.selectedQuoteMode,
-      quotePricePerWatt: data.quotePricePerWatt,
-      quotePriceOverride: data.quotePriceOverride,
     };
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(data.isSync);

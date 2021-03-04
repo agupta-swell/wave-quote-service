@@ -11,12 +11,19 @@ module.exports = {
     sourceType: 'module',
   },
   plugins: ['eslint-plugin-import', '@typescript-eslint', '@typescript-eslint/tslint'],
+  settings: {
+    'import/resolver': {
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+      },
+    },
+  },
   rules: {
     'import/no-unresolved': 0,
     'import/extensions': 0,
     'class-methods-use-this': 0,
     // NOTE: disabling eslint camelcase because Typescript is enforcing cases below
-    camelcase: 0,
+    'camelcase': 0,
     'max-len': [
       'error',
       {
@@ -28,12 +35,6 @@ module.exports = {
     'no-useless-constructor': 0,
     'import/prefer-default-export': 0,
     'max-classes-per-file': 0,
-    'no-return-assign': [
-      'error',
-      {
-        always: false,
-      },
-    ],
     'no-underscore-dangle': 0,
     'no-shadow': 0,
     'new-cap': 0,
@@ -69,20 +70,6 @@ module.exports = {
       'undefined',
     ],
     'id-match': 'error',
-    'import/order': 'error',
-    '@typescript-eslint/tslint/config': [
-      'error',
-      {
-        rules: {
-          'import/no-unresolved': true,
-          'max-len': [
-            true,
-            {
-              limit: 120,
-            },
-          ],
-        },
-      },
-    ],
+    'import/order': 'error'
   },
 };
