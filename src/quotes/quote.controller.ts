@@ -1,9 +1,5 @@
-import {
-  Body, Controller, Get, Param, Post, Put, Query,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { OperationResult, Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
@@ -17,7 +13,6 @@ import { TaxCreditDto, TaxCreditListRes } from './res/tax-credit.dto';
 @Controller('/quotes')
 @PreAuthenticate()
 export class QuoteController {
-  // eslint-disable-next-line no-empty-function
   constructor(private quoteService: QuoteService) {}
 
   @Post()

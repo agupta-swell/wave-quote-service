@@ -108,7 +108,7 @@ export class ECommerceService {
     if (!foundZipCode) {
       const subject = `Undefined Zipcode Mapping ${zipCode}`;
       const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the ZIP code could not be mapped to a region.`;
-      this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
       return OperationResult.ok('No detail available for zip code' as any);
     }
 
@@ -116,7 +116,7 @@ export class ECommerceService {
     if (!foundRegion) {
       const subject = `Undefined region Mapping ${foundZipCode.region_id}`;
       const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the REGION code could not be mapped to a region.`;
-      this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
       return OperationResult.ok('No detail available for zip code' as any);
     }
 
@@ -137,7 +137,7 @@ export class ECommerceService {
     const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
     const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
     const losses = 5.5; // "Assuming a loss factor of 5.5"
-    const systemCapacity: number = numberOfPanels * panelSTCRating;
+    const systemCapacity = (numberOfPanels * panelSTCRating) / 1000; //  system capacity is using KW as a unit so we need divide by 1000
     const netGenerationKWh = await this.systemProductService.pvWatCalculation({
       lat,
       lon: long,
@@ -161,18 +161,7 @@ export class ECommerceService {
     const storagePerBatteryInkWh =
       ((await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL })).sizeW ?? 0) / 1000;
 
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
-    //REMOVE THIS COMMENT - BELOW SECTION ADDED BY HARI. THANG TO REVIEW BELOW CODE AND TAKE OWNERSHIP
-
     //QUOTE CALCULATION SECTION
-
-    //TODO: DELETE THIS LINE AFTER IMPLEMENTING THE ABOVE LOGIC. FOR NOW, ASSUMING 1000 AS THE VALUE TO MOVE FORWARD
     const regionId = '1000';
     // LOGIC TO BE VALIDATED WITH SALES TEAM
     const laborCost = requiredpVGeneration * labor_cost_perWatt;
@@ -248,7 +237,7 @@ export class ECommerceService {
     const utilityProgramName = 'none';
 
     //LEASE FOR ESSENTIAL BACKUP
-    const pricePerWattForEssentialBackup = overAllCost / systemProduction.capacityKW; // old: netGenerationKWh // FIXME: need to ask Hari or Michael why using netGenerationKWh ... it's not same on lucidChart
+    const pricePerWattForEssentialBackup = overAllCost / systemProduction.capacityKW;
     const monthlyEsaAmountForEssentialBackup = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
@@ -264,7 +253,7 @@ export class ECommerceService {
 
     //LEASE FOR WHOLE HOME BACKUP
     const overallCostForWholeHomeBackup = overAllCost + 1 * storage_price; // Add 1 battery additional on top of essential backup
-    const pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW; // old: netGenerationKWh // FIXME: need to ask Hari or Michael why using netGenerationKWh ... it's not same on lucidChart
+    const pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW;
     const monthlyEsaAmountForWholeHomeBackup = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
