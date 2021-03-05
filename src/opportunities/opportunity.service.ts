@@ -48,6 +48,9 @@ export class OpportunityService {
   ): Promise<OperationResult<UpdateOpportunityDtoRes>> {
     const foundOpportunity = await this.opportunityModel.findById(opportunityId);
 
+    console.log(opportunityId)
+    console.log(foundOpportunity)
+
     if (!foundOpportunity) {
       throw ApplicationException.EnitityNotFound(opportunityId);
     }
