@@ -1,8 +1,8 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { uniq , groupBy, isNil, max, min, omitBy, pickBy, sumBy } from 'lodash';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy, isNil, max, min, omitBy, pickBy, sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -831,6 +831,7 @@ export class QuoteService {
       quotes.map(item => {
         item.is_sync = false;
         item.is_sync_messages.push(outdatedMessage);
+        item.is_sync_messages = uniq(item.is_sync_messages);
         return item.save(item.toObject());
       }),
     );
