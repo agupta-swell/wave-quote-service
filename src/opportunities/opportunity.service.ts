@@ -4,13 +4,17 @@ import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
+import { QuoteService } from 'src/quotes/quote.service';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
+import { UpdateOpportunityDto } from './req/update-opportunity.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
+import { UpdateOpportunityDto as UpdateOpportunityDtoRes } from './res/update-opportunity.dto';
 
 @Injectable()
 export class OpportunityService {
   constructor(
     @InjectModel(OPPORTUNITY) private readonly opportunityModel: Model<Opportunity>,
+    private readonly quoteService: QuoteService,
     @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
   ) {}
@@ -36,6 +40,25 @@ export class OpportunityService {
       partnerId: foundOpportunity.accountId,
     };
     return OperationResult.ok(new GetRelatedInformationDto(data));
+  }
+
+  async updateOpportunity(
+    opportunityId: string,
+    data: Omit<UpdateOpportunityDto, 'opportunityId'>,
+  ): Promise<OperationResult<UpdateOpportunityDtoRes>> {
+    const foundOpportunity = await this.opportunityModel.findById(opportunityId);
+
+    if (!foundOpportunity) {
+      throw ApplicationException.EnitityNotFound(opportunityId);
+    }
+
+    const savedOpportunity = await this.opportunityModel.findByIdAndUpdate(opportunityId, data, { new: true });
+
+    const updatedOpportunity = new UpdateOpportunityDtoRes(savedOpportunity?.toObject());
+
+    await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
+
+    return OperationResult.ok(updatedOpportunity);
   }
 
   // =====================> INTERNAL <=====================

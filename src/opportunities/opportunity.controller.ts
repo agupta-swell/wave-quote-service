@@ -1,8 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { OpportunityService } from './opportunity.service';
+import { UpdateOpportunityDto } from './req/update-opportunity.dto';
 import { GetRelatedInformationDto, GetRelatedInformationRes } from './res/get-related-information.dto';
 
 @ApiTags('Opportunity')
@@ -20,5 +21,19 @@ export class OpportunityController {
   ): Promise<ServiceResponse<GetRelatedInformationDto>> {
     const result = await this.opportunityService.getRelatedInformation(opportunityId);
     return ServiceResponse.fromResult(result);
+  }
+
+  @Put('/:opportunityId')
+  @ApiOperation({ summary: 'Update Opportunity' })
+  @ApiOkResponse({ type: GetRelatedInformationDto })
+  async updateOpportunity(
+    @Body() data: UpdateOpportunityDto,
+    @Param('opportunityId') opportunityId: string,
+  ): Promise<ServiceResponse<GetRelatedInformationDto>> {
+    const { opportunityId: _opportunityId, ...dataToSend } = data;
+
+    const res = await this.opportunityService.updateOpportunity(opportunityId, dataToSend);
+
+    return ServiceResponse.fromResult(res);
   }
 }

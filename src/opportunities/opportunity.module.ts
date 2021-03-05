@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { QuoteModule } from 'src/quotes/quote.module';
 import { OpportunityController } from './opportunity.controller';
 import { OPPORTUNITY, OpportunitySchema } from './opportunity.schema';
 import { OpportunityService } from './opportunity.service';
@@ -19,6 +20,7 @@ import { OpportunityService } from './opportunity.service';
         collection: 'opportunities',
       },
     ]),
+    QuoteModule,
   ],
   controllers: [OpportunityController],
   providers: [OpportunityService],
