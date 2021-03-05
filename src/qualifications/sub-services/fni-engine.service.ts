@@ -58,7 +58,6 @@ export class FniEngineService {
         last: req.primaryApplicantData.lastName,
         eMail: req.primaryApplicantData.email,
         phnum: req.primaryApplicantData.phoneNumber,
-        primSmsFlag: 'Y',
         dob: req.primaryApplicantSecuredData.dob.toString(),
         soc: req.primaryApplicantSecuredData.soc.toString(),
         primAddr: req.primaryApplicantData.addressLine1,
@@ -74,7 +73,6 @@ export class FniEngineService {
         last: req.coApplicantData.lastName,
         eMail: req.coApplicantData.email,
         phnum: req.coApplicantData.phoneNumber,
-        primSmsFlag: 'Y',
         dob: req.coApplicantSecuredData.dob.toString(),
         soc: req.coApplicantSecuredData.soc.toString(),
         coAddr: req.coApplicantData.addressLine1,
@@ -84,7 +82,6 @@ export class FniEngineService {
         coZip: req.coApplicantData.zipcode.toString(),
       },
     } as IApplyRequest;
-
     const applyResponse = await this.externalService.getFniResponse(applyReq);
     if (applyResponse.transaction.status === 'ERROR') {
       await this.fniCommunicationModel.updateOne(
