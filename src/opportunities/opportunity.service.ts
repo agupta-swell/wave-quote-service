@@ -6,9 +6,10 @@ import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
-import { UpdateOpportunityDto } from './req/update-opportunity.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
-import { UpdateOpportunityDto as UpdateOpportunityDtoRes } from './res/update-opportunity.dto';
+import 
+  { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } 
+from './res/update-opportunity-utility-program.dto';
 
 @Injectable()
 export class OpportunityService {
@@ -42,19 +43,23 @@ export class OpportunityService {
     return OperationResult.ok(new GetRelatedInformationDto(data));
   }
 
-  async updateOpportunity(
+  async updateOpportunityUtilityProgram(
     opportunityId: string,
-    data: Omit<UpdateOpportunityDto, 'opportunityId'>,
-  ): Promise<OperationResult<UpdateOpportunityDtoRes>> {
+    utilityProgramId: string,
+  ): Promise<OperationResult<UpdateOpportunityUtilityProgramDtoRes>> {
     const foundOpportunity = await this.opportunityModel.findById(opportunityId);
 
     if (!foundOpportunity) {
       throw ApplicationException.EnitityNotFound(opportunityId);
     }
 
-    const savedOpportunity = await this.opportunityModel.findByIdAndUpdate(opportunityId, data, { new: true });
+    const savedOpportunity = await this.opportunityModel.findByIdAndUpdate(
+      opportunityId,
+      { utilityProgramId },
+      { new: true },
+    );
 
-    const updatedOpportunity = new UpdateOpportunityDtoRes(savedOpportunity?.toObject());
+    const updatedOpportunity = new UpdateOpportunityUtilityProgramDtoRes(savedOpportunity?.toObject());
 
     await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
 
