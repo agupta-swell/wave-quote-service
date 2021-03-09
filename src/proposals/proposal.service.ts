@@ -364,6 +364,7 @@ export class ProposalService {
     fileType: string,
     token: string,
     isSolarQuoteTool: boolean,
+    isGetDownloadLink: boolean,
   ): Promise<OperationResult<string>> {
     if (!isSolarQuoteTool) {
       try {
@@ -375,8 +376,12 @@ export class ProposalService {
         throw new UnauthorizedException();
       }
     }
-
-    const url = await this.getPresignedUrlService.getPresignedUrl(fileName, fileType);
+    let url = '';
+    if (isGetDownloadLink) {
+      url = await this.getPresignedUrlService.getDownloadLink(fileName, fileType);
+    } else {
+      url = await this.getPresignedUrlService.getPreviewLink(fileName, fileType);
+    }
     return OperationResult.ok(url);
   }
 }

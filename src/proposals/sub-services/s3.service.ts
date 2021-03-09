@@ -23,7 +23,7 @@ export class GetPresignedUrlService {
     this.AWS_REGION = AWS_REGION || 'us-west-1';
   }
 
-  getPresignedUrl(fileName: string, fileType: string): Promise<string> {
+  getPreviewLink(fileName: string, fileType: string): Promise<string> {
     return new Promise(async (resolve, reject) => {
       try {
         const s3 = new AWS.S3();
@@ -33,6 +33,28 @@ export class GetPresignedUrlService {
           // Prefix: fileName,
           Key: `${fileName}/${fileName}.${fileType}`,
           Expires: 300,
+        };
+        s3.getSignedUrlPromise('getObject', params).then(
+          url => resolve(url),
+          err => reject(err),
+        );
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
+  getDownloadLink(fileName: string, fileType: string): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const s3 = new AWS.S3();
+        const bucketName = this.AWS_BUCKET;
+        const params = {
+          Bucket: bucketName,
+          // Prefix: fileName,
+          Key: `${fileName}/${fileName}.${fileType}`,
+          Expires: 300,
+          ResponseContentDisposition: `attachment; filename="${fileName}.${fileType}"`,
         };
         s3.getSignedUrlPromise('getObject', params).then(
           url => resolve(url),

@@ -117,9 +117,15 @@ export class ProposalController {
   @ApiOkResponse({ type: String })
   @CustomJWTSecretKey(process.env.PROPOSAL_JWT_SECRET || '')
   async getPresignedUrlProposalApp(
-    @Body() body: { fileName: string; fileType: string; token: string },
+    @Body() body: { fileName: string; fileType: string; token: string; isDownload: boolean },
   ): Promise<ServiceResponse<string>> {
-    const res = await this.proposalService.getPreSignedObjectUrl(body.fileName, body.fileType, body.token, false);
+    const res = await this.proposalService.getPreSignedObjectUrl(
+      body.fileName,
+      body.fileType,
+      body.token,
+      false,
+      body.isDownload,
+    );
     return ServiceResponse.fromResult(res);
   }
 
@@ -129,7 +135,7 @@ export class ProposalController {
   @ApiOperation({ summary: 'Validate and Response Url' })
   @ApiOkResponse({ type: String })
   async getPresignedUrl(@Body() body: { fileName: string; fileType: string }): Promise<ServiceResponse<string>> {
-    const res = await this.proposalService.getPreSignedObjectUrl(body.fileName, body.fileType, '', true);
+    const res = await this.proposalService.getPreSignedObjectUrl(body.fileName, body.fileType, '', true, false);
     return ServiceResponse.fromResult(res);
   }
 }
