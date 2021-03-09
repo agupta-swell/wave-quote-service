@@ -1,12 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { STORAGE_TYPE } from '../../constants';
+import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { BATTERY_PURPOSE } from '../../constants';
 
 export class StorageDto {
-  @ApiProperty({ enum: [STORAGE_TYPE.BACKUP_POWER, STORAGE_TYPE.SELF_CONSUMPTION, STORAGE_TYPE.TOU] })
-  @IsNotEmpty()
-  type: STORAGE_TYPE;
-
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
@@ -20,6 +16,7 @@ export class StorageDto {
   @ApiProperty()
   reserve: number;
 
-  @ApiProperty()
-  purpose: string;
+  @ApiProperty({ enum: [BATTERY_PURPOSE.BACKUP_POWER, BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION, BATTERY_PURPOSE.PV_SELF_CONSUMPTION] })
+  @IsEnum(BATTERY_PURPOSE)
+  purpose: BATTERY_PURPOSE;
 }
