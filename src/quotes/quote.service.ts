@@ -862,7 +862,9 @@ export class QuoteService {
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
 
-  calculateLaborCost(systemDesign: SystemDesign, laborCostDataSnapshot: LaborCostDetails): { cost: number, laborCostType: ELaborCostType } {
+  calculateLaborCost(systemDesign: SystemDesign, laborCostDataSnapshot: LaborCostDetails): { cost: number, laborCostType: ELaborCostType | '' } {
+    const storage = systemDesign?.roof_top_design_data?.storage[0];
+
     if (systemDesign.is_retrofit) {
       return {
         cost: laborCostDataSnapshot.storageRetrofitLaborFeePerProject,
@@ -870,23 +872,30 @@ export class QuoteService {
       }
     }
 
-    if (!systemDesign?.roof_top_design_data?.storage?.length) {
+    if (!storage) {
       return {
         cost: laborCostDataSnapshot.solarOnlyLaborFeePerWatt,
         laborCostType: ELaborCostType.SOLAR_ONLY_LABOR_FEE_PER_WATT
       }
     }
 
-    if (systemDesign?.roof_top_design_data?.storage[0].battery_type === 'AC') {
+    if (storage.battery_type === 'AC') {
       return {
         cost: laborCostDataSnapshot.solarWithACStorageLaborFeePerProject,
         laborCostType: ELaborCostType.SOLAR_WITH_AC_STORAGE_LABOR_FEE_PER_PROJECT
       }
     }
 
+    if (storage.battery_type === 'DC') {
+      return {
+        cost: laborCostDataSnapshot.solarWithDCStorageLaborFeePerProject,
+        laborCostType: ELaborCostType.SOLAR_WITH_DC_STORAGE_LABOR_FEE_PER_PROJECT,
+      }
+    }
+
     return {
-      cost: laborCostDataSnapshot.solarWithDCStorageLaborFeePerProject,
-      laborCostType: ELaborCostType.SOLAR_WITH_DC_STORAGE_LABOR_FEE_PER_PROJECT,
+      cost: 0,
+      laborCostType: ''
     }
   }
 
