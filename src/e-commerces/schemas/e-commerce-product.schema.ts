@@ -28,3 +28,19 @@ export const ECommerceProductSchema = new Schema<ECommerceProduct>({
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
 });
+
+export const ECommerceProductSchemaWithoutId = new Schema<ECommerceProduct>(
+  {
+    type: String,
+    manufacturer: String,
+    model_name: String,
+    sizeW: Number,
+    price: Number,
+
+    created_at: { type: Date, default: Date.now },
+    created_by: String,
+    updated_at: { type: Date, default: Date.now },
+    updated_by: String,
+  },
+  { _id: false },
+);

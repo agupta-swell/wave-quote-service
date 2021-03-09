@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, Min, ValidateNested } from 'class-validator';
 
 class AddressDto {
   @ApiProperty()
@@ -54,6 +54,7 @@ export class GetEcomSystemDesignAndQuoteReq {
   @ApiProperty()
   @IsNumber()
   @IsNotEmpty()
+  @Min(1)
   monthlyUtilityBill: number;
 
   @ApiProperty()

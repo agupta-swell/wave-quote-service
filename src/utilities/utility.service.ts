@@ -47,7 +47,6 @@ export class UtilityService {
 
   async getLoadServingEntities(zipCode: number): Promise<OperationResult<LoadServingEntity[]>> {
     const lseList = await this.externalService.getLoadServingEntities(zipCode);
-    // console.log(lseList)
     return OperationResult.ok(lseList);
   }
 

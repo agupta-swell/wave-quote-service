@@ -199,7 +199,7 @@ export class ExternalService {
     return tariff.data.results;
   }
 
-  async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string) {
+  async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string): Promise<any> {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
     const currentYear = new Date().getFullYear();
     const payload = {

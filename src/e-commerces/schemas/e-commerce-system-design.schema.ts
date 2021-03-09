@@ -1,6 +1,6 @@
 import { Document, Schema } from 'mongoose';
 import { ECommerceConfig, ECommerceConfigSchema } from './e-commerce-config.schema';
-import { ECommerceProduct, ECommerceProductSchema } from './e-commerce-product.schema';
+import { ECommerceProduct, ECommerceProductSchemaWithoutId } from './e-commerce-product.schema';
 
 export const E_COMMERCE_SYSTEM_DESIGN = Symbol('E_COMMERCE_SYSTEM_DESIGN').toString();
 
@@ -11,7 +11,7 @@ export interface IEcomSystemDesignProductSchema {
   total_cost: number;
   ecom_config_snapshot: ECommerceConfig;
   ecom_config_snapshot_date: Date;
-  ecom_products_snapshot: ECommerceProduct;
+  ecom_products_snapshot: ECommerceProduct[];
   ecom_products_snapshot_date: Date;
 }
 
@@ -22,7 +22,7 @@ export const EcomSystemDesignProductSchema = new Schema<IEcomSystemDesignProduct
   total_cost: Number,
   ecom_config_snapshot: ECommerceConfigSchema,
   ecom_config_snapshot_date: Date,
-  ecom_products_snapshot: ECommerceProductSchema,
+  ecom_products_snapshot: [ECommerceProductSchemaWithoutId],
   ecom_products_snapshot_date: Date,
 });
 

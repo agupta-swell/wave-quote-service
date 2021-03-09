@@ -57,18 +57,19 @@ export class ECommerceService {
 
     const utilityDataInst = new UtilityDataDto({});
     const costDataInst = new CostDataDto({} as any);
-    const loadServingEntityInst = (await this.utilityService.getLoadServingEntities(zipCode)).data?.find(
-      item => item.zipCode === zipCode,
-    );
-    const utilityTariffDataInst = (await this.utilityService.getTariffs(zipCode, Number(loadServingEntityInst?.lseId)))
-      .data;
+
+    const loadServingEntityInst = (await this.utilityService.getLoadServingEntities(zipCode)).data;
+
+    const utilityTariffDataInst = (
+      await this.utilityService.getTariffs(zipCode, Number(loadServingEntityInst?.[0]?.lseId))
+    ).data;
     const typicalBaselineInst = (await this.utilityService.getTypicalBaseline(zipCode, true)).data;
 
     utilityDataInst.loadServingEntityData = loadServingEntityInst as any;
     utilityDataInst.typicalBaselineUsage = typicalBaselineInst?.typicalBaselineUsage || ({} as any);
 
     const utilityTypicalCostDataInst = await this.utilityService.calculateCost(
-      (typicalBaselineInst?.typicalBaselineUsage.typicalHourlyUsage || []).map(i => i.v),
+      (typicalBaselineInst?.typicalBaselineUsage?.typicalHourlyUsage || []).map(i => i.v),
       utilityTariffDataInst?.tariffDetails[0].masterTariffId || '',
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
@@ -125,6 +126,9 @@ export class ECommerceService {
 
     const foundECommerceConfig = await this.eCommerceConfigModel.findOne({ region_id: foundRegion._id });
     if (!foundECommerceConfig) {
+      const subject = `E Commerce Config does not find with region ${foundRegion._id}`;
+      const body = `E Commerce Config does not find with region ${foundRegion._id}`;
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
       throw ApplicationException.EnitityNotFound('E Commerce Config');
     }
 
@@ -137,7 +141,15 @@ export class ECommerceService {
       labor_cost_perWatt,
     } = foundECommerceConfig;
     const requiredpVGeneration = annualUsage / design_factor;
-    const panelSTCRating = (await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }))?.sizeW || 1;
+    const foundEComProduct = await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }).lean();
+    if (!foundEComProduct) {
+      const subject = `E Commerce Product does not find with panel type `;
+      const body = `E Commerce Product does not find with panel type `;
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+      throw ApplicationException.EnitityNotFound('E Commerce Product');
+    }
+
+    const panelSTCRating = foundEComProduct?.sizeW || 1;
     const numberOfPanels = (requiredpVGeneration * 1000) / panelSTCRating;
 
     // CALCULATE PROJECT PARAMETERS (TYPICALLY USED FOR LEASE QUOTE)
@@ -165,8 +177,17 @@ export class ECommerceService {
 
     // STORAGE DESIGN SECTION
     const numberOfBatteries = 1; // CURRENTLY ASSUMED TO BE 1.
-    const storagePerBatteryInkWh =
-      ((await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }))?.sizeW ?? 0) / 1000;
+    const foundEComBatteryProduct = await this.eCommerceProductModel
+      .findOne({ type: ECOM_PRODUCT_TYPE.BATTERY })
+      .lean();
+    if (!foundEComBatteryProduct) {
+      const subject = `E Commerce Product does not find with battery type `;
+      const body = `E Commerce Product does not find with battery type `;
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+      throw ApplicationException.EnitityNotFound('E Commerce Product');
+    }
+
+    const storagePerBatteryInkWh = (foundEComBatteryProduct?.sizeW ?? 0) / 1000;
 
     // QUOTE CALCULATION SECTION
     const regionId = '1000';
@@ -185,14 +206,21 @@ export class ECommerceService {
         total_cost: overAllCost,
         ecom_config_snapshot: foundECommerceConfig,
         ecom_config_snapshot_date: new Date(),
-        ecom_products_snapshot: {},
+        ecom_products_snapshot: [foundEComProduct, foundEComBatteryProduct],
         ecom_products_snapshot_date: new Date(),
       },
     };
 
     // CALCULATE LOAN AMOUNT USING WAVE 2.0
 
-    const calculateQuoteDetailDto: CalculateQuoteDetailDto = {} as any;
+    const calculateQuoteDetailDto: CalculateQuoteDetailDto = {
+      quoteId: '',
+      systemProduction: {} as any,
+      utilityProgram: {} as any,
+      quoteFinanceProduct: {
+        financeProduct: {} as any,
+      },
+    } as any;
     calculateQuoteDetailDto.systemProduction.capacityKW = numberOfPanels * panelSTCRating;
     // calculateQuoteDetailDto.quotePricePerWatt = module_price_per_watt;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productType = FINANCE_PRODUCT_TYPE.LOAN;
@@ -203,8 +231,7 @@ export class ECommerceService {
     loanProductAttributesDto.loanTerm = loan_terms_in_months;
     loanProductAttributesDto.reinvestment = null as any;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productAttribute = loanProductAttributesDto;
-    // FIXME: GOTO QUOTE SERVIVE, LINE 673 OR ON LUCIDCHART HARI : QUESTION TO THANG: WHAT IS THE SECOND PARAMETER TO THE calculateLoanSolver 'monthlyUtilityPayment'?
-    const calculateQuoteDetailDtoResponse: CalculateQuoteDetailDto = await this.calculationService.calculateLoanSolver(
+    const calculateQuoteDetailDtoResponse = await this.calculationService.calculateLoanSolver(
       calculateQuoteDetailDto,
       0,
     );
@@ -214,9 +241,9 @@ export class ECommerceService {
     const loanPaymentOptionDataDto: PaymentOptionDataDto = {
       paymentType: PAYMENT_TYPE.LOAN,
       paymentDetail: {
-        monthlyPaymentAmount: (<LoanProductAttributesDto>(
-          calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute
-        )).monthlyLoanPayment,
+        monthlyPaymentAmount:
+          (calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute as any)
+            .yearlyLoanPaymentDetails[0].monthlyPaymentDetails[2].monthlyPayment || 0,
         savingsFiveYear: 0, // NOTE: TODO - PENDING JON'S SAVING DATA
         savingTwentyFiveYear: 0, // NOTE: TODO - PENDING JON'S SAVING DATA
         deposit: depositAmount,
@@ -250,13 +277,29 @@ export class ECommerceService {
       false,
       overAllCost,
       contractTerm,
-      1,
+      1 * storagePerBatteryInkWh,
       netGenerationKWh,
       rateEscalator,
       systemProduction.productivity,
       false,
       utilityProgramName,
     );
+
+    if (monthlyEsaAmountForEssentialBackup === -1) {
+      const subject = `Lease Solver Config Not Found in E Commerce`;
+      const body = `Lease Solver Config Not Found in E Commerce with these conditions:
+        isSolar:${true},
+        isRetrofit:${false},
+        utilityProgramName: ${utilityProgramName},
+        contractTerm:${contractTerm},
+        storageSize:${1 * storagePerBatteryInkWh},
+        rateEscalator:${rateEscalator},
+        capacityKW:${netGenerationKWh},
+        productivity:${systemProduction.productivity},
+      `;
+
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+    }
 
     // LEASE FOR WHOLE HOME BACKUP
     const overallCostForWholeHomeBackup = overAllCost + 1 * storage_price; // Add 1 battery additional on top of essential backup
@@ -266,13 +309,29 @@ export class ECommerceService {
       false,
       overallCostForWholeHomeBackup,
       contractTerm,
-      2,
+      2 * storagePerBatteryInkWh,
       netGenerationKWh,
       rateEscalator,
       systemProduction.productivity,
       false,
       utilityProgramName,
     );
+
+    if (monthlyEsaAmountForWholeHomeBackup === -1) {
+      const subject = `Lease Solver Config Not Found in E Commerce`;
+      const body = `Lease Solver Config Not Found in E Commerce with these conditions:
+        isSolar:${true},
+        isRetrofit:${false},
+        utilityProgramName: ${utilityProgramName},
+        contractTerm:${contractTerm},
+        storageSize:${1 * storagePerBatteryInkWh},
+        rateEscalator:${rateEscalator},
+        capacityKW:${netGenerationKWh},
+        productivity:${systemProduction.productivity},
+      `;
+
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+    }
 
     // BUILD getEcomSystemDesignAndQuote RESPONSE FOR QUOTE OPTIONS
 

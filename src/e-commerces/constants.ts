@@ -7,8 +7,6 @@ export enum PAYMENT_TYPE {
   UNKNOWN_PLEASE_AUDIT = ' unknown_please_audit',
   LOAN = 'loan',
   CASH = 'cash',
-  LEASE_WITHOUT_GRID_SERVICE = 'lease_without_grid_service',
-  LEASE_WITH_GRID_SERVICE = 'lease_with_grid_service',
   LEASE_ESSENTIAL_BACKUP = 'lease_essential_backup',
   LEASE_WHOLE_HOME_BACKUP = 'lease_whole_home_backup',
 }

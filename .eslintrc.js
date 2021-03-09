@@ -11,26 +11,11 @@ module.exports = {
     sourceType: 'module',
   },
   plugins: ['eslint-plugin-import', '@typescript-eslint', '@typescript-eslint/tslint'],
-  settings: {
-    'import/resolver': {
-      node: {
-        extensions: ['.js', '.jsx', '.ts', '.tsx'],
-      },
-    },
-  },
   rules: {
     'import/no-unresolved': 0,
     'import/extensions': 0,
     'class-methods-use-this': 0,
-    // NOTE: disabling eslint camelcase because Typescript is enforcing cases below
-    'camelcase': 0,
-    'max-len': [
-      'error',
-      {
-        code: 120,
-        tabWidth: 2,
-      },
-    ],
+    camelcase: 0,
     'no-empty-constructor': 0,
     'no-useless-constructor': 0,
     'import/prefer-default-export': 0,
@@ -42,34 +27,5 @@ module.exports = {
     'array-callback-return': 0,
     'prefer-destructuring': 0,
     'no-param-reassign': 0,
-    '@typescript-eslint/naming-convention': [
-      'error',
-      {
-        selector: ['default'],
-        format: ['camelCase', 'snake_case', 'PascalCase'],
-        leadingUnderscore: 'allowSingleOrDouble',
-      },
-    ],
-    '@typescript-eslint/quotes': [
-      'error',
-      'single',
-      {
-        avoidEscape: true,
-      },
-    ],
-    'id-blacklist': [
-      'error',
-      'any',
-      'Number',
-      'number',
-      'String',
-      'string',
-      'Boolean',
-      'boolean',
-      'Undefined',
-      'undefined',
-    ],
-    'id-match': 'error',
-    'import/order': 'error'
   },
 };

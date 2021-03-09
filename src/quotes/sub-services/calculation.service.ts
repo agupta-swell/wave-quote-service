@@ -107,7 +107,7 @@ export class CalculationService {
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
     if (!leaseSolverConfig) {
-      throw ApplicationException.NullEnitityFound('Lease Config');
+      return -1;
     }
 
     // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
@@ -258,7 +258,7 @@ export class CalculationService {
     // FIXME: CALCULATE SECOND SET WITHOUT PREPAYMENT
 
     const endingBalanceAtTheEndOfPrePaymentMonth =
-      v2_cls_AmortTableInstanceWithPrePay[periodPrepayment - 1].endingBalance;
+      v2_cls_AmortTableInstanceWithPrePay[periodPrepayment - 1]?.endingBalance || 0;
     startingMonthlyPaymentAmount = this.monthlyPaymentAmount(
       endingBalanceAtTheEndOfPrePaymentMonth,
       annualInterestRate,
