@@ -25,3 +25,10 @@ export enum QUOTE_MODE_TYPE {
   COST_BUILD_UP = 'cost_build_up',
   PRICE_OVERRIDE = 'price_override',
 }
+
+export enum ELaborCostType {
+  SOLAR_ONLY_LABOR_FEE_PER_WATT = 'solarOnlyLaborFeePerWatt',
+  STORAGE_RETROFIT_LABOR_FEE_PER_PROJECT = 'storageRetrofitLaborFeePerProject',
+  SOLAR_WITH_AC_STORAGE_LABOR_FEE_PER_PROJECT = 'solarWithACStorageLaborFeePerProject',
+  SOLAR_WITH_DC_STORAGE_LABOR_FEE_PER_PROJECT = 'solarWithDCStorageLaborFeePerProject',
+}

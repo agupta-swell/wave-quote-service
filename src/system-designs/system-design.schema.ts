@@ -1,4 +1,5 @@
 import { Document, Schema, Types } from 'mongoose';
+import { BATTERY_TYPE } from 'src/products/constants';
 import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { toSnakeCase } from '../utils/transformProperties';
@@ -37,7 +38,7 @@ interface IProductCommonSchema {
   approved_for_esa: boolean;
 }
 
-export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct {}
+export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct { }
 
 export const StorageProductSchema = new Schema<IStorageProductSchema>(
   {
@@ -60,7 +61,7 @@ export const StorageProductSchema = new Schema<IStorageProductSchema>(
   { _id: false },
 );
 
-export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct {}
+export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct { }
 
 export const InverterProductSchema = new Schema<IInverterProductSchema>(
   {
@@ -83,7 +84,7 @@ export const InverterProductSchema = new Schema<IInverterProductSchema>(
   { _id: false },
 );
 
-export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct {}
+export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct { }
 
 export const PanelProductSchema = new Schema<IPanelProductSchema>(
   {
@@ -176,6 +177,7 @@ export interface IStorageSchema {
   storage_model_snapshot_date: Date;
   reserve: number;
   purpose: string;
+  battery_type: BATTERY_TYPE;
 }
 
 const StorageSchema = new Schema<IStorageSchema>(
@@ -187,6 +189,7 @@ const StorageSchema = new Schema<IStorageSchema>(
     storage_model_snapshot_date: Date,
     reserve: Number,
     purpose: String,
+    battery_type: String
   },
   { _id: false },
 );
@@ -229,7 +232,7 @@ const AdderSchema = new Schema<IAdderSchema>(
   { _id: false },
 );
 
-export interface IBalanceOfSystemProductSchema extends IProductCommonSchema, IBalanceOfSystemProduct {}
+export interface IBalanceOfSystemProductSchema extends IProductCommonSchema, IBalanceOfSystemProduct { }
 
 export const BalanceOfSystemProductSchema = new Schema<IBalanceOfSystemProductSchema>(
   {
@@ -534,5 +537,5 @@ export class SystemDesignModel {
     this.cost_post_installation = data;
   }
 
-  transformUnit() {}
+  transformUnit() { }
 }

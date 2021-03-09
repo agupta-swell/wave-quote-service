@@ -1,13 +1,14 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { uniq , groupBy, isNil, max, min, omitBy, pickBy, sumBy } from 'lodash';
 import { InjectModel } from '@nestjs/mongoose';
+import { groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq } from 'lodash';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { COMPONENT_TYPE, COST_UNIT_TYPE, PRODUCT_CATEGORY_TYPE } from 'src/system-designs/constants';
+import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
@@ -17,21 +18,22 @@ import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-c
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { toCamelCase } from '../utils/transformProperties';
 import {
-  FINANCE_PRODUCT_TYPE,
+  ELaborCostType, FINANCE_PRODUCT_TYPE,
   INCENTIVE_APPLIES_TO_VALUE,
   INCENTIVE_UNITS,
   PROJECT_DISCOUNT_UNITS,
-  QUOTE_MODE_TYPE,
+  QUOTE_MODE_TYPE
 } from './constants';
 import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
   CashProductAttributesDto,
   IncentiveDetailsDto,
+  LaborCostDetails,
   LeaseProductAttributesDto,
   LoanProductAttributesDto,
   QuoteCostBuildupDto,
-  QuoteFinanceProductDto,
+  QuoteFinanceProductDto
 } from './req/sub-dto';
 import { QuoteDto } from './res/quote.dto';
 import { TaxCreditDto } from './res/tax-credit.dto';
@@ -52,7 +54,7 @@ export class QuoteService {
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
-  ) {}
+  ) { }
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const [systemDesign, markupConfigs, quoteConfigData] = await Promise.all([
@@ -218,11 +220,16 @@ export class QuoteService {
           solarWithDCStorageLaborFeePerProject: quoteConfigData.solarWithDCStorageLaborFeePerProject || 0,
         },
         laborCostSnapshotDate: new Date(),
+        laborCostType: '',
         cost: 0,
       },
       grossPrice: 0,
       totalNetCost: 0,
     };
+
+    const laborCostData = this.calculateLaborCost(systemDesign, quoteCostBuildup.laborCost.laborCostDataSnapshot as any)
+    quoteCostBuildup.laborCost.laborCostType = laborCostData.laborCostType
+    quoteCostBuildup.laborCost.cost = laborCostData.cost
 
     const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
@@ -241,16 +248,16 @@ export class QuoteService {
       quoteCostBuildup,
       utilityProgram: utilityProgram
         ? {
-            utilityProgramId: utilityProgram.id,
-            utilityProgramName: utilityProgram.utility_program_name,
+          utilityProgramId: utilityProgram.id,
+          utilityProgramName: utilityProgram.utility_program_name,
+          rebateAmount: utilityProgram.rebate_amount,
+          utilityProgramDataSnapshot: {
+            id: utilityProgram.id,
+            name: utilityProgram.utility_program_name,
             rebateAmount: utilityProgram.rebate_amount,
-            utilityProgramDataSnapshot: {
-              id: utilityProgram.id,
-              name: utilityProgram.utility_program_name,
-              rebateAmount: utilityProgram.rebate_amount,
-            },
-            utilityProgramDataSnapshotDate: new Date(),
-          }
+          },
+          utilityProgramDataSnapshotDate: new Date(),
+        }
         : null,
       quoteFinanceProduct: {
         financeProduct: {
@@ -556,17 +563,22 @@ export class QuoteService {
               .storage_retrofit_labor_fee_per_project,
           solarWithACStorageLaborFeePerProject:
             foundQuote.detailed_quote.quote_cost_buildup.labor_cost.labor_cost_data_snapshot
-              .solar_with_ac_storage_labor_fee_per_project,
+              .solar_with_a_c_storage_labor_fee_per_project,
           solarWithDCStorageLaborFeePerProject:
             foundQuote.detailed_quote.quote_cost_buildup.labor_cost.labor_cost_data_snapshot
-              .solar_with_dc_storage_labor_fee_per_project,
+              .solar_with_d_c_storage_labor_fee_per_project,
         },
         laborCostSnapshotDate: new Date(),
+        laborCostType: '',
         cost: 0,
       },
       grossPrice: 0,
       totalNetCost: 0,
     };
+
+    const laborCostData = this.calculateLaborCost(systemDesign, quoteCostBuildup.laborCost.laborCostDataSnapshot as any)
+    quoteCostBuildup.laborCost.laborCostType = laborCostData.laborCostType
+    quoteCostBuildup.laborCost.cost = laborCostData.cost
 
     const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
@@ -607,16 +619,16 @@ export class QuoteService {
       quoteCostBuildup,
       utilityProgram: utility_program
         ? {
-            utilityProgramId: utility_program.utility_program_id,
-            utilityProgramName: utility_program.utility_program_name,
+          utilityProgramId: utility_program.utility_program_id,
+          utilityProgramName: utility_program.utility_program_name,
+          rebateAmount: utility_program.rebate_amount,
+          utilityProgramDataSnapshot: {
+            id: utility_program.utility_program_id,
+            name: utility_program.utility_program_name,
             rebateAmount: utility_program.rebate_amount,
-            utilityProgramDataSnapshot: {
-              id: utility_program.utility_program_id,
-              name: utility_program.utility_program_name,
-              rebateAmount: utility_program.rebate_amount,
-            },
-            utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
-          }
+          },
+          utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
+        }
         : null,
       quoteFinanceProduct: {
         financeProduct: {
@@ -850,6 +862,34 @@ export class QuoteService {
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
 
+  calculateLaborCost(systemDesign: SystemDesign, laborCostDataSnapshot: LaborCostDetails): { cost: number, laborCostType: ELaborCostType } {
+    if (systemDesign.is_retrofit) {
+      return {
+        cost: laborCostDataSnapshot.storageRetrofitLaborFeePerProject,
+        laborCostType: ELaborCostType.STORAGE_RETROFIT_LABOR_FEE_PER_PROJECT
+      }
+    }
+
+    if (!systemDesign?.roof_top_design_data?.storage?.length) {
+      return {
+        cost: laborCostDataSnapshot.solarOnlyLaborFeePerWatt,
+        laborCostType: ELaborCostType.SOLAR_ONLY_LABOR_FEE_PER_WATT
+      }
+    }
+
+    if (systemDesign?.roof_top_design_data?.storage[0].battery_type === 'AC') {
+      return {
+        cost: laborCostDataSnapshot.solarWithACStorageLaborFeePerProject,
+        laborCostType: ELaborCostType.SOLAR_WITH_AC_STORAGE_LABOR_FEE_PER_PROJECT
+      }
+    }
+
+    return {
+      cost: laborCostDataSnapshot.solarWithDCStorageLaborFeePerProject,
+      laborCostType: ELaborCostType.SOLAR_WITH_DC_STORAGE_LABOR_FEE_PER_PROJECT,
+    }
+  }
+
   calculateGrossPrice(data: any): { totalNetCost: number; grossPrice: number } {
     const adderNetCost = sumBy(data.adderQuoteDetails, (i: any) => i.netCost);
     const storageNetCost = sumBy(data.storageQuoteDetails, (i: any) => i.netCost);
@@ -857,8 +897,9 @@ export class QuoteService {
     const panelNetCost = sumBy(data.panelQuoteDetails, (i: any) => i.netCost);
     const bosNetCost = sumBy(data.bosDetails, (i: any) => i.netCost);
     const ancillaryNetCost = sumBy(data.ancillaryEquipmentDetails, (i: any) => i.netCost);
+    const laborCost = data.laborCost?.cost || 0;
 
-    const totalNetCost = adderNetCost + storageNetCost + inverterNetCost + panelNetCost + bosNetCost + ancillaryNetCost;
+    const totalNetCost = adderNetCost + storageNetCost + inverterNetCost + panelNetCost + bosNetCost + ancillaryNetCost + laborCost;
     return {
       totalNetCost,
       grossPrice: totalNetCost * (1 + data.swellStandardMarkup / 100 || 0),

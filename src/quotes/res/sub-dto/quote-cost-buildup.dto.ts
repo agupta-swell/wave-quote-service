@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ProductDto } from 'src/products/res/product.dto';
+import { ELaborCostType } from 'src/quotes/constants';
+import { LaborCostDetails } from 'src/quotes/req/sub-dto/quote-cost-buildup.dto';
 import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
 
 class QuoteCostBuildupCommon {
@@ -70,24 +72,7 @@ class AncillaryDetailsDto extends QuoteCostBuildupCommon {
   ancillaryEquipmentSnapshotDate: Date;
 }
 
-class LaborCostDetails {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  solarOnlyLaborFeePerWatt: number;
-
-  @ApiProperty()
-  storageRetrofitLaborFeePerProject: number;
-
-  @ApiProperty()
-  solarWithAcStorageLaborFeePerProject: number;
-
-  @ApiProperty()
-  solarWithDcStorageLaborFeePerProject: number;
-}
-
-class LaborCostDto {
+export class LaborCostDto {
   @ApiProperty({ type: LaborCostDetails })
   laborCostDataSnapshot: LaborCostDetails;
 
@@ -96,6 +81,9 @@ class LaborCostDto {
 
   @ApiProperty()
   cost: number;
+
+  @ApiProperty()
+  laborCostType: ELaborCostType;
 }
 
 export class QuoteCostBuildupDto {

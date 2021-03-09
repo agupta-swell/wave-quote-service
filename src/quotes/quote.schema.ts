@@ -14,10 +14,10 @@ import {
   ISystemProductionSchema,
   PanelProductSchema,
   StorageProductSchema,
-  SystemProductionSchema,
+  SystemProductionSchema
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
-import { QUOTE_MODE_TYPE } from './constants';
+import { ELaborCostType, QUOTE_MODE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
 
@@ -277,8 +277,8 @@ interface IQuotePartnerConfig {
   id: string;
   solar_only_labor_fee_per_watt: number;
   storage_retrofit_labor_fee_per_project: number;
-  solar_with_ac_storage_labor_fee_per_project: number;
-  solar_with_dc_storage_labor_fee_per_project: number;
+  solar_with_a_c_storage_labor_fee_per_project: number;
+  solar_with_d_c_storage_labor_fee_per_project: number;
 }
 
 const QuotePartnerConfig = new Schema<IQuotePartnerConfig>(
@@ -286,8 +286,8 @@ const QuotePartnerConfig = new Schema<IQuotePartnerConfig>(
     id: String,
     solar_only_labor_fee_per_watt: Number,
     storage_retrofit_labor_fee_per_project: Number,
-    solar_with_ac_storage_labor_fee_per_project: Number,
-    solar_with_dc_storage_labor_fee_per_project: Number,
+    solar_with_a_c_storage_labor_fee_per_project: Number,
+    solar_with_d_c_storage_labor_fee_per_project: Number,
   },
   { _id: false },
 );
@@ -295,6 +295,7 @@ const QuotePartnerConfig = new Schema<IQuotePartnerConfig>(
 export interface ILaborCostSchema extends IQuoteCostCommonSchema {
   labor_cost_data_snapshot: IQuotePartnerConfig;
   labor_cost_snapshot_date: Date;
+  labor_cost_type: ELaborCostType;
 }
 
 const LaborCostSchema = new Schema<ILaborCostSchema>(
@@ -302,6 +303,7 @@ const LaborCostSchema = new Schema<ILaborCostSchema>(
     labor_cost_data_snapshot: QuotePartnerConfig,
     labor_cost_snapshot_date: Date,
     cost: Number,
+    labor_cost_type: String,
   },
   { _id: false },
 );
