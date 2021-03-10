@@ -47,7 +47,9 @@ export class ECommerceService {
     @InjectModel(E_COMMERCE_SYSTEM_DESIGN) private readonly eCommerceSystemDesignModel: Model<ECommerceSystemDesign>,
   ) {}
 
-  async getData(req: GetEcomSystemDesignAndQuoteReq): Promise<OperationResult<GetEcomSystemDesignAndQuoteDto>> {
+  async getEcomSystemDesignAndQuote(
+    req: GetEcomSystemDesignAndQuoteReq,
+  ): Promise<OperationResult<GetEcomSystemDesignAndQuoteDto>> {
     const {
       addressDataDetail: { lat, long, zip: zipCode },
       monthlyUtilityBill,

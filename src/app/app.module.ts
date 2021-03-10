@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AccountModule } from 'src/accounts/account.module';
 import { AdderConfigModule } from 'src/adder-config/adder-config.module';
 import { AuthencationModule } from 'src/authentication/authentication.module';
 import { CashPaymentConfigModule } from 'src/cash-payment-configs/cash-payment-config.module';
@@ -35,6 +36,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(process.env.MONGO_URL || 'mongodb://locahost:27017', { useFindAndModify: false }),
+    AccountModule,
     AdderConfigModule,
     AuthencationModule,
     CashPaymentConfigModule,
