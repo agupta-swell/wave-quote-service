@@ -38,7 +38,7 @@ export class FniEngineService {
       request_category: REQUEST_CATEGORY.CREDIT,
       request_type: REQUEST_TYPE.OUTBOUND,
     });
-    const fniKey: any = JSON.parse(await this.getSecretManager(process.env.FNI_SECRET_MANAGER_NAME));
+    const fniKey: any = JSON.parse(await this.getSecretManager(process.env.FNI_SECRET_MANAGER_NAME as string));
     await fniModel.save();
     const applyReq = {
       transaction: {
@@ -203,7 +203,7 @@ export class FniEngineService {
         }
 
         if ('SecretString' in data) {
-          returnValue = data.SecretString;
+          returnValue = data.SecretString as string;
         } else {
           returnValue = Buffer.from(data.SecretBinary as any, 'base64').toString('ascii');
         }

@@ -238,7 +238,7 @@ export class ExternalService {
   getFniResponse = (data: IApplyRequest): Promise<any> => {
     return new Promise((resolve, reject) => {
       axios
-        .post(process.env.FNI_END_POINT, data)
+        .post(process.env.FNI_END_POINT as string, data)
         .then(result => {
           resolve(result.data);
         })
