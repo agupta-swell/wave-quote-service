@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PreAuthenticate } from 'src/app/securities';
 import { getBooleanString } from 'src/utils/common';
 import { ProductService } from './product.service';
 import { ProductDto, ProductResponse } from './res/product.dto';
@@ -8,7 +9,7 @@ import { ProductDto, ProductResponse } from './res/product.dto';
 @ApiTags('Products')
 @ApiBearerAuth()
 @Controller('/products')
-// @PreAuthenticate()
+@PreAuthenticate()
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
