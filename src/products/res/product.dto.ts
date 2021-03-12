@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { Product } from '../product.schema';
 
@@ -60,7 +61,10 @@ export class ProductDto {
   @ApiPropertyOptional()
   relatedComponent: string;
 
-  constructor(props: Product) {
+  @ApiPropertyOptional()
+  insertionRule: string | undefined;
+
+  constructor(props: LeanDocument<Product>) {
     this.id = props.id;
     this.manufacturerId = props.manufacturer_id;
     this.name = props.name;
@@ -83,6 +87,7 @@ export class ProductDto {
     this.batteryType = props.battery_type;
     // For Balance of System
     this.relatedComponent = props.related_component;
+    this.insertionRule = props.insertion_rule;
   }
 }
 

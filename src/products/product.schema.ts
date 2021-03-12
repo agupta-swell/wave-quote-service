@@ -42,6 +42,7 @@ export interface Product extends Document, IPanelProduct, IInverterProduct, IBat
   model_name: string;
   approved_for_gsa: boolean;
   approved_for_esa: boolean;
+  insertion_rule?: string;
 }
 
 export const ProductSchema = new Schema<Product>({
@@ -68,6 +69,7 @@ export const ProductSchema = new Schema<Product>({
   // for BOS
   related_component: String,
   related_component_category: String,
+  insertion_rule: String,
   unit: String,
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
