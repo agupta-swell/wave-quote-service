@@ -13,7 +13,7 @@ export interface ILatLngSchema {
   lng: number;
 }
 
-const LatLngSchema = new Schema<ILatLngSchema>(
+const LatLngSchema = new Schema<Document<ILatLngSchema>>(
   {
     lat: Number,
     lng: Number,
@@ -38,9 +38,9 @@ interface IProductCommonSchema {
   approved_for_esa: boolean;
 }
 
-export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct { }
+export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct {}
 
-export const StorageProductSchema = new Schema<IStorageProductSchema>(
+export const StorageProductSchema = new Schema<Document<IStorageProductSchema>>(
   {
     manufacturer_id: String,
     name: String,
@@ -61,9 +61,9 @@ export const StorageProductSchema = new Schema<IStorageProductSchema>(
   { _id: false },
 );
 
-export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct { }
+export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct {}
 
-export const InverterProductSchema = new Schema<IInverterProductSchema>(
+export const InverterProductSchema = new Schema<Document<IInverterProductSchema>>(
   {
     manufacturer_id: String,
     name: String,
@@ -84,9 +84,9 @@ export const InverterProductSchema = new Schema<IInverterProductSchema>(
   { _id: false },
 );
 
-export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct { }
+export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct {}
 
-export const PanelProductSchema = new Schema<IPanelProductSchema>(
+export const PanelProductSchema = new Schema<Document<IPanelProductSchema>>(
   {
     manufacturer_id: String,
     name: String,
@@ -115,7 +115,7 @@ export interface ISolarPanelArraySchema {
   panel_orientation: string;
   bound_polygon: ILatLngSchema[];
   panels: ILatLngSchema[][];
-  setbacks: Object;
+  setbacks: Map<string, string>;
   setbacks_polygon: ILatLngSchema[];
   keepouts: ILatLngSchema[][];
   pitch: number;
@@ -128,7 +128,7 @@ export interface ISolarPanelArraySchema {
   shading_percentage: number;
 }
 
-const SolarPanelArraySchema = new Schema<ISolarPanelArraySchema>(
+const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
   {
     array_id: Schema.Types.ObjectId,
     primary_orientation_side: Number,
@@ -158,7 +158,7 @@ export interface IInverterSchema {
   quantity: number;
 }
 
-const InverterSchema = new Schema<IInverterSchema>(
+const InverterSchema = new Schema<Document<IInverterSchema>>(
   {
     type: String,
     inverter_model_id: String,
@@ -180,7 +180,7 @@ export interface IStorageSchema {
   battery_type: BATTERY_TYPE;
 }
 
-const StorageSchema = new Schema<IStorageSchema>(
+const StorageSchema = new Schema<Document<IStorageSchema>>(
   {
     type: String,
     quantity: Number,
@@ -189,7 +189,7 @@ const StorageSchema = new Schema<IStorageSchema>(
     storage_model_snapshot_date: Date,
     reserve: Number,
     purpose: String,
-    battery_type: String
+    battery_type: String,
   },
   { _id: false },
 );
@@ -201,7 +201,7 @@ export interface IAdderModel {
   modified_at: Date;
 }
 
-export const AdderModelSchema = new Schema<IAdderModel>(
+export const AdderModelSchema = new Schema<Document<IAdderModel>>(
   {
     adder: String,
     price: Number,
@@ -220,7 +220,7 @@ export interface IAdderSchema {
   adder_model_snapshot_date: Date;
 }
 
-const AdderSchema = new Schema<IAdderSchema>(
+const AdderSchema = new Schema<Document<IAdderSchema>>(
   {
     adder_description: String,
     quantity: Number,
@@ -232,9 +232,9 @@ const AdderSchema = new Schema<IAdderSchema>(
   { _id: false },
 );
 
-export interface IBalanceOfSystemProductSchema extends IProductCommonSchema, IBalanceOfSystemProduct { }
+export interface IBalanceOfSystemProductSchema extends IProductCommonSchema, IBalanceOfSystemProduct {}
 
-export const BalanceOfSystemProductSchema = new Schema<IBalanceOfSystemProductSchema>(
+export const BalanceOfSystemProductSchema = new Schema<Document<IBalanceOfSystemProductSchema>>(
   {
     name: String,
     type: String,
@@ -265,7 +265,7 @@ export interface IBalanceOfSystemSchema {
   unit: COST_UNIT_TYPE;
 }
 
-export const BalanceOfSystemSchema = new Schema<IBalanceOfSystemSchema>(
+export const BalanceOfSystemSchema = new Schema<Document<IBalanceOfSystemSchema>>(
   {
     balance_of_system_id: String,
     balance_of_system_model_data_snapshot: BalanceOfSystemProductSchema,
@@ -285,7 +285,7 @@ export interface IAncillaryEquipment {
   applicable_product_manufacturer_id: string;
 }
 
-export const AncillaryEquipment = new Schema<IAncillaryEquipment>(
+export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
   {
     ancillary_id: String,
     manufacturer_id: String,
@@ -305,7 +305,7 @@ export interface IAncillaryEquipmentSchema {
   quantity: number;
 }
 
-export const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
+export const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>(
   {
     ancillary_id: String,
     ancillary_equipment_model_data_snapshot: AncillaryEquipment,
@@ -324,7 +324,7 @@ export interface IRoofTopSchema {
   ancillary_equipments: IAncillaryEquipmentSchema[];
 }
 
-export const RoofTopSchema = new Schema<IRoofTopSchema>(
+export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
   {
     panel_array: [SolarPanelArraySchema],
     inverters: [InverterSchema],
@@ -345,7 +345,7 @@ export interface ISystemProductionSchema {
   generationMonthlyKWh: number[];
 }
 
-export const SystemProductionSchema = new Schema<ISystemProductionSchema>(
+export const SystemProductionSchema = new Schema<Document<ISystemProductionSchema>>(
   {
     capacityKW: Number,
     generationKWh: Number,
@@ -362,7 +362,7 @@ export interface INetUsagePostInstallationSchema {
   calculation_mode: string;
 }
 
-export const NetUsagePostInstallationSchema = new Schema<INetUsagePostInstallationSchema>(
+export const NetUsagePostInstallationSchema = new Schema<Document<INetUsagePostInstallationSchema>>(
   {
     hourly_net_usage: [Number],
     calculation_mode: String,
@@ -536,6 +536,4 @@ export class SystemDesignModel {
   setCostPostInstallation(data: IUtilityCostData) {
     this.cost_post_installation = data;
   }
-
-  transformUnit() { }
 }

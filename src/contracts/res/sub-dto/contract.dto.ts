@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { Contract } from 'src/contracts/contract.schema';
 import {
@@ -63,7 +64,7 @@ export class ContractResDto {
   @ApiProperty()
   updatedAt: Date;
 
-  constructor(contract: Contract) {
+  constructor(contract: LeanDocument<Contract>) {
     Object.assign(this, toCamelCase(contract));
     this.signerDetails = contract?.signer_details?.map(item => toCamelCase(item));
     this.contractTemplateDetail = {

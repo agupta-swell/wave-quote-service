@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { Contract } from '../contract.schema';
 import { ContractResDto } from './sub-dto';
@@ -13,7 +14,7 @@ export class SaveContractDto {
   @ApiPropertyOptional({ type: ContractResDto })
   newlyUpdatedContract?: ContractResDto;
 
-  constructor(status: boolean, statusDescription?: string | undefined, contract?: Contract) {
+  constructor(status: boolean, statusDescription?: string | undefined, contract?: LeanDocument<Contract>) {
     this.status = status;
     this.statusDescription = statusDescription;
     this.newlyUpdatedContract = contract && new ContractResDto(contract);

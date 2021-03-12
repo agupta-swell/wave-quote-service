@@ -10,7 +10,7 @@ export interface IRecipientSchema {
   name: string;
 }
 
-const RecipientSchema = new Schema<IRecipientSchema>(
+const RecipientSchema = new Schema<Document<IRecipientSchema>>(
   {
     email: String,
     name: String,
@@ -33,7 +33,7 @@ export interface IDetailedProposalSchema {
   html_file_url: string;
 }
 
-const DetailedProposalSchema = new Schema<IDetailedProposalSchema>(
+const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
   {
     is_selected: Boolean,
     quote_data: DetailedQuoteSchema,

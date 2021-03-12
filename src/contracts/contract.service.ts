@@ -45,22 +45,26 @@ export class ContractService {
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
-    const primaryContractRecords = await this.contractModel.find({
-      opportunity_id: opportunityId,
-      contract_type: CONTRACT_TYPE.PRIMARY,
-    });
+    const primaryContractRecords = await this.contractModel
+      .find({
+        opportunity_id: opportunityId,
+        contract_type: CONTRACT_TYPE.PRIMARY,
+      })
+      .lean();
 
     const data = await Promise.all(
       primaryContractRecords?.map(async contract => {
-        const changeOrders = await this.contractModel.find({
-          opportunity_id: opportunityId,
-          contract_type: CONTRACT_TYPE.CHANGE_ORDER,
-          primary_contract_id: contract.id,
-        });
+        const changeOrders = await this.contractModel
+          .find({
+            opportunity_id: opportunityId,
+            contract_type: CONTRACT_TYPE.CHANGE_ORDER,
+            primary_contract_id: contract.id,
+          })
+          .lean();
 
         return {
-          contractData: contract?.toObject({ versionKey: false }),
-          changeOrders: changeOrders?.map(item => item?.toObject({ versionKey: false })) || [],
+          contractData: contract,
+          changeOrders,
         };
       }),
     );
@@ -112,15 +116,17 @@ export class ContractService {
         return OperationResult.ok(new SaveContractDto(false, 'Contract is already in progress or completed'));
       }
 
-      const updatedContract = await this.contractModel.findByIdAndUpdate(
-        contractDetail.id,
-        {
-          name: contractDetail.name || contract.name,
-        },
-        { new: true },
-      );
+      const updatedContract = await this.contractModel
+        .findByIdAndUpdate(
+          contractDetail.id,
+          {
+            name: contractDetail.name || contract.name,
+          },
+          { new: true },
+        )
+        .lean();
 
-      return OperationResult.ok(new SaveContractDto(true, undefined, updatedContract?.toObject({ versionKey: false })));
+      return OperationResult.ok(new SaveContractDto(true, undefined, updatedContract || undefined));
     }
 
     if (mode === REQUEST_MODE.ADD) {
@@ -204,15 +210,11 @@ export class ContractService {
       contract.contract_status = PROCESS_STATUS.ERROR;
     }
 
-    const updatedContract = await this.contractModel.findByIdAndUpdate(
-      contract.id,
-      contract.toObject({ versionKey: false }),
-      { new: true },
-    );
+    const updatedContract = await this.contractModel
+      .findByIdAndUpdate(contract.id, contract.toObject({ versionKey: false }), { new: true })
+      .lean();
 
-    return OperationResult.ok(
-      new SendContractDto(status, statusDescription, updatedContract?.toObject({ versionKey: true })),
-    );
+    return OperationResult.ok(new SendContractDto(status, statusDescription, updatedContract));
   }
 
   async saveChangeOrder(req: SaveChangeOrderReqDto): Promise<OperationResult<SaveChangeOrderDto>> {
@@ -239,18 +241,20 @@ export class ContractService {
         return OperationResult.ok(new SaveChangeOrderDto(false, 'Contract is already in progress or completed'));
       }
 
-      const updatedContract = await this.contractModel.findByIdAndUpdate(
-        contractDetail.id,
-        {
-          primary_contract_id: contract.primary_contract_id,
-          contract_type: CONTRACT_TYPE.CHANGE_ORDER,
-          contract_status: contract.contract_status,
-          contracting_system: 'DOCUSIGN',
-        },
-        { new: true },
-      );
+      const updatedContract = await this.contractModel
+        .findByIdAndUpdate(
+          contractDetail.id,
+          {
+            primary_contract_id: contract.primary_contract_id,
+            contract_type: CONTRACT_TYPE.CHANGE_ORDER,
+            contract_status: contract.contract_status,
+            contracting_system: 'DOCUSIGN',
+          },
+          { new: true },
+        )
+        .lean();
 
-      return OperationResult.ok(new SaveChangeOrderDto(true, undefined, updatedContract?.toObject()));
+      return OperationResult.ok(new SaveChangeOrderDto(true, undefined, updatedContract || undefined));
     }
 
     if (mode === REQUEST_MODE.ADD) {

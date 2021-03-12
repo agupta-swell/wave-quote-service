@@ -12,7 +12,7 @@ export interface ITypicalUsage {
   v: number;
 }
 
-const TypicalUsageSchema = new Schema<ITypicalUsage>(
+const TypicalUsageSchema = new Schema<Document<ITypicalUsage>>(
   {
     i: Number,
     v: Number,
@@ -100,7 +100,7 @@ export interface IAcutalUsage {
   hourly_usage: ITypicalUsage[];
 }
 
-export const AcutalUsageSchema = new Schema<IAcutalUsage>(
+export const AcutalUsageSchema = new Schema<Document<IAcutalUsage>>(
   {
     opportunity_id: String,
     source_type: String,
@@ -120,7 +120,7 @@ export interface ILoadServingEntityData {
   lse_id: string;
 }
 
-export const LoadServingEntityDataSchema = new Schema<ILoadServingEntityData>(
+export const LoadServingEntityDataSchema = new Schema<Document<ILoadServingEntityData>>(
   {
     name: String,
     lse_name: String,
@@ -138,7 +138,7 @@ export interface IUtilityData {
   actual_usage: IAcutalUsage;
 }
 
-export const UtilityDataSchema = new Schema<IUtilityData>(
+export const UtilityDataSchema = new Schema<Document<IUtilityData>>(
   {
     load_serving_entity_data: LoadServingEntityDataSchema,
     typical_baseline_usage: GenabilityTypicalBaseLineSchema,
@@ -154,7 +154,7 @@ export interface ICostDetailData {
   v: number;
 }
 
-export const CostDetailDataSchema = new Schema<ICostDetailData>(
+export const CostDetailDataSchema = new Schema<Document<ICostDetailData>>(
   {
     start_date: Date,
     end_date: Date,
@@ -171,7 +171,7 @@ export interface IUtilityCostData {
   cost: ICostDetailData[];
 }
 
-export const UtilityCostDataSchema = new Schema<IUtilityCostData>(
+export const UtilityCostDataSchema = new Schema<Document<IUtilityCostData>>(
   {
     start_date: Date,
     end_date: Date,
@@ -187,7 +187,7 @@ export interface ICostData {
   actual_usage_cost: IUtilityCostData;
 }
 
-export const CostDataSchema = new Schema<ICostData>(
+export const CostDataSchema = new Schema<Document<ICostData>>(
   {
     master_tariff_id: String,
     typical_usage_cost: UtilityCostDataSchema,

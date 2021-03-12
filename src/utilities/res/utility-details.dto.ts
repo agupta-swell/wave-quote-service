@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { UtilityUsageDetails } from '../utility.schema';
 import { CostDataDto } from './cost-data.dto';
@@ -17,7 +18,7 @@ export class UtilityDetailsDto {
   @ApiProperty({ type: CostDataDto })
   costData: CostDataDto;
 
-  constructor(props: UtilityUsageDetails) {
+  constructor(props: LeanDocument<UtilityUsageDetails>) {
     this.id = props._id;
     this.opportunityId = props.opportunity_id;
     this.utilityData = toCamelCase(props.utility_data);

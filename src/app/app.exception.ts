@@ -9,7 +9,7 @@ export class ApplicationException extends HttpException {
   }
 
   static EnitityNotFound(id?: string): ApplicationException {
-    return new ApplicationException(`Enitity Not Found: ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
+    return new ApplicationException(`Entity Not Found: ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
   static EmailNotFound(email?: string): ApplicationException {

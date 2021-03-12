@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from '../../app/common';
 import { QualificationCredit } from '../qualification.schema';
 import { QualificationDto } from './qualification.dto';
@@ -18,7 +19,7 @@ export class ManualApprovalDto {
   @ApiProperty({ type: () => QualificationDto })
   qualificationCreditData?: QualificationDto;
 
-  constructor(props: IProps, qualificationCredit?: QualificationCredit) {
+  constructor(props: IProps, qualificationCredit?: LeanDocument<QualificationCredit>) {
     this.status = props.status;
     this.statusDetail = props.status_detail;
     this.qualificationCreditData = qualificationCredit && new QualificationDto(qualificationCredit);

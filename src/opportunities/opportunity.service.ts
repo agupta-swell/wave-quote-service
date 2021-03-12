@@ -1,15 +1,13 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
-import 
-  { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } 
-from './res/update-opportunity-utility-program.dto';
+import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } from './res/update-opportunity-utility-program.dto';
 
 @Injectable()
 export class OpportunityService {
@@ -53,13 +51,11 @@ export class OpportunityService {
       throw ApplicationException.EnitityNotFound(opportunityId);
     }
 
-    const savedOpportunity = await this.opportunityModel.findByIdAndUpdate(
-      opportunityId,
-      { utilityProgramId },
-      { new: true },
-    );
+    const savedOpportunity = await this.opportunityModel
+      .findByIdAndUpdate(opportunityId, { utilityProgramId }, { new: true })
+      .lean();
 
-    const updatedOpportunity = new UpdateOpportunityUtilityProgramDtoRes(savedOpportunity?.toObject());
+    const updatedOpportunity = new UpdateOpportunityUtilityProgramDtoRes(savedOpportunity as any);
 
     await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
 
@@ -75,11 +71,11 @@ export class OpportunityService {
 
   async getContactIdById(opportunityId: string): Promise<string | undefined> {
     const res = await this.opportunityModel.findById(opportunityId);
-    return res?.toObject()?.contactId;
+    return res?.contactId;
   }
 
-  async getDetailById(opportunityId: string): Promise<Opportunity | undefined> {
-    const res = await this.opportunityModel.findById(opportunityId);
-    return res?.toObject();
+  async getDetailById(opportunityId: string): Promise<LeanDocument<Opportunity> | null> {
+    const res = await this.opportunityModel.findById(opportunityId).lean();
+    return res;
   }
 }

@@ -3,7 +3,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq } from 'lodash';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
@@ -18,11 +18,12 @@ import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-c
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { toCamelCase } from '../utils/transformProperties';
 import {
-  ELaborCostType, FINANCE_PRODUCT_TYPE,
+  ELaborCostType,
+  FINANCE_PRODUCT_TYPE,
   INCENTIVE_APPLIES_TO_VALUE,
   INCENTIVE_UNITS,
   PROJECT_DISCOUNT_UNITS,
-  QUOTE_MODE_TYPE
+  QUOTE_MODE_TYPE,
 } from './constants';
 import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
@@ -33,7 +34,7 @@ import {
   LeaseProductAttributesDto,
   LoanProductAttributesDto,
   QuoteCostBuildupDto,
-  QuoteFinanceProductDto
+  QuoteFinanceProductDto,
 } from './req/sub-dto';
 import { QuoteDto } from './res/quote.dto';
 import { TaxCreditDto } from './res/tax-credit.dto';
@@ -54,7 +55,7 @@ export class QuoteService {
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
-  ) { }
+  ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const [systemDesign, markupConfigs, quoteConfigData] = await Promise.all([
@@ -227,9 +228,12 @@ export class QuoteService {
       totalNetCost: 0,
     };
 
-    const laborCostData = this.calculateLaborCost(systemDesign, quoteCostBuildup.laborCost.laborCostDataSnapshot as any)
-    quoteCostBuildup.laborCost.laborCostType = laborCostData.laborCostType
-    quoteCostBuildup.laborCost.cost = laborCostData.cost
+    const laborCostData = this.calculateLaborCost(
+      systemDesign,
+      quoteCostBuildup.laborCost.laborCostDataSnapshot as any,
+    );
+    quoteCostBuildup.laborCost.laborCostType = laborCostData.laborCostType;
+    quoteCostBuildup.laborCost.cost = laborCostData.cost;
 
     const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
@@ -248,16 +252,16 @@ export class QuoteService {
       quoteCostBuildup,
       utilityProgram: utilityProgram
         ? {
-          utilityProgramId: utilityProgram.id,
-          utilityProgramName: utilityProgram.utility_program_name,
-          rebateAmount: utilityProgram.rebate_amount,
-          utilityProgramDataSnapshot: {
-            id: utilityProgram.id,
-            name: utilityProgram.utility_program_name,
+            utilityProgramId: utilityProgram.id,
+            utilityProgramName: utilityProgram.utility_program_name,
             rebateAmount: utilityProgram.rebate_amount,
-          },
-          utilityProgramDataSnapshotDate: new Date(),
-        }
+            utilityProgramDataSnapshot: {
+              id: utilityProgram.id,
+              name: utilityProgram.utility_program_name,
+              rebateAmount: utilityProgram.rebate_amount,
+            },
+            utilityProgramDataSnapshotDate: new Date(),
+          }
         : null,
       quoteFinanceProduct: {
         financeProduct: {
@@ -399,7 +403,7 @@ export class QuoteService {
   }
 
   async updateLatestQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
-    const foundQuote = await this.quoteModel.findById(quoteId);
+    const foundQuote = await this.quoteModel.findById(quoteId).lean();
 
     if (!foundQuote) {
       throw ApplicationException.EnitityNotFound(quoteId);
@@ -421,7 +425,7 @@ export class QuoteService {
     const {
       quote_finance_product: { incentive_details, project_discount_details, rebate_details, finance_product },
       utility_program,
-    } = foundQuote.toObject().detailed_quote;
+    } = foundQuote.detailed_quote;
 
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
@@ -576,9 +580,12 @@ export class QuoteService {
       totalNetCost: 0,
     };
 
-    const laborCostData = this.calculateLaborCost(systemDesign, quoteCostBuildup.laborCost.laborCostDataSnapshot as any)
-    quoteCostBuildup.laborCost.laborCostType = laborCostData.laborCostType
-    quoteCostBuildup.laborCost.cost = laborCostData.cost
+    const laborCostData = this.calculateLaborCost(
+      systemDesign,
+      quoteCostBuildup.laborCost.laborCostDataSnapshot as any,
+    );
+    quoteCostBuildup.laborCost.laborCostType = laborCostData.laborCostType;
+    quoteCostBuildup.laborCost.cost = laborCostData.cost;
 
     const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
@@ -619,16 +626,16 @@ export class QuoteService {
       quoteCostBuildup,
       utilityProgram: utility_program
         ? {
-          utilityProgramId: utility_program.utility_program_id,
-          utilityProgramName: utility_program.utility_program_name,
-          rebateAmount: utility_program.rebate_amount,
-          utilityProgramDataSnapshot: {
-            id: utility_program.utility_program_id,
-            name: utility_program.utility_program_name,
+            utilityProgramId: utility_program.utility_program_id,
+            utilityProgramName: utility_program.utility_program_name,
             rebateAmount: utility_program.rebate_amount,
-          },
-          utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
-        }
+            utilityProgramDataSnapshot: {
+              id: utility_program.utility_program_id,
+              name: utility_program.utility_program_name,
+              rebateAmount: utility_program.rebate_amount,
+            },
+            utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
+          }
         : null,
       quoteFinanceProduct: {
         financeProduct: {
@@ -680,24 +687,26 @@ export class QuoteService {
       isNil,
     );
 
-    const query = this.quoteModel.find(condition).limit(limit).skip(skip);
-    const total = this.quoteModel.countDocuments(condition);
+    const [quotes, count] = await Promise.all([
+      this.quoteModel.find(condition).limit(limit).skip(skip).lean(),
+      this.quoteModel.countDocuments(condition),
+    ]);
 
-    const [quotes, count] = await Promise.all([query, total]);
-    const data = quotes.map(item => new QuoteDto(item.toObject()));
+    const data = quotes.map(item => new QuoteDto(item));
     const result = {
       data,
       total: count,
     };
+
     return OperationResult.ok(new Pagination(result));
   }
 
   async getAllTaxCredits(): Promise<OperationResult<Pagination<TaxCreditDto>>> {
     const [taxCredits, total] = await Promise.all([
-      this.taxCreditConfigModel.find(),
+      this.taxCreditConfigModel.find().lean(),
       this.taxCreditConfigModel.estimatedDocumentCount(),
     ]);
-    const data = taxCredits.map(item => new TaxCreditDto(item.toObject()));
+    const data = taxCredits.map(item => new TaxCreditDto(item));
     const result = {
       data,
       total,
@@ -706,16 +715,17 @@ export class QuoteService {
   }
 
   async getDetailQuote(quoteId: string): Promise<OperationResult<QuoteDto>> {
-    const quote = await this.quoteModel.findById(quoteId);
+    const quote = await this.quoteModel.findById(quoteId).lean();
 
     if (!quote) {
       throw ApplicationException.EnitityNotFound(quoteId);
     }
-    return OperationResult.ok(new QuoteDto(quote.toObject()));
+
+    return OperationResult.ok(new QuoteDto(quote));
   }
 
   async updateQuote(quoteId: string, data: UpdateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const foundQuote = await this.quoteModel.findById(quoteId);
+    const foundQuote = await this.quoteModel.findById(quoteId).lean();
     if (!foundQuote) {
       throw ApplicationException.EnitityNotFound(quoteId);
     }
@@ -726,7 +736,9 @@ export class QuoteService {
     }
 
     const taxCreditData = await Promise.all(
-      (data.taxCreditData || []).map(item => this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId })),
+      (data.taxCreditData || []).map(item =>
+        this.taxCreditConfigModel.findOne({ _id: item.taxCreditConfigDataId }).lean(),
+      ),
     );
 
     const detailedQuote = {
@@ -736,15 +748,16 @@ export class QuoteService {
       isSelected: typeof data.isSelected === 'boolean' ? data.isSelected : foundQuote.detailed_quote.is_selected,
       isSolar: systemDesign.is_solar,
       isRetrofit: systemDesign.is_retrofit,
-      taxCreditData: taxCreditData.map(item => toCamelCase(item?.toObject())),
+      taxCreditData: taxCreditData.map(item => toCamelCase(item)),
     };
     const model = new QuoteModel(data, detailedQuote);
 
     model.setIsSync(data.isSync);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
-    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true });
-    return OperationResult.ok(new QuoteDto({ ...savedQuote?.toObject() }));
+    const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true }).lean();
+
+    return OperationResult.ok(new QuoteDto(savedQuote || ({} as any)));
   }
 
   async calculateQuoteDetail(data: CalculateQuoteDetailDto): Promise<OperationResult<QuoteDto>> {
@@ -817,8 +830,8 @@ export class QuoteService {
   // ->>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<-\
 
   async getOneById(id: string): Promise<IDetailedQuoteSchema | undefined> {
-    const res = await this.quoteModel.findById(id);
-    return res?.toObject().detailed_quote;
+    const res = await this.quoteModel.findById(id).lean();
+    return res?.detailed_quote;
   }
 
   groupData(data: any[], field: string): any {
@@ -844,7 +857,7 @@ export class QuoteService {
         item.is_sync = false;
         item.is_sync_messages.push(outdatedMessage);
         item.is_sync_messages = uniq(item.is_sync_messages);
-        return item.save(item.toObject());
+        return item.save();
       }),
     );
   }
@@ -862,41 +875,44 @@ export class QuoteService {
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
 
-  calculateLaborCost(systemDesign: SystemDesign, laborCostDataSnapshot: LaborCostDetails): { cost: number, laborCostType: ELaborCostType | '' } {
+  calculateLaborCost(
+    systemDesign: LeanDocument<SystemDesign>,
+    laborCostDataSnapshot: LaborCostDetails,
+  ): { cost: number; laborCostType: ELaborCostType | '' } {
     const storage = systemDesign?.roof_top_design_data?.storage[0];
 
     if (systemDesign.is_retrofit) {
       return {
         cost: laborCostDataSnapshot.storageRetrofitLaborFeePerProject,
-        laborCostType: ELaborCostType.STORAGE_RETROFIT_LABOR_FEE_PER_PROJECT
-      }
+        laborCostType: ELaborCostType.STORAGE_RETROFIT_LABOR_FEE_PER_PROJECT,
+      };
     }
 
     if (!storage) {
       return {
         cost: laborCostDataSnapshot.solarOnlyLaborFeePerWatt,
-        laborCostType: ELaborCostType.SOLAR_ONLY_LABOR_FEE_PER_WATT
-      }
+        laborCostType: ELaborCostType.SOLAR_ONLY_LABOR_FEE_PER_WATT,
+      };
     }
 
     if (storage.battery_type === 'AC') {
       return {
         cost: laborCostDataSnapshot.solarWithACStorageLaborFeePerProject,
-        laborCostType: ELaborCostType.SOLAR_WITH_AC_STORAGE_LABOR_FEE_PER_PROJECT
-      }
+        laborCostType: ELaborCostType.SOLAR_WITH_AC_STORAGE_LABOR_FEE_PER_PROJECT,
+      };
     }
 
     if (storage.battery_type === 'DC') {
       return {
         cost: laborCostDataSnapshot.solarWithDCStorageLaborFeePerProject,
         laborCostType: ELaborCostType.SOLAR_WITH_DC_STORAGE_LABOR_FEE_PER_PROJECT,
-      }
+      };
     }
 
     return {
       cost: 0,
-      laborCostType: ''
-    }
+      laborCostType: '',
+    };
   }
 
   calculateGrossPrice(data: any): { totalNetCost: number; grossPrice: number } {
@@ -908,7 +924,8 @@ export class QuoteService {
     const ancillaryNetCost = sumBy(data.ancillaryEquipmentDetails, (i: any) => i.netCost);
     const laborCost = data.laborCost?.cost || 0;
 
-    const totalNetCost = adderNetCost + storageNetCost + inverterNetCost + panelNetCost + bosNetCost + ancillaryNetCost + laborCost;
+    const totalNetCost =
+      adderNetCost + storageNetCost + inverterNetCost + panelNetCost + bosNetCost + ancillaryNetCost + laborCost;
     return {
       totalNetCost,
       grossPrice: totalNetCost * (1 + data.swellStandardMarkup / 100 || 0),

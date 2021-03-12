@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { TaxCreditConfig } from '../schemas/tax-credit-config.schema';
 
@@ -18,7 +19,7 @@ export class TaxCreditDto {
   @ApiProperty()
   endDate: Date;
 
-  constructor(props: TaxCreditConfig) {
+  constructor(props: LeanDocument<TaxCreditConfig>) {
     this.id = props._id;
     this.name = props.name;
     this.percentage = props.percentage;

@@ -15,7 +15,7 @@ export interface IEcomSystemDesignProductSchema {
   ecom_products_snapshot_date: Date;
 }
 
-export const EcomSystemDesignProductSchema = new Schema<IEcomSystemDesignProductSchema>({
+export const EcomSystemDesignProductSchema = new Schema<Document<IEcomSystemDesignProductSchema>>({
   number_of_modules: Number,
   number_of_batteries: Number,
   total_labor_cost: Number,

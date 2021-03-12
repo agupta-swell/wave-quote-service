@@ -3,7 +3,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as Handlebars from 'handlebars';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
@@ -68,7 +68,7 @@ export class QualificationService {
   }
 
   async getQualificationDetail(opportunityId: string): Promise<OperationResult<GetQualificationDetailDto>> {
-    const qualificationCredit = await this.qualificationCreditModel.findOne({ opportunity_id: opportunityId });
+    const qualificationCredit = await this.qualificationCreditModel.findOne({ opportunity_id: opportunityId }).lean();
     if (!qualificationCredit) {
       return OperationResult.ok({
         qualificationCreditData: null,
@@ -78,16 +78,13 @@ export class QualificationService {
       } as any);
     }
 
-    const fniCommunications = await this.fniCommunicationModel.find({
-      qualification_credit_id: qualificationCredit._id,
-    });
+    const fniCommunications = await this.fniCommunicationModel
+      .find({
+        qualification_credit_id: qualificationCredit._id,
+      })
+      .lean();
 
-    return OperationResult.ok(
-      new GetQualificationDetailDto(
-        qualificationCredit.toObject(),
-        fniCommunications.length ? fniCommunications.map(item => item.toObject()) : [],
-      ),
-    );
+    return OperationResult.ok(new GetQualificationDetailDto(qualificationCredit, fniCommunications));
   }
 
   async setManualApproval(
@@ -95,7 +92,7 @@ export class QualificationService {
     manualApprovalDto: SetManualApprovalReqDto,
   ): Promise<OperationResult<ManualApprovalDto>> {
     const now = new Date();
-    const qualificationCredit = await this.qualificationCreditModel.findById(id);
+    const qualificationCredit = await this.qualificationCreditModel.findById(id).lean();
     if (!qualificationCredit) {
       throw ApplicationException.EnitityNotFound(id);
     }
@@ -113,15 +110,13 @@ export class QualificationService {
     qualificationCredit.qualification_status = QUALIFICATION_STATUS.APPROVED;
     qualificationCredit.approved_by = manualApprovalDto.agentUserId;
 
-    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit.toObject());
+    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
 
-    return OperationResult.ok(
-      new ManualApprovalDto({ status: true, status_detail: 'SUCCESS' }, qualificationCredit.toObject()),
-    );
+    return OperationResult.ok(new ManualApprovalDto({ status: true, status_detail: 'SUCCESS' }, qualificationCredit));
   }
 
   async sendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
-    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId).lean();
     if (!qualificationCredit) {
       throw ApplicationException.EnitityNotFound(req.qualificationCreditId);
     }
@@ -157,11 +152,9 @@ export class QualificationService {
       },
     ] as any;
 
-    const res = await this.qualificationCreditModel.findByIdAndUpdate(
-      qualificationCredit.id,
-      qualificationCredit.toObject(),
-      { new: true },
-    );
+    const res = await this.qualificationCreditModel.findByIdAndUpdate(qualificationCredit.id, qualificationCredit, {
+      new: true,
+    });
 
     return OperationResult.ok(new SendMailDto({ status: true, detail: res || ({} as any) }));
   }
@@ -202,7 +195,7 @@ export class QualificationService {
         break;
     }
 
-    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
+    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId).lean();
     if (!qualificationCredit) {
       throw ApplicationException.EnitityNotFound('Qualification Credit');
     }
@@ -230,7 +223,7 @@ export class QualificationService {
       },
     ];
 
-    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit.toObject());
+    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
 
     const newToken = await this.generateToken(qualificationCreditId, opportunityId, ROLE.SYSTEM);
 
@@ -282,7 +275,7 @@ export class QualificationService {
       }
     }
 
-    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId).lean();
     if (!qualificationCredit) {
       throw ApplicationException.EnitityNotFound('Qualification Credit');
     }
@@ -338,7 +331,7 @@ export class QualificationService {
       },
     ];
 
-    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, qualificationCredit.toObject());
+    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, qualificationCredit);
 
     fniApplyRequest.qualificationCreditId = qualificationCredit._id;
 
@@ -385,6 +378,7 @@ export class QualificationService {
     );
   }
 
+  // eslint-disable-next-line consistent-return
   async checkToken(token: string) {
     let tokenPayload: any;
 
@@ -413,7 +407,7 @@ export class QualificationService {
   async handleFNIResponse(
     fniResponse: string,
     customerNameInst: string,
-    qualificationCreditRecordInst: QualificationCredit,
+    qualificationCreditRecordInst: LeanDocument<QualificationCredit>,
   ): Promise<string> {
     let applyCreditQualificationResponseStatus = '';
 
@@ -463,14 +457,14 @@ export class QualificationService {
 
     await this.qualificationCreditModel.updateOne(
       { _id: qualificationCreditRecordInst.id },
-      qualificationCreditRecordInst.toObject(),
+      qualificationCreditRecordInst,
     );
 
     return applyCreditQualificationResponseStatus;
   }
 
-  async getOneById(id: string): Promise<QualificationCredit | null> {
-    const res = await this.qualificationCreditModel.findById(id);
+  async getOneById(id: string): Promise<LeanDocument<QualificationCredit> | null> {
+    const res = await this.qualificationCreditModel.findById(id).lean();
     return res;
   }
 

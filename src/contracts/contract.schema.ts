@@ -18,7 +18,7 @@ export interface ISignerDetailDataSchema {
   signed_on: Date;
 }
 
-const SignerDetailDataSchema = new Schema<ISignerDetailDataSchema>(
+const SignerDetailDataSchema = new Schema<Document<ISignerDetailDataSchema>>(
   {
     role_id: String,
     role: String,
@@ -45,7 +45,7 @@ export interface ITemplateDetailSchema {
   updated_at: Date;
 }
 
-const TemplateDetailSchema = new Schema<ITemplateDetailSchema>(
+const TemplateDetailSchema = new Schema<Document<ITemplateDetailSchema>>(
   {
     id: String,
     template_name: String,
@@ -66,7 +66,7 @@ export interface ICompositeTemplateSchema {
   composite_template_data: DocusignCompositeTemplateMaster;
 }
 
-const CompositeTemplateSchema = new Schema<ICompositeTemplateSchema>(
+const CompositeTemplateSchema = new Schema<Document<ICompositeTemplateSchema>>(
   {
     template_details: [TemplateDetailSchema],
     composite_template_data: DocusignCompositeTemplateMasterSchemaWithoutId,

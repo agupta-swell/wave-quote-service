@@ -8,7 +8,7 @@ export interface ISectionSchema {
   component_name: string;
 }
 
-const SectionSchema = new Schema<ISectionSchema>(
+const SectionSchema = new Schema<Document<ISectionSchema>>(
   {
     id: String,
     name: String,
@@ -22,7 +22,7 @@ export interface IProposalSectionMaster {
   applicable_products: string[];
 }
 
-const ProposalSectionMaster = new Schema<IProposalSectionMaster>({
+const ProposalSectionMaster = new Schema<Document<IProposalSectionMaster>>({
   applicable_financial_product: String,
   applicable_products: [String],
 });

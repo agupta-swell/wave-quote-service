@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { QuoteService } from 'src/quotes/quote.service';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
@@ -51,14 +51,14 @@ export class UtilityService {
   }
 
   async getTypicalBaseline(zipCode: number, isInternal = false): Promise<OperationResult<UtilityDataDto>> {
-    const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
+    const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode }).lean();
     if (typicalBaseLine) {
-      const typicalBaseLineObj = typicalBaseLine.toObject();
       if (!isInternal) {
-        delete typicalBaseLineObj.typical_hourly_usage;
+        // @ts-ignore
+        delete typicalBaseLine?.typical_baseline?.typical_hourly_usage;
       }
 
-      const data = { typicalBaselineUsage: typicalBaseLineObj };
+      const data = { typicalBaselineUsage: typicalBaseLine };
       return OperationResult.ok(new UtilityDataDto(data, isInternal));
     }
 
@@ -75,7 +75,8 @@ export class UtilityService {
 
     const createdTypicalBaseLineObj = createdTypicalBaseLine.toObject();
     if (!isInternal) {
-      delete createdTypicalBaseLineObj.typical_baseline.typical_hourly_usage;
+      // @ts-ignore
+      delete createdTypicalBaseLineObj?.typical_baseline?.typical_hourly_usage;
     }
     const data = { typicalBaselineUsage: createdTypicalBaseLineObj };
     return OperationResult.ok(new UtilityDataDto(data, isInternal));
@@ -169,11 +170,10 @@ export class UtilityService {
   }
 
   async createUtilityUsageDetail(utilityDto: CreateUtilityDto): Promise<OperationResult<UtilityDetailsDto>> {
-    const found = await this.utilityUsageDetailsModel.findOne({ opportunity_id: utilityDto.opportunityId });
+    const found = await this.utilityUsageDetailsModel.findOne({ opportunity_id: utilityDto.opportunityId }).lean();
     if (found) {
-      const createdUtilityObj = found.toObject();
-      delete createdUtilityObj.utility_data.typical_baseline_usage._id;
-      return OperationResult.ok(new UtilityDetailsDto(createdUtilityObj));
+      delete found.utility_data.typical_baseline_usage._id;
+      return OperationResult.ok(new UtilityDetailsDto(found));
     }
 
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
@@ -191,13 +191,12 @@ export class UtilityService {
   }
 
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
-    const res = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
+    const res = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId }).lean();
     if (!res) {
       return OperationResult.ok(null as any);
     }
-    const obj = res.toObject();
-    delete obj.utility_data.typical_baseline_usage._id;
-    return OperationResult.ok(new UtilityDetailsDto(obj));
+    delete res.utility_data.typical_baseline_usage._id;
+    return OperationResult.ok(new UtilityDetailsDto(res));
   }
 
   async updateUtilityUsageDetail(
@@ -211,9 +210,11 @@ export class UtilityService {
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
     utilityModel.setActualHourlyUsage(hourlyUsage);
 
-    const updatedUtility = await this.utilityUsageDetailsModel.findByIdAndUpdate(utilityId, utilityModel, {
-      new: true,
-    });
+    const updatedUtility = await this.utilityUsageDetailsModel
+      .findByIdAndUpdate(utilityId, utilityModel, {
+        new: true,
+      })
+      .lean();
 
     const [isUpdated] = await Promise.all([
       this.systemDesignService.updateListSystemDesign(
@@ -227,10 +228,9 @@ export class UtilityService {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
     }
 
-    const updatedUtilityObj = updatedUtility?.toObject();
-    delete updatedUtilityObj.utility_data.typical_baseline_usage._id;
+    delete updatedUtility?.utility_data?.typical_baseline_usage?._id;
 
-    return OperationResult.ok(new UtilityDetailsDto(updatedUtilityObj));
+    return OperationResult.ok(new UtilityDetailsDto(updatedUtility || ({} as any)));
   }
 
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----
@@ -255,11 +255,10 @@ export class UtilityService {
     return new Date(year, month, 0).getDate();
   }
 
-  async getTypicalBaselineData(zipCode: number): Promise<GenabilityUsageData> {
+  async getTypicalBaselineData(zipCode: number): Promise<LeanDocument<GenabilityUsageData>> {
     let typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
     if (typicalBaseLine) {
-      const typicalBaseLineObj = typicalBaseLine.toObject();
-      return typicalBaseLineObj;
+      return typicalBaseLine.toObject();
     }
 
     const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
@@ -283,10 +282,10 @@ export class UtilityService {
     zipCode?: number,
   ): Promise<IUtilityCostData> {
     if (mode === CALCULATION_MODE.TYPICAL) {
-      const genabilityCost = await this.genabilityCostDataModel.findOne({ master_tariff_id: masterTariffId });
+      const genabilityCost = await this.genabilityCostDataModel.findOne({ master_tariff_id: masterTariffId }).lean();
 
       if (genabilityCost) {
-        return genabilityCost.toObject().utility_cost;
+        return genabilityCost.utility_cost;
       }
     }
 

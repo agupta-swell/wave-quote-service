@@ -14,7 +14,7 @@ import {
   ISystemProductionSchema,
   PanelProductSchema,
   StorageProductSchema,
-  SystemProductionSchema
+  SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { ELaborCostType, QUOTE_MODE_TYPE } from './constants';
@@ -31,7 +31,7 @@ export interface IIncentiveDetailsSchema {
   description: string;
 }
 
-const IncentiveDetailsSchema = new Schema<IIncentiveDetailsSchema>(
+const IncentiveDetailsSchema = new Schema<Document<IIncentiveDetailsSchema>>(
   {
     unit: String,
     unit_value: Number,
@@ -48,7 +48,7 @@ export interface IRebateDetailsSchema {
   description: string;
 }
 
-const RebateDetailsSchema = new Schema<IRebateDetailsSchema>(
+const RebateDetailsSchema = new Schema<Document<IRebateDetailsSchema>>(
   {
     amount: Number,
     type: String,
@@ -168,7 +168,7 @@ export interface IFinanceProductSchema {
   product_attribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
 }
 
-const FinanceProductSchema = new Schema<IFinanceProductSchema>(
+const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
   {
     product_type: String,
     funding_source_id: String,
@@ -185,7 +185,7 @@ export interface IProjectDiscountDetailSchema {
   description: string;
 }
 
-const ProjectDiscountDetailSchema = new Schema<IProjectDiscountDetailSchema>(
+const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSchema>>(
   {
     unit: String,
     unit_value: Number,
@@ -203,7 +203,7 @@ export interface IQuoteFinanceProductSchema {
   project_discount_details: IProjectDiscountDetailSchema[];
 }
 
-const QuoteFinanceProductSchema = new Schema<IQuoteFinanceProductSchema>(
+const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema>>(
   {
     finance_product: FinanceProductSchema,
     incentive_details: [IncentiveDetailsSchema],
@@ -219,7 +219,7 @@ export interface IUtilityProgramDataSnapshot {
   rebate_amount: number;
 }
 
-const UtilityProgramDataSnapshot = new Schema<IUtilityProgramDataSnapshot>(
+const UtilityProgramDataSnapshot = new Schema<Document<IUtilityProgramDataSnapshot>>(
   {
     name: String,
     rebate_amount: Number,
@@ -235,7 +235,7 @@ export interface IUtilityProgramSchema {
   utility_program_data_snapshot_date: Date;
 }
 
-const UtilityProgramSchema = new Schema<IUtilityProgramSchema>(
+const UtilityProgramSchema = new Schema<Document<IUtilityProgramSchema>>(
   {
     utility_program_id: String,
     utility_program_name: String,
@@ -255,7 +255,7 @@ export interface ISavingsDetailsSchema {
   annual_saving: number;
 }
 
-const SavingsDetailsSchema = new Schema<ISavingsDetailsSchema>(
+const SavingsDetailsSchema = new Schema<Document<ISavingsDetailsSchema>>(
   {
     year: Number,
     current_utility_bill: Number,
@@ -281,7 +281,7 @@ interface IQuotePartnerConfig {
   solar_with_d_c_storage_labor_fee_per_project: number;
 }
 
-const QuotePartnerConfig = new Schema<IQuotePartnerConfig>(
+const QuotePartnerConfig = new Schema<Document<IQuotePartnerConfig>>(
   {
     id: String,
     solar_only_labor_fee_per_watt: Number,
@@ -298,7 +298,7 @@ export interface ILaborCostSchema extends IQuoteCostCommonSchema {
   labor_cost_type: ELaborCostType;
 }
 
-const LaborCostSchema = new Schema<ILaborCostSchema>(
+const LaborCostSchema = new Schema<Document<ILaborCostSchema>>(
   {
     labor_cost_data_snapshot: QuotePartnerConfig,
     labor_cost_snapshot_date: Date,
@@ -315,7 +315,7 @@ export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
   quantity: number;
 }
 
-const PanelQuoteDetailsSchema = new Schema<IPanelQuoteDetailsSchema>(
+const PanelQuoteDetailsSchema = new Schema<Document<IPanelQuoteDetailsSchema>>(
   {
     panel_model_id: String,
     panel_model_data_snapshot: PanelProductSchema,
@@ -335,7 +335,7 @@ export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
   quantity: number;
 }
 
-const InverterQuoteDetailsSchema = new Schema<IInverterQuoteDetailsSchema>(
+const InverterQuoteDetailsSchema = new Schema<Document<IInverterQuoteDetailsSchema>>(
   {
     inverter_model_id: String,
     inverter_model_data_snapshot: InverterProductSchema,
@@ -355,7 +355,7 @@ export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
   quantity: number;
 }
 
-const StorageQuoteDetailsSchema = new Schema<IStorageQuoteDetailsSchema>(
+const StorageQuoteDetailsSchema = new Schema<Document<IStorageQuoteDetailsSchema>>(
   {
     storage_model_id: String,
     storage_model_data_snapshot: StorageProductSchema,
@@ -376,7 +376,7 @@ export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
   unit: COST_UNIT_TYPE;
 }
 
-const AdderQuoteDetailsSchema = new Schema<IAdderQuoteDetailsSchema>(
+const AdderQuoteDetailsSchema = new Schema<Document<IAdderQuoteDetailsSchema>>(
   {
     adder_model_id: String,
     adder_model_data_snapshot: AdderModelSchema,
@@ -397,7 +397,7 @@ export interface IBalanceOfSystemDetailsSchema extends IQuoteCostCommonSchema {
   unit: COST_UNIT_TYPE;
 }
 
-const BalanceOfSystemDetailsSchema = new Schema<IBalanceOfSystemDetailsSchema>(
+const BalanceOfSystemDetailsSchema = new Schema<Document<IBalanceOfSystemDetailsSchema>>(
   {
     balance_of_system_model_id: String,
     balance_of_system_model_data_snapshot: BalanceOfSystemProductSchema,
@@ -417,7 +417,7 @@ export interface IAncillaryEquipmentSchema extends IQuoteCostCommonSchema {
   quantity: number;
 }
 
-const AncillaryEquipmentSchema = new Schema<IAncillaryEquipmentSchema>(
+const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>(
   {
     ancillary_equipment_id: String,
     ancillary_equipment_model_data_snapshot: AncillaryEquipment,
@@ -443,7 +443,7 @@ export interface IQuoteCostBuildupSchema {
   total_net_cost: number;
 }
 
-const QuoteCostBuildupSchema = new Schema<IQuoteCostBuildupSchema>({
+const QuoteCostBuildupSchema = new Schema<Document<IQuoteCostBuildupSchema>>({
   panel_quote_details: [PanelQuoteDetailsSchema],
   inverter_quote_details: [InverterQuoteDetailsSchema],
   storage_quote_details: [StorageQuoteDetailsSchema],
@@ -463,7 +463,7 @@ export interface ITaxCreditConfigDataSnapshotSchema {
   tax_credit_end_date: Date;
 }
 
-const TaxCreditConfigDataSnapshotSchema = new Schema<ITaxCreditConfigDataSnapshotSchema>(
+const TaxCreditConfigDataSnapshotSchema = new Schema<Document<ITaxCreditConfigDataSnapshotSchema>>(
   {
     name: String,
     tax_credit_percentage: Number,
@@ -481,7 +481,7 @@ export interface ITaxCreditDataSchema {
   tax_credit_config_data_snapshot_date: Date;
 }
 
-const TaxCreditDataSchema = new Schema<ITaxCreditDataSchema>(
+const TaxCreditDataSchema = new Schema<Document<ITaxCreditDataSchema>>(
   {
     name: String,
     percentage: Number,
@@ -497,7 +497,7 @@ export interface IQuotePricePerWattSchema {
   gross_price: number;
 }
 
-const QuotePricePerWattSchema = new Schema<IQuotePricePerWattSchema>(
+const QuotePricePerWattSchema = new Schema<Document<IQuotePricePerWattSchema>>(
   {
     price_per_watt: Number,
     gross_price: Number,
@@ -509,7 +509,7 @@ export interface IQuotePriceOverride {
   gross_price: number;
 }
 
-const QuotePriceOverride = new Schema<IQuotePriceOverride>(
+const QuotePriceOverride = new Schema<Document<IQuotePriceOverride>>(
   {
     gross_price: Number,
   },
@@ -535,7 +535,7 @@ export interface IDetailedQuoteSchema {
   quote_price_override: IQuotePriceOverride;
 }
 
-export const DetailedQuoteSchema = new Schema<IDetailedQuoteSchema>(
+export const DetailedQuoteSchema = new Schema<Document<IDetailedQuoteSchema>>(
   {
     system_production: SystemProductionSchema,
     utility_program: UtilityProgramSchema,

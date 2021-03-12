@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { toCamelCase } from '../../utils/transformProperties';
 import { ProposalTemplate } from '../proposal-template.schema';
@@ -35,7 +36,7 @@ export class ProposalTemplateDto {
   @ApiProperty({ type: ProposalSectionMasterDto })
   proposalSectionMaster: ProposalSectionMasterDto;
 
-  constructor(props: ProposalTemplate) {
+  constructor(props: LeanDocument<ProposalTemplate>) {
     this.id = props._id;
     this.name = props.name;
     this.sections = props.sections?.map(item => toCamelCase(item));

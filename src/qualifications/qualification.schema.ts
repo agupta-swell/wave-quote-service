@@ -8,7 +8,7 @@ export interface ICustomerNotification {
   email: string;
 }
 
-export const CustomerNotificationSchema = new Schema<ICustomerNotification>(
+export const CustomerNotificationSchema = new Schema<Document<ICustomerNotification>>(
   {
     sent_on: Date,
     email: String,
@@ -22,7 +22,7 @@ export interface IEventHistory {
   detail: string;
 }
 
-export const EventHistorySchema = new Schema<IEventHistory>(
+export const EventHistorySchema = new Schema<Document<IEventHistory>>(
   {
     issue_date: Date,
     by: String,

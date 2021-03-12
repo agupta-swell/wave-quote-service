@@ -2,7 +2,7 @@ import { Document, Schema } from 'mongoose';
 
 export const USER = Symbol('USER').toString();
 
-export interface IEmailSchema {
+export interface IEmailSchema extends Document {
   address: string;
   verified?: boolean;
   customVerified?: boolean;
@@ -17,7 +17,7 @@ const EmailSchema = new Schema<IEmailSchema>(
   { _id: false },
 );
 
-export interface IProfileSchema {
+export interface IProfileSchema extends Document {
   firstName: string;
   lastName: string;
   des?: string;

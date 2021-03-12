@@ -101,7 +101,7 @@ export class ProposalService {
   }
 
   async update(id: string, proposalDto: UpdateProposalDto): Promise<OperationResult<ProposalDto>> {
-    const foundProposal = await this.proposalModel.findById(id);
+    const foundProposal = await this.proposalModel.findById(id).lean();
 
     if (!foundProposal) {
       throw ApplicationException.EnitityNotFound(id);
@@ -137,10 +137,10 @@ export class ProposalService {
       newData.detailed_proposal.html_file_url = htmlFileUrl;
     }
 
-    newData.detailed_proposal = { ...foundProposal.toObject().detailed_proposal, ...newData.detailed_proposal };
+    newData.detailed_proposal = { ...foundProposal.detailed_proposal, ...newData.detailed_proposal };
 
-    const updatedModel = await this.proposalModel.findByIdAndUpdate(id, newData, { new: true });
-    return OperationResult.ok(new ProposalDto(updatedModel?.toObject()));
+    const updatedModel = await this.proposalModel.findByIdAndUpdate(id, newData, { new: true }).lean();
+    return OperationResult.ok(new ProposalDto(updatedModel || ({} as any)));
   }
 
   async getList(
@@ -158,18 +158,18 @@ export class ProposalService {
     );
 
     const [proposals, total] = await Promise.all([
-      this.proposalModel.find(condition).limit(limit).skip(skip),
+      this.proposalModel.find(condition).limit(limit).skip(skip).lean(),
       this.proposalModel.countDocuments(condition),
     ]);
 
     return OperationResult.ok({
-      data: proposals.map(proposal => new ProposalDto(proposal.toObject())),
+      data: proposals.map(proposal => new ProposalDto(proposal)),
       total,
     });
   }
 
   async getProposalDetails(id: string): Promise<OperationResult<ProposalDto>> {
-    const proposal = await this.proposalModel.findById(id);
+    const proposal = await this.proposalModel.findById(id).lean();
     if (!proposal) {
       throw ApplicationException.EnitityNotFound(id);
     }
@@ -187,7 +187,7 @@ export class ProposalService {
 
     return OperationResult.ok(
       new ProposalDto({
-        ...proposal.toObject(),
+        ...proposal,
         template,
         customer: { ...contact, address: contact?.address1, zipCode: contact?.zip },
         agent: {
@@ -196,7 +196,7 @@ export class ProposalService {
           email: recordOwner?.emails[0].address,
           phoneNumber: recordOwner?.profile.cellPhone,
         },
-      }),
+      } as any),
     );
   }
 
@@ -292,7 +292,7 @@ export class ProposalService {
       throw ApplicationException.ValidationFailed('Incorrect customer information.');
     }
 
-    const proposal = await this.proposalModel.findById(tokenPayload.proposalId);
+    const proposal = await this.proposalModel.findById(tokenPayload.proposalId).lean();
     if (!proposal) {
       throw ApplicationException.EnitityNotFound(tokenPayload.proposalId);
     }
@@ -301,7 +301,7 @@ export class ProposalService {
 
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
-      proposalDetail: new ProposalDto({ ...proposal.toObject(), template }),
+      proposalDetail: new ProposalDto({ ...proposal, template } as any),
     });
   }
 
@@ -331,7 +331,8 @@ export class ProposalService {
     if (!foundProposal) {
       throw ApplicationException.EnitityNotFound(proposalId);
     }
-    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposal_id: proposalId, view_by: viewBy });
+
+    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposal_id: proposalId, view_by: viewBy }).lean();
     if (!foundAnalytic) {
       const dataToSave =
         type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
@@ -343,17 +344,19 @@ export class ProposalService {
         ...dataToSave,
       });
       await model.save();
+
       return OperationResult.ok(true);
     }
+
     const dataToUpdate =
       type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
         ? {
-            downloads: [...foundAnalytic.toObject().downloads, new Date()],
-            views: foundAnalytic.toObject().views,
+            downloads: [...foundAnalytic.downloads, new Date()],
+            views: foundAnalytic.views,
           }
         : {
-            views: [...foundAnalytic.toObject().views, new Date()],
-            downloads: foundAnalytic.toObject().downloads,
+            views: [...foundAnalytic.views, new Date()],
+            downloads: foundAnalytic.downloads,
           };
     await this.proposalAnalyticModel.findByIdAndUpdate(foundAnalytic._id, dataToUpdate);
     return OperationResult.ok(true);

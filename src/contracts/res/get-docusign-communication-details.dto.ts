@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { DocusignCommunication } from 'src/docusign-communications/docusign-communication.schema';
 import { toCamelCase } from 'src/utils/transformProperties';
@@ -41,11 +42,11 @@ export class GetDocusignCommunicationDetailsDto {
   @ApiProperty({ type: DocusignCommunicationDetailResDto, isArray: true })
   docusignCommunicationDetails: DocusignCommunicationDetailResDto[];
 
-  constructor(props: DocusignCommunication[]) {
+  constructor(props: LeanDocument<DocusignCommunication>[]) {
     this.docusignCommunicationDetails = props.map(item => this.transformData(item));
   }
 
-  transformData(docusignCommunication: DocusignCommunication): DocusignCommunicationDetailResDto {
+  transformData(docusignCommunication: LeanDocument<DocusignCommunication>): DocusignCommunicationDetailResDto {
     return {
       ...toCamelCase(docusignCommunication),
       docusignAccountDetail: toCamelCase(docusignCommunication.docusign_account_detail),

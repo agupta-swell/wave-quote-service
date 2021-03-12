@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { identity, pickBy } from 'lodash';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { toSnakeCase } from '../utils/transformProperties';
@@ -26,20 +26,22 @@ export class ProposalSectionMasterService {
     id: string,
     proposalSectionMasterDto: UpdateProposalSectionMasterDto,
   ): Promise<OperationResult<ProposalSectionMasterDto>> {
-    const foundProposalSectionMaster = await this.proposalSectionMaster.findOne({ _id: id });
+    const foundProposalSectionMaster = await this.proposalSectionMaster.findOne({ _id: id }).lean();
     if (!foundProposalSectionMaster) {
       throw ApplicationException.EnitityNotFound(id);
     }
 
-    const updatedModel = await this.proposalSectionMaster.findByIdAndUpdate(
-      id,
-      {
-        ...toSnakeCase(proposalSectionMasterDto),
-      },
-      { new: true },
-    );
+    const updatedModel = await this.proposalSectionMaster
+      .findByIdAndUpdate(
+        id,
+        {
+          ...toSnakeCase(proposalSectionMasterDto),
+        },
+        { new: true },
+      )
+      .lean();
 
-    return OperationResult.ok(new ProposalSectionMasterDto(updatedModel?.toObject()));
+    return OperationResult.ok(new ProposalSectionMasterDto(updatedModel || ({} as any)));
   }
 
   async getList(
@@ -57,23 +59,21 @@ export class ProposalSectionMasterService {
     );
 
     const [proposalSectionMasters, total] = await Promise.all([
-      this.proposalSectionMaster.find(condition).limit(limit).skip(skip),
+      this.proposalSectionMaster.find(condition).limit(limit).skip(skip).lean(),
       this.proposalSectionMaster.countDocuments(condition),
     ]);
 
     return OperationResult.ok(
       new Pagination({
-        data: proposalSectionMasters.map(
-          proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster.toObject()),
-        ),
+        data: proposalSectionMasters.map(proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster)),
         total,
       }),
     );
   }
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getProposalSectionMasterById(id: string): Promise<ProposalSectionMaster | undefined> {
-    const found = await this.proposalSectionMaster.findOne({ _id: id });
-    return found?.toObject();
+  async getProposalSectionMasterById(id: string): Promise<LeanDocument<ProposalSectionMaster> | null> {
+    const found = await this.proposalSectionMaster.findById(id).lean();
+    return found;
   }
 }

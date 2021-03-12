@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
@@ -37,12 +37,12 @@ export class ContactService {
   // =====================> INTERNAL <=====================
 
   async getEmailById(contactId: string): Promise<string | undefined> {
-    const res = await this.contactModel.findById(contactId);
-    return res?.toObject()?.email;
+    const res = await this.contactModel.findById(contactId).lean();
+    return res?.email;
   }
 
-  async getContactById(contactId: string): Promise<Contact | undefined> {
-    const res = await this.contactModel.findById(contactId);
-    return res?.toObject();
+  async getContactById(contactId: string): Promise<LeanDocument<Contact> | null> {
+    const res = await this.contactModel.findById(contactId).lean();
+    return res;
   }
 }

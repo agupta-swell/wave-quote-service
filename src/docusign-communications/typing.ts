@@ -1,3 +1,4 @@
+import { LeanDocument } from 'mongoose';
 import { Contact } from 'src/contacts/contact.schema';
 import { Contract } from 'src/contracts/contract.schema';
 import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
@@ -51,7 +52,7 @@ export interface IDocusignCompositeContract {
 
 export interface IGenericObject {
   contract: Contract;
-  opportunity: Opportunity;
+  opportunity: LeanDocument<Opportunity>;
   quote: IDetailedQuoteSchema;
   contact: Contact;
   recordOwner: User;

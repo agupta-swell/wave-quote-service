@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { USER, User } from './user.schema';
 
 @Injectable()
@@ -17,8 +17,8 @@ export class UserService {
     return res[0];
   }
 
-  async getUserById(userId: string): Promise<User | undefined> {
-    const res = await this.userModel.findById(userId);
-    return res?.toObject();
+  async getUserById(userId: string): Promise<LeanDocument<User> | null> {
+    const res = await this.userModel.findById(userId).lean();
+    return res;
   }
 }

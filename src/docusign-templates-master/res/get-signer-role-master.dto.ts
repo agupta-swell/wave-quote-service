@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { SignerRoleMaster } from '../schemas';
 import { SignerRoleDataResDto } from './sub-dto';
@@ -7,7 +8,7 @@ export class GetSignerRoleMasterDto {
   @ApiProperty({ type: SignerRoleDataResDto, isArray: true })
   recipientRoles: SignerRoleDataResDto[];
 
-  constructor(props: SignerRoleMaster[]) {
+  constructor(props: LeanDocument<SignerRoleMaster>[]) {
     this.recipientRoles = props?.map(item => ({
       id: item._id,
       roleName: item.role_name,

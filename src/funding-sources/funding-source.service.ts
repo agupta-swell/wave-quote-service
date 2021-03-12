@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { FundingSource, FUNDING_SOURCE } from './funding-source.schema';
 import { FundingSourceDto } from './res/funding-source.dto';
@@ -30,8 +30,8 @@ export class FundingSourceService {
     return product;
   }
 
-  async getAll(): Promise<FundingSource[]> {
-    const fundingSources = await this.fundingSource.find();
-    return fundingSources.length ? fundingSources.map(item => item.toObject({ versionKey: false })) : [];
+  async getAll(): Promise<LeanDocument<FundingSource>[]> {
+    const fundingSources = await this.fundingSource.find().lean();
+    return fundingSources;
   }
 }

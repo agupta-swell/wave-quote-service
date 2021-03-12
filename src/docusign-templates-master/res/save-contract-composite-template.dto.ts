@@ -1,14 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { toCamelCase } from 'src/utils/transformProperties';
-import { DocusignTemplateMaster } from '../docusign-template-master.schema';
-import { DocusignCompositeTemplateMaster } from '../schemas';
-import { CompositeTemplateResDto } from './get-contract-composite-template.dto';
-
-export interface ICompositeTemplateResDto {
-  templateDetails: DocusignTemplateMaster[];
-  compositeTemplateData: DocusignCompositeTemplateMaster;
-}
+import { CompositeTemplateResDto, ICompositeTemplateResDto } from './get-contract-composite-template.dto';
 
 export class SaveContractCompositeTemplateDto {
   @ApiProperty()

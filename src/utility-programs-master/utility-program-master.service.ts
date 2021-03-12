@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { OperationResult, Pagination } from '../app/common';
 import { UtilityProgramMasterDto } from './res/utility-program-master.dto';
 import { UtilityProgramMaster, UTILITY_PROGRAM_MASTER } from './utility-program-master.schema';
@@ -34,14 +34,14 @@ export class UtilityProgramMasterService {
     return product;
   }
 
-  async getDetailByName(name: string): Promise<UtilityProgramMaster | undefined> {
-    const product = await this.utilityProgramMaster.findOne({ utility_program_name: name });
-    return product?.toObject({ versionKey: false });
+  async getDetailByName(name: string): Promise<LeanDocument<UtilityProgramMaster> | null> {
+    const product = await this.utilityProgramMaster.findOne({ utility_program_name: name }).lean();
+    return product;
   }
 
-  async getAll(): Promise<UtilityProgramMaster[]> {
-    const utilityProgramMasters = await this.utilityProgramMaster.find();
-    return utilityProgramMasters.length ? utilityProgramMasters.map(item => item.toObject({ versionKey: false })) : [];
+  async getAll(): Promise<LeanDocument<UtilityProgramMaster>[]> {
+    const utilityProgramMasters = await this.utilityProgramMaster.find().lean();
+    return utilityProgramMasters;
   }
 
   // FIXME: need to delete later

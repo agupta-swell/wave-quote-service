@@ -2,15 +2,18 @@ import { Document, Schema } from 'mongoose';
 
 export const CASH_PAYMENT_CONFIG = Symbol('CASH_PAYMENT_CONFIG').toString();
 
-export interface IMilestonePaymentConfigSchema {
+export interface IMilestonePaymentConfigSchema extends Document {
   name: string;
   percentage: number;
 }
 
-const MilestonePaymentConfigSchema = new Schema<IMilestonePaymentConfigSchema>({
-  name: String,
-  percentage: Number,
-});
+const MilestonePaymentConfigSchema = new Schema<IMilestonePaymentConfigSchema>(
+  {
+    name: String,
+    percentage: Number,
+  },
+  { _id: false },
+);
 
 export interface CashPaymentConfig extends Document {
   type: string;

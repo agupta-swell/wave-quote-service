@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { Contract } from '../contract.schema';
 import { ContractResDto } from './sub-dto';
 
 interface IGetCurrentContractDto {
-  contractData: Contract;
-  changeOrders: Contract[];
+  contractData: LeanDocument<Contract>;
+  changeOrders: LeanDocument<Contract>[];
 }
 
 class ContractDetailDataResDto {

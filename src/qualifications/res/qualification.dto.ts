@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
@@ -59,12 +60,12 @@ export class QualificationDto {
   @ApiProperty({ type: QualificationDetailDto })
   detail: QualificationDetailDto;
 
-  constructor(props: QualificationCredit) {
+  constructor(props: LeanDocument<QualificationCredit>) {
     this.qualificationId = props._id;
     this.detail = this.transformData(props);
   }
 
-  transformData(props: QualificationCredit): QualificationDetailDto {
+  transformData(props: LeanDocument<QualificationCredit>): QualificationDetailDto {
     return {
       opportunityId: props.opportunity_id,
       startedOn: props.started_on,

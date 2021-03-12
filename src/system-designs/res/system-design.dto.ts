@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination } from 'src/app/common';
 import { ServiceResponse } from 'src/app/common/service-response';
 import { toCamelCase } from 'src/utils/transformProperties';
@@ -72,7 +73,7 @@ export class SystemDesignDto {
   @ApiProperty()
   isSolar: boolean;
 
-  constructor(props: SystemDesign) {
+  constructor(props: LeanDocument<SystemDesign>) {
     this.id = props._id;
     this.opportunityId = props.opportunity_id;
     this.designMode = props.design_mode;

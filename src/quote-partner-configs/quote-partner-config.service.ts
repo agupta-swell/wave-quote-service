@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from '../app/common';
 import { QuotePartnerConfig, QUOTE_PARTNER_CONFIG } from './quote-partner-config.schema';
@@ -21,8 +21,8 @@ export class QuotePartnerConfigService {
 
   // ========================== INTERNAL ==========================
 
-  async getDetailByPartnerId(partnerId: string): Promise<QuotePartnerConfig | undefined> {
-    const foundConfig = await this.quotePartnerConfigModel.findOne({ partnerId });
-    return foundConfig?.toObject();
+  async getDetailByPartnerId(partnerId: string): Promise<LeanDocument<QuotePartnerConfig> | null> {
+    const foundConfig = await this.quotePartnerConfigModel.findOne({ partnerId }).lean();
+    return foundConfig;
   }
 }

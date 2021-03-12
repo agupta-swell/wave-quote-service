@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { Pagination, ServiceResponse } from '../../app/common';
@@ -147,7 +148,7 @@ export class QuoteDto {
   @ApiProperty({ type: QuotePriceOverride })
   quotePriceOverride: QuotePriceOverride;
 
-  constructor(props: Quote) {
+  constructor(props: LeanDocument<Quote>) {
     this.quoteId = props._id;
     this.quoteName = props.detailed_quote.quote_name;
     this.opportunityId = props.opportunity_id;

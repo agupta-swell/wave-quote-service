@@ -8,7 +8,7 @@ export interface IDocusignAccountDetailSchema {
   account_reference_id: string;
 }
 
-const DocusignAccountDetailSchema = new Schema<IDocusignAccountDetailSchema>(
+const DocusignAccountDetailSchema = new Schema<Document<IDocusignAccountDetailSchema>>(
   {
     account_name: String,
     account_reference_id: String,

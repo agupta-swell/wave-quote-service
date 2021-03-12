@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { ProposalSectionMasterService } from '../proposal-section-masters/proposal-section-master.service';
@@ -50,36 +50,38 @@ export class ProposalTemplateService {
         )
       : [];
 
-    const updatedModel = await this.proposalTemplate.findByIdAndUpdate(
-      id,
-      {
-        name: proposalTemplateDto.name || foundProposalSectionMaster.name,
-        sections: proposalSections.length
-          ? proposalSections.map(item => ({
-              id: item?._id || '',
-              name: item?.name || '',
-              component_name: item?.component_name || '',
-            }))
-          : foundProposalSectionMaster.sections,
-        proposal_section_master: proposalTemplateDto.proposalSectionMaster
-          ? toSnakeCase(proposalTemplateDto.proposalSectionMaster)
-          : foundProposalSectionMaster.proposal_section_master,
-      },
-      { new: true },
-    );
+    const updatedModel = await this.proposalTemplate
+      .findByIdAndUpdate(
+        id,
+        {
+          name: proposalTemplateDto.name || foundProposalSectionMaster.name,
+          sections: proposalSections.length
+            ? proposalSections.map(item => ({
+                id: item?._id || '',
+                name: item?.name || '',
+                component_name: item?.component_name || '',
+              }))
+            : foundProposalSectionMaster.sections,
+          proposal_section_master: proposalTemplateDto.proposalSectionMaster
+            ? toSnakeCase(proposalTemplateDto.proposalSectionMaster)
+            : foundProposalSectionMaster.proposal_section_master,
+        },
+        { new: true },
+      )
+      .lean();
 
-    return OperationResult.ok(new ProposalTemplateDto(updatedModel?.toObject()));
+    return OperationResult.ok(new ProposalTemplateDto(updatedModel || ({} as any)));
   }
 
   async getList(limit: number, skip: number): Promise<OperationResult<Pagination<ProposalTemplateDto>>> {
     const [proposalTemplates, total] = await Promise.all([
-      this.proposalTemplate.find().limit(limit).skip(skip),
+      this.proposalTemplate.find().limit(limit).skip(skip).lean(),
       this.proposalTemplate.estimatedDocumentCount(),
     ]);
 
     return OperationResult.ok(
       new Pagination({
-        data: proposalTemplates.map(proposalTemplate => new ProposalTemplateDto(proposalTemplate.toObject())),
+        data: proposalTemplates.map(proposalTemplate => new ProposalTemplateDto(proposalTemplate)),
         total,
       }),
     );
@@ -87,8 +89,8 @@ export class ProposalTemplateService {
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getOneById(proposalTemplateId: string): Promise<ProposalTemplate> {
-    const res = await this.proposalTemplate.findById(proposalTemplateId);
-    return res?.toObject() || {};
+  async getOneById(proposalTemplateId: string): Promise<LeanDocument<ProposalTemplate> | null> {
+    const res = await this.proposalTemplate.findById(proposalTemplateId).lean();
+    return res;
   }
 }

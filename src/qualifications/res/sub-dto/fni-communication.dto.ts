@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { REQUEST_CATEGORY, REQUEST_TYPE } from '../../constants';
 import { FNI_Communication } from '../../schemas/fni-communication.schema';
 
@@ -36,7 +37,7 @@ export class FniCommunicationDto {
   @ApiProperty()
   errorMessageSentToFni: string[];
 
-  constructor(props: FNI_Communication) {
+  constructor(props: LeanDocument<FNI_Communication>) {
     this.id = props._id;
     this.qualificationCreditId = props.qualification_credit_id;
     this.sentOn = props.sent_on;

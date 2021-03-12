@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as AWS from 'aws-sdk';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { Contract } from 'src/contracts/contract.schema';
 import { ContractService } from 'src/contracts/contract.service';
 import { DocusignAPIService } from 'src/external-services/sub-services/docusign-api.service';
@@ -160,8 +160,8 @@ export class DocusignCommunicationService {
 
   // ========================= INTERNAL =========================
 
-  async getCommunicationsByContractId(contractId: string): Promise<DocusignCommunication[]> {
-    const res = await this.docusignCommunicationModel.find({ contract_id: contractId });
-    return res?.map(communication => communication.toObject({ versionKey: false })) || [];
+  async getCommunicationsByContractId(contractId: string): Promise<LeanDocument<DocusignCommunication>[]> {
+    const res = await this.docusignCommunicationModel.find({ contract_id: contractId }).lean();
+    return res;
   }
 }

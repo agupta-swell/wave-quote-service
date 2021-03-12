@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ProposalSectionMaster } from '../proposal-section-master.schema';
 
@@ -18,7 +19,7 @@ export class ProposalSectionMasterDto {
   @ApiProperty()
   componentName: string;
 
-  constructor(props: ProposalSectionMaster) {
+  constructor(props: LeanDocument<ProposalSectionMaster>) {
     this.id = props._id;
     this.name = props.name;
     this.applicableFinancialProducts = props.applicable_financial_products;

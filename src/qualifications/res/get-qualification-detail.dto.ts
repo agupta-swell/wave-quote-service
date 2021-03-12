@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { toCamelCase } from '../../utils/transformProperties';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
@@ -67,7 +68,10 @@ export class GetQualificationDetailDto {
   @ApiProperty({ type: FniCommunicationDto, isArray: true })
   fniCommunicationData: FniCommunicationDto[];
 
-  constructor(qualificationCredit: QualificationCredit, fniCommunications: FNI_Communication[]) {
+  constructor(
+    qualificationCredit: LeanDocument<QualificationCredit>,
+    fniCommunications: LeanDocument<FNI_Communication>[],
+  ) {
     this.opportunityId = qualificationCredit.opportunity_id;
     this.qualificationCreditId = qualificationCredit._id;
     this.qualificationCreditData = this.transformQualificationCreditData(qualificationCredit);
@@ -76,7 +80,7 @@ export class GetQualificationDetailDto {
       : [];
   }
 
-  transformQualificationCreditData(props: QualificationCredit): QualificationDetailDto {
+  transformQualificationCreditData(props: LeanDocument<QualificationCredit>): QualificationDetailDto {
     return {
       opportunityId: props.opportunity_id,
       startedOn: props.started_on,

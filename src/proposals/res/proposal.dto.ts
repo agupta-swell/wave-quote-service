@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ProposalTemplateDto } from 'src/proposal-templates/res/proposal-template.dto';
 import { QuoteDto } from 'src/quotes/res/quote.dto';
@@ -109,7 +110,7 @@ export class ProposalDto {
   @ApiProperty({ type: UserInformationDto })
   customer: UserInformationDto;
 
-  constructor(props: Proposal) {
+  constructor(props: LeanDocument<Proposal>) {
     this.id = props._id;
     if (props.detailed_proposal) {
       this.isSelected = props.detailed_proposal.is_selected || false;

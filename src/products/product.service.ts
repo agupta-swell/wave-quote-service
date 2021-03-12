@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { LeanDocument, Model, Types } from 'mongoose';
 import { isObjectId } from 'src/utils/common';
 import { OperationResult, Pagination } from '../app/common';
 import { Product, PRODUCT } from './product.schema';
@@ -28,8 +28,8 @@ export class ProductService {
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getDetailById(id: string): Promise<Product | null> {
-    const product = await this.productModel.findById(isObjectId(id) ? Types.ObjectId(id) : id);
+  async getDetailById(id: string): Promise<LeanDocument<Product> | null> {
+    const product = await this.productModel.findById(isObjectId(id) ? Types.ObjectId(id) : id).lean();
     return product;
   }
 }

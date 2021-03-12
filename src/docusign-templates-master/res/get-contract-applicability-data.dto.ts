@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceDto } from 'src/funding-sources/res/funding-source.dto';
@@ -9,9 +10,9 @@ import { UtilityMaster } from '../schemas/utility-master.schema';
 import { UtilityMasterResDto } from './sub-dto';
 
 export interface IGetContractApplicabilityDataDto {
-  applicableFundingSources: FundingSource[];
-  applicableUtilityPrograms: UtilityProgramMaster[];
-  applicableUtilities: UtilityMaster[];
+  applicableFundingSources: LeanDocument<FundingSource>[];
+  applicableUtilityPrograms: LeanDocument<UtilityProgramMaster>[];
+  applicableUtilities: LeanDocument<UtilityMaster>[];
 }
 
 export class GetContractApplicabilityDataDto {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { OperationResult, Pagination } from '../app/common';
 import { AdderConfig, ADDER_CONFIG } from './adder-config.schema';
 import { AdderConfigDto } from './res/adder-config.dto';
@@ -22,8 +22,8 @@ export class AdderConfigService {
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getAdderConfigDetail(id: string): Promise<AdderConfig | undefined> {
-    const res = await this.adderConfigModel.findById(id);
-    return res?.toObject();
+  async getAdderConfigDetail(id: string): Promise<LeanDocument<AdderConfig> | null> {
+    const res = await this.adderConfigModel.findById(id).lean();
+    return res;
   }
 }
