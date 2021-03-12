@@ -1,10 +1,10 @@
-FROM node:14.11.0 as builder
+FROM node:15.11.0 as builder
 RUN mkdir -p /home/node/app
 WORKDIR /home/node/app
 COPY . .
 USER root
-RUN npm install
-RUN npm run build
+RUN yarn
+RUN yarn build
 ENV MONGO_URL=$MONGO_URL
 ENV JWT_SECRET=$JWT_SECRET
 ENV JWT_EXPIRE_TIME=$JWT_EXPIRE_TIME
