@@ -65,7 +65,7 @@ export class ProductDto {
   insertionRule: string | undefined;
 
   constructor(props: LeanDocument<Product>) {
-    this.id = props.id;
+    this.id = props._id;
     this.manufacturerId = props.manufacturer_id;
     this.name = props.name;
     this.type = props.type;
