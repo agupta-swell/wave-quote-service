@@ -158,17 +158,17 @@ export class ContractService {
   async sendContract(contractId: string): Promise<OperationResult<SendContractDto>> {
     const contract = await this.contractModel.findById(contractId);
     if (!contract) {
-      throw ApplicationException.EnitityNotFound(`ContractId: ${contractId}`);
+      throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
     }
 
     const opportunity = await this.opportunityService.getDetailById(contract.opportunity_id);
     if (!opportunity) {
-      throw ApplicationException.EnitityNotFound(`OpportunityId: ${contract.opportunity_id}`);
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${contract.opportunity_id}`);
     }
 
     const quote = await this.quoteService.getOneById(contract.associated_quote_id);
     if (!quote) {
-      throw ApplicationException.EnitityNotFound(`Associated Quote Id: ${contract.associated_quote_id}`);
+      throw ApplicationException.EntityNotFound(`Associated Quote Id: ${contract.associated_quote_id}`);
     }
 
     const [contact, recordOwner] = await Promise.all([
@@ -289,7 +289,7 @@ export class ContractService {
     });
 
     if (!contract) {
-      throw ApplicationException.EnitityNotFound(
+      throw ApplicationException.EntityNotFound(
         `Contract with contractSystemReferenceId: ${req.contractSystemReferenceId}`,
       );
     }

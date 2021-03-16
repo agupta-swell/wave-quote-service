@@ -65,7 +65,7 @@ export class QuoteService {
     ]);
 
     if (!systemDesign) {
-      throw ApplicationException.EnitityNotFound('system Design');
+      throw ApplicationException.EntityNotFound('system Design');
     }
 
     if (
@@ -78,7 +78,7 @@ export class QuoteService {
     }
 
     if (!markupConfigs?.length) {
-      throw ApplicationException.EnitityNotFound('Quote Config');
+      throw ApplicationException.EntityNotFound('Quote Config');
     }
 
     const quoteCostBuildup = {
@@ -244,7 +244,7 @@ export class QuoteService {
       : null;
     const fundingSource = await this.fundingSourceService.getDetailById(data.fundingSourceId);
     if (!fundingSource) {
-      throw ApplicationException.EnitityNotFound('funding Source');
+      throw ApplicationException.EntityNotFound('funding Source');
     }
 
     const detailedQuote = {
@@ -406,7 +406,7 @@ export class QuoteService {
     const foundQuote = await this.quoteModel.findById(quoteId).lean();
 
     if (!foundQuote) {
-      throw ApplicationException.EnitityNotFound(quoteId);
+      throw ApplicationException.EntityNotFound(quoteId);
     }
 
     const [systemDesign, markupConfigs] = await Promise.all([
@@ -415,11 +415,11 @@ export class QuoteService {
     ]);
 
     if (!systemDesign) {
-      throw ApplicationException.EnitityNotFound('system Design');
+      throw ApplicationException.EntityNotFound('system Design');
     }
 
     if (!markupConfigs?.length) {
-      throw ApplicationException.EnitityNotFound('Quote Config');
+      throw ApplicationException.EntityNotFound('Quote Config');
     }
 
     const {
@@ -718,7 +718,7 @@ export class QuoteService {
     const quote = await this.quoteModel.findById(quoteId).lean();
 
     if (!quote) {
-      throw ApplicationException.EnitityNotFound(quoteId);
+      throw ApplicationException.EntityNotFound(quoteId);
     }
 
     return OperationResult.ok(new QuoteDto(quote));
@@ -727,12 +727,12 @@ export class QuoteService {
   async updateQuote(quoteId: string, data: UpdateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const foundQuote = await this.quoteModel.findById(quoteId).lean();
     if (!foundQuote) {
-      throw ApplicationException.EnitityNotFound(quoteId);
+      throw ApplicationException.EntityNotFound(quoteId);
     }
 
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
     if (!systemDesign) {
-      throw ApplicationException.EnitityNotFound('system Design');
+      throw ApplicationException.EntityNotFound('system Design');
     }
 
     const taxCreditData = await Promise.all(
@@ -820,7 +820,7 @@ export class QuoteService {
     const productivityMinArr = leaseSolverConfig.map((item: any) => item.productivity_min);
     const productivityMaxArr = leaseSolverConfig.map((item: any) => item.productivity_max);
 
-    throw ApplicationException.UnprocessableEnity(
+    throw ApplicationException.UnprocessableEntity(
       `System capacity should be between ${min(solarSizeMinimumArr)} and ${max(
         solarSizeMaximumArr,
       )} and productivity should be between ${min(productivityMinArr)} and ${max(productivityMaxArr)}`,

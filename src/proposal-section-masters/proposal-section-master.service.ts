@@ -28,7 +28,7 @@ export class ProposalSectionMasterService {
   ): Promise<OperationResult<ProposalSectionMasterDto>> {
     const foundProposalSectionMaster = await this.proposalSectionMaster.findOne({ _id: id }).lean();
     if (!foundProposalSectionMaster) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
 
     const updatedModel = await this.proposalSectionMaster

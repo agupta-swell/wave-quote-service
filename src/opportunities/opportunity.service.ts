@@ -21,7 +21,7 @@ export class OpportunityService {
   async getRelatedInformation(opportunityId: string): Promise<OperationResult<GetRelatedInformationDto>> {
     const foundOpportunity = await this.opportunityModel.findById(opportunityId);
     if (!foundOpportunity) {
-      throw ApplicationException.EnitityNotFound(opportunityId);
+      throw ApplicationException.EntityNotFound(opportunityId);
     }
 
     const contact = await this.contactService.getContactById(foundOpportunity.contactId);
@@ -48,7 +48,7 @@ export class OpportunityService {
     const foundOpportunity = await this.opportunityModel.findById(opportunityId);
 
     if (!foundOpportunity) {
-      throw ApplicationException.EnitityNotFound(opportunityId);
+      throw ApplicationException.EntityNotFound(opportunityId);
     }
 
     const savedOpportunity = await this.opportunityModel

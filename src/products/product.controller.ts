@@ -1,9 +1,10 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { getBooleanString } from 'src/utils/common';
 import { ProductService } from './product.service';
+import { UpdateProductDtoReq } from './req/update-product.dto';
 import { ProductDto, ProductResponse } from './res/product.dto';
 
 @ApiTags('Products')
@@ -28,6 +29,17 @@ export class ProductController {
     const types = query.types.split(',');
     const hasRule = query['has-rule'] ? getBooleanString(query['has-rule']) : null;
     const result = await this.productService.getAllProductsByType(limit, skip, types, hasRule);
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Put(':productId')
+  @ApiOperation({ summary: 'Update Product' })
+  @ApiOkResponse({ type: ProductResponse })
+  async updateProduct(
+    @Param('productId') productId: string,
+    @Body() req: UpdateProductDtoReq,
+  ): Promise<ServiceResponse<ProductDto>> {
+    const result = await this.productService.updateProduct(productId, req);
     return ServiceResponse.fromResult(result);
   }
 }

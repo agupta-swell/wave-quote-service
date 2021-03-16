@@ -18,12 +18,18 @@ export class AccountService {
   async getFundingSourceAccesses(id: string): Promise<OperationResult<AccountDto>> {
     const account = await this.account.findById(id);
     if (!account) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
 
-    const fundingSources = await Promise.all(
-      account.fundingSourceAccess.map(id => this.fundingSourceService.getDetailById(id)),
-    );
+    let fundingSources: any;
+
+    if (account.fundingSourceAccess?.length) {
+      fundingSources = await Promise.all(
+        account.fundingSourceAccess.map(id => this.fundingSourceService.getDetailById(id)),
+      );
+    } else {
+      fundingSources = await this.fundingSourceService.getAll();
+    }
 
     return OperationResult.ok(new AccountDto(account, compact(fundingSources)));
   }

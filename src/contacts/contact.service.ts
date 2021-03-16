@@ -18,12 +18,12 @@ export class ContactService {
     const { opportunityId, lat, lng } = req;
     const foundOpportunity = await this.opportunityService.getDetailById(opportunityId);
     if (!foundOpportunity) {
-      throw ApplicationException.EnitityNotFound(opportunityId);
+      throw ApplicationException.EntityNotFound(opportunityId);
     }
 
     const foundContact = await this.contactModel.findById(foundOpportunity.contactId);
     if (!foundContact) {
-      throw ApplicationException.EnitityNotFound(opportunityId);
+      throw ApplicationException.EntityNotFound(opportunityId);
     }
 
     foundContact.lat = lat;

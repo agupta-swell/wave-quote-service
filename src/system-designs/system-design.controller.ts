@@ -3,8 +3,14 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
-import { CreateSystemDesignDto, GetInverterClippingDetailDto, UpdateSystemDesignDto } from './req';
 import {
+  CreateSystemDesignDto,
+  GetInverterClippingDetailDto,
+  UpdateAncillaryMasterDtoReq,
+  UpdateSystemDesignDto,
+} from './req';
+import {
+  AnciallaryMasterRes,
   GetInverterClippingDetailRes,
   GetInverterClippingDetailResDto,
   SystemDesignAncillaryMasterDto,
@@ -89,6 +95,17 @@ export class SystemDesignController {
   @ApiOkResponse({ type: SystemDesignAncillaryMasterListRes })
   async getAncillaryList(): Promise<ServiceResponse<Pagination<SystemDesignAncillaryMasterDto>>> {
     const result = await this.systemDesignService.getAncillaryList();
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Put('/ancillaries-master/:ancillaryId')
+  @ApiOperation({ summary: 'Update ancillaries master' })
+  @ApiOkResponse({ type: AnciallaryMasterRes })
+  async updateAncillary(
+    @Param('ancillaryId') ancillaryId: string,
+    @Body() req: UpdateAncillaryMasterDtoReq,
+  ): Promise<ServiceResponse<SystemDesignAncillaryMasterDto>> {
+    const result = await this.systemDesignService.updateAncillaryMaster(ancillaryId, req);
     return ServiceResponse.fromResult(result);
   }
 

@@ -94,7 +94,7 @@ export class QualificationService {
     const now = new Date();
     const qualificationCredit = await this.qualificationCreditModel.findById(id).lean();
     if (!qualificationCredit) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
 
     if (qualificationCredit.process_status !== PROCESS_STATUS.STARTED) {
@@ -118,7 +118,7 @@ export class QualificationService {
   async sendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId).lean();
     if (!qualificationCredit) {
-      throw ApplicationException.EnitityNotFound(req.qualificationCreditId);
+      throw ApplicationException.EntityNotFound(req.qualificationCreditId);
     }
 
     const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunity_id);
@@ -197,7 +197,7 @@ export class QualificationService {
 
     const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId).lean();
     if (!qualificationCredit) {
-      throw ApplicationException.EnitityNotFound('Qualification Credit');
+      throw ApplicationException.EntityNotFound('Qualification Credit');
     }
 
     if (![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED].includes(qualificationCredit.process_status)) {
@@ -277,7 +277,7 @@ export class QualificationService {
 
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId).lean();
     if (!qualificationCredit) {
-      throw ApplicationException.EnitityNotFound('Qualification Credit');
+      throw ApplicationException.EntityNotFound('Qualification Credit');
     }
 
     if (qualificationCredit.process_status !== PROCESS_STATUS.STARTED) {
@@ -365,7 +365,7 @@ export class QualificationService {
 
     const found = await this.qualificationCreditModel.findById(qualificationCreditId);
     if (!found) {
-      throw ApplicationException.EnitityNotFound(qualificationCreditId);
+      throw ApplicationException.EntityNotFound(qualificationCreditId);
     }
 
     return this.jwtService.sign(

@@ -10,6 +10,7 @@ export interface SystemDesignAncillaryMaster extends Document {
   description: string;
   average_whole_sale_price: number;
   applicable_product_manufacturer_id: string;
+  insertion_rule: string;
 
   created_by: string;
   created_at: Date;
@@ -24,6 +25,7 @@ export const SystemDesignAncillaryMasterSchema = new Schema<SystemDesignAncillar
   description: String,
   average_whole_sale_price: Number,
   applicable_product_manufacturer_id: String,
+  insertion_rule: String,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,

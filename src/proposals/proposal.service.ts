@@ -104,7 +104,7 @@ export class ProposalService {
     const foundProposal = await this.proposalModel.findById(id).lean();
 
     if (!foundProposal) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
 
     const newData = {
@@ -171,12 +171,12 @@ export class ProposalService {
   async getProposalDetails(id: string): Promise<OperationResult<ProposalDto>> {
     const proposal = await this.proposalModel.findById(id).lean();
     if (!proposal) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
 
     const opportunity = await this.opportunityService.getDetailById(proposal.opportunity_id);
     if (!opportunity) {
-      throw ApplicationException.EnitityNotFound(`OpportunityId: ${proposal.opportunity_id}`);
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunity_id}`);
     }
 
     const [contact, recordOwner, template] = await Promise.all([
@@ -204,7 +204,7 @@ export class ProposalService {
     // TODO: need to check role later
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
-      throw ApplicationException.EnitityNotFound(proposalId);
+      throw ApplicationException.EntityNotFound(proposalId);
     }
 
     const token = this.jwtService.sign(
@@ -223,7 +223,7 @@ export class ProposalService {
   async sendRecipients(proposalId: string, user: CurrentUserType): Promise<OperationResult<boolean>> {
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
-      throw ApplicationException.EnitityNotFound(proposalId);
+      throw ApplicationException.EntityNotFound(proposalId);
     }
 
     const tokensByRecipients = foundProposal.detailed_proposal.recipients.map(item =>
@@ -294,7 +294,7 @@ export class ProposalService {
 
     const proposal = await this.proposalModel.findById(tokenPayload.proposalId).lean();
     if (!proposal) {
-      throw ApplicationException.EnitityNotFound(tokenPayload.proposalId);
+      throw ApplicationException.EntityNotFound(tokenPayload.proposalId);
     }
 
     const template = await this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id);
@@ -329,7 +329,7 @@ export class ProposalService {
     const { proposalId, type, viewBy } = analyticInfo;
     const foundProposal = await this.proposalModel.exists({ _id: proposalId });
     if (!foundProposal) {
-      throw ApplicationException.EnitityNotFound(proposalId);
+      throw ApplicationException.EntityNotFound(proposalId);
     }
 
     const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposal_id: proposalId, view_by: viewBy }).lean();

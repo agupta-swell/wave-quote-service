@@ -27,7 +27,7 @@ export const EcomSystemDesignProductSchema = new Schema<Document<IEcomSystemDesi
 });
 
 export interface ECommerceSystemDesign extends Document {
-  e_com_reference_id: string;
+  e_com_visit_id: string;
   system_design_product: IEcomSystemDesignProductSchema;
 
   created_by?: string;

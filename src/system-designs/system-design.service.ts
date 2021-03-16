@@ -11,7 +11,12 @@ import { ProductService } from '../products/product.service';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { COST_UNIT_TYPE, DESIGN_MODE } from './constants';
-import { CreateSystemDesignDto, GetInverterClippingDetailDto, UpdateSystemDesignDto } from './req';
+import {
+  CreateSystemDesignDto,
+  GetInverterClippingDetailDto,
+  UpdateAncillaryMasterDtoReq,
+  UpdateSystemDesignDto
+} from './req';
 import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
@@ -158,7 +163,7 @@ export class SystemDesignService {
     const foundSystemDesign = await this.systemDesignModel.findById(id);
 
     if (!foundSystemDesign) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
 
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
@@ -352,7 +357,7 @@ export class SystemDesignService {
   async delete(id: string, opportunityId: string): Promise<OperationResult<string>> {
     const systemDesign = await this.systemDesignModel.findOne({ _id: id, opportunity_id: opportunityId });
     if (!systemDesign) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
     await systemDesign.deleteOne();
     return OperationResult.ok('Deleted Successfully');
@@ -406,16 +411,27 @@ export class SystemDesignService {
   async getDetails(id: string): Promise<OperationResult<SystemDesignDto>> {
     const foundSystemDesign = await this.systemDesignModel.findById(id).lean();
     if (!foundSystemDesign) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
     return OperationResult.ok(new SystemDesignDto(foundSystemDesign));
   }
 
   async getAncillaryList(): Promise<OperationResult<Pagination<SystemDesignAncillaryMasterDto>>> {
-    const res = await this.ancillaryMasterModel.find();
+    const res = await this.ancillaryMasterModel.find().lean();
     return OperationResult.ok(
       new Pagination({ data: res.map(item => new SystemDesignAncillaryMasterDto(item)), total: res.length }),
     );
+  }
+
+  async updateAncillaryMaster(
+    id: string,
+    req: UpdateAncillaryMasterDtoReq,
+  ): Promise<OperationResult<SystemDesignAncillaryMasterDto>> {
+    const updatedModel = await this.ancillaryMasterModel
+      .findByIdAndUpdate(id, { insertion_rule: req.insertionRule || '' }, { new: true })
+      .lean();
+
+    return OperationResult.ok(new SystemDesignAncillaryMasterDto(updatedModel || ({} as any)));
   }
 
   //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-

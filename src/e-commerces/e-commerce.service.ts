@@ -53,7 +53,7 @@ export class ECommerceService {
     const {
       addressDataDetail: { lat, long, zip: zipCode },
       monthlyUtilityBill,
-      ecomReferenceId,
+      ecomVisitId,
       depositAmount,
     } = req;
 
@@ -131,7 +131,7 @@ export class ECommerceService {
       const subject = `E Commerce Config does not find with region ${foundRegion._id}`;
       const body = `E Commerce Config does not find with region ${foundRegion._id}`;
       await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-      throw ApplicationException.EnitityNotFound('E Commerce Config');
+      throw ApplicationException.EntityNotFound('E Commerce Config');
     }
 
     const {
@@ -148,7 +148,7 @@ export class ECommerceService {
       const subject = `E Commerce Product does not find with panel type `;
       const body = `E Commerce Product does not find with panel type `;
       await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-      throw ApplicationException.EnitityNotFound('E Commerce Product');
+      throw ApplicationException.EntityNotFound('E Commerce Product');
     }
 
     const panelSTCRating = foundEComProduct?.sizeW || 1;
@@ -186,7 +186,7 @@ export class ECommerceService {
       const subject = `E Commerce Product does not find with battery type `;
       const body = `E Commerce Product does not find with battery type `;
       await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-      throw ApplicationException.EnitityNotFound('E Commerce Product');
+      throw ApplicationException.EntityNotFound('E Commerce Product');
     }
 
     const storagePerBatteryInkWh = (foundEComBatteryProduct?.sizeW ?? 0) / 1000;
@@ -200,7 +200,7 @@ export class ECommerceService {
 
     // BUILD ECOM SYSTEM DESIGN OBJECT
     const ecomSystemDesign = {
-      e_com_reference_id: ecomReferenceId,
+      e_com_visit_id: ecomVisitId,
       system_design_product: {
         number_of_modules: numberOfPanels,
         number_of_batteries: numberOfBatteries,
@@ -212,6 +212,8 @@ export class ECommerceService {
         ecom_products_snapshot_date: new Date(),
       },
     };
+
+    await this.eCommerceSystemDesignModel.create(ecomSystemDesign);
 
     // CALCULATE LOAN AMOUNT USING WAVE 2.0
 

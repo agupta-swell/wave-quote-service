@@ -22,7 +22,7 @@ export class OpportunityPipe implements PipeTransform {
     const found = await this.opportunityService.isExistedOpportunity(opportunityId);
 
     if (!found) {
-      throw ApplicationException.EnitityNotFound(`with opportunityId ${opportunityId} `);
+      throw ApplicationException.EntityNotFound(`with opportunityId ${opportunityId} `);
     }
 
     return value;

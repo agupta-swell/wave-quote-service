@@ -4,6 +4,7 @@ import { LeanDocument, Model, Types } from 'mongoose';
 import { isObjectId } from 'src/utils/common';
 import { OperationResult, Pagination } from '../app/common';
 import { Product, PRODUCT } from './product.schema';
+import { UpdateProductDtoReq } from './req/update-product.dto';
 import { ProductDto } from './res/product.dto';
 
 @Injectable()
@@ -27,6 +28,13 @@ export class ProductService {
     ]);
 
     return OperationResult.ok(new Pagination({ data: panels.map(panel => new ProductDto(panel)), total }));
+  }
+
+  async updateProduct(id: string, req: UpdateProductDtoReq): Promise<OperationResult<ProductDto>> {
+    const updatedProduct = await this.productModel
+      .findByIdAndUpdate(id, { insertion_rule: req.insertionRule }, { new: true })
+      .lean();
+    return OperationResult.ok(new ProductDto(updatedProduct || ({} as any)));
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

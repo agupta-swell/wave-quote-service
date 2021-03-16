@@ -8,7 +8,7 @@ export class ApplicationException extends HttpException {
     super(response, status);
   }
 
-  static EnitityNotFound(id?: string): ApplicationException {
+  static EntityNotFound(id?: string): ApplicationException {
     return new ApplicationException(`Entity Not Found: ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
@@ -35,15 +35,15 @@ export class ApplicationException extends HttpException {
     );
   }
 
-  static NullEnitityFound(enitity: string, id?: string): ApplicationException {
-    return new ApplicationException(`${enitity} Not Found ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
+  static NullEntityFound(entity: string, id?: string): ApplicationException {
+    return new ApplicationException(`${entity} Not Found ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  static NotFoundStatus(enitity: string, id?: string): ApplicationException {
-    return new ApplicationException(`${enitity} Not Found ${id || ''}`, HttpStatus.NOT_FOUND);
+  static NotFoundStatus(entity: string, id?: string): ApplicationException {
+    return new ApplicationException(`${entity} Not Found ${id || ''}`, HttpStatus.NOT_FOUND);
   }
 
-  static UnprocessableEnity(message: string, id?: string): ApplicationException {
+  static UnprocessableEntity(message: string, id?: string): ApplicationException {
     return new ApplicationException(`${message || ''} ${id || ''}`, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 

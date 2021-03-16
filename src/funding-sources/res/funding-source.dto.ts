@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { FundingSource } from '../funding-source.schema';
 
 export class FundingSourceDto {
@@ -11,7 +12,7 @@ export class FundingSourceDto {
   @ApiProperty()
   type: string;
 
-  constructor(props: FundingSource) {
+  constructor(props: LeanDocument<FundingSource>) {
     this.id = props._id;
     this.name = props.name;
     this.type = props.type;

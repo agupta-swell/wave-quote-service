@@ -45,7 +45,7 @@ export class CalculationService {
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
     if (!leaseSolverConfig) {
-      throw ApplicationException.NullEnitityFound('Lease Config');
+      throw ApplicationException.NullEntityFound('Lease Config');
     }
 
     // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE

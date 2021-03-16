@@ -41,7 +41,7 @@ export class ProposalTemplateService {
   ): Promise<OperationResult<ProposalTemplateDto>> {
     const foundProposalSectionMaster = await this.proposalTemplate.findOne({ _id: id });
     if (!foundProposalSectionMaster) {
-      throw ApplicationException.EnitityNotFound(id);
+      throw ApplicationException.EntityNotFound(id);
     }
 
     const proposalSections = proposalTemplateDto.sections

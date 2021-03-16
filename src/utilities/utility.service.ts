@@ -86,7 +86,7 @@ export class UtilityService {
     const data = await this.externalService.getTariff(zipCode, lseId);
     const result = data.filter((item: any) => item.lseId === lseId);
     if (!result[0]) {
-      throw ApplicationException.UnprocessableEnity(`No Tariff with zipCode: ${zipCode} and lseId: ${lseId}`);
+      throw ApplicationException.UnprocessableEntity(`No Tariff with zipCode: ${zipCode} and lseId: ${lseId}`);
     }
     const newResult = {
       zipCode: result[0].zipCode,

@@ -159,7 +159,7 @@ export class ExternalService {
     const result = typicalBaseLine.data.results[0];
     const typicalMonthlyUsage = this.calculateMonthlyUsage(result.measures);
 
-    const enitity = {
+    const entity = {
       zipCode,
       buildingType: result.buildingType.id,
       customerClass: result.buildingType.customerClass,
@@ -171,7 +171,7 @@ export class ExternalService {
       typicalMonthlyUsage,
     };
 
-    return enitity;
+    return entity;
   }
 
   async getTariff(zipCode: number, lseId: number) {

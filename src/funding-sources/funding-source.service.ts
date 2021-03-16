@@ -11,8 +11,8 @@ export class FundingSourceService {
 
   async getList(limit: number, skip: number): Promise<OperationResult<Pagination<FundingSourceDto>>> {
     const [fundingSources, total] = await Promise.all([
-      this.fundingSource.find().limit(limit).skip(skip),
-      this.fundingSource.countDocuments(),
+      this.fundingSource.find().limit(limit).skip(skip).lean(),
+      this.fundingSource.countDocuments().lean(),
     ]);
 
     return OperationResult.ok(
