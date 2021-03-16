@@ -151,8 +151,8 @@ export class SystemDesignDto {
         };
       }),
       adders: adders.map(item => toCamelCase(item)),
-      ancillaryEquipments: ancillary_equipments.map(item => toCamelCase(item)),
-      balanceOfSystems: balance_of_systems.map(item => toCamelCase(item)),
+      ancillaryEquipments: (ancillary_equipments || []).map(item => toCamelCase(item)),
+      balanceOfSystems: (balance_of_systems || []).map(item => toCamelCase(item)),
     };
   };
 
