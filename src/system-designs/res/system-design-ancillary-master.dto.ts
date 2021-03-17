@@ -26,7 +26,7 @@ export class SystemDesignAncillaryMasterDto {
   applicableProductManufacturerId: string;
 
   @ApiProperty()
-  insertionRule: string;
+  insertionRule: string | undefined;
 
   constructor(props: LeanDocument<SystemDesignAncillaryMaster>) {
     this.id = props._id;
@@ -36,7 +36,7 @@ export class SystemDesignAncillaryMasterDto {
     this.description = props.description;
     this.averageWholeSalePrice = props.average_whole_sale_price;
     this.applicableProductManufacturerId = props.applicable_product_manufacturer_id;
-    this.insertionRule = props.insertion_rule;
+    this.insertionRule = props.insertion_rule || undefined;
   }
 }
 

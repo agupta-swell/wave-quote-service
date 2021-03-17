@@ -87,7 +87,7 @@ export class ProductDto {
     this.batteryType = props.battery_type;
     // For Balance of System
     this.relatedComponent = props.related_component;
-    this.insertionRule = props.insertion_rule;
+    this.insertionRule = props.insertion_rule || undefined;
   }
 }
 

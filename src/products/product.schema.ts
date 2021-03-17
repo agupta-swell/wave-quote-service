@@ -42,7 +42,7 @@ export interface Product extends Document, IPanelProduct, IInverterProduct, IBat
   model_name: string;
   approved_for_gsa: boolean;
   approved_for_esa: boolean;
-  insertion_rule?: string;
+  insertion_rule?: string | null;
 }
 
 export const ProductSchema = new Schema<Product>({

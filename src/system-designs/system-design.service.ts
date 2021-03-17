@@ -15,7 +15,7 @@ import {
   CreateSystemDesignDto,
   GetInverterClippingDetailDto,
   UpdateAncillaryMasterDtoReq,
-  UpdateSystemDesignDto
+  UpdateSystemDesignDto,
 } from './req';
 import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
@@ -428,7 +428,7 @@ export class SystemDesignService {
     req: UpdateAncillaryMasterDtoReq,
   ): Promise<OperationResult<SystemDesignAncillaryMasterDto>> {
     const updatedModel = await this.ancillaryMasterModel
-      .findByIdAndUpdate(id, { insertion_rule: req.insertionRule || '' }, { new: true })
+      .findByIdAndUpdate(id, { insertion_rule: req.insertionRule }, { new: true })
       .lean();
 
     return OperationResult.ok(new SystemDesignAncillaryMasterDto(updatedModel || ({} as any)));

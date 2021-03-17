@@ -10,7 +10,7 @@ export interface SystemDesignAncillaryMaster extends Document {
   description: string;
   average_whole_sale_price: number;
   applicable_product_manufacturer_id: string;
-  insertion_rule: string;
+  insertion_rule?: string | null;
 
   created_by: string;
   created_at: Date;
