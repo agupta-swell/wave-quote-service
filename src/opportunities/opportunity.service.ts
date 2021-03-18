@@ -19,7 +19,7 @@ export class OpportunityService {
   ) {}
 
   async getRelatedInformation(opportunityId: string): Promise<OperationResult<GetRelatedInformationDto>> {
-    const foundOpportunity = await this.opportunityModel.findById(opportunityId);
+    const foundOpportunity = await this.opportunityModel.findById(opportunityId).lean();
     if (!foundOpportunity) {
       throw ApplicationException.EntityNotFound(opportunityId);
     }
@@ -37,6 +37,7 @@ export class OpportunityService {
       utilityProgramId: foundOpportunity.utilityProgramId ?? '',
       zipCode: contact?.zip || '',
       partnerId: foundOpportunity.accountId,
+      opportunityName: foundOpportunity.name,
     };
     return OperationResult.ok(new GetRelatedInformationDto(data));
   }

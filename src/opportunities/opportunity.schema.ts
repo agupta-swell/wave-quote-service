@@ -3,6 +3,7 @@ import { Document, Schema } from 'mongoose';
 export const OPPORTUNITY = Symbol('OPPORTUNITY').toString();
 
 export interface Opportunity extends Document {
+  name: string;
   contactId: string;
   utilityId: string;
   utilityProgramId: string;

@@ -32,6 +32,9 @@ export class GetRelatedInformationDto {
   @ApiProperty()
   partnerId: string;
 
+  @ApiProperty()
+  opportunityName: string;
+
   constructor(props: GetRelatedInformationDto) {
     this.address = props.address;
     this.city = props.city;
@@ -43,6 +46,7 @@ export class GetRelatedInformationDto {
     this.utilityProgramId = props.utilityProgramId ?? '';
     this.zipCode = props.zipCode;
     this.partnerId = props.partnerId;
+    this.opportunityName = props.opportunityName;
   }
 }
 
