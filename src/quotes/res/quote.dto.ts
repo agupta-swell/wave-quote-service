@@ -3,8 +3,14 @@ import { LeanDocument } from 'mongoose';
 import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { Pagination, ServiceResponse } from '../../app/common';
-import { IQuoteCostBuildupSchema, IQuoteFinanceProductSchema, ISavingsDetailsSchema, Quote } from '../quote.schema';
-import { QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
+import {
+  IDetailedQuoteSchema,
+  IQuoteCostBuildupSchema,
+  IQuoteFinanceProductSchema,
+  ISavingsDetailsSchema,
+  Quote,
+} from '../quote.schema';
+import { NotesDto, QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
 
 class UtilityProgramDto {
   @ApiProperty()
@@ -148,6 +154,9 @@ export class QuoteDto {
   @ApiProperty({ type: QuotePriceOverride })
   quotePriceOverride: QuotePriceOverride;
 
+  @ApiProperty({ type: NotesDto, isArray: true })
+  notes: NotesDto[];
+
   constructor(props: LeanDocument<Quote>) {
     this.quoteId = props._id;
     this.quoteName = props.detailed_quote.quote_name;
@@ -170,6 +179,7 @@ export class QuoteDto {
     this.selectedQuoteMode = props.detailed_quote.selected_quote_mode;
     this.quotePricePerWatt = toCamelCase(props.detailed_quote.quote_price_per_watt);
     this.quotePriceOverride = toCamelCase(props.detailed_quote.quote_price_override);
+    this.notes = (props.detailed_quote.notes ?? []).map(item => toCamelCase(item));
   }
 
   transformQuoteCostBuildup(quoteCostBuildup: IQuoteCostBuildupSchema): QuoteCostBuildupDto {

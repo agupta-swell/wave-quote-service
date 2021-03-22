@@ -307,6 +307,7 @@ export class QuoteService {
       selectedQuoteMode: data.selectedQuoteMode,
       quotePricePerWatt: data.quotePricePerWatt || { pricePerWatt: -1, grossPrice: -1 },
       quotePriceOverride: data.quotePriceOverride,
+      notes: [],
     };
 
     if (quoteConfigData) {
@@ -658,6 +659,7 @@ export class QuoteService {
       allowedQuoteModes: foundQuote.detailed_quote.allowed_quote_modes,
       quotePricePerWatt: foundQuote.detailed_quote.quote_price_per_watt,
       quotePriceOverride: foundQuote.detailed_quote.quote_price_override,
+      notes: foundQuote.detailed_quote.notes,
     };
 
     detailedQuote.quoteFinanceProduct = this.handleUpdateQuoteFinanceProduct(
@@ -741,6 +743,7 @@ export class QuoteService {
       ),
     );
 
+    // const oldNotes = foundQuote.detailed_quote.notes?.length ? foundQuote.detailed_quote.notes : [];
     const detailedQuote = {
       ...data,
       systemProduction: toCamelCase(systemDesign.system_production_data),
@@ -749,12 +752,14 @@ export class QuoteService {
       isSolar: systemDesign.is_solar,
       isRetrofit: systemDesign.is_retrofit,
       taxCreditData: taxCreditData.map(item => toCamelCase(item)),
+      // notes: data.notes.map(note => toCamelCase(note)),
     };
     const model = new QuoteModel(data, detailedQuote);
 
     model.setIsSync(data.isSync);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
+
     const savedQuote = await this.quoteModel.findByIdAndUpdate(quoteId, removedUndefined, { new: true }).lean();
 
     return OperationResult.ok(new QuoteDto(savedQuote || ({} as any)));

@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { QUOTE_MODE_TYPE } from '../constants';
 import { QuotePriceOverride, QuotePricePerWatt } from './create-quote.dto';
-import { QuoteCostBuildupDto, QuoteFinanceProductDto, SavingsDetailsDto } from './sub-dto';
+import { NotesDto, QuoteCostBuildupDto, QuoteFinanceProductDto, SavingsDetailsDto } from './sub-dto';
 
 class TaxCreditDto {
   @ApiProperty()
@@ -92,4 +92,9 @@ export class UpdateQuoteDto {
 
   @ApiProperty({ type: QuotePriceOverride })
   quotePriceOverride: QuotePriceOverride;
+
+  @ApiPropertyOptional({ type: NotesDto, isArray: true })
+  @Type(() => NotesDto)
+  @IsOptional()
+  notes: NotesDto[];
 }

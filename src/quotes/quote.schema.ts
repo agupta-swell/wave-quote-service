@@ -516,6 +516,17 @@ const QuotePriceOverride = new Schema<Document<IQuotePriceOverride>>(
   { _id: false },
 );
 
+export interface INote {
+  id: string;
+  text: string;
+  show_on_proposal: boolean;
+  show_on_contract: boolean;
+  is_approved: boolean;
+  approval_comment: string;
+  approved_by: string;
+  approved_at: Date | null;
+}
+
 export interface IDetailedQuoteSchema {
   system_production: ISystemProductionSchema;
   utility_program: IUtilityProgramSchema;
@@ -533,7 +544,22 @@ export interface IDetailedQuoteSchema {
   selected_quote_mode: QUOTE_MODE_TYPE;
   quote_price_per_watt: IQuotePricePerWattSchema;
   quote_price_override: IQuotePriceOverride;
+  notes: INote[];
 }
+
+export const NoteSchema = new Schema<Document<INote>>(
+  {
+    id: String,
+    text: String,
+    show_on_proposal: Boolean,
+    show_on_contract: Boolean,
+    is_approved: Boolean,
+    approval_comment: String,
+    approved_by: String,
+    approved_at: Date,
+  },
+  { _id: false },
+);
 
 export const DetailedQuoteSchema = new Schema<Document<IDetailedQuoteSchema>>(
   {
@@ -553,6 +579,7 @@ export const DetailedQuoteSchema = new Schema<Document<IDetailedQuoteSchema>>(
     selected_quote_mode: String,
     quote_price_per_watt: QuotePricePerWattSchema,
     quote_price_override: QuotePriceOverride,
+    notes: [NoteSchema],
   },
   { _id: false },
 );
@@ -632,6 +659,7 @@ export class QuoteModel {
       selectedQuoteMode,
       quotePricePerWatt,
       quotePriceOverride,
+      notes,
     } = data;
     return {
       system_production: systemProduction,
@@ -685,6 +713,7 @@ export class QuoteModel {
       quote_price_override: {
         gross_price: quotePriceOverride?.grossPrice,
       },
+      notes: notes.map(i => ({ ...(toSnakeCase(i) as any), approved_at: i.approvedAt })),
     };
   }
 
