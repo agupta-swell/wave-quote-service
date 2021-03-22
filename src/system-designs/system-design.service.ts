@@ -4,13 +4,14 @@ import { flatten, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
+import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ProductService } from '../products/product.service';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
-import { COST_UNIT_TYPE, DESIGN_MODE } from './constants';
+import { COST_UNIT_TYPE, DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
 import {
   CreateSystemDesignDto,
   GetInverterClippingDetailDto,
@@ -37,6 +38,8 @@ export class SystemDesignService {
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
+    @Inject(forwardRef(() => OpportunityService))
+    private readonly opportunityService: OpportunityService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -53,6 +56,10 @@ export class SystemDesignService {
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
+
+    if (systemDesignDto.isRetrofit) {
+      this.opportunityService.updateExistingSolarData(systemDesignDto.opportunityId, systemDesignDto.existingSolarData);
+    }
 
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
@@ -182,6 +189,26 @@ export class SystemDesignService {
 
     if (systemDesignDto.isRetrofit) {
       systemDesign.setIsRetrofit(systemDesignDto.isRetrofit);
+      const updateQuery = {
+        $set: { ...systemDesignDto.existingSolarData },
+      };
+      if (systemDesignDto.existingSolarData.financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO) {
+        updateQuery['$unset'] = { tpoFundingSource: '' };
+      }
+      this.opportunityService.updateExistingSolarData(systemDesignDto.opportunityId, updateQuery);
+    } else {
+      this.opportunityService.updateExistingSolarData(systemDesignDto.opportunityId, {
+        $unset: {
+          existingPVSize: '',
+          yearSystemInstalled: '',
+          originalInstaller: '',
+          inverter: '',
+          financeType: '',
+          tpoFundingSource: '',
+          inverterManufacturer: '',
+          inverterModel: '',
+        },
+      });
     }
 
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {

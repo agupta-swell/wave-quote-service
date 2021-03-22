@@ -8,6 +8,17 @@ export enum INVERTER_TYPE {
   STRING = 'STRING',
 }
 
+export enum INVERTER_TYPE_EXISTING_SOLAR {
+  MICRO = 'Micro',
+  STRING = 'String',
+}
+
+export enum FINANCE_TYPE_EXISTING_SOLAR {
+  TPO = 'TPO',
+  CASH = 'Cash',
+  LOAN = 'Loan',
+}
+
 export enum BATTERY_PURPOSE {
   PV_SELF_CONSUMPTION = 'PV_SELF_CONSUMPTION',
   BACKUP_POWER = 'BACKUP_POWER',

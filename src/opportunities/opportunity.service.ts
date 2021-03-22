@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model } from 'mongoose';
+import { LeanDocument, Model, UpdateQuery } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
@@ -77,6 +77,14 @@ export class OpportunityService {
 
   async getDetailById(opportunityId: string): Promise<LeanDocument<Opportunity> | null> {
     const res = await this.opportunityModel.findById(opportunityId).lean();
+    return res;
+  }
+
+  async updateExistingSolarData(
+    opportunityId: string,
+    updateQuery: UpdateQuery<Opportunity>,
+  ): Promise<LeanDocument<Opportunity> | null> {
+    const res = await this.opportunityModel.findByIdAndUpdate(opportunityId, updateQuery).lean();
     return res;
   }
 }

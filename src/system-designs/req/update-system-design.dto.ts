@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { DESIGN_MODE } from '../constants';
 import { CapacityProductionDataDto, RoofTopDataReqDto } from './sub-dto';
+import { ExistingSolarDataDto } from './sub-dto/existingSolarData.dto';
 
 export class UpdateSystemDesignDto {
   @ApiProperty()
@@ -60,4 +61,10 @@ export class UpdateSystemDesignDto {
   @IsOptional()
   @IsBoolean()
   isRetrofit: boolean;
+
+  @ApiPropertyOptional({ type: ExistingSolarDataDto })
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ExistingSolarDataDto)
+  existingSolarData: ExistingSolarDataDto;
 }

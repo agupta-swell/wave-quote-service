@@ -1,8 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
 import { DESIGN_MODE } from '../constants';
 import { CapacityProductionDataDto, RoofTopDataReqDto } from './sub-dto';
+import { ExistingSolarDataDto } from './sub-dto/existingSolarData.dto';
 
 export class CreateSystemDesignDto {
   @ApiProperty()
@@ -59,4 +60,10 @@ export class CreateSystemDesignDto {
   @IsNotEmpty()
   @IsBoolean()
   isRetrofit: boolean;
+
+  @ApiPropertyOptional({ type: ExistingSolarDataDto })
+  @ValidateIf(o => o.isRetrofit)
+  @ValidateNested({ each: true })
+  @Type(() => ExistingSolarDataDto)
+  existingSolarData: ExistingSolarDataDto;
 }

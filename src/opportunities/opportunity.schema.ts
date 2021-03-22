@@ -1,6 +1,18 @@
 import { Document, Schema } from 'mongoose';
+import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export const OPPORTUNITY = Symbol('OPPORTUNITY').toString();
+
+export interface IExistingSolarData {
+  originalInstaller: string;
+  existingPVSize: number;
+  yearSystemInstalled: number;
+  inverter: INVERTER_TYPE_EXISTING_SOLAR;
+  financeType: FINANCE_TYPE_EXISTING_SOLAR;
+  inverterManufacturer: string;
+  inverterModel: string;
+  tpoFundingSource: string;
+}
 
 export interface Opportunity extends Document {
   name: string;
@@ -18,6 +30,14 @@ export interface Opportunity extends Document {
   contractorSigner: string;
   recordOwner: string;
   accountId: string;
+  originalInstaller: string;
+  existingPVSize: number;
+  yearSystemInstalled: number;
+  inverter: INVERTER_TYPE_EXISTING_SOLAR;
+  financeType: FINANCE_TYPE_EXISTING_SOLAR;
+  inverterManufacturer: string;
+  inverterModel: string;
+  tpoFundingSource: string;
 }
 
 export const OpportunitySchema = new Schema<Opportunity>({
@@ -36,4 +56,12 @@ export const OpportunitySchema = new Schema<Opportunity>({
   contractorSigner: String,
   recordOwner: String,
   accountId: String,
+  originalInstaller: String,
+  existingPVSize: Number,
+  yearSystemInstalled: Number,
+  inverter: String,
+  financeType: String,
+  inverterManufacturer: String,
+  inverterModel: String,
+  tpoFundingSource: String,
 });
