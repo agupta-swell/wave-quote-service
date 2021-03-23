@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsString } from 'class-validator';
+import { IsEnum, IsNumber, IsString, ValidateIf } from 'class-validator';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export class ExistingSolarDataDto {
@@ -32,6 +32,7 @@ export class ExistingSolarDataDto {
   inverterModel: string;
 
   @ApiProperty()
+  @ValidateIf(o => o.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO)
   @IsString()
-  tpoFundingSource: string;
+  tpoFundingSource?: string;
 }

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export class GetRelatedInformationDto {
   @ApiProperty()
@@ -35,6 +36,33 @@ export class GetRelatedInformationDto {
   @ApiProperty()
   opportunityName: string;
 
+  @ApiProperty()
+  existingPV: boolean;
+
+  @ApiProperty()
+  originalInstaller: string;
+
+  @ApiProperty()
+  existingPVSize: number;
+
+  @ApiProperty()
+  yearSystemInstalled: number;
+
+  @ApiProperty()
+  inverter: INVERTER_TYPE_EXISTING_SOLAR;
+
+  @ApiProperty()
+  financeType: FINANCE_TYPE_EXISTING_SOLAR;
+
+  @ApiProperty()
+  inverterManufacturer: string;
+
+  @ApiProperty()
+  inverterModel: string;
+
+  @ApiProperty()
+  tpoFundingSource: string;
+
   constructor(props: GetRelatedInformationDto) {
     this.address = props.address;
     this.city = props.city;
@@ -47,6 +75,15 @@ export class GetRelatedInformationDto {
     this.zipCode = props.zipCode;
     this.partnerId = props.partnerId;
     this.opportunityName = props.opportunityName;
+    this.existingPV = props.existingPV;
+    this.originalInstaller = props.originalInstaller;
+    this.existingPVSize = props.existingPVSize;
+    this.yearSystemInstalled = props.yearSystemInstalled;
+    this.inverter = props.inverter;
+    this.financeType = props.financeType;
+    this.inverterManufacturer = props.inverterManufacturer;
+    this.inverterModel = props.inverterModel;
+    this.tpoFundingSource = props.tpoFundingSource;
   }
 }
 

@@ -38,6 +38,15 @@ export class OpportunityService {
       zipCode: contact?.zip || '',
       partnerId: foundOpportunity.accountId,
       opportunityName: foundOpportunity.name,
+      existingPV: foundOpportunity.existingPV,
+      originalInstaller: foundOpportunity.originalInstaller,
+      existingPVSize: foundOpportunity.existingPVSize,
+      yearSystemInstalled: foundOpportunity.yearSystemInstalled,
+      inverter: foundOpportunity.inverter,
+      financeType: foundOpportunity.financeType,
+      inverterManufacturer: foundOpportunity.inverterManufacturer,
+      inverterModel: foundOpportunity.inverterModel,
+      tpoFundingSource: foundOpportunity.tpoFundingSource,
     };
     return OperationResult.ok(new GetRelatedInformationDto(data));
   }
@@ -84,7 +93,7 @@ export class OpportunityService {
     opportunityId: string,
     updateQuery: UpdateQuery<Opportunity>,
   ): Promise<LeanDocument<Opportunity> | null> {
-    const res = await this.opportunityModel.findByIdAndUpdate(opportunityId, updateQuery).lean();
+    const res = await this.opportunityModel.findByIdAndUpdate(opportunityId, updateQuery, { new: true }).lean();
     return res;
   }
 }

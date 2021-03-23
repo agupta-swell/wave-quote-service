@@ -18,6 +18,7 @@ import {
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
+import { ExistingSolarDataDto } from './req/sub-dto/existingSolarData.dto';
 import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
@@ -56,6 +57,12 @@ export class SystemDesignService {
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
+
+    this.handleUpdateExistingSolar(
+      systemDesignDto.opportunityId,
+      systemDesignDto.isRetrofit,
+      systemDesignDto.existingSolarData,
+    );
 
     if (systemDesignDto.isRetrofit) {
       this.opportunityService.updateExistingSolarData(systemDesignDto.opportunityId, systemDesignDto.existingSolarData);
@@ -187,28 +194,14 @@ export class SystemDesignService {
       systemDesign.setIsSolar(systemDesignDto.isSolar);
     }
 
+    this.handleUpdateExistingSolar(
+      systemDesignDto.opportunityId,
+      systemDesignDto.isRetrofit,
+      systemDesignDto.existingSolarData,
+    );
+
     if (systemDesignDto.isRetrofit) {
       systemDesign.setIsRetrofit(systemDesignDto.isRetrofit);
-      const updateQuery = {
-        $set: { ...systemDesignDto.existingSolarData },
-      };
-      if (systemDesignDto.existingSolarData.financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO) {
-        updateQuery['$unset'] = { tpoFundingSource: '' };
-      }
-      this.opportunityService.updateExistingSolarData(systemDesignDto.opportunityId, updateQuery);
-    } else {
-      this.opportunityService.updateExistingSolarData(systemDesignDto.opportunityId, {
-        $unset: {
-          existingPVSize: '',
-          yearSystemInstalled: '',
-          originalInstaller: '',
-          inverter: '',
-          financeType: '',
-          tpoFundingSource: '',
-          inverterManufacturer: '',
-          inverterModel: '',
-        },
-      });
     }
 
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
@@ -506,6 +499,35 @@ export class SystemDesignService {
         return COST_UNIT_TYPE.PER_EACH;
       default:
         return '' as any;
+    }
+  }
+
+  async handleUpdateExistingSolar(opportunityId: string, isRetrofit: boolean, existingSolarData: ExistingSolarDataDto) {
+    if (isRetrofit) {
+      const updateQuery = {
+        $set: { ...existingSolarData, existingPV: true },
+      };
+      if (existingSolarData.financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO) {
+        delete updateQuery.$set.tpoFundingSource;
+        updateQuery['$unset'] = { tpoFundingSource: '' };
+      }
+      this.opportunityService.updateExistingSolarData(opportunityId, updateQuery);
+    } else {
+      this.opportunityService.updateExistingSolarData(opportunityId, {
+        $set: {
+          existingPV: false,
+        },
+        $unset: {
+          existingPVSize: '',
+          yearSystemInstalled: '',
+          originalInstaller: '',
+          inverter: '',
+          financeType: '',
+          tpoFundingSource: '',
+          inverterManufacturer: '',
+          inverterModel: '',
+        },
+      });
     }
   }
 }

@@ -3,17 +3,6 @@ import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/s
 
 export const OPPORTUNITY = Symbol('OPPORTUNITY').toString();
 
-export interface IExistingSolarData {
-  originalInstaller: string;
-  existingPVSize: number;
-  yearSystemInstalled: number;
-  inverter: INVERTER_TYPE_EXISTING_SOLAR;
-  financeType: FINANCE_TYPE_EXISTING_SOLAR;
-  inverterManufacturer: string;
-  inverterModel: string;
-  tpoFundingSource: string;
-}
-
 export interface Opportunity extends Document {
   name: string;
   contactId: string;
@@ -30,6 +19,7 @@ export interface Opportunity extends Document {
   contractorSigner: string;
   recordOwner: string;
   accountId: string;
+  existingPV: boolean;
   originalInstaller: string;
   existingPVSize: number;
   yearSystemInstalled: number;
@@ -56,6 +46,7 @@ export const OpportunitySchema = new Schema<Opportunity>({
   contractorSigner: String,
   recordOwner: String,
   accountId: String,
+  existingPV: Boolean,
   originalInstaller: String,
   existingPVSize: Number,
   yearSystemInstalled: Number,
