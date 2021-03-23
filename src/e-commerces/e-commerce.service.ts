@@ -281,8 +281,8 @@ export class ECommerceService {
       false,
       overAllCost,
       contractTerm,
-      1 * storagePerBatteryInkWh,
-      netGenerationKWh,
+      storagePerBatteryInkWh,
+      systemCapacity,
       rateEscalator,
       systemProduction.productivity,
       false,
@@ -296,9 +296,9 @@ export class ECommerceService {
         isRetrofit:${false},
         utilityProgramName: ${utilityProgramName},
         contractTerm:${contractTerm},
-        storageSize:${1 * storagePerBatteryInkWh},
+        storageSize:${storagePerBatteryInkWh},
         rateEscalator:${rateEscalator},
-        capacityKW:${netGenerationKWh},
+        capacityKW:${systemCapacity},
         productivity:${systemProduction.productivity},
       `;
 
@@ -314,7 +314,7 @@ export class ECommerceService {
       overallCostForWholeHomeBackup,
       contractTerm,
       2 * storagePerBatteryInkWh,
-      netGenerationKWh,
+      systemCapacity,
       rateEscalator,
       systemProduction.productivity,
       false,
@@ -328,9 +328,9 @@ export class ECommerceService {
         isRetrofit:${false},
         utilityProgramName: ${utilityProgramName},
         contractTerm:${contractTerm},
-        storageSize:${1 * storagePerBatteryInkWh},
+        storageSize:${2 * storagePerBatteryInkWh},
         rateEscalator:${rateEscalator},
-        capacityKW:${netGenerationKWh},
+        capacityKW:${systemCapacity},
         productivity:${systemProduction.productivity},
       `;
 
@@ -339,7 +339,7 @@ export class ECommerceService {
 
     // BUILD getEcomSystemDesignAndQuote RESPONSE FOR QUOTE OPTIONS
 
-    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.systemKW = numberOfPanels * panelSTCRating / 1000;
+    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.systemKW = systemCapacity;
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.estimatedTwentyFiveYearsSavings = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
