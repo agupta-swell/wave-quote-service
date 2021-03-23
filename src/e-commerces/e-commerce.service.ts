@@ -152,13 +152,13 @@ export class ECommerceService {
     }
 
     const panelSTCRating = foundEComProduct?.sizeW || 1;
-    const numberOfPanels = (requiredpVGeneration * 1000) / panelSTCRating;
+    const numberOfPanels = Math.ceil(requiredpVGeneration * 1000 / panelSTCRating );
 
     // CALCULATE PROJECT PARAMETERS (TYPICALLY USED FOR LEASE QUOTE)
     const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
     const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
     const losses = 5.5; // "Assuming a loss factor of 5.5"
-    const systemCapacity = (numberOfPanels * panelSTCRating) / 1000; //  system capacity is using KW as a unit so we need divide by 1000
+    const systemCapacity = numberOfPanels * panelSTCRating / 1000; //  system capacity is using KW as a unit so we need divide by 1000
     const netGenerationKWh = await this.systemProductService.pvWatCalculation({
       lat,
       lon: long,
@@ -339,7 +339,7 @@ export class ECommerceService {
 
     // BUILD getEcomSystemDesignAndQuote RESPONSE FOR QUOTE OPTIONS
 
-    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.systemKW = numberOfPanels * panelSTCRating;
+    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.systemKW = numberOfPanels * panelSTCRating / 1000;
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.estimatedTwentyFiveYearsSavings = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
