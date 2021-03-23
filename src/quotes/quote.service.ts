@@ -17,7 +17,13 @@ import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-c
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { toCamelCase } from '../utils/transformProperties';
-import { ELaborCostType, FINANCE_PRODUCT_TYPE, PROJECT_DISCOUNT_UNITS, QUOTE_MODE_TYPE } from './constants';
+import {
+  ELaborCostType,
+  FINANCE_PRODUCT_TYPE,
+  PROJECT_DISCOUNT_UNITS,
+  QUOTE_MODE_TYPE,
+  REBATE_TYPE,
+} from './constants';
 import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
@@ -264,11 +270,22 @@ export class QuoteService {
         },
         netAmount: 0,
         incentiveDetails: {
-          unit: 'percentage',
-          unitValue: 0,
-          type: 'program_incentives',
-          appliesTo: '',
-          description: '',
+          amount: 0,
+          type: REBATE_TYPE.SGIP,
+          detail: {
+            gsTermYears: '0',
+            gsProgramSnapshot: {
+              id: '',
+              annualIncentives: 0,
+              numberBatteries: '0',
+              termYears: '0',
+              upfrontIncentives: 0,
+              utilityProgram: {
+                id: '',
+                utilityProgramName: '',
+              },
+            },
+          },
         },
       },
       utilityProgramSelectedForReinvestment: false,

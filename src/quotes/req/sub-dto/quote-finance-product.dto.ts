@@ -1,6 +1,6 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FINANCE_PRODUCT_TYPE, REBATE_TYPE } from '../../constants';
@@ -20,12 +20,11 @@ export class SgipDetailsDto {
 export class IncentiveDetailsDto {
   @ApiProperty({ enum: REBATE_TYPE })
   @IsNotEmpty()
-  @IsString()
+  @IsEnum(REBATE_TYPE)
   type: REBATE_TYPE;
 
   @ApiProperty({ type: SgipDetailsDto })
   @IsNotEmpty()
-  @IsString()
   detail: SgipDetailsDto;
 
   @ApiProperty()

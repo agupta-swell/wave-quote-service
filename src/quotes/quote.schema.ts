@@ -24,7 +24,7 @@ import { UpdateQuoteDto } from './req/update-quote.dto';
 
 export const QUOTE = Symbol('QUOTE').toString();
 
-export interface IGsProgramSnapshot{
+export interface IGsProgramSnapshot {
   id: string;
   annualIncentives: number;
   termYears: string;
@@ -37,10 +37,13 @@ export interface ISgipDetails {
   gsProgramSnapshot: IGsProgramSnapshot;
 }
 
-const SgipDetailsSchema = new Schema<Document<ISgipDetails>>({
-  gsTermYears: String,
-  gsProgramSnapshot: GsProgramsSchema,
-});
+const SgipDetailsSchema = new Schema<Document<ISgipDetails>>(
+  {
+    gsTermYears: String,
+    gsProgramSnapshot: GsProgramsSchema,
+  },
+  { _id: false },
+);
 
 export interface IIncentiveDetailsSchema {
   type: REBATE_TYPE;
@@ -685,10 +688,10 @@ export class QuoteModel {
       utility_program: toSnakeCase(utilityProgram),
       quote_finance_product: {
         incentive_details: incentiveDetails,
-        rebate_details: rebateDetails.map(item => toSnakeCase(item)),
+        rebate_details: rebateDetails?.map(item => toSnakeCase(item)),
         finance_product: toSnakeCase(financeProduct),
         net_amount: netAmount,
-        project_discount_details: projectDiscountDetails.map(item => toSnakeCase(item)),
+        project_discount_details: projectDiscountDetails?.map(item => toSnakeCase(item)),
       },
       savings_details: savingsDetails.map(item => toSnakeCase(item)),
       quote_cost_buildup: {
