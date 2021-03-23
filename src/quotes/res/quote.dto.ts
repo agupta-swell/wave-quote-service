@@ -3,13 +3,7 @@ import { LeanDocument } from 'mongoose';
 import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { Pagination, ServiceResponse } from '../../app/common';
-import {
-  IDetailedQuoteSchema,
-  IQuoteCostBuildupSchema,
-  IQuoteFinanceProductSchema,
-  ISavingsDetailsSchema,
-  Quote,
-} from '../quote.schema';
+import { IQuoteCostBuildupSchema, IQuoteFinanceProductSchema, ISavingsDetailsSchema, Quote } from '../quote.schema';
 import { NotesDto, QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
 
 class UtilityProgramDto {
@@ -201,7 +195,7 @@ export class QuoteDto {
     return {
       financeProduct: toCamelCase(quoteFinanceProduct.finance_product),
       netAmount: quoteFinanceProduct.net_amount,
-      incentiveDetails: quoteFinanceProduct.incentive_details.map(item => toCamelCase(item)),
+      incentiveDetails: quoteFinanceProduct.incentive_details,
       rebateDetails: quoteFinanceProduct.rebate_details.map(item => toCamelCase(item)),
       projectDiscountDetails: quoteFinanceProduct.project_discount_details.map(item => toCamelCase(item)),
     };

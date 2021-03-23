@@ -4,12 +4,6 @@ export enum FINANCE_PRODUCT_TYPE {
   CASH = 'cash',
 }
 
-export enum INCENTIVE_APPLIES_TO_VALUE {
-  SOLAR = 'solar',
-  STORAGE = 'storage',
-  SOLAR_AND_STORAGE = 'solar_and_storage',
-}
-
 export enum INCENTIVE_UNITS {
   PERCENTAGE = 'percentage',
   AMOUNT = 'amount',
@@ -31,4 +25,14 @@ export enum ELaborCostType {
   STORAGE_RETROFIT_LABOR_FEE_PER_PROJECT = 'storageRetrofitLaborFeePerProject',
   SOLAR_WITH_AC_STORAGE_LABOR_FEE_PER_PROJECT = 'solarWithACStorageLaborFeePerProject',
   SOLAR_WITH_DC_STORAGE_LABOR_FEE_PER_PROJECT = 'solarWithDCStorageLaborFeePerProject',
+}
+
+export enum INCENTIVE_APPLIES_TO_VALUE {
+  SOLAR = 'solar',
+  STORAGE = 'storage',
+  SOLAR_AND_STORAGE = 'solar_and_storage',
+}
+
+export enum REBATE_TYPE {
+  SGIP = 'SGIP',
 }

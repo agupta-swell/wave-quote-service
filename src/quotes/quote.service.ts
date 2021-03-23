@@ -17,19 +17,11 @@ import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-c
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { toCamelCase } from '../utils/transformProperties';
-import {
-  ELaborCostType,
-  FINANCE_PRODUCT_TYPE,
-  INCENTIVE_APPLIES_TO_VALUE,
-  INCENTIVE_UNITS,
-  PROJECT_DISCOUNT_UNITS,
-  QUOTE_MODE_TYPE,
-} from './constants';
+import { ELaborCostType, FINANCE_PRODUCT_TYPE, PROJECT_DISCOUNT_UNITS, QUOTE_MODE_TYPE } from './constants';
 import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
   CashProductAttributesDto,
-  IncentiveDetailsDto,
   LaborCostDetails,
   LeaseProductAttributesDto,
   LoanProductAttributesDto,
@@ -271,30 +263,13 @@ export class QuoteService {
           productAttribute: await this.createProductAttribute(fundingSource.type, quoteCostBuildup.grossPrice),
         },
         netAmount: 0,
-        incentiveDetails: [
-          {
-            unit: 'percentage',
-            unitValue: 0,
-            type: 'program_incentives',
-            appliesTo: '',
-            description: '',
-          },
-        ],
-        rebateDetails: [
-          {
-            amount: 0,
-            type: 'program_rebate',
-            description: '',
-          },
-        ],
-        projectDiscountDetails: [
-          {
-            unit: 'percentage',
-            unitValue: 0,
-            description: '',
-            excludeAdders: false,
-          },
-        ],
+        incentiveDetails: {
+          unit: 'percentage',
+          unitValue: 0,
+          type: 'program_incentives',
+          appliesTo: '',
+          description: '',
+        },
       },
       utilityProgramSelectedForReinvestment: false,
       taxCreditSelectedForReinvestment: false,
@@ -646,7 +621,7 @@ export class QuoteService {
           productAttribute,
         },
         netAmount: quoteCostBuildup.grossPrice,
-        incentiveDetails: incentive_details.map((item: any) => toCamelCase(item)),
+        incentiveDetails: incentive_details,
         rebateDetails: rebate_details.map((item: any) => toCamelCase(item)),
         projectDiscountDetails: project_discount_details.map((item: any) => toCamelCase(item)),
       },
@@ -937,36 +912,35 @@ export class QuoteService {
     };
   }
 
-  calculateIncentiveValueAmount(incentiveDetail: IncentiveDetailsDto, quoteCostBuildup: QuoteCostBuildupDto): number {
-    if (incentiveDetail.unit === INCENTIVE_UNITS.AMOUNT) return incentiveDetail.unitValue;
-    const { appliesTo } = incentiveDetail;
+  // calculateIncentiveValueAmount(incentiveDetail: IncentiveDetailsDto, quoteCostBuildup: QuoteCostBuildupDto): number {
+  //   const { type } = incentiveDetail;
 
-    if (!appliesTo) {
-      return roundNumber(incentiveDetail.unitValue * quoteCostBuildup.grossPrice, 2);
-    }
+  //   if (!type) {
+  //     return roundNumber(quoteCostBuildup.grossPrice, 2);
+  //   }
 
-    switch (appliesTo) {
-      case INCENTIVE_APPLIES_TO_VALUE.SOLAR: {
-        const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
-        return roundNumber(incentiveDetail.unitValue * solarNetCost, 2);
-      }
+  //   switch (type) {
+  //     case INCENTIVE_APPLIES_TO_VALUE.SOLAR: {
+  //       const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
+  //       return roundNumber(incentiveDetail.unitValue * solarNetCost, 2);
+  //     }
 
-      case INCENTIVE_APPLIES_TO_VALUE.STORAGE: {
-        const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, i => i.netCost);
-        return roundNumber(incentiveDetail.unitValue * storageNetCost, 2);
-      }
+  //     case INCENTIVE_APPLIES_TO_VALUE.STORAGE: {
+  //       const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, i => i.netCost);
+  //       return roundNumber(incentiveDetail.unitValue * storageNetCost, 2);
+  //     }
 
-      case INCENTIVE_APPLIES_TO_VALUE.SOLAR_AND_STORAGE: {
-        const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
-        const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, i => i.netCost);
+  //     case INCENTIVE_APPLIES_TO_VALUE.SOLAR_AND_STORAGE: {
+  //       const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
+  //       const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, i => i.netCost);
 
-        return roundNumber(incentiveDetail.unitValue * (storageNetCost + solarNetCost), 2);
-      }
+  //       return roundNumber(incentiveDetail.unitValue * (storageNetCost + solarNetCost), 2);
+  //     }
 
-      default:
-        throw new Error(`Wrong appliesTo: ${appliesTo} `);
-    }
-  }
+  //     default:
+  //       throw new Error(`Wrong type: ${appliesTo} `);
+  //   }
+  // }
 
   handleUpdateQuoteFinanceProduct(
     quoteFinanceProduct: QuoteFinanceProductDto,
@@ -975,10 +949,7 @@ export class QuoteService {
     const { incentiveDetails, projectDiscountDetails, rebateDetails } = quoteFinanceProduct;
 
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
-    const incentiveAmount = incentiveDetails.reduce(
-      (accu, item) => (accu += this.calculateIncentiveValueAmount(item, quoteCostBuildup)),
-      0,
-    );
+    const incentiveAmount = incentiveDetails.amount;
 
     const rebateAmount = rebateDetails.reduce((accu, item) => (accu += item.amount), 0);
 

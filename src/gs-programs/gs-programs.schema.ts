@@ -3,6 +3,7 @@ import { Document, Schema } from 'mongoose';
 export const GS_PROGRAMS = Symbol('GS_PROGRAMS').toString();
 
 export interface GsPrograms extends Document {
+  id: string;
   annualIncentives: number;
   termYears: string;
   numberBatteries: string;
@@ -18,6 +19,7 @@ export interface GsPrograms extends Document {
 export const GsProgramsSchema = new Schema<GsPrograms>({
   // follow wave_1 schema
   _id: Schema.Types.Mixed,
+  id: String,
   annualIncentives: Number,
   termYears: String,
   numberBatteries: String,

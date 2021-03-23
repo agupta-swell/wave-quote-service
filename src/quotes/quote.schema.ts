@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { GsPrograms, GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import {
   AdderModelSchema,
@@ -17,27 +18,41 @@ import {
   SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
-import { ELaborCostType, QUOTE_MODE_TYPE } from './constants';
+import { ELaborCostType, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
 
 export const QUOTE = Symbol('QUOTE').toString();
 
+export interface IGsProgramSnapshot{
+  id: string;
+  annualIncentives: number;
+  termYears: string;
+  numberBatteries: string;
+  upfrontIncentives: number;
+}
+
+export interface ISgipDetails {
+  gsTermYears: string;
+  gsProgramSnapshot: IGsProgramSnapshot;
+}
+
+const SgipDetailsSchema = new Schema<Document<ISgipDetails>>({
+  gsTermYears: String,
+  gsProgramSnapshot: GsProgramsSchema,
+});
+
 export interface IIncentiveDetailsSchema {
-  unit: string;
-  unit_value: number;
-  type: string;
-  applies_to: string;
-  description: string;
+  type: REBATE_TYPE;
+  detail: ISgipDetails;
+  amount: number;
 }
 
 const IncentiveDetailsSchema = new Schema<Document<IIncentiveDetailsSchema>>(
   {
-    unit: String,
-    unit_value: Number,
     type: String,
-    applies_to: String,
-    description: String,
+    amount: Number,
+    detail: SgipDetailsSchema,
   },
   { _id: false },
 );
@@ -198,7 +213,7 @@ const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSc
 export interface IQuoteFinanceProductSchema {
   finance_product: IFinanceProductSchema;
   net_amount: number;
-  incentive_details: IIncentiveDetailsSchema[];
+  incentive_details: IIncentiveDetailsSchema;
   rebate_details: IRebateDetailsSchema[];
   project_discount_details: IProjectDiscountDetailSchema[];
 }
@@ -206,7 +221,7 @@ export interface IQuoteFinanceProductSchema {
 const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema>>(
   {
     finance_product: FinanceProductSchema,
-    incentive_details: [IncentiveDetailsSchema],
+    incentive_details: IncentiveDetailsSchema,
     rebate_details: [RebateDetailsSchema],
     net_amount: Number,
     project_discount_details: [ProjectDiscountDetailSchema],
@@ -669,7 +684,7 @@ export class QuoteModel {
       is_retrofit: isRetrofit,
       utility_program: toSnakeCase(utilityProgram),
       quote_finance_product: {
-        incentive_details: incentiveDetails.map(item => toSnakeCase(item)),
+        incentive_details: incentiveDetails,
         rebate_details: rebateDetails.map(item => toSnakeCase(item)),
         finance_product: toSnakeCase(financeProduct),
         net_amount: netAmount,

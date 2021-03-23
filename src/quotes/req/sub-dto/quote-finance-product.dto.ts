@@ -1,34 +1,37 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
-import { FINANCE_PRODUCT_TYPE, INCENTIVE_APPLIES_TO_VALUE } from '../../constants';
+import { FINANCE_PRODUCT_TYPE, REBATE_TYPE } from '../../constants';
 
-export class IncentiveDetailsDto {
+export class SgipDetailsDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  unit: string;
+  gsTermYears: string;
+
+  @ApiProperty({ type: GsProgramsDto })
+  @IsNotEmpty()
+  @Type(() => GsProgramsDto)
+  gsProgramSnapshot: GsProgramsDto;
+}
+
+export class IncentiveDetailsDto {
+  @ApiProperty({ enum: REBATE_TYPE })
+  @IsNotEmpty()
+  @IsString()
+  type: REBATE_TYPE;
+
+  @ApiProperty({ type: SgipDetailsDto })
+  @IsNotEmpty()
+  @IsString()
+  detail: SgipDetailsDto;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  unitValue: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  type: string;
-
-  @ApiProperty({ enum: INCENTIVE_APPLIES_TO_VALUE })
-  @IsNotEmpty()
-  @IsString()
-  appliesTo: INCENTIVE_APPLIES_TO_VALUE;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  description: string;
+  amount: number;
 }
 
 export class RebateDetailsDto {
@@ -106,7 +109,7 @@ export class QuoteFinanceProductDto {
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => IncentiveDetailsDto)
-  incentiveDetails: IncentiveDetailsDto[];
+  incentiveDetails: IncentiveDetailsDto;
 
   @ApiProperty({ type: RebateDetailsDto, isArray: true })
   @IsNotEmpty()

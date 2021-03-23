@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { UtilityProgramMasterDto } from 'src/utility-programs-master/res/utility-program-master.dto';
@@ -22,7 +22,7 @@ export class GsProgramsDto {
   upfrontIncentives: number;
 
   @ApiProperty({ type: UtilityProgramMasterDto })
-  utilityProgram: UtilityProgramMasterDto;
+  utilityProgram?: UtilityProgramMasterDto;
 
   constructor(props: LeanDocument<GsPrograms>, utilityProgram: UtilityProgramMaster) {
     this.id = props._id;

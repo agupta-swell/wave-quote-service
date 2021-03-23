@@ -1,21 +1,25 @@
+import { Type } from 'class-transformer';
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
+import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
+import { REBATE_TYPE } from 'src/quotes/constants';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 
+export class SgipDetailsDto {
+  @ApiProperty()
+  gsTermYears: string;
+
+  @ApiProperty()
+  gsProgramSnapshot: GsProgramsDto;
+}
 export class IncentiveDetailsDto {
-  @ApiProperty()
-  unit: string;
+  @ApiProperty({ enum: REBATE_TYPE })
+  type: REBATE_TYPE;
 
   @ApiProperty()
-  unitValue: number;
+  detail: SgipDetailsDto;
 
   @ApiProperty()
-  type: string;
-
-  @ApiProperty()
-  appliesTo: string;
-
-  @ApiProperty()
-  description: string;
+  amount: number;
 }
 
 export class RebateDetailsDto {
@@ -75,7 +79,7 @@ export class ProjectDiscountDetailDto {
 
 export class QuoteFinanceProductDto {
   @ApiProperty({ type: IncentiveDetailsDto, isArray: true })
-  incentiveDetails: IncentiveDetailsDto[];
+  incentiveDetails: IncentiveDetailsDto;
 
   @ApiProperty({ type: RebateDetailsDto, isArray: true })
   rebateDetails: RebateDetailsDto[];
