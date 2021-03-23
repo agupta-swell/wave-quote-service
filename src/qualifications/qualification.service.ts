@@ -223,7 +223,7 @@ export class QualificationService {
       },
     ];
 
-    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
+    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, { $set: qualificationCredit });
 
     const newToken = await this.generateToken(qualificationCreditId, opportunityId, ROLE.SYSTEM);
 
