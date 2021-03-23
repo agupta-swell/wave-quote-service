@@ -36,7 +36,7 @@ import {
 } from './req/sub-dto';
 import { QuoteDto } from './res/quote.dto';
 import { TaxCreditDto } from './res/tax-credit.dto';
-import { QuoteMarkupConfig, QUOTE_MARKUP_CONFIG, TaxCreditConfig, TAX_CREDIT_CONFIG } from './schemas';
+import { ITC, I_T_C, QuoteMarkupConfig, QUOTE_MARKUP_CONFIG, TaxCreditConfig, TAX_CREDIT_CONFIG } from './schemas';
 import { CalculationService } from './sub-services/calculation.service';
 
 @Injectable()
@@ -45,6 +45,7 @@ export class QuoteService {
     @InjectModel(QUOTE) private readonly quoteModel: Model<Quote>,
     @InjectModel(TAX_CREDIT_CONFIG) private readonly taxCreditConfigModel: Model<TaxCreditConfig>,
     @InjectModel(QUOTE_MARKUP_CONFIG) private readonly quoteMarkupConfigModel: Model<QuoteMarkupConfig>,
+    @InjectModel(I_T_C) private readonly iTCModel: Model<ITC>,
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
     private readonly utilityProgramService: UtilityProgramMasterService,
@@ -166,7 +167,7 @@ export class QuoteService {
         'adderModelId',
       ),
       balanceOfSystemDetails: this.groupData(
-        systemDesign.roof_top_design_data.balance_of_systems.map(item => {
+        systemDesign.roof_top_design_data.balance_of_systems?.map(item => {
           const cost = item.balance_of_system_model_data_snapshot.price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.balance_of_system_model_data_snapshot.related_component,
@@ -188,7 +189,7 @@ export class QuoteService {
         'balanceOfSystemModelId',
       ),
       ancillaryEquipmentDetails: this.groupData(
-        systemDesign.roof_top_design_data.ancillary_equipments.map(item => {
+        systemDesign.roof_top_design_data.ancillary_equipments?.map(item => {
           const cost = item.quantity * item.ancillary_equipment_model_data_snapshot.average_whole_sale_price;
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.ancillary_equipment_model_data_snapshot.related_component,
@@ -686,6 +687,7 @@ export class QuoteService {
       this.quoteModel.countDocuments(condition),
     ]);
 
+    console.log(quotes)
     const data = quotes.map(item => new QuoteDto(item));
     const result = {
       data,
@@ -710,12 +712,13 @@ export class QuoteService {
 
   async getDetailQuote(quoteId: string): Promise<OperationResult<QuoteDto>> {
     const quote = await this.quoteModel.findById(quoteId).lean();
+    const itc_rate = await this.iTCModel.findOne({})
 
     if (!quote) {
       throw ApplicationException.EntityNotFound(quoteId);
     }
 
-    return OperationResult.ok(new QuoteDto(quote));
+    return OperationResult.ok(new QuoteDto(quote, itc_rate?.itc_rate));
   }
 
   async updateQuote(quoteId: string, data: UpdateQuoteDto): Promise<OperationResult<QuoteDto>> {

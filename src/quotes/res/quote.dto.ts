@@ -151,7 +151,10 @@ export class QuoteDto {
   @ApiProperty({ type: NotesDto, isArray: true })
   notes: NotesDto[];
 
-  constructor(props: LeanDocument<Quote>) {
+  @ApiProperty()
+  itc_rate?: number;
+
+  constructor(props: LeanDocument<Quote>, itc_rate?: number) {
     this.quoteId = props._id;
     this.quoteName = props.detailed_quote.quote_name;
     this.opportunityId = props.opportunity_id;
@@ -174,6 +177,7 @@ export class QuoteDto {
     this.quotePricePerWatt = toCamelCase(props.detailed_quote.quote_price_per_watt);
     this.quotePriceOverride = toCamelCase(props.detailed_quote.quote_price_override);
     this.notes = (props.detailed_quote.notes ?? []).map(item => toCamelCase(item));
+    this.itc_rate = itc_rate;
   }
 
   transformQuoteCostBuildup(quoteCostBuildup: IQuoteCostBuildupSchema): QuoteCostBuildupDto {
@@ -182,8 +186,8 @@ export class QuoteDto {
       inverterQuoteDetails: quoteCostBuildup.inverter_quote_details.map(item => toCamelCase(item)),
       storageQuoteDetails: quoteCostBuildup.storage_quote_details.map(item => toCamelCase(item)),
       adderQuoteDetails: quoteCostBuildup.adder_quote_details.map(item => toCamelCase(item)),
-      balanceOfSystemDetails: quoteCostBuildup.balance_of_system_details.map(item => toCamelCase(item)),
-      ancillaryEquipmentDetails: quoteCostBuildup.ancillary_equipment_details.map(item => toCamelCase(item)),
+      balanceOfSystemDetails: quoteCostBuildup.balance_of_system_details?.map(item => toCamelCase(item)),
+      ancillaryEquipmentDetails: quoteCostBuildup.ancillary_equipment_details?.map(item => toCamelCase(item)),
       swellStandardMarkup: quoteCostBuildup.swell_standard_markup,
       laborCost: toCamelCase(quoteCostBuildup.labor_cost),
       grossPrice: quoteCostBuildup.gross_price,

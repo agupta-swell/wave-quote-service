@@ -5,7 +5,7 @@ import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
-import { QuoteMarkupConfigSchema, QUOTE_MARKUP_CONFIG, TaxCreditConfigSchema, TAX_CREDIT_CONFIG } from './schemas';
+import { ITCSchema, I_T_C, QuoteMarkupConfigSchema, QUOTE_MARKUP_CONFIG, TaxCreditConfigSchema, TAX_CREDIT_CONFIG } from './schemas';
 import { CalculationService } from './sub-services';
 
 @Global()
@@ -22,6 +22,7 @@ import { CalculationService } from './sub-services';
         schema: TaxCreditConfigSchema,
         collection: 'v2_tax_credit_configs',
       },
+      { name: I_T_C, schema: ITCSchema, collection: 'v2_itc' },
     ]),
   ],
   controllers: [QuoteController],
