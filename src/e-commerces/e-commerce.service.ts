@@ -178,7 +178,6 @@ export class ECommerceService {
     };
 
     // STORAGE DESIGN SECTION
-    const numberOfBatteries = 1; // CURRENTLY ASSUMED TO BE 1.
     const foundEComBatteryProduct = await this.eCommerceProductModel
       .findOne({ type: ECOM_PRODUCT_TYPE.BATTERY })
       .lean();
@@ -192,11 +191,12 @@ export class ECommerceService {
     const storagePerBatteryInkWh = (foundEComBatteryProduct?.sizeW ?? 0) / 1000;
 
     // QUOTE CALCULATION SECTION
-    const regionId = '1000';
-    // LOGIC TO BE VALIDATED WITH SALES TEAM
-    const laborCost = requiredpVGeneration * labor_cost_perWatt;
+
     // TODO: THIS LOGIC NEEDS TO BE VALIDATED WITH BUSINESS, ESPECIALLY THE  STORAGE COST CALCULATIONS AND THE LABOR COST CALCULATIONS.
-    const overAllCost = requiredpVGeneration * module_price_per_watt + numberOfBatteries * storage_price + laborCost;
+    const solarCost = requiredpVGeneration * module_price_per_watt * 1000;
+    const storageCost = storage_price;
+    const laborCost = requiredpVGeneration * labor_cost_perWatt;
+    const overAllCost = solarCost + storageCost + laborCost;
 
     // BUILD ECOM SYSTEM DESIGN OBJECT
     const ecomSystemDesign = {
@@ -306,7 +306,7 @@ export class ECommerceService {
     }
 
     // LEASE FOR WHOLE HOME BACKUP
-    const overallCostForWholeHomeBackup = overAllCost + 1 * storage_price; // Add 1 battery additional on top of essential backup
+    const overallCostForWholeHomeBackup = overAllCost + storageCost; // Add 1 battery additional on top of essential backup
     const pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW / 1000;
     const monthlyEsaAmountForWholeHomeBackup = await this.calculationService.calculateLeaseQuoteForECom(
       true,
