@@ -64,10 +64,6 @@ export class SystemDesignService {
       systemDesignDto.existingSolarData,
     );
 
-    if (systemDesignDto.isRetrofit) {
-      this.opportunityService.updateExistingSolarData(systemDesignDto.opportunityId, systemDesignDto.existingSolarData);
-    }
-
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
