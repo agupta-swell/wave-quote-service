@@ -248,8 +248,8 @@ export class ECommerceService {
         monthlyPaymentAmount:
           (calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute as any)
             .yearlyLoanPaymentDetails[0].monthlyPaymentDetails[2].monthlyPayment || 0,
-        savingsFiveYear: 0, // NOTE: TODO - PENDING JON'S SAVING DATA
-        savingTwentyFiveYear: 0, // NOTE: TODO - PENDING JON'S SAVING DATA
+        savingsFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
         deposit: depositAmount,
       },
     };
@@ -261,8 +261,8 @@ export class ECommerceService {
       paymentType: PAYMENT_TYPE.CASH,
       paymentDetail: {
         monthlyPaymentAmount: overAllCost - depositAmount,
-        savingsFiveYear: 0,
-        savingTwentyFiveYear: 0,
+        savingsFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
         deposit: depositAmount || 500,
       },
     };
@@ -275,7 +275,7 @@ export class ECommerceService {
     const utilityProgramName = 'none';
 
     // LEASE FOR ESSENTIAL BACKUP
-    const pricePerWattForEssentialBackup = overAllCost / systemProduction.capacityKW;
+    const pricePerWattForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;
     const monthlyEsaAmountForEssentialBackup = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
@@ -307,7 +307,7 @@ export class ECommerceService {
 
     // LEASE FOR WHOLE HOME BACKUP
     const overallCostForWholeHomeBackup = overAllCost + 1 * storage_price; // Add 1 battery additional on top of essential backup
-    const pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW;
+    const pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW / 1000;
     const monthlyEsaAmountForWholeHomeBackup = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
@@ -353,9 +353,9 @@ export class ECommerceService {
       quoteDetail: {
         monthlyCost: monthlyEsaAmountForEssentialBackup,
         pricePerWatt: pricePerWattForEssentialBackup,
-        estimatedIncrease: null as any, // TO DO: CALCULATION TBD
-        estimatedBillInTenYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-        cumulativeSavingsOverTwentyFiveYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+        estimatedIncrease: rateEscalator,
+        estimatedBillInTenYears: monthlyEsaAmountForEssentialBackup * Math.pow(1 + rateEscalator / 100, 10),
+        cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
       },
     };
     getEcomSystemDesignAndQuoteResponse.costDetailsData.push(essentialBackupCostDetailDataDtoInst);
@@ -365,9 +365,9 @@ export class ECommerceService {
       quoteDetail: {
         monthlyCost: monthlyEsaAmountForWholeHomeBackup,
         pricePerWatt: pricePerWattForWholeHomeBackup,
-        estimatedIncrease: null as any, // TO DO: CALCULATION TBD
-        estimatedBillInTenYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-        cumulativeSavingsOverTwentyFiveYears: 0, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+        estimatedIncrease: rateEscalator,
+        estimatedBillInTenYears: monthlyEsaAmountForWholeHomeBackup * Math.pow(1 + rateEscalator / 100, 10),
+        cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
       },
     };
     getEcomSystemDesignAndQuoteResponse.costDetailsData.push(whBackupCostDetailDataDtoInst);
@@ -377,8 +377,8 @@ export class ECommerceService {
       paymentType: PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP,
       paymentDetail: {
         monthlyPaymentAmount: monthlyEsaAmountForEssentialBackup,
-        savingsFiveYear: 0, // TO DO - PENDING JON'S SAVING DATA
-        savingTwentyFiveYear: 0, // TO DO - PENDING JON'S SAVING DATA
+        savingsFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
         deposit: 0, // TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
       },
     };
@@ -388,8 +388,8 @@ export class ECommerceService {
       paymentType: PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP,
       paymentDetail: {
         monthlyPaymentAmount: monthlyEsaAmountForWholeHomeBackup,
-        savingsFiveYear: 0, // TO DO - PENDING JON'S SAVING DATA
-        savingTwentyFiveYear: 0, // TO DO - PENDING JON'S SAVING DATA
+        savingsFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
         deposit: 0, // TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
       },
     };
