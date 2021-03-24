@@ -203,7 +203,7 @@ export class ECommerceService {
       e_com_visit_id: ecomVisitId,
       system_design_product: {
         number_of_modules: numberOfPanels,
-        number_of_batteries: numberOfBatteries,
+        number_of_batteries: 1,
         total_labor_cost: laborCost,
         total_cost: overAllCost,
         ecom_config_snapshot: foundECommerceConfig,
@@ -343,9 +343,8 @@ export class ECommerceService {
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
     getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.estimatedTwentyFiveYearsSavings = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.storageSystemCount = numberOfBatteries;
-    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.storageSystemKWh =
-      numberOfBatteries * storagePerBatteryInkWh;
+    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.storageSystemCount = 1;
+    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.storageSystemKWh = storagePerBatteryInkWh;
     getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.numberOfDaysBackup = 0; // TO DO: CALCULATION TBD
 
     const essentialBackupCostDetailDataDtoInst: CostDetailDataDto = {
