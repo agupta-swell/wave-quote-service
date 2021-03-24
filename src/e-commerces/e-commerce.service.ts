@@ -263,7 +263,7 @@ export class ECommerceService {
         monthlyPaymentAmount: overAllCost - depositAmount,
         savingsFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
         savingTwentyFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
-        deposit: depositAmount || 500,
+        deposit: depositAmount,
       },
     };
 
