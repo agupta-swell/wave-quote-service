@@ -107,10 +107,8 @@ export class ECommerceService {
     ).data?.actualUsageCost;
     costDataInst.actualUsageCost = actualCostDataInst || undefined;
 
-    // FIXME: not yet testing
-
     // MODULE DESIGN SECTION
-    const foundZipCode = await this.zipCodeRegionMapModel.findOne({ zip_codes: [zipCode] });
+    const foundZipCode = await this.zipCodeRegionMapModel.findOne({ zip_codes: zipCode });
     if (!foundZipCode) {
       const subject = `Undefined Zipcode Mapping ${zipCode}`;
       const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the ZIP code could not be mapped to a region.`;
