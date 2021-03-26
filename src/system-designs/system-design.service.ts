@@ -499,6 +499,8 @@ export class SystemDesignService {
   }
 
   async handleUpdateExistingSolar(opportunityId: string, isRetrofit: boolean, existingSolarData: ExistingSolarDataDto) {
+    if (typeof isRetrofit !== 'boolean') return;
+
     if (isRetrofit) {
       const updateQuery = {
         $set: { ...existingSolarData, existingPV: true },
