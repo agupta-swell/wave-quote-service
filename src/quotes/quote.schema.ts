@@ -32,12 +32,12 @@ export interface IGsProgramSnapshot {
   upfrontIncentives: number;
 }
 
-export interface ISgipDetails {
+export interface IGridServiceDetails {
   gsTermYears: string;
   gsProgramSnapshot: IGsProgramSnapshot;
 }
 
-const SgipDetailsSchema = new Schema<Document<ISgipDetails>>(
+const GridServiceDetailsSchema = new Schema<Document<IGridServiceDetails>>(
   {
     gsTermYears: String,
     gsProgramSnapshot: GsProgramsSchema,
@@ -47,7 +47,7 @@ const SgipDetailsSchema = new Schema<Document<ISgipDetails>>(
 
 export interface IIncentiveDetailsSchema {
   type: REBATE_TYPE;
-  detail: ISgipDetails;
+  detail: IGridServiceDetails;
   amount: number;
 }
 
@@ -55,7 +55,7 @@ const IncentiveDetailsSchema = new Schema<Document<IIncentiveDetailsSchema>>(
   {
     type: String,
     amount: Number,
-    detail: SgipDetailsSchema,
+    detail: GridServiceDetailsSchema,
   },
   { _id: false },
 );
@@ -223,7 +223,7 @@ const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSc
 export interface IQuoteFinanceProductSchema {
   finance_product: IFinanceProductSchema;
   net_amount: number;
-  incentive_details: IIncentiveDetailsSchema;
+  incentive_details: IIncentiveDetailsSchema[];
   rebate_details: IRebateDetailsSchema[];
   project_discount_details: IProjectDiscountDetailSchema[];
 }
@@ -231,7 +231,7 @@ export interface IQuoteFinanceProductSchema {
 const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema>>(
   {
     finance_product: FinanceProductSchema,
-    incentive_details: IncentiveDetailsSchema,
+    incentive_details: [IncentiveDetailsSchema],
     rebate_details: [RebateDetailsSchema],
     net_amount: Number,
     project_discount_details: [ProjectDiscountDetailSchema],

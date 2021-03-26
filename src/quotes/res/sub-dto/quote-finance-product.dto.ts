@@ -4,7 +4,7 @@ import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { REBATE_TYPE } from 'src/quotes/constants';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 
-export class SgipDetailsDto {
+export class GridServiceDetailsDto {
   @ApiProperty()
   gsTermYears: string;
 
@@ -16,7 +16,7 @@ export class IncentiveDetailsDto {
   type: REBATE_TYPE;
 
   @ApiProperty()
-  detail: SgipDetailsDto;
+  detail: GridServiceDetailsDto;
 
   @ApiProperty()
   amount: number;
@@ -82,7 +82,7 @@ export class ProjectDiscountDetailDto {
 
 export class QuoteFinanceProductDto {
   @ApiProperty({ type: IncentiveDetailsDto, isArray: true })
-  incentiveDetails: IncentiveDetailsDto;
+  incentiveDetails: IncentiveDetailsDto[];
 
   @ApiProperty({ type: RebateDetailsDto, isArray: true })
   rebateDetails: RebateDetailsDto[];

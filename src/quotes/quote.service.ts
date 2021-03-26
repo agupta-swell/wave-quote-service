@@ -2,7 +2,7 @@
 /* eslint-disable no-return-assign */
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq,differenceBy } from 'lodash';
+import { groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq, differenceBy } from 'lodash';
 import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -40,7 +40,15 @@ import {
 import { DiscountsDto } from './res/discounts.dto';
 import { QuoteDto } from './res/quote.dto';
 import { TaxCreditDto } from './res/tax-credit.dto';
-import { ITC, I_T_C,QuoteMarkupConfig, QUOTE_MARKUP_CONFIG, TaxCreditConfig, TAX_CREDIT_CONFIG, DISCOUNTS } from './schemas';
+import {
+  ITC,
+  I_T_C,
+  QuoteMarkupConfig,
+  QUOTE_MARKUP_CONFIG,
+  TaxCreditConfig,
+  TAX_CREDIT_CONFIG,
+  DISCOUNTS,
+} from './schemas';
 import { CalculationService } from './sub-services/calculation.service';
 
 @Injectable()
@@ -275,24 +283,26 @@ export class QuoteService {
           productAttribute: await this.createProductAttribute(fundingSource.type, quoteCostBuildup.grossPrice),
         },
         netAmount: 0,
-        incentiveDetails: {
-          amount: 0,
-          type: REBATE_TYPE.SGIP,
-          detail: {
-            gsTermYears: '0',
-            gsProgramSnapshot: {
-              id: '',
-              annualIncentives: 0,
-              numberBatteries: '0',
-              termYears: '0',
-              upfrontIncentives: 0,
-              utilityProgram: {
+        incentiveDetails: [
+          {
+            amount: 0,
+            type: REBATE_TYPE.SGIP,
+            detail: {
+              gsTermYears: '0',
+              gsProgramSnapshot: {
                 id: '',
-                utilityProgramName: '',
+                annualIncentives: 0,
+                numberBatteries: '0',
+                termYears: '0',
+                upfrontIncentives: 0,
+                utilityProgram: {
+                  id: '',
+                  utilityProgramName: '',
+                },
               },
             },
           },
-        },
+        ],
         rebateDetails: [
           {
             amount: 0,
@@ -700,7 +710,6 @@ export class QuoteService {
       this.quoteModel.countDocuments(condition),
     ]);
 
-    console.log(quotes)
     const data = quotes.map(item => new QuoteDto(item));
     const result = {
       data,
@@ -725,7 +734,7 @@ export class QuoteService {
 
   async getDetailQuote(quoteId: string): Promise<OperationResult<QuoteDto>> {
     const quote = await this.quoteModel.findById(quoteId).lean();
-    const itc_rate = await this.iTCModel.findOne({})
+    const itc_rate = await this.iTCModel.findOne({});
 
     if (!quote) {
       throw ApplicationException.EntityNotFound(quoteId);
@@ -982,7 +991,7 @@ export class QuoteService {
     const { incentiveDetails, projectDiscountDetails, rebateDetails } = quoteFinanceProduct;
 
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
-    const incentiveAmount = incentiveDetails.amount;
+    const incentiveAmount = incentiveDetails.reduce((acc, item) => (acc += item.amount), 0);
 
     const rebateAmount = rebateDetails.reduce((accu, item) => (accu += item.amount), 0);
 
@@ -1053,23 +1062,24 @@ export class QuoteService {
   async getDiscounts(): Promise<OperationResult<Pagination<DiscountsDto>>> {
     const data = await this.discountsModel.find();
     if (!data.length) {
-      throw ApplicationException.EnitityNotFound();
+      throw ApplicationException.EntityNotFound();
     }
     const toDay = new Date().getTime();
     const activeDiscounts = data.filter(discount => {
-      let startDate = discount.startDate ? new Date(discount.startDate).getTime() : null;
-      let endDate = discount.endDate ? new Date(discount.endDate).getTime() : null;
+      const startDate = discount.startDate ? new Date(discount.startDate).getTime() : null;
+      const endDate = discount.endDate ? new Date(discount.endDate).getTime() : null;
       if (!startDate && !endDate) {
         // today
         return true;
-      } else if (!startDate && endDate) {
-        // only month of End Date
-        return toDay <= endDate ? true : false;
-      } else if (startDate && !endDate) {
-        return startDate <= toDay ? true : false;
-      } else {
-        return (startDate as any) <= toDay && toDay <= (endDate as any) ? true : false;
       }
+      if (!startDate && endDate) {
+        // only month of End Date
+        return toDay <= endDate;
+      }
+      if (startDate && !endDate) {
+        return startDate <= toDay;
+      }
+      return (startDate as any) <= toDay && toDay <= (endDate as any);
     });
     const quote = await this.quoteModel.find(
       {},
@@ -1081,7 +1091,7 @@ export class QuoteService {
       return acc;
     }, []);
 
-    let result = differenceBy(activeDiscounts, usedDiscounts, '_id');
+    const result = differenceBy(activeDiscounts, usedDiscounts, '_id');
 
     return OperationResult.ok(new Pagination({ total: result.length, data: result.map(i => new DiscountsDto(i)) }));
   }

@@ -5,7 +5,7 @@ import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FINANCE_PRODUCT_TYPE, REBATE_TYPE } from '../../constants';
 
-export class SgipDetailsDto {
+export class GridServiceDetailsDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
@@ -23,9 +23,9 @@ export class IncentiveDetailsDto {
   @IsEnum(REBATE_TYPE)
   type: REBATE_TYPE;
 
-  @ApiProperty({ type: SgipDetailsDto })
+  @ApiProperty({ type: GridServiceDetailsDto })
   @IsNotEmpty()
-  detail: SgipDetailsDto;
+  detail: GridServiceDetailsDto;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -114,7 +114,7 @@ export class QuoteFinanceProductDto {
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => IncentiveDetailsDto)
-  incentiveDetails: IncentiveDetailsDto;
+  incentiveDetails: IncentiveDetailsDto[];
 
   @ApiProperty({ type: RebateDetailsDto, isArray: true })
   @IsNotEmpty()
