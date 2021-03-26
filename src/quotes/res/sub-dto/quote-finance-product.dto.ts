@@ -62,19 +62,22 @@ export class FinanceProductDto {
 
 export class ProjectDiscountDetailDto {
   @ApiProperty()
-  unit: string;
+  id: string;
 
   @ApiProperty()
-  unitValue: number;
+  name: string;
 
   @ApiProperty()
-  appliesTo: string;
+  amount: Number;
 
   @ApiProperty()
-  description: string;
+  type: string;
 
   @ApiProperty()
-  excludeAdders: boolean;
+  startDate: Date;
+
+  @ApiProperty()
+  endDate: Date;
 }
 
 export class QuoteFinanceProductDto {

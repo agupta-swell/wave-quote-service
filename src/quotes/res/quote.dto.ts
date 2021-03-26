@@ -201,7 +201,10 @@ export class QuoteDto {
       netAmount: quoteFinanceProduct.net_amount,
       incentiveDetails: quoteFinanceProduct.incentive_details,
       rebateDetails: quoteFinanceProduct.rebate_details.map(item => toCamelCase(item)),
-      projectDiscountDetails: quoteFinanceProduct.project_discount_details.map(item => toCamelCase(item)),
+      projectDiscountDetails: quoteFinanceProduct.project_discount_details.map(item => {
+        item.id = item.discount_id;
+        return toCamelCase(item);
+      }),
     };
   }
 

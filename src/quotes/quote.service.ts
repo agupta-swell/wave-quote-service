@@ -2,7 +2,7 @@
 /* eslint-disable no-return-assign */
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq } from 'lodash';
+import { groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq,differenceBy } from 'lodash';
 import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -20,11 +20,14 @@ import { toCamelCase } from '../utils/transformProperties';
 import {
   ELaborCostType,
   FINANCE_PRODUCT_TYPE,
+  REBATE_TYPE,
+  INCENTIVE_APPLIES_TO_VALUE,
+  INCENTIVE_UNITS,
   PROJECT_DISCOUNT_UNITS,
   QUOTE_MODE_TYPE,
-  REBATE_TYPE,
 } from './constants';
 import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
+import { Discounts } from './schemas/discounts.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
   CashProductAttributesDto,
@@ -34,15 +37,17 @@ import {
   QuoteCostBuildupDto,
   QuoteFinanceProductDto,
 } from './req/sub-dto';
+import { DiscountsDto } from './res/discounts.dto';
 import { QuoteDto } from './res/quote.dto';
 import { TaxCreditDto } from './res/tax-credit.dto';
-import { ITC, I_T_C, QuoteMarkupConfig, QUOTE_MARKUP_CONFIG, TaxCreditConfig, TAX_CREDIT_CONFIG } from './schemas';
+import { ITC, I_T_C,QuoteMarkupConfig, QUOTE_MARKUP_CONFIG, TaxCreditConfig, TAX_CREDIT_CONFIG, DISCOUNTS } from './schemas';
 import { CalculationService } from './sub-services/calculation.service';
 
 @Injectable()
 export class QuoteService {
   constructor(
     @InjectModel(QUOTE) private readonly quoteModel: Model<Quote>,
+    @InjectModel(DISCOUNTS) private readonly discountsModel: Model<Discounts>,
     @InjectModel(TAX_CREDIT_CONFIG) private readonly taxCreditConfigModel: Model<TaxCreditConfig>,
     @InjectModel(QUOTE_MARKUP_CONFIG) private readonly quoteMarkupConfigModel: Model<QuoteMarkupConfig>,
     @InjectModel(I_T_C) private readonly iTCModel: Model<ITC>,
@@ -288,6 +293,14 @@ export class QuoteService {
             },
           },
         },
+        rebateDetails: [
+          {
+            amount: 0,
+            type: 'program_rebate',
+            description: '',
+          },
+        ],
+        projectDiscountDetails: [],
       },
       utilityProgramSelectedForReinvestment: false,
       taxCreditSelectedForReinvestment: false,
@@ -974,8 +987,8 @@ export class QuoteService {
     const rebateAmount = rebateDetails.reduce((accu, item) => (accu += item.amount), 0);
 
     const projectDiscountAmount = projectDiscountDetails.reduce((accu, item) => {
-      if (item.unit === PROJECT_DISCOUNT_UNITS.AMOUNT) return (accu += item.unitValue);
-      return (accu += roundNumber(item.unitValue * quoteCostBuildup.grossPrice, 2));
+      if (item.type === PROJECT_DISCOUNT_UNITS.AMOUNT) return (accu += item.amount);
+      return (accu += roundNumber(item.amount * quoteCostBuildup.grossPrice, 2));
     }, 0);
 
     newQuoteFinanceProduct.netAmount = roundNumber(
@@ -1035,5 +1048,41 @@ export class QuoteService {
       default:
         return '' as any;
     }
+  }
+
+  async getDiscounts(): Promise<OperationResult<Pagination<DiscountsDto>>> {
+    const data = await this.discountsModel.find();
+    if (!data.length) {
+      throw ApplicationException.EnitityNotFound();
+    }
+    const toDay = new Date().getTime();
+    const activeDiscounts = data.filter(discount => {
+      let startDate = discount.startDate ? new Date(discount.startDate).getTime() : null;
+      let endDate = discount.endDate ? new Date(discount.endDate).getTime() : null;
+      if (!startDate && !endDate) {
+        // today
+        return true;
+      } else if (!startDate && endDate) {
+        // only month of End Date
+        return toDay <= endDate ? true : false;
+      } else if (startDate && !endDate) {
+        return startDate <= toDay ? true : false;
+      } else {
+        return (startDate as any) <= toDay && toDay <= (endDate as any) ? true : false;
+      }
+    });
+    const quote = await this.quoteModel.find(
+      {},
+      { 'detailed_quote.quote_finance_product.project_discount_details': 1 },
+    );
+    const usedDiscounts: any = quote.reduce((acc, cur): any => {
+      const { project_discount_details } = cur.detailed_quote.quote_finance_product;
+      acc = [...acc, ...project_discount_details] as any;
+      return acc;
+    }, []);
+
+    let result = differenceBy(activeDiscounts, usedDiscounts, '_id');
+
+    return OperationResult.ok(new Pagination({ total: result.length, data: result.map(i => new DiscountsDto(i)) }));
   }
 }

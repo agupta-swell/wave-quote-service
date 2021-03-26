@@ -197,20 +197,27 @@ const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
 );
 
 export interface IProjectDiscountDetailSchema {
-  unit: string;
-  unit_value: number;
-  exclude_adders: boolean;
-  description: string;
+  id: string;
+  discount_id: string;
+  name: string;
+  amount: number;
+  type: string;
+  start_date: Date;
+  end_date: Date;
 }
 
 const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSchema>>(
   {
-    unit: String,
-    unit_value: Number,
-    exclude_adders: Boolean,
-    description: String,
+    discount_id: String,
+    name: String,
+    amount: Number,
+    type: String,
+    start_date: Date,
+    end_date: Date,
   },
-  { _id: false },
+  {
+    _id: false,
+  },
 );
 
 export interface IQuoteFinanceProductSchema {
@@ -691,7 +698,10 @@ export class QuoteModel {
         rebate_details: rebateDetails?.map(item => toSnakeCase(item)),
         finance_product: toSnakeCase(financeProduct),
         net_amount: netAmount,
-        project_discount_details: projectDiscountDetails?.map(item => toSnakeCase(item)),
+        project_discount_details: projectDiscountDetails.map(item => {
+          item.discount_id = item.id;
+          return toSnakeCase(item);
+        }),
       },
       savings_details: savingsDetails.map(item => toSnakeCase(item)),
       quote_cost_buildup: {

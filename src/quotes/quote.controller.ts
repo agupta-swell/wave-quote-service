@@ -7,6 +7,7 @@ import { QuoteService } from './quote.service';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import { QuoteDto, QuoteListRes, QuoteRes } from './res/quote.dto';
 import { TaxCreditDto, TaxCreditListRes } from './res/tax-credit.dto';
+import { DiscountListRes, DiscountsDto } from './res/discounts.dto';
 
 @ApiTags('Quote')
 @ApiBearerAuth()
@@ -100,6 +101,14 @@ export class QuoteController {
   @ApiOkResponse({ type: QuoteRes })
   async calculateQuoteDetails(@Body() data: CalculateQuoteDetailDto): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.calculateQuoteDetail(data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/discounts')
+  @ApiOperation({ summary: 'Get Active Discounts' })
+  @ApiOkResponse({ type: DiscountListRes })
+  async getDiscounts(): Promise<ServiceResponse<Pagination<DiscountsDto>>> {
+    const res = await this.quoteService.getDiscounts();
     return ServiceResponse.fromResult(res);
   }
 }
