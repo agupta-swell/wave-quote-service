@@ -710,6 +710,7 @@ export class QuoteService {
       this.quoteModel.countDocuments(condition),
     ]);
 
+    console.log(quotes);
     const data = quotes.map(item => new QuoteDto(item));
     const result = {
       data,
@@ -962,7 +963,7 @@ export class QuoteService {
   //   }
 
   //   switch (type) {
-  //     case INCENTIVE_APPLIES_TO_VALUE.SOLAR: {
+  //     case INCENTIVE_APPLIES_TO_VALUE.SOLAR: {`
   //       const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
   //       return roundNumber(incentiveDetail.unitValue * solarNetCost, 2);
   //     }
@@ -997,7 +998,7 @@ export class QuoteService {
 
     const projectDiscountAmount = projectDiscountDetails.reduce((accu, item) => {
       if (item.type === PROJECT_DISCOUNT_UNITS.AMOUNT) return (accu += item.amount);
-      return (accu += roundNumber(item.amount * quoteCostBuildup.grossPrice, 2));
+      return (accu += roundNumber((item.amount * quoteCostBuildup.grossPrice) / 100, 2));
     }, 0);
 
     newQuoteFinanceProduct.netAmount = roundNumber(
