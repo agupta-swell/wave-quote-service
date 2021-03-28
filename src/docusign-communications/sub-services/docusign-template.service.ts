@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { DOCUSIGN_TEMPLATE } from '../constants';
 import { IDefaultContractor, IGenericObject, ITabData } from '../typing';
-import { mapTemplateById } from './templates';
+import { templateBuilderMap } from './templates';
 
 @Injectable()
 export class DocusignTemplateService {
@@ -10,34 +9,13 @@ export class DocusignTemplateService {
     genericObject: IGenericObject,
     defaultContractor: IDefaultContractor,
   ): ITabData {
-    const tabsData: ITabData = { textTabs: [] } as any;
-    const { contact, opportunity, recordOwner, customerPayment, roofTopDesign, isCash, utilityName } = genericObject;
+    const templateDataBuilder = templateBuilderMap[docusignTemplateId]
 
-    switch (docusignTemplateId) {
-      case DOCUSIGN_TEMPLATE.first: {
-        const data = mapTemplateById[DOCUSIGN_TEMPLATE.first](contact, opportunity);
-        tabsData.textTabs.push(data);
-        return tabsData;
-      }
-
-      case DOCUSIGN_TEMPLATE.second: {
-        const data = mapTemplateById[DOCUSIGN_TEMPLATE.second]({
-          opportunity,
-          defaultContractor,
-          customerPayment,
-          contact,
-          recordOwner,
-          utilityName,
-          roofTopDesign,
-          isCash,
-        });
-
-        tabsData.textTabs.push(data);
-        return tabsData;
-      }
-
-      default:
-        return tabsData;
+    if (!templateDataBuilder) {
+      throw new Error(`No mapping for DocuSign template id: ${docusignTemplateId}`)
     }
+
+    const tabs = templateBuilderMap[docusignTemplateId](genericObject, defaultContractor)
+    return { textTabs: [ tabs ] }
   }
 }

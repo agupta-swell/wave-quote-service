@@ -1,12 +1,9 @@
-import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
+import { TemplateDataBuilder } from '../../typing';
 
-// TODO: consider this parameter type. As now, I assume below type
-
-export function getSolarEnergyDisclosureEsaData(leaseProduct: ILeaseProductAttributes) {
-  const obj = {} as any;
-  obj['YR1_COST/kWh'] = leaseProduct.monthly_lease_payment + leaseProduct.monthly_energy_payment;
-  obj['ESA ESC'] = leaseProduct.rate_escalator;
-  obj.DOWN_PMT = leaseProduct.upfront_payment;
-
-  return obj;
-}
+// TODO: fix typing
+// @ts-ignore
+export const getSolarEnergyDisclosureEsaData: TemplateDataBuilder = ({ leaseProduct }) => ({
+  'YR1_COST/kWh': leaseProduct.monthly_lease_payment + leaseProduct.monthly_energy_payment,
+  'ESA ESC': leaseProduct.rate_escalator,
+  'DOWN_PMT': leaseProduct.upfront_payment,
+});

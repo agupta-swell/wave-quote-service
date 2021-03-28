@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import { REQUEST_TYPE } from './constants';
+import {REQUEST_TYPE} from "./typing";
 
 export const DOCUSIGN_COMMUNICATION = Symbol('DOCUSIGN_COMMUNICATION').toString();
 

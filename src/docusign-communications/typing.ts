@@ -145,3 +145,28 @@ export interface IContractSignerDetails {
   overallContractStatus: string;
   statusesData: ISignerDetailFromContractingSystemData[];
 }
+
+export type DocuSignEnv = 'demo' | 'live'
+
+export interface IDocusignTemplateMapping {
+  CA_CONSUMER_GUIDE: string;
+  CONTRACT_ONE: string;
+  SOLAR_ENERGY_DISCLOSURE_ESA: string;
+  DISCLOSURES_ESA: string;
+  ADDITIONAL_TERMS_ESA: string;
+  SWELL_SERVICE_ESA_X1: string;
+  SYSTEM_DESIGN_NOTICE_X8: string;
+}
+
+export enum REQUEST_TYPE {
+  OUTBOUND = 'OUTBOUND',
+  INBOUND = 'INBOUND',
+}
+
+export type TemplateDataBuilder = (genericObject: IGenericObject, defaultContractor: IDefaultContractor) => {
+  [key: string]: string
+}
+
+export type TemplateBuilderMap = {
+  [key: string]: TemplateDataBuilder
+}

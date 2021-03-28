@@ -1,9 +1,4 @@
-import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
+import { TemplateDataBuilder } from '../../typing';
 
-// TODO: consider this parameter type. As now, I assume below type
-
-export function getDisclosureEsaData(leaseProduct: ILeaseProductAttributes) {
-  const obj = {} as any;
-
-  return obj;
-}
+// TODO implement this
+export const getDisclosureEsaData: TemplateDataBuilder = () => ({});

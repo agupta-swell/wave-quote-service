@@ -1,37 +1,17 @@
 import * as accounting from 'accounting-js';
 import * as dayjs from 'dayjs';
 import { sumBy } from 'lodash';
-import { LeanDocument } from 'mongoose';
-import { Contact } from 'src/contacts/contact.schema';
-import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
-import { IDefaultContractor } from 'src/docusign-communications/typing';
-import { Opportunity } from 'src/opportunities/opportunity.schema';
-import { IRoofTopSchema } from 'src/system-designs/system-design.schema';
-import { User } from 'src/users/user.schema';
+import { TemplateDataBuilder } from 'src/docusign-communications/typing';
 
-interface IParam {
-  opportunity: LeanDocument<Opportunity>;
-  defaultContractor: IDefaultContractor;
-  customerPayment: CustomerPayment;
-  contact: Contact;
-  recordOwner: User;
-  utilityName: string;
-  roofTopDesign: IRoofTopSchema;
-  isCash: boolean;
-}
-
-export function getTemplate2Data(param: IParam) {
-  const {
-    opportunity,
-    defaultContractor,
-    customerPayment,
-    contact,
-    recordOwner,
-    utilityName,
-    roofTopDesign,
-    isCash,
-  } = param;
-
+export const getContractOneData: TemplateDataBuilder = ({
+  opportunity,
+  customerPayment,
+  contact,
+  recordOwner,
+  utilityName,
+  roofTopDesign,
+  isCash,
+}, defaultContractor) => {
   const now = dayjs().format('MM/DD/YYYY');
   const next3Date = dayjs(new Date().getTime() + 3 * 24 * 60 * 60 * 1000);
 
@@ -174,4 +154,4 @@ export function getTemplate2Data(param: IParam) {
   obj['Text Storage Product - 1'] = roofTopDesign.storage.map(item => item.storage_model_data_snapshot.name).join(', ');
 
   return obj;
-}
+};

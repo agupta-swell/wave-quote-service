@@ -1,10 +1,7 @@
-import { IUtilityProgramSchema } from 'src/quotes/quote.schema';
+import { TemplateDataBuilder } from '../../typing';
 
-// TODO: consider this parameter type. As now, I assume below type
-
-export function getSwellServiceEsaX1Data(utilityProgram: IUtilityProgramSchema) {
-  const obj = {} as any;
-  obj.UTIL_PROGRAM = utilityProgram.utility_program_name;
-
-  return obj;
-}
+// TODO: fix typing
+// @ts-ignore
+export const getSwellServiceEsaX1Data: TemplateDataBuilder = ({ utilityProgram }) => ({
+  'UTIL_PROGRAM': utilityProgram.utility_program_name
+});

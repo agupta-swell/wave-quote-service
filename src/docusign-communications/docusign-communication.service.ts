@@ -6,7 +6,6 @@ import { Contract } from 'src/contracts/contract.schema';
 import { ContractService } from 'src/contracts/contract.service';
 import { DocusignAPIService } from 'src/external-services/sub-services/docusign-api.service';
 import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
-import { REQUEST_TYPE } from './constants';
 import { DocusignCommunication, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
 import { DocusignTemplateService } from './sub-services/docusign-template.service';
 import {
@@ -21,7 +20,7 @@ import {
   ISendDocusignToContractResponse,
   IServerTemplate,
   ISignerData,
-  ISignerDetailFromContractingSystemData,
+  ISignerDetailFromContractingSystemData, REQUEST_TYPE,
 } from './typing';
 
 @Injectable()
@@ -43,14 +42,14 @@ export class DocusignCommunicationService {
     const docusignPayload = { status: 'sent' } as IDocusignCompositeContract;
     const docusignSecret = await this.docusignAPIService.getDocusignSecret();
     contract.contract_template_detail.template_details.map(template => {
-      const compositeTempalteDataPayload = this.getCompositeTemplatePayloadData(
+      const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(
         template,
         contract.signer_details,
         data,
         docusignSecret.docusign.defaultContractor,
       );
 
-      docusignPayload.compositeTemplates.push(compositeTempalteDataPayload);
+      docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
     });
 
     const resDocusign = await this.docusignAPIService.sendTemplate(docusignPayload);
