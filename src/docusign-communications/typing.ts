@@ -146,7 +146,7 @@ export interface IContractSignerDetails {
   statusesData: ISignerDetailFromContractingSystemData[];
 }
 
-export type DocuSignEnv = 'demo' | 'live'
+export type DocuSignEnv = 'demo' | 'live';
 
 export interface IDocusignTemplateMapping {
   CA_CONSUMER_GUIDE: string;
@@ -156,6 +156,7 @@ export interface IDocusignTemplateMapping {
   ADDITIONAL_TERMS_ESA: string;
   SWELL_SERVICE_ESA_X1: string;
   SYSTEM_DESIGN_NOTICE_X8: string;
+  AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: string;
 }
 
 export enum REQUEST_TYPE {
@@ -163,10 +164,13 @@ export enum REQUEST_TYPE {
   INBOUND = 'INBOUND',
 }
 
-export type TemplateDataBuilder = (genericObject: IGenericObject, defaultContractor: IDefaultContractor) => {
-  [key: string]: string
-}
+export type TemplateDataBuilder = (
+  genericObject: IGenericObject,
+  defaultContractor: IDefaultContractor,
+) => {
+  [key: string]: string;
+};
 
 export type TemplateBuilderMap = {
-  [key: string]: TemplateDataBuilder
-}
+  [key: string]: TemplateDataBuilder;
+};

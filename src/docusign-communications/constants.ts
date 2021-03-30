@@ -1,6 +1,6 @@
 import { DocuSignEnv, IDocusignTemplateMapping } from './typing';
 
-export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplateMapping>= {
+export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplateMapping> = {
   demo: {
     CA_CONSUMER_GUIDE: '50bf8fd6-cf25-4ee0-b63d-2720e66a4789',
     CONTRACT_ONE: '864dead0-03df-4a5a-b83c-ffb0d0c5f588',
@@ -9,6 +9,7 @@ export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplate
     ADDITIONAL_TERMS_ESA: 'c40d9d52-08ba-4c12-9ad2-9f781fb354b4',
     SWELL_SERVICE_ESA_X1: '60e693c1-1858-4aa2-9105-8dfa1f3d7562',
     SYSTEM_DESIGN_NOTICE_X8: '734c08f1-c7c1-44d9-9247-641fd0e547a8',
+    AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: '31bfa343-a279-43a4-aa54-f2d2d31b33ef',
   },
   live: {
     CA_CONSUMER_GUIDE: '0',
@@ -18,5 +19,6 @@ export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplate
     ADDITIONAL_TERMS_ESA: '1',
     SWELL_SERVICE_ESA_X1: '1',
     SYSTEM_DESIGN_NOTICE_X8: '1',
+    AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: '1',
   },
 };
