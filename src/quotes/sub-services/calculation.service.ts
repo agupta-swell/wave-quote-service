@@ -92,7 +92,7 @@ export class CalculationService {
     productivity: number,
     addGridServiceDiscount: boolean, // NOTE : FUTURE USE
     utilityProgramName: string,
-  ): Promise<number> {
+  ): Promise<{ monthlyLeasePayment: number; rate_per_kWh: number }> {
     const query = {
       isSolar,
       isRetrofit,
@@ -143,7 +143,7 @@ export class CalculationService {
 
     */
 
-    return monthlyLeasePayment;
+    return { monthlyLeasePayment, rate_per_kWh: leaseSolverConfig.rate_per_kWh };
   }
 
   private getYearlyLeasePaymentDetails(leaseTerm: number, monthlyLeasePayment: number) {

@@ -150,13 +150,13 @@ export class ECommerceService {
     }
 
     const panelSTCRating = foundEComProduct?.sizeW || 1;
-    const numberOfPanels = Math.ceil(requiredpVGeneration * 1000 / panelSTCRating );
+    const numberOfPanels = Math.ceil((requiredpVGeneration * 1000) / panelSTCRating);
 
     // CALCULATE PROJECT PARAMETERS (TYPICALLY USED FOR LEASE QUOTE)
     const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
     const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
     const losses = 5.5; // "Assuming a loss factor of 5.5"
-    const systemCapacity = numberOfPanels * panelSTCRating / 1000; //  system capacity is using KW as a unit so we need divide by 1000
+    const systemCapacity = (numberOfPanels * panelSTCRating) / 1000; //  system capacity is using KW as a unit so we need divide by 1000
     const netGenerationKWh = await this.systemProductService.pvWatCalculation({
       lat,
       lon: long,
@@ -224,7 +224,7 @@ export class ECommerceService {
       },
     } as any;
     calculateQuoteDetailDto.systemProduction.capacityKW = numberOfPanels * panelSTCRating;
-    // calculateQuoteDetailDto.quotePricePerWatt = module_price_per_watt;
+    // calculateQuoteDetailDto.quotepricePerKwh = module_price_per_watt;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productType = FINANCE_PRODUCT_TYPE.LOAN;
     const loanProductAttributesDto: LoanProductAttributesDto = {} as any;
     loanProductAttributesDto.upfrontPayment = depositAmount;
@@ -273,8 +273,11 @@ export class ECommerceService {
     const utilityProgramName = 'none';
 
     // LEASE FOR ESSENTIAL BACKUP
-    const pricePerWattForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;
-    const monthlyEsaAmountForEssentialBackup = await this.calculationService.calculateLeaseQuoteForECom(
+    // const pricePerKwhForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;
+    const {
+      monthlyLeasePayment: monthlyEsaAmountForEssentialBackup,
+      rate_per_kWh: pricePerKwhForEssentialBackup,
+    } = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
       overAllCost,
@@ -305,8 +308,11 @@ export class ECommerceService {
 
     // LEASE FOR WHOLE HOME BACKUP
     const overallCostForWholeHomeBackup = overAllCost + storageCost; // Add 1 battery additional on top of essential backup
-    const pricePerWattForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW / 1000;
-    const monthlyEsaAmountForWholeHomeBackup = await this.calculationService.calculateLeaseQuoteForECom(
+    // const pricePerKwhForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW / 1000;
+    const {
+      monthlyLeasePayment: monthlyEsaAmountForWholeHomeBackup,
+      rate_per_kWh: pricePerKwhForWholeHomeBackup,
+    } = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
       overallCostForWholeHomeBackup,
@@ -349,7 +355,7 @@ export class ECommerceService {
       energyServiceType: ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP,
       quoteDetail: {
         monthlyCost: monthlyEsaAmountForEssentialBackup,
-        pricePerWatt: pricePerWattForEssentialBackup,
+        pricePerKwh: pricePerKwhForEssentialBackup,
         estimatedIncrease: rateEscalator,
         estimatedBillInTenYears: monthlyEsaAmountForEssentialBackup * Math.pow(1 + rateEscalator / 100, 10),
         cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
@@ -361,7 +367,7 @@ export class ECommerceService {
       energyServiceType: ENERGY_SERVICE_TYPE.SWELL_ESA_WHOLE_HOME,
       quoteDetail: {
         monthlyCost: monthlyEsaAmountForWholeHomeBackup,
-        pricePerWatt: pricePerWattForWholeHomeBackup,
+        pricePerKwh: pricePerKwhForWholeHomeBackup,
         estimatedIncrease: rateEscalator,
         estimatedBillInTenYears: monthlyEsaAmountForWholeHomeBackup * Math.pow(1 + rateEscalator / 100, 10),
         cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA

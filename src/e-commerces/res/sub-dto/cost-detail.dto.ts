@@ -6,7 +6,7 @@ class QuoteDetailDataDto {
   monthlyCost: number;
 
   @ApiProperty()
-  pricePerWatt: number;
+  pricePerKwh: number;
 
   @ApiProperty()
   estimatedIncrease: number;
