@@ -13,6 +13,7 @@ import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docu
 import { ECommerceModule } from 'src/e-commerces/e-commerce.module';
 import { EmailModule } from 'src/emails/email.module';
 import { ExternalServiceModule } from 'src/external-services/external-service.module';
+import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { LeaseSolverConfigModule } from 'src/lease-solver-configs/lease-solver-config.module';
@@ -67,6 +68,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UtilityModule,
     UtilityProgramMasterModule,
     GsProgramsModule,
+    FinancialProductsModule,
   ],
 })
 export class AppModule {
