@@ -8,9 +8,10 @@ class AddressDto {
   @IsNotEmpty()
   streetAddress: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   @IsString()
   @IsNotEmpty()
+  @IsOptional()
   aptOrSuite: string;
 
   @ApiPropertyOptional()
