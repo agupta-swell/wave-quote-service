@@ -11,7 +11,7 @@ import { FinancialProductsController } from './financial-product.controller';
       {
         name: FINANCIAL_PRODUCT,
         schema: FinancialProductSchema,
-        collection: 'v2_financial_product',
+        collection: 'v2_financial_products',
       },
     ]),
   ],

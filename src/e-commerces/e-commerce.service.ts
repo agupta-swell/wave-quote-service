@@ -83,11 +83,26 @@ export class ECommerceService {
 
     // TODO: January as 0, December as 11
     // in lucidchart, we substract 2 but this dayjs count January equal 0 hence we just write 1 in subtract function of dayjs
-    const monthToAdjust = dayjs().subtract(1, 'month').get('month'); // ASSUME THE AMOUNT ENTERED BY THE USER IS TWO MONTH OLDER
-    const deltaValueRatio =
-      (monthlyUtilityBill - (utilityTypicalCostDataInst.cost?.find(item => item.i === monthToAdjust)?.v || 0)) /
-      monthlyUtilityBill;
+    // const monthToAdjust = dayjs().subtract(1, 'month').get('month'); // ASSUME THE AMOUNT ENTERED BY THE USER IS TWO MONTH OLDER
+    // const deltaValueRatio =
+    //   (monthlyUtilityBill - (utilityTypicalCostDataInst.cost?.find(item => item.i === monthToAdjust)?.v || 0)) /
+    //   monthlyUtilityBill;
 
+    const typicalAnnualCost = utilityTypicalCostDataInst.cost?.reduce((acc, item) => {
+      acc += item.v;
+      return acc;
+    }, 0);
+
+    const typicalAnnualUsageInKwh = typicalBaselineInst?.typicalBaselineUsage.typicalMonthlyUsage.reduce(
+      (acc, item) => {
+        acc += item.v;
+        return acc;
+      },
+      0,
+    );
+
+    const typicalCostAvg = typicalAnnualCost / 12;
+    const deltaValueRatio = monthlyUtilityBill / typicalCostAvg;
     const actualMonthlyUsage: ITypicalUsage[] = [];
     let annualUsage = 0;
 
