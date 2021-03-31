@@ -20,9 +20,9 @@ export interface IFniApplyReq {
   qualificationCreditId: string;
   opportunityId: string;
   primaryApplicantData: IApplicantData;
-  coApplicantData: IApplicantData;
+  coApplicantData: IApplicantData | undefined;
   primaryApplicantSecuredData: IPersonalInformation;
-  coApplicantSecuredData: IPersonalInformation;
+  coApplicantSecuredData: IPersonalInformation | undefined;
 }
 
 export interface IFniUpdateReq {

@@ -292,34 +292,37 @@ export class QualificationService {
         middleName: req.primaryApplicantData.middleName,
         lastName: req.primaryApplicantData.lastName,
         email: req.primaryApplicantData.email,
-        phoneNumber: req.primaryApplicantData.phoneNumber,
+        phoneNumber: req.primaryApplicantData.phoneNumber.match(/\d+/g)?.join(''),
         addressLine1: req.primaryApplicantData.addressLine1,
         addressLine2: req.primaryApplicantData.addressLine2,
         city: req.primaryApplicantData.city,
         state: req.primaryApplicantData.state,
         zipcode: req.primaryApplicantData.zipcode,
       },
-      coApplicantData: {
-        firstName: req?.coApplicantData?.firstName || '',
-        middleName: req?.coApplicantData?.middleName || '',
-        lastName: req?.coApplicantData?.lastName || '',
-        email: req?.coApplicantData?.email || '',
-        phoneNumber: req?.coApplicantData?.phoneNumber || '',
-        addressLine1: req?.coApplicantData?.addressLine1 || '',
-        addressLine2: req?.coApplicantData?.addressLine2 || '',
-        city: req?.coApplicantData?.city || '',
-        state: req?.coApplicantData?.state || '',
-        zipcode: req?.coApplicantData?.zipcode || '',
-      },
       primaryApplicantSecuredData: {
         soc: req.primaryApplicantSecuredData.soc,
         dob: req.primaryApplicantSecuredData.dob,
       },
-      coApplicantSecuredData: {
-        soc: req?.coApplicantSecuredData?.soc || '',
-        dob: req?.coApplicantSecuredData?.dob || '',
-      },
     } as IFniApplyReq;
+
+    if (req.coApplicantData && req.coApplicantSecuredData) {
+      fniApplyRequest.coApplicantData = {
+        firstName: req?.coApplicantData?.firstName || '',
+        middleName: req?.coApplicantData?.middleName || '',
+        lastName: req?.coApplicantData?.lastName || '',
+        email: req?.coApplicantData?.email || '',
+        phoneNumber: req?.coApplicantData?.phoneNumber.match(/\d+/g)!.join(''),
+        addressLine1: req?.coApplicantData?.addressLine1 || '',
+        addressLine2: req?.coApplicantData?.addressLine2 || '',
+        city: req?.coApplicantData?.city || '',
+        state: req?.coApplicantData?.state || '',
+        zipcode: req?.coApplicantData?.zipcode,
+      };
+      fniApplyRequest.coApplicantSecuredData = {
+        soc: req?.coApplicantSecuredData?.soc,
+        dob: req?.coApplicantSecuredData?.dob || '',
+      };
+    }
 
     qualificationCredit.process_status = PROCESS_STATUS.IN_PROGRESS;
     qualificationCredit.event_histories = [

@@ -66,7 +66,10 @@ export class FniEngineService {
         primState: req.primaryApplicantData.state,
         primZip: req.primaryApplicantData.zipcode.toString(),
       },
-      applicant2: {
+    } as IApplyRequest;
+
+    if (req.coApplicantData && req.coApplicantSecuredData) {
+      applyReq.applicant2 = {
         first: req.coApplicantData.firstName,
         mi: req.coApplicantData.middleName,
         sightenId: req.qualificationCreditId.toString(),
@@ -80,8 +83,8 @@ export class FniEngineService {
         coCity: req.coApplicantData.city,
         coState: req.coApplicantData.state,
         coZip: req.coApplicantData.zipcode.toString(),
-      },
-    } as IApplyRequest;
+      };
+    }
     const applyResponse = await this.externalService.getFniResponse(applyReq);
     if (applyResponse.transaction.status === 'ERROR') {
       await this.fniCommunicationModel.updateOne(
