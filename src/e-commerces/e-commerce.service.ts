@@ -374,6 +374,7 @@ export class ECommerceService {
         estimatedIncrease: rateEscalator,
         estimatedBillInTenYears: monthlyEsaAmountForEssentialBackup * Math.pow(1 + rateEscalator / 100, 10),
         cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+        typicalUsage: typicalAnnualUsageInKwh ? typicalAnnualCost / typicalAnnualUsageInKwh : 0,
       },
     };
     getEcomSystemDesignAndQuoteResponse.costDetailsData.push(essentialBackupCostDetailDataDtoInst);
@@ -386,6 +387,7 @@ export class ECommerceService {
         estimatedIncrease: rateEscalator,
         estimatedBillInTenYears: monthlyEsaAmountForWholeHomeBackup * Math.pow(1 + rateEscalator / 100, 10),
         cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+        typicalUsage: typicalAnnualUsageInKwh ? typicalAnnualCost / typicalAnnualUsageInKwh : 0,
       },
     };
     getEcomSystemDesignAndQuoteResponse.costDetailsData.push(whBackupCostDetailDataDtoInst);
