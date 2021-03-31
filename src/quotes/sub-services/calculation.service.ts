@@ -107,7 +107,7 @@ export class CalculationService {
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
     if (!leaseSolverConfig) {
-      return -1;
+      return { monthlyLeasePayment: -1, rate_per_kWh: -1 };
     }
 
     // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
