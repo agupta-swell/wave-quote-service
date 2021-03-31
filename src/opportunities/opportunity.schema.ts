@@ -28,6 +28,7 @@ export interface Opportunity extends Document {
   inverterManufacturer: string;
   inverterModel: string;
   tpoFundingSource: string;
+  assignedMember: string;
 }
 
 export const OpportunitySchema = new Schema<Opportunity>({
@@ -55,4 +56,5 @@ export const OpportunitySchema = new Schema<Opportunity>({
   inverterManufacturer: String,
   inverterModel: String,
   tpoFundingSource: String,
+  assignedMember: String,
 });

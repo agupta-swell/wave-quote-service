@@ -160,6 +160,10 @@ export interface IDocusignTemplateMapping {
   SYSTEM_DESIGN_NOTICE_X8: string;
   AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: string;
 }
+export interface IDisclosureEsaMapping {
+  salesPersonFirstLast: string;
+  hisSale: string;
+}
 
 export enum REQUEST_TYPE {
   OUTBOUND = 'OUTBOUND',
@@ -169,6 +173,7 @@ export enum REQUEST_TYPE {
 export type TemplateDataBuilder = (
   genericObject: IGenericObject,
   defaultContractor: IDefaultContractor,
+  disclosureEsa?: IDisclosureEsaMapping,
 ) => {
   [key: string]: string;
 };
