@@ -1,4 +1,5 @@
 import { sumBy } from 'lodash';
+import { IAdderQuoteDetailsSchema } from 'src/quotes/quote.schema';
 import { TemplateDataBuilder } from '../../typing';
 
 export const getSystemDesignNoticeX8Data: TemplateDataBuilder = (genericObject, defaultContractor) => {
@@ -28,16 +29,25 @@ export const getSystemDesignNoticeX8Data: TemplateDataBuilder = (genericObject, 
     (acc, item, index) => acc.concat(`${index === 0 ? '' : ','}${item.inverter_model_data_snapshot.name}`),
     '',
   );
-  obj.ADDER_QUANTITY_1 = adderQuantity;
-  obj.ADDER_NAME_1 = adderName;
-  obj.ADDER_QUANTITY_2 = adderQuantity;
-  obj.ADDER_NAME_2 = adderName;
-  obj.ADDER_QUANTITY_3 = adderQuantity;
-  obj.ADDER_NAME_3 = adderName;
-  obj.ADDER_QUANTITY_4 = adderQuantity;
-  obj.ADDER_NAME_4 = adderName;
-  obj.ADDER_QUANTITY_5 = adderQuantity;
-  obj.ADDER_NAME_5 = adderName;
+  // obj.ADDER_QUANTITY_1 = adderQuantity;
+  // obj.ADDER_NAME_1 = adderName;
+  // obj.ADDER_QUANTITY_2 = adderQuantity;
+  // obj.ADDER_NAME_2 = adderName;
+  // obj.ADDER_QUANTITY_3 = adderQuantity;
+  // obj.ADDER_NAME_3 = adderName;
+  // obj.ADDER_QUANTITY_4 = adderQuantity;
+  // obj.ADDER_NAME_4 = adderName;
+  // obj.ADDER_QUANTITY_5 = adderQuantity;
+  // obj.ADDER_NAME_5 = adderName;
+  const adders = quote_cost_buildup.adder_quote_details.map((adder_model_data_snapshot: IAdderQuoteDetailsSchema) => ({
+    name: adder_model_data_snapshot.adder_model_data_snapshot.adder,
+    quantity: adder_model_data_snapshot.quantity,
+  }));
+  // eslint-disable-next-line no-plusplus
+  for (let i = 0; i < 5; i++) {
+    obj[`ADDER_QUANTITY_${i + 1}`] = adders[i] ? adders[i].quantity : '';
+    obj[`ADDER_NAME_${i + 1}`] = adders[i] ? adders[i].name : '';
+  }
 
   return obj;
 };
