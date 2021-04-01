@@ -201,7 +201,7 @@ export class FniEngineService {
       let returnValue: string;
       client.getSecretValue({ SecretId: secretName }, (err, data) => {
         if (err) {
-          console.log('error line 203::fni-engine.service.ts::', err);
+          console.log('error getSecretManager:fni-engine.service.ts::', err);
           return reject(err);
         }
 
