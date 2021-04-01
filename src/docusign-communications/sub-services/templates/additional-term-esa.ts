@@ -1,7 +1,7 @@
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { TemplateDataBuilder } from '../../typing';
 
-export const getAdditionalTermEsaData: TemplateDataBuilder = (genericObject, defaultContractor) => {
+export const getAdditionalTermEsaData: TemplateDataBuilder = (genericObject) => {
   const leaseProduct = genericObject?.quote?.quote_finance_product?.finance_product
     ?.product_attribute as ILeaseProductAttributes;
   const obj = {} as any;
