@@ -155,6 +155,8 @@ export interface IDocusignTemplateMapping {
   DISCLOSURES_ESA: string;
   ADDITIONAL_TERMS_ESA: string;
   SWELL_SERVICE_ESA_X1: string;
+  ARBITRATION_X4: string;
+  NOTICE_OF_CANCELLATION_X5: string;
   SYSTEM_DESIGN_NOTICE_X8: string;
   AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: string;
 }

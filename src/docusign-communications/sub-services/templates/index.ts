@@ -1,4 +1,5 @@
 import { DOCUSIGN_TEMPLATE_IDS_BY_ENV } from 'src/docusign-communications/constants';
+import { empty } from './empty'
 import { getAdditionalTermEsaData } from './additional-term-esa';
 import { getSolarEnergyDisclosureEsaData } from './solar-energy-disclosure-esa';
 import { getSwellServiceEsaX1Data } from './swell-service-esa-x1';
@@ -17,6 +18,8 @@ export const templateBuilderMap: TemplateBuilderMap = {
   [TEMPLATE_IDS.SOLAR_ENERGY_DISCLOSURE_ESA]: getSolarEnergyDisclosureEsaData,
   [TEMPLATE_IDS.ADDITIONAL_TERMS_ESA]: getAdditionalTermEsaData,
   [TEMPLATE_IDS.SWELL_SERVICE_ESA_X1]: getSwellServiceEsaX1Data,
+  [TEMPLATE_IDS.ARBITRATION_X4]: empty,
+  [TEMPLATE_IDS.NOTICE_OF_CANCELLATION_X5]: empty,
   [TEMPLATE_IDS.SYSTEM_DESIGN_NOTICE_X8]: getSystemDesignNoticeX8Data,
   [TEMPLATE_IDS.AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN]: getAutoMaticPaymentAuthorizationFormFin,
 };
