@@ -285,7 +285,7 @@ export class ECommerceService {
     // CALCULATE THE LEASE AMOUNT USING WAVE 2.0 QUOTE
     const rateEscalator = 2.9; // "Rate escalator is currently assumed to be 2.9"
     const contractTerm = 25; // "Contract term is currently assumed to be 25"
-    const utilityProgramName = 'none';
+    const utilityProgramName = 'None';
 
     // LEASE FOR ESSENTIAL BACKUP
     // const pricePerKwhForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;
