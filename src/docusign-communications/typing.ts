@@ -60,6 +60,7 @@ export interface IGenericObject {
   utilityName: string;
   isCash: boolean;
   roofTopDesign: IRoofTopSchema;
+  assignedMember?: IDisclosureEsaMapping;
 }
 
 export interface IDefaultContractor {
@@ -173,7 +174,6 @@ export enum REQUEST_TYPE {
 export type TemplateDataBuilder = (
   genericObject: IGenericObject,
   defaultContractor: IDefaultContractor,
-  disclosureEsa?: IDisclosureEsaMapping,
 ) => {
   [key: string]: string;
 };

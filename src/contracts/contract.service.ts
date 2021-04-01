@@ -197,6 +197,7 @@ export class ContractService {
       utilityName: utilityName.split(' - ')[1] || 'none',
       roofTopDesign: roofTopDesign || ({} as any),
       isCash: fundingSourceType === 'cash',
+      assignedMember: {} as any,
     });
 
     if (docusignResponse.status === 'SUCCESS') {

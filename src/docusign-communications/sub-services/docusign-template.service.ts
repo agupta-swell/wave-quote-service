@@ -7,7 +7,7 @@ import { templateBuilderMap } from './templates';
 
 @Injectable()
 export class DocusignTemplateService {
-  constructor(@InjectModel(USER) private readonly userModel: Model<User>) {}
+  constructor(@InjectModel(USER) private userModel: Model<User>) {}
 
   buildTemplateData(
     docusignTemplateId: string,
@@ -15,17 +15,22 @@ export class DocusignTemplateService {
     defaultContractor: IDefaultContractor,
   ): ITabData {
     const assignedMember = genericObject.opportunity.assignedMember;
-    const user: any = this.userModel.findOne({ _id: assignedMember });
+    const user: any = this.userModel.find({ _id: assignedMember });
     const templateDataBuilder = templateBuilderMap[docusignTemplateId];
 
     if (!templateDataBuilder) {
       throw new Error(`No mapping for DocuSign template id: ${docusignTemplateId}`);
     }
-    const disclosureEsa :IDisclosureEsaMapping = {
-      salesPersonFirstLast: `${user.profile.firstName} ${user.profile.firstName} `,
-      hisSale: user.hisNumber,
-    };
-    const tabs = templateBuilderMap[docusignTemplateId](genericObject, defaultContractor,disclosureEsa);
+    if (!user) {
+      throw new Error(`No User for DocuSign template id: ${docusignTemplateId}`);
+    } else {
+      const disclosureEsa: IDisclosureEsaMapping = {
+        salesPersonFirstLast: `${user.profile.firstName} ${user.profile.firstName} `,
+        hisSale: user.hisNumber,
+      };
+      genericObject.assignedMember = disclosureEsa;
+    }
+    const tabs = templateBuilderMap[docusignTemplateId](genericObject, defaultContractor);
     return { textTabs: [tabs] };
   }
 }
