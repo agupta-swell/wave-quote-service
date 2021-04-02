@@ -20,7 +20,8 @@ import {
   ISendDocusignToContractResponse,
   IServerTemplate,
   ISignerData,
-  ISignerDetailFromContractingSystemData, REQUEST_TYPE,
+  ISignerDetailFromContractingSystemData,
+  REQUEST_TYPE,
 } from './typing';
 
 @Injectable()
@@ -38,8 +39,17 @@ export class DocusignCommunicationService {
   ) {}
 
   // =====================> INTERNAL <=====================
-  async sendContractToDocusign(contract: Contract, data: IGenericObject): Promise<ISendDocusignToContractResponse> {
-    const docusignPayload = { status: 'sent' } as IDocusignCompositeContract;
+  async sendContractToDocusign(
+    contract: LeanDocument<Contract>,
+    data: IGenericObject,
+  ): Promise<ISendDocusignToContractResponse> {
+    const docusignPayload: IDocusignCompositeContract = {
+      status: 'sent',
+      emailSubject: '',
+      emailBlurb: '',
+      compositeTemplates: [],
+    };
+
     const docusignSecret = await this.docusignAPIService.getDocusignSecret();
     contract.contract_template_detail.template_details.map(template => {
       const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(
@@ -79,22 +89,33 @@ export class DocusignCommunicationService {
     defaultContractor: IDefaultContractor,
   ): ICompositeTemplate {
     let runningCounter = 0;
-    const compositeTemplateDataPayload: ICompositeTemplate = {} as any;
+    const compositeTemplateDataPayload: ICompositeTemplate = {
+      serverTemplates: [],
+      inlineTemplates: [],
+    };
     runningCounter += 1;
 
-    const serverTemplatesDataPayload: IServerTemplate = {} as any;
+    const serverTemplatesDataPayload: IServerTemplate = {
+      sequence: 0,
+      templateId: '',
+    };
 
     serverTemplatesDataPayload.sequence = runningCounter;
     serverTemplatesDataPayload.templateId = template.docusign_template_id;
     compositeTemplateDataPayload.serverTemplates.push(serverTemplatesDataPayload);
 
     runningCounter += 1;
-    const inlineTemplateDataPayload: IInlineTemplate = {} as any;
+    const inlineTemplateDataPayload: IInlineTemplate = {
+      sequence: 0,
+      recipients: {
+        signers: [],
+      },
+    };
     inlineTemplateDataPayload.sequence = runningCounter;
 
     template.recipient_roles.map((role, index) => {
       const signerDataPayload: ISignerData = {} as any;
-      const signerDetailData = signerDetails.find(signer => signer.role_id === role._id) || ({} as any);
+      const signerDetailData = signerDetails.find(signer => signer.role_id === role._id.toString()) || ({} as any);
 
       signerDataPayload.email = signerDetailData?.email;
       signerDataPayload.name = `${signerDetailData?.first_name} ${signerDetailData?.last_name}`;

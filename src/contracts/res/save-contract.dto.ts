@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString } from 'class-validator';
 import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { Contract } from '../contract.schema';
@@ -19,6 +20,12 @@ export class SaveContractDto {
     this.statusDescription = statusDescription;
     this.newlyUpdatedContract = contract && new ContractResDto(contract);
   }
+}
+
+export class SendContractReq {
+  @ApiProperty()
+  @IsString()
+  contractId: string;
 }
 
 export class SaveContractRes implements ServiceResponse<SaveContractDto> {

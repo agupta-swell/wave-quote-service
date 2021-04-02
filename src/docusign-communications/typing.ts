@@ -51,7 +51,7 @@ export interface IDocusignCompositeContract {
 }
 
 export interface IGenericObject {
-  contract: Contract;
+  contract: LeanDocument<Contract>;
   opportunity: LeanDocument<Opportunity>;
   quote: IDetailedQuoteSchema;
   contact: Contact;

@@ -16,6 +16,7 @@ import {
   SaveContractDto,
   SaveContractRes,
   SendContractDto,
+  SendContractReq,
   SendContractRes,
 } from './res';
 
@@ -71,9 +72,9 @@ export class ContractController {
   @Post('/send-contract')
   @ApiOperation({ summary: 'Send Contract' })
   @ApiOkResponse({ type: SendContractRes })
-  @ApiQuery({ name: 'opportunity-id' })
-  async sendContract(@Query('opportunity-id') opportunityId: string): Promise<ServiceResponse<SendContractDto>> {
-    const res = await this.contractService.sendContract(opportunityId);
+  async sendContract(@Body() sendContractReq: SendContractReq): Promise<ServiceResponse<SendContractDto>> {
+    const { contractId } = sendContractReq;
+    const res = await this.contractService.sendContract(contractId);
     return ServiceResponse.fromResult(res);
   }
 

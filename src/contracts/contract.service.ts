@@ -167,7 +167,7 @@ export class ContractService {
   }
 
   async sendContract(contractId: string): Promise<OperationResult<SendContractDto>> {
-    const contract = await this.contractModel.findById(contractId);
+    const contract = await this.contractModel.findById(contractId).lean();
     if (!contract) {
       throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
     }
@@ -177,7 +177,8 @@ export class ContractService {
       throw ApplicationException.EntityNotFound(`OpportunityId: ${contract.opportunity_id}`);
     }
 
-    const quote = await this.quoteService.getOneById(contract.associated_quote_id);
+    const quote = await this.quoteService.getOneFullQuoteDataById(contract.associated_quote_id);
+
     if (!quote) {
       throw ApplicationException.EntityNotFound(`Associated Quote Id: ${contract.associated_quote_id}`);
     }
@@ -190,18 +191,18 @@ export class ContractService {
     let status: string;
     let statusDescription = '';
 
-    const fundingSourceType = quote.quote_finance_product.finance_product.product_type;
+    const fundingSourceType = quote.detailed_quote.quote_finance_product.finance_product.product_type;
 
     const [customerPayment, utilityName, roofTopDesign] = await Promise.all([
       this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunity_id),
-      this.utilityService.getUtilityName(opportunity._id),
-      this.systemDesignService.getRoofTopDesignById(opportunity._id),
+      this.utilityService.getUtilityName(opportunity.utilityId),
+      this.systemDesignService.getRoofTopDesignById(quote.system_design_id),
     ]);
 
     const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, {
       contract,
       opportunity,
-      quote,
+      quote: quote.detailed_quote,
       recordOwner: recordOwner || ({} as any),
       contact: contact || ({} as any),
       customerPayment: customerPayment || ({} as any),
@@ -222,9 +223,7 @@ export class ContractService {
       contract.contract_status = PROCESS_STATUS.ERROR;
     }
 
-    const updatedContract = await this.contractModel
-      .findByIdAndUpdate(contract.id, contract.toObject({ versionKey: false }), { new: true })
-      .lean();
+    const updatedContract = await this.contractModel.findByIdAndUpdate(contract.id, contract, { new: true }).lean();
 
     return OperationResult.ok(new SendContractDto(status, statusDescription, updatedContract));
   }

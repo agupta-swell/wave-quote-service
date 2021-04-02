@@ -870,6 +870,11 @@ export class QuoteService {
     return res?.detailed_quote;
   }
 
+  async getOneFullQuoteDataById(id: string): Promise<LeanDocument<Quote> | null> {
+    const quote = await this.quoteModel.findById(id).lean();
+    return quote;
+  }
+
   groupData(data: any[], field: string): any {
     const groupByField = groupBy(data, item => item[field]);
     return Object.keys(groupByField).reduce(

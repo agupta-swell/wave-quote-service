@@ -2,7 +2,7 @@ import { Document, Schema } from 'mongoose';
 import { TEMPLATE_STATUS } from 'src/docusign-templates-master/constants';
 import { DocusignCompositeTemplateMaster, SignerRoleMaster } from 'src/docusign-templates-master/schemas';
 import { DocusignCompositeTemplateMasterSchemaWithoutId } from '../docusign-templates-master/schemas/docusign-composite-template-master.schema';
-import { SignerRoleMasterSchemaWithoutId } from '../docusign-templates-master/schemas/signer-role-master.schema';
+import { SignerRoleMasterSchema } from '../docusign-templates-master/schemas/signer-role-master.schema';
 import { CONTRACT_TYPE, PROCESS_STATUS, SIGN_STATUS } from './constants';
 
 export const CONTRACT = Symbol('CONTRACT').toString();
@@ -52,7 +52,7 @@ const TemplateDetailSchema = new Schema<Document<ITemplateDetailSchema>>(
     description: String,
     docusign_template_id: String,
     template_status: String,
-    recipient_roles: [SignerRoleMasterSchemaWithoutId],
+    recipient_roles: [SignerRoleMasterSchema],
     created_by: String,
     created_at: Date,
     updated_by: String,

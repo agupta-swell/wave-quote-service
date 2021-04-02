@@ -11,17 +11,17 @@ export interface SignerRoleMaster extends Document {
   updated_at: Date;
 }
 
-export const SignerRoleMasterSchemaWithoutId = new Schema<SignerRoleMaster>(
-  {
-    role_name: String,
-    role_description: String,
-    created_at: { type: Date, default: Date.now },
-    created_by: String,
-    updated_at: { type: Date, default: Date.now },
-    updated_by: String,
-  },
-  { _id: false },
-);
+// export const SignerRoleMasterSchemaWithoutId = new Schema<SignerRoleMaster>(
+//   {
+//     role_name: String,
+//     role_description: String,
+//     created_at: { type: Date, default: Date.now },
+//     created_by: String,
+//     updated_at: { type: Date, default: Date.now },
+//     updated_by: String,
+//   },
+//   { _id: false },
+// );
 
 export const SignerRoleMasterSchema = new Schema<SignerRoleMaster>({
   role_name: String,
