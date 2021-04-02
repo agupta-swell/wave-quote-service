@@ -21,6 +21,7 @@ import {
   IServerTemplate,
   ISignerData,
   ISignerDetailFromContractingSystemData,
+  ITabData,
   REQUEST_TYPE,
 } from './typing';
 
@@ -126,7 +127,7 @@ export class DocusignCommunicationService {
         template.docusign_template_id,
         genericObject,
         defaultContractor,
-      );
+      ) as ITabData;
       inlineTemplateDataPayload.recipients.signers.push(signerDataPayload);
     });
 

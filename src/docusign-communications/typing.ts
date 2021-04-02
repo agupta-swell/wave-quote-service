@@ -12,7 +12,7 @@ export interface ITextTabData {
 }
 
 export interface ITabData {
-  textTabs: ITextTabData[];
+  textTabs?: ITextTabData[];
 }
 
 export interface ISignerData {
