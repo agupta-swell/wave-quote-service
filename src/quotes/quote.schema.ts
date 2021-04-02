@@ -18,6 +18,7 @@ import {
   SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
+import { FinancialProduct, FinancialProductSchema } from 'src/financial-products/financial-product.schema';
 import { ELaborCostType, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
@@ -184,6 +185,7 @@ export interface IFinanceProductSchema {
   funding_source_id: string;
   funding_source_name: string;
   product_attribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
+  financial_product_snapshot: FinancialProduct;
 }
 
 const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
@@ -192,6 +194,7 @@ const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
     funding_source_id: String,
     funding_source_name: String,
     product_attribute: Schema.Types.Mixed,
+    financial_product_snapshot: FinancialProductSchema,
   },
   { _id: false },
 );
@@ -220,12 +223,38 @@ const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSc
   },
 );
 
+export interface IFinancialProductDetails {
+  funding_source_id: string;
+  is_active: boolean;
+  name: string;
+  fund_id: string;
+  allow_down_payment: boolean;
+  min_down_payment: number;
+  default_down_payment: number;
+  max_down_payment: number;
+  annual_degradation: number;
+  guaranteed_production: number;
+  min_margin: number;
+  max_margin: number;
+  min_system_kw: number;
+  max_system_kw: number;
+  min_battery_kwh: number;
+  max_battery_kwh: number;
+  min_productivity: number;
+  max_productivity: number;
+  allowed_states: string[];
+  interest_rate: number;
+  term_months: number;
+  dealer_fee: number;
+}
+
 export interface IQuoteFinanceProductSchema {
   finance_product: IFinanceProductSchema;
   net_amount: number;
   incentive_details: IIncentiveDetailsSchema[];
   rebate_details: IRebateDetailsSchema[];
   project_discount_details: IProjectDiscountDetailSchema[];
+  financial_product_snapshot: IFinancialProductDetails;
 }
 
 const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema>>(
@@ -659,7 +688,14 @@ export class QuoteModel {
     const {
       systemProduction,
       utilityProgram,
-      quoteFinanceProduct: { netAmount, incentiveDetails, rebateDetails, projectDiscountDetails, financeProduct },
+      quoteFinanceProduct: {
+        netAmount,
+        incentiveDetails,
+        rebateDetails,
+        projectDiscountDetails,
+        financeProduct,
+        financialProductSnapshot,
+      },
       savingsDetails,
       quoteCostBuildup: {
         panelQuoteDetails,
@@ -702,6 +738,7 @@ export class QuoteModel {
           item.discount_id = item.id;
           return toSnakeCase(item);
         }),
+        financial_product_snapshot: toSnakeCase(financialProductSnapshot),
       },
       savings_details: savingsDetails.map(item => toSnakeCase(item)),
       quote_cost_buildup: {

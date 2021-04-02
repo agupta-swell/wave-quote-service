@@ -2,9 +2,11 @@
 /* eslint-disable no-return-assign */
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq, differenceBy } from 'lodash';
+import { differenceBy, groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
+import { FinancialProductsService } from 'src/financial-products/financial-product.service';
+import { FinancialProductDto } from 'src/financial-products/res/financial-product.dto';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { COMPONENT_TYPE, COST_UNIT_TYPE, PRODUCT_CATEGORY_TYPE } from 'src/system-designs/constants';
@@ -20,14 +22,11 @@ import { toCamelCase } from '../utils/transformProperties';
 import {
   ELaborCostType,
   FINANCE_PRODUCT_TYPE,
-  REBATE_TYPE,
-  INCENTIVE_APPLIES_TO_VALUE,
-  INCENTIVE_UNITS,
   PROJECT_DISCOUNT_UNITS,
   QUOTE_MODE_TYPE,
+  REBATE_TYPE,
 } from './constants';
-import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel, IRebateDetailsSchema } from './quote.schema';
-import { Discounts } from './schemas/discounts.schema';
+import { IDetailedQuoteSchema, IRebateDetailsSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
   CashProductAttributesDto,
@@ -41,14 +40,15 @@ import { DiscountsDto } from './res/discounts.dto';
 import { QuoteDto } from './res/quote.dto';
 import { TaxCreditDto } from './res/tax-credit.dto';
 import {
+  DISCOUNTS,
   ITC,
   I_T_C,
   QuoteMarkupConfig,
   QUOTE_MARKUP_CONFIG,
   TaxCreditConfig,
   TAX_CREDIT_CONFIG,
-  DISCOUNTS,
 } from './schemas';
+import { Discounts } from './schemas/discounts.schema';
 import { CalculationService } from './sub-services/calculation.service';
 
 @Injectable()
@@ -63,6 +63,7 @@ export class QuoteService {
     private readonly systemDesignService: SystemDesignService,
     private readonly utilityProgramService: UtilityProgramMasterService,
     private readonly fundingSourceService: FundingSourceService,
+    private readonly financialProductService: FinancialProductsService,
     private readonly cashPaymentConfigService: CashPaymentConfigService,
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
@@ -252,10 +253,15 @@ export class QuoteService {
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
     quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
 
-    const utilityProgram =
-      data.utilityProgramId && data.utilityProgramId !== 'none'
-        ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
-        : null;
+    const utilityProgram = data.utilityProgramId
+      ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
+      : null;
+
+    const financialProduct = await this.financialProductService.getDetailByFundingSourceId(data.fundingSourceId);
+    if (!financialProduct) {
+      throw ApplicationException.EntityNotFound('financial Source');
+    }
+
     const fundingSource = await this.fundingSourceService.getDetailById(data.fundingSourceId);
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('funding Source');
@@ -283,6 +289,7 @@ export class QuoteService {
           fundingSourceId: fundingSource.id,
           fundingSourceName: fundingSource.name,
           productAttribute: await this.createProductAttribute(fundingSource.type, quoteCostBuildup.grossPrice),
+          financialProductSnapshot: new FinancialProductDto(financialProduct),
         },
         netAmount: 0,
         incentiveDetails: [
@@ -660,6 +667,7 @@ export class QuoteService {
           fundingSourceId: finance_product.funding_source_id,
           fundingSourceName: finance_product.funding_source_name,
           productAttribute,
+          financialProductSnapshot: toCamelCase(finance_product.financial_product_snapshot),
         },
         netAmount: quoteCostBuildup.grossPrice,
         incentiveDetails: incentive_details,

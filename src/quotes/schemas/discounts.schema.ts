@@ -6,7 +6,7 @@ export interface Discounts extends Document {
   _id: string;
   name: string;
   type: string;
-  amount: Number;
+  amount: number;
   startDate: Date;
   endDate: Date;
 }

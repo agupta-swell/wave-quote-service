@@ -1,9 +1,10 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FINANCE_PRODUCT_TYPE, REBATE_TYPE } from '../../constants';
+import { FinanceProductDetailDto } from './financial-product.dto';
 
 export class GridServiceDetailsDto {
   @ApiProperty()
@@ -79,6 +80,12 @@ export class FinanceProductDto {
   })
   @IsNotEmpty()
   productAttribute: LoanProductAttributesDto | CashProductAttributesDto | LeaseProductAttributesDto;
+
+  @ApiProperty({ type: FinanceProductDetailDto })
+  @IsNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => FinanceProductDetailDto)
+  financialProductSnapshot: FinanceProductDetailDto;
 }
 
 export class ProjectDiscountDetailDto {

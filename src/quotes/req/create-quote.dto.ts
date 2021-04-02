@@ -25,6 +25,9 @@ export class CreateQuoteDto {
   fundingSourceId: string;
 
   @ApiProperty()
+  financialProductId: string;
+
+  @ApiProperty()
   utilityProgramId: string;
 
   @ApiProperty()

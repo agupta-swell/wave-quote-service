@@ -3,6 +3,7 @@ import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { REBATE_TYPE } from 'src/quotes/constants';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
+import { FinanceProductDetailDto } from './financial-product.dto';
 
 export class GridServiceDetailsDto {
   @ApiProperty()
@@ -58,6 +59,9 @@ export class FinanceProductDto {
 
   @ApiProperty()
   netAmount: number;
+
+  @ApiProperty({ type: FinanceProductDetailDto })
+  financialProductSnapshot: FinanceProductDetailDto;
 }
 
 export class ProjectDiscountDetailDto {
@@ -68,7 +72,7 @@ export class ProjectDiscountDetailDto {
   name: string;
 
   @ApiProperty()
-  amount: Number;
+  amount: number;
 
   @ApiProperty()
   type: string;
