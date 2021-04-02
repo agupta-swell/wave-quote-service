@@ -76,17 +76,28 @@ export class ContractService {
     opportunityId: string,
     fundingSourceId: string,
   ): Promise<OperationResult<GetContractTemplatesDto>> {
-    const { utilityId } = (await this.opportunityService.getDetailById(opportunityId)) ?? { utilityId: '' };
-    const complexUtilityName = await this.utilityService.getUtilityName(utilityId);
-    const [utilityName = '', utilityProgramName = ''] = complexUtilityName.split('-');
-    const utility = await this.docusignTemplateMasterService.getUtilityMaster(utilityName?.trim());
-    const utilityProgramId = (
-      await this.utilityProgramMasterService.getDetailByName(utilityProgramName.trim())
-    )?._id?.toString();
+    const opportunityData = await this.opportunityService.getDetailById(opportunityId);
+
+    if (!opportunityData) {
+      throw ApplicationException.NullEntityFound('Opportunity data');
+    }
+
+    // e.g. "SCE - PRP2+SGIP"
+    const utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunityData.utilityId);
+
+    const [utilityName = '', utilityProgramName = ''] = utilityNameConcatUtilityProgramName
+      .replace(/\s/g, '')
+      .split('-');
+
+    const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id?.toString() || '';
+
+    const utilityProgramId =
+      (await this.utilityProgramMasterService.getDetailByName(utilityProgramName.trim()))?._id?.toString() || '';
+
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId],
-      [utility?._id?.toString() || ''],
-      [utilityProgramId || ''],
+      [utilityId],
+      [utilityProgramId],
     );
 
     return OperationResult.ok(new GetContractTemplatesDto(templateMasterRecords));
