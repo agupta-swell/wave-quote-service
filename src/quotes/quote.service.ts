@@ -26,7 +26,7 @@ import {
   PROJECT_DISCOUNT_UNITS,
   QUOTE_MODE_TYPE,
 } from './constants';
-import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
+import { IDetailedQuoteSchema, Quote, QUOTE, QuoteModel, IRebateDetailsSchema } from './quote.schema';
 import { Discounts } from './schemas/discounts.schema';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
@@ -70,10 +70,11 @@ export class QuoteService {
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const [systemDesign, markupConfigs, quoteConfigData] = await Promise.all([
+    const [systemDesign, markupConfigs, quoteConfigData, v2_itc] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
+      this.iTCModel.findOne({}),
     ]);
 
     if (!systemDesign) {
@@ -251,9 +252,10 @@ export class QuoteService {
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
     quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
 
-    const utilityProgram = data.utilityProgramId
-      ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
-      : null;
+    const utilityProgram =
+      data.utilityProgramId && data.utilityProgramId !== 'none'
+        ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
+        : null;
     const fundingSource = await this.fundingSourceService.getDetailById(data.fundingSourceId);
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('funding Source');
@@ -303,13 +305,11 @@ export class QuoteService {
             },
           },
         ],
-        rebateDetails: [
-          {
-            amount: 0,
-            type: 'program_rebate',
-            description: '',
-          },
-        ],
+        rebateDetails: this.createRebateDetails({
+          utilityProgramName: utilityProgram ? utilityProgram.utility_program_name : '',
+          itcRate: v2_itc?.itc_rate ? v2_itc.itc_rate : 0,
+          grossPrice: grossPriceData.grossPrice ? grossPriceData.grossPrice : 0,
+        }) as IRebateDetailsSchema[],
         projectDiscountDetails: [],
       },
       utilityProgramSelectedForReinvestment: false,
@@ -420,16 +420,16 @@ export class QuoteService {
   }
 
   async updateLatestQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
-    const foundQuote = await this.quoteModel.findById(quoteId).lean();
+    const [foundQuote, v2_itc, systemDesign, markupConfigs] = await Promise.all([
+      this.quoteModel.findById(quoteId).lean(),
+      this.iTCModel.findOne({}),
+      this.systemDesignService.getOneById(data.systemDesignId),
+      this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }),
+    ]);
 
     if (!foundQuote) {
       throw ApplicationException.EntityNotFound(quoteId);
     }
-
-    const [systemDesign, markupConfigs] = await Promise.all([
-      this.systemDesignService.getOneById(data.systemDesignId),
-      this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }),
-    ]);
 
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound('system Design');
@@ -683,6 +683,12 @@ export class QuoteService {
       detailedQuote.quoteCostBuildup as any,
     );
 
+    detailedQuote.quoteFinanceProduct.rebateDetails = this.createRebateDetails({
+      utilityProgramName: utility_program ? utility_program.utility_program_name : '',
+      itcRate: v2_itc?.itc_rate ? v2_itc.itc_rate : 0,
+      grossPrice: grossPriceData.grossPrice ? grossPriceData.grossPrice : 0,
+    });
+
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
 
@@ -710,7 +716,6 @@ export class QuoteService {
       this.quoteModel.countDocuments(condition),
     ]);
 
-    console.log(quotes);
     const data = quotes.map(item => new QuoteDto(item));
     const result = {
       data,
@@ -1063,7 +1068,8 @@ export class QuoteService {
   async getDiscounts(): Promise<OperationResult<Pagination<DiscountsDto>>> {
     const data = await this.discountsModel.find();
     if (!data.length) {
-      throw ApplicationException.EntityNotFound();
+      return OperationResult.ok(new Pagination({ total: 0, data: [] }));
+      // throw ApplicationException.EntityNotFound();
     }
     const toDay = new Date().getTime();
     const activeDiscounts = data.filter(discount => {
@@ -1095,5 +1101,30 @@ export class QuoteService {
     const result = differenceBy(activeDiscounts, usedDiscounts, '_id');
 
     return OperationResult.ok(new Pagination({ total: result.length, data: result.map(i => new DiscountsDto(i)) }));
+  }
+
+  createRebateDetails({
+    utilityProgramName,
+    itcRate,
+    grossPrice,
+  }: {
+    utilityProgramName: string;
+    itcRate: number;
+    grossPrice: number;
+  }): IRebateDetailsSchema[] {
+    const rebateDetails: IRebateDetailsSchema[] = [];
+    rebateDetails.push({
+      amount: (itcRate * grossPrice) / 100,
+      type: REBATE_TYPE.ITC,
+      description: '',
+    });
+    if (!!utilityProgramName && utilityProgramName.includes('+SGIP')) {
+      rebateDetails.push({
+        amount: 0,
+        type: REBATE_TYPE.SGIP,
+        description: '',
+      });
+    }
+    return rebateDetails;
   }
 }
