@@ -60,7 +60,7 @@ export interface IGenericObject {
   utilityName: string;
   isCash: boolean;
   roofTopDesign: IRoofTopSchema;
-  assignedMember?: IDisclosureEsaMapping;
+  assignedMember: IDisclosureEsaMapping;
 }
 
 export interface IDefaultContractor {

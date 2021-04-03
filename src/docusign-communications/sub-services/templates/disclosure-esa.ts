@@ -6,7 +6,7 @@ export const getDisclosureEsaData: TemplateDataBuilder = (
   defaultContractor: IDefaultContractor,
 ) => {
   const obj = {};
-  obj['SALESPERSON_FIRST_LAST'] = genericObject.assignedMember?.salesPersonFirstLast;
-  obj['H.I.S. SALES #'] = genericObject.assignedMember?.salesPersonFirstLast;
+  obj['SALESPERSON_FIRST_LAST'] = genericObject.assignedMember.salesPersonFirstLast;
+  obj['H.I.S. SALES #'] = genericObject.assignedMember.hisSale;
   return obj;
 };

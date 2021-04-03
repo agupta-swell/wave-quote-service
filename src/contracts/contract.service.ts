@@ -9,12 +9,13 @@ import { DocusignTemplateMasterService } from 'src/docusign-templates-master/doc
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
+import { USER, User } from 'src/users/user.schema';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
-import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails } from '../docusign-communications/typing';
+import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IDisclosureEsaMapping } from '../docusign-communications/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
@@ -31,6 +32,7 @@ import { GetDocusignCommunicationDetailsDto } from './res/get-docusign-communica
 export class ContractService {
   constructor(
     @InjectModel(CONTRACT) private readonly contractModel: Model<Contract>,
+    @InjectModel(USER) private readonly userModel: Model<User>,
     private readonly opportunityService: OpportunityService,
     private readonly quoteService: QuoteService,
     private readonly utilityService: UtilityService,
@@ -198,6 +200,15 @@ export class ContractService {
       this.utilityService.getUtilityName(opportunity.utilityId),
       this.systemDesignService.getRoofTopDesignById(quote.system_design_id),
     ]);
+    const assignedMember = opportunity.assignedMember;
+    const user = await this.userModel.findOne({ _id: assignedMember });
+    if (!user) {
+      throw ApplicationException.EntityNotFound(`assignedMember: ${assignedMember}`);
+    }
+    const disclosureEsa: IDisclosureEsaMapping = {
+      salesPersonFirstLast: `${user.profile.firstName} ${user.profile.firstName} `,
+      hisSale: user.hisNumber,
+    };
 
     const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, {
       contract,
@@ -209,7 +220,7 @@ export class ContractService {
       utilityName: utilityName.split(' - ')[1] || 'none',
       roofTopDesign: roofTopDesign || ({} as any),
       isCash: fundingSourceType === 'cash',
-      assignedMember: {} as any,
+      assignedMember:disclosureEsa
     });
 
     if (docusignResponse.status === 'SUCCESS') {
