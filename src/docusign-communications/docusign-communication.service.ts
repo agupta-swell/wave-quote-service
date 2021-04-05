@@ -46,8 +46,8 @@ export class DocusignCommunicationService {
   ): Promise<ISendDocusignToContractResponse> {
     const docusignPayload: IDocusignCompositeContract = {
       status: 'sent',
-      emailSubject: '',
-      emailBlurb: '',
+      emailSubject: 'DocuSign API - Composite Templates',
+      emailBlurb: 'Composite Templates Sample 1',
       compositeTemplates: [],
     };
 
@@ -118,17 +118,28 @@ export class DocusignCommunicationService {
       const signerDataPayload: ISignerData = {} as any;
       const signerDetailData = signerDetails.find(signer => signer.role_id === role._id.toString()) || ({} as any);
 
-      signerDataPayload.email = signerDetailData?.email;
-      signerDataPayload.name = `${signerDetailData?.first_name} ${signerDetailData?.last_name}`;
-      signerDataPayload.recipientId = signerDetailData?.email;
-      signerDataPayload.roleName = signerDetailData?.role;
-      signerDataPayload.routingOrder = index + 1;
+      if (!signerDetailData) return;
+
+      const signerName =
+        (signerDetailData.first_name &&
+          signerDetailData.last_name &&
+          `${signerDetailData.first_name} ${signerDetailData.last_name}`) ||
+        'Signer name';
+
+      signerDataPayload.email = signerDetailData.email;
+      signerDataPayload.name = signerName;
+      signerDataPayload.recipientId = (index + 1).toString();
+      signerDataPayload.roleName = signerDetailData.role;
+      signerDataPayload.routingOrder = (index + 1).toString();
       signerDataPayload.tabs = this.docusignTemplateService.buildTemplateData(
         template.docusign_template_id,
         genericObject,
         defaultContractor,
       ) as ITabData;
-      inlineTemplateDataPayload.recipients.signers.push(signerDataPayload);
+
+      if (signerDataPayload.email) {
+        inlineTemplateDataPayload.recipients.signers.push(signerDataPayload);
+      }
     });
 
     compositeTemplateDataPayload.inlineTemplates.push(inlineTemplateDataPayload);

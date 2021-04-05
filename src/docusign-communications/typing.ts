@@ -20,7 +20,7 @@ export interface ISignerData {
   name: string;
   recipientId: string;
   roleName: string;
-  routingOrder: number;
+  routingOrder: string;
   tabs: ITabData;
 }
 
