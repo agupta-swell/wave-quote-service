@@ -442,7 +442,7 @@ export class QualificationService {
       }
       case 'PENDING': {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
-        qualificationCreditRecordInst.process_status = PROCESS_STATUS.IN_PROGRESS;
+        qualificationCreditRecordInst.process_status = PROCESS_STATUS.PENDING;
         qualificationCreditRecordInst.event_histories = [
           ...qualificationCreditRecordInst.event_histories,
           { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation In Progress' },
