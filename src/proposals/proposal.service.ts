@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import * as Handlebars from 'handlebars';
 import { identity, pickBy } from 'lodash';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
@@ -174,28 +174,12 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(id);
     }
 
-    const opportunity = await this.opportunityService.getDetailById(proposal.opportunity_id);
-    if (!opportunity) {
-      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunity_id}`);
-    }
-
-    const [contact, recordOwner, template] = await Promise.all([
-      this.contactService.getContactById(opportunity.contactId),
-      this.userService.getUserById(opportunity.recordOwner),
-      this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id),
-    ]);
+    const requiredData = await this.getProposalRequiredData(proposal);
 
     return OperationResult.ok(
       new ProposalDto({
         ...proposal,
-        template,
-        customer: { ...contact, address: contact?.address1, zipCode: contact?.zip },
-        agent: {
-          firstName: recordOwner?.profile.firstName,
-          lastName: recordOwner?.profile.lastName,
-          email: recordOwner?.emails[0].address,
-          phoneNumber: recordOwner?.profile.cellPhone,
-        },
+        ...requiredData,
       } as any),
     );
   }
@@ -297,11 +281,11 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(tokenPayload.proposalId);
     }
 
-    const template = await this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id);
+    const requiredData = await this.getProposalRequiredData(proposal);
 
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
-      proposalDetail: new ProposalDto({ ...proposal, template } as any),
+      proposalDetail: new ProposalDto({ ...proposal, ...requiredData } as any),
     });
   }
 
@@ -386,5 +370,29 @@ export class ProposalService {
       url = await this.getPresignedUrlService.getPreviewLink(fileName, fileType);
     }
     return OperationResult.ok(url);
+  }
+
+  async getProposalRequiredData(proposal: LeanDocument<Proposal>): Promise<Partial<ProposalDto>> {
+    const opportunity = await this.opportunityService.getDetailById(proposal.opportunity_id);
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunity_id}`);
+    }
+
+    const [contact, recordOwner, template] = await Promise.all([
+      this.contactService.getContactById(opportunity.contactId),
+      this.userService.getUserById(opportunity.recordOwner),
+      this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id),
+    ]);
+
+    return {
+      template,
+      customer: { ...contact, address: contact?.address1, zipCode: contact?.zip },
+      agent: {
+        firstName: recordOwner?.profile.firstName,
+        lastName: recordOwner?.profile.lastName,
+        email: recordOwner?.emails[0].address,
+        phoneNumber: recordOwner?.profile.cellPhone,
+      },
+    } as any;
   }
 }
