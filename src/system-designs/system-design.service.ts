@@ -382,38 +382,15 @@ export class SystemDesignService {
   async getAllSystemDesigns(
     limit = 999,
     skip: number,
-    selected: string,
     opportunityId: string,
   ): Promise<OperationResult<Pagination<SystemDesignDto>>> {
-    let query: any;
-    let total: any;
-    switch (selected) {
-      case undefined:
-      case '-1':
-        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean();
-        total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
-        break;
-      case '0':
-        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean();
-        total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
-        break;
-      case '1':
-        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean();
-        total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
-        break;
-      default:
-        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean();
-        total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
-        break;
-    }
-
-    const [systemDesigns, count] = await Promise.all([query, total]);
-    const data = systemDesigns.map(item => new SystemDesignDto(item));
-    const result = {
-      data,
-      total: count,
-    };
-    return OperationResult.ok(new Pagination(result));
+    const [systemDesigns, count] = await Promise.all([
+      this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean(),
+      this.systemDesignModel.countDocuments({ opportunity_id: opportunityId }).lean(),
+    ]);
+    return OperationResult.ok(
+      new Pagination({ data: systemDesigns.map(item => new SystemDesignDto(item)), total: count }),
+    );
   }
 
   async getDetails(id: string): Promise<OperationResult<SystemDesignDto>> {

@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
+import { getBooleanString } from 'src/utils/common';
 import {
   CreateSystemDesignDto,
   GetInverterClippingDetailDto,
@@ -80,13 +81,11 @@ export class SystemDesignController {
   async getsystemDesigns(
     @Query('limit') limit: string,
     @Query('skip') skip: string,
-    @Query('selected') selected: string,
     @Query('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<Pagination<SystemDesignDto>>> {
     const result = await this.systemDesignService.getAllSystemDesigns(
       Number(limit || 100),
       Number(skip || 0),
-      selected,
       opportunityId,
     );
     return ServiceResponse.fromResult(result);

@@ -720,12 +720,13 @@ export class QuoteService {
     systemDesignId: string,
     opportunityId: string,
     selected: string,
+    isSync: string,
   ): Promise<OperationResult<Pagination<QuoteDto>>> {
     const condition = omitBy(
       {
         system_design_id: systemDesignId,
         opportunity_id: opportunityId,
-        'detailed_quote.is_selected': typeof selected === 'undefined' ? undefined : getBooleanString(selected),
+        is_sync: typeof isSync === 'undefined' ? undefined : getBooleanString(isSync),
       },
       isNil,
     );
