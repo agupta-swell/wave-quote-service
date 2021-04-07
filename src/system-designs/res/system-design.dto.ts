@@ -1,3 +1,4 @@
+import { IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { LeanDocument } from 'mongoose';
 import { Pagination } from 'src/app/common';
@@ -64,8 +65,8 @@ export class SystemDesignDto {
   @ApiProperty()
   thumbnail: string;
 
-  @ApiProperty()
-  isSelected: boolean;
+  // @ApiProperty()
+  // isSelected: boolean;
 
   @ApiProperty()
   isRetrofit: boolean;
@@ -81,7 +82,7 @@ export class SystemDesignDto {
     this.latitude = props.latitude;
     this.longtitude = props.longtitude;
     this.thumbnail = props.thumbnail;
-    this.isSelected = props.is_selected;
+    // this.isSelected = props.is_selected;
     this.isSolar = props.is_solar;
     this.isRetrofit = props.is_retrofit;
     this.systemProductionData = this.transformSystemProductionData(props.system_production_data);

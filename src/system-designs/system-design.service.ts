@@ -127,7 +127,7 @@ export class SystemDesignService {
       );
 
       systemDesign.setThumbnail(thumbnail);
-      systemDesign.setIsSelected(systemDesignDto.isSelected);
+      // systemDesign.setIsSelected(systemDesignDto.isSelected);
 
       const annualUsageKWh = utilityAndUsage?.utility_data.actual_usage?.annual_consumption || 0;
 
@@ -182,9 +182,9 @@ export class SystemDesignService {
       systemDesign.name = systemDesignDto.name;
     }
 
-    if (systemDesignDto.isSelected) {
-      systemDesign.setIsSelected(systemDesignDto.isSelected);
-    }
+    // if (systemDesignDto.isSelected) {
+    //   systemDesign.setIsSelected(systemDesignDto.isSelected);
+    // }
 
     if (systemDesignDto.isSolar) {
       systemDesign.setIsSolar(systemDesignDto.isSolar);
@@ -380,7 +380,7 @@ export class SystemDesignService {
   }
 
   async getAllSystemDesigns(
-    limit: number,
+    limit = 999,
     skip: number,
     selected: string,
     opportunityId: string,
@@ -394,20 +394,12 @@ export class SystemDesignService {
         total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
         break;
       case '0':
-        query = this.systemDesignModel
-          .find({ is_selected: false, opportunity_id: opportunityId })
-          .limit(limit)
-          .skip(skip)
-          .lean();
-        total = this.systemDesignModel.countDocuments({ is_selected: false, opportunity_id: opportunityId });
+        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean();
+        total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
         break;
       case '1':
-        query = this.systemDesignModel
-          .find({ is_selected: true, opportunity_id: opportunityId })
-          .limit(limit)
-          .skip(skip)
-          .lean();
-        total = this.systemDesignModel.countDocuments({ is_selected: true, opportunity_id: opportunityId });
+        query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean();
+        total = this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
         break;
       default:
         query = this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean();

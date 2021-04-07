@@ -46,10 +46,10 @@ export class CreateSystemDesignDto {
   @Type(() => CapacityProductionDataDto)
   capacityProductionDesignData: CapacityProductionDataDto;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsBoolean()
-  isSelected: boolean;
+  // @ApiProperty()
+  // @IsNotEmpty()
+  // @IsBoolean()
+  // isSelected: boolean;
 
   @ApiProperty()
   @IsNotEmpty()

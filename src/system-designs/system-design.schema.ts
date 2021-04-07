@@ -454,7 +454,7 @@ export class SystemDesignModel {
 
   constructor(systemDesign: CreateSystemDesignDto) {
     this.name = systemDesign.name;
-    this.is_selected = systemDesign.isSelected;
+    // this.is_selected = systemDesign.isSelected;
     this.is_solar = systemDesign.isSolar;
     this.is_retrofit = systemDesign.isRetrofit;
     this.latitude = systemDesign.latitude;
@@ -513,9 +513,9 @@ export class SystemDesignModel {
     this.thumbnail = link;
   }
 
-  setIsSelected(isSelected: boolean) {
-    this.is_selected = isSelected;
-  }
+  // setIsSelected(isSelected: boolean) {
+  //   this.is_selected = isSelected;
+  // }
 
   setIsSolar(isSolar: boolean) {
     this.is_selected = isSolar;
