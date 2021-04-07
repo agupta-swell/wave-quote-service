@@ -46,8 +46,10 @@ export class DocusignCommunicationService {
   ): Promise<ISendDocusignToContractResponse> {
     const docusignPayload: IDocusignCompositeContract = {
       status: 'sent',
-      emailSubject: 'DocuSign API - Composite Templates',
-      emailBlurb: 'Composite Templates Sample 1',
+      emailSubject: `${
+        data.quote.quote_finance_product?.finance_product?.financial_product_snapshot?.name || 'Contract'
+      } - Agreement for ${data.opportunity.name}`,
+      emailBlurb: 'Please review and sign the contract for your energy project!',
       compositeTemplates: [],
     };
 
