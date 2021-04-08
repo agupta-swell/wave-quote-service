@@ -288,7 +288,11 @@ export class QuoteService {
           productType: fundingSource.type,
           fundingSourceId: fundingSource.id,
           fundingSourceName: fundingSource.name,
-          productAttribute: await this.createProductAttribute(fundingSource.type, quoteCostBuildup.grossPrice),
+          productAttribute: await this.createProductAttribute(
+            fundingSource.type,
+            quoteCostBuildup.grossPrice,
+            financialProduct.default_down_payment,
+          ),
           financialProductSnapshot: new FinancialProductDto(financialProduct),
         },
         netAmount: 0,
@@ -332,7 +336,7 @@ export class QuoteService {
       quotePriceOverride: data.quotePriceOverride,
       notes: [],
     };
-
+    console.log('detailedQuote::', detailedQuote.quoteFinanceProduct.financeProduct.productAttribute);
     if (quoteConfigData) {
       if (quoteConfigData.enableCostBuildup) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.COST_BUILD_UP);
@@ -359,12 +363,12 @@ export class QuoteService {
     return OperationResult.ok(new QuoteDto(obj.toObject())) as any;
   }
 
-  async createProductAttribute(productType: string, netAmount: number): Promise<any> {
+  async createProductAttribute(productType: string, netAmount: number, defaultDownPayment: number): Promise<any> {
     let template = {};
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
         template = {
-          upfrontPayment: 0,
+          upfrontPayment: defaultDownPayment,
           loanAmount: netAmount,
           loanStartDate: new Date(new Date().setDate(1)),
           interestRate: 6.5,
@@ -405,7 +409,7 @@ export class QuoteService {
       default: {
         const cashQuoteConfig = await this.cashPaymentConfigService.getFirst();
         template = {
-          upfrontPayment: 0,
+          upfrontPayment: defaultDownPayment,
           balance: netAmount,
           milestonePayment: (cashQuoteConfig?.config || []).map(item => ({
             ...item,
@@ -447,7 +451,13 @@ export class QuoteService {
     }
 
     const {
-      quote_finance_product: { incentive_details, project_discount_details, rebate_details, finance_product },
+      quote_finance_product: {
+        incentive_details,
+        project_discount_details,
+        rebate_details,
+        finance_product,
+        financial_product_snapshot,
+      },
       utility_program,
     } = foundQuote.detailed_quote;
 
@@ -615,7 +625,11 @@ export class QuoteService {
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
     quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
 
-    let productAttribute = await this.createProductAttribute(finance_product.product_type, quoteCostBuildup.grossPrice);
+    let productAttribute = await this.createProductAttribute(
+      finance_product.product_type,
+      quoteCostBuildup.grossPrice,
+      financial_product_snapshot.default_down_payment,
+    );
     const { product_attribute } = finance_product as any;
     switch (finance_product.product_type) {
       case FINANCE_PRODUCT_TYPE.LEASE: {
