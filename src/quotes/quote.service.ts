@@ -719,7 +719,6 @@ export class QuoteService {
     skip: number,
     systemDesignId: string,
     opportunityId: string,
-    selected: string,
     isSync: string,
   ): Promise<OperationResult<Pagination<QuoteDto>>> {
     const condition = omitBy(

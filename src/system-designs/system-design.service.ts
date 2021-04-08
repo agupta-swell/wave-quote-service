@@ -380,7 +380,7 @@ export class SystemDesignService {
   }
 
   async getAllSystemDesigns(
-    limit = 999,
+    limit: number,
     skip: number,
     opportunityId: string,
   ): Promise<OperationResult<Pagination<SystemDesignDto>>> {
