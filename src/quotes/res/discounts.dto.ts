@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { Discounts } from '../schemas/discounts.schema';
-// import { LeanDocument } from 'mongoose';
 
 export class DiscountsDto {
   @ApiProperty()
@@ -22,7 +22,7 @@ export class DiscountsDto {
   @ApiProperty()
   endDate: Date;
 
-  constructor(props: Discounts) {
+  constructor(props: LeanDocument<Discounts>) {
     this.id = props._id;
     this.name = props.name;
     this.type = props.type;
