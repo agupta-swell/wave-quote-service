@@ -17,10 +17,13 @@ import { QuoteService } from '../quotes/quote.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { PROPOSAL_ANALYTIC_TYPE, PROPOSAL_STATUS } from './constants';
 import { IDetailedProposalSchema, Proposal, PROPOSAL } from './proposal.schema';
-import { CreateProposalDto } from './req/create-proposal.dto';
-import { SaveProposalAnalyticDto } from './req/save-proposal-analytic.dto';
-import { UpdateProposalDto } from './req/update-proposal.dto';
-import { CustomerInformationDto, ValidateProposalDto } from './req/validate-proposal.dto';
+import {
+  CreateProposalDto,
+  CustomerInformationDto,
+  SaveProposalAnalyticDto,
+  UpdateProposalDto,
+  ValidateProposalDto,
+} from './req';
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
 import { GetPresignedUrlService } from './sub-services/s3.service';

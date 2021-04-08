@@ -15,8 +15,10 @@ import {
   GetInverterClippingDetailResDto,
   SystemDesignAncillaryMasterDto,
   SystemDesignAncillaryMasterListRes,
+  SystemDesignDto,
+  SystemDesignListRes,
+  SystemDesignRes,
 } from './res';
-import { SystemDesignDto, SystemDesignListRes, SystemDesignRes } from './res/system-design.dto';
 import { SystemDesignService } from './system-design.service';
 
 @ApiTags('System Design')

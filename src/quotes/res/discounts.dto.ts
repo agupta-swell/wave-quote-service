@@ -11,7 +11,7 @@ export class DiscountsDto {
   name: string;
 
   @ApiProperty()
-  amount: Number;
+  amount: number;
 
   @ApiProperty()
   type: string;

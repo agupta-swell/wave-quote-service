@@ -8,10 +8,8 @@ import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
-import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
-import { CreateUtilityDto } from './req/create-utility.dto';
-import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto } from './res';
-import { UtilityDetailsDto } from './res/utility-details.dto';
+import { CalculateActualUsageCostDto, CreateUtilityDto, GetActualUsageDto } from './req';
+import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
 import { UTILITIES, Utilities } from './schemas';
 import {
   GenabilityCostData,
@@ -256,9 +254,9 @@ export class UtilityService {
   }
 
   async getTypicalBaselineData(zipCode: number): Promise<LeanDocument<GenabilityUsageData>> {
-    let typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode });
+    let typicalBaseLine: any = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode }).lean();
     if (typicalBaseLine) {
-      return typicalBaseLine.toObject();
+      return typicalBaseLine;
     }
 
     const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
@@ -326,13 +324,13 @@ export class UtilityService {
     return costData;
   }
 
-  async getUtilityByOpportunityId(opportunityId: string): Promise<UtilityUsageDetails | null> {
-    const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId });
+  async getUtilityByOpportunityId(opportunityId: string): Promise<LeanDocument<UtilityUsageDetails> | null> {
+    const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId }).lean();
     return utility;
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    const counter = await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId });
+    const counter = await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId }).lean();
     return counter;
   }
 
@@ -374,7 +372,7 @@ export class UtilityService {
   }
 
   async getUtilityName(utilityId: string): Promise<string> {
-    const utility = await this.utilitiesModel.findById(utilityId);
+    const utility = await this.utilitiesModel.findById(utilityId).lean();
     return utility?.name || '';
   }
 

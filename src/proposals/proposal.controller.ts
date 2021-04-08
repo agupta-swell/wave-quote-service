@@ -5,10 +5,7 @@ import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { CurrentUser, CustomJWTSecretKey, PreAuthenticate } from '../app/securities';
 import { CurrentUserType } from '../app/securities/current-user';
 import { ProposalService } from './proposal.service';
-import { CreateProposalDto } from './req/create-proposal.dto';
-import { SaveProposalAnalyticDto } from './req/save-proposal-analytic.dto';
-import { UpdateProposalDto } from './req/update-proposal.dto';
-import { ValidateProposalDto } from './req/validate-proposal.dto';
+import { CreateProposalDto, SaveProposalAnalyticDto, UpdateProposalDto, ValidateProposalDto } from './req';
 import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
 
 @ApiTags('Proposal')

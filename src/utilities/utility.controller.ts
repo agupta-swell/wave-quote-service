@@ -3,11 +3,8 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from '../app/securities';
-import { CalculateActualUsageCostDto, GetActualUsageDto } from './req';
-import { CreateUtilityDto } from './req/create-utility.dto';
-import { LoadServingEntity, TariffDto, UtilityDataDto } from './res';
-import { CostDataDto } from './res/cost-data.dto';
-import { UtilityDetailsDto } from './res/utility-details.dto';
+import { CalculateActualUsageCostDto, CreateUtilityDto, GetActualUsageDto } from './req';
+import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
 import { UtilityService } from './utility.service';
 
 @ApiTags('Utilities')

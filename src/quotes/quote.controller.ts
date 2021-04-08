@@ -5,9 +5,7 @@ import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { QuoteService } from './quote.service';
 import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
-import { QuoteDto, QuoteListRes, QuoteRes } from './res/quote.dto';
-import { TaxCreditDto, TaxCreditListRes } from './res/tax-credit.dto';
-import { DiscountListRes, DiscountsDto } from './res/discounts.dto';
+import { DiscountListRes, DiscountsDto, QuoteDto, QuoteListRes, QuoteRes, TaxCreditDto, TaxCreditListRes } from './res';
 
 @ApiTags('Quote')
 @ApiBearerAuth()

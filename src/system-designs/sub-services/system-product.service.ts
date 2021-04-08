@@ -31,14 +31,16 @@ export class SystemProductService {
   ) {}
 
   async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
-    const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
-      lat: data.lat,
-      lon: data.lon,
-      system_capacity_kW: data.systemCapacity,
-      azimuth: data.azimuth,
-      tilt: data.tilt,
-      losses: data.losses,
-    });
+    const pvWattSystemProduction = await this.pvWattSystemProduction
+      .findOne({
+        lat: data.lat,
+        lon: data.lon,
+        system_capacity_kW: data.systemCapacity,
+        azimuth: data.azimuth,
+        tilt: data.tilt,
+        losses: data.losses,
+      })
+      .lean();
 
     if (pvWattSystemProduction) {
       return pvWattSystemProduction.ac_annual_production;
@@ -74,13 +76,15 @@ export class SystemProductService {
           const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
           const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
 
-          const pvWattSystemProduction = await this.pvWattSystemProduction.findOne({
-            lat: systemDesignDto.latitude,
-            lon: systemDesignDto.longtitude,
-            system_capacity_kW: systemCapacityInkWh,
-            azimuth: item.azimuth,
-            tilt: item.pitch,
-          });
+          const pvWattSystemProduction = await this.pvWattSystemProduction
+            .findOne({
+              lat: systemDesignDto.latitude,
+              lon: systemDesignDto.longtitude,
+              system_capacity_kW: systemCapacityInkWh,
+              azimuth: item.azimuth,
+              tilt: item.pitch,
+            })
+            .lean();
 
           if (pvWattSystemProduction) {
             arrayProductionData.hourly = pvWattSystemProduction.ac_annual_hourly_production;

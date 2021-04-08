@@ -43,7 +43,9 @@ export class QualificationService {
   ) {}
 
   async createQualification(qualificationDto: CreateQualificationReqDto): Promise<OperationResult<QualificationDto>> {
-    const found = await this.qualificationCreditModel.findOne({ opportunity_id: qualificationDto.opportunityId });
+    const found = await this.qualificationCreditModel
+      .findOne({ opportunity_id: qualificationDto.opportunityId })
+      .lean();
     if (found) {
       throw ApplicationException.ExistedEntity('opportunityId', qualificationDto.opportunityId);
     }
@@ -152,9 +154,11 @@ export class QualificationService {
       },
     ] as any;
 
-    const res = await this.qualificationCreditModel.findByIdAndUpdate(qualificationCredit.id, qualificationCredit, {
-      new: true,
-    });
+    const res = await this.qualificationCreditModel
+      .findByIdAndUpdate(qualificationCredit.id, qualificationCredit, {
+        new: true,
+      })
+      .lean();
 
     return OperationResult.ok(new SendMailDto({ status: true, detail: res || ({} as any) }));
   }
@@ -366,7 +370,7 @@ export class QualificationService {
         break;
     }
 
-    const found = await this.qualificationCreditModel.findById(qualificationCreditId);
+    const found = await this.qualificationCreditModel.findById(qualificationCreditId).lean();
     if (!found) {
       throw ApplicationException.EntityNotFound(qualificationCreditId);
     }

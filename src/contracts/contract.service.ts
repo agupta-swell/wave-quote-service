@@ -15,7 +15,11 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
-import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IDisclosureEsaMapping } from '../docusign-communications/typing';
+import {
+  CONTRACTING_SYSTEM_STATUS,
+  IContractSignerDetails,
+  IDisclosureEsaMapping,
+} from '../docusign-communications/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
@@ -91,10 +95,10 @@ export class ContractService {
       .replace(/\s/g, '')
       .split('-');
 
-    const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id?.toString() || '';
+    const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id || '';
 
     const utilityProgramId =
-      (await this.utilityProgramMasterService.getDetailByName(utilityProgramName.trim()))?._id?.toString() || '';
+      (await this.utilityProgramMasterService.getDetailByName(utilityProgramName.trim()))?._id || '';
 
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId],
@@ -117,7 +121,7 @@ export class ContractService {
     }
 
     if (mode === REQUEST_MODE.UPDATE) {
-      const contract = await this.contractModel.findById(contractDetail.id);
+      const contract = await this.contractModel.findById(contractDetail.id).lean();
 
       if (!contract) {
         return OperationResult.ok(
@@ -201,7 +205,7 @@ export class ContractService {
       this.systemDesignService.getRoofTopDesignById(quote.system_design_id),
     ]);
     const assignedMember = opportunity.assignedMember;
-    const user = await this.userModel.findOne({ _id: assignedMember });
+    const user = await this.userModel.findOne({ _id: assignedMember }).lean();
     if (!user) {
       throw ApplicationException.EntityNotFound(`assignedMember: ${assignedMember}`);
     }
@@ -220,7 +224,7 @@ export class ContractService {
       utilityName: utilityName.split(' - ')[1] || 'none',
       roofTopDesign: roofTopDesign || ({} as any),
       isCash: fundingSourceType === 'cash',
-      assignedMember:disclosureEsa
+      assignedMember: disclosureEsa,
     });
 
     if (docusignResponse.status === 'SUCCESS') {
@@ -251,7 +255,7 @@ export class ContractService {
     }
 
     if (mode === REQUEST_MODE.UPDATE) {
-      const contract = await this.contractModel.findById(contractDetail.id);
+      const contract = await this.contractModel.findById(contractDetail.id).lean();
 
       if (!contract) {
         return OperationResult.ok(
@@ -306,9 +310,11 @@ export class ContractService {
   }
 
   async updateContractByDocusign(req: IContractSignerDetails): Promise<void> {
-    const contract = await this.contractModel.findOne({
-      contracting_system_reference_id: req.contractSystemReferenceId,
-    });
+    const contract = await this.contractModel
+      .findOne({
+        contracting_system_reference_id: req.contractSystemReferenceId,
+      })
+      .lean();
 
     if (!contract) {
       throw ApplicationException.EntityNotFound(
@@ -317,7 +323,7 @@ export class ContractService {
     }
 
     req.statusesData.map(status => {
-      const signerDetails = contract?.signer_details.find(signer => signer.email === status.emailId) || ({} as any);
+      const signerDetails = contract.signer_details.find(signer => signer.email === status.emailId) || ({} as any);
       if (status.status === CONTRACTING_SYSTEM_STATUS.SENT) {
         signerDetails.sign_status = SIGN_STATUS.SENT;
         signerDetails.sent_on = new Date(status.date);
@@ -333,7 +339,7 @@ export class ContractService {
       contract.contract_status = PROCESS_STATUS.COMPLETED;
     }
 
-    await this.contractModel.findByIdAndUpdate(contract._id, contract.toObject({ versionKey: false }));
+    await this.contractModel.findByIdAndUpdate(contract._id, contract);
   }
 
   async getDocusignCommunicationDetails(

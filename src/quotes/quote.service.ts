@@ -27,18 +27,18 @@ import {
   REBATE_TYPE,
 } from './constants';
 import { IDetailedQuoteSchema, IRebateDetailsSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
-import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
 import {
+  CalculateQuoteDetailDto,
   CashProductAttributesDto,
+  CreateQuoteDto,
   LaborCostDetails,
   LeaseProductAttributesDto,
   LoanProductAttributesDto,
   QuoteCostBuildupDto,
   QuoteFinanceProductDto,
-} from './req/sub-dto';
-import { DiscountsDto } from './res/discounts.dto';
-import { QuoteDto } from './res/quote.dto';
-import { TaxCreditDto } from './res/tax-credit.dto';
+  UpdateQuoteDto,
+} from './req';
+import { DiscountsDto, QuoteDto, TaxCreditDto } from './res';
 import {
   DISCOUNTS,
   ITC,
@@ -73,9 +73,9 @@ export class QuoteService {
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const [systemDesign, markupConfigs, quoteConfigData, v2_itc] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
-      this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }),
+      this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }).lean(),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
-      this.iTCModel.findOne({}),
+      this.iTCModel.findOne().lean(),
     ]);
 
     if (!systemDesign) {
@@ -91,7 +91,7 @@ export class QuoteService {
       throw ApplicationException.NoQuoteConfigAvailable();
     }
 
-    if (!markupConfigs?.length) {
+    if (!markupConfigs.length) {
       throw ApplicationException.EntityNotFound('Quote Config');
     }
 
@@ -270,19 +270,17 @@ export class QuoteService {
     const detailedQuote = {
       systemProduction: systemDesign.system_production_data,
       quoteCostBuildup,
-      utilityProgram: utilityProgram
-        ? {
-            utilityProgramId: utilityProgram.id,
-            utilityProgramName: utilityProgram.utility_program_name,
-            rebateAmount: utilityProgram.rebate_amount,
-            utilityProgramDataSnapshot: {
-              id: utilityProgram.id,
-              name: utilityProgram.utility_program_name,
-              rebateAmount: utilityProgram.rebate_amount,
-            },
-            utilityProgramDataSnapshotDate: new Date(),
-          }
-        : null,
+      utilityProgram: utilityProgram && {
+        utilityProgramId: utilityProgram.id,
+        utilityProgramName: utilityProgram.utility_program_name,
+        rebateAmount: utilityProgram.rebate_amount,
+        utilityProgramDataSnapshot: {
+          id: utilityProgram.id,
+          name: utilityProgram.utility_program_name,
+          rebateAmount: utilityProgram.rebate_amount,
+        },
+        utilityProgramDataSnapshotDate: new Date(),
+      },
       quoteFinanceProduct: {
         financeProduct: {
           productType: fundingSource.type,
@@ -317,9 +315,9 @@ export class QuoteService {
           },
         ],
         rebateDetails: this.createRebateDetails({
-          utilityProgramName: utilityProgram ? utilityProgram.utility_program_name : '',
-          itcRate: v2_itc?.itc_rate ? v2_itc.itc_rate : 0,
-          grossPrice: grossPriceData.grossPrice ? grossPriceData.grossPrice : 0,
+          utilityProgramName: utilityProgram?.utility_program_name ?? '',
+          itcRate: v2_itc?.itc_rate ?? 0,
+          grossPrice: grossPriceData.grossPrice ?? 0,
         }) as IRebateDetailsSchema[],
         projectDiscountDetails: [],
       },
@@ -336,7 +334,7 @@ export class QuoteService {
       quotePriceOverride: data.quotePriceOverride,
       notes: [],
     };
-    console.log('detailedQuote::', detailedQuote.quoteFinanceProduct.financeProduct.productAttribute);
+
     if (quoteConfigData) {
       if (quoteConfigData.enableCostBuildup) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.COST_BUILD_UP);
@@ -433,9 +431,9 @@ export class QuoteService {
   async updateLatestQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
     const [foundQuote, v2_itc, systemDesign, markupConfigs] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
-      this.iTCModel.findOne({}),
+      this.iTCModel.findOne().lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
-      this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }),
+      this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }).lean(),
     ]);
 
     if (!foundQuote) {
@@ -446,7 +444,7 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
-    if (!markupConfigs?.length) {
+    if (!markupConfigs.length) {
       throw ApplicationException.EntityNotFound('Quote Config');
     }
 
@@ -706,9 +704,9 @@ export class QuoteService {
     );
 
     detailedQuote.quoteFinanceProduct.rebateDetails = this.createRebateDetails({
-      utilityProgramName: utility_program ? utility_program.utility_program_name : '',
-      itcRate: v2_itc?.itc_rate ? v2_itc.itc_rate : 0,
-      grossPrice: grossPriceData.grossPrice ? grossPriceData.grossPrice : 0,
+      utilityProgramName: utility_program?.utility_program_name ?? '',
+      itcRate: v2_itc?.itc_rate ?? 0,
+      grossPrice: grossPriceData.grossPrice ?? 0,
     });
 
     const model = new QuoteModel(data, detailedQuote);
@@ -735,7 +733,7 @@ export class QuoteService {
 
     const [quotes, count] = await Promise.all([
       this.quoteModel.find(condition).limit(limit).skip(skip).lean(),
-      this.quoteModel.countDocuments(condition),
+      this.quoteModel.countDocuments(condition).lean(),
     ]);
 
     const data = quotes.map(item => new QuoteDto(item));
@@ -750,7 +748,7 @@ export class QuoteService {
   async getAllTaxCredits(): Promise<OperationResult<Pagination<TaxCreditDto>>> {
     const [taxCredits, total] = await Promise.all([
       this.taxCreditConfigModel.find().lean(),
-      this.taxCreditConfigModel.estimatedDocumentCount(),
+      this.taxCreditConfigModel.estimatedDocumentCount().lean(),
     ]);
     const data = taxCredits.map(item => new TaxCreditDto(item));
     const result = {
@@ -762,7 +760,7 @@ export class QuoteService {
 
   async getDetailQuote(quoteId: string): Promise<OperationResult<QuoteDto>> {
     const quote = await this.quoteModel.findById(quoteId).lean();
-    const itc_rate = await this.iTCModel.findOne({});
+    const itc_rate = await this.iTCModel.findOne().lean();
 
     if (!quote) {
       throw ApplicationException.EntityNotFound(quoteId);
@@ -788,7 +786,6 @@ export class QuoteService {
       ),
     );
 
-    // const oldNotes = foundQuote.detailed_quote.notes?.length ? foundQuote.detailed_quote.notes : [];
     const detailedQuote = {
       ...data,
       systemProduction: toCamelCase(systemDesign.system_production_data),
@@ -797,7 +794,6 @@ export class QuoteService {
       isSolar: systemDesign.is_solar,
       isRetrofit: systemDesign.is_retrofit,
       taxCreditData: taxCreditData.map(item => toCamelCase(item)),
-      // notes: data.notes.map(note => toCamelCase(note)),
     };
     const model = new QuoteModel(data, detailedQuote);
 
@@ -920,12 +916,12 @@ export class QuoteService {
   private getSubcontractorMarkup(
     productType: COMPONENT_TYPE,
     productCategory: PRODUCT_CATEGORY_TYPE,
-    quoteMarkupConfigs: QuoteMarkupConfig[],
+    quoteMarkupConfigs: LeanDocument<QuoteMarkupConfig>[],
   ): number {
     const found = quoteMarkupConfigs.find(
       item => item.productType === productType && item.productCategory === productCategory,
     );
-    return found?.subcontractorMarkup || 0;
+    return found?.subcontractorMarkup ?? 0;
   }
 
   // ->>>>>>>>>>>>>>> CALCULATION <<<<<<<<<<<<<<<<<<-
@@ -986,36 +982,6 @@ export class QuoteService {
       grossPrice: totalNetCost * (1 + data.swellStandardMarkup / 100 || 0),
     };
   }
-
-  // calculateIncentiveValueAmount(incentiveDetail: IncentiveDetailsDto, quoteCostBuildup: QuoteCostBuildupDto): number {
-  //   const { type } = incentiveDetail;
-
-  //   if (!type) {
-  //     return roundNumber(quoteCostBuildup.grossPrice, 2);
-  //   }
-
-  //   switch (type) {
-  //     case INCENTIVE_APPLIES_TO_VALUE.SOLAR: {`
-  //       const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
-  //       return roundNumber(incentiveDetail.unitValue * solarNetCost, 2);
-  //     }
-
-  //     case INCENTIVE_APPLIES_TO_VALUE.STORAGE: {
-  //       const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, i => i.netCost);
-  //       return roundNumber(incentiveDetail.unitValue * storageNetCost, 2);
-  //     }
-
-  //     case INCENTIVE_APPLIES_TO_VALUE.SOLAR_AND_STORAGE: {
-  //       const solarNetCost = sumBy(quoteCostBuildup.panelQuoteDetails, i => i.netCost);
-  //       const storageNetCost = sumBy(quoteCostBuildup.storageQuoteDetails, i => i.netCost);
-
-  //       return roundNumber(incentiveDetail.unitValue * (storageNetCost + solarNetCost), 2);
-  //     }
-
-  //     default:
-  //       throw new Error(`Wrong type: ${appliesTo} `);
-  //   }
-  // }
 
   handleUpdateQuoteFinanceProduct(
     quoteFinanceProduct: QuoteFinanceProductDto,
@@ -1093,7 +1059,7 @@ export class QuoteService {
   }
 
   async getDiscounts(): Promise<OperationResult<Pagination<DiscountsDto>>> {
-    const data = await this.discountsModel.find();
+    const data = await this.discountsModel.find().lean();
     if (!data.length) {
       return OperationResult.ok(new Pagination({ total: 0, data: [] }));
       // throw ApplicationException.EntityNotFound();
@@ -1115,6 +1081,7 @@ export class QuoteService {
       }
       return (startDate as any) <= toDay && toDay <= (endDate as any);
     });
+
     const quote = await this.quoteModel.find(
       {},
       { 'detailed_quote.quote_finance_product.project_discount_details': 1 },
@@ -1145,7 +1112,7 @@ export class QuoteService {
       type: REBATE_TYPE.ITC,
       description: '',
     });
-    if (!!utilityProgramName && utilityProgramName.includes('+SGIP')) {
+    if (utilityProgramName && utilityProgramName.includes('+SGIP')) {
       rebateDetails.push({
         amount: 0,
         type: REBATE_TYPE.SGIP,

@@ -14,11 +14,11 @@ import { UtilityService } from '../utilities/utility.service';
 import { COST_UNIT_TYPE, DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
 import {
   CreateSystemDesignDto,
+  ExistingSolarDataDto,
   GetInverterClippingDetailDto,
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
-import { ExistingSolarDataDto } from './req/sub-dto/existingSolarData.dto';
 import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
@@ -458,8 +458,8 @@ export class SystemDesignService {
   }
 
   async getRoofTopDesignById(id: string): Promise<IRoofTopSchema | undefined> {
-    const systemDesign = await this.systemDesignModel.findById(id);
-    return systemDesign?.toObject({ versionKey: false })?.roof_top_design_data;
+    const systemDesign = await this.systemDesignModel.findById(id).lean();
+    return systemDesign?.roof_top_design_data;
   }
 
   async updateListSystemDesign(opportunityId: string, annualUsageKWh: number): Promise<boolean> {
@@ -481,7 +481,7 @@ export class SystemDesignService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    const counter = await this.systemDesignModel.countDocuments({ opportunity_id: opportunityId });
+    const counter = await this.systemDesignModel.countDocuments({ opportunity_id: opportunityId }).lean();
     return counter;
   }
 
