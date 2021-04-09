@@ -257,7 +257,7 @@ export class QuoteService {
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
       : null;
 
-    const financialProduct = await this.financialProductService.getDetailByFundingSourceId(data.fundingSourceId);
+    const financialProduct = await this.financialProductService.getDetailByFinancialProductId(data.financialProductId);
     if (!financialProduct) {
       throw ApplicationException.EntityNotFound('financial Source');
     }
@@ -289,7 +289,7 @@ export class QuoteService {
           productAttribute: await this.createProductAttribute(
             fundingSource.type,
             quoteCostBuildup.grossPrice,
-            financialProduct.default_down_payment,
+            financialProduct?.default_down_payment || 0,
           ),
           financialProductSnapshot: new FinancialProductDto(financialProduct),
         },
@@ -622,11 +622,10 @@ export class QuoteService {
     const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
     quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
-
     let productAttribute = await this.createProductAttribute(
       finance_product.product_type,
       quoteCostBuildup.grossPrice,
-      financial_product_snapshot.default_down_payment,
+      financial_product_snapshot?.default_down_payment || 0,
     );
     const { product_attribute } = finance_product as any;
     switch (finance_product.product_type) {

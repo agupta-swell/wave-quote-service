@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model } from 'mongoose';
+import { LeanDocument, Model, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { FINANCIAL_PRODUCT, FinancialProduct } from './financial-product.schema';
 import { FinancialProductDto } from './res/financial-product.dto';
@@ -23,8 +23,8 @@ export class FinancialProductsService {
     );
   }
 
-  async getDetailByFundingSourceId(id: string): Promise<LeanDocument<FinancialProduct> | null> {
-    const detail = await this.financialProduct.findOne({ funding_source_id: id }).lean();
+  async getDetailByFinancialProductId(id: string): Promise<LeanDocument<FinancialProduct> | null> {
+    const detail = await this.financialProduct.findOne({ _id: { $eq: Types.ObjectId(id) } }).lean();
     return detail;
   }
 }
