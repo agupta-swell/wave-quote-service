@@ -98,7 +98,7 @@ export class ContractService {
     const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id || '';
 
     const utilityProgramId =
-      (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || 'None';
+      (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || null;
 
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId],
