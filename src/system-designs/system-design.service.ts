@@ -48,8 +48,12 @@ export class SystemDesignService {
       throw new Error('Please put your data in body');
     }
 
-    if (!systemDesignDto.isRetrofit && !systemDesignDto.roofTopDesignData.panelArray.length) {
-      throw ApplicationException.ValidationFailed('Panel Array');
+    if (
+      !systemDesignDto.roofTopDesignData.panelArray.length &&
+      !systemDesignDto.roofTopDesignData.storage.length &&
+      !systemDesignDto.roofTopDesignData.inverters.length
+    ) {
+      throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
 
     const systemDesign = new SystemDesignModel(systemDesignDto);
@@ -164,10 +168,12 @@ export class SystemDesignService {
   }
 
   async update(id: string, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
-    if (typeof systemDesignDto.isRetrofit !== 'undefined') {
-      if (!systemDesignDto.isRetrofit && !systemDesignDto.roofTopDesignData?.panelArray?.length) {
-        throw ApplicationException.ValidationFailed('Panel Array');
-      }
+    if (
+      !systemDesignDto.roofTopDesignData.panelArray.length &&
+      !systemDesignDto.roofTopDesignData.storage.length &&
+      !systemDesignDto.roofTopDesignData.inverters.length
+    ) {
+      throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
 
     const foundSystemDesign = await this.systemDesignModel.findById(id);
