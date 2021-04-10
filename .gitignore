@@ -119,3 +119,4 @@ tags*
 .vscode
 
 __snapshots__
+*.cpuprofile

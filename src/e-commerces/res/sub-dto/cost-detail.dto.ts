@@ -16,9 +16,6 @@ class QuoteDetailDataDto {
 
   @ApiProperty()
   cumulativeSavingsOverTwentyFiveYears: number;
-
-  @ApiProperty()
-  typicalUsage: number;
 }
 
 export class CostDetailDataDto {

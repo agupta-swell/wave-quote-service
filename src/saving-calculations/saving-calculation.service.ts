@@ -5,7 +5,7 @@ import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from '../app/common';
 import { CALCULATION_TYPE, SERVICE_RESPONSE_STATUS_TYPE } from './constants';
-import { GetSavingReqDto } from './req/get-saving.dto';
+import { GetSavingReqDto } from './req/get-saving.dto';
 import { GetSavingDto } from './res/get-saving.dto';
 import { ScenarioDataDto } from './res/sub-dto';
 import { SavingEngineBill, SavingEngineScenario, SAVING_ENGINE_BILL, SAVING_ENGINE_SCENARIO } from './schemas';

@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { CacheModule, Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
@@ -30,6 +30,7 @@ import {
       { name: ZIP_CODE_REGION_MAP, schema: ZipCodeRegionMapSchema, collection: 'v2_zipcode_region_maps' },
       { name: E_COMMERCE_PRODUCT, schema: ECommerceProductSchema, collection: 'v2_ecom_products' },
     ]),
+    CacheModule.register(),
   ],
   controllers: [ECommerceController],
   providers: [ECommerceService],

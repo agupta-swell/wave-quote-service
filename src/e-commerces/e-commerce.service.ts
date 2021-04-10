@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as dayjs from 'dayjs';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
+import { Cache } from 'cache-manager';
 import { ApplicationException } from 'src/app/app.exception';
 import { EmailService } from 'src/emails/email.service';
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
@@ -17,9 +18,13 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { toCamelCase } from 'src/utils/transformProperties';
 import { OperationResult } from '../app/common';
 import { ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
+import { CostBreakdown } from './models/cost-breakdown';
+import { GeneratedSolarSystem } from './models/generated-solar-system';
+import { TypicalUsage } from './models/typical-usage';
 import { GetEcomSystemDesignAndQuoteReq } from './req/get-ecom-system-design-and-quote.dto';
 import { GetEcomSystemDesignAndQuoteDto } from './res/get-ecom-system-design-and-quote.dto';
-import { CostDetailDataDto, PaymentOptionDataDto } from './res/sub-dto';
+import { GetGeneratedSystemStorageQuoteDto } from './res/get-generated-system-storage-quote.dto';
+import { CostDetailDataDto, PaymentOptionDataDto, SolarStorageQuoteDto, StorageQuoteDto } from './res/sub-dto';
 import {
   ECommerceConfig,
   ECommerceProduct,
@@ -35,28 +40,74 @@ import {
 
 @Injectable()
 export class ECommerceService {
+  private solarProduct: LeanDocument<ECommerceProduct>;
+  private storageProduct: LeanDocument<ECommerceProduct>;
+
   constructor(
     private readonly utilityService: UtilityService,
     private readonly systemProductService: SystemProductService,
     private readonly calculationService: CalculationService,
     private readonly emailService: EmailService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @InjectModel(E_COMMERCE_CONFIG) private readonly eCommerceConfigModel: Model<ECommerceConfig>,
     @InjectModel(REGION) private readonly regionModel: Model<Region>,
     @InjectModel(ZIP_CODE_REGION_MAP) private readonly zipCodeRegionMapModel: Model<ZipCodeRegionMap>,
     @InjectModel(E_COMMERCE_PRODUCT) private readonly eCommerceProductModel: Model<ECommerceProduct>,
     @InjectModel(E_COMMERCE_SYSTEM_DESIGN) private readonly eCommerceSystemDesignModel: Model<ECommerceSystemDesign>,
-  ) {}
+  ) { }
 
-  async getEcomSystemDesignAndQuote(
-    req: GetEcomSystemDesignAndQuoteReq,
-  ): Promise<OperationResult<GetEcomSystemDesignAndQuoteDto>> {
+  public async getGeneratedSystemAndQuote(
+    req: GetEcomSystemDesignAndQuoteReq
+  ) {
     const {
-      addressDataDetail: { lat, long, zip: zipCode },
-      monthlyUtilityBill,
-      ecomVisitId,
-      depositAmount,
-    } = req;
+      zip,
+      lat,
+      long
+    } = req.addressDataDetail;
 
+    const deposit = req.depositAmount;
+
+    // Specify how many panels we want to allow the user to add or remove
+    const panelVariance = 5;
+    // Total number of solar systems to generate
+    const numberOfSystemsToGenerate = (panelVariance * 2) + 1;
+
+    // Get the typical baseline power usage for the user
+    const typicalUsage = await this.getTypicalUsage(zip, req.monthlyUtilityBill);
+
+    // Get the low and high end (+/- panelVariance) systems
+    const lowEndSystem = await this.generateSolarSystem(zip, typicalUsage, (panelVariance * -1));
+    const highEndSystem = await this.generateSolarSystem(zip, typicalUsage, panelVariance);
+
+    // Calculate the net generation for the low and high end systems -- we can linearly interpolate the rest
+    const lowEndNet = await this.getNetGeneration(lat, long, lowEndSystem.capacityKW);
+    const lowEndProductivity = lowEndNet / lowEndSystem.capacityKW;
+    const highEndNet = await this.getNetGeneration(lat, long, highEndSystem.capacityKW);
+    const highEndProductivity = highEndNet / highEndSystem.capacityKW;
+
+    // Generate the variants for the optimal system design
+    const systems: SolarStorageQuoteDto[] = [];
+    systems.push(await this.getSolarStorageQuoteDto(zip, lowEndSystem, lowEndProductivity, false, deposit));
+    systems.push(await this.getSolarStorageQuoteDto(zip, highEndSystem, highEndProductivity, false, deposit));
+
+    for (let panelCountAdjust = (panelVariance * -1) + 1; panelCountAdjust <= (panelVariance - 1); panelCountAdjust += 1) {
+      const systemIndex = panelCountAdjust + panelVariance;
+      const variantSystem = await this.generateSolarSystem(zip, typicalUsage, panelCountAdjust);
+      const approximateNetGeneration = this.lerp(lowEndNet, highEndNet, systemIndex / numberOfSystemsToGenerate);
+      const systemProductivity = approximateNetGeneration / variantSystem.capacityKW;
+      const isOptimalSystem = panelCountAdjust === 0;
+
+      systems.push(await this.getSolarStorageQuoteDto(zip, variantSystem, systemProductivity, isOptimalSystem, deposit));
+    }
+
+    const result: GetGeneratedSystemStorageQuoteDto = {
+      solarStorageQuotes: systems
+    };
+
+    return OperationResult.ok(result);
+  }
+
+  private async getTypicalUsage(zipCode: number, monthlyUtilityBill: number): Promise<TypicalUsage> {
     const utilityDataInst = new UtilityDataDto({});
     const costDataInst = new CostDataDto({} as any);
 
@@ -122,114 +173,39 @@ export class ECommerceService {
     ).data?.actualUsageCost;
     costDataInst.actualUsageCost = actualCostDataInst || undefined;
 
+    return {
+      annualUsage,
+      typicalAnnualCost,
+      typicalAnnualUsageInKwh,
+    };
+  }
+
+  private async generateSolarSystem(
+    zipCode: number,
+    usage: TypicalUsage,
+    additionalPanels: number = 0
+  ): Promise<GeneratedSolarSystem> {
     // MODULE DESIGN SECTION
-    const foundZipCode = await this.zipCodeRegionMapModel.findOne({ zip_codes: zipCode });
-    if (!foundZipCode) {
-      const subject = `Undefined Zipcode Mapping ${zipCode}`;
-      const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the ZIP code could not be mapped to a region.`;
-      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-      return OperationResult.ok('No detail available for zip code' as any);
-    }
+    const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
+    const foundEComProduct = await this.getPanelProduct();
 
-    const foundRegion = await this.regionModel.findById(foundZipCode.region_id);
-    if (!foundRegion) {
-      const subject = `Undefined region Mapping ${foundZipCode.region_id}`;
-      const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the REGION code could not be mapped to a region.`;
-      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-      return OperationResult.ok('No detail available for zip code' as any);
-    }
+    const { design_factor } = foundECommerceConfig;
 
-    const foundECommerceConfig = await this.eCommerceConfigModel.findOne({ region_id: foundRegion._id });
-    if (!foundECommerceConfig) {
-      const subject = `E Commerce Config does not find with region ${foundRegion._id}`;
-      const body = `E Commerce Config does not find with region ${foundRegion._id}`;
-      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-      throw ApplicationException.EntityNotFound('E Commerce Config');
-    }
-
-    const {
-      design_factor,
-      loan_terms_in_months,
-      loan_interest_rate,
-      module_price_per_watt,
-      storage_price,
-      labor_cost_perWatt,
-    } = foundECommerceConfig;
-    const requiredpVGeneration = annualUsage / design_factor;
-    const foundEComProduct = await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }).lean();
-    if (!foundEComProduct) {
-      const subject = `E Commerce Product does not find with panel type `;
-      const body = `E Commerce Product does not find with panel type `;
-      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-      throw ApplicationException.EntityNotFound('E Commerce Product');
-    }
-
+    const requiredpVGeneration = usage.annualUsage / design_factor;
     const panelSTCRating = foundEComProduct?.sizeW || 1;
-    const numberOfPanels = Math.ceil((requiredpVGeneration * 1000) / panelSTCRating);
+    const numberOfPanels = Math.ceil((requiredpVGeneration * 1000) / panelSTCRating) + additionalPanels;
 
-    // CALCULATE PROJECT PARAMETERS (TYPICALLY USED FOR LEASE QUOTE)
-    const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
-    const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
-    const losses = 5.5; // "Assuming a loss factor of 5.5"
-    const systemCapacity = (numberOfPanels * panelSTCRating) / 1000; //  system capacity is using KW as a unit so we need divide by 1000
-    const netGenerationKWh = await this.systemProductService.pvWatCalculation({
-      lat,
-      lon: long,
-      systemCapacity,
-      azimuth,
-      tilt,
-      losses,
-    });
+    return new GeneratedSolarSystem(numberOfPanels, panelSTCRating);
+  }
 
-    const systemProduction: ISystemProductionSchema = {
-      capacityKW: systemCapacity,
-      generationKWh: netGenerationKWh,
-      productivity: netGenerationKWh / systemCapacity,
-      annual_usageKWh: annualUsage,
-      offset_percentage: netGenerationKWh / annualUsage,
-      generationMonthlyKWh: [],
-    };
-
-    // STORAGE DESIGN SECTION
-    const foundEComBatteryProduct = await this.eCommerceProductModel
-      .findOne({ type: ECOM_PRODUCT_TYPE.BATTERY })
-      .lean();
-    if (!foundEComBatteryProduct) {
-      const subject = `E Commerce Product does not find with battery type `;
-      const body = `E Commerce Product does not find with battery type `;
-      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-      throw ApplicationException.EntityNotFound('E Commerce Product');
-    }
-
-    const storagePerBatteryInkWh = (foundEComBatteryProduct?.sizeW ?? 0) / 1000;
-
-    // QUOTE CALCULATION SECTION
-
-    // TODO: THIS LOGIC NEEDS TO BE VALIDATED WITH BUSINESS, ESPECIALLY THE  STORAGE COST CALCULATIONS AND THE LABOR COST CALCULATIONS.
-    const solarCost = requiredpVGeneration * module_price_per_watt * 1000;
-    const storageCost = storage_price;
-    const laborCost = requiredpVGeneration * labor_cost_perWatt;
-    const overAllCost = solarCost + storageCost + laborCost;
-
-    // BUILD ECOM SYSTEM DESIGN OBJECT
-    const ecomSystemDesign = {
-      e_com_visit_id: ecomVisitId,
-      system_design_product: {
-        number_of_modules: numberOfPanels,
-        number_of_batteries: 1,
-        total_labor_cost: laborCost,
-        total_cost: overAllCost,
-        ecom_config_snapshot: foundECommerceConfig,
-        ecom_config_snapshot_date: new Date(),
-        ecom_products_snapshot: [foundEComProduct, foundEComBatteryProduct],
-        ecom_products_snapshot_date: new Date(),
-      },
-    };
-
-    await this.eCommerceSystemDesignModel.create(ecomSystemDesign);
-
-    // CALCULATE LOAN AMOUNT USING WAVE 2.0
-
+  private async getLoanPaymentOptionDetails(
+    zipCode: number,
+    overallCost: number,
+    depositAmount: number,
+    systemCapacityKW: number,
+  ): Promise<PaymentOptionDataDto> {
+    const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
+    const { loan_terms_in_months, loan_interest_rate } = foundECommerceConfig;
     const calculateQuoteDetailDto: CalculateQuoteDetailDto = {
       quoteId: '',
       systemProduction: {} as any,
@@ -238,24 +214,23 @@ export class ECommerceService {
         financeProduct: {} as any,
       },
     } as any;
-    calculateQuoteDetailDto.systemProduction.capacityKW = numberOfPanels * panelSTCRating;
+    calculateQuoteDetailDto.systemProduction.capacityKW = systemCapacityKW;
     // calculateQuoteDetailDto.quotepricePerKwh = module_price_per_watt;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productType = FINANCE_PRODUCT_TYPE.LOAN;
     const loanProductAttributesDto: LoanProductAttributesDto = {} as any;
     loanProductAttributesDto.upfrontPayment = depositAmount;
-    loanProductAttributesDto.loanAmount = overAllCost - depositAmount;
+    loanProductAttributesDto.loanAmount = overallCost - depositAmount;
     loanProductAttributesDto.interestRate = loan_interest_rate;
     loanProductAttributesDto.loanTerm = loan_terms_in_months;
     loanProductAttributesDto.reinvestment = null as any;
+    loanProductAttributesDto.loanStartDate = new Date(new Date().setDate(15)).getTime();
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productAttribute = loanProductAttributesDto;
     const calculateQuoteDetailDtoResponse = await this.calculationService.calculateLoanSolver(
       calculateQuoteDetailDto,
       0,
     );
 
-    const getEcomSystemDesignAndQuoteResponse = new GetEcomSystemDesignAndQuoteDto();
-
-    const loanPaymentOptionDataDto: PaymentOptionDataDto = {
+    return {
       paymentType: PAYMENT_TYPE.LOAN,
       paymentDetail: {
         monthlyPaymentAmount:
@@ -266,23 +241,32 @@ export class ECommerceService {
         deposit: depositAmount,
       },
     };
+  }
 
-    getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(loanPaymentOptionDataDto);
-
-    // SET THE CASH QUOTE DETAILS
-    const cashPaymentOptionDataDtoInst: PaymentOptionDataDto = {
+  private async getCashPaymentOptionDetails(
+    overallCost: number,
+    depositAmount: number,
+  ): Promise<PaymentOptionDataDto> {
+    return {
       paymentType: PAYMENT_TYPE.CASH,
       paymentDetail: {
-        monthlyPaymentAmount: overAllCost - depositAmount,
+        monthlyPaymentAmount: overallCost - depositAmount,
         savingsFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
         savingTwentyFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
         deposit: depositAmount,
       },
     };
+  }
 
-    getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(cashPaymentOptionDataDtoInst);
-
-    // CALCULATE THE LEASE AMOUNT USING WAVE 2.0 QUOTE
+  private async getLeaseDetails(
+    overallCost: number,
+    numberOfBatteries: number,
+    systemCapacityKW: number,
+    systemProductivity: number,
+  ) {
+    const foundBattery = await this.getBatteryProduct();
+    const storagePerBatteryInkWh = (foundBattery?.sizeW ?? 0) / 1000;
+    const totalStorageRequested = storagePerBatteryInkWh * numberOfBatteries;
     const rateEscalator = 2.9; // "Rate escalator is currently assumed to be 2.9"
     const contractTerm = 25; // "Contract term is currently assumed to be 25"
     const utilityProgramName = 'None';
@@ -290,132 +274,273 @@ export class ECommerceService {
     // LEASE FOR ESSENTIAL BACKUP
     // const pricePerKwhForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;
     const {
-      monthlyLeasePayment: monthlyEsaAmountForEssentialBackup,
-      rate_per_kWh: pricePerKwhForEssentialBackup,
+      monthlyLeasePayment,
+      rate_per_kWh,
     } = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
-      overAllCost,
+      overallCost,
       contractTerm,
-      storagePerBatteryInkWh,
-      systemCapacity,
+      totalStorageRequested,
+      systemCapacityKW,
       rateEscalator,
-      systemProduction.productivity,
+      systemProductivity,
       false,
       utilityProgramName,
     );
 
-    if (monthlyEsaAmountForEssentialBackup === -1) {
+    if (monthlyLeasePayment === -1) {
       const subject = `Lease Solver Config Not Found in E Commerce`;
       const body = `Lease Solver Config Not Found in E Commerce with these conditions:
         isSolar:${true},
         isRetrofit:${false},
         utilityProgramName: ${utilityProgramName},
         contractTerm:${contractTerm},
-        storageSize:${storagePerBatteryInkWh},
+        storageSize:${totalStorageRequested},
         rateEscalator:${rateEscalator},
-        capacityKW:${systemCapacity},
-        productivity:${systemProduction.productivity},
+        capacityKW:${systemCapacityKW},
+        productivity:${systemProductivity},
       `;
 
+      console.log(body);
       await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
     }
 
-    // LEASE FOR WHOLE HOME BACKUP
-    const overallCostForWholeHomeBackup = overAllCost + storageCost; // Add 1 battery additional on top of essential backup
-    // const pricePerKwhForWholeHomeBackup = overallCostForWholeHomeBackup / systemProduction.capacityKW / 1000;
-    const {
-      monthlyLeasePayment: monthlyEsaAmountForWholeHomeBackup,
-      rate_per_kWh: pricePerKwhForWholeHomeBackup,
-    } = await this.calculationService.calculateLeaseQuoteForECom(
-      true,
-      false,
-      overallCostForWholeHomeBackup,
-      contractTerm,
-      2 * storagePerBatteryInkWh,
-      systemCapacity,
-      rateEscalator,
-      systemProduction.productivity,
-      false,
-      utilityProgramName,
-    );
+    const costDetail: CostDetailDataDto = {
+      energyServiceType: this.getLeaseEnergyServiceTypeByBatteryCount(numberOfBatteries),
+      quoteDetail: {
+        monthlyCost: monthlyLeasePayment,
+        pricePerKwh: rate_per_kWh,
+        estimatedIncrease: rateEscalator,
+        estimatedBillInTenYears: monthlyLeasePayment * Math.pow(1 + rateEscalator / 100, 10),
+        cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
+      },
+    };
 
-    if (monthlyEsaAmountForWholeHomeBackup === -1) {
-      const subject = `Lease Solver Config Not Found in E Commerce`;
-      const body = `Lease Solver Config Not Found in E Commerce with these conditions:
-        isSolar:${true},
-        isRetrofit:${false},
-        utilityProgramName: ${utilityProgramName},
-        contractTerm:${contractTerm},
-        storageSize:${2 * storagePerBatteryInkWh},
-        rateEscalator:${rateEscalator},
-        capacityKW:${systemCapacity},
-        productivity:${systemProduction.productivity},
-      `;
+    const paymentOption: PaymentOptionDataDto = {
+      paymentType: this.getLeasePaymentTypeByBatteryCount(numberOfBatteries),
+      paymentDetail: {
+        monthlyPaymentAmount: monthlyLeasePayment,
+        savingsFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
+        savingTwentyFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
+        deposit: 0, // TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
+      }
+    };
 
-      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+    return {
+      costDetail, 
+      paymentOption
+    };
+  }
+
+  private async getEcommerceConfig(zipCode: number) : Promise<ECommerceConfig> {
+    const cacheKey = `e-commerce.service.getEcommerceConfig.${zipCode}`;
+    const cachedResult = await this.cacheManager.get<ECommerceConfig>(cacheKey);
+
+    if (cachedResult) {
+      return cachedResult;
     }
 
-    // BUILD getEcomSystemDesignAndQuote RESPONSE FOR QUOTE OPTIONS
+    const foundZipCode = await this.zipCodeRegionMapModel.findOne({ zip_codes: zipCode });
+    if (!foundZipCode) {
+      const subject = `Undefined Zipcode Mapping ${zipCode}`;
+      const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the ZIP code could not be mapped to a region.`;
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
 
-    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.systemKW = systemCapacity;
-    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
-    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.percentageOfSelfPower = 0; // TO DO: CALCULATION TBD
-    getEcomSystemDesignAndQuoteResponse.pvModuleDetailData.estimatedTwentyFiveYearsSavings = 0; // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.storageSystemCount = 1;
-    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.storageSystemKWh = storagePerBatteryInkWh;
-    getEcomSystemDesignAndQuoteResponse.storageSystemDetailData.numberOfDaysBackup = 0; // TO DO: CALCULATION TBD
+      throw ApplicationException.ServiceError();
+    }
 
-    const essentialBackupCostDetailDataDtoInst: CostDetailDataDto = {
-      energyServiceType: ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP,
-      quoteDetail: {
-        monthlyCost: monthlyEsaAmountForEssentialBackup,
-        pricePerKwh: pricePerKwhForEssentialBackup,
-        estimatedIncrease: rateEscalator,
-        estimatedBillInTenYears: monthlyEsaAmountForEssentialBackup * Math.pow(1 + rateEscalator / 100, 10),
-        cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-        typicalUsage: typicalAnnualUsageInKwh ? typicalAnnualCost / typicalAnnualUsageInKwh : 0,
+    const foundRegion = await this.regionModel.findById(foundZipCode.region_id);
+    if (!foundRegion) {
+      const subject = `Undefined region Mapping ${foundZipCode.region_id}`;
+      const body = `eCommerce system request for zip code ${zipCode} could not be fulfilled as the REGION code could not be mapped to a region.`;
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+
+      throw ApplicationException.ServiceError();
+    }
+
+    const foundECommerceConfig = await this.eCommerceConfigModel.findOne({ region_id: foundRegion._id });
+    if (!foundECommerceConfig) {
+      const subject = `E Commerce Config does not find with region ${foundRegion._id}`;
+      const body = `E Commerce Config does not find with region ${foundRegion._id}`;
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+      throw ApplicationException.EntityNotFound('E Commerce Config');
+    }
+
+    await this.cacheManager.set(cacheKey, foundECommerceConfig, 30);
+
+    return foundECommerceConfig;
+  }
+
+  private async getPanelProduct() {
+    if (!this.solarProduct) {
+      const foundEComProduct = await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }).lean();
+      if (!foundEComProduct) {
+        const subject = `E Commerce Product does not find with panel type `;
+        const body = `E Commerce Product does not find with panel type `;
+        await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+        throw ApplicationException.EntityNotFound('E Commerce Product');
+      }
+
+      this.solarProduct = foundEComProduct;
+    }
+
+    return this.solarProduct;
+  }
+
+  private async getBatteryProduct() {
+    if (!this.storageProduct) {
+      const foundEComBatteryProduct = await this.eCommerceProductModel
+        .findOne({ type: ECOM_PRODUCT_TYPE.BATTERY })
+        .lean();
+      if (!foundEComBatteryProduct) {
+        const subject = `E Commerce Product does not find with battery type `;
+        const body = `E Commerce Product does not find with battery type `;
+        await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+        throw ApplicationException.EntityNotFound('E Commerce Product');
+      }
+
+      this.storageProduct = foundEComBatteryProduct;
+    }
+
+    return this.storageProduct;
+  }
+
+  private async getCostBreakdown(
+    zipCode: number,
+    numberOfPanelsToInstall: number = 0,
+    numberOfBatteries: number = 0
+  ) {
+    const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
+    const result = new CostBreakdown();
+    result.storageCost = numberOfBatteries * foundECommerceConfig.storage_price;
+    result.solarCost = 0;
+    result.laborCost = 0;
+
+    if (numberOfPanelsToInstall > 0) {
+      const solarProduct = await this.getPanelProduct();
+      const {
+        module_price_per_watt,
+        labor_cost_perWatt,
+      } = foundECommerceConfig;
+
+      const wattsBeingInstalled = solarProduct.sizeW * numberOfPanelsToInstall;
+      result.laborCost = labor_cost_perWatt * wattsBeingInstalled;
+      result.solarCost = module_price_per_watt * wattsBeingInstalled;
+    }
+
+    return result;
+  }
+
+  private async getNetGeneration(lat: number, long: number, systemCapacityKW: number) {
+    const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
+    const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
+    const losses = 5.5; // "Assuming a loss factor of 5.5"
+
+    return await this.systemProductService.pvWatCalculation({
+        lat,
+        lon: long,
+        systemCapacity: systemCapacityKW,
+        azimuth,
+        tilt,
+        losses,
+    });
+}
+
+  private getLeaseEnergyServiceTypeByBatteryCount(
+    numberOfBatteries: number
+  ) {
+    switch (numberOfBatteries) {
+      case 1: return ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP;
+      case 2: return ENERGY_SERVICE_TYPE.SWELL_ESA_WHOLE_HOME;
+      case 3: return ENERGY_SERVICE_TYPE.SWELL_ESA_COMPLETE_BACKUP;
+    }
+
+    throw ApplicationException.ServiceError();
+  }
+
+  private getLeasePaymentTypeByBatteryCount(
+    numberOfBatteries: number
+  ) {
+    switch (numberOfBatteries) {
+      case 1: return PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP;
+      case 2: return PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP;
+      case 3: return PAYMENT_TYPE.LEASE_COMPLETE_BACKUP;
+    }
+
+    throw ApplicationException.ServiceError();
+  }
+
+  private async getSolarStorageQuoteDto(
+    zipCode: number,
+    system: GeneratedSolarSystem,
+    systemProductivity: number,
+    isDefault: boolean,
+    deposit: number,
+  ) : Promise<SolarStorageQuoteDto> {
+    const storageQuotes: StorageQuoteDto[] = [];
+
+    for (let batteryCount = 1; batteryCount <= 3; batteryCount += 1) {
+      const storageQuote = await this.getStorageQuoteDto(zipCode, deposit, system.numberOfPanels, batteryCount, system.capacityKW, systemProductivity);
+      storageQuotes.push(storageQuote);
+    }
+
+    return {
+      numberOfPanels: system.numberOfPanels,
+      isDefault,
+      pvModuleDetailData: this.getPvModuleDetailDataDto(system),
+      storageData: storageQuotes,
+    }
+  }
+
+  private async getStorageQuoteDto(
+    zipCode: number,
+    deposit: number,
+    numberOfPanelsToInstall: number = 0,
+    numberOfBatteries: number = 0,
+    systemCapacityKW: number = 0,
+    systemProductivity: number = 0,
+  ) : Promise<StorageQuoteDto> {
+    const costBreakdown = await this.getCostBreakdown(zipCode, numberOfPanelsToInstall, numberOfBatteries);
+    const batteryProduct = await this.getBatteryProduct();
+    const costDetailsData: CostDetailDataDto[] = [];
+    const paymentOptionData: PaymentOptionDataDto[] = [];
+
+    if (numberOfPanelsToInstall > 0) {
+      const leaseDetails = await this.getLeaseDetails(costBreakdown.totalCost, numberOfBatteries, systemCapacityKW, systemProductivity);
+      costDetailsData.push(leaseDetails.costDetail);
+      paymentOptionData.push(leaseDetails.paymentOption);
+
+      const cashDetails = await this.getCashPaymentOptionDetails(costBreakdown.totalCost, deposit);
+      paymentOptionData.push(cashDetails);
+    }
+
+    const loanDetails = await this.getLoanPaymentOptionDetails(zipCode, costBreakdown.totalCost, deposit, systemCapacityKW);
+    paymentOptionData.push(loanDetails);
+
+    return {
+      storageSystemDetailData: {
+        storageSystemCount: numberOfBatteries,
+        storageSystemKWh: batteryProduct.sizeW * numberOfBatteries / 1000,
+        numberOfDaysBackup: 0, // TODO: IMPLEMENT THIS
+        backupDetailsTest: '', // TODO: IMPLEMENT THIS
       },
+      costDetailsData,
+      paymentOptionData,
     };
-    getEcomSystemDesignAndQuoteResponse.costDetailsData.push(essentialBackupCostDetailDataDtoInst);
+  }
 
-    const whBackupCostDetailDataDtoInst: CostDetailDataDto = {
-      energyServiceType: ENERGY_SERVICE_TYPE.SWELL_ESA_WHOLE_HOME,
-      quoteDetail: {
-        monthlyCost: monthlyEsaAmountForWholeHomeBackup,
-        pricePerKwh: pricePerKwhForWholeHomeBackup,
-        estimatedIncrease: rateEscalator,
-        estimatedBillInTenYears: monthlyEsaAmountForWholeHomeBackup * Math.pow(1 + rateEscalator / 100, 10),
-        cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
-        typicalUsage: typicalAnnualUsageInKwh ? typicalAnnualCost / typicalAnnualUsageInKwh : 0,
-      },
+  private getPvModuleDetailDataDto(
+    generatedSystem: GeneratedSolarSystem
+  ) {
+    return {
+      systemKW: generatedSystem.capacityKW,
+      percentageOfSelfPower: 0, // PENDING CALCULATION
+      estimatedTwentyFiveYearsSavings: 0, // PENDING CALCULATION
     };
-    getEcomSystemDesignAndQuoteResponse.costDetailsData.push(whBackupCostDetailDataDtoInst);
+  }
 
-    // SET THE QUOTE FOR ESSENTIAL BACKUP AND WHOLE HOME PACKUP
-    const essentialBackupPaymentOptionDataDtoInst: PaymentOptionDataDto = {
-      paymentType: PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP,
-      paymentDetail: {
-        monthlyPaymentAmount: monthlyEsaAmountForEssentialBackup,
-        savingsFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
-        savingTwentyFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
-        deposit: 0, // TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
-      },
-    };
-    getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(essentialBackupPaymentOptionDataDtoInst);
-
-    const whBackupPaymentOptionDataDtoInst: PaymentOptionDataDto = {
-      paymentType: PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP,
-      paymentDetail: {
-        monthlyPaymentAmount: monthlyEsaAmountForWholeHomeBackup,
-        savingsFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
-        savingTwentyFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
-        deposit: 0, // TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
-      },
-    };
-
-    getEcomSystemDesignAndQuoteResponse.paymentOptionData.push(whBackupPaymentOptionDataDtoInst);
-
-    return OperationResult.ok(getEcomSystemDesignAndQuoteResponse);
+  private lerp(start: number, end: number, desired: number) {
+    return (start * (1.0 - desired)) + (end * desired);
   }
 }
