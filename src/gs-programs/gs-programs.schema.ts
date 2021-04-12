@@ -9,6 +9,7 @@ export interface GsPrograms extends Document {
   numberBatteries: string;
   upfrontIncentives: number;
   utilityProgramId: string;
+  batteryId: string;
 
   created_at: Date;
   created_by: string;
@@ -25,6 +26,7 @@ export const GsProgramsSchema = new Schema<GsPrograms>({
   numberBatteries: String,
   upfrontIncentives: Number,
   utilityProgramId: String,
+  batteryId: String,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,

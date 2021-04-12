@@ -43,4 +43,13 @@ export class ProductService {
     const product = await this.productModel.findById(isObjectId(id) ? Types.ObjectId(id) : id).lean();
     return product;
   }
+
+  async getDetailByIdList(idList: string[]): Promise<LeanDocument<Product[]> | null> {
+    const newIdList = idList.map(item => Types.ObjectId(item));
+    const query = {
+      _id: { $in: newIdList },
+    };
+    const product = await this.productModel.find(query).lean();
+    return product;
+  }
 }
