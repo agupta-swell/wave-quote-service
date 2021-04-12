@@ -5,6 +5,9 @@ import { SolarStorageQuoteDto } from './sub-dto';
 export class GetGeneratedSystemStorageQuoteDto {
   @ApiProperty({ type: [SolarStorageQuoteDto] })
   solarStorageQuotes: SolarStorageQuoteDto[];
+
+  @ApiProperty()
+  typicalUsageCostPerKWh: number;
 }
 
 export class GetGeneratedSystemStorageQuoteRes implements ServiceResponse<GetGeneratedSystemStorageQuoteDto> {

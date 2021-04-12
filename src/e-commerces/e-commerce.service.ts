@@ -1,6 +1,5 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import * as dayjs from 'dayjs';
 import { LeanDocument, Model } from 'mongoose';
 import { Cache } from 'cache-manager';
 import { ApplicationException } from 'src/app/app.exception';
@@ -10,7 +9,6 @@ import { CalculateQuoteDetailDto } from 'src/quotes/req/calculate-quote-detail.d
 import { LoanProductAttributesDto } from 'src/quotes/req/sub-dto/loan-product-attributes.dto';
 import { CalculationService } from 'src/quotes/sub-services/calculation.service';
 import { SystemProductService } from 'src/system-designs/sub-services';
-import { ISystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { CALCULATION_MODE } from 'src/utilities/constants';
 import { CostDataDto, UtilityDataDto } from 'src/utilities/res';
 import { ITypicalUsage } from 'src/utilities/utility.schema';
@@ -22,7 +20,6 @@ import { CostBreakdown } from './models/cost-breakdown';
 import { GeneratedSolarSystem } from './models/generated-solar-system';
 import { TypicalUsage } from './models/typical-usage';
 import { GetEcomSystemDesignAndQuoteReq } from './req/get-ecom-system-design-and-quote.dto';
-import { GetEcomSystemDesignAndQuoteDto } from './res/get-ecom-system-design-and-quote.dto';
 import { GetGeneratedSystemStorageQuoteDto } from './res/get-generated-system-storage-quote.dto';
 import { CostDetailDataDto, PaymentOptionDataDto, SolarStorageQuoteDto, StorageQuoteDto } from './res/sub-dto';
 import {
@@ -100,8 +97,13 @@ export class ECommerceService {
       systems.push(await this.getSolarStorageQuoteDto(zip, variantSystem, systemProductivity, isOptimalSystem, deposit));
     }
 
+    const typicalUsageCostPerKWh = typicalUsage.typicalAnnualUsageInKwh ?
+      typicalUsage.typicalAnnualCost / typicalUsage.typicalAnnualUsageInKwh :
+      0;
+
     const result: GetGeneratedSystemStorageQuoteDto = {
-      solarStorageQuotes: systems
+      solarStorageQuotes: systems,
+      typicalUsageCostPerKWh,
     };
 
     return OperationResult.ok(result);
@@ -185,7 +187,6 @@ export class ECommerceService {
     usage: TypicalUsage,
     additionalPanels: number = 0
   ): Promise<GeneratedSolarSystem> {
-    // MODULE DESIGN SECTION
     const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
     const foundEComProduct = await this.getPanelProduct();
 
@@ -215,7 +216,6 @@ export class ECommerceService {
       },
     } as any;
     calculateQuoteDetailDto.systemProduction.capacityKW = systemCapacityKW;
-    // calculateQuoteDetailDto.quotepricePerKwh = module_price_per_watt;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productType = FINANCE_PRODUCT_TYPE.LOAN;
     const loanProductAttributesDto: LoanProductAttributesDto = {} as any;
     loanProductAttributesDto.upfrontPayment = depositAmount;
