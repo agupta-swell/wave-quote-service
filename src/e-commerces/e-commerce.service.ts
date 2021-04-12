@@ -259,11 +259,13 @@ export class ECommerceService {
   }
 
   private async getLeaseDetails(
+    zipCode: number,
     overallCost: number,
     numberOfBatteries: number,
     systemCapacityKW: number,
     systemProductivity: number,
   ) {
+    const ecomConfig = await this.getEcommerceConfig(zipCode);
     const foundBattery = await this.getBatteryProduct();
     const storagePerBatteryInkWh = (foundBattery?.sizeW ?? 0) / 1000;
     const totalStorageRequested = storagePerBatteryInkWh * numberOfBatteries;
@@ -507,7 +509,7 @@ export class ECommerceService {
     const paymentOptionData: PaymentOptionDataDto[] = [];
 
     if (numberOfPanelsToInstall > 0) {
-      const leaseDetails = await this.getLeaseDetails(costBreakdown.totalCost, numberOfBatteries, systemCapacityKW, systemProductivity);
+      const leaseDetails = await this.getLeaseDetails(zipCode, costBreakdown.totalCost, numberOfBatteries, systemCapacityKW, systemProductivity);
       costDetailsData.push(leaseDetails.costDetail);
       paymentOptionData.push(leaseDetails.paymentOption);
 
