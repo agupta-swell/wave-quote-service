@@ -269,9 +269,9 @@ export class ECommerceService {
     const foundBattery = await this.getBatteryProduct();
     const storagePerBatteryInkWh = (foundBattery?.sizeW ?? 0) / 1000;
     const totalStorageRequested = storagePerBatteryInkWh * numberOfBatteries;
-    const rateEscalator = 2.9; // "Rate escalator is currently assumed to be 2.9"
-    const contractTerm = 25; // "Contract term is currently assumed to be 25"
-    const utilityProgramName = 'None';
+    const rateEscalator = ecomConfig?.esa_rate_escalator || 0; // "Rate escalator is currently assumed to be 2.9"
+    const contractTerm = ecomConfig?.esa_contract_term_in_years || 0; // "Contract term is currently assumed to be 25"
+    const utilityProgramName = ecomConfig?.esa_utility_program_name || '';
 
     // LEASE FOR ESSENTIAL BACKUP
     // const pricePerKwhForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;

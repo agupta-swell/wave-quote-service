@@ -10,7 +10,10 @@ export interface ECommerceConfig extends Document {
   labor_cost_perWatt: number;
   loan_interest_rate: number;
   loan_terms_in_months: number;
-
+  esa_rate_escalator: number;
+  esa_contract_term_in_years: number;
+  esa_utility_program_name: string;
+  
   created_by: string;
   created_at: Date;
   updated_by: string;
@@ -25,6 +28,9 @@ export const ECommerceConfigSchema = new Schema<ECommerceConfig>({
   labor_cost_perWatt: Number,
   loan_interest_rate: Number,
   loan_terms_in_months: Number,
+  esa_rate_escalator: Number,
+  esa_contract_term_in_years: Number,
+  esa_utility_program_name: String,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,
