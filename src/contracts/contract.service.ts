@@ -92,13 +92,13 @@ export class ContractService {
     const utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunityData.utilityId);
 
     const [utilityName = '', utilityProgramName = ''] = utilityNameConcatUtilityProgramName
-      .replace(/\s/g, '')
-      .split('-');
+      .split('-')
+      .map(x => x.trim());
 
     const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id || '';
 
     const utilityProgramId =
-      (await this.utilityProgramMasterService.getDetailByName(utilityProgramName.trim()))?._id?.toString() || 'None';
+      (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || 'None';
 
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId],
