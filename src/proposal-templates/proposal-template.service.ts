@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
+import { Quote } from 'src/quotes/quote.schema';
+import { QuoteService } from 'src/quotes/quote.service';
+import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { ProposalSectionMasterService } from '../proposal-section-masters/proposal-section-master.service';
@@ -15,6 +18,8 @@ export class ProposalTemplateService {
   constructor(
     @InjectModel(PROPOSAL_TEMPLATE) private proposalTemplate: Model<ProposalTemplate>,
     private readonly proposalSectionMasterService: ProposalSectionMasterService,
+    private readonly quoteService: QuoteService,
+    private readonly systemDesignService: SystemDesignService,
   ) {}
 
   async create(proposalTemplateDto: CreateProposalTemplateDto): Promise<OperationResult<ProposalTemplateDto>> {
@@ -73,9 +78,40 @@ export class ProposalTemplateService {
     return OperationResult.ok(new ProposalTemplateDto(updatedModel || ({} as any)));
   }
 
-  async getList(limit: number, skip: number): Promise<OperationResult<Pagination<ProposalTemplateDto>>> {
+  async getList(
+    limit: number,
+    skip: number,
+    quoteId?: string,
+  ): Promise<OperationResult<Pagination<ProposalTemplateDto>>> {
+    let foundQuote: LeanDocument<Quote> | null;
+    const query = {
+      'proposal_section_master.applicable_financial_product': '',
+      'proposal_section_master.applicable_products': {
+        $in: [] as string[],
+      },
+    };
+
+    if (quoteId) {
+      foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
+      const foundSystemDesign = await this.systemDesignService.getOneById(foundQuote!!.system_design_id);
+
+      query[
+        'proposal_section_master.applicable_financial_product'
+      ] = foundQuote!!.detailed_quote.quote_finance_product.finance_product.product_type;
+      if (foundSystemDesign && foundSystemDesign.roof_top_design_data.panel_array?.length) {
+        query['proposal_section_master.applicable_products'].$in.push('pv');
+      }
+      if (foundSystemDesign && foundSystemDesign.roof_top_design_data.storage?.length) {
+        query['proposal_section_master.applicable_products'].$in.push('storage');
+      }
+    }
+
     const [proposalTemplates, total] = await Promise.all([
-      this.proposalTemplate.find().limit(limit).skip(skip).lean(),
+      this.proposalTemplate
+        .find(quoteId ? (query as any) : {})
+        .limit(limit)
+        .skip(skip)
+        .lean(),
       this.proposalTemplate.estimatedDocumentCount(),
     ]);
 

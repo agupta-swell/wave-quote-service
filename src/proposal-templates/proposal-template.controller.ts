@@ -40,13 +40,14 @@ export class ProposalTemplateController {
   @ApiOperation({ summary: 'Get List' })
   @ApiQuery({ name: 'limit' })
   @ApiQuery({ name: 'skip' })
+  @ApiQuery({ name: 'quoteId' })
   @ApiOkResponse({ type: ProposalTemplateListRes })
   async getList(
-    @Query() query: { limit: string; skip: string },
+    @Query() query: { limit: string; skip: string; quoteId?: string },
   ): Promise<ServiceResponse<Pagination<ProposalTemplateDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
-    const res = await this.proposalTemplateService.getList(limit, skip);
+    const res = await this.proposalTemplateService.getList(limit, skip, query.quoteId);
     return ServiceResponse.fromResult(res);
   }
 }
