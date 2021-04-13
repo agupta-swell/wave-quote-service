@@ -75,7 +75,6 @@ export class SystemDesignController {
   @ApiOperation({ summary: 'Get all system designs' })
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'skip', required: false })
-  @ApiQuery({ name: 'selected' })
   @ApiQuery({ name: 'opportunityId' })
   @ApiOkResponse({ type: SystemDesignListRes })
   async getsystemDesigns(
