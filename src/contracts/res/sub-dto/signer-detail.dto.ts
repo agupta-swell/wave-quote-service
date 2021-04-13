@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SIGN_STATUS } from '../../constants';
 
 export class SignerDetailResDto {
@@ -25,4 +25,7 @@ export class SignerDetailResDto {
 
   @ApiProperty()
   signedOn: Date;
+
+  @ApiPropertyOptional()
+  phoneNumber: string
 }

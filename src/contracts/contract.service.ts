@@ -157,7 +157,7 @@ export class ContractService {
         name: contractDetail.name,
         associated_quote_id: contractDetail.associatedQuoteId,
         contract_template_id: contractDetail.contractTemplateId,
-        signer_details: contractDetail.signerDetails.map(item => toSnakeCase(item)),
+        signer_details: contractDetail.signerDetails.map(toSnakeCase),
         contract_template_detail: templateDetail,
         contracting_system: 'DOCUSIGN',
         primary_contract_id: contractDetail.primaryContractId,

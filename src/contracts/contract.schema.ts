@@ -28,6 +28,7 @@ const SignerDetailDataSchema = new Schema<Document<ISignerDetailDataSchema>>(
     sign_status: String,
     sent_on: Date,
     signed_on: Date,
+    phone_number: String,
   },
   { _id: false },
 );
