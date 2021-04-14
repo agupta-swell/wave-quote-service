@@ -93,6 +93,10 @@ export class QualificationService {
     id: string,
     manualApprovalDto: SetManualApprovalReqDto,
   ): Promise<OperationResult<ManualApprovalDto>> {
+    if (process.env.NODE_ENV === 'production') {
+      throw ApplicationException.NoPermission();
+    }
+
     const now = new Date();
     const qualificationCredit = await this.qualificationCreditModel.findById(id).lean();
     if (!qualificationCredit) {
