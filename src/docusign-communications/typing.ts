@@ -175,6 +175,7 @@ export interface IDocusignTemplateMapping {
   PARTICIPATION_PRP2_ACES_ESA: string;
   SOLAR_ENERGY_SYSTEM_ESTIMATED_X7: string;
   GRID_SERVICES_AGT: string;
+  HOME_ENERGY_SUB_AGT_ESA: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;

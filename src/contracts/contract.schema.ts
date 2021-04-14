@@ -16,6 +16,7 @@ export interface ISignerDetailDataSchema {
   sign_status: SIGN_STATUS;
   sent_on: Date;
   signed_on: Date;
+  phone_number: string;
 }
 
 const SignerDetailDataSchema = new Schema<Document<ISignerDetailDataSchema>>(

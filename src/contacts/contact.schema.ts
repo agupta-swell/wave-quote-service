@@ -15,6 +15,8 @@ export interface Contact extends Document {
   contactId: string;
   lat: number;
   lng: number;
+  primaryPhone?: string;
+  businessPhone?: string;
 }
 
 export const ContactSchema = new Schema<Contact>({
