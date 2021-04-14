@@ -9,18 +9,18 @@ export class GetPresignedUrlService {
 
   constructor() {
     // Configure AWS with your access and secret key.
-    const { AWS_BUCKET, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } = process.env;
+    const { PROPOSAL_AWS_BUCKET, PROPOSAL_AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } = process.env;
 
     // Configure AWS to use promise
     AWS.config.setPromisesDependency(require('bluebird'));
     AWS.config.update({
       accessKeyId: AWS_ACCESS_KEY_ID,
       secretAccessKey: AWS_SECRET_ACCESS_KEY,
-      region: AWS_REGION,
+      region: PROPOSAL_AWS_REGION,
     });
 
-    this.AWS_BUCKET = AWS_BUCKET || 'proposal-data-development';
-    this.AWS_REGION = AWS_REGION || 'us-west-1';
+    this.AWS_BUCKET = PROPOSAL_AWS_BUCKET || 'proposal-data-development';
+    this.AWS_REGION = PROPOSAL_AWS_REGION || 'us-west-1';
   }
 
   getPreviewLink(fileName: string, fileType: string): Promise<string> {
