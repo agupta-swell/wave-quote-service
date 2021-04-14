@@ -169,6 +169,7 @@ export class SystemDesignService {
 
   async update(id: string, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (
+      systemDesignDto.roofTopDesignData &&
       !systemDesignDto.roofTopDesignData.panelArray.length &&
       !systemDesignDto.roofTopDesignData.storage.length &&
       !systemDesignDto.roofTopDesignData.inverters.length
