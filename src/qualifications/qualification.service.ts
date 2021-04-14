@@ -103,10 +103,6 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound(id);
     }
 
-    if (qualificationCredit.process_status !== PROCESS_STATUS.STARTED) {
-      return OperationResult.ok(new ManualApprovalDto({ status: false, status_detail: 'NO_ACTIVE_VALIDATION' }));
-    }
-
     qualificationCredit.process_status = PROCESS_STATUS.COMPLETED;
     qualificationCredit.event_histories = [
       ...qualificationCredit.event_histories,
@@ -116,7 +112,7 @@ export class QualificationService {
     qualificationCredit.qualification_status = QUALIFICATION_STATUS.APPROVED;
     qualificationCredit.approved_by = manualApprovalDto.agentUserId;
 
-    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
+    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, qualificationCredit);
 
     return OperationResult.ok(new ManualApprovalDto({ status: true, status_detail: 'SUCCESS' }, qualificationCredit));
   }
