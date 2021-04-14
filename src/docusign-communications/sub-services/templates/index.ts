@@ -7,6 +7,7 @@ import { getCAConsumerProtection } from './ca-consumer-protection';
 import { getContractOneData } from './contract-one';
 import { getDisclosureEsaData } from './disclosure-esa';
 import { empty } from './empty';
+import { getGridServicesAgt } from './grid-services-agt';
 import { getParticipationPRP2ACESCash } from './participation-prp2-aces-cash';
 import { getParticipationPRP2ACESEsa } from './participation-prp2-aces-esa';
 import { getSolarEnergyDisclosureEsaData } from './solar-energy-disclosure-esa';
@@ -36,4 +37,5 @@ export const templateBuilderMap: TemplateBuilderMap = {
   [TEMPLATE_IDS.CA_CONSUMER_PROTECTION]: getCAConsumerProtection,
   [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_ESA]: getParticipationPRP2ACESEsa,
   [TEMPLATE_IDS.SOLAR_ENERGY_SYSTEM_ESTIMATED_X7]: getSolarEnergySystemEstimatedX7,
+  [TEMPLATE_IDS.GRID_SERVICES_AGT]: getGridServicesAgt,
 };
