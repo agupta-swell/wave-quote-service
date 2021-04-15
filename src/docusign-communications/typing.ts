@@ -2,11 +2,11 @@ import { LeanDocument } from 'mongoose';
 import { Contact } from 'src/contacts/contact.schema';
 import { Contract } from 'src/contracts/contract.schema';
 import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
+import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
 import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { IRoofTopSchema } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
-import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
 import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
 
 export interface ITextTabData {
@@ -168,7 +168,7 @@ export interface IDocusignTemplateMapping {
   SYSTEM_DESIGN_NOTICE_X8: string;
   INSURANCE_X9: string;
   AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: string;
-  PRP2_ACES_CASH: string;
+  PARTICIPATION_PRP2_ACES_CASH: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;
