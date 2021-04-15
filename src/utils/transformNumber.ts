@@ -6,3 +6,42 @@ export const roundNumber = (value: number, digits: number) => {
 };
 
 export const toFixNumber = (value: number, digit: number) => Number(value.toFixed(digit));
+
+export const toWord = (value: number): string => {
+  const ones = [
+    'zero',
+    'one',
+    'two',
+    'three',
+    'four',
+    'five',
+    'six',
+    'seven',
+    'eight',
+    'nine',
+    'ten',
+    'eleven',
+    'twelve',
+    'thirteen',
+    'fourteen',
+    'fifteen',
+    'sixteen',
+    'seventeen',
+    'eighteen',
+    'ninteen',
+  ];
+  const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'senventy', 'eighty', 'ninety'];
+
+  if (value < 20) return ones[value];
+
+  if (value < 100) {
+    const [firstDigit, remainder] = value.toString().split('');
+
+    if (+remainder === 0) return tens[+firstDigit];
+
+    return `${tens[+firstDigit]} ${ones[+remainder]}`;
+  }
+
+  // Todo: handle bigger value
+  throw new Error('Too large number');
+};
