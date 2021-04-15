@@ -3,6 +3,7 @@ import { Contact } from 'src/contacts/contact.schema';
 import { Contract } from 'src/contracts/contract.schema';
 import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
 import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
+import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
 import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { IRoofTopSchema } from 'src/system-designs/system-design.schema';
@@ -65,6 +66,7 @@ export interface IGenericObject {
   assignedMember: IDisclosureEsaMapping;
   gsProgram: LeanDocument<GsPrograms>;
   utilityProgramMaster: LeanDocument<UtilityProgramMaster>;
+  leaseSolverConfig: LeaseSolverConfig | null;
 }
 
 export interface IDefaultContractor {
@@ -170,6 +172,7 @@ export interface IDocusignTemplateMapping {
   AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: string;
   PARTICIPATION_PRP2_ACES_CASH: string;
   CA_CONSUMER_PROTECTION: string;
+  PARTICIPATION_PRP2_ACES_ESA: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;

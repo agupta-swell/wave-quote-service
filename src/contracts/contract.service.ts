@@ -1,12 +1,16 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { sumBy } from 'lodash';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
+import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
+import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { USER, User } from 'src/users/user.schema';
@@ -14,7 +18,6 @@ import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
-import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import {
   CONTRACTING_SYSTEM_STATUS,
@@ -51,6 +54,7 @@ export class ContractService {
     private readonly customerPaymentService: CustomerPaymentService,
     private readonly systemDesignService: SystemDesignService,
     private readonly gsProgramsService: GsProgramsService,
+    private readonly leaseSolverConfigService: LeaseSolverConfigService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -202,10 +206,11 @@ export class ContractService {
 
     const fundingSourceType = quote.detailed_quote.quote_finance_product.finance_product.product_type;
 
-    const [customerPayment, utilityName, roofTopDesign] = await Promise.all([
+    const [customerPayment, utilityName, roofTopDesign, systemDesign] = await Promise.all([
       this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunity_id),
       this.utilityService.getUtilityName(opportunity.utilityId),
       this.systemDesignService.getRoofTopDesignById(quote.system_design_id),
+      this.systemDesignService.getOneById(quote.system_design_id),
     ]);
     const assignedMember = opportunity.assignedMember;
     const user = await this.userModel.findOne({ _id: assignedMember }).lean();
@@ -227,6 +232,25 @@ export class ContractService {
     // Get utilityProgramMaster
     const utilityProgramMaster = await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId);
 
+    // Get lease solver config
+    const lease_product_attribute = quote.detailed_quote.quote_finance_product.finance_product
+      .product_attribute as ILeaseProductAttributes;
+    const query = {
+      isSolar: systemDesign!.is_solar,
+      isRetrofit: systemDesign!.is_retrofit,
+      utilityProgramName: utilityProgramMaster.utility_program_name,
+      contractTerm: lease_product_attribute.lease_term,
+      storageSize: sumBy(
+        quote.detailed_quote.quote_cost_buildup.storage_quote_details,
+        item => item.storage_model_data_snapshot.sizekWh,
+      ),
+      rateEscalator: lease_product_attribute.rate_escalator,
+      capacityKW: systemDesign!.system_production_data.capacityKW,
+      productivity: systemDesign!.system_production_data.productivity,
+    };
+
+    const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
+
     const genericObject: IGenericObject = {
       contract,
       opportunity,
@@ -240,6 +264,7 @@ export class ContractService {
       assignedMember: disclosureEsa,
       gsProgram,
       utilityProgramMaster,
+      leaseSolverConfig,
     };
 
     const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, genericObject);

@@ -3,14 +3,15 @@ import { DocuSignEnv, TemplateBuilderMap } from '../../typing';
 import { getAdditionalTermEsaData } from './additional-term-esa';
 import { getAutoMaticPaymentAuthorizationFormFin } from './automatic-payment-authorization-form-fin';
 import { getCaConsumerGuideData } from './ca-consumer-guide';
+import { getCAConsumerProtection } from './ca-consumer-protection';
 import { getContractOneData } from './contract-one';
 import { getDisclosureEsaData } from './disclosure-esa';
 import { empty } from './empty';
 import { getParticipationPRP2ACESCash } from './participation-prp2-aces-cash';
+import { getParticipationPRP2ACESEsa } from './participation-prp2-aces-esa';
 import { getSolarEnergyDisclosureEsaData } from './solar-energy-disclosure-esa';
 import { getSwellServiceEsaX1Data } from './swell-service-esa-x1';
 import { getSystemDesignNoticeX8Data } from './system-design-notice-x8';
-import { getCAConsumerProtection } from './ca-consumer-protection';
 
 const DOCUSIGN_ENV = (process.env.DOCUSIGN_ENV as DocuSignEnv) ?? 'demo';
 const TEMPLATE_IDS = DOCUSIGN_TEMPLATE_IDS_BY_ENV[DOCUSIGN_ENV];
@@ -31,5 +32,6 @@ export const templateBuilderMap: TemplateBuilderMap = {
   [TEMPLATE_IDS.AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN]: getAutoMaticPaymentAuthorizationFormFin,
   [TEMPLATE_IDS.DISCLOSURES_ESA]: getDisclosureEsaData,
   [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_CASH]: getParticipationPRP2ACESCash,
-  [TEMPLATE_IDS.CA_CONSUMER_PROTECTION]: getCAConsumerProtection
+  [TEMPLATE_IDS.CA_CONSUMER_PROTECTION]: getCAConsumerProtection,
+  [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_ESA]: getParticipationPRP2ACESEsa,
 };
