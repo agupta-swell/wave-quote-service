@@ -6,6 +6,7 @@ import { Opportunity } from 'src/opportunities/opportunity.schema';
 import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { IRoofTopSchema } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
+import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
 
 export interface ITextTabData {
   [keyName: string]: string;
@@ -61,6 +62,7 @@ export interface IGenericObject {
   isCash: boolean;
   roofTopDesign: IRoofTopSchema;
   assignedMember: IDisclosureEsaMapping;
+  gsProgram: LeanDocument<GsPrograms>;
 }
 
 export interface IDefaultContractor {
@@ -164,6 +166,7 @@ export interface IDocusignTemplateMapping {
   SYSTEM_DESIGN_NOTICE_X8: string;
   INSURANCE_X9: string;
   AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: string;
+  PRP2_ACES_CASH: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;
