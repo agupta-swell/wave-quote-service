@@ -14,11 +14,13 @@ import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
+import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import {
   CONTRACTING_SYSTEM_STATUS,
   IContractSignerDetails,
   IDisclosureEsaMapping,
+  IGenericObject,
 } from '../docusign-communications/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
@@ -214,18 +216,20 @@ export class ContractService {
       hisSale: user.hisNumber,
     };
 
-    const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, {
+    const genericObject: IGenericObject = {
       contract,
       opportunity,
       quote: quote.detailed_quote,
       recordOwner: recordOwner || ({} as any),
       contact: contact || ({} as any),
       customerPayment: customerPayment || ({} as any),
-      utilityName: utilityName.split(' - ')[1] || 'none',
+      utilityName: utilityName?.split(' - ')[1] || 'none',
       roofTopDesign: roofTopDesign || ({} as any),
       isCash: fundingSourceType === 'cash',
       assignedMember: disclosureEsa,
-    });
+    };
+
+    const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, genericObject);
 
     if (docusignResponse.status === 'SUCCESS') {
       status = 'SUCCESS';
