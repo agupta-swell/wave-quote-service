@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { UtilityProgramMasterDto } from './res/utility-program-master.dto';
 import { UtilityProgramMaster, UTILITY_PROGRAM_MASTER } from './utility-program-master.schema';
@@ -32,6 +33,14 @@ export class UtilityProgramMasterService {
   async getDetailById(id: string): Promise<UtilityProgramMaster | null> {
     const product = await this.utilityProgramMaster.findById(id);
     return product;
+  }
+
+  async getLeanById(id: string): Promise<LeanDocument<UtilityProgramMaster>> {
+    const program = await this.utilityProgramMaster.findById(id).lean();
+
+    if (!program) throw ApplicationException.EntityNotFound(`UtilityProgramMasterId: ${id}`);
+
+    return program;
   }
 
   async getDetailByName(name: string): Promise<LeanDocument<UtilityProgramMaster> | null> {

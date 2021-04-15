@@ -50,6 +50,7 @@ export class ContractService {
     private readonly contactService: ContactService,
     private readonly customerPaymentService: CustomerPaymentService,
     private readonly systemDesignService: SystemDesignService,
+    private readonly gsProgramsService: GsProgramsService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -216,6 +217,16 @@ export class ContractService {
       hisSale: user.hisNumber,
     };
 
+    // Get gsProgram
+    const incentive_details = quote.detailed_quote.quote_finance_product.incentive_details[0];
+
+    const gsProgramSnapshotId = incentive_details.detail.gsProgramSnapshot.id;
+
+    const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
+
+    // Get utilityProgramMaster
+    const utilityProgramMaster = await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId);
+
     const genericObject: IGenericObject = {
       contract,
       opportunity,
@@ -227,6 +238,8 @@ export class ContractService {
       roofTopDesign: roofTopDesign || ({} as any),
       isCash: fundingSourceType === 'cash',
       assignedMember: disclosureEsa,
+      gsProgram,
+      utilityProgramMaster,
     };
 
     const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, genericObject);

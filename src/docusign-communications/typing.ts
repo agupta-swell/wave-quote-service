@@ -7,6 +7,7 @@ import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { IRoofTopSchema } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
 import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
+import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
 
 export interface ITextTabData {
   [keyName: string]: string;
@@ -63,6 +64,7 @@ export interface IGenericObject {
   roofTopDesign: IRoofTopSchema;
   assignedMember: IDisclosureEsaMapping;
   gsProgram: LeanDocument<GsPrograms>;
+  utilityProgramMaster: LeanDocument<UtilityProgramMaster>;
 }
 
 export interface IDefaultContractor {
