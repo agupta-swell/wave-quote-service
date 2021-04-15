@@ -169,6 +169,7 @@ export interface IDocusignTemplateMapping {
   INSURANCE_X9: string;
   AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: string;
   PARTICIPATION_PRP2_ACES_CASH: string;
+  CA_CONSUMER_PROTECTION: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;
