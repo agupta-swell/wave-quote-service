@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model, Types, LeanDocument } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { ProductService } from 'src/products/product.service';
@@ -15,6 +15,14 @@ export class GsProgramsService {
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly productService: ProductService,
   ) {}
+
+  async getById(id: string): Promise<LeanDocument<GsPrograms>> {
+    const gsProgram = await this.gsProgramsModel.findOne({ _id: id }).lean();
+
+    if (!gsProgram) throw ApplicationException.EntityNotFound(`GsProgramsId: ${id}`);
+
+    return gsProgram;
+  }
 
   async getList(
     limit: number,
