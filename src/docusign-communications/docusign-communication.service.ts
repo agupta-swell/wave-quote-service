@@ -42,13 +42,13 @@ export class DocusignCommunicationService {
   // =====================> INTERNAL <=====================
   async sendContractToDocusign(
     contract: LeanDocument<Contract>,
-    data: IGenericObject,
+    genericObject: IGenericObject,
   ): Promise<ISendDocusignToContractResponse> {
     const docusignPayload: IDocusignCompositeContract = {
       status: 'sent',
       emailSubject: `${
-        data.quote.quote_finance_product?.finance_product?.financial_product_snapshot?.name || 'Contract'
-      } - Agreement for ${data.opportunity.name}`,
+        genericObject.quote.quote_finance_product?.finance_product?.financial_product_snapshot?.name || 'Contract'
+      } - Agreement for ${genericObject.opportunity.name}`,
       emailBlurb: 'Please review and sign the contract for your energy project!',
       compositeTemplates: [],
     };
@@ -58,7 +58,7 @@ export class DocusignCommunicationService {
       const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(
         template,
         contract.signer_details,
-        data,
+        genericObject,
         docusignSecret.docusign.defaultContractor,
       );
 
