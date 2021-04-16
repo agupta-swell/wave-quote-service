@@ -81,13 +81,26 @@ export class ECommerceService {
     // Calculate the net generation for the low and high end systems -- we can linearly interpolate the rest
     const lowEndNet = await this.getNetGeneration(lat, long, lowEndSystem.capacityKW);
     const lowEndProductivity = lowEndNet / lowEndSystem.capacityKW;
+    const lowEndQuote = await this.getSolarStorageQuoteDto(zip, lowEndSystem, lowEndProductivity, false, deposit);
     const highEndNet = await this.getNetGeneration(lat, long, highEndSystem.capacityKW);
     const highEndProductivity = highEndNet / highEndSystem.capacityKW;
+    const highEndQuote = await this.getSolarStorageQuoteDto(zip, highEndSystem, highEndProductivity, false, deposit);
+
+    const isValidQuote = (quote: SolarStorageQuoteDto) => 
+      quote.storageData.every((s) => 
+        s.paymentOptionData.every((p) => 
+          p.paymentDetail.monthlyPaymentAmount > 0));
 
     // Generate the variants for the optimal system design
     const systems: SolarStorageQuoteDto[] = [];
-    systems.push(await this.getSolarStorageQuoteDto(zip, lowEndSystem, lowEndProductivity, false, deposit));
-    systems.push(await this.getSolarStorageQuoteDto(zip, highEndSystem, highEndProductivity, false, deposit));
+
+    if (isValidQuote(lowEndQuote)) {
+      systems.push(lowEndQuote);
+    }
+
+    if (isValidQuote(highEndQuote)) {
+      systems.push(highEndQuote);
+    }
 
     for (let panelCountAdjust = (panelVariance * -1) + 1; panelCountAdjust <= (panelVariance - 1); panelCountAdjust += 1) {
       const systemIndex = panelCountAdjust + panelVariance;
@@ -98,7 +111,7 @@ export class ECommerceService {
       const quote = await this.getSolarStorageQuoteDto(zip, variantSystem, systemProductivity, isOptimalSystem, deposit);
 
       // If we have invalid amounts, drop it from the response (like if Lease Solver wasn't found)
-      if (quote.storageData.every(s => s.paymentOptionData.every(p => p.paymentDetail.monthlyPaymentAmount > 0))) {
+      if (isValidQuote(quote)) {
         systems.push(quote);
       }
     }
