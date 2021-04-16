@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsString, Min, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
 import { AddressDto } from './sub-dto/address.dto';
 
-export class GetEcomSystemDesignAndQuoteReq {
+export class GetEcomStorageOnlyQuoteReq {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -14,12 +14,6 @@ export class GetEcomSystemDesignAndQuoteReq {
   @IsNotEmpty()
   @ValidateNested()
   addressDataDetail: AddressDto;
-
-  @ApiProperty()
-  @IsNumber()
-  @IsNotEmpty()
-  @Min(0)
-  monthlyUtilityBill: number;
 
   @ApiProperty()
   @IsNumber()

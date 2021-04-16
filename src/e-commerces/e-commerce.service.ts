@@ -34,6 +34,8 @@ import {
   ZipCodeRegionMap,
   ZIP_CODE_REGION_MAP,
 } from './schemas';
+import { GetEcomStorageOnlyQuoteReq } from './req/get-ecom-storage-only-quote.dto';
+import { GetStorageOnlyQuoteDto } from './res/get-storage-only-quote.dto';
 
 @Injectable()
 export class ECommerceService {
@@ -104,6 +106,27 @@ export class ECommerceService {
     const result: GetGeneratedSystemStorageQuoteDto = {
       solarStorageQuotes: systems,
       typicalUsageCostPerKWh,
+    };
+
+    return OperationResult.ok(result);
+  }
+
+  public async getStorageOnlyQuote(
+    req: GetEcomStorageOnlyQuoteReq
+  ) {
+    const { zip } = req.addressDataDetail;
+    const deposit = req.depositAmount;
+    const quotes: StorageQuoteDto[] = [];
+
+    // Generate the variants for storage count
+    for (let storageCount = 1; storageCount <= 3; storageCount++) {
+      const totalCost = await this.getCostBreakdown(zip, 0, storageCount);
+      const quote = await this.getStorageQuoteDto(zip, deposit, 0, storageCount, 0, 0);
+      quotes.push(quote);
+    }
+    
+    const result: GetStorageOnlyQuoteDto = {
+      storageData: quotes
     };
 
     return OperationResult.ok(result);
