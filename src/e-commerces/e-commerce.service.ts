@@ -95,8 +95,12 @@ export class ECommerceService {
       const approximateNetGeneration = this.lerp(lowEndNet, highEndNet, systemIndex / numberOfSystemsToGenerate);
       const systemProductivity = approximateNetGeneration / variantSystem.capacityKW;
       const isOptimalSystem = panelCountAdjust === 0;
+      const quote = await this.getSolarStorageQuoteDto(zip, variantSystem, systemProductivity, isOptimalSystem, deposit);
 
-      systems.push(await this.getSolarStorageQuoteDto(zip, variantSystem, systemProductivity, isOptimalSystem, deposit));
+      // If we have invalid amounts, drop it from the response (like if Lease Solver wasn't found)
+      if (quote.storageData.every(s => s.paymentOptionData.every(p => p.paymentDetail.monthlyPaymentAmount > 0))) {
+        systems.push(quote);
+      }
     }
 
     const typicalUsageCostPerKWh = typicalUsage.typicalAnnualUsageInKwh ?
