@@ -10,6 +10,7 @@ import { empty } from './empty';
 import { getParticipationPRP2ACESCash } from './participation-prp2-aces-cash';
 import { getParticipationPRP2ACESEsa } from './participation-prp2-aces-esa';
 import { getSolarEnergyDisclosureEsaData } from './solar-energy-disclosure-esa';
+import { getSolarEnergySystemEstimatedX7 } from './solar-energy-system-estimated-x7';
 import { getSwellServiceEsaX1Data } from './swell-service-esa-x1';
 import { getSystemDesignNoticeX8Data } from './system-design-notice-x8';
 
@@ -34,4 +35,5 @@ export const templateBuilderMap: TemplateBuilderMap = {
   [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_CASH]: getParticipationPRP2ACESCash,
   [TEMPLATE_IDS.CA_CONSUMER_PROTECTION]: getCAConsumerProtection,
   [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_ESA]: getParticipationPRP2ACESEsa,
+  [TEMPLATE_IDS.SOLAR_ENERGY_SYSTEM_ESTIMATED_X7]: getSolarEnergySystemEstimatedX7,
 };

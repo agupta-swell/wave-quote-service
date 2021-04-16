@@ -173,6 +173,7 @@ export interface IDocusignTemplateMapping {
   PARTICIPATION_PRP2_ACES_CASH: string;
   CA_CONSUMER_PROTECTION: string;
   PARTICIPATION_PRP2_ACES_ESA: string;
+  SOLAR_ENERGY_SYSTEM_ESTIMATED_X7: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;
