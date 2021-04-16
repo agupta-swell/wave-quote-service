@@ -1,7 +1,8 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
+import { FundingSource } from './funding-source.schema';
 import { FundingSourceService } from './funding-source.service';
 import { FundingSourceDto } from './res/funding-source.dto';
 
@@ -23,5 +24,15 @@ export class FundingSourceController {
     const skip = Number(query.skip || 0);
     const result = await this.fundingSourceService.getList(limit, skip);
     return ServiceResponse.fromResult(result);
+  }
+
+  @Get('/:fundingSourceId')
+  @ApiQuery({ name: 'fundingSourceId' })
+  @ApiOperation({ summary: 'Get funding source by Id' })
+  async getFundingSourceById(
+    @Param('fundingSourceId') fundingSourceId: string,
+  ): Promise<ServiceResponse<FundingSource>> {
+    const result = await this.fundingSourceService.getFundingSourceById(fundingSourceId);
+    return ServiceResponse.fromResult(result as any);
   }
 }

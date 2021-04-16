@@ -65,6 +65,7 @@ export interface IRebateDetailsSchema {
   amount: number;
   type: string;
   description: string;
+  is_float_rebate?: boolean;
 }
 
 const RebateDetailsSchema = new Schema<Document<IRebateDetailsSchema>>(
@@ -72,6 +73,7 @@ const RebateDetailsSchema = new Schema<Document<IRebateDetailsSchema>>(
     amount: Number,
     type: String,
     description: String,
+    is_float_rebate: Boolean,
   },
   { _id: false },
 );

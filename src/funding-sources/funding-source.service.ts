@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model } from 'mongoose';
+import { LeanDocument, Model, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { FundingSource, FUNDING_SOURCE } from './funding-source.schema';
 import { FundingSourceDto } from './res/funding-source.dto';
@@ -21,6 +21,11 @@ export class FundingSourceService {
         total,
       }),
     );
+  }
+
+  async getFundingSourceById(fundingSourceId: string): Promise<OperationResult<FundingSourceDto>> {
+    const result = await this.fundingSource.findById(fundingSourceId).lean();
+    return OperationResult.ok(new FundingSourceDto(result as any));
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

@@ -12,9 +12,13 @@ export class FundingSourceDto {
   @ApiProperty()
   type: string;
 
+  @ApiProperty()
+  rebateAssignment: string;
+
   constructor(props: LeanDocument<FundingSource>) {
     this.id = props._id;
     this.name = props.name;
     this.type = props.type;
+    this.rebateAssignment = props.rebateAssignment;
   }
 }

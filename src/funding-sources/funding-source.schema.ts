@@ -7,6 +7,7 @@ export interface FundingSource extends Document {
   name: string;
   isTrancheApplicable: string;
   type: string;
+  rebateAssignment: string;
 }
 
 export const FundingSourceSchema = new Schema<FundingSource>({
@@ -14,6 +15,7 @@ export const FundingSourceSchema = new Schema<FundingSource>({
   name: String,
   isTrancheApplicable: String,
   type: String,
+  rebateAssignment: String,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

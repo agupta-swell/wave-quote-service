@@ -49,6 +49,10 @@ export class RebateDetailsDto {
   @IsNotEmpty()
   @IsString()
   description: string;
+
+  @ApiProperty()
+  @IsBoolean()
+  isFloatRebate: boolean;
 }
 
 @ApiExtraModels(LoanProductAttributesDto, CashProductAttributesDto, LeaseProductAttributesDto)

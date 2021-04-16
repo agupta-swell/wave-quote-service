@@ -1110,12 +1110,14 @@ export class QuoteService {
       amount: (itcRate * grossPrice) / 100,
       type: REBATE_TYPE.ITC,
       description: '',
+      is_float_rebate: true,
     });
     if (utilityProgramName && utilityProgramName.includes('+SGIP')) {
       rebateDetails.push({
         amount: 0,
         type: REBATE_TYPE.SGIP,
         description: '',
+        is_float_rebate: true,
       });
     }
     return rebateDetails;
