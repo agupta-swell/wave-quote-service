@@ -1,12 +1,12 @@
-import { IDefaultContractor, IGenericObject, TemplateDataBuilder } from '../../typing';
+import { TemplateDataBuilder } from '../../typing';
 
-// TODO implement this
-export const getDisclosureEsaData: TemplateDataBuilder = (
-  genericObject: IGenericObject,
-  defaultContractor: IDefaultContractor,
-) => {
+export const getDisclosureEsaData: TemplateDataBuilder = ({ assignedMember }) => {
+  if (!assignedMember) {
+    return {};
+  }
+  const { hisNumber, profile: { firstName, lastName } } = assignedMember
   const obj = {};
-  obj['SALESPERSON_FIRST_LAST'] = genericObject.assignedMember.salesPersonFirstLast;
-  obj['H.I.S. SALES #'] = genericObject.assignedMember.hisSale;
+  obj['SALESPERSON_FIRST_LAST'] = `${firstName} ${lastName}`;
+  obj['H.I.S. SALES #'] = hisNumber;
   return obj;
 };

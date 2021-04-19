@@ -13,7 +13,7 @@ export class QuotePartnerConfigService {
   async getConfigByPartnerId(partnerId: string): Promise<OperationResult<QuotePartnerConfigDto>> {
     const foundConfig = await this.quotePartnerConfigModel.findOne({ partnerId });
     if (!foundConfig) {
-      throw ApplicationException.EntityNotFound(partnerId);
+      throw ApplicationException.EntityNotFound(`QuotePartnerConfig with PartnerId: ${partnerId}`);
     }
 
     return OperationResult.ok(new QuotePartnerConfigDto(foundConfig));

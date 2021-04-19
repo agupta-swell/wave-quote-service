@@ -13,7 +13,6 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
-import { USER, User } from 'src/users/user.schema';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -22,7 +21,6 @@ import { CustomerPaymentService } from '../customer-payments/customer-payment.se
 import {
   CONTRACTING_SYSTEM_STATUS,
   IContractSignerDetails,
-  IDisclosureEsaMapping,
   IGenericObject,
 } from '../docusign-communications/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
@@ -41,7 +39,6 @@ import { GetDocusignCommunicationDetailsDto } from './res/get-docusign-communica
 export class ContractService {
   constructor(
     @InjectModel(CONTRACT) private readonly contractModel: Model<Contract>,
-    @InjectModel(USER) private readonly userModel: Model<User>,
     private readonly opportunityService: OpportunityService,
     private readonly quoteService: QuoteService,
     private readonly utilityService: UtilityService,
@@ -212,15 +209,8 @@ export class ContractService {
       this.systemDesignService.getRoofTopDesignById(quote.system_design_id),
       this.systemDesignService.getOneById(quote.system_design_id),
     ]);
-    const assignedMember = opportunity.assignedMember;
-    const user = await this.userModel.findOne({ _id: assignedMember }).lean();
-    if (!user) {
-      throw ApplicationException.EntityNotFound(`assignedMember: ${assignedMember}`);
-    }
-    const disclosureEsa: IDisclosureEsaMapping = {
-      salesPersonFirstLast: `${user.profile.firstName} ${user.profile.firstName} `,
-      hisSale: user.hisNumber,
-    };
+
+    const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
 
     // Get gsProgram
     const incentive_details = quote.detailed_quote.quote_finance_product.incentive_details[0];
@@ -261,7 +251,7 @@ export class ContractService {
       utilityName: utilityName?.split(' - ')[1] || 'none',
       roofTopDesign: roofTopDesign || ({} as any),
       isCash: fundingSourceType === 'cash',
-      assignedMember: disclosureEsa,
+      assignedMember,
       gsProgram,
       utilityProgramMaster,
       leaseSolverConfig,

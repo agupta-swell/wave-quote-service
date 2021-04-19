@@ -63,7 +63,7 @@ export interface IGenericObject {
   utilityName: string;
   isCash: boolean;
   roofTopDesign: IRoofTopSchema;
-  assignedMember: IDisclosureEsaMapping;
+  assignedMember: LeanDocument<User> | null;
   gsProgram: LeanDocument<GsPrograms>;
   utilityProgramMaster: LeanDocument<UtilityProgramMaster>;
   leaseSolverConfig: LeaseSolverConfig | null;
@@ -176,10 +176,6 @@ export interface IDocusignTemplateMapping {
   SOLAR_ENERGY_SYSTEM_ESTIMATED_X7: string;
   GRID_SERVICES_AGT: string;
   HOME_ENERGY_SUB_AGT_ESA: string;
-}
-export interface IDisclosureEsaMapping {
-  salesPersonFirstLast: string;
-  hisSale: string;
 }
 
 export enum REQUEST_TYPE {
