@@ -176,6 +176,11 @@ export interface IDocusignTemplateMapping {
   SOLAR_ENERGY_SYSTEM_ESTIMATED_X7: string;
   GRID_SERVICES_AGT: string;
   HOME_ENERGY_SUB_AGT_ESA: string;
+  PAYMENT_SCHEDULE_X10: string;
+}
+export interface IDisclosureEsaMapping {
+  salesPersonFirstLast: string;
+  hisSale: string;
 }
 
 export enum REQUEST_TYPE {
