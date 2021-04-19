@@ -15,13 +15,14 @@ export class FinancialProductsController {
   @Get()
   @ApiQuery({ name: 'limit' })
   @ApiQuery({ name: 'skip' })
+  @ApiQuery({ name: 'systemDesignId' })
   @ApiOperation({ summary: 'Get all financial product' })
   async getFinancialProduct(
-    @Query() query: { limit: string; skip: string },
+    @Query() query: { limit: string; skip: string; systemDesignId: string; quoteType: string },
   ): Promise<ServiceResponse<Pagination<FinancialProductDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
-    const result = await this.financialProductService.getList(limit, skip);
+    const result = await this.financialProductService.getList(limit, skip, query.systemDesignId);
     return ServiceResponse.fromResult(result);
   }
 }
