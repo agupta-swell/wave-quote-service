@@ -16,10 +16,8 @@ export class GsProgramsService {
     private readonly productService: ProductService,
   ) {}
 
-  async getById(id: string): Promise<LeanDocument<GsPrograms>> {
+  async getById(id: string): Promise<LeanDocument<GsPrograms> | null> {
     const gsProgram = await this.gsProgramsModel.findOne({ _id: id }).lean();
-
-    if (!gsProgram) throw ApplicationException.EntityNotFound(`GsProgramsId: ${id}`);
 
     return gsProgram;
   }

@@ -18,11 +18,7 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { toSnakeCase } from 'src/utils/transformProperties';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
-import {
-  CONTRACTING_SYSTEM_STATUS,
-  IContractSignerDetails,
-  IGenericObject,
-} from '../docusign-communications/typing';
+import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
@@ -220,7 +216,9 @@ export class ContractService {
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 
     // Get utilityProgramMaster
-    const utilityProgramMaster = await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId);
+    const utilityProgramMaster = gsProgram
+      ? await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId)
+      : null;
 
     // Get lease solver config
     const lease_product_attribute = quote.detailed_quote.quote_finance_product.finance_product
@@ -228,7 +226,7 @@ export class ContractService {
     const query = {
       isSolar: systemDesign!.is_solar,
       isRetrofit: systemDesign!.is_retrofit,
-      utilityProgramName: utilityProgramMaster.utility_program_name,
+      utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utility_program_name : '',
       contractTerm: lease_product_attribute.lease_term,
       storageSize: sumBy(
         quote.detailed_quote.quote_cost_buildup.storage_quote_details,
@@ -252,8 +250,8 @@ export class ContractService {
       roofTopDesign: roofTopDesign || ({} as any),
       isCash: fundingSourceType === 'cash',
       assignedMember,
-      gsProgram,
-      utilityProgramMaster,
+      gsProgram: gsProgram || {},
+      utilityProgramMaster: utilityProgramMaster || {},
       leaseSolverConfig,
     };
 

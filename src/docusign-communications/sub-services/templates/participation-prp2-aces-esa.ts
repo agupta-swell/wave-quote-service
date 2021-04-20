@@ -10,9 +10,9 @@ export const getParticipationPRP2ACESEsa: TemplateDataBuilder = genericObj => {
 
   result.monthly_incentive_amount = leaseSolverConfig?.grid_services_discount + '';
 
-  result.residual_lease_term_word = toWord(+gsProgram.termYears * 12);
+  result.residual_lease_term_word = toWord(+(gsProgram?.termYears ?? 0));
 
-  result.residual_lease_term_number = (+gsProgram.termYears * 12).toString();
+  result.residual_lease_term_number = (+(gsProgram?.termYears ?? 0) * 12).toString();
 
   result.program_end_date = dayjs(utilityProgramMaster.end_date).format('MM/DD/YYYY');
 
