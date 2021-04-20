@@ -125,7 +125,7 @@ export interface ISolarPanelArraySchema {
   number_of_panels: number;
   panel_model_data_snapshot: IPanelProductSchema;
   panel_model_snapshot_date: Date;
-  shading_percentage: number;
+  losses: number;
 }
 
 const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
@@ -145,7 +145,7 @@ const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
     number_of_panels: Number,
     panel_model_data_snapshot: PanelProductSchema,
     panel_model_snapshot_date: Date,
-    shading_percentage: Number,
+    losses: Number,
   },
   { _id: false },
 );

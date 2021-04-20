@@ -1,8 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsNotEmpty, IsNumber, IsPositive, IsString, Max, Min, ValidateNested,
-} from 'class-validator';
+import { IsNotEmpty, IsNumber, IsPositive, IsString, Max, Min, ValidateNested } from 'class-validator';
 import { ORIENTATION } from '../../constants';
 
 class LatLng {
@@ -107,5 +105,5 @@ export class SolarPanelArrayDto1 {
   @IsNumber()
   @Min(0)
   @Max(99)
-  shadingPercentage: number;
+  losses: number;
 }

@@ -99,7 +99,7 @@ export class SystemProductService {
             systemCapacity: systemCapacityInkWh,
             azimuth: item.azimuth,
             tilt: item.pitch,
-            losses: item.shadingPercentage,
+            losses: item.losses,
           } as IPvWatCalculation;
           const res = await this.externalService.calculateSystemProduction(payload);
 
@@ -109,7 +109,7 @@ export class SystemProductService {
             system_capacity_kW: systemCapacityInkWh,
             azimuth: item.azimuth,
             tilt: item.pitch,
-            losses: item.shadingPercentage,
+            losses: item.losses,
             array_type: 1,
             module_type: 1,
             ac_annual_hourly_production: res.ac,

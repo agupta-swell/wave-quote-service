@@ -89,7 +89,7 @@ export class SystemDesignService {
               azimuth: item.azimuth,
               systemCapacity: capacity,
               tilt: item.pitch,
-              losses: item.shading_percentage,
+              losses: item.losses,
             });
             cumulativeGenerationKWh += acAnnual;
             cumulativeCapacityKW += capacity;
@@ -241,7 +241,7 @@ export class SystemDesignService {
                 azimuth: item.azimuth,
                 systemCapacity: capacity,
                 tilt: item.pitch,
-                losses: item.shading_percentage,
+                losses: item.losses,
               });
               cumulativeGenerationKWh += acAnnual;
               cumulativeCapacityKW += capacity;
