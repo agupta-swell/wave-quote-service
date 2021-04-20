@@ -14,7 +14,7 @@ export const getParticipationPRP2ACESEsa: TemplateDataBuilder = genericObj => {
 
   result.residual_lease_term_number = (+(gsProgram?.termYears ?? 0) * 12).toString();
 
-  result.program_end_date = dayjs(utilityProgramMaster.end_date).format('MM/DD/YYYY');
+  result.program_end_date = dayjs(utilityProgramMaster?.end_date).format('MM/DD/YYYY');
 
   return result;
 };

@@ -250,8 +250,8 @@ export class ContractService {
       roofTopDesign: roofTopDesign || ({} as any),
       isCash: fundingSourceType === 'cash',
       assignedMember,
-      gsProgram: gsProgram || {},
-      utilityProgramMaster: utilityProgramMaster || {},
+      gsProgram,
+      utilityProgramMaster,
       leaseSolverConfig,
     };
 

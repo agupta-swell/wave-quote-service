@@ -64,8 +64,8 @@ export interface IGenericObject {
   isCash: boolean;
   roofTopDesign: IRoofTopSchema;
   assignedMember: LeanDocument<User> | null;
-  gsProgram: Partial<LeanDocument<GsPrograms>>;
-  utilityProgramMaster: Partial<LeanDocument<UtilityProgramMaster>>;
+  gsProgram: LeanDocument<GsPrograms> | null;
+  utilityProgramMaster: LeanDocument<UtilityProgramMaster> | null;
   leaseSolverConfig: LeaseSolverConfig | null;
 }
 
