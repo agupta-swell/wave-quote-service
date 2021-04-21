@@ -75,7 +75,10 @@ export class ProposalService {
         proposalId: infoProposalAfterInsert._id,
         isAgent: true,
       },
-      { expiresIn: '5m', secret: process.env.PROPOSAL_JWT_SECRET },
+      {
+        expiresIn: '5m',
+        secret: process.env.PROPOSAL_JWT_SECRET,
+      },
     );
 
     const { data } = await axios.get(`${process.env.PROPOSAL_URL}/generate?token=${token}`);
@@ -201,7 +204,10 @@ export class ProposalService {
         zipCode: 'need to fix later',
         isAgent: true,
       },
-      { expiresIn: '1d', secret: process.env.PROPOSAL_JWT_SECRET },
+      {
+        expiresIn: '1d',
+        secret: process.env.PROPOSAL_JWT_SECRET,
+      },
     );
 
     return OperationResult.ok({ proposalLink: (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`) });
@@ -221,7 +227,10 @@ export class ProposalService {
           houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
           zipCode: 7000000, // TO BE REMOVED AFTER MERGED
         },
-        { expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d` },
+        {
+          expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d`,
+          secret: process.env.PROPOSAL_JWT_SECRET,
+        },
       ),
     );
 
