@@ -8,7 +8,7 @@ import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { ProposalSectionMasterService } from '../proposal-section-masters/proposal-section-master.service';
 import { toSnakeCase } from '../utils/transformProperties';
-import { ProposalTemplate, PROPOSAL_TEMPLATE } from './proposal-template.schema';
+import { EApplicableProducts, ProposalTemplate, PROPOSAL_TEMPLATE } from './proposal-template.schema';
 import { CreateProposalTemplateDto } from './req/create-proposal-template.dto';
 import { UpdateProposalTemplateDto } from './req/update-proposal-template.dto';
 import { ProposalTemplateDto } from './res/proposal-template.dto';
@@ -85,7 +85,9 @@ export class ProposalTemplateService {
   ): Promise<OperationResult<Pagination<ProposalTemplateDto>>> {
     let foundQuote: LeanDocument<Quote> | null;
     const query = {
-      'proposal_section_master.applicable_financial_product': '',
+      'proposal_section_master.applicable_financial_product': {
+        $in: [] as string[],
+      },
       'proposal_section_master.applicable_products': {
         $in: [] as string[],
       },
@@ -95,14 +97,19 @@ export class ProposalTemplateService {
       foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
       const foundSystemDesign = await this.systemDesignService.getOneById(foundQuote!!.system_design_id);
 
-      query[
-        'proposal_section_master.applicable_financial_product'
-      ] = foundQuote!!.detailed_quote.quote_finance_product.finance_product.product_type;
-      if (foundSystemDesign && foundSystemDesign.roof_top_design_data.panel_array?.length) {
-        query['proposal_section_master.applicable_products'].$in.push('pv');
-      }
-      if (foundSystemDesign && foundSystemDesign.roof_top_design_data.storage?.length) {
-        query['proposal_section_master.applicable_products'].$in.push('storage');
+      query['proposal_section_master.applicable_financial_product'].$in = [
+        foundQuote!!.detailed_quote.quote_finance_product.finance_product.funding_source_id,
+      ];
+
+      if (
+        foundSystemDesign?.roof_top_design_data.panel_array?.length &&
+        foundSystemDesign?.roof_top_design_data.storage?.length
+      ) {
+        query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.PV_AND_STORAGE];
+      } else if (foundSystemDesign?.roof_top_design_data.panel_array?.length) {
+        query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.PV];
+      } else if (foundSystemDesign?.roof_top_design_data.storage?.length) {
+        query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.STORAGE];
       }
     }
 

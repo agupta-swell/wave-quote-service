@@ -2,6 +2,12 @@ import { Document, Schema } from 'mongoose';
 
 export const PROPOSAL_TEMPLATE = Symbol('PROPOSAL_TEMPLATE').toString();
 
+export enum EApplicableProducts {
+  PV = 'pv',
+  STORAGE = 'storage',
+  PV_AND_STORAGE = 'pv-storage',
+}
+
 export interface ISectionSchema {
   id: string;
   name: string;
@@ -18,12 +24,12 @@ const SectionSchema = new Schema<Document<ISectionSchema>>(
 );
 
 export interface IProposalSectionMaster {
-  applicable_financial_product: string;
+  applicable_financial_product: string[];
   applicable_products: string[];
 }
 
 const ProposalSectionMaster = new Schema<Document<IProposalSectionMaster>>({
-  applicable_financial_product: String,
+  applicable_financial_product: [String],
   applicable_products: [String],
 });
 

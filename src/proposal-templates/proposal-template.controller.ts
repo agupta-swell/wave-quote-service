@@ -38,9 +38,9 @@ export class ProposalTemplateController {
 
   @Get()
   @ApiOperation({ summary: 'Get List' })
-  @ApiQuery({ name: 'limit' })
-  @ApiQuery({ name: 'skip' })
-  @ApiQuery({ name: 'quoteId' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'skip', required: false })
+  @ApiQuery({ name: 'quoteId', required: false })
   @ApiOkResponse({ type: ProposalTemplateListRes })
   async getList(
     @Query() query: { limit: string; skip: string; quoteId?: string },
