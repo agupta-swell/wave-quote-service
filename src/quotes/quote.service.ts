@@ -656,20 +656,25 @@ export class QuoteService {
       }
     }
 
+    const utilityProgramDetail =
+      data.utilityProgramId && data.utilityProgramId !== 'None'
+        ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
+        : null;
+
     const detailedQuote = {
       systemProduction: systemDesign.system_production_data,
       quoteCostBuildup,
-      utilityProgram: utility_program
+      utilityProgram: utilityProgramDetail
         ? {
-            utilityProgramId: utility_program.utility_program_id,
-            utilityProgramName: utility_program.utility_program_name,
-            rebateAmount: utility_program.rebate_amount,
+            utilityProgramId: utilityProgramDetail.id,
+            utilityProgramName: utilityProgramDetail.utility_program_name,
+            rebateAmount: utilityProgramDetail.rebate_amount,
             utilityProgramDataSnapshot: {
-              id: utility_program.utility_program_id,
-              name: utility_program.utility_program_name,
-              rebateAmount: utility_program.rebate_amount,
+              id: utilityProgramDetail.id,
+              name: utilityProgramDetail.utility_program_name,
+              rebateAmount: utilityProgramDetail.rebate_amount,
             },
-            utilityProgramDataSnapshotDate: utility_program.utility_program_data_snapshot_date,
+            utilityProgramDataSnapshotDate: new Date(),
           }
         : null,
       quoteFinanceProduct: {
@@ -703,7 +708,7 @@ export class QuoteService {
     );
 
     detailedQuote.quoteFinanceProduct.rebateDetails = this.createRebateDetails({
-      utilityProgramName: utility_program?.utility_program_name ?? '',
+      utilityProgramName: detailedQuote.utilityProgram?.utilityProgramName ?? '',
       itcRate: v2_itc?.itc_rate ?? 0,
       grossPrice: grossPriceData.grossPrice ?? 0,
     });
