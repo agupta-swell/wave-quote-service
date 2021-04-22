@@ -226,6 +226,7 @@ export class ProposalService {
           email: item.email,
           houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
           zipCode: 7000000, // TO BE REMOVED AFTER MERGED
+          isAgent: true, //TODO: SHOULD BE REMOVED AFTER DEMO
         },
         {
           expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d`,
