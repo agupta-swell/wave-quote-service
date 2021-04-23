@@ -3,15 +3,26 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import * as Handlebars from 'handlebars';
-import { identity, pickBy } from 'lodash';
+import { identity, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { UserService } from 'src/users/user.service';
+import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
+import { UtilityService } from 'src/utilities/utility.service';
+import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
+import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
+import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
+import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
+import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
+import { IGenericObject } from 'src/docusign-communications/typing';
+import { ITemplateDetailSchema, ISignerDetailDataSchema } from 'src/contracts/contract.schema';
+import { IncomingMessage } from 'http';
+import { ManagedUpload } from 'aws-sdk/clients/s3';
+import { S3Service } from 'src/shared/aws/services/s3.service';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
-import { CurrentUserType } from '../app/securities';
 import { EmailService } from '../emails/email.service';
 import { QuoteService } from '../quotes/quote.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
@@ -26,11 +37,13 @@ import {
 } from './req';
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
-import { GetPresignedUrlService } from './sub-services/s3.service';
 import proposalTemplate from './template-html/proposal-template';
+import { ProposalSendSampleContractDto } from './res/proposal-send-sample-contract.dto';
 
 @Injectable()
 export class ProposalService {
+  private BUCKET_NAME = process.env.PROPOSAL_AWS_BUCKET || 'proposal-data-development';
+
   constructor(
     @InjectModel(PROPOSAL) private proposalModel: Model<Proposal>,
     @InjectModel(PROPOSAL_ANALYTIC) private proposalAnalyticModel: Model<ProposalAnalytic>,
@@ -42,7 +55,13 @@ export class ProposalService {
     private readonly opportunityService: OpportunityService,
     private readonly userService: UserService,
     private readonly contactService: ContactService,
-    private readonly getPresignedUrlService: GetPresignedUrlService,
+    private readonly customerPaymentService: CustomerPaymentService,
+    private readonly utilityService: UtilityService,
+    private readonly gsProgramsService: GsProgramsService,
+    private readonly utilityProgramMasterService: UtilityProgramMasterService,
+    private readonly docusignCommunicationService: DocusignCommunicationService,
+    private readonly leaseSolverConfigService: LeaseSolverConfigService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -213,7 +232,7 @@ export class ProposalService {
     return OperationResult.ok({ proposalLink: (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`) });
   }
 
-  async sendRecipients(proposalId: string, user: CurrentUserType): Promise<OperationResult<boolean>> {
+  async sendRecipients(proposalId: string): Promise<OperationResult<boolean>> {
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
       throw ApplicationException.EntityNotFound(proposalId);
@@ -226,7 +245,7 @@ export class ProposalService {
           email: item.email,
           houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
           zipCode: 7000000, // TO BE REMOVED AFTER MERGED
-          isAgent: true, //TODO: SHOULD BE REMOVED AFTER DEMO
+          isAgent: true, // TODO: SHOULD BE REMOVED AFTER DEMO
         },
         {
           expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d`,
@@ -376,12 +395,14 @@ export class ProposalService {
         throw new UnauthorizedException();
       }
     }
-    let url = '';
-    if (isGetDownloadLink) {
-      url = await this.getPresignedUrlService.getDownloadLink(fileName, fileType);
-    } else {
-      url = await this.getPresignedUrlService.getPreviewLink(fileName, fileType);
-    }
+
+    const url = await this.s3Service.getUrl(this.BUCKET_NAME, fileName, {
+      extName: fileType,
+      downloadable: isGetDownloadLink,
+      expires: 300,
+      rootDir: fileName,
+      responseContentType: !isGetDownloadLink,
+    });
     return OperationResult.ok(url);
   }
 
@@ -407,5 +428,138 @@ export class ProposalService {
         phoneNumber: recordOwner?.profile.cellPhone,
       },
     } as any;
+  }
+
+  async sendSampleContract(
+    proposalId: string,
+    templateDetails: ITemplateDetailSchema[],
+    signerDetails: ISignerDetailDataSchema[],
+  ): Promise<OperationResult<ProposalSendSampleContractDto>> {
+    const proposal = await this.proposalModel.findById(proposalId);
+
+    if (!proposal) throw ApplicationException.EntityNotFound(`ProposalId: ${proposalId}`);
+
+    const quote = proposal.detailed_proposal.quote_data;
+    const opportunity = await this.opportunityService.getDetailById(proposal.opportunity_id);
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunity_id}`);
+    }
+
+    const [contact, recordOwner] = await Promise.all([
+      this.contactService.getContactById(opportunity.contactId),
+      this.userService.getUserById(opportunity.recordOwner),
+    ]);
+
+    const fundingSourceType = proposal.detailed_proposal.quote_data.quote_finance_product.finance_product.product_type;
+
+    const [customerPayment, utilityName, roofTopDesign, systemDesign] = await Promise.all([
+      this.customerPaymentService.getCustomerPaymentByOpportunityId(proposal.opportunity_id),
+      this.utilityService.getUtilityName(opportunity.utilityId),
+      this.systemDesignService.getRoofTopDesignById(proposal.system_design_id),
+      this.systemDesignService.getOneById(proposal.system_design_id),
+    ]);
+
+    const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
+
+    // Get gsProgram
+    const incentive_details = quote.quote_finance_product.incentive_details[0];
+
+    const gsProgramSnapshotId = incentive_details.detail.gsProgramSnapshot.id;
+
+    const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
+
+    // Get utilityProgramMaster
+    const utilityProgramMaster = gsProgram
+      ? await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId)
+      : null;
+
+    // Get lease solver config
+    const lease_product_attribute = quote.quote_finance_product.finance_product
+      .product_attribute as ILeaseProductAttributes;
+    const query = {
+      isSolar: systemDesign!.is_solar,
+      isRetrofit: systemDesign!.is_retrofit,
+      utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utility_program_name : '',
+      contractTerm: lease_product_attribute.lease_term,
+      storageSize: sumBy(
+        quote.quote_cost_buildup.storage_quote_details,
+        item => item.storage_model_data_snapshot.sizekWh,
+      ),
+      rateEscalator: lease_product_attribute.rate_escalator,
+      capacityKW: systemDesign!.system_production_data.capacityKW,
+      productivity: systemDesign!.system_production_data.productivity,
+    };
+
+    const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
+
+    const sampleContact = {
+      ...contact,
+      firstName: 'Sample',
+      lastName: 'Contract',
+    };
+    const genericObject: IGenericObject = {
+      signerDetails: [],
+      opportunity,
+      quote,
+      recordOwner: recordOwner || ({} as any),
+      contact: sampleContact as any,
+      customerPayment: customerPayment || ({} as any),
+      utilityName: utilityName?.split(' - ')[1] || 'none',
+      roofTopDesign: roofTopDesign || ({} as any),
+      isCash: fundingSourceType === 'cash',
+      assignedMember,
+      gsProgram,
+      utilityProgramMaster,
+      leaseSolverConfig,
+    };
+
+    const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(
+      proposal._id.toString(),
+      templateDetails,
+      signerDetails,
+      genericObject,
+      true,
+    );
+
+    if (docusignResponse.status === 'SUCCESS') {
+      proposal.detailed_proposal.envelope_id = docusignResponse.contractingSystemReferenceId;
+      await proposal.save();
+    }
+
+    // return OperationResult.ok(new SendContractDto(status, statusDescription, updatedContract));
+    const document = await this.docusignCommunicationService.downloadContract(
+      docusignResponse.contractingSystemReferenceId as string,
+    );
+
+    const timestamp = Date.now();
+    const fileName = `${docusignResponse.contractingSystemReferenceId as string}_${timestamp}.pdf`;
+
+    try {
+      const s3UploadResult = await this.saveToStorage(document, fileName);
+      // await proposal.
+      proposal.detailed_proposal.contract_url = s3UploadResult.Location;
+      await proposal.save();
+      return OperationResult.ok({
+        url: s3UploadResult.Location,
+      });
+    } catch (err) {
+      // TODO use Logger
+      console.log('s3 upload error', err);
+      throw ApplicationException.ServiceError();
+    }
+  }
+
+  private saveToStorage(doc: IncomingMessage, fileName: string): Promise<ManagedUpload.SendData> {
+    return new Promise((resolve, reject) => {
+      doc.pipe(
+        this.s3Service.putStream(fileName, this.BUCKET_NAME, 'application/pdf', 'public-read', (err, data) => {
+          if (err) {
+            return reject(err);
+          }
+
+          return resolve(data);
+        }),
+      );
+    });
   }
 }

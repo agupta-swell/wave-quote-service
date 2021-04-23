@@ -1,8 +1,8 @@
 import { TemplateDataBuilder } from 'src/docusign-communications/typing';
 
 export const getGridServicesAgt: TemplateDataBuilder = genericObj => {
-  const { contact, contract } = genericObj;
-  const coOwner = contract.signer_details.find(e => e.role === 'Co Owner');
+  const { contact, signerDetails } = genericObj;
+  const coOwner = signerDetails.find(e => e.role === 'Co Owner');
 
   const result: Record<string, string> = {};
 

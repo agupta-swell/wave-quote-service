@@ -1,3 +1,5 @@
+import { EnvelopeSummary, LoginAccount } from 'docusign-esign';
+
 export interface ICalculateSystemProduction {
   lat: number;
   lon: number;
@@ -48,4 +50,8 @@ export interface IPvWattV6Responses {
   tamb: number[];
   tcell: number[];
   wspd: number[];
+}
+
+export interface ILoginAccountWithMeta extends LoginAccount {
+  headers: Record<string, string>
 }

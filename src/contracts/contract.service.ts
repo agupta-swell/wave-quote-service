@@ -174,6 +174,7 @@ export class ContractService {
 
   async sendContract(contractId: string): Promise<OperationResult<SendContractDto>> {
     const contract = await this.contractModel.findById(contractId).lean();
+
     if (!contract) {
       throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
     }
@@ -240,7 +241,7 @@ export class ContractService {
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
     const genericObject: IGenericObject = {
-      contract,
+      signerDetails: contract.signer_details,
       opportunity,
       quote: quote.detailed_quote,
       recordOwner: recordOwner || ({} as any),
@@ -255,7 +256,12 @@ export class ContractService {
       leaseSolverConfig,
     };
 
-    const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(contract, genericObject);
+    const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(
+      contractId,
+      contract.contract_template_detail.template_details,
+      contract.signer_details,
+      genericObject,
+    );
 
     if (docusignResponse.status === 'SUCCESS') {
       status = 'SUCCESS';

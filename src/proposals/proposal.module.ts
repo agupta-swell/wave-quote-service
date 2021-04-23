@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
+import { AwsModule } from 'src/shared/aws/aws.module';
 import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
 import { ProposalService } from './proposal.service';
@@ -26,9 +28,11 @@ import { GetPresignedUrlService } from './sub-services/s3.service';
         collection: 'v2_proposal_analytics',
       },
     ]),
+    GsProgramsModule,
+    AwsModule
   ],
   controllers: [ProposalController],
-  providers: [ProposalService, GetPresignedUrlService],
+  providers: [ProposalService],
   exports: [ProposalService],
 })
 export class ProposalModule {}

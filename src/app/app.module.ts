@@ -31,6 +31,7 @@ import { SystemDesignModule } from 'src/system-designs/system-design.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
+import { AwsModule } from 'src/shared/aws/aws.module';
 import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
@@ -71,6 +72,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     GsProgramsModule,
     FinancialProductsModule,
     SavingCalculationModule,
+    AwsModule
   ],
 })
 export class AppModule {

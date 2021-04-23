@@ -63,7 +63,6 @@ export class LeaseSolverConfigService {
   // --->>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<---
 
   async getDetailByConditions(condition: IGetDetail): Promise<LeaseSolverConfig | null> {
-    console.log('>>>>>>>>>>>>>>>>>>>', 'condition', condition);
     const leaseSolverConfig = await this.leaseSolverConfig.findOne({
       is_solar: condition.isSolar,
       is_retrofit: condition.isRetrofit,

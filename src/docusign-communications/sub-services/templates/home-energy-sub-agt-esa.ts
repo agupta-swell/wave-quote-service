@@ -5,9 +5,9 @@ import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
-  const { opportunity, quote, contact, contract } = genericObject;
+  const { opportunity, quote, contact, signerDetails } = genericObject;
 
-  const coOwner = contract.signer_details.find(e => e.role === 'Co Owner');
+  const coOwner = signerDetails.find(e => e.role === 'Co Owner');
 
   const result = {} as Record<string, string>;
 

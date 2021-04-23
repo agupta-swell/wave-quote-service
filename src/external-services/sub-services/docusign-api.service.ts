@@ -1,9 +1,14 @@
+import * as https from 'https';
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import * as docusign from 'docusign-esign';
 import { EnvelopeSummary } from 'docusign-esign';
 import { MyLogger } from 'src/app/my-logger/my-logger.service';
+import { ApplicationException } from 'src/app/app.exception';
+import { IncomingMessage } from 'http';
+import { CredentialService } from 'src/shared/aws/services/credential.service';
 import { IDocusignCompositeContract, IDocusignSecretManager } from '../../docusign-communications/typing';
+import { ILoginAccountWithMeta } from '../typing';
 
 @Injectable()
 export class DocusignAPIService {
@@ -11,14 +16,12 @@ export class DocusignAPIService {
 
   apiClient: docusign.ApiClient;
 
-  constructor(private readonly logger: MyLogger) {
-    this.client = new AWS.SecretsManager({
-      region: process.env.AWS_REGION,
-    });
+  constructor(private readonly logger: MyLogger, private readonly credentialService: CredentialService) {
+    this.client = new AWS.SecretsManager(this.credentialService.getCredentials());
   }
 
   // eslint-disable-next-line consistent-return
-  async createConnection(): Promise<docusign.LoginAccount | void> {
+  async createConnection(): Promise<ILoginAccountWithMeta | undefined> {
     const docusignKeys = await this.getDocusignSecret();
 
     const docusignAPI = docusignKeys?.docusign;
@@ -42,13 +45,20 @@ export class DocusignAPIService {
       const baseUrl = loginAccount?.baseUrl || '';
       const accountDomain = baseUrl.split('/v2');
       this.apiClient.setBasePath(accountDomain[0]);
-      return loginAccount;
+      return (
+        loginAccount && {
+          ...loginAccount,
+          headers: {
+            'X-DocuSign-Authentication': `${creds}`,
+          },
+        }
+      );
     } catch (error) {
       this.logger.error(error);
     }
   }
 
-  async sendTemplate(templateData: IDocusignCompositeContract): Promise<EnvelopeSummary | null> {
+  async sendTemplate(templateData: IDocusignCompositeContract): Promise<docusign.EnvelopeSummary | null> {
     const account = (await this.createConnection()) as docusign.LoginAccount;
 
     const envelopesApi = new docusign.EnvelopesApi(this.apiClient);
@@ -82,5 +92,32 @@ export class DocusignAPIService {
     }
 
     return JSON.parse(secret || decodedBinarySecret) as IDocusignSecretManager;
+  }
+
+  getEnvelopeDocumentById(envelopeId: string): Promise<IncomingMessage> {
+    return new Promise((resolve, reject) => {
+      // eslint-disable-next-line consistent-return
+      this.createConnection().then(account => {
+        if (!account) return reject(ApplicationException.NoPermission());
+
+        const { headers, baseUrl } = account;
+
+        const url = new URL(baseUrl as string);
+        https.get(
+          {
+            hostname: url.host,
+            path: `${url.pathname}/envelopes/${envelopeId}/documents/combined`,
+            headers,
+          },
+          res => {
+            if (res.statusCode !== 200) {
+              console.log(`No document found with envelopeId=${envelopeId}`);
+              return reject(ApplicationException.ServiceError());
+            }
+            return resolve(res);
+          },
+        );
+      });
+    });
   }
 }

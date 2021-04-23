@@ -5,6 +5,7 @@ import { LeanDocument, Model } from 'mongoose';
 import { Contract } from 'src/contracts/contract.schema';
 import { ContractService } from 'src/contracts/contract.service';
 import { DocusignAPIService } from 'src/external-services/sub-services/docusign-api.service';
+import { IncomingMessage } from 'http';
 import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
 import { DocusignCommunication, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
 import { DocusignTemplateService } from './sub-services/docusign-template.service';
@@ -41,11 +42,15 @@ export class DocusignCommunicationService {
 
   // =====================> INTERNAL <=====================
   async sendContractToDocusign(
-    contract: LeanDocument<Contract>,
+    contractId: string,
+    templateDetails: ITemplateDetailSchema[],
+    signerDetails: ISignerDetailDataSchema[],
     genericObject: IGenericObject,
+    isDraft = false,
   ): Promise<ISendDocusignToContractResponse> {
+    // see: https://developers.docusign.com/docs/esign-rest-api/reference/envelopes/envelopes/create/
     const docusignPayload: IDocusignCompositeContract = {
-      status: 'sent',
+      status: isDraft ? 'created' : 'sent',
       emailSubject: `${
         genericObject.quote.quote_finance_product?.finance_product?.financial_product_snapshot?.name || 'Contract'
       } - Agreement for ${genericObject.opportunity.name}`,
@@ -54,14 +59,13 @@ export class DocusignCommunicationService {
     };
 
     const docusignSecret = await this.docusignAPIService.getDocusignSecret();
-    contract.contract_template_detail.template_details.map(template => {
+    templateDetails.map(template => {
       const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(
         template,
-        contract.signer_details,
+        signerDetails,
         genericObject,
         docusignSecret.docusign.defaultContractor,
       );
-
       docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
     });
 
@@ -69,11 +73,12 @@ export class DocusignCommunicationService {
 
     const model = new this.docusignCommunicationModel({
       date_time: new Date(),
-      contract_id: contract?._id?.toString(),
+      contract_id: isDraft ? undefined : contractId,
       request_type: REQUEST_TYPE.OUTBOUND,
       docusign_account_detail: { account_name: 'docusign', account_reference_id: docusignSecret.docusign.email },
       payload_from_docusign: JSON.stringify(resDocusign),
       envelop_id: resDocusign?.envelopeId,
+      proposal_id: isDraft ? contractId : undefined,
     });
 
     await model.save();
@@ -197,5 +202,9 @@ export class DocusignCommunicationService {
   async getCommunicationsByContractId(contractId: string): Promise<LeanDocument<DocusignCommunication>[]> {
     const res = await this.docusignCommunicationModel.find({ contract_id: contractId }).lean();
     return res;
+  }
+
+  downloadContract(envelopeId: string): Promise<IncomingMessage> {
+    return this.docusignAPIService.getEnvelopeDocumentById(envelopeId);
   }
 }

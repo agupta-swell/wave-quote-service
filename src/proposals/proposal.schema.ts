@@ -31,6 +31,8 @@ export interface IDetailedProposalSchema {
   status: PROPOSAL_STATUS;
   pdf_file_url: string;
   html_file_url: string;
+  envelope_id?: string;
+  contract_url?: string;
 }
 
 const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
@@ -47,6 +49,8 @@ const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
     status: String,
     pdf_file_url: String,
     html_file_url: String,
+    envelope_id: String,
+    contract_url: String,
   },
   { _id: false },
 );

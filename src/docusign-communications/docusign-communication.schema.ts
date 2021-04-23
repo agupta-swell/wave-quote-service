@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import {REQUEST_TYPE} from "./typing";
+import { REQUEST_TYPE } from './typing';
 
 export const DOCUSIGN_COMMUNICATION = Symbol('DOCUSIGN_COMMUNICATION').toString();
 
@@ -18,7 +18,7 @@ const DocusignAccountDetailSchema = new Schema<Document<IDocusignAccountDetailSc
 
 export interface DocusignCommunication extends Document {
   date_time: Date;
-  contract_id: string;
+  contract_id?: string;
   envelop_id: string;
   docusign_account_detail: IDocusignAccountDetailSchema;
   request_type: REQUEST_TYPE;
@@ -28,6 +28,7 @@ export interface DocusignCommunication extends Document {
   created_at: Date;
   updated_by: string;
   updated_at: Date;
+  proposal_id?: string;
 }
 
 export const DocusignCommunicationSchema = new Schema<DocusignCommunication>({
@@ -42,4 +43,6 @@ export const DocusignCommunicationSchema = new Schema<DocusignCommunication>({
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
+
+  proposal_id: String
 });

@@ -1,6 +1,6 @@
 import { LeanDocument } from 'mongoose';
 import { Contact } from 'src/contacts/contact.schema';
-import { Contract } from 'src/contracts/contract.schema';
+import { ISignerDetailDataSchema } from 'src/contracts/contract.schema';
 import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
 import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
@@ -54,7 +54,7 @@ export interface IDocusignCompositeContract {
 }
 
 export interface IGenericObject {
-  contract: LeanDocument<Contract>;
+  signerDetails: ISignerDetailDataSchema[];
   opportunity: LeanDocument<Opportunity>;
   quote: IDetailedQuoteSchema;
   contact: Contact;
