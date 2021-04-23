@@ -16,6 +16,7 @@ export interface QuotePartnerConfig extends Document {
   solarWithACStorageLaborFeePerProject: number;
   solarWithDCStorageLaborFeePerProject: number;
   swellStandardMarkup: number;
+  enabledFinancialProducts: string[];
 }
 
 export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
@@ -33,4 +34,5 @@ export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
   solarWithACStorageLaborFeePerProject: Number,
   solarWithDCStorageLaborFeePerProject: Number,
   swellStandardMarkup: Number,
+  enabledFinancialProducts: Array,
 });

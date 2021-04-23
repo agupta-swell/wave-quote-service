@@ -45,6 +45,9 @@ export class QuotePartnerConfigDto {
   @ApiProperty()
   swellStandardMarkup: number;
 
+  @ApiProperty()
+  enabledFinancialProducts: string[];
+
   constructor(props: QuotePartnerConfig) {
     this.id = props.id;
     this.partnerId = props.partnerId;
@@ -60,6 +63,7 @@ export class QuotePartnerConfigDto {
     this.solarWithACStorageLaborFeePerProject = props.solarWithACStorageLaborFeePerProject;
     this.solarWithDCStorageLaborFeePerProject = props.solarWithDCStorageLaborFeePerProject;
     this.swellStandardMarkup = props.swellStandardMarkup;
+    this.enabledFinancialProducts = props.enabledFinancialProducts;
   }
 }
 
