@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags, ApiBody, ApiCreatedResponse } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { plainToClass } from 'class-transformer';
@@ -8,8 +8,8 @@ import { CurrentUserType } from '../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto, SaveProposalAnalyticDto, UpdateProposalDto, ValidateProposalDto } from './req';
 import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
-// import { ProposalSendSampleContractDto } from './res/proposal-send-sample-contract.dto';
 import { ProposalSendSampleContractDto } from './req/send-sample-contract.dto';
+import { ProposalSendSampleContractRes } from './res/proposal-send-sample-contract.dto';
 
 @ApiTags('Proposal')
 @Controller('/proposals')
@@ -143,8 +143,8 @@ export class ProposalController {
   @PreAuthenticate()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Send sample contract' })
-  @ApiOkResponse({ type: ProposalSendSampleContractDto })
-  async sendSampleContracts(@Param('proposalId') proposalId: string, @Body() body: Record<string, unknown>) {
+  @ApiCreatedResponse({ type: ProposalSendSampleContractRes })
+  async sendSampleContracts(@Param('proposalId') proposalId: string, @Body() body: ProposalSendSampleContractDto) {
     const { template_details, signer_details } = plainToClass(ProposalSendSampleContractDto, body);
     // TODO remove `any` type
     const res = await this.proposalService.sendSampleContract(proposalId, template_details as any, signer_details);

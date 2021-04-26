@@ -112,12 +112,12 @@ export class SignerDetailDto implements ISignerDetailDataSchema {
 }
 
 export class ProposalSendSampleContractDto {
-  @ApiProperty({ name: 'templateDetails' })
+  @ApiProperty({ name: 'templateDetails', type: [TemplateDetailDto] })
   @Expose({ name: 'templateDetails' })
   @Type(() => TemplateDetailDto)
   template_details: TemplateDetailDto[];
 
-  @ApiProperty({ name: 'signerDetails' })
+  @ApiProperty({ name: 'signerDetails', type: [SignerDetailDto] })
   @Expose({ name: 'signerDetails' })
   @Type(() => SignerDetailDto)
   signer_details: SignerDetailDto[];

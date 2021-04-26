@@ -38,7 +38,7 @@ import {
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
 import proposalTemplate from './template-html/proposal-template';
-import { ProposalSendSampleContractDto } from './res/proposal-send-sample-contract.dto';
+import { ProposalSendSampleContractResultDto } from './res/proposal-send-sample-contract.dto';
 
 @Injectable()
 export class ProposalService {
@@ -434,7 +434,7 @@ export class ProposalService {
     proposalId: string,
     templateDetails: ITemplateDetailSchema[],
     signerDetails: ISignerDetailDataSchema[],
-  ): Promise<OperationResult<ProposalSendSampleContractDto>> {
+  ): Promise<OperationResult<ProposalSendSampleContractResultDto>> {
     const proposal = await this.proposalModel.findById(proposalId);
 
     if (!proposal) throw ApplicationException.EntityNotFound(`ProposalId: ${proposalId}`);

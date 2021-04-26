@@ -123,7 +123,7 @@ export class DocusignCommunicationService {
 
     template.recipient_roles.map((role, index) => {
       const signerDataPayload: ISignerData = {} as any;
-      const signerDetailData = signerDetails.find(signer => signer.role_id === role._id.toString()) || ({} as any);
+      const signerDetailData = signerDetails.find(signer => signer.role_id === `${role._id}`) || ({} as any);
 
       if (!signerDetailData) return;
 
