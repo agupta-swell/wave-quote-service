@@ -39,6 +39,8 @@ export class OpportunityService {
       partnerId: foundOpportunity.accountId,
       opportunityName: foundOpportunity.name,
       existingPV: foundOpportunity.existingPV,
+      hasGrantedHomeBatterySystemRights: foundOpportunity.hasGrantedHomeBatterySystemRights,
+      hasHadOtherDemandResponseProvider: foundOpportunity.hasHadOtherDemandResponseProvider,
       originalInstaller: foundOpportunity.originalInstaller,
       existingPVSize: foundOpportunity.existingPVSize,
       yearSystemInstalled: foundOpportunity.yearSystemInstalled,
@@ -89,7 +91,7 @@ export class OpportunityService {
     return res;
   }
 
-  async updateExistingSolarData(
+  async updateExistingOppDataById(
     opportunityId: string,
     updateQuery: UpdateQuery<Opportunity>,
   ): Promise<LeanDocument<Opportunity> | null> {

@@ -2,6 +2,7 @@ import { sumBy } from 'lodash';
 import { TemplateDataBuilder } from 'src/docusign-communications/typing';
 import { generateEPVAndGPVTable } from 'src/docusign-communications/utils';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
+import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
   const { opportunity, quote, contact, contract } = genericObject;
@@ -59,10 +60,21 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
     .map(({ quantity, inverter_model_data_snapshot }) => `${quantity},${inverter_model_data_snapshot.name}`)
     .join(', ');
 
-  // TODO [Docusign Yes/No]
+  // Current solar energy system?
+  result['ExistingSolar_Yes'] = opportunity.existingPV ? '1' : '';
+  result['ExistingSolar_No'] = !opportunity.existingPV ? '1' : '';
+
+  // Owned by Third Party?
+  result['CustomerOwned'] = opportunity.financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO ? '1' : '';
+  result['ThirdPartyOwned'] = opportunity.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO ? '1' : '';
+
   // Appointed another response party?
+  result['DemandResponse_Yes'] = opportunity.hasHadOtherDemandResponseProvider ? '1' : '';
+  result['DemandResponse_No'] = !opportunity.hasHadOtherDemandResponseProvider ? '1' : '';
+
   // Granted rights to other party?
-  result['Docusign Yes/No'] = quote.is_retrofit.toString();
+  result['GrantedRights_Yes'] = opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
+  result['GrantedRights_No'] = !opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
 
   const leaseProductAttribute = quote.quote_finance_product.finance_product
     .product_attribute as ILeaseProductAttributes;

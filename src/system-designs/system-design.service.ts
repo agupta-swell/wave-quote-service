@@ -68,6 +68,13 @@ export class SystemDesignService {
       systemDesignDto.existingSolarData,
     );
 
+    this.opportunityService.updateExistingOppDataById(systemDesignDto.opportunityId, {
+      $set: {
+        hasHadOtherDemandResponseProvider: systemDesignDto.hasHadOtherDemandResponseProvider,
+        hasGrantedHomeBatterySystemRights: systemDesignDto.hasGrantedHomeBatterySystemRights,
+      },
+    });
+
     if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -202,6 +209,21 @@ export class SystemDesignService {
       systemDesignDto.isRetrofit,
       systemDesignDto.existingSolarData,
     );
+
+    if (typeof systemDesignDto.hasHadOtherDemandResponseProvider === 'boolean') {
+      this.opportunityService.updateExistingOppDataById(systemDesignDto.opportunityId, {
+        $set: {
+          hasHadOtherDemandResponseProvider: systemDesignDto.hasHadOtherDemandResponseProvider,
+        },
+      });
+    }
+    if (typeof systemDesignDto.hasGrantedHomeBatterySystemRights === 'boolean') {
+      this.opportunityService.updateExistingOppDataById(systemDesignDto.opportunityId, {
+        $set: {
+          hasGrantedHomeBatterySystemRights: systemDesignDto.hasGrantedHomeBatterySystemRights,
+        },
+      });
+    }
 
     if (systemDesignDto.isRetrofit) {
       systemDesign.setIsRetrofit(systemDesignDto.isRetrofit);
@@ -485,9 +507,9 @@ export class SystemDesignService {
         delete updateQuery.$set.tpoFundingSource;
         updateQuery['$unset'] = { tpoFundingSource: '' };
       }
-      this.opportunityService.updateExistingSolarData(opportunityId, updateQuery);
+      this.opportunityService.updateExistingOppDataById(opportunityId, updateQuery);
     } else {
-      this.opportunityService.updateExistingSolarData(opportunityId, {
+      this.opportunityService.updateExistingOppDataById(opportunityId, {
         $set: {
           existingPV: false,
         },

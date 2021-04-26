@@ -20,6 +20,8 @@ export interface Opportunity extends Document {
   recordOwner: string;
   accountId: string;
   existingPV: boolean;
+  hasHadOtherDemandResponseProvider: boolean;
+  hasGrantedHomeBatterySystemRights: boolean;
   originalInstaller: string;
   existingPVSize: number;
   yearSystemInstalled: number;
@@ -48,6 +50,8 @@ export const OpportunitySchema = new Schema<Opportunity>({
   recordOwner: String,
   accountId: String,
   existingPV: Boolean,
+  hasHadOtherDemandResponseProvider: Boolean,
+  hasGrantedHomeBatterySystemRights: Boolean,
   originalInstaller: String,
   existingPVSize: Number,
   yearSystemInstalled: Number,

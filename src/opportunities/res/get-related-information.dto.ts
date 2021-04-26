@@ -40,6 +40,12 @@ export class GetRelatedInformationDto {
   existingPV: boolean;
 
   @ApiProperty()
+  hasGrantedHomeBatterySystemRights: boolean;
+
+  @ApiProperty()
+  hasHadOtherDemandResponseProvider: boolean;
+
+  @ApiProperty()
   originalInstaller: string;
 
   @ApiProperty()
@@ -76,6 +82,8 @@ export class GetRelatedInformationDto {
     this.partnerId = props.partnerId;
     this.opportunityName = props.opportunityName;
     this.existingPV = props.existingPV;
+    this.hasGrantedHomeBatterySystemRights = props.hasGrantedHomeBatterySystemRights;
+    this.hasHadOtherDemandResponseProvider = props.hasHadOtherDemandResponseProvider;
     this.originalInstaller = props.originalInstaller;
     this.existingPVSize = props.existingPVSize;
     this.yearSystemInstalled = props.yearSystemInstalled;

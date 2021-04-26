@@ -61,6 +61,16 @@ export class CreateSystemDesignDto {
   @IsBoolean()
   isRetrofit: boolean;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  hasHadOtherDemandResponseProvider: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  hasGrantedHomeBatterySystemRights: boolean;
+
   @ApiPropertyOptional({ type: ExistingSolarDataDto })
   @ValidateIf(o => o.isRetrofit)
   @ValidateNested({ each: true })
