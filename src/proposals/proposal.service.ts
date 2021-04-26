@@ -1,26 +1,26 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import * as Handlebars from 'handlebars';
+import { IncomingMessage } from 'http';
 import { identity, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
+import { ISignerDetailDataSchema, ITemplateDetailSchema } from 'src/contracts/contract.schema';
+import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
+import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
+import { IGenericObject } from 'src/docusign-communications/typing';
+import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
+import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
-import { UserService } from 'src/users/user.service';
-import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
-import { UtilityService } from 'src/utilities/utility.service';
-import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
-import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
-import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
-import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
-import { IGenericObject } from 'src/docusign-communications/typing';
-import { ITemplateDetailSchema, ISignerDetailDataSchema } from 'src/contracts/contract.schema';
-import { IncomingMessage } from 'http';
-import { ManagedUpload } from 'aws-sdk/clients/s3';
 import { S3Service } from 'src/shared/aws/services/s3.service';
+import { UserService } from 'src/users/user.service';
+import { UtilityService } from 'src/utilities/utility.service';
+import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { EmailService } from '../emails/email.service';
@@ -35,10 +35,10 @@ import {
   UpdateProposalDto,
   ValidateProposalDto,
 } from './req';
+import { ProposalSendSampleContractResultDto } from './res/proposal-send-sample-contract.dto';
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
 import proposalTemplate from './template-html/proposal-template';
-import { ProposalSendSampleContractResultDto } from './res/proposal-send-sample-contract.dto';
 
 @Injectable()
 export class ProposalService {
@@ -537,7 +537,7 @@ export class ProposalService {
     try {
       const s3UploadResult = await this.saveToStorage(document, fileName);
       // await proposal.
-      proposal.detailed_proposal.contract_url = s3UploadResult.Location;
+      proposal.detailed_proposal.sample_contract_url = s3UploadResult.Location;
       await proposal.save();
       return OperationResult.ok({
         url: s3UploadResult.Location,

@@ -93,6 +93,9 @@ export class ProposalDto {
   htmlFileUrl: string;
 
   @ApiProperty()
+  sampleContractUrl?: string;
+
+  @ApiProperty()
   quoteId: string;
 
   @ApiProperty()
@@ -132,6 +135,7 @@ export class ProposalDto {
       this.status = props.detailed_proposal.status;
       this.pdfFileUrl = props.detailed_proposal.pdf_file_url;
       this.htmlFileUrl = props.detailed_proposal.html_file_url;
+      this.sampleContractUrl = props.detailed_proposal.sample_contract_url;
       this.agent = (props as any)?.agent && new UserInformationDto((props as any)?.agent);
       this.customer = (props as any)?.customer && new UserInformationDto((props as any)?.customer);
     }

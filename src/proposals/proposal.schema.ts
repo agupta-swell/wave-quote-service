@@ -32,7 +32,7 @@ export interface IDetailedProposalSchema {
   pdf_file_url: string;
   html_file_url: string;
   envelope_id?: string;
-  contract_url?: string;
+  sample_contract_url?: string;
 }
 
 const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
@@ -50,7 +50,7 @@ const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
     pdf_file_url: String,
     html_file_url: String,
     envelope_id: String,
-    contract_url: String,
+    sample_contract_url: String,
   },
   { _id: false },
 );
