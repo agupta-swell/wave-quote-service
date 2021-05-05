@@ -131,7 +131,7 @@ export class QualificationService {
       customerName: 'Customer',
       qualificationValidityPeriod: '48h',
       recipientNotice: 'No Content',
-      qualificationLink: (process.env.QUALIFICATION_PAGE || '').concat(`/${token}`),
+      qualificationLink: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
     };
 
     const source = qualificationTemplate;
