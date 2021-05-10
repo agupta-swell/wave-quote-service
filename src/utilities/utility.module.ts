@@ -3,6 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { UTILITIES, UtilitiesSchema } from './schemas';
+import { GENEBILITY_LSE_DATA, GenebilityLseDataSchema } from './schemas/genebility-lse-caching.schema';
+import { GenebilityTariffDataSchema, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
 import { UtilityController } from './utility.controller';
 import {
   GenabilityCostDataSchema,
@@ -40,6 +42,16 @@ import { UtilityService } from './utility.service';
         name: UTILITIES,
         schema: UtilitiesSchema,
         collection: 'utilities',
+      },
+      {
+        name: GENEBILITY_LSE_DATA,
+        schema: GenebilityLseDataSchema,
+        collection: GENEBILITY_LSE_DATA,
+      },
+      {
+        name: GENEBILITY_TARIFF_DATA,
+        schema: GenebilityTariffDataSchema,
+        collection: GENEBILITY_TARIFF_DATA,
       },
     ]),
   ],

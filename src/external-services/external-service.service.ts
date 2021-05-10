@@ -235,8 +235,7 @@ export class ExternalService {
     return tariff.data.results;
   }
 
-  getFniResponse = (data: IApplyRequest): Promise<any> => {
-    return new Promise((resolve, reject) => {
+  getFniResponse = (data: IApplyRequest): Promise<any> => new Promise((resolve, reject) => {
       axios
         .post(process.env.FNI_END_POINT as string, data)
         .then(result => {
@@ -249,7 +248,7 @@ export class ExternalService {
           }
         });
     });
-  };
+
   getGenabilityToken(): string {
     const appId = process.env.GENABILITY_APP_ID;
     const appKey = process.env.GENABILITY_APP_KEY;

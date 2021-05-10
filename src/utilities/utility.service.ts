@@ -9,8 +9,10 @@ import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
 import { CalculateActualUsageCostDto, CreateUtilityDto, GetActualUsageDto } from './req';
-import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
+import { CostDataDto, LoadServingEntity, TariffDetailDto, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
 import { UTILITIES, Utilities } from './schemas';
+import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
+import { GenebilityTeriffData, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
 import {
   GenabilityCostData,
   GenabilityTypicalBaseLineModel,
@@ -27,6 +29,8 @@ import {
 
 @Injectable()
 export class UtilityService {
+  private GENEBILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
+
   constructor(
     @InjectModel(GENABILITY_USAGE_DATA)
     private readonly genabilityUsageDataModel: Model<GenabilityUsageData>,
@@ -41,10 +45,47 @@ export class UtilityService {
     private readonly systemDesignService: SystemDesignService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
+    @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
+    @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
   ) {}
 
   async getLoadServingEntities(zipCode: number): Promise<OperationResult<LoadServingEntity[]>> {
+    const cacheData = await this.genebilityLseDataModel.findOne({ zip_code: zipCode }).lean();
+
+    if (cacheData) {
+      const expiredAt = +new Date((<any>cacheData).created_at) + this.GENEBILITY_CACHING_TIME;
+      const now = +new Date();
+
+      const remain = expiredAt - now;
+
+      if (remain > 0)
+        return OperationResult.ok(
+          cacheData.data.map(({ lse_code, lse_id, lse_name, service_type }) => ({
+            zipCode,
+            lseName: lse_name,
+            lseCode: lse_code,
+            serviceType: service_type,
+            lseId: lse_id,
+          })),
+        );
+
+      await this.genebilityLseDataModel.deleteOne({ zip_code: zipCode });
+    }
+
     const lseList = await this.externalService.getLoadServingEntities(zipCode);
+
+    const data = {
+      zip_code: zipCode,
+      data: lseList.map(({ zipCode, lseName, lseCode, serviceType, lseId }) => ({
+        zip_code: zipCode,
+        lse_name: lseName,
+        lse_code: lseCode,
+        service_type: serviceType,
+        lse_id: lseId,
+      })),
+    };
+
+    await this.genebilityLseDataModel.create(data);
     return OperationResult.ok(lseList);
   }
 
@@ -81,11 +122,50 @@ export class UtilityService {
   }
 
   async getTariffs(zipCode: number, lseId: number): Promise<OperationResult<TariffDto>> {
+    const cacheData = await this.genebilityTeriffDataModel
+      .findOne({
+        zip_code: zipCode,
+        lse_id: `${lseId}`,
+      })
+      .lean();
+
+    if (cacheData) {
+      const expiredAt = +new Date((<any>cacheData).created_at) + this.GENEBILITY_CACHING_TIME;
+      const now = +new Date();
+
+      const remain = expiredAt - now;
+
+      if (remain > 0) {
+        return OperationResult.ok(
+          new TariffDto({
+            zipCode,
+            lseId: `${lseId}`,
+            lseName: cacheData.lse_name,
+            tariffDetails: cacheData.tariff_details.map(
+              ({ master_tariff_id, tariff_code, tariff_name }) =>
+                new TariffDetailDto({
+                  tariffCode: tariff_code,
+                  tariffName: tariff_name,
+                  masterTariffId: master_tariff_id,
+                }),
+            ),
+          }),
+        );
+      }
+
+      await this.genebilityTeriffDataModel.deleteOne({
+        zip_code: zipCode,
+        lse_id: `${lseId}`,
+      });
+    }
+
     const data = await this.externalService.getTariff(zipCode, lseId);
     const result = data.filter((item: any) => item.lseId === lseId);
+
     if (!result[0]) {
       throw ApplicationException.UnprocessableEntity(`No Tariff with zipCode: ${zipCode} and lseId: ${lseId}`);
     }
+
     const newResult = {
       zipCode: result[0].zipCode,
       lseId: result[0].lseId,
@@ -96,6 +176,20 @@ export class UtilityService {
         tariffName: item.tariffName,
       })),
     };
+
+    const updateData: LeanDocument<GenebilityTeriffData> = {
+      lse_id: newResult.lseId,
+      lse_name: newResult.lseName,
+      zip_code: newResult.zipCode,
+      tariff_details: newResult.tariffDetails.map(({ tariffCode, masterTariffId, tariffName }) => ({
+        tariff_code: tariffCode,
+        master_tariff_id: masterTariffId,
+        tariff_name: tariffName,
+      })),
+    };
+
+    await this.genebilityTeriffDataModel.create({ ...updateData, zip_code: zipCode });
+
     return OperationResult.ok(new TariffDto({ ...newResult, zipCode }));
   }
 
