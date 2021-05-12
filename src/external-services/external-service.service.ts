@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
-import { IApplyRequest, IApplyResponse } from '../qualifications/typing';
+import { IApplyRequest } from '../qualifications/typing';
 import {
   ICalculateSystemProduction,
   ILoadServingEntity,
@@ -87,7 +87,7 @@ export class ExternalService {
       lseName: lse.name,
       lseCode: lse.lseCode,
       serviceType: lse.serviceTypes,
-      lseId: lse.lseId,
+      lseId: `${lse.lseId}`,
     }));
     return loadServingEntities;
   }
@@ -235,7 +235,8 @@ export class ExternalService {
     return tariff.data.results;
   }
 
-  getFniResponse = (data: IApplyRequest): Promise<any> => new Promise((resolve, reject) => {
+  getFniResponse = (data: IApplyRequest): Promise<any> =>
+    new Promise((resolve, reject) => {
       axios
         .post(process.env.FNI_END_POINT as string, data)
         .then(result => {
