@@ -1,12 +1,12 @@
+import {} from 'dayjs';
 import { Document, Schema } from 'mongoose';
-import {} from 'dayjs'
 
 export const UTILITY_PROGRAM_MASTER = Symbol('UTILITY_PROGRAM_MASTER').toString();
 
 export interface UtilityProgramMaster extends Document {
   utility_program_name: string;
   rebate_amount: number;
-
+  program_manager_id?: string;
   gsa_display_name: string;
   is_active: boolean;
   end_date: string;
@@ -17,6 +17,7 @@ export const UtilityProgramMasterSchema = new Schema<UtilityProgramMaster>({
   rebate_amount: Number,
 
   gsa_display_name: String,
+  program_manager_id: String,
   is_active: Boolean,
   end_date: Date,
 
