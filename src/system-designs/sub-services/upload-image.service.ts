@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 
+// TODO delete this file
 @Injectable()
 export class UploadImageService {
   AWS_S3_BUCKET: string;

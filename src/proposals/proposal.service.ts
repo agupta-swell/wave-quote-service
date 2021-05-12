@@ -70,6 +70,18 @@ export class ProposalService {
       this.quoteService.getOneById(proposalDto.quoteId),
     ]);
 
+    const thumbnail = systemDesign?.thumbnail;
+
+    if (!thumbnail) {
+      throw ApplicationException.ServiceError();
+    }
+
+    const { keyName, bucketName } = this.s3Service.getLocationFromUrl(thumbnail);
+
+    const newKeyName = `proposal_${keyName}`;
+
+    await this.s3Service.copySource(bucketName, keyName, bucketName, newKeyName, 'public-read');
+
     const model = new this.proposalModel({
       opportunity_id: proposalDto.opportunityId,
       system_design_id: proposalDto.systemDesignId,
@@ -83,7 +95,10 @@ export class ProposalService {
         proposal_creation_date: new Date(),
         status: PROPOSAL_STATUS.CREATED,
         quote_data: detailedQuote,
-        system_design_data: systemDesign,
+        system_design_data: {
+          ...systemDesign,
+          thumbnail: this.s3Service.buildUrlFromKey(bucketName, newKeyName),
+        },
       },
     });
 

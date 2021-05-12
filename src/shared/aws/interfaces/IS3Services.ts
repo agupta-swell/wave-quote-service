@@ -1,9 +1,4 @@
-export interface IS3GetUrlOptions {
-  /**
-   * @param extName file extention, eg: pdf, html, js, etc,...
-   */
-  extName?: string;
-
+export interface IS3RootDir {
   /**
    * @param rootDir
    * `true` use fileName as a parent directory
@@ -13,6 +8,12 @@ export interface IS3GetUrlOptions {
    * `false` dont use directory
    */
   rootDir?: boolean | string;
+}
+export interface IS3GetUrlOptions extends IS3RootDir {
+  /**
+   * @param extName file extension, eg: pdf, html, js, etc,...
+   */
+  extName?: string;
 
   expires?: number;
 
@@ -31,4 +32,9 @@ export interface IS3GetUrlOptions {
    * `false` do nothing
    */
   responseContentType?: boolean | string;
+}
+
+export interface IS3GetLocationFromUrlResult {
+  keyName: string;
+  bucketName: string;
 }

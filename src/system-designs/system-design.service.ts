@@ -7,6 +7,7 @@ import { OperationResult, Pagination } from 'src/app/common';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
+import { S3Service } from 'src/shared/aws/services/s3.service';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ProductService } from '../products/product.service';
 import { CALCULATION_MODE } from '../utilities/constants';
@@ -26,6 +27,8 @@ import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from '
 
 @Injectable()
 export class SystemDesignService {
+  private SYSTEM_DESIGN_S3_BUCKET = process.env.AWS_S3_BUCKET as string;
+
   constructor(
     @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
     @InjectModel(SYSTEM_DESIGN_ANCILLARY_MASTER)
@@ -41,6 +44,7 @@ export class SystemDesignService {
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -81,7 +85,7 @@ export class SystemDesignService {
 
       const [thumbnail] = await Promise.all(
         flatten([
-          this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail) as any,
+          this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
           systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
             item.array_id = Types.ObjectId();
             const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
@@ -235,8 +239,11 @@ export class SystemDesignService {
 
       if (systemDesignDto.thumbnail) {
         const [thumbnail] = await Promise.all([
-          this.uploadImageService.uploadToAWSS3(systemDesignDto.thumbnail),
-          this.uploadImageService.deleteFileS3(foundSystemDesign.thumbnail),
+          this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
+          this.s3Service.deleteObject(
+            this.SYSTEM_DESIGN_S3_BUCKET,
+            this.s3Service.getLocationFromUrl(foundSystemDesign.thumbnail).keyName,
+          ),
         ]);
         systemDesign.setThumbnail(thumbnail);
       }
