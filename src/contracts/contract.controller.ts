@@ -1,7 +1,10 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, ParseArrayPipe, Post, Query, Res, ValidationPipe } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ObjectId } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
+import { ParseObjectIdPipe } from 'src/shared/aws/pipes/parse-objectid.pipe';
 import { ContractService } from './contract.service';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
@@ -84,5 +87,25 @@ export class ContractController {
   async saveChangeOrder(@Body() contractReq: SaveChangeOrderReqDto): Promise<ServiceResponse<SaveChangeOrderDto>> {
     const res = await this.contractService.saveChangeOrder(contractReq);
     return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/:contractId/envelope')
+  @ApiParam({ name: 'contractId' })
+  @ApiOperation({ summary: 'Download Contract envelope' })
+  async downloadContract(@Param('contractId', ParseObjectIdPipe) id: ObjectId, @Res() res: any) {
+    const contract = await this.contractService.downloadDocusignContract(id);
+    if (!contract) {
+      throw ApplicationException.NotFoundStatus('Contract Envelope', `${id.toString()}`);
+    }
+
+    const fileName = `${id.toString()}_${Date.now()}.pdf`;
+
+    res
+      .code(200)
+      .header('Access-Control-Expose-Headers', 'Content-Disposition')
+      .header('Content-Disposition', `attachment; filename=${fileName}`)
+      .header('Content-Length', `${contract.headers['content-length']}`)
+      .type('application/pdf')
+      .send(contract);
   }
 }

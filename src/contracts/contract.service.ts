@@ -1,7 +1,8 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { sumBy } from 'lodash';
-import { Model } from 'mongoose';
+import { ObjectId, Model, Types } from 'mongoose';
+import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
@@ -274,7 +275,15 @@ export class ContractService {
       contract.contract_status = PROCESS_STATUS.ERROR;
     }
 
-    const updatedContract = await this.contractModel.findByIdAndUpdate(contract.id, contract, { new: true }).lean();
+    const updatedContract = await this.contractModel
+      .findOneAndUpdate(
+        {
+          _id: contract._id,
+        },
+        contract,
+        { new: true },
+      )
+      .lean();
 
     return OperationResult.ok(new SendContractDto(status, statusDescription, updatedContract));
   }
@@ -383,5 +392,28 @@ export class ContractService {
   ): Promise<OperationResult<GetDocusignCommunicationDetailsDto>> {
     const communications = await this.docusignCommunicationService.getCommunicationsByContractId(contractId);
     return OperationResult.ok(new GetDocusignCommunicationDetailsDto(communications));
+  }
+
+  async getOneByContractId(id: ObjectId): Promise<Contract> {
+    const foundContract = await this.contractModel.findOne({
+      _id: id,
+    });
+
+    if (!foundContract) {
+      throw ApplicationException.NullEntityFound('Contract', id.toString());
+    }
+
+    return foundContract;
+  }
+
+  async downloadDocusignContract(id: ObjectId): Promise<IncomingMessage | undefined> {
+    const foundContract = await this.getOneByContractId(id);
+
+    if (foundContract.contracting_system !== 'DOCUSIGN') return;
+
+    if (!foundContract.contracting_system_reference_id) return;
+
+    // eslint-disable-next-line consistent-return
+    return this.docusignCommunicationService.downloadContract(foundContract.contracting_system_reference_id);
   }
 }
