@@ -53,84 +53,89 @@ export class ECommerceService {
     @InjectModel(ZIP_CODE_REGION_MAP) private readonly zipCodeRegionMapModel: Model<ZipCodeRegionMap>,
     @InjectModel(E_COMMERCE_PRODUCT) private readonly eCommerceProductModel: Model<ECommerceProduct>,
     @InjectModel(E_COMMERCE_SYSTEM_DESIGN) private readonly eCommerceSystemDesignModel: Model<ECommerceSystemDesign>,
-  ) { }
+  ) {}
 
-  public async getGeneratedSystemAndQuote(
-    req: GetEcomSystemDesignAndQuoteReq
-  ) {
-    const {
-      zip,
-      lat,
-      long
-    } = req.addressDataDetail;
+  public async getGeneratedSystemAndQuote(req: GetEcomSystemDesignAndQuoteReq) {
+    try {
+      const { zip, lat, long } = req.addressDataDetail;
 
-    const deposit = req.depositAmount;
+      const deposit = req.depositAmount;
 
-    // Specify how many panels we want to allow the user to add or remove
-    const panelVariance = 5;
-    // Total number of solar systems to generate
-    const numberOfSystemsToGenerate = (panelVariance * 2) + 1;
+      // Specify how many panels we want to allow the user to add or remove
+      const panelVariance = 5;
+      // Total number of solar systems to generate
+      const numberOfSystemsToGenerate = panelVariance * 2 + 1;
 
-    // Get the typical baseline power usage for the user
-    const typicalUsage = await this.getTypicalUsage(zip, req.monthlyUtilityBill);
+      // Get the typical baseline power usage for the user
+      const typicalUsage = await this.getTypicalUsage(zip, req.monthlyUtilityBill);
 
-    // Get the low and high end (+/- panelVariance) systems
-    const lowEndSystem = await this.generateSolarSystem(zip, typicalUsage, (panelVariance * -1));
-    const highEndSystem = await this.generateSolarSystem(zip, typicalUsage, panelVariance);
+      // Get the low and high end (+/- panelVariance) systems
+      const lowEndSystem = await this.generateSolarSystem(zip, typicalUsage, panelVariance * -1);
+      const highEndSystem = await this.generateSolarSystem(zip, typicalUsage, panelVariance);
 
-    // Calculate the net generation for the low and high end systems -- we can linearly interpolate the rest
-    const lowEndNet = await this.getNetGeneration(lat, long, lowEndSystem.capacityKW);
-    const lowEndProductivity = lowEndNet / lowEndSystem.capacityKW;
-    const lowEndQuote = await this.getSolarStorageQuoteDto(zip, lowEndSystem, lowEndProductivity, false, deposit);
-    const highEndNet = await this.getNetGeneration(lat, long, highEndSystem.capacityKW);
-    const highEndProductivity = highEndNet / highEndSystem.capacityKW;
-    const highEndQuote = await this.getSolarStorageQuoteDto(zip, highEndSystem, highEndProductivity, false, deposit);
+      // Calculate the net generation for the low and high end systems -- we can linearly interpolate the rest
+      const lowEndNet = await this.getNetGeneration(lat, long, lowEndSystem.capacityKW);
+      const lowEndProductivity = lowEndNet / lowEndSystem.capacityKW;
+      const lowEndQuote = await this.getSolarStorageQuoteDto(zip, lowEndSystem, lowEndProductivity, false, deposit);
+      const highEndNet = await this.getNetGeneration(lat, long, highEndSystem.capacityKW);
+      const highEndProductivity = highEndNet / highEndSystem.capacityKW;
+      const highEndQuote = await this.getSolarStorageQuoteDto(zip, highEndSystem, highEndProductivity, false, deposit);
 
-    const isValidQuote = (quote: SolarStorageQuoteDto) => 
-      quote.storageData.every((s) => 
-        s.paymentOptionData.every((p) => 
-          p.paymentDetail.monthlyPaymentAmount > 0));
+      const isValidQuote = (quote: SolarStorageQuoteDto) =>
+        quote.storageData.every(s => s.paymentOptionData.every(p => p.paymentDetail.monthlyPaymentAmount > 0));
 
-    // Generate the variants for the optimal system design
-    const systems: SolarStorageQuoteDto[] = [];
+      // Generate the variants for the optimal system design
+      const systems: SolarStorageQuoteDto[] = [];
 
-    if (isValidQuote(lowEndQuote)) {
-      systems.push(lowEndQuote);
-    }
-
-    if (isValidQuote(highEndQuote)) {
-      systems.push(highEndQuote);
-    }
-
-    for (let panelCountAdjust = (panelVariance * -1) + 1; panelCountAdjust <= (panelVariance - 1); panelCountAdjust += 1) {
-      const systemIndex = panelCountAdjust + panelVariance;
-      const variantSystem = await this.generateSolarSystem(zip, typicalUsage, panelCountAdjust);
-      const approximateNetGeneration = this.lerp(lowEndNet, highEndNet, systemIndex / numberOfSystemsToGenerate);
-      const systemProductivity = approximateNetGeneration / variantSystem.capacityKW;
-      const isOptimalSystem = panelCountAdjust === 0;
-      const quote = await this.getSolarStorageQuoteDto(zip, variantSystem, systemProductivity, isOptimalSystem, deposit);
-
-      // If we have invalid amounts, drop it from the response (like if Lease Solver wasn't found)
-      if (isValidQuote(quote)) {
-        systems.push(quote);
+      if (isValidQuote(lowEndQuote)) {
+        systems.push(lowEndQuote);
       }
+
+      if (isValidQuote(highEndQuote)) {
+        systems.push(highEndQuote);
+      }
+
+      for (
+        let panelCountAdjust = panelVariance * -1 + 1;
+        panelCountAdjust <= panelVariance - 1;
+        panelCountAdjust += 1
+      ) {
+        const systemIndex = panelCountAdjust + panelVariance;
+        const variantSystem = await this.generateSolarSystem(zip, typicalUsage, panelCountAdjust);
+        const approximateNetGeneration = this.lerp(lowEndNet, highEndNet, systemIndex / numberOfSystemsToGenerate);
+        const systemProductivity = approximateNetGeneration / variantSystem.capacityKW;
+        const isOptimalSystem = panelCountAdjust === 0;
+        const quote = await this.getSolarStorageQuoteDto(
+          zip,
+          variantSystem,
+          systemProductivity,
+          isOptimalSystem,
+          deposit,
+        );
+
+        // If we have invalid amounts, drop it from the response (like if Lease Solver wasn't found)
+        if (isValidQuote(quote)) {
+          systems.push(quote);
+        }
+      }
+
+      const typicalUsageCostPerKWh = typicalUsage.typicalAnnualUsageInKwh
+        ? typicalUsage.typicalAnnualCost / typicalUsage.typicalAnnualUsageInKwh
+        : 0;
+
+      const result: GetGeneratedSystemStorageQuoteDto = {
+        solarStorageQuotes: systems,
+        typicalUsageCostPerKWh,
+      };
+
+      return OperationResult.ok(result);
+    } catch (e) {
+      console.log(e);
+      throw new Error();
     }
-
-    const typicalUsageCostPerKWh = typicalUsage.typicalAnnualUsageInKwh ?
-      typicalUsage.typicalAnnualCost / typicalUsage.typicalAnnualUsageInKwh :
-      0;
-
-    const result: GetGeneratedSystemStorageQuoteDto = {
-      solarStorageQuotes: systems,
-      typicalUsageCostPerKWh,
-    };
-
-    return OperationResult.ok(result);
   }
 
-  public async getStorageOnlyQuote(
-    req: GetEcomStorageOnlyQuoteReq
-  ) {
+  public async getStorageOnlyQuote(req: GetEcomStorageOnlyQuoteReq) {
     const { zip } = req.addressDataDetail;
     const deposit = req.depositAmount;
     const quotes: StorageQuoteDto[] = [];
@@ -141,9 +146,9 @@ export class ECommerceService {
       const quote = await this.getStorageQuoteDto(zip, deposit, 0, storageCount, 0, 0);
       quotes.push(quote);
     }
-    
+
     const result: GetStorageOnlyQuoteDto = {
-      storageData: quotes
+      storageData: quotes,
     };
 
     return OperationResult.ok(result);
@@ -225,7 +230,7 @@ export class ECommerceService {
   private async generateSolarSystem(
     zipCode: number,
     usage: TypicalUsage,
-    additionalPanels: number = 0
+    additionalPanels: number = 0,
   ): Promise<GeneratedSolarSystem> {
     const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
     const foundEComProduct = await this.getPanelProduct();
@@ -283,10 +288,7 @@ export class ECommerceService {
     };
   }
 
-  private async getCashPaymentOptionDetails(
-    overallCost: number,
-    depositAmount: number,
-  ): Promise<PaymentOptionDataDto> {
+  private async getCashPaymentOptionDetails(overallCost: number, depositAmount: number): Promise<PaymentOptionDataDto> {
     return {
       paymentType: PAYMENT_TYPE.CASH,
       paymentDetail: {
@@ -315,10 +317,7 @@ export class ECommerceService {
 
     // LEASE FOR ESSENTIAL BACKUP
     // const pricePerKwhForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;
-    const {
-      monthlyLeasePayment,
-      rate_per_kWh,
-    } = await this.calculationService.calculateLeaseQuoteForECom(
+    const { monthlyLeasePayment, rate_per_kWh } = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
       overallCost,
@@ -366,16 +365,16 @@ export class ECommerceService {
         savingsFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
         savingTwentyFiveYear: -1, // TO DO - PENDING JON'S SAVING DATA
         deposit: 0, // TO DO - Assuming  0 for now. TO CHECK WITH SALES TEAM ON THE DEPOSIT AMOUNT FOR ESA
-      }
+      },
     };
 
     return {
-      costDetail, 
-      paymentOption
+      costDetail,
+      paymentOption,
     };
   }
 
-  private async getEcommerceConfig(zipCode: number) : Promise<ECommerceConfig> {
+  private async getEcommerceConfig(zipCode: number): Promise<ECommerceConfig> {
     const cacheKey = `e-commerce.service.getEcommerceConfig.${zipCode}`;
     const cachedResult = await this.cacheManager.get<ECommerceConfig>(cacheKey);
 
@@ -448,11 +447,7 @@ export class ECommerceService {
     return this.storageProduct;
   }
 
-  private async getCostBreakdown(
-    zipCode: number,
-    numberOfPanelsToInstall: number = 0,
-    numberOfBatteries: number = 0
-  ) {
+  private async getCostBreakdown(zipCode: number, numberOfPanelsToInstall: number = 0, numberOfBatteries: number = 0) {
     const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
     const result = new CostBreakdown();
     result.storageCost = numberOfBatteries * foundECommerceConfig.storage_price;
@@ -461,10 +456,7 @@ export class ECommerceService {
 
     if (numberOfPanelsToInstall > 0) {
       const solarProduct = await this.getPanelProduct();
-      const {
-        module_price_per_watt,
-        labor_cost_perWatt,
-      } = foundECommerceConfig;
+      const { module_price_per_watt, labor_cost_perWatt } = foundECommerceConfig;
 
       const wattsBeingInstalled = solarProduct.sizeW * numberOfPanelsToInstall;
       result.laborCost = labor_cost_perWatt * wattsBeingInstalled;
@@ -480,34 +472,36 @@ export class ECommerceService {
     const losses = 5.5; // "Assuming a loss factor of 5.5"
 
     return await this.systemProductService.pvWatCalculation({
-        lat,
-        lon: long,
-        systemCapacity: systemCapacityKW,
-        azimuth,
-        tilt,
-        losses,
+      lat,
+      lon: long,
+      systemCapacity: systemCapacityKW,
+      azimuth,
+      tilt,
+      losses,
     });
-}
+  }
 
-  private getLeaseEnergyServiceTypeByBatteryCount(
-    numberOfBatteries: number
-  ) {
+  private getLeaseEnergyServiceTypeByBatteryCount(numberOfBatteries: number) {
     switch (numberOfBatteries) {
-      case 1: return ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP;
-      case 2: return ENERGY_SERVICE_TYPE.SWELL_ESA_WHOLE_HOME;
-      case 3: return ENERGY_SERVICE_TYPE.SWELL_ESA_COMPLETE_BACKUP;
+      case 1:
+        return ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP;
+      case 2:
+        return ENERGY_SERVICE_TYPE.SWELL_ESA_WHOLE_HOME;
+      case 3:
+        return ENERGY_SERVICE_TYPE.SWELL_ESA_COMPLETE_BACKUP;
     }
 
     throw ApplicationException.ServiceError();
   }
 
-  private getLeasePaymentTypeByBatteryCount(
-    numberOfBatteries: number
-  ) {
+  private getLeasePaymentTypeByBatteryCount(numberOfBatteries: number) {
     switch (numberOfBatteries) {
-      case 1: return PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP;
-      case 2: return PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP;
-      case 3: return PAYMENT_TYPE.LEASE_COMPLETE_BACKUP;
+      case 1:
+        return PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP;
+      case 2:
+        return PAYMENT_TYPE.LEASE_WHOLE_HOME_BACKUP;
+      case 3:
+        return PAYMENT_TYPE.LEASE_COMPLETE_BACKUP;
     }
 
     throw ApplicationException.ServiceError();
@@ -519,11 +513,18 @@ export class ECommerceService {
     systemProductivity: number,
     isDefault: boolean,
     deposit: number,
-  ) : Promise<SolarStorageQuoteDto> {
+  ): Promise<SolarStorageQuoteDto> {
     const storageQuotes: StorageQuoteDto[] = [];
 
     for (let batteryCount = 1; batteryCount <= 3; batteryCount += 1) {
-      const storageQuote = await this.getStorageQuoteDto(zipCode, deposit, system.numberOfPanels, batteryCount, system.capacityKW, systemProductivity);
+      const storageQuote = await this.getStorageQuoteDto(
+        zipCode,
+        deposit,
+        system.numberOfPanels,
+        batteryCount,
+        system.capacityKW,
+        systemProductivity,
+      );
       storageQuotes.push(storageQuote);
     }
 
@@ -532,7 +533,7 @@ export class ECommerceService {
       isDefault,
       pvModuleDetailData: this.getPvModuleDetailDataDto(system),
       storageData: storageQuotes,
-    }
+    };
   }
 
   private async getStorageQuoteDto(
@@ -542,14 +543,20 @@ export class ECommerceService {
     numberOfBatteries: number = 0,
     systemCapacityKW: number = 0,
     systemProductivity: number = 0,
-  ) : Promise<StorageQuoteDto> {
+  ): Promise<StorageQuoteDto> {
     const costBreakdown = await this.getCostBreakdown(zipCode, numberOfPanelsToInstall, numberOfBatteries);
     const batteryProduct = await this.getBatteryProduct();
     const costDetailsData: CostDetailDataDto[] = [];
     const paymentOptionData: PaymentOptionDataDto[] = [];
 
     if (numberOfPanelsToInstall > 0) {
-      const leaseDetails = await this.getLeaseDetails(zipCode, costBreakdown.totalCost, numberOfBatteries, systemCapacityKW, systemProductivity);
+      const leaseDetails = await this.getLeaseDetails(
+        zipCode,
+        costBreakdown.totalCost,
+        numberOfBatteries,
+        systemCapacityKW,
+        systemProductivity,
+      );
       costDetailsData.push(leaseDetails.costDetail);
       paymentOptionData.push(leaseDetails.paymentOption);
 
@@ -557,13 +564,18 @@ export class ECommerceService {
       paymentOptionData.push(cashDetails);
     }
 
-    const loanDetails = await this.getLoanPaymentOptionDetails(zipCode, costBreakdown.totalCost, deposit, systemCapacityKW);
+    const loanDetails = await this.getLoanPaymentOptionDetails(
+      zipCode,
+      costBreakdown.totalCost,
+      deposit,
+      systemCapacityKW,
+    );
     paymentOptionData.push(loanDetails);
 
     return {
       storageSystemDetailData: {
         storageSystemCount: numberOfBatteries,
-        storageSystemKWh: batteryProduct.sizeW * numberOfBatteries / 1000,
+        storageSystemKWh: (batteryProduct.sizeW * numberOfBatteries) / 1000,
         numberOfDaysBackup: 0, // TODO: IMPLEMENT THIS
         backupDetailsTest: '', // TODO: IMPLEMENT THIS
       },
@@ -572,9 +584,7 @@ export class ECommerceService {
     };
   }
 
-  private getPvModuleDetailDataDto(
-    generatedSystem: GeneratedSolarSystem
-  ) {
+  private getPvModuleDetailDataDto(generatedSystem: GeneratedSolarSystem) {
     return {
       systemKW: generatedSystem.capacityKW,
       percentageOfSelfPower: 0, // PENDING CALCULATION
@@ -583,6 +593,6 @@ export class ECommerceService {
   }
 
   private lerp(start: number, end: number, desired: number) {
-    return (start * (1.0 - desired)) + (end * desired);
+    return start * (1.0 - desired) + end * desired;
   }
 }
