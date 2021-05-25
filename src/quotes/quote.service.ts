@@ -1122,7 +1122,7 @@ export class QuoteService {
         amount: 0,
         type: REBATE_TYPE.SGIP,
         description: '',
-        is_float_rebate: true,
+        is_float_rebate: false,
       });
     }
     return rebateDetails;
