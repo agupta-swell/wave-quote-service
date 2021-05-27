@@ -121,11 +121,11 @@ export class UtilityService {
     return OperationResult.ok(new UtilityDataDto(data, isInternal));
   }
 
-  async getTariffs(zipCode: number, lseId: number): Promise<OperationResult<TariffDto>> {
+  async getTariffs(zipCode: number, lseId?: number): Promise<OperationResult<TariffDto>> {
     const cacheData = await this.genebilityTeriffDataModel
       .findOne({
         zip_code: zipCode,
-        lse_id: `${lseId}`,
+        lse_id: lseId ? `${lseId}` : '',
       })
       .lean();
 
@@ -160,7 +160,7 @@ export class UtilityService {
     }
 
     const data = await this.externalService.getTariff(zipCode, lseId);
-    const result = data.filter((item: any) => item.lseId === lseId);
+    const result = data.filter((item: any) => !lseId || item.lseId === lseId);
 
     if (!result[0]) {
       throw ApplicationException.UnprocessableEntity(`No Tariff with zipCode: ${zipCode} and lseId: ${lseId}`);
@@ -168,7 +168,7 @@ export class UtilityService {
 
     const newResult = {
       zipCode: result[0].zipCode,
-      lseId: result[0].lseId,
+      lseId: lseId?.toString() || '',
       lseName: result[0].name,
       tariffDetails: result.map(item => ({
         tariffCode: item.tariffCode,

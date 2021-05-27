@@ -174,8 +174,18 @@ export class ExternalService {
     return entity;
   }
 
-  async getTariff(zipCode: number, lseId: number) {
+  async getTariff(zipCode: number, lseId?: number) {
     const url = 'https://api.genability.com/rest/public/tariffs';
+    const params = {
+      zipCode,
+      populateProperties: true,
+      isActive: true,
+      customerClasses: 'RESIDENTIAL',
+    };
+
+    if (lseId) {
+      params['lseId'] = lseId;
+    }
 
     let tariff: any;
     try {
@@ -183,13 +193,7 @@ export class ExternalService {
         headers: {
           Authorization: this.genabilityToken,
         },
-        params: {
-          lseId,
-          zipCode,
-          populateProperties: true,
-          isActive: true,
-          customerClasses: 'RESIDENTIAL',
-        },
+        params,
       });
     } catch (error) {
       this.logger.errorAPICalling(url, error.message);
