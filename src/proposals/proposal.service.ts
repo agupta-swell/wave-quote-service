@@ -110,7 +110,7 @@ export class ProposalService {
         isAgent: true,
       },
       {
-        expiresIn: '5m',
+        expiresIn: '50m',
         secret: process.env.PROPOSAL_JWT_SECRET,
       },
     );
