@@ -52,6 +52,16 @@ export class FinancialProductsService {
     return detail;
   }
 
+  async getAllFinancialProductsByIds(ids: string[]): Promise<LeanDocument<FinancialProduct>[] | null> {
+    const res = await this.financialProduct.find({
+      _id: {
+        $in: ids.map(Types.ObjectId),
+      },
+    });
+
+    return res;
+  }
+
   checkEligibleByQuoteType(
     financialProducts: LeanDocument<FinancialProduct>[],
     fundingSources: (FundingSource | null)[],

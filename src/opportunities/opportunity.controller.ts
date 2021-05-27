@@ -4,6 +4,7 @@ import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { OpportunityService } from './opportunity.service';
 import { UpdateOpportunityUtilityProgramDto } from './req/update-opportunity-utility-program.dto';
+import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto, GetRelatedInformationRes } from './res/get-related-information.dto';
 
 @ApiTags('Opportunity')
@@ -31,6 +32,17 @@ export class OpportunityController {
     @Param('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<GetRelatedInformationDto>> {
     const res = await this.opportunityService.updateOpportunityUtilityProgram(opportunityId, utilityProgramId);
+
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/:opportunityId/financial-selections')
+  @ApiOperation({ summary: "Get opportunity's financial selections" })
+  @ApiOkResponse({ type: GetFinancialSelectionsDto })
+  async getFinancialSelections(
+    @Param('opportunityId') oppId: string,
+  ): Promise<ServiceResponse<GetFinancialSelectionsDto>> {
+    const res = await this.opportunityService.getFinancialSelections(oppId);
 
     return ServiceResponse.fromResult(res);
   }

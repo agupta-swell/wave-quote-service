@@ -30,6 +30,18 @@ export class FundingSourceService {
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
+  async getFundingSourcesByIds(ids: string[]): Promise<LeanDocument<FundingSource[]> | null> {
+    const fundingSources = await this.fundingSource
+      .find({
+        _id: {
+          $in: ids,
+        },
+      })
+      .lean();
+
+    return fundingSources;
+  }
+
   async getDetailById(id: string): Promise<FundingSource | null> {
     const product = await this.fundingSource.findById(id);
     return product;

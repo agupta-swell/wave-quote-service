@@ -7,7 +7,7 @@ import { FINANCIAL_PRODUCT, FinancialProductSchema } from './financial-product.s
 import { FinancialProductsService } from './financial-product.service';
 import { FinancialProductsController } from './financial-product.controller';
 
-@Global()
+// @Global()
 @Module({
   imports: [
     JwtModule.registerAsync({

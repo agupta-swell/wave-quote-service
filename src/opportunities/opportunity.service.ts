@@ -4,8 +4,13 @@ import { LeanDocument, Model, UpdateQuery } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
+import { FinancialProductsService } from 'src/financial-products/financial-product.service';
+import { FinancierService } from 'src/financier/financier.service';
+import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
+import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
 import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } from './res/update-opportunity-utility-program.dto';
 
@@ -13,9 +18,14 @@ import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDt
 export class OpportunityService {
   constructor(
     @InjectModel(OPPORTUNITY) private readonly opportunityModel: Model<Opportunity>,
+    @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
+    private readonly quotePartnerConfigService: QuotePartnerConfigService,
+    private readonly financierService: FinancierService,
+    private readonly financialProductsService: FinancialProductsService,
+    private readonly fundingSourceService: FundingSourceService,
   ) {}
 
   async getRelatedInformation(opportunityId: string): Promise<OperationResult<GetRelatedInformationDto>> {
@@ -72,6 +82,42 @@ export class OpportunityService {
     await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
 
     return OperationResult.ok(updatedOpportunity);
+  }
+
+  async getFinancialSelections(opportunityId: string): Promise<OperationResult<GetFinancialSelectionsDto>> {
+    const opportunity = await this.opportunityModel.findById(opportunityId).lean();
+
+    if (!opportunity) {
+      throw ApplicationException.NotFoundStatus('Opportunity', opportunityId);
+    }
+
+    const { accountId: partnerId } = opportunity;
+
+    const quoteConfig = await this.quotePartnerConfigService.getDetailByPartnerId(partnerId);
+
+    if (!quoteConfig || !Array.isArray(quoteConfig.enabledFinancialProducts))
+      return OperationResult.ok(new GetFinancialSelectionsDto({}));
+
+    const financialProducts = await this.financialProductsService.getAllFinancialProductsByIds(
+      quoteConfig.enabledFinancialProducts,
+    );
+
+    if (!financialProducts) {
+      return OperationResult.ok(new GetFinancialSelectionsDto({}));
+    }
+
+    const [financiers, fundingSources] = await Promise.all([
+      this.financierService.getAllFinanciersByIds(financialProducts.map(e => e.financier_id)),
+      this.fundingSourceService.getFundingSourcesByIds(financialProducts.map(e => e.funding_source_id)),
+    ]);
+
+    return OperationResult.ok(
+      new GetFinancialSelectionsDto({
+        fundingSources,
+        financiers,
+        financialProducts,
+      }),
+    );
   }
 
   // =====================> INTERNAL <=====================
