@@ -125,7 +125,7 @@ export class UtilityService {
     const cacheData = await this.genebilityTeriffDataModel
       .findOne({
         zip_code: zipCode,
-        lse_id: lseId ? `${lseId}` : '',
+        lse_id: lseId?.toString() || '',
       })
       .lean();
 
