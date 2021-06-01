@@ -63,6 +63,7 @@ export class QuoteService {
     private readonly systemDesignService: SystemDesignService,
     private readonly utilityProgramService: UtilityProgramMasterService,
     private readonly fundingSourceService: FundingSourceService,
+    @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
     private readonly cashPaymentConfigService: CashPaymentConfigService,
     private readonly calculationService: CalculationService,
@@ -291,7 +292,7 @@ export class QuoteService {
             quoteCostBuildup.grossPrice,
             financialProduct?.default_down_payment || 0,
           ),
-          financialProductSnapshot: new FinancialProductDto(financialProduct),
+          financialProductSnapshot: (({ financierId: _, ...p }) => p)(new FinancialProductDto(financialProduct)),
         },
         netAmount: 0,
         incentiveDetails: [
@@ -356,9 +357,10 @@ export class QuoteService {
     model.setIsSync(true);
 
     const obj = new this.quoteModel(model);
+
     await obj.save();
 
-    return OperationResult.ok(new QuoteDto(obj.toObject())) as any;
+    return OperationResult.ok(new QuoteDto(obj.toJSON())) as any;
   }
 
   async createProductAttribute(productType: string, netAmount: number, defaultDownPayment: number): Promise<any> {

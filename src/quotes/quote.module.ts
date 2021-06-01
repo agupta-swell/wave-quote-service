@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
+import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
@@ -38,9 +40,11 @@ import { CalculationService } from './sub-services';
         collection: 'v2_discounts',
       },
     ]),
+
+    FinancialProductsModule
   ],
   controllers: [QuoteController],
   providers: [QuoteService, CalculationService],
-  exports: [QuoteService, CalculationService],
+  exports: [QuoteService, CalculationService]
 })
 export class QuoteModule {}

@@ -19,7 +19,7 @@ export class QuoteController {
   @ApiOkResponse({ type: QuoteRes })
   @CheckOpportunity()
   async create(@Body() data: CreateQuoteDto): Promise<ServiceResponse<QuoteDto>> {
-    const res: OperationResult<QuoteDto> = await this.quoteService.createQuote(data);
+    const res = await this.quoteService.createQuote(data);
     return ServiceResponse.fromResult(res);
   }
 

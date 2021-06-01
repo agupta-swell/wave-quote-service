@@ -73,6 +73,9 @@ export class FinancialProductDto {
   @ApiProperty()
   dealerFee: number;
 
+  @ApiProperty()
+  financierId?: string;
+
   constructor(props: LeanDocument<FinancialProduct>) {
     this.id = props._id;
     this.fundingSourceId = props.funding_source_id;
@@ -96,6 +99,7 @@ export class FinancialProductDto {
     this.interestRate = props.interest_rate;
     this.termMonths = props.term_months;
     this.dealerFee = props.dealer_fee;
+    this.financierId = props.financier_id;
   }
 }
 

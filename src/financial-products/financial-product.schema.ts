@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { FINANCIER_COLLECTION } from '../financier/financier.constant';
 
 export const FINANCIAL_PRODUCT = Symbol('FINANCIAL_PRODUCT').toString();
 
@@ -25,6 +26,7 @@ export interface FinancialProduct extends Document {
   interest_rate: number;
   term_months: number;
   dealer_fee: number;
+  financier_id: string;
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({
@@ -51,4 +53,8 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   interest_rate: Number,
   term_months: Number,
   dealer_fee: Number,
+  financier_id: {
+    type: Schema.Types.ObjectId,
+    // required: true,
+  },
 });
