@@ -21,7 +21,7 @@ export const GenebilityTariffDataSchema = new Schema({
   tariff_details: [GenebilityTariffDataDetailSchema],
   created_at: {
     type: Date,
-    default: Date.now(),
+    default: Date.now,
   },
 });
 

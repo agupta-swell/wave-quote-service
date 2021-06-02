@@ -19,7 +19,7 @@ export const GenebilityLseDataSchema = new Schema({
   data: [GenebilityLseDataDetailSchema],
   created_at: {
     type: Date,
-    default: Date.now(),
+    default: Date.now,
   },
 });
 
