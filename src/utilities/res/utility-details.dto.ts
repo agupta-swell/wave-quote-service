@@ -1,27 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
-import { toCamelCase } from 'src/utils/transformProperties';
-import { UtilityUsageDetails } from '../utility.schema';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { CostDataDto } from './cost-data.dto';
 import { UtilityDataDto } from './utility-data.dto';
 
 export class UtilityDetailsDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
 
-  @ApiProperty({ type: UtilityDataDto })
+  @ExposeProp({ type: UtilityDataDto })
   utilityData: UtilityDataDto;
 
-  @ApiProperty({ type: CostDataDto })
+  @ExposeProp({ type: CostDataDto })
   costData: CostDataDto;
-
-  constructor(props: LeanDocument<UtilityUsageDetails>) {
-    this.id = props._id;
-    this.opportunityId = props.opportunity_id;
-    this.utilityData = toCamelCase(props.utility_data);
-    this.costData = toCamelCase(props.cost_data);
-  }
 }

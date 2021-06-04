@@ -1,77 +1,58 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
-import { Opportunity } from '../opportunity.schema';
+import { ExposeProp } from 'src/shared/decorators';
 import { GetRelatedInformationDto } from './get-related-information.dto';
 
 export class UpdateOpportunityDto {
-  @ApiProperty()
+  @ExposeProp()
   contactId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   utilityId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   utilityProgramId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   rebateProgramId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   fundingSourceId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   contractorCompanyName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   contractorAddress1: string;
 
-  @ApiProperty()
+  @ExposeProp()
   contractorAddress2: string;
 
-  @ApiProperty()
+  @ExposeProp()
   contractorLicense: string;
 
-  @ApiProperty()
+  @ExposeProp()
   amount: number;
 
-  @ApiProperty()
+  @ExposeProp()
   isPrimeContractor: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   contractorEmail: string;
 
-  @ApiProperty()
+  @ExposeProp()
   contractorSigner: string;
 
-  @ApiProperty()
+  @ExposeProp()
   recordOwner: string;
 
-  @ApiProperty()
+  @ExposeProp()
   accountId: string;
-
-  constructor(props: Opportunity) {
-    this.contactId = props.contactId;
-    this.utilityId = props.utilityId;
-    this.utilityProgramId = props.utilityProgramId;
-    this.rebateProgramId = props.rebateProgramId;
-    this.fundingSourceId = props.fundingSourceId;
-    this.contractorCompanyName = props.contractorCompanyName;
-    this.contractorAddress1 = props.contractorAddress1;
-    this.contractorAddress2 = props.contractorAddress2;
-    this.contractorLicense = props.contractorLicense;
-    this.amount = props.amount;
-    this.isPrimeContractor = props.isPrimeContractor;
-    this.contractorEmail = props.contractorEmail;
-    this.contractorSigner = props.contractorSigner;
-    this.recordOwner = props.recordOwner;
-    this.accountId = props.accountId;
-  }
 }
 
 export class UpdateOpportunityRes implements ServiceResponse<GetRelatedInformationDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetRelatedInformationDto })
+  @ExposeProp({ type: GetRelatedInformationDto })
   data: GetRelatedInformationDto;
 }

@@ -4,8 +4,7 @@ import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
-import { ParseObjectIdPipe } from 'src/shared/aws/pipes/parse-objectid.pipe';
-import { getBooleanString } from 'src/utils/common';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import {
   CreateSystemDesignDto,
   GetInverterClippingDetailDto,
@@ -55,7 +54,7 @@ export class SystemDesignController {
   @ApiOkResponse({ type: SystemDesignRes })
   @CheckOpportunity()
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
     @Body() systemDesign: UpdateSystemDesignDto,
   ): Promise<ServiceResponse<SystemDesignDto>> {
     const result = await this.systemDesignService.update(id, systemDesign);
@@ -76,10 +75,11 @@ export class SystemDesignController {
   }
 
   @Delete(':id/:opportunityId')
+  @ApiParam({ name: 'id', type: String })
   @ApiOperation({ summary: 'Delete system design' })
   @ApiOkResponse({ type: ServiceResponse })
   async delete(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
     @Param('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<string>> {
     const result = await this.systemDesignService.delete(id, opportunityId);
@@ -117,7 +117,7 @@ export class SystemDesignController {
   @ApiOperation({ summary: 'Update ancillaries master' })
   @ApiOkResponse({ type: AnciallaryMasterRes })
   async updateAncillary(
-    @Param('ancillaryId') ancillaryId: string,
+    @Param('ancillaryId', ParseObjectIdPipe) ancillaryId: ObjectId,
     @Body() req: UpdateAncillaryMasterDtoReq,
   ): Promise<ServiceResponse<SystemDesignAncillaryMasterDto>> {
     const result = await this.systemDesignService.updateAncillaryMaster(ancillaryId, req);
@@ -127,7 +127,7 @@ export class SystemDesignController {
   @Get(':id')
   @ApiOperation({ summary: 'Get detail' })
   @ApiOkResponse({ type: SystemDesignRes })
-  async getDetails(@Param('id') id: string): Promise<ServiceResponse<SystemDesignDto>> {
+  async getDetails(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<SystemDesignDto>> {
     const result = await this.systemDesignService.getDetails(id);
     return ServiceResponse.fromResult(result);
   }

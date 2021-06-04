@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ObjectId } from 'mongoose';
 import { OperationResult, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ROLE } from './constants';
 import { QualificationService } from './qualification.service';
@@ -69,10 +71,11 @@ export class QualificationController {
   @Put(':qualificationId/manual-approval')
   @ApiBearerAuth()
   @PreAuthenticate()
+  @ApiParam({ name: 'qualificationId', type: String })
   @ApiOperation({ summary: 'Manual Approval' })
   @ApiOkResponse({ type: ManualApprovalRes })
   async manualApproval(
-    @Param('qualificationId') id: string,
+    @Param('qualificationId', ParseObjectIdPipe) id: ObjectId,
     @Body() manualApprovalDto: SetManualApprovalReqDto,
   ): Promise<ServiceResponse<ManualApprovalDto>> {
     const res = await this.qualificationService.setManualApproval(id, manualApprovalDto);

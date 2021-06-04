@@ -1,51 +1,58 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 
 export class ProductDto {
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   type: string;
 
-  @ApiProperty()
+  @ExposeProp()
   price: number;
 
-  @ApiProperty()
+  @ExposeProp()
   sizeW: number;
 
-  @ApiProperty()
+  @ExposeProp()
   sizekWh: number;
 
-  @ApiProperty()
+  @ExposeProp()
   partNumber: string[];
 
-  @ApiProperty()
+  @ExposeProp()
   manufacturerId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   modelName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   approvedForGsa: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   approvedForEsa: boolean;
 
   // For Panel
-  @ApiProperty()
+  @ExposeProp()
   pvWattModuleType?: string;
 
-  @ApiProperty()
+  @ExposeProp()
   panelOutputMode?: string;
 
-  @ApiProperty()
+  @ExposeProp()
   wattClassStcdc?: number;
 
   // For Inverter
-  @ApiProperty()
+  @ExposeProp()
   inverterType?: string;
 
   // For Storage/Battery
-  @ApiProperty()
+  @ExposeProp()
   batteryType?: string;
+
+  @ExposeProp()
+  dimension: {
+    length: number;
+    width: number;
+  };
 }

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { compact } from 'lodash';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
+import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { Account, ACCOUNT } from './account.schema';
 import { AccountDto } from './res/account.dto';
 
@@ -21,7 +22,7 @@ export class AccountService {
       throw ApplicationException.EntityNotFound(id);
     }
 
-    let fundingSources: any;
+    let fundingSources: (LeanDocument<FundingSource> | FundingSource | null)[];
 
     if (account.fundingSourceAccess?.length) {
       fundingSources = await Promise.all(
@@ -31,6 +32,11 @@ export class AccountService {
       fundingSources = await this.fundingSourceService.getAll();
     }
 
-    return OperationResult.ok(new AccountDto(account, compact(fundingSources)));
+    return OperationResult.ok(
+      strictPlainToClass(AccountDto, {
+        _id: account._id,
+        fundingSourceAccesses: fundingSources.filter(e => e),
+      }),
+    );
   }
 }

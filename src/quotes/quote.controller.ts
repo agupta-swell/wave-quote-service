@@ -1,12 +1,12 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
-import { ParseObjectIdPipe } from 'src/shared/aws/pipes/parse-objectid.pipe';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { QuoteService } from './quote.service';
-import { CalculateQuoteDetailDto, CreateQuoteDto, UpdateQuoteDto } from './req';
+import { CalculateQuoteDetailDto, CreateQuoteDto, LeaseQuoteValidationDto, UpdateQuoteDto } from './req';
 import { DiscountListRes, DiscountsDto, QuoteDto, QuoteListRes, QuoteRes, TaxCreditDto, TaxCreditListRes } from './res';
 
 @ApiTags('Quote')
@@ -35,7 +35,7 @@ export class QuoteController {
 
   @Post('/lease-quote-validations')
   @ApiOperation({ summary: 'Get condition to find out lease config' })
-  async checkConditionsForLeaseQuote(@Body() data: CalculateQuoteDetailDto): Promise<ServiceResponse<string>> {
+  async checkConditionsForLeaseQuote(@Body() data: LeaseQuoteValidationDto): Promise<ServiceResponse<string>> {
     const res = await this.quoteService.getValidationForLease(data);
     return ServiceResponse.fromResult(res);
   }
@@ -76,10 +76,14 @@ export class QuoteController {
   @Put('/:quoteId')
   @ApiOperation({ summary: 'Update quote' })
   @ApiOkResponse({ type: QuoteRes })
+  @ApiParam({
+    name: 'quoteId',
+    type: String,
+  })
   @CheckOpportunity()
   async updateQuote(
     @Body() data: UpdateQuoteDto,
-    @Param('quoteId') quoteId: string,
+    @Param('quoteId', ParseObjectIdPipe) quoteId: ObjectId,
   ): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.updateQuote(quoteId, data);
     return ServiceResponse.fromResult(res);

@@ -1,37 +1,29 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
-import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
-import { Contract } from '../contract.schema';
+import { ExposeProp } from 'src/shared/decorators';
 import { ContractResDto } from './sub-dto';
 
 export class SaveContractDto {
-  @ApiProperty()
+  @ExposeProp()
   status: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   statusDescription: string | undefined;
 
-  @ApiPropertyOptional({ type: ContractResDto })
+  @ExposeProp({ type: ContractResDto, required: false })
   newlyUpdatedContract?: ContractResDto;
-
-  constructor(status: boolean, statusDescription?: string | undefined, contract?: LeanDocument<Contract>) {
-    this.status = status;
-    this.statusDescription = statusDescription;
-    this.newlyUpdatedContract = contract && new ContractResDto(contract);
-  }
 }
 
 export class SendContractReq {
-  @ApiProperty()
+  @ExposeProp()
   @IsString()
   contractId: string;
 }
 
 export class SaveContractRes implements ServiceResponse<SaveContractDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: SaveContractDto })
+  @ExposeProp({ type: SaveContractDto })
   data: SaveContractDto;
 }

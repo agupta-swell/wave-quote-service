@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types, LeanDocument } from 'mongoose';
+import { Model, LeanDocument } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { ProductService } from 'src/products/product.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { GsPrograms, GS_PROGRAMS } from './gs-programs.schema';
 import { GsProgramsDto } from './res/gs-programs.dto';
@@ -33,6 +34,7 @@ export class GsProgramsService {
     ]);
 
     const utilityProgram = await this.utilityProgramMasterService.getDetailById(utilityProgramMasterId);
+
     if (!utilityProgram) {
       throw ApplicationException.EntityNotFound(`UtilityProgramId: ${utilityProgramMasterId}`);
     }
@@ -43,6 +45,7 @@ export class GsProgramsService {
       }
       return a;
     }, []);
+
     const battery = await this.productService.getDetailByIdList(batteryIdList);
     // if (!battery) {
     //   throw ApplicationException.EntityNotFound(`UtilityProgramId: ${utilityProgramMasterId}`);
@@ -50,7 +53,14 @@ export class GsProgramsService {
 
     return OperationResult.ok(
       new Pagination({
-        data: gsPrograms.map(gsProgram => new GsProgramsDto(gsProgram, utilityProgram, battery)),
+        data: strictPlainToClass(
+          GsProgramsDto,
+          gsPrograms.map(gsProgram => ({
+            ...gsProgram,
+            utilityProgram,
+            battery,
+          })),
+        ),
         total,
       }),
     );

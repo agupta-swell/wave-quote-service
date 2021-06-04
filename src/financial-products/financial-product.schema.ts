@@ -1,32 +1,31 @@
 import { Document, Schema } from 'mongoose';
-import { FINANCIER_COLLECTION } from '../financier/financier.constant';
 
 export const FINANCIAL_PRODUCT = Symbol('FINANCIAL_PRODUCT').toString();
 
 export interface FinancialProduct extends Document {
-  funding_source_id: string;
-  is_active: boolean;
+  fundingSourceId: string;
+  isActive: boolean;
   name: string;
-  fund_id: string;
-  allow_down_payment: boolean;
-  min_down_payment: number;
-  default_down_payment: number;
-  max_down_payment: number;
-  annual_degradation: number;
-  guaranteed_production: number;
-  min_margin: number;
-  max_margin: number;
-  min_system_kw: number;
-  max_system_kw: number;
-  min_battery_kwh: number;
-  max_battery_kwh: number;
-  min_productivity: number;
-  max_productivity: number;
-  allowed_states: string[];
-  interest_rate: number;
-  term_months: number;
-  dealer_fee: number;
-  financier_id: string;
+  fundId: string;
+  allowDownPayment: boolean;
+  minDownPayment: number;
+  defaultDownPayment: number;
+  maxDownPayment: number;
+  annualDegradation: number;
+  guaranteedProduction: number;
+  minMargin: number;
+  maxMargin: number;
+  minSystemKw: number;
+  maxSystemKw: number;
+  minBatteryKwh: number;
+  maxBatteryKwh: number;
+  minProductivity: number;
+  maxProductivity: number;
+  allowedStates: string[];
+  interestRate: number;
+  termMonths: number;
+  dealerFee: number;
+  financierId: string;
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({

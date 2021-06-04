@@ -1,100 +1,97 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { toCamelCase } from '../../utils/transformProperties';
+import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 
 export class LoadServingEntity {
-  @ApiProperty()
+  @ExposeProp()
   lseName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lseCode: string;
 
-  @ApiProperty()
+  @ExposeProp()
   zipCode: number;
 
-  @ApiProperty()
+  @ExposeProp()
   serviceType: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lseId: string;
 }
 
 export class TypicalUsage {
-  @ApiProperty()
+  @ExposeProp()
   i: number;
 
-  @ApiProperty()
+  @ExposeProp()
   v: number;
 }
 
 export class TypicalBaseLine {
-  @ApiProperty()
+  @ExposeMongoId({ eitherId: true })
+  id: string;
+
+  @ExposeProp()
   zipCode: number;
 
-  @ApiProperty()
+  @ExposeProp()
   buildingType: string;
 
-  @ApiProperty()
+  @ExposeProp()
   customerClass: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lseName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lseId: number;
 
-  @ApiProperty()
+  @ExposeProp()
   sourceType: string;
 
-  @ApiProperty()
+  @ExposeProp()
   annualConsumption: number;
 
-  @ApiProperty({ type: TypicalUsage })
+  @ExposeProp({ type: TypicalUsage })
   typicalMonthlyUsage: TypicalUsage[];
 
+  @ExposeProp({ type: TypicalUsage })
   typicalHourlyUsage: TypicalUsage[];
 }
 
 export class ActualUsageDto {
-  @ApiProperty()
+  @ExposeProp()
   zipCode: number;
 
-  @ApiProperty()
+  @ExposeProp()
   sourceType: string;
 
-  @ApiProperty()
+  @ExposeProp()
   annualConsumption: number;
 
-  @ApiProperty({ type: TypicalUsage, isArray: true })
+  @ExposeProp({ type: TypicalUsage, isArray: true })
   monthlyUsage: TypicalUsage[];
+
+  @ExposeProp({ type: TypicalUsage, isArray: true })
+  hourlyUsage: TypicalUsage[];
 }
 
 export class UtilityDataDto {
-  @ApiProperty({ type: LoadServingEntity })
+  @ExposeProp({ type: LoadServingEntity })
   loadServingEntityData: LoadServingEntity;
 
-  @ApiProperty({ type: TypicalBaseLine })
+  @ExposeAndMap({ type: TypicalBaseLine }, ({ obj, value }) => {
+    if (!obj.isInternal && obj?.typicalBaselineUsage?.typicalBaseline) {
+      delete obj.typicalBaselineUsage.typicalBaseline.typicalHourlyUsage;
+    }
+
+    return obj?.typicalBaselineUsage?.typicalBaseline || value || {};
+  })
   typicalBaselineUsage: TypicalBaseLine;
 
-  @ApiProperty({ type: ActualUsageDto })
+  @ExposeProp({ type: ActualUsageDto, default: {}, noTransformDefault: true })
   actualUsage: ActualUsageDto;
 
-  constructor(props: any, isInternal = false) {
-    this.loadServingEntityData = toCamelCase(props?.loadServingEntityData);
-    if (!isInternal) {
-      // eslint-disable-next-line no-unused-expressions
-      props?.typicalBaselineUsage?.typical_baseline &&
-        delete props.typicalBaselineUsage.typical_baseline.typical_hourly_usage;
-    }
-    this.typicalBaselineUsage = toCamelCase(props?.typicalBaselineUsage?.typical_baseline);
-    // FIXME: need to fix later
-    this.actualUsage = {} as any;
-  }
-
   static actualUsages(props: any): UtilityDataDto {
-    const utility = new UtilityDataDto(null);
-    utility.loadServingEntityData = props.loadServingEntityData;
-    utility.typicalBaselineUsage = props.typicalBaselineUsage;
-    utility.actualUsage = props.actualUsage;
-    return utility;
+    return strictPlainToClass(UtilityDataDto, props);
   }
 }

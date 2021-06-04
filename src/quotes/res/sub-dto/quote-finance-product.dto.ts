@@ -1,105 +1,139 @@
-import { Type } from 'class-transformer';
-import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
+import { ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { REBATE_TYPE } from 'src/quotes/constants';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FinanceProductDetailDto } from './financial-product.dto';
 
 export class GridServiceDetailsDto {
-  @ApiProperty()
+  @ExposeProp()
   gsTermYears: string;
 
-  @ApiProperty()
+  @ExposeProp({ type: GsProgramsDto })
   gsProgramSnapshot: GsProgramsDto;
 }
 export class IncentiveDetailsDto {
-  @ApiProperty({ enum: REBATE_TYPE })
+  @ExposeProp({ enum: REBATE_TYPE })
   type: REBATE_TYPE;
 
-  @ApiProperty()
+  @ExposeProp({ type: GridServiceDetailsDto })
   detail: GridServiceDetailsDto;
 
-  @ApiProperty()
+  @ExposeProp()
   amount: number;
+
+  @ExposeProp()
+  appliesTo: string;
+
+  @ExposeAndMap({}, ({ obj }) => obj.appliesTo)
+  applies_to: string;
+
+  @ExposeProp()
+  description: string;
+
+  @ExposeProp()
+  unit: string;
+
+  @ExposeProp()
+  unitValue: string;
+
+  @ExposeAndMap({}, ({ obj }) => obj.unitValue)
+  unit_value: string;
 }
 
 export class RebateDetailsDto {
-  @ApiProperty()
+  @ExposeProp()
   amount: number;
 
-  @ApiProperty()
+  @ExposeProp()
   type: string;
 
-  @ApiProperty()
+  @ExposeProp()
   description: string;
 
-  @ApiProperty()
+  @ExposeProp()
   isFloatRebate: string;
 }
 
 @ApiExtraModels(LoanProductAttributesDto, CashProductAttributesDto, LeaseProductAttributesDto)
 export class FinanceProductDto {
-  @ApiProperty()
+  @ExposeProp()
   productType: string;
 
-  @ApiProperty()
+  @ExposeProp()
   fundingSourceId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   fundingSourceName: string;
   // FIXME: need to implement later
 
-  @ApiProperty({
-    type: () => Object,
+  @ExposeProp({
+    type: Object,
     oneOf: [
       { $ref: getSchemaPath(LoanProductAttributesDto) },
       { $ref: getSchemaPath(CashProductAttributesDto) },
       { $ref: getSchemaPath(LeaseProductAttributesDto) },
     ],
     default: {},
+    skipTransform: true,
   })
   productAttribute: LoanProductAttributesDto | CashProductAttributesDto | LeaseProductAttributesDto;
 
-  @ApiProperty()
+  @ExposeProp()
   netAmount: number;
 
-  @ApiProperty({ type: FinanceProductDetailDto })
+  @ExposeProp({ type: FinanceProductDetailDto })
   financialProductSnapshot: FinanceProductDetailDto;
 }
 
 export class ProjectDiscountDetailDto {
-  @ApiProperty()
+  @ExposeAndMap({}, ({ obj }) => obj.id || obj._id || obj.discountId)
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
+  discountId: string;
+
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   amount: number;
 
-  @ApiProperty()
+  @ExposeProp()
   type: string;
 
-  @ApiProperty()
+  @ExposeProp()
   startDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   endDate: Date;
+
+  @ExposeProp()
+  description: string;
+
+  @ExposeProp()
+  excludeAdders: boolean;
+
+  @ExposeProp()
+  unit: string;
+
+  @ExposeProp()
+  unitValue: number;
 }
 
 export class QuoteFinanceProductDto {
-  @ApiProperty({ type: IncentiveDetailsDto, isArray: true })
+  @ExposeProp({ type: IncentiveDetailsDto, isArray: true })
   incentiveDetails: IncentiveDetailsDto[];
 
-  @ApiProperty({ type: RebateDetailsDto, isArray: true })
+  @ExposeProp({ type: RebateDetailsDto, isArray: true })
   rebateDetails: RebateDetailsDto[];
 
-  @ApiProperty({ type: FinanceProductDto })
+  @ExposeProp({ type: FinanceProductDto })
   financeProduct: FinanceProductDto;
 
-  @ApiProperty()
+  @ExposeProp()
   netAmount: number;
 
-  @ApiProperty({ type: ProjectDiscountDetailDto, isArray: true })
+  @ExposeProp({ type: ProjectDiscountDetailDto, isArray: true })
   projectDiscountDetails: ProjectDiscountDetailDto[];
 }

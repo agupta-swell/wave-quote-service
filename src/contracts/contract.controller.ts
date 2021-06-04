@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
-import { ParseObjectIdPipe } from 'src/shared/aws/pipes/parse-objectid.pipe';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { ContractService } from './contract.service';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {

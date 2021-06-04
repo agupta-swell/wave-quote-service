@@ -5,14 +5,14 @@ import { ECommerceProduct, ECommerceProductSchemaWithoutId } from './e-commerce-
 export const E_COMMERCE_SYSTEM_DESIGN = Symbol('E_COMMERCE_SYSTEM_DESIGN').toString();
 
 export interface IEcomSystemDesignProductSchema {
-  number_of_modules: number;
-  number_of_batteries: number;
-  total_labor_cost: number;
-  total_cost: number;
-  ecom_config_snapshot: ECommerceConfig;
-  ecom_config_snapshot_date: Date;
-  ecom_products_snapshot: ECommerceProduct[];
-  ecom_products_snapshot_date: Date;
+  numberOfModules: number;
+  numberOfBatteries: number;
+  totalLaborCost: number;
+  totalCost: number;
+  ecomConfigSnapshot: ECommerceConfig;
+  ecomConfigSnapshotDate: Date;
+  ecomProductsSnapshot: ECommerceProduct[];
+  ecomProductsSnapshotDate: Date;
 }
 
 export const EcomSystemDesignProductSchema = new Schema<Document<IEcomSystemDesignProductSchema>>({
@@ -27,13 +27,13 @@ export const EcomSystemDesignProductSchema = new Schema<Document<IEcomSystemDesi
 });
 
 export interface ECommerceSystemDesign extends Document {
-  e_com_visit_id: string;
-  system_design_product: IEcomSystemDesignProductSchema;
+  eComVisitId: string;
+  systemDesignProduct: IEcomSystemDesignProductSchema;
 
-  created_by?: string;
-  created_at?: Date;
-  updated_by?: string;
-  updated_at?: Date;
+  createdBy?: string;
+  createdAt?: Date;
+  updatedBy?: string;
+  updatedAt?: Date;
 }
 
 export const ECommerceSystemDesignSchema = new Schema<ECommerceSystemDesign>({

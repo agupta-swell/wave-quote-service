@@ -1,108 +1,82 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { ExposeProp } from 'src/shared/decorators';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export class GetRelatedInformationDto {
-  @ApiProperty()
+  @ExposeProp()
   address: string;
 
-  @ApiProperty()
+  @ExposeProp()
   city: string;
 
-  @ApiProperty()
+  @ExposeProp()
   firstName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lastName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   email: string;
 
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   state: string;
 
-  @ApiProperty()
+  @ExposeProp()
   utilityProgramId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   rebateProgramId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   zipCode: string;
 
-  @ApiProperty()
+  @ExposeProp()
   partnerId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   opportunityName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   existingPV: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   hasGrantedHomeBatterySystemRights: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   hasHadOtherDemandResponseProvider: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   originalInstaller: string;
 
-  @ApiProperty()
+  @ExposeProp()
   existingPVSize: number;
 
-  @ApiProperty()
+  @ExposeProp()
   yearSystemInstalled: number;
 
-  @ApiProperty()
+  @ExposeProp()
   inverter: INVERTER_TYPE_EXISTING_SOLAR;
 
-  @ApiProperty()
+  @ExposeProp()
   financeType: FINANCE_TYPE_EXISTING_SOLAR;
 
-  @ApiProperty()
+  @ExposeProp()
   inverterManufacturer: string;
 
-  @ApiProperty()
+  @ExposeProp()
   inverterModel: string;
 
-  @ApiProperty()
+  @ExposeProp()
   tpoFundingSource: string;
-
-  constructor(props: GetRelatedInformationDto) {
-    this.address = props.address;
-    this.city = props.city;
-    this.firstName = props.firstName;
-    this.lastName = props.lastName;
-    this.email = props.email;
-    this.opportunityId = props.opportunityId;
-    this.state = props.state;
-    this.utilityProgramId = props.utilityProgramId ?? '';
-    this.rebateProgramId = props.rebateProgramId ?? '';
-    this.zipCode = props.zipCode;
-    this.partnerId = props.partnerId;
-    this.opportunityName = props.opportunityName;
-    this.existingPV = props.existingPV;
-    this.hasGrantedHomeBatterySystemRights = props.hasGrantedHomeBatterySystemRights;
-    this.hasHadOtherDemandResponseProvider = props.hasHadOtherDemandResponseProvider;
-    this.originalInstaller = props.originalInstaller;
-    this.existingPVSize = props.existingPVSize;
-    this.yearSystemInstalled = props.yearSystemInstalled;
-    this.inverter = props.inverter;
-    this.financeType = props.financeType;
-    this.inverterManufacturer = props.inverterManufacturer;
-    this.inverterModel = props.inverterModel;
-    this.tpoFundingSource = props.tpoFundingSource;
-  }
 }
 
 export class GetRelatedInformationRes implements ServiceResponse<GetRelatedInformationDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetRelatedInformationDto })
+  @ExposeProp({ type: GetRelatedInformationDto })
   data: GetRelatedInformationDto;
 }

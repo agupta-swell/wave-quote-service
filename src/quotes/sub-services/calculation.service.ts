@@ -55,23 +55,23 @@ export class CalculationService {
 
     // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuoteForECom() ALSO.
-    const actualSystemCostPerkW = leaseSolverConfig.adjusted_install_cost + 0.1;
-    const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
-    const averageProductivity = (leaseSolverConfig.productivity_min + leaseSolverConfig.productivity_max) / 2;
+    const actualSystemCostPerkW = leaseSolverConfig.adjustedInstallCost + 0.1;
+    const averageSystemSize = (leaseSolverConfig.solarSizeMinimum + leaseSolverConfig.solarSizeMaximum) / 2;
+    const averageProductivity = (leaseSolverConfig.productivityMin + leaseSolverConfig.productivityMax) / 2;
     const rateDeltaPerkWh =
-      (actualSystemCostPerkW - leaseSolverConfig.adjusted_install_cost) *
-      leaseSolverConfig.rate_factor *
+      (actualSystemCostPerkW - leaseSolverConfig.adjustedInstallCost) *
+      leaseSolverConfig.rateFactor *
       averageSystemSize *
       1000;
-    const adjustedSolarRate = leaseSolverConfig.rate_per_kWh + rateDeltaPerkWh;
+    const adjustedSolarRate = leaseSolverConfig.ratePerKWh + rateDeltaPerkWh;
     const monthlyLeasePayment =
-      (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
+      (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storagePayment;
 
     // IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuoteForECom() ALSO.
 
     productAttribute.monthlyLeasePayment = monthlyLeasePayment;
-    productAttribute.ratePerkWh = leaseSolverConfig.rate_per_kWh;
+    productAttribute.ratePerkWh = leaseSolverConfig.ratePerKWh;
     productAttribute.yearlyLoanPaymentDetails = this.getYearlyLeasePaymentDetails(
       productAttribute.leaseTerm,
       monthlyLeasePayment,
@@ -84,8 +84,8 @@ export class CalculationService {
     // eslint-disable-next-line no-param-reassign
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
-    const actualUsage = sumBy(utilityUsage?.utility_data.actual_usage.monthly_usage, item => item.v);
-    const currentBill = sumBy(utilityUsage?.cost_data.actual_usage_cost.cost, item => item.v);
+    const actualUsage = sumBy(utilityUsage?.utilityData.actualUsage.monthlyUsage, item => item.v);
+    const currentBill = sumBy(utilityUsage?.costData.actualUsageCost.cost, item => item.v);
     productAttribute.currentPricePerKwh = currentBill / actualUsage;
     productAttribute.newPricePerKwh = (productAttribute.monthlyEnergyPayment * 12) / actualUsage;
 
@@ -102,15 +102,15 @@ export class CalculationService {
     rateEscalator: number,
     productivity: number,
     addGridServiceDiscount: boolean, // NOTE : FUTURE USE
-    utilityProgramName: string,
-  ): Promise<{ monthlyLeasePayment: number; rate_per_kWh: number; rate_per_kWh_with_storage: number }> {
+    utilityProgramName = 'none',
+  ): Promise<{ monthlyLeasePayment: number; ratePerKWh: number; ratePerKWhWithStorage: number }> {
     const query: IGetDetail = {
       tier: 'DTC',
       isSolar,
-      utilityProgramName: utilityProgramName || 'none',
+      utilityProgramName,
       contractTerm,
       storageSize,
-      storageManufacturer: 'Tesla', //ECom hard coded for Tesla
+      storageManufacturer: 'Tesla', // ECom hard coded for Tesla
       rateEscalator,
       capacityKW,
       productivity,
@@ -119,26 +119,26 @@ export class CalculationService {
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
     if (!leaseSolverConfig) {
-      return { monthlyLeasePayment: -1, rate_per_kWh: -1, rate_per_kWh_with_storage: -1 };
+      return { monthlyLeasePayment: -1, ratePerKWh: -1, ratePerKWhWithStorage: -1 };
     }
 
     // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuote() ALSO.
     const actualSystemCostPerW = leaseAmount / (capacityKW * 1000);
-    const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
-    const averageProductivity = (leaseSolverConfig.productivity_min + leaseSolverConfig.productivity_max) / 2;
+    const averageSystemSize = (leaseSolverConfig.solarSizeMinimum + leaseSolverConfig.solarSizeMaximum) / 2;
+    const averageProductivity = (leaseSolverConfig.productivityMin + leaseSolverConfig.productivityMax) / 2;
     const rateDeltaPerkWh =
-      (actualSystemCostPerW - leaseSolverConfig.adjusted_install_cost) *
-      leaseSolverConfig.rate_factor *
+      (actualSystemCostPerW - leaseSolverConfig.adjustedInstallCost) *
+      leaseSolverConfig.rateFactor *
       averageSystemSize *
       1000;
-    const adjustedSolarRate = leaseSolverConfig.rate_per_kWh + rateDeltaPerkWh;
+    const adjustedSolarRate = leaseSolverConfig.ratePerKWh + rateDeltaPerkWh;
     const monthlyLeasePayment =
-      (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
+      (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storagePayment;
 
     const estimatedAnnualkWh = averageSystemSize * averageProductivity;
-    const estimatedAnnualCost = estimatedAnnualkWh * leaseSolverConfig.rate_per_kWh;
-    const annualStorageCost = leaseSolverConfig.storage_payment * 12;
+    const estimatedAnnualCost = estimatedAnnualkWh * leaseSolverConfig.ratePerKWh;
+    const annualStorageCost = leaseSolverConfig.storagePayment * 12;
     const totalEstimatedAnnualCost = estimatedAnnualCost + annualStorageCost;
     const totalEstimatedCostkWhWithStorage = totalEstimatedAnnualCost / estimatedAnnualkWh;
 
@@ -147,7 +147,7 @@ export class CalculationService {
 
     /*
     productAttribute.monthlyLeasePayment = monthlyLeasePayment;
-    productAttribute.ratePerkWh = leaseSolverConfig.rate_per_kWh;
+    productAttribute.ratePerkWh = leaseSolverConfig.ratePerKWh;
     productAttribute.yearlyLoanPaymentDetails = this.getYearlyLeasePaymentDetails(
       productAttribute.leaseTerm,
       monthlyLeasePayment,
@@ -162,7 +162,11 @@ export class CalculationService {
 
     */
 
-    return { monthlyLeasePayment, rate_per_kWh: leaseSolverConfig.rate_per_kWh, rate_per_kWh_with_storage: totalEstimatedCostkWhWithStorage };
+    return {
+      monthlyLeasePayment,
+      ratePerKWh: leaseSolverConfig.ratePerKWh,
+      ratePerKWhWithStorage: totalEstimatedCostkWhWithStorage,
+    };
   }
 
   private getYearlyLeasePaymentDetails(leaseTerm: number, monthlyLeasePayment: number) {
@@ -192,8 +196,8 @@ export class CalculationService {
   private async getCurrentMonthlyAverageUtilityPayment(opportunityId: string): Promise<number> {
     const utility = await this.utilityService.getUtilityByOpportunityId(opportunityId);
     if (!utility) return 0;
-    const totalCost = sumBy(utility.cost_data.typical_usage_cost.cost, item => item.v);
-    const lenCost = utility.cost_data.typical_usage_cost.cost.length;
+    const totalCost = sumBy(utility.costData.typicalUsageCost.cost, item => item.v);
+    const lenCost = utility.costData.typicalUsageCost.cost.length;
     return totalCost / lenCost;
   }
 
@@ -313,7 +317,7 @@ export class CalculationService {
 
       endingBalanceVariation =
         0 -
-        v2_cls_AmortTableInstanceWithoutPrePay?.[v2_cls_AmortTableInstanceWithoutPrePay.length - 1]?.endingBalance ||
+          v2_cls_AmortTableInstanceWithoutPrePay?.[v2_cls_AmortTableInstanceWithoutPrePay.length - 1]?.endingBalance ||
         0;
       if (endingBalanceVariation > 0) {
         if (endingBalanceVariation > approximateAccuracy) {

@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 
 export const ACCOUNT = Symbol('ACCOUNT').toString();
 
@@ -16,3 +17,5 @@ export const AccountSchema = new Schema<Account>({
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
 });
+
+MongooseNamingStrategy.ExcludeOne(AccountSchema);

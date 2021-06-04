@@ -1,6 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
+import {
+  IsDateString,
+  IsJWT,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 class ApplicantDataDto {
   @ApiProperty()
@@ -45,27 +54,31 @@ class ApplicantDataDto {
 
 class PersonalInformationDto {
   @ApiProperty()
+  @IsNumber()
   soc: number;
 
   @ApiProperty()
+  @IsDateString()
   dob: Date;
 }
 
 export class ApplyCreditQualificationReqDto {
   @ApiProperty()
-  @IsNotEmpty()
+  @IsMongoId()
   qualificationCreditId: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsString()
   opportunityId: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsJWT()
   authenticationToken: string;
 
   @ApiProperty({ type: ApplicantDataDto })
   @IsNotEmpty()
+  @Type(() => ApplicantDataDto)
+  @ValidateNested()
   primaryApplicantData: ApplicantDataDto;
 
   @ApiPropertyOptional({ type: ApplicantDataDto })
@@ -75,8 +88,13 @@ export class ApplyCreditQualificationReqDto {
   coApplicantData: ApplicantDataDto;
 
   @ApiProperty({ type: PersonalInformationDto })
+  @IsNotEmpty()
+  @Type(() => PersonalInformationDto)
+  @ValidateNested()
   primaryApplicantSecuredData: PersonalInformationDto;
 
   @ApiProperty({ type: PersonalInformationDto })
+  @Type(() => PersonalInformationDto)
+  @ValidateNested()
   coApplicantSecuredData: PersonalInformationDto;
 }

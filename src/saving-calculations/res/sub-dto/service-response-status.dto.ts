@@ -1,10 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { SERVICE_RESPONSE_STATUS_TYPE } from 'src/saving-calculations/constants';
+import { ExposeProp } from 'src/shared/decorators';
 
 export class ServiceResponseStatusDataDto {
-  @ApiProperty({ enum: SERVICE_RESPONSE_STATUS_TYPE })
+  @ExposeProp({ enum: SERVICE_RESPONSE_STATUS_TYPE })
   serviceResponseStatus: SERVICE_RESPONSE_STATUS_TYPE;
 
-  @ApiProperty()
+  @ExposeProp()
   failureMessage?: string;
 }

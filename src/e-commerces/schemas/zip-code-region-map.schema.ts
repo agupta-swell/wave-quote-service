@@ -3,13 +3,13 @@ import { Document, Schema } from 'mongoose';
 export const ZIP_CODE_REGION_MAP = Symbol('ZIP_CODE_REGION_MAP').toString();
 
 export interface ZipCodeRegionMap extends Document {
-  region_id: string;
-  zip_codes: number[];
+  regionId: string;
+  zipCodes: number[];
 
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const ZipCodeRegionMapSchema = new Schema<ZipCodeRegionMap>({

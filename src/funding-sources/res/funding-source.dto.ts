@@ -1,24 +1,15 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
-import { FundingSource } from '../funding-source.schema';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class FundingSourceDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   type: string;
 
-  @ApiProperty()
+  @ExposeProp()
   rebateAssignment: string;
-
-  constructor(props: LeanDocument<FundingSource>) {
-    this.id = props._id;
-    this.name = props.name;
-    this.type = props.type;
-    this.rebateAssignment = props.rebateAssignment;
-  }
 }

@@ -1,20 +1,24 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { INVERTER_TYPE } from '../../constants';
 import { ProductDto } from './product.dto';
 
 export class InverterDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty({ enum: [INVERTER_TYPE.MICRO, INVERTER_TYPE.STRING] })
+  @ExposeProp({ enum: [INVERTER_TYPE.MICRO, INVERTER_TYPE.STRING] })
   type: INVERTER_TYPE;
 
-  @ApiProperty()
+  @ExposeProp()
   inverterModelId: string;
 
-  @ApiProperty({ type: ProductDto })
+  @ExposeProp({ type: ProductDto })
   inverterModelDataSnapshot: ProductDto;
 
-  @ApiProperty()
+  @ExposeProp()
   inverterModelSnapshotDate: Date;
+
+  @ExposeProp()
+  quantity: number;
 }

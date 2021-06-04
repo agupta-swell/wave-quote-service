@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult, Pagination } from '../app/common';
 import { AdderConfig, ADDER_CONFIG } from './adder-config.schema';
 import { AdderConfigDto } from './res/adder-config.dto';
@@ -11,13 +12,11 @@ export class AdderConfigService {
 
   async getAllAdderConfigs(limit: number, skip: number): Promise<OperationResult<Pagination<AdderConfigDto>>> {
     const [panels, total] = await Promise.all([
-      this.adderConfigModel.find().limit(limit).skip(skip),
+      this.adderConfigModel.find().limit(limit).skip(skip).lean(),
       this.adderConfigModel.estimatedDocumentCount(),
     ]);
 
-    return OperationResult.ok(
-      new Pagination({ data: panels.map(adderConfig => new AdderConfigDto(adderConfig)), total }),
-    );
+    return OperationResult.ok(new Pagination({ data: strictPlainToClass(AdderConfigDto, panels), total }));
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

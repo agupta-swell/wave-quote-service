@@ -1,58 +1,48 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 
 class RecommendationDetailDataDto {
-  @ApiProperty()
+  @ExposeProp()
   requiredInverterCapacityForDefaultRatio: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxClippedWattForDefaultRatio: number;
 
-  @ApiProperty()
+  @ExposeProp()
   requiredInverterCapacityForMaxDefaultRatio: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxClippedWattForMaxRatio: number;
 
-  @ApiProperty()
+  @ExposeProp()
   recommendedInverterCountForDefaultRatio: number;
 
-  @ApiProperty()
+  @ExposeProp()
   recommendedInverterCountForDefaultRatioBasedOnRating: number;
 }
 
 export class ClippingDetailsDto {
-  @ApiProperty()
+  @ExposeProp()
   isDCClippingRestrictionEnabled?: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   defaultClippingRatio?: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maximumAllowedClippingRatio?: number;
 
-  @ApiProperty()
+  @ExposeProp()
   totalSTCProductionInWatt?: number;
 
-  @ApiProperty()
+  @ExposeProp()
   totalInverterCapacityInWatt?: number;
 
-  @ApiProperty()
+  @ExposeProp()
   currentClippingRatio?: number;
 
-  @ApiProperty()
+  @ExposeProp()
   isDcToAcRatioWithinAllowedLimit?: boolean;
 
-  @ApiProperty({ type: RecommendationDetailDataDto })
+  @ExposeProp({ type: RecommendationDetailDataDto })
   recommendationDetail: RecommendationDetailDataDto;
-
-  constructor(props: ClippingDetailsDto) {
-    this.currentClippingRatio = props.currentClippingRatio;
-    this.defaultClippingRatio = props.defaultClippingRatio;
-    this.maximumAllowedClippingRatio = props.maximumAllowedClippingRatio;
-    this.totalSTCProductionInWatt = props.totalSTCProductionInWatt;
-    this.totalInverterCapacityInWatt = props.totalInverterCapacityInWatt;
-    this.currentClippingRatio = props.currentClippingRatio;
-    this.isDcToAcRatioWithinAllowedLimit = props.isDcToAcRatioWithinAllowedLimit;
-    this.recommendationDetail = props.recommendationDetail || ({} as any);
-  }
 }

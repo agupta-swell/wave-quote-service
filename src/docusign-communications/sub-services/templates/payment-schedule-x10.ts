@@ -6,28 +6,28 @@ export const getPaymentScheduleX10: TemplateDataBuilder = genericObject => {
   const { quote, leaseSolverConfig } = genericObject;
   const result: Record<string, string> = {};
 
-  result.avg_solar_rate_per_kwh_year_1 = (quote.system_production.annual_usageKWh / 12).toFixed(2);
+  result.avg_solar_rate_per_kwh_year_1 = (quote.systemProduction.annualUsageKWh / 12).toFixed(2);
 
   const leaseAttribute =
-    quote.quote_finance_product.finance_product.product_type === 'lease'
-      ? (quote.quote_finance_product.finance_product.product_attribute as ILeaseProductAttributes)
+    quote.quoteFinanceProduct.financeProduct.productType === 'lease'
+      ? (quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
       : undefined;
 
-  const term = leaseAttribute?.lease_term ?? 0;
+  const term = leaseAttribute?.leaseTerm ?? 0;
 
-  const esclatorRate = leaseAttribute?.rate_escalator ?? 0;
+  const esclatorRate = leaseAttribute?.rateEscalator ?? 0;
 
-  result.storage_monthly_payment = `${leaseSolverConfig?.storage_payment || 0}`;
+  result.storage_monthly_payment = `${leaseSolverConfig?.storagePayment || 0}`;
 
   result.ESA_ESC = `${esclatorRate}`;
 
-  const initMonth = leaseAttribute?.yearly_lease_payment_details[0].monthly_payment_details[0].month || 0;
+  const initMonth = leaseAttribute?.yearlyLeasePaymentDetails[0].monthlyPaymentDetails[0].month || 0;
 
   const leanYearlyPayments = leaseAttribute
-    ? leaseAttribute.yearly_lease_payment_details.reduce<number[][]>((acc, cur, idx, arr) => {
-        const curYear = cur.monthly_payment_details.filter(e => e.month >= initMonth).map(e => e.payment_amount);
+    ? leaseAttribute.yearlyLeasePaymentDetails.reduce<number[][]>((acc, cur, idx, arr) => {
+        const curYear = cur.monthlyPaymentDetails.filter(e => e.month >= initMonth).map(e => e.paymentAmount);
         const nextYear = arr[idx + 1]
-          ? arr[idx + 1].monthly_payment_details.filter(e => e.month < initMonth).map(e => e.payment_amount)
+          ? arr[idx + 1].monthlyPaymentDetails.filter(e => e.month < initMonth).map(e => e.paymentAmount)
           : [];
 
         acc.push([...curYear, ...nextYear]);
@@ -42,7 +42,7 @@ export const getPaymentScheduleX10: TemplateDataBuilder = genericObject => {
     const yearIdx = idx + 1;
 
     result[`ESA_PMT${yearIdx}`] = `${
-      leaseAttribute?.yearly_lease_payment_details[idx].monthly_payment_details[0] ?? 0
+      leaseAttribute?.yearlyLeasePaymentDetails[idx].monthlyPaymentDetails[0] ?? 0
     }`;
 
     if (idx > 5) {

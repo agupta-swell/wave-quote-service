@@ -1,14 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 
 export class UpdateOpportunityUtilityProgramDto {
-  @ApiProperty()
+  @ExposeProp()
   utilityProgramId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
-
-  constructor(props: { utilityProgramId: string; opportunityId: string }) {
-    this.utilityProgramId = props.utilityProgramId;
-    this.opportunityId = props.opportunityId;
-  }
 }

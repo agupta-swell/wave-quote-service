@@ -1,123 +1,95 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { FinancialProduct, FinancialProductSchema } from '../financial-product.schema';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class FinancialProductDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   fundingSourceId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   isActive: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   fundId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   allowDownPayment: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   minDownPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   defaultDownPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxDownPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   annualDegradation: number;
 
-  @ApiProperty()
+  @ExposeProp()
   guaranteedProduction: number;
 
-  @ApiProperty()
+  @ExposeProp()
   minMargin: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxMargin: number;
 
-  @ApiProperty()
+  @ExposeProp()
   minSystemKw: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxSystemKw: number;
 
-  @ApiProperty()
+  @ExposeProp()
   minBatteryKwh: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxBatteryKwh: number;
 
-  @ApiProperty()
+  @ExposeProp()
   minProductivity: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxProductivity: number;
 
-  @ApiProperty()
+  @ExposeProp()
   allowedStates: string[];
 
-  @ApiProperty()
+  @ExposeProp()
   interestRate: number;
 
-  @ApiProperty()
+  @ExposeProp()
   termMonths: number;
 
-  @ApiProperty()
+  @ExposeProp()
   dealerFee: number;
 
-  @ApiProperty()
+  @ExposeProp()
   financierId?: string;
-
-  constructor(props: LeanDocument<FinancialProduct>) {
-    this.id = props._id;
-    this.fundingSourceId = props.funding_source_id;
-    this.name = props.name;
-    this.fundId = props.fund_id;
-    this.allowDownPayment = props.allow_down_payment;
-    this.minDownPayment = props.min_down_payment;
-    this.defaultDownPayment = props.default_down_payment;
-    this.maxDownPayment = props.max_down_payment;
-    this.annualDegradation = props.annual_degradation;
-    this.guaranteedProduction = props.guaranteed_production;
-    this.minMargin = props.min_margin;
-    this.maxMargin = props.max_margin;
-    this.minSystemKw = props.min_system_kw;
-    this.maxSystemKw = props.max_system_kw;
-    this.minBatteryKwh = props.min_battery_kwh;
-    this.maxBatteryKwh = props.max_battery_kwh;
-    this.minProductivity = props.min_productivity;
-    this.maxProductivity = props.max_productivity;
-    this.allowedStates = props.allowed_states;
-    this.interestRate = props.interest_rate;
-    this.termMonths = props.term_months;
-    this.dealerFee = props.dealer_fee;
-    this.financierId = props.financier_id;
-  }
 }
 
 class FinancialProductPaginationDto implements Pagination<FinancialProductDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: FinancialProductDto,
     isArray: true,
   })
   data: FinancialProductDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class FinancialProductPaginationRes implements ServiceResponse<FinancialProductPaginationDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: FinancialProductPaginationDto })
+  @ExposeProp({ type: FinancialProductPaginationDto })
   data: FinancialProductPaginationDto;
 }

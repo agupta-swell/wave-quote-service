@@ -1,7 +1,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { sumBy } from 'lodash';
-import { Model, ObjectId } from 'mongoose';
+import { ObjectId, Model } from 'mongoose';
 import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
@@ -14,11 +14,11 @@ import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
-import { toSnakeCase } from 'src/utils/transformProperties';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
@@ -58,18 +58,18 @@ export class ContractService {
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
     const primaryContractRecords = await this.contractModel
       .find({
-        opportunity_id: opportunityId,
-        contract_type: CONTRACT_TYPE.PRIMARY,
+        opportunityId,
+        contractType: CONTRACT_TYPE.PRIMARY,
       })
       .lean();
 
-    const data = await Promise.all(
+    const contracts = await Promise.all(
       primaryContractRecords?.map(async contract => {
         const changeOrders = await this.contractModel
           .find({
-            opportunity_id: opportunityId,
-            contract_type: CONTRACT_TYPE.CHANGE_ORDER,
-            primary_contract_id: contract.id,
+            opportunityId,
+            contractType: CONTRACT_TYPE.CHANGE_ORDER,
+            primaryContractId: contract._id,
           })
           .lean();
 
@@ -80,7 +80,7 @@ export class ContractService {
       }),
     );
 
-    return OperationResult.ok(new GetCurrentContractDto(data));
+    return OperationResult.ok(strictPlainToClass(GetCurrentContractDto, { contracts }));
   }
 
   async getContractTemplates(
@@ -100,7 +100,7 @@ export class ContractService {
       .split('-')
       .map(x => x.trim());
 
-    const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id || '';
+    const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id?.toString() || '';
 
     const utilityProgramId =
       (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || null;
@@ -111,7 +111,7 @@ export class ContractService {
       [utilityProgramId],
     );
 
-    return OperationResult.ok(new GetContractTemplatesDto(templateMasterRecords));
+    return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
   }
 
   async saveContract(req: SaveContractReqDto): Promise<OperationResult<SaveContractDto>> {
@@ -132,11 +132,11 @@ export class ContractService {
         throw new BadRequestException({ message: `No matching record to update for id ${contractDetail.id}` });
       }
 
-      if (contract.contract_status !== PROCESS_STATUS.INITIATED) {
+      if (contract.contractStatus !== PROCESS_STATUS.INITIATED) {
         throw new BadRequestException({ message: 'Contract is already in progress or completed' });
       }
 
-      const updatedContract = await this.contractModel
+      const newlyUpdatedContract = await this.contractModel
         .findByIdAndUpdate(
           contractDetail.id,
           {
@@ -146,33 +146,32 @@ export class ContractService {
         )
         .lean();
 
-      return OperationResult.ok(new SaveContractDto(true, undefined, updatedContract || undefined));
+      return OperationResult.ok(strictPlainToClass(SaveContractDto, { status: true, newlyUpdatedContract }));
     }
 
     if (mode === REQUEST_MODE.ADD) {
-      const templateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
+      const contractTemplateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
         contractDetail.contractTemplateId,
       );
 
-      const model = new this.contractModel({
-        opportunity_id: contractDetail.opportunityId,
-        contract_type: CONTRACT_TYPE.PRIMARY,
-        name: contractDetail.name,
-        associated_quote_id: contractDetail.associatedQuoteId,
-        contract_template_id: contractDetail.contractTemplateId,
-        signer_details: contractDetail.signerDetails.map(toSnakeCase),
-        contract_template_detail: templateDetail,
-        contracting_system: 'DOCUSIGN',
-        primary_contract_id: contractDetail.primaryContractId,
-        contract_status: PROCESS_STATUS.INITIATED,
+      const { chnageOrderDescription: _, ...details } = contractDetail;
+
+      const newlyUpdatedContract = new this.contractModel({
+        ...details,
+        contractTemplateDetail,
+        contractType: CONTRACT_TYPE.PRIMARY,
+        contractingSystem: 'DOCUSIGN',
+        contractStatus: PROCESS_STATUS.INITIATED,
       });
 
-      await model.save();
+      await newlyUpdatedContract.save();
 
-      return OperationResult.ok(new SaveContractDto(true, undefined, model.toObject({ versionKey: false })));
+      return OperationResult.ok(strictPlainToClass(SaveContractDto, { status: true, newlyUpdatedContract }));
     }
 
-    return OperationResult.ok(new SaveContractDto(false, 'Unexpected Operation Mode'));
+    return OperationResult.ok(
+      strictPlainToClass(SaveContractDto, { status: false, statusDescription: 'Unexpected Operation Mode' }),
+    );
   }
 
   async sendContract(contractId: string): Promise<OperationResult<SendContractDto>> {
@@ -182,15 +181,15 @@ export class ContractService {
       throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
     }
 
-    const opportunity = await this.opportunityService.getDetailById(contract.opportunity_id);
+    const opportunity = await this.opportunityService.getDetailById(contract.opportunityId);
     if (!opportunity) {
-      throw ApplicationException.EntityNotFound(`OpportunityId: ${contract.opportunity_id}`);
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${contract.opportunityId}`);
     }
 
-    const quote = await this.quoteService.getOneFullQuoteDataById(contract.associated_quote_id);
+    const quote = await this.quoteService.getOneFullQuoteDataById(contract.associatedQuoteId);
 
     if (!quote) {
-      throw ApplicationException.EntityNotFound(`Associated Quote Id: ${contract.associated_quote_id}`);
+      throw ApplicationException.EntityNotFound(`Associated Quote Id: ${contract.associatedQuoteId}`);
     }
 
     const [contact, recordOwner] = await Promise.all([
@@ -201,21 +200,21 @@ export class ContractService {
     let status: string;
     let statusDescription = '';
 
-    const fundingSourceType = quote.detailed_quote.quote_finance_product.finance_product.product_type;
+    const fundingSourceType = quote.detailedQuote.quoteFinanceProduct.financeProduct.productType;
 
     const [customerPayment, utilityName, roofTopDesign, systemDesign] = await Promise.all([
-      this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunity_id),
+      this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunityId),
       this.utilityService.getUtilityName(opportunity.utilityId),
-      this.systemDesignService.getRoofTopDesignById(quote.system_design_id),
-      this.systemDesignService.getOneById(quote.system_design_id),
+      this.systemDesignService.getRoofTopDesignById(quote.systemDesignId),
+      this.systemDesignService.getOneById(quote.systemDesignId),
     ]);
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
 
     // Get gsProgram
-    const incentive_details = quote.detailed_quote.quote_finance_product.incentive_details[0];
+    const incentiveDetails = quote.detailedQuote.quoteFinanceProduct.incentiveDetails[0];
 
-    const gsProgramSnapshotId = incentive_details.detail.gsProgramSnapshot.id;
+    const gsProgramSnapshotId = incentiveDetails.detail.gsProgramSnapshot.id;
 
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 
@@ -225,31 +224,30 @@ export class ContractService {
       : null;
 
     // Get lease solver config
-    const lease_product_attribute = quote.detailed_quote.quote_finance_product.finance_product
-      .product_attribute as ILeaseProductAttributes;
-
+    const leaseProductAttribute = quote.detailedQuote.quoteFinanceProduct.financeProduct
+      .productAttribute as ILeaseProductAttributes;
     // TODO: Tier/StorageManufacturer support
     const query: IGetDetail = {
       tier: 'DTC',
-      isSolar: systemDesign!.is_solar,
-      utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utility_program_name : '',
-      contractTerm: lease_product_attribute.lease_term,
+      isSolar: systemDesign!.isSolar,
+      utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utilityProgramName : '',
+      contractTerm: leaseProductAttribute.leaseTerm,
       storageSize: sumBy(
-        quote.detailed_quote.quote_cost_buildup.storage_quote_details,
-        item => item.storage_model_data_snapshot.sizekWh,
+        quote.detailedQuote.quoteCostBuildup.storageQuoteDetails,
+        item => item.storageModelDataSnapshot.sizekWh,
       ),
       storageManufacturer: 'Tesla',
-      rateEscalator: lease_product_attribute.rate_escalator,
-      capacityKW: systemDesign!.system_production_data.capacityKW,
-      productivity: systemDesign!.system_production_data.productivity,
+      rateEscalator: leaseProductAttribute.rateEscalator,
+      capacityKW: systemDesign!.systemProductionData.capacityKW,
+      productivity: systemDesign!.systemProductionData.productivity,
     };
 
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
     const genericObject: IGenericObject = {
-      signerDetails: contract.signer_details,
+      signerDetails: contract.signerDetails,
       opportunity,
-      quote: quote.detailed_quote,
+      quote: quote.detailedQuote,
       recordOwner: recordOwner || ({} as any),
       contact: contact || ({} as any),
       customerPayment: customerPayment || ({} as any),
@@ -262,25 +260,28 @@ export class ContractService {
       leaseSolverConfig,
     };
 
+    const sentOn = new Date();
+
     const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(
       contractId,
-      contract.contract_template_detail.template_details,
-      contract.signer_details,
+      contract.contractTemplateDetail.templateDetails,
+      contract.signerDetails,
       genericObject,
     );
 
     if (docusignResponse.status === 'SUCCESS') {
       status = 'SUCCESS';
-      contract.contract_status = PROCESS_STATUS.IN_PROGRESS;
-      contract.signer_details[0].sign_status = SIGN_STATUS.SENT;
-      contract.contracting_system_reference_id = docusignResponse.contractingSystemReferenceId ?? '';
+      contract.contractStatus = PROCESS_STATUS.IN_PROGRESS;
+      contract.signerDetails[0].signStatus = SIGN_STATUS.SENT;
+      contract.signerDetails[0].sentOn = sentOn;
+      contract.contractingSystemReferenceId = docusignResponse.contractingSystemReferenceId ?? '';
     } else {
       status = 'ERROR';
       statusDescription = 'ERROR';
-      contract.contract_status = PROCESS_STATUS.ERROR;
+      contract.contractStatus = PROCESS_STATUS.ERROR;
     }
 
-    const updatedContract = await this.contractModel
+    const newlyUpdatedContract = await this.contractModel
       .findOneAndUpdate(
         {
           _id: contract._id,
@@ -290,18 +291,28 @@ export class ContractService {
       )
       .lean();
 
-    return OperationResult.ok(new SendContractDto(status, statusDescription, updatedContract));
+    return OperationResult.ok(strictPlainToClass(SendContractDto, { status, statusDescription, newlyUpdatedContract }));
   }
 
   async saveChangeOrder(req: SaveChangeOrderReqDto): Promise<OperationResult<SaveChangeOrderDto>> {
     const { mode, contractDetail } = req;
 
     if (mode === REQUEST_MODE.ADD && contractDetail.id) {
-      return OperationResult.ok(new SaveChangeOrderDto(false, 'Add request cannot have an id value'));
+      return OperationResult.ok(
+        strictPlainToClass(SaveChangeOrderDto, {
+          status: false,
+          statusDescription: 'Add request cannot have an id value',
+        }),
+      );
     }
 
     if (mode === REQUEST_MODE.UPDATE && !contractDetail.id) {
-      return OperationResult.ok(new SaveChangeOrderDto(false, 'Update request should have an id value'));
+      return OperationResult.ok(
+        strictPlainToClass(SaveChangeOrderDto, {
+          status: false,
+          statusDescription: 'Update request should have an id value',
+        }),
+      );
     }
 
     if (mode === REQUEST_MODE.UPDATE) {
@@ -309,28 +320,36 @@ export class ContractService {
 
       if (!contract) {
         return OperationResult.ok(
-          new SaveChangeOrderDto(false, `No matching record to update for id ${contractDetail.id}`),
+          strictPlainToClass(SaveChangeOrderDto, {
+            status: false,
+            statusDescription: `No matching record to update for id ${contractDetail.id}`,
+          }),
         );
       }
 
-      if (contract.contract_status !== PROCESS_STATUS.INITIATED) {
-        return OperationResult.ok(new SaveChangeOrderDto(false, 'Contract is already in progress or completed'));
+      if (contract.contractStatus !== PROCESS_STATUS.INITIATED) {
+        return OperationResult.ok(
+          strictPlainToClass(SaveChangeOrderDto, {
+            status: false,
+            statusDescription: 'Contract is already in progress or completed',
+          }),
+        );
       }
 
-      const updatedContract = await this.contractModel
+      const newlyUpdatedContract = await this.contractModel
         .findByIdAndUpdate(
           contractDetail.id,
           {
-            primary_contract_id: contract.primary_contract_id,
-            contract_type: CONTRACT_TYPE.CHANGE_ORDER,
-            contract_status: contract.contract_status,
-            contracting_system: 'DOCUSIGN',
+            primaryContractId: contract.primaryContractId,
+            contractType: CONTRACT_TYPE.CHANGE_ORDER,
+            contractStatus: contract.contractStatus,
+            contractingSystem: 'DOCUSIGN',
           },
           { new: true },
         )
         .lean();
 
-      return OperationResult.ok(new SaveChangeOrderDto(true, undefined, updatedContract || undefined));
+      return OperationResult.ok(strictPlainToClass(SaveChangeOrderDto, { status: true, newlyUpdatedContract }));
     }
 
     if (mode === REQUEST_MODE.ADD) {
@@ -338,31 +357,32 @@ export class ContractService {
         contractDetail.contractTemplateId,
       );
 
+      const { chnageOrderDescription: _, ...details } = contractDetail;
+
       const model = new this.contractModel({
-        opportunity_id: contractDetail.opportunityId,
-        contract_type: CONTRACT_TYPE.CHANGE_ORDER,
-        name: contractDetail.name,
-        associated_quote_id: contractDetail.associatedQuoteId,
-        contract_template_id: contractDetail.contractTemplateId,
-        signer_details: contractDetail.signerDetails.map(item => toSnakeCase(item)),
-        contract_template_detail: templateDetail,
-        contracting_system: 'DOCUSIGN',
-        primary_contract_id: contractDetail.primaryContractId,
-        contract_status: PROCESS_STATUS.INITIATED,
+        ...details,
+        contractType: CONTRACT_TYPE.CHANGE_ORDER,
+        contractTemplateDetail: templateDetail,
+        contractingSystem: 'DOCUSIGN',
+        contractStatus: PROCESS_STATUS.INITIATED,
       });
 
       await model.save();
 
-      return OperationResult.ok(new SaveChangeOrderDto(true, undefined, model.toObject({ versionKey: false })));
+      return OperationResult.ok(strictPlainToClass(SaveChangeOrderDto, { status: true, newlyUpdatedContract: model }));
     }
 
-    return OperationResult.ok(new SaveChangeOrderDto(false, 'Unexpected Operation Mode'));
+    return OperationResult.ok(
+      strictPlainToClass(SaveChangeOrderDto, { status: false, statusDescription: 'Unexpected Operation Mode' }),
+    );
   }
 
   async updateContractByDocusign(req: IContractSignerDetails): Promise<void> {
+    const { contractSystemReferenceId } = req;
+
     const contract = await this.contractModel
       .findOne({
-        contracting_system_reference_id: req.contractSystemReferenceId,
+        contractSystemReferenceId,
       })
       .lean();
 
@@ -372,21 +392,24 @@ export class ContractService {
       );
     }
 
-    req.statusesData.map(status => {
-      const signerDetails = contract.signer_details.find(signer => signer.email === status.emailId) || ({} as any);
+    req.statusesData.forEach(status => {
+      const idx = contract.signerDetails.findIndex(signer => signer.email === status.emailId);
+
+      if (idx === -1) return;
+
       if (status.status === CONTRACTING_SYSTEM_STATUS.SENT) {
-        signerDetails.sign_status = SIGN_STATUS.SENT;
-        signerDetails.sent_on = new Date(status.date);
+        contract.signerDetails[idx].signStatus = SIGN_STATUS.SENT;
+        contract.signerDetails[idx].sentOn = new Date(status.date);
       }
 
       if (status.status === CONTRACTING_SYSTEM_STATUS.SIGNED) {
-        signerDetails.sign_status = SIGN_STATUS.SIGNED;
-        signerDetails.signed_on = new Date(status.date);
+        contract.signerDetails[idx].signStatus = SIGN_STATUS.SIGNED;
+        contract.signerDetails[idx].signedOn = new Date(status.date);
       }
     });
 
     if (req.overallContractStatus === 'COMPLETED') {
-      contract.contract_status = PROCESS_STATUS.COMPLETED;
+      contract.contractStatus = PROCESS_STATUS.COMPLETED;
     }
 
     await this.contractModel.findByIdAndUpdate(contract._id, contract);
@@ -395,8 +418,10 @@ export class ContractService {
   async getDocusignCommunicationDetails(
     contractId: string,
   ): Promise<OperationResult<GetDocusignCommunicationDetailsDto>> {
-    const communications = await this.docusignCommunicationService.getCommunicationsByContractId(contractId);
-    return OperationResult.ok(new GetDocusignCommunicationDetailsDto(communications));
+    const docusignCommunicationDetails = await this.docusignCommunicationService.getCommunicationsByContractId(
+      contractId,
+    );
+    return OperationResult.ok(strictPlainToClass(GetDocusignCommunicationDetailsDto, { docusignCommunicationDetails }));
   }
 
   async getOneByContractId(id: ObjectId): Promise<Contract> {
@@ -418,15 +443,15 @@ export class ContractService {
 
   async getContractDownloadData(id: ObjectId): Promise<[string, IncomingMessage]> {
     const foundContract = await this.getOneByContractId(id);
-    if (foundContract.contracting_system !== 'DOCUSIGN' || !foundContract.contracting_system_reference_id)
+    if (foundContract.contractingSystem !== 'DOCUSIGN' || !foundContract.contractingSystemReferenceId)
       throw ApplicationException.InvalidContract();
 
-    const foundOpp = await this.opportunityService.getRelatedInformation(foundContract.opportunity_id);
+    const foundOpp = await this.opportunityService.getRelatedInformation(foundContract.opportunityId);
 
-    const { name } = foundContract.contract_template_detail?.composite_template_data;
+    const { name } = foundContract.contractTemplateDetail?.compositeTemplateData;
     const { firstName, lastName } = foundOpp.data as any;
 
-    const contract = await this.downloadDocusignContract(foundContract.contracting_system_reference_id);
+    const contract = await this.downloadDocusignContract(foundContract.contractingSystemReferenceId);
 
     if (!contract) {
       throw ApplicationException.NotFoundStatus('Contract Envelope', `${id.toString()}`);
@@ -453,6 +478,6 @@ export class ContractService {
       )
       .lean();
 
-    return new ContractResDto(contract as any);
+    return strictPlainToClass(ContractResDto, contract);
   }
 }

@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ProposalSectionMasterService } from './proposal-section-master.service';
 import { CreateProposalSectionMasterDto } from './req/create-proposal-section-master.dto';
@@ -32,7 +34,7 @@ export class ProposalSectionMasterController {
   @ApiOperation({ summary: 'Update Proposal Section Master' })
   @ApiOkResponse({ type: ProposalSectionMasterRes })
   async updateProposalSectionMaster(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
     @Body()
     proposalSectionMasterDto: UpdateProposalSectionMasterDto,
   ): Promise<ServiceResponse<ProposalSectionMasterDto>> {

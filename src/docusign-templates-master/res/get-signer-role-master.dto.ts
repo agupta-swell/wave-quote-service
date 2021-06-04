@@ -1,26 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
-import { SignerRoleMaster } from '../schemas';
+import { ExposeProp } from 'src/shared/decorators';
 import { SignerRoleDataResDto } from './sub-dto';
 
 export class GetSignerRoleMasterDto {
-  @ApiProperty({ type: SignerRoleDataResDto, isArray: true })
+  @ExposeProp({ type: SignerRoleDataResDto, isArray: true })
   recipientRoles: SignerRoleDataResDto[];
-
-  constructor(props: LeanDocument<SignerRoleMaster>[]) {
-    this.recipientRoles = props?.map(item => ({
-      id: item._id,
-      roleName: item.role_name,
-      roleDescription: item.role_description,
-    }));
-  }
 }
 
 export class GetSignerRoleMasterRes implements ServiceResponse<GetSignerRoleMasterDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetSignerRoleMasterDto })
+  @ExposeProp({ type: GetSignerRoleMasterDto })
   data: GetSignerRoleMasterDto;
 }

@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { COMPONENT_TYPE, PRODUCT_CATEGORY_TYPE } from 'src/system-designs/constants';
 
 export const QUOTE_MARKUP_CONFIG = Symbol('QUOTE_MARKUP_CONFIG').toString();
@@ -17,3 +18,5 @@ export const QuoteMarkupConfigSchema = new Schema<QuoteMarkupConfig>({
   productType: String,
   subcontractorMarkup: Number,
 });
+
+MongooseNamingStrategy.ExcludeOne(QuoteMarkupConfigSchema);

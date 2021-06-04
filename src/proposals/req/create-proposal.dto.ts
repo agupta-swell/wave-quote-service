@@ -1,46 +1,68 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsInt,
+  IsMongoId,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class RecipientDto {
   @ApiProperty()
+  @IsEmail()
   email: string;
 
   @ApiProperty()
+  @IsString()
   name: string;
 }
 
 class DetailedProposalDto {
   @ApiProperty()
+  @IsBoolean()
   isSelected: boolean;
 
   @ApiProperty()
+  @IsString()
   proposalName: string;
 
   @ApiProperty({ type: RecipientDto, isArray: true })
+  @IsArray()
+  @Type(() => RecipientDto)
+  @ValidateNested({ each: true })
   recipients: RecipientDto[];
 
   @ApiProperty()
+  @IsInt()
   proposalValidityPeriod: number;
 
   @ApiProperty()
+  @IsMongoId()
   templateId: string;
 }
 
 export class CreateProposalDto {
   @ApiProperty()
+  @IsString()
   opportunityId: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsMongoId()
   systemDesignId: string;
 
   @ApiProperty()
+  @IsString()
   proposalName: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsMongoId()
   quoteId: string;
 
   @ApiProperty({ type: DetailedProposalDto })
+  @Type(() => DetailedProposalDto)
+  @ValidateNested()
   detailedProposal: DetailedProposalDto;
 }

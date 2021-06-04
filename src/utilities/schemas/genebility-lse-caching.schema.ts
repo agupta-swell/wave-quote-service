@@ -24,14 +24,14 @@ export const GenebilityLseDataSchema = new Schema({
 });
 
 export interface GenebilityLseDataDetail extends Document {
-  zip_code: number;
-  lse_name: string;
-  lse_code: string;
-  service_type: string;
-  lse_id: string;
+  zipCode: number;
+  lseName: string;
+  lseCode: string;
+  serviceType: string;
+  lseId: string;
 }
 
 export interface GenebilityLseData extends Document {
-  zip_data: number;
+  zipData: number;
   data: GenebilityLseDataDetail[];
 }

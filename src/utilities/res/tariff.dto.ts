@@ -1,39 +1,26 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 
 export class TariffDetailDto {
-  @ApiProperty()
+  @ExposeProp()
   tariffCode: string;
 
-  @ApiProperty()
+  @ExposeProp()
   masterTariffId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   tariffName: string;
-
-  constructor(props: any) {
-    this.tariffCode = props.tariffCode;
-    this.masterTariffId = props.masterTariffId;
-    this.tariffName = props.tariffName;
-  }
 }
 
 export class TariffDto {
-  @ApiProperty()
+  @ExposeProp()
   zipCode: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lseId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lseName: string;
 
-  @ApiProperty()
+  @ExposeProp({ type: TariffDetailDto })
   tariffDetails: TariffDetailDto[];
-
-  constructor(props: any) {
-    this.zipCode = props.zipCode;
-    this.lseId = props.lseId;
-    this.lseName = props.lseName;
-    this.tariffDetails = props.tariffDetails;
-  }
 }

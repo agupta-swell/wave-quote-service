@@ -1,11 +1,10 @@
+import * as crypto from 'crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
 import { ApplicationException } from 'src/app/app.exception';
 import { UserService } from 'src/users/user.service';
 import { AuthenticationDto } from './res/authentication.dto';
-
-const crypto = require('crypto');
 
 @Injectable()
 export class AuthenticationService {

@@ -1,78 +1,66 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
-import { Contract } from 'src/contracts/contract.schema';
 import {
   DocusignCompositeTemplateMasterDataResDto,
   TemplateMasterDataResDto,
 } from 'src/docusign-templates-master/res/sub-dto';
 import { PROCESS_STATUS } from 'src/qualifications/constants';
-import { toCamelCase } from 'src/utils/transformProperties';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { SignerDetailResDto } from './signer-detail.dto';
 
 class TemplateDetailResDto {
-  @ApiProperty({ type: TemplateMasterDataResDto, isArray: true })
+  @ExposeProp({ type: TemplateMasterDataResDto, isArray: true })
   templateDetails: TemplateMasterDataResDto[];
 
-  @ApiProperty({ type: DocusignCompositeTemplateMasterDataResDto })
+  @ExposeProp({ type: DocusignCompositeTemplateMasterDataResDto })
   compositeTemplateData: DocusignCompositeTemplateMasterDataResDto;
 }
 
 export class ContractResDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
 
-  @ApiProperty({ enum: CONTRACT_TYPE })
+  @ExposeProp({ enum: CONTRACT_TYPE })
   contractType: CONTRACT_TYPE;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   associatedQuoteId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   contractTemplateId: string;
 
-  @ApiProperty({ type: SignerDetailResDto, isArray: true })
+  @ExposeProp({ type: SignerDetailResDto, isArray: true })
   signerDetails: SignerDetailResDto[];
 
-  @ApiProperty({ type: TemplateDetailResDto })
+  @ExposeProp({ type: TemplateDetailResDto })
   contractTemplateDetail: TemplateDetailResDto;
 
-  @ApiProperty()
+  @ExposeProp()
   contractingSystem: string;
 
-  @ApiProperty()
+  @ExposeProp()
+  contractingSystemReferenceId: string;
+
+  @ExposeProp()
   primaryContractId: string;
 
-  @ApiProperty({ enum: PROCESS_STATUS })
+  @ExposeProp({ enum: PROCESS_STATUS })
   contractStatus: PROCESS_STATUS;
 
-  @ApiProperty()
+  @ExposeProp()
   chnageOrderDescription: string;
 
-  @ApiProperty()
+  @ExposeProp()
   completionDate: string;
 
-  @ApiProperty()
+  @ExposeProp()
   createdAt: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   updatedAt: Date;
-
-  constructor(contract: LeanDocument<Contract>) {
-    Object.assign(this, toCamelCase(contract));
-    this.signerDetails = contract?.signer_details?.map(item => toCamelCase(item));
-    this.contractTemplateDetail = {
-      templateDetails: contract?.contract_template_detail?.template_details?.map(template => ({
-        ...toCamelCase(template),
-        recipientRoles: template.recipient_roles.map(role => toCamelCase(role)),
-      })),
-      compositeTemplateData: toCamelCase(contract?.contract_template_detail?.composite_template_data),
-    };
-  }
 }

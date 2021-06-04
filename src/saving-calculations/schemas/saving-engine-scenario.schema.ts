@@ -4,22 +4,22 @@ import { RATE_NAME_TYPE } from '../constants';
 export const SAVING_ENGINE_SCENARIO = Symbol('SAVING_ENGINE_SCENARIO').toString();
 
 export interface SavingEngineScenario extends Document {
-  scenario_id: string;
+  scenarioId: string;
   location: string;
-  storage_rate_type: RATE_NAME_TYPE;
+  storageRateType: RATE_NAME_TYPE;
   // todo: fix typing later
   battery: string;
-  battery_count: number;
-  bau_rate: RATE_NAME_TYPE;
-  pv_rate: RATE_NAME_TYPE;
-  annual_load: number;
-  pv_capacity: number;
-  charge_from_grid_max_percentage: number;
-  financial_dict: string | null;
-  grid_services: string;
+  batteryCount: number;
+  bauRate: RATE_NAME_TYPE;
+  pvRate: RATE_NAME_TYPE;
+  annualLoad: number;
+  pvCapacity: number;
+  chargeFromGridMaxPercentage: number;
+  financialDict: string | null;
+  gridServices: string;
   sgip: boolean | null;
-  grid_service_days: number | null;
-  export_limit: number | null;
+  gridServiceDays: number | null;
+  exportLimit: number | null;
 }
 
 export const SavingEngineScenarioSchema = new Schema<SavingEngineScenario>({

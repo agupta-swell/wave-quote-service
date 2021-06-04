@@ -1,21 +1,24 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 
 export class AncillaryEquipmentDto {
-  @ApiProperty()
+  @ExposeProp()
   manufacturerId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   modelName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   relatedComponent: string;
 
-  @ApiProperty()
+  @ExposeProp()
   description: string;
 
-  @ApiProperty()
+  @ExposeProp()
   averageWholeSalePrice: number;
 
-  @ApiProperty()
+  @ExposeProp()
   applicableProductManufacturerId: string;
+
+  @ExposeProp()
+  quantity: number;
 }

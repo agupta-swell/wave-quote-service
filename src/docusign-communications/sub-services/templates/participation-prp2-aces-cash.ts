@@ -6,7 +6,7 @@ export const getParticipationPRP2ACESCash: TemplateDataBuilder = genericObj => {
   const { quote, gsProgram, utilityProgramMaster } = genericObj;
   const result: Record<string, string> = {};
 
-  result.utility_program_name = quote.utility_program.utility_program_name;
+  result.utility_program_name = quote.utilityProgram.utilityProgramName;
 
   result.upfront_incentive_amount = `${gsProgram?.upfrontIncentives ?? 0}`;
   result.annual_incentive_amount = `${gsProgram?.annualIncentives ?? 0}`;
@@ -15,7 +15,7 @@ export const getParticipationPRP2ACESCash: TemplateDataBuilder = genericObj => {
 
   result.initial_term_number = gsProgram?.termYears ?? '0';
 
-  result.program_end_date = dayjs(utilityProgramMaster?.end_date).format('MM/DD/YYYY');
+  result.program_end_date = dayjs(utilityProgramMaster?.endDate).format('MM/DD/YYYY');
 
   return result;
 };

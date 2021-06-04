@@ -1,8 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import * as AWS from 'aws-sdk';
 import { LeanDocument, Model } from 'mongoose';
-import { Contract } from 'src/contracts/contract.schema';
 import { ContractService } from 'src/contracts/contract.service';
 import { DocusignAPIService } from 'src/external-services/sub-services/docusign-api.service';
 import { IncomingMessage } from 'http';
@@ -28,10 +26,6 @@ import {
 
 @Injectable()
 export class DocusignCommunicationService {
-  AWS_REGION: string;
-
-  client: AWS.SecretsManager;
-
   constructor(
     @InjectModel(DOCUSIGN_COMMUNICATION) private readonly docusignCommunicationModel: Model<DocusignCommunication>,
     private readonly docusignTemplateService: DocusignTemplateService,
@@ -52,7 +46,7 @@ export class DocusignCommunicationService {
     const docusignPayload: IDocusignCompositeContract = {
       status: isDraft ? 'created' : 'sent',
       emailSubject: `${
-        genericObject.quote.quote_finance_product?.finance_product?.financial_product_snapshot?.name || 'Contract'
+        genericObject.quote.quoteFinanceProduct?.financeProduct?.financialProductSnapshot?.name || 'Contract'
       } - Agreement for ${genericObject.opportunity.name}`,
       emailBlurb: 'Please review and sign the contract for your energy project!',
       compositeTemplates: [],
@@ -72,13 +66,13 @@ export class DocusignCommunicationService {
     const resDocusign = await this.docusignAPIService.sendTemplate(docusignPayload);
 
     const model = new this.docusignCommunicationModel({
-      date_time: new Date(),
-      contract_id: isDraft ? undefined : contractId,
-      request_type: REQUEST_TYPE.OUTBOUND,
-      docusign_account_detail: { account_name: 'docusign', account_reference_id: docusignSecret.docusign.email },
-      payload_from_docusign: JSON.stringify(resDocusign),
-      envelop_id: resDocusign?.envelopeId,
-      proposal_id: isDraft ? contractId : undefined,
+      dateTime: new Date(),
+      contractId: isDraft ? undefined : contractId,
+      requestType: REQUEST_TYPE.OUTBOUND,
+      docusignAccountDetail: { accountName: 'docusign', accountReferenceId: docusignSecret.docusign.email },
+      payloadFromDocusign: JSON.stringify(resDocusign),
+      envelopId: resDocusign?.envelopeId,
+      proposalId: isDraft ? contractId : undefined,
     });
 
     await model.save();
@@ -109,7 +103,7 @@ export class DocusignCommunicationService {
     };
 
     serverTemplatesDataPayload.sequence = runningCounter;
-    serverTemplatesDataPayload.templateId = template.docusign_template_id;
+    serverTemplatesDataPayload.templateId = template.docusignTemplateId;
     compositeTemplateDataPayload.serverTemplates.push(serverTemplatesDataPayload);
 
     runningCounter += 1;
@@ -121,16 +115,16 @@ export class DocusignCommunicationService {
     };
     inlineTemplateDataPayload.sequence = runningCounter;
 
-    template.recipient_roles.map((role, index) => {
+    template.recipientRoles.map((role, index) => {
       const signerDataPayload: ISignerData = {} as any;
-      const signerDetailData = signerDetails.find(signer => signer.role_id === `${role._id}`) || ({} as any);
+      const signerDetailData = signerDetails.find(signer => signer.roleId === `${role._id}`);
 
       if (!signerDetailData) return;
 
       const signerName =
-        (signerDetailData.first_name &&
-          signerDetailData.last_name &&
-          `${signerDetailData.first_name} ${signerDetailData.last_name}`) ||
+        (signerDetailData.firstName &&
+          signerDetailData.lastName &&
+          `${signerDetailData.firstName} ${signerDetailData.lastName}`) ||
         'Signer name';
 
       signerDataPayload.email = signerDetailData.email;
@@ -139,7 +133,7 @@ export class DocusignCommunicationService {
       signerDataPayload.roleName = signerDetailData.role;
       signerDataPayload.routingOrder = (index + 1).toString();
       signerDataPayload.tabs = this.docusignTemplateService.buildTemplateData(
-        template.docusign_template_id,
+        template.docusignTemplateId,
         genericObject,
         defaultContractor,
       ) as ITabData;
@@ -156,14 +150,14 @@ export class DocusignCommunicationService {
 
   async callBackFromDocusign(payloadFromDocusign: IDocusignPayload): Promise<boolean> {
     const foundDocusignCommunication = await this.docusignCommunicationModel.findOne({
-      envelop_id: payloadFromDocusign.EnvelopeID[0],
+      envelopId: payloadFromDocusign.EnvelopeID[0],
     });
 
     const docusignCommunication = {
-      date_time: new Date(),
-      contract_id: foundDocusignCommunication?.contract_id,
-      envelop_id: payloadFromDocusign.EnvelopeID[0],
-      request_type: REQUEST_TYPE.INBOUND,
+      dateTime: new Date(),
+      contractId: foundDocusignCommunication?.contractId,
+      envelopId: payloadFromDocusign.EnvelopeID[0],
+      requestType: REQUEST_TYPE.INBOUND,
     };
 
     const model = new this.docusignCommunicationModel(docusignCommunication);
@@ -200,7 +194,8 @@ export class DocusignCommunicationService {
   // ========================= INTERNAL =========================
 
   async getCommunicationsByContractId(contractId: string): Promise<LeanDocument<DocusignCommunication>[]> {
-    const res = await this.docusignCommunicationModel.find({ contract_id: contractId }).lean();
+    const res = await this.docusignCommunicationModel.find({ contractId }).lean();
+
     return res;
   }
 

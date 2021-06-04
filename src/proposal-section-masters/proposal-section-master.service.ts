@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { identity, pickBy } from 'lodash';
-import { LeanDocument, Model } from 'mongoose';
+import { LeanDocument, Model, Types, ObjectId } from 'mongoose';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
-import { toSnakeCase } from '../utils/transformProperties';
 import { ProposalSectionMaster, PROPOSAL_SECTION_MASTER } from './proposal-section-master.schema';
 import { CreateProposalSectionMasterDto } from './req/create-proposal-section-master.dto';
 import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-master.dto';
@@ -17,31 +17,31 @@ export class ProposalSectionMasterService {
   async create(
     proposalSectionMasterDto: CreateProposalSectionMasterDto,
   ): Promise<OperationResult<ProposalSectionMasterDto>> {
-    const model = new this.proposalSectionMaster({ ...toSnakeCase(proposalSectionMasterDto) });
+    const model = new this.proposalSectionMaster(proposalSectionMasterDto);
     await model.save();
-    return OperationResult.ok(new ProposalSectionMasterDto(model.toObject()));
+    return OperationResult.ok(strictPlainToClass(ProposalSectionMasterDto, model.toJSON()));
   }
 
   async update(
-    id: string,
+    id: ObjectId,
     proposalSectionMasterDto: UpdateProposalSectionMasterDto,
   ): Promise<OperationResult<ProposalSectionMasterDto>> {
     const foundProposalSectionMaster = await this.proposalSectionMaster.findOne({ _id: id }).lean();
     if (!foundProposalSectionMaster) {
-      throw ApplicationException.EntityNotFound(id);
+      throw ApplicationException.EntityNotFound(id.toString());
     }
 
     const updatedModel = await this.proposalSectionMaster
       .findByIdAndUpdate(
         id,
         {
-          ...toSnakeCase(proposalSectionMasterDto),
+          ...proposalSectionMasterDto,
         },
         { new: true },
       )
       .lean();
 
-    return OperationResult.ok(new ProposalSectionMasterDto(updatedModel || ({} as any)));
+    return OperationResult.ok(strictPlainToClass(ProposalSectionMasterDto, updatedModel));
   }
 
   async getList(
@@ -52,8 +52,8 @@ export class ProposalSectionMasterService {
   ): Promise<OperationResult<Pagination<ProposalSectionMasterDto>>> {
     const condition = pickBy(
       {
-        applicable_products: { $in: ['all', ...(products || [])] },
-        applicable_financial_products: { $in: ['all', ...(financialProducts || [])] },
+        applicableProducts: { $in: ['all', ...(products || [])] },
+        applicableFinancialProducts: { $in: ['all', ...(financialProducts || [])] },
       },
       identity,
     );
@@ -65,7 +65,7 @@ export class ProposalSectionMasterService {
 
     return OperationResult.ok(
       new Pagination({
-        data: proposalSectionMasters.map(proposalSectionMaster => new ProposalSectionMasterDto(proposalSectionMaster)),
+        data: strictPlainToClass(ProposalSectionMasterDto, proposalSectionMasters),
         total,
       }),
     );
@@ -75,5 +75,15 @@ export class ProposalSectionMasterService {
   async getProposalSectionMasterById(id: string): Promise<LeanDocument<ProposalSectionMaster> | null> {
     const found = await this.proposalSectionMaster.findById(id).lean();
     return found;
+  }
+
+  async getProposalSectionMastersByIds(ids: string[]): Promise<LeanDocument<ProposalSectionMaster>[] | null> {
+    return this.proposalSectionMaster
+      .find({
+        _id: {
+          $in: ids.map(Types.ObjectId),
+        },
+      })
+      .lean();
   }
 }

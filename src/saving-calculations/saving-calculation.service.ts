@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, orderBy } from 'lodash';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { CALCULATION_TYPE, SERVICE_RESPONSE_STATUS_TYPE } from './constants';
 import { GetSavingReqDto } from './req/get-saving.dto';
@@ -22,19 +23,19 @@ export class SavingCalculationService {
     const scenario = await this.savingEngineScenarioModel
       .findOne({
         location: req.addressDataDetail.zipCode.toString(),
-        storage_rate_type: req.loadDataDetail.storageRateType,
+        storageRateType: req.loadDataDetail.storageRateType,
         battery: req.systemDesignDataDetail.storageDetailsData.batteryModel,
-        battery_count: req.systemDesignDataDetail.storageDetailsData.batteryCount,
-        bau_rate: req.loadDataDetail.bauRateType,
-        pv_rate: req.loadDataDetail.pvRateType,
-        annual_load: req.loadDataDetail.annualLoad,
-        pv_capacity: req.systemDesignDataDetail.pvDetailsData.pvCapacity,
-        charge_from_grid_max_percentage: req.systemDesignDataDetail.chargeFromGridMaxPercentage,
-        financial_dict: req.systemDesignDataDetail.financialDict || null,
-        grid_services: req.systemDesignDataDetail.gridServices,
+        batteryCount: req.systemDesignDataDetail.storageDetailsData.batteryCount,
+        bauRate: req.loadDataDetail.bauRateType,
+        pvRate: req.loadDataDetail.pvRateType,
+        annualLoad: req.loadDataDetail.annualLoad,
+        pvCapacity: req.systemDesignDataDetail.pvDetailsData.pvCapacity,
+        chargeFromGridMaxPercentage: req.systemDesignDataDetail.chargeFromGridMaxPercentage,
+        financialDict: req.systemDesignDataDetail.financialDict || null,
+        gridServices: req.systemDesignDataDetail.gridServices,
         sgip: req.systemDesignDataDetail.sgip || null,
-        grid_service_days: req.systemDesignDataDetail.gridServicesDays || null,
-        export_limit: req.systemDesignDataDetail.exportLimit || null,
+        gridServiceDays: req.systemDesignDataDetail.gridServicesDays || null,
+        exportLimit: req.systemDesignDataDetail.exportLimit || null,
       })
       .lean();
 
@@ -45,16 +46,16 @@ export class SavingCalculationService {
     // FIXME: need to ask Michael
     const billSavings = await this.savingEngineBillModel
       .find({
-        scenario_id: scenario._id,
-        calculation_type: CALCULATION_TYPE.PRIMARY,
+        scenarioId: scenario._id,
+        calculationType: CALCULATION_TYPE.PRIMARY,
       })
       .lean();
 
-    const orderedBy = orderBy(billSavings, ['scenario_type', 'rate_name_type']);
+    const orderedBy = orderBy(billSavings, ['scenarioType', 'rateNameType']);
 
     if (!billSavings.length) {
       return OperationResult.ok(
-        new GetSavingDto({
+        strictPlainToClass(GetSavingDto, {
           serviceResponseStatus: {
             serviceResponseStatus: SERVICE_RESPONSE_STATUS_TYPE.FAILURE,
             failureMessage: 'No Matching Savings data found.',
@@ -63,20 +64,17 @@ export class SavingCalculationService {
       );
     }
 
-    const billSavingsGroupedData = groupBy(orderedBy, i => i.scenario_type);
-    const scenarioDetailData: ScenarioDataDto[] = Object.keys(billSavingsGroupedData).map(
-      item =>
-        ({
-          scenarioType: item as any,
-          savingsDataDetail: billSavingsGroupedData[item].map(saving => ({
-            rateNameType: saving.rate_name_type,
-            costDataDetail: saving.cost,
-          })),
-        } as any),
-    );
+    const billSavingsGroupedData = groupBy(orderedBy, i => i.scenarioId);
+    const scenarioDetailData = Object.keys(billSavingsGroupedData).map(item => ({
+      scenarioType: item,
+      savingsDataDetail: billSavingsGroupedData[item].map(saving => ({
+        rateNameType: saving.rateNameType,
+        costDataDetail: saving.cost,
+      })),
+    }));
 
     return OperationResult.ok(
-      new GetSavingDto({
+      strictPlainToClass(GetSavingDto, {
         serviceResponseStatus: { serviceResponseStatus: SERVICE_RESPONSE_STATUS_TYPE.SUCCESS },
         scenarioDataDetail: scenarioDetailData,
       }),

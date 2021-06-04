@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, Types } from 'mongoose';
 import { isObjectId, transformToValidId } from 'src/utils/common';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult, Pagination } from '../app/common';
 import { Product, PRODUCT } from './product.schema';
 import { UpdateProductDtoReq } from './req/update-product.dto';
@@ -19,7 +20,7 @@ export class ProductService {
   ): Promise<OperationResult<Pagination<ProductDto>>> {
     const condition = {
       type: { $in: types },
-      [typeof hasRule === 'boolean' ? 'insertion_rule' : '']: { $exists: hasRule },
+      [typeof hasRule === 'boolean' ? 'insertionRule' : '']: { $exists: hasRule },
     };
 
     const [panels, total] = await Promise.all([
@@ -27,14 +28,14 @@ export class ProductService {
       this.productModel.countDocuments(condition),
     ]);
 
-    return OperationResult.ok(new Pagination({ data: panels.map(panel => new ProductDto(panel)), total }));
+    return OperationResult.ok(new Pagination({ data: strictPlainToClass(ProductDto, panels), total }));
   }
 
   async updateProduct(id: string, req: UpdateProductDtoReq): Promise<OperationResult<ProductDto>> {
     const updatedProduct = await this.productModel
-      .findByIdAndUpdate(id, { insertion_rule: req.insertionRule }, { new: true })
+      .findByIdAndUpdate(id, { insertionRule: req.insertionRule }, { new: true })
       .lean();
-    return OperationResult.ok(new ProductDto(updatedProduct || ({} as any)));
+    return OperationResult.ok(strictPlainToClass(ProductDto, updatedProduct));
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
@@ -50,6 +51,7 @@ export class ProductService {
       _id: { $in: newIdList },
     };
     const product = await this.productModel.find(query).lean();
+
     return product;
   }
 }

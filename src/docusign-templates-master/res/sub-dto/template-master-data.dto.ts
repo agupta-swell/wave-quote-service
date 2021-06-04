@@ -1,39 +1,29 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { TEMPLATE_STATUS } from 'src/docusign-templates-master/constants';
-
-class RecipientRoleResDto {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  roleName: string;
-
-  @ApiProperty()
-  roleDescription: string;
-}
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { SignerRoleDataResDto } from './signer-role-data.dto';
 
 export class TemplateMasterDataResDto {
-  @ApiProperty()
+  @ExposeMongoId({ eitherId: true })
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   templateName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   description: string;
 
-  @ApiProperty()
+  @ExposeProp()
   docusignTemplateId: string;
 
-  @ApiProperty({ enum: TEMPLATE_STATUS })
+  @ExposeProp({ enum: TEMPLATE_STATUS })
   templateStatus: TEMPLATE_STATUS;
 
-  @ApiProperty({ isArray: true, type: RecipientRoleResDto })
-  recipientRoles: RecipientRoleResDto[];
+  @ExposeProp({ isArray: true, type: SignerRoleDataResDto })
+  recipientRoles: SignerRoleDataResDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   createdAt: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   modifiedAt: Date;
 }

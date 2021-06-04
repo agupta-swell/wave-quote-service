@@ -6,18 +6,18 @@ export const getSolarEnergySystemEstimatedX7: TemplateDataBuilder = genericObj =
   const { quote, leaseSolverConfig } = genericObj;
   const result: Record<string, string> = {};
 
-  result.avg_solar_rate_per_kwh_year_1 = `${quote.system_production.generationKWh / 12}`;
+  result.avg_solar_rate_per_kwh_year_1 = `${quote.systemProduction.generationKWh / 12}`;
 
   result.ESA_ESC = `${
-    (quote.quote_finance_product.finance_product.product_attribute as ILeaseProductAttributes).rate_escalator
+    (quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes).rateEscalator
   }`;
 
-  result.storage_monthly_payment = `${leaseSolverConfig?.storage_payment}`;
+  result.storage_monthly_payment = `${leaseSolverConfig?.storagePayment}`;
 
-  result.PV_YLD_YR1 = `${quote.system_production.generationKWh}`;
+  result.PV_YLD_YR1 = `${quote.systemProduction.generationKWh}`;
 
   const { EPV_YLD, EPV_YLD_CUM, GPV_YLD, GUARANTEED_PV_PRICE_PER_KWH } = generateEPVAndGPVTable({
-    systemProduction: quote.system_production,
+    systemProduction: quote.systemProduction,
     quote,
   });
 

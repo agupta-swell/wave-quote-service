@@ -33,14 +33,30 @@ import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
 import { RebateProgramModule } from 'src/rebate-programs/rebate-programs.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
-import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
+import { MongooseNamingStrategyLoader } from 'src/shared/plugins/mongoose/naming-strategy.plugin';
+import { ENaming, MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { MyLoggerModule } from './my-logger/my-logger.module';
+import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 
 @Global()
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(process.env.MONGO_URL || 'mongodb://locahost:27017', { useFindAndModify: false }),
+    MongooseModule.forRoot(process.env.MONGO_URL || 'mongodb://localhost:27017', { useFindAndModify: false }),
+    MongooseNamingStrategyLoader.forRoot(
+      new MongooseNamingStrategy({ autoload: true, schemaType: ENaming.SNAKE_CASE, logger: true })
+        .useLeanSignature(false)
+        .setAuloload(true)
+        .addExclusions('sizeW', 'sizekWh', 'capacityKW', 'generationKWh')
+        .addCustomMapping('currentPricePerKWh', 'current_price_per_kWh')
+        .addCustomMapping('newPricePerKWh', 'new_price_per_kWh')
+        .addCustomMapping('ratePerKWh', 'rate_per_kWh')
+        .addCustomMapping('annualUsageKWh', 'annual_usageKWh')
+        .addCustomMapping('annual_usageKWh', 'annualUsageKWh')
+        .addCustomMapping('laborCostPerWatt', 'labor_cost_perWatt')
+        .addCustomMapping('systemCapacityKW', 'system_capacity_kW'),
+    ),
+    AwsModule,
     AccountModule,
     AdderConfigModule,
     AuthencationModule,
@@ -74,9 +90,6 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     GsProgramsModule,
     FinancialProductsModule,
     SavingCalculationModule,
-    AwsModule
   ],
 })
-export class AppModule {
-  constructor() {}
-}
+export class AppModule {}

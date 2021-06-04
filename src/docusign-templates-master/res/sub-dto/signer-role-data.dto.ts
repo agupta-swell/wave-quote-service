@@ -1,12 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class SignerRoleDataResDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   roleName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   roleDescription: string;
 }

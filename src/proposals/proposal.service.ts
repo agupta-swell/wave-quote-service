@@ -3,15 +3,14 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
-import * as Handlebars from 'handlebars';
 import { IncomingMessage } from 'http';
 import { identity, pickBy, sumBy } from 'lodash';
-import { LeanDocument, Model } from 'mongoose';
+import { ObjectId, LeanDocument, Model } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
-import { ISignerDetailDataSchema, ITemplateDetailSchema } from 'src/contracts/contract.schema';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { IGenericObject } from 'src/docusign-communications/typing';
+import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
@@ -19,6 +18,7 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { S3Service } from 'src/shared/aws/services/s3.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -28,7 +28,7 @@ import { EmailService } from '../emails/email.service';
 import { QuoteService } from '../quotes/quote.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { PROPOSAL_ANALYTIC_TYPE, PROPOSAL_STATUS } from './constants';
-import { IDetailedProposalSchema, Proposal, PROPOSAL } from './proposal.schema';
+import { Proposal, PROPOSAL } from './proposal.schema';
 import {
   CreateProposalDto,
   CustomerInformationDto,
@@ -36,10 +36,11 @@ import {
   UpdateProposalDto,
   ValidateProposalDto,
 } from './req';
+import { SignerDetailDto, TemplateDetailDto } from './req/send-sample-contract.dto';
 import { ProposalSendSampleContractResultDto } from './res/proposal-send-sample-contract.dto';
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
-import proposalTemplate from './template-html/proposal-template';
+import { PROPOSAL_EMAIL_TEMPLATE } from './template-html/proposal-template';
 
 @Injectable()
 export class ProposalService {
@@ -63,6 +64,7 @@ export class ProposalService {
     private readonly docusignCommunicationService: DocusignCommunicationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly s3Service: S3Service,
+    private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -84,24 +86,23 @@ export class ProposalService {
     await this.s3Service.copySource(bucketName, keyName, bucketName, newKeyName, 'public-read');
 
     const model = new this.proposalModel({
-      opportunity_id: proposalDto.opportunityId,
-      system_design_id: proposalDto.systemDesignId,
-      quote_id: proposalDto.quoteId,
-      detailed_proposal: {
-        proposal_name: proposalDto.proposalName,
+      opportunityId: proposalDto.opportunityId,
+      systemDesignId: proposalDto.systemDesignId,
+      quoteId: proposalDto.quoteId,
+      detailedProposal: {
+        proposalName: proposalDto.proposalName,
         recipients: proposalDto.detailedProposal.recipients,
-        is_selected: proposalDto.detailedProposal.isSelected,
-        proposal_validity_period: proposalDto.detailedProposal.proposalValidityPeriod,
-        template_id: proposalDto.detailedProposal.templateId,
-        proposal_creation_date: new Date(),
+        isSelected: proposalDto.detailedProposal.isSelected,
+        proposalValidityPeriod: proposalDto.detailedProposal.proposalValidityPeriod,
+        templateId: proposalDto.detailedProposal.templateId,
+        proposalCreationDate: new Date(),
         status: PROPOSAL_STATUS.CREATED,
-        quote_data: detailedQuote,
-        system_design_data: {
-          ...systemDesign,
-          thumbnail: this.s3Service.buildUrlFromKey(bucketName, newKeyName),
-        },
+        quoteData: detailedQuote,
+        systemDesignData: systemDesign,
       },
     });
+
+    model.detailedProposal.systemDesignData.thumbnail = this.s3Service.buildUrlFromKey(bucketName, newKeyName);
 
     // Generate PDF and HTML file then get File Url
     const infoProposalAfterInsert = await model.save();
@@ -117,71 +118,37 @@ export class ProposalService {
     );
 
     const { data } = await axios.get(`${process.env.PROPOSAL_URL}/generate?token=${token}`);
-    const newData = {
-      detailed_proposal: {} as IDetailedProposalSchema,
-      opportunity_id: proposalDto.opportunityId,
-      system_design_id: proposalDto.systemDesignId,
-      quote_id: proposalDto.quoteId,
-    } as Proposal;
 
     if (data?.pdfFileUrl) {
-      newData.detailed_proposal.pdf_file_url = data.pdfFileUrl;
+      infoProposalAfterInsert.detailedProposal.pdfFileUrl = data.pdfFileUrl;
     }
     if (data?.htmlFileUrl) {
-      newData.detailed_proposal.html_file_url = data.htmlFileUrl;
+      infoProposalAfterInsert.detailedProposal.htmlFileUrl = data.htmlFileUrl;
     }
 
-    newData.detailed_proposal = { ...model.toObject().detailed_proposal, ...newData.detailed_proposal };
-    newData._id = infoProposalAfterInsert._id;
-
-    await this.proposalModel.findByIdAndUpdate(infoProposalAfterInsert._id, newData, {
-      new: true,
-    });
-
-    return OperationResult.ok(new ProposalDto(newData));
+    await infoProposalAfterInsert.save();
+    return OperationResult.ok(strictPlainToClass(ProposalDto, infoProposalAfterInsert.toJSON()));
   }
 
-  async update(id: string, proposalDto: UpdateProposalDto): Promise<OperationResult<ProposalDto>> {
-    const foundProposal = await this.proposalModel.findById(id).lean();
+  async update(id: ObjectId, proposalDto: UpdateProposalDto): Promise<OperationResult<ProposalDto>> {
+    const foundProposal = await this.proposalModel.findById(id);
 
     if (!foundProposal) {
-      throw ApplicationException.EntityNotFound(id);
+      throw ApplicationException.EntityNotFound(id.toString());
     }
-
-    const newData = {
-      detailed_proposal: {} as IDetailedProposalSchema,
-    } as Proposal;
 
     const { isSelected, proposalValidityPeriod, proposalName, recipients, pdfFileUrl, htmlFileUrl } = proposalDto;
 
-    if (isSelected) {
-      newData.detailed_proposal.is_selected = isSelected;
-    }
+    foundProposal.detailedProposal.isSelected = isSelected;
+    foundProposal.detailedProposal.proposalName = proposalName;
+    foundProposal.detailedProposal.proposalValidityPeriod = proposalValidityPeriod;
+    foundProposal.detailedProposal.recipients = recipients;
+    foundProposal.detailedProposal.pdfFileUrl = pdfFileUrl;
+    foundProposal.detailedProposal.htmlFileUrl = htmlFileUrl;
 
-    if (proposalName) {
-      newData.detailed_proposal.proposal_name = proposalName;
-    }
+    await foundProposal.save();
 
-    if (proposalValidityPeriod) {
-      newData.detailed_proposal.proposal_validity_period = proposalValidityPeriod;
-    }
-
-    if (recipients) {
-      newData.detailed_proposal.recipients = recipients.filter(item => item.email !== '');
-    }
-
-    if (pdfFileUrl) {
-      newData.detailed_proposal.pdf_file_url = pdfFileUrl;
-    }
-
-    if (htmlFileUrl) {
-      newData.detailed_proposal.html_file_url = htmlFileUrl;
-    }
-
-    newData.detailed_proposal = { ...foundProposal.detailed_proposal, ...newData.detailed_proposal };
-
-    const updatedModel = await this.proposalModel.findByIdAndUpdate(id, newData, { new: true }).lean();
-    return OperationResult.ok(new ProposalDto(updatedModel || ({} as any)));
+    return OperationResult.ok(strictPlainToClass(ProposalDto, foundProposal.toJSON()));
   }
 
   async getList(
@@ -192,8 +159,8 @@ export class ProposalService {
   ): Promise<OperationResult<Pagination<ProposalDto>>> {
     const condition = pickBy(
       {
-        quote_id: quoteId,
-        opportunity_id: opportunityId,
+        quoteId,
+        opportunityId,
       },
       identity,
     );
@@ -204,24 +171,24 @@ export class ProposalService {
     ]);
 
     return OperationResult.ok({
-      data: proposals.map(proposal => new ProposalDto(proposal)),
+      data: strictPlainToClass(ProposalDto, proposals),
       total,
     });
   }
 
-  async getProposalDetails(id: string): Promise<OperationResult<ProposalDto>> {
+  async getProposalDetails(id: ObjectId): Promise<OperationResult<ProposalDto>> {
     const proposal = await this.proposalModel.findById(id).lean();
     if (!proposal) {
-      throw ApplicationException.EntityNotFound(id);
+      throw ApplicationException.EntityNotFound(id.toString());
     }
 
     const requiredData = await this.getProposalRequiredData(proposal);
 
     return OperationResult.ok(
-      new ProposalDto({
+      strictPlainToClass(ProposalDto, {
         ...proposal,
         ...requiredData,
-      } as any),
+      }),
     );
   }
 
@@ -248,13 +215,13 @@ export class ProposalService {
     return OperationResult.ok({ proposalLink: (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`) });
   }
 
-  async sendRecipients(proposalId: string): Promise<OperationResult<boolean>> {
+  async sendRecipients(proposalId: ObjectId): Promise<OperationResult<boolean>> {
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
-      throw ApplicationException.EntityNotFound(proposalId);
+      throw ApplicationException.EntityNotFound(proposalId.toString());
     }
 
-    const tokensByRecipients = foundProposal.detailed_proposal.recipients.map(item =>
+    const tokensByRecipients = foundProposal.detailedProposal.recipients.map(item =>
       this.jwtService.sign(
         {
           proposalId: foundProposal._id,
@@ -264,23 +231,20 @@ export class ProposalService {
           isAgent: true, // TODO: SHOULD BE REMOVED AFTER DEMO
         },
         {
-          expiresIn: `${foundProposal.detailed_proposal.proposal_validity_period}d`,
+          expiresIn: `${foundProposal.detailedProposal.proposalValidityPeriod}d`,
           secret: process.env.PROPOSAL_JWT_SECRET,
         },
       ),
     );
 
     const linksByToken = tokensByRecipients.map(token => (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`));
-    const recipients = foundProposal.detailed_proposal.recipients.map(item => item.email);
-
-    const source = proposalTemplate;
-    const template = Handlebars.compile(source);
+    const recipients = foundProposal.detailedProposal.recipients.map(item => item.email);
 
     await Promise.all(
       recipients.map((recipient, index) => {
         const data = {
           customerName: recipient.split('@')?.[0] ? recipient.split('@')[0] : 'Customer',
-          proposalValidityPeriod: foundProposal.detailed_proposal.proposal_validity_period,
+          proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
           recipientNotice: recipients.filter(i => i !== recipient).join(', ')
             ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipients
                 .filter(i => i !== recipient)
@@ -288,9 +252,8 @@ export class ProposalService {
             : '',
           proposalLink: linksByToken[index],
         };
-
-        const htmlToSend = template(data);
-        this.emailService.sendMail(recipient, htmlToSend, 'Proposal Invitation');
+        this.emailService.sendMailByTemplate(recipient, 'Proposal Invitation', PROPOSAL_EMAIL_TEMPLATE, data);
+        // this.emailService.sendMail(recipient, htmlToSend, 'Proposal Invitation');
       }),
     );
 
@@ -333,7 +296,7 @@ export class ProposalService {
 
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
-      proposalDetail: new ProposalDto({ ...proposal, ...requiredData } as any),
+      proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
     });
   }
 
@@ -344,7 +307,7 @@ export class ProposalService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    const counter = await this.proposalModel.countDocuments({ opportunity_id: opportunityId });
+    const counter = await this.proposalModel.countDocuments({ opportunityId });
     return counter;
   }
 
@@ -364,15 +327,15 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(proposalId);
     }
 
-    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposal_id: proposalId, view_by: viewBy }).lean();
+    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposalId, viewBy });
     if (!foundAnalytic) {
       const dataToSave =
         type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
           ? { downloads: [new Date()], views: [] }
           : { views: [new Date()], downloads: [] };
       const model = new this.proposalAnalyticModel({
-        proposal_id: proposalId,
-        view_by: viewBy,
+        proposalId,
+        viewBy,
         ...dataToSave,
       });
       await model.save();
@@ -390,6 +353,7 @@ export class ProposalService {
             views: [...foundAnalytic.views, new Date()],
             downloads: foundAnalytic.downloads,
           };
+
     await this.proposalAnalyticModel.findByIdAndUpdate(foundAnalytic._id, dataToUpdate);
     return OperationResult.ok(true);
   }
@@ -408,7 +372,8 @@ export class ProposalService {
           ignoreExpiration: false,
         });
       } catch (error) {
-        throw new UnauthorizedException();
+        if (error.constructor.name === 'JsonWebTokenError') throw new UnauthorizedException();
+        throw error;
       }
     }
 
@@ -423,15 +388,15 @@ export class ProposalService {
   }
 
   async getProposalRequiredData(proposal: LeanDocument<Proposal>): Promise<Partial<ProposalDto>> {
-    const opportunity = await this.opportunityService.getDetailById(proposal.opportunity_id);
+    const opportunity = await this.opportunityService.getDetailById(proposal.opportunityId);
     if (!opportunity) {
-      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunity_id}`);
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunityId}`);
     }
 
     const [contact, recordOwner, template] = await Promise.all([
       this.contactService.getContactById(opportunity.contactId),
       this.userService.getUserById(opportunity.recordOwner),
-      this.proposalTemplateService.getOneById(proposal.detailed_proposal?.template_id),
+      this.proposalTemplateService.getOneById(proposal.detailedProposal?.templateId),
     ]);
 
     return {
@@ -447,18 +412,19 @@ export class ProposalService {
   }
 
   async sendSampleContract(
-    proposalId: string,
-    templateDetails: ITemplateDetailSchema[],
-    signerDetails: ISignerDetailDataSchema[],
+    proposalId: ObjectId,
+    templateDetails: TemplateDetailDto[],
+    signerDetails: SignerDetailDto[],
   ): Promise<OperationResult<ProposalSendSampleContractResultDto>> {
     const proposal = await this.proposalModel.findById(proposalId);
 
     if (!proposal) throw ApplicationException.EntityNotFound(`ProposalId: ${proposalId}`);
 
-    const quote = proposal.detailed_proposal.quote_data;
-    const opportunity = await this.opportunityService.getDetailById(proposal.opportunity_id);
+    const quote = proposal.detailedProposal.quoteData;
+
+    const opportunity = await this.opportunityService.getDetailById(proposal.opportunityId);
     if (!opportunity) {
-      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunity_id}`);
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunityId}`);
     }
 
     const [contact, recordOwner] = await Promise.all([
@@ -466,21 +432,21 @@ export class ProposalService {
       this.userService.getUserById(opportunity.recordOwner),
     ]);
 
-    const fundingSourceType = proposal.detailed_proposal.quote_data.quote_finance_product.finance_product.product_type;
+    const fundingSourceType = proposal.detailedProposal.quoteData.quoteFinanceProduct.financeProduct.productType;
 
     const [customerPayment, utilityName, roofTopDesign, systemDesign] = await Promise.all([
-      this.customerPaymentService.getCustomerPaymentByOpportunityId(proposal.opportunity_id),
+      this.customerPaymentService.getCustomerPaymentByOpportunityId(proposal.opportunityId),
       this.utilityService.getUtilityName(opportunity.utilityId),
-      this.systemDesignService.getRoofTopDesignById(proposal.system_design_id),
-      this.systemDesignService.getOneById(proposal.system_design_id),
+      this.systemDesignService.getRoofTopDesignById(proposal.systemDesignId),
+      this.systemDesignService.getOneById(proposal.systemDesignId),
     ]);
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
 
     // Get gsProgram
-    const incentive_details = quote.quote_finance_product.incentive_details[0];
+    const incentiveDetails = quote.quoteFinanceProduct.incentiveDetails[0];
 
-    const gsProgramSnapshotId = incentive_details.detail.gsProgramSnapshot.id;
+    const gsProgramSnapshotId = incentiveDetails.detail.gsProgramSnapshot.id;
 
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 
@@ -490,23 +456,17 @@ export class ProposalService {
       : null;
 
     // Get lease solver config
-    const lease_product_attribute = quote.quote_finance_product.finance_product
-      .product_attribute as ILeaseProductAttributes;
-
-    // TODO: Tier/StorageManufacturer support
+    const leaseProductAttribute = quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes;
     const query: IGetDetail = {
       tier: 'DTC',
-      isSolar: systemDesign!.is_solar,
-      utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utility_program_name : '',
-      contractTerm: lease_product_attribute.lease_term,
-      storageSize: sumBy(
-        quote.quote_cost_buildup.storage_quote_details,
-        item => item.storage_model_data_snapshot.sizekWh,
-      ),
+      isSolar: systemDesign!.isSolar,
+      utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utilityProgramName : '',
+      contractTerm: leaseProductAttribute.leaseTerm,
+      storageSize: sumBy(quote.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
       storageManufacturer: 'Tesla',
-      rateEscalator: lease_product_attribute.rate_escalator,
-      capacityKW: systemDesign!.system_production_data.capacityKW,
-      productivity: systemDesign!.system_production_data.productivity,
+      rateEscalator: leaseProductAttribute.rateEscalator,
+      capacityKW: systemDesign!.systemProductionData.capacityKW,
+      productivity: systemDesign!.systemProductionData.productivity,
     };
 
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
@@ -532,16 +492,20 @@ export class ProposalService {
       leaseSolverConfig,
     };
 
+    const templateDetailsData = await Promise.all(
+      templateDetails.map(({ id }) => this.docusignTemplateMasterService.getTemplateMasterById(id)),
+    );
+
     const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(
       proposal._id.toString(),
-      templateDetails,
+      templateDetailsData,
       signerDetails,
       genericObject,
       true,
     );
 
     if (docusignResponse.status === 'SUCCESS') {
-      proposal.detailed_proposal.envelope_id = docusignResponse.contractingSystemReferenceId;
+      proposal.detailedProposal.envelopeId = docusignResponse.contractingSystemReferenceId;
       await proposal.save();
     }
 
@@ -556,7 +520,7 @@ export class ProposalService {
     try {
       const s3UploadResult = await this.saveToStorage(document, fileName);
       // await proposal.
-      proposal.detailed_proposal.sample_contract_url = s3UploadResult.Location;
+      proposal.detailedProposal.sampleContractUrl = s3UploadResult.Location;
       await proposal.save();
       return OperationResult.ok({
         url: s3UploadResult.Location,

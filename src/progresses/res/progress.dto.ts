@@ -1,35 +1,27 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { ExposeProp } from 'src/shared/decorators';
 
 export class ProgressDto {
-  @ApiProperty()
+  @ExposeProp()
   utilityAndUsageCounter: number;
 
-  @ApiProperty()
+  @ExposeProp()
   systemDesignCounter: number;
 
-  @ApiProperty()
+  @ExposeProp()
   quoteCounter: number;
 
-  @ApiProperty()
+  @ExposeProp()
   proposalCounter: number;
 
-  @ApiProperty()
+  @ExposeProp()
   qualificationCounter: number;
-
-  constructor(props: any) {
-    this.utilityAndUsageCounter = props.utilityAndUsageCounter;
-    this.systemDesignCounter = props.systemDesignCounter;
-    this.quoteCounter = props.quoteCounter;
-    this.proposalCounter = props.proposalCounter;
-    this.qualificationCounter = props.qualificationCounter;
-  }
 }
 
 export class ProgressRes implements ServiceResponse<ProgressDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ProgressDto })
+  @ExposeProp({ type: ProgressDto })
   data: ProgressDto;
 }

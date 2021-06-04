@@ -1,15 +1,15 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { ExposeProp } from 'src/shared/decorators';
 
 export class ProposalSendSampleContractResultDto {
-  @ApiProperty()
+  @ExposeProp()
   url: string;
 }
 
 export class ProposalSendSampleContractRes implements ServiceResponse<ProposalSendSampleContractResultDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ProposalSendSampleContractResultDto })
+  @ExposeProp({ type: ProposalSendSampleContractResultDto })
   data: ProposalSendSampleContractResultDto;
 }

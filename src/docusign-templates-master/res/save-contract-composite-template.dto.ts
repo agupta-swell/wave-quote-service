@@ -1,33 +1,19 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
-import { toCamelCase } from 'src/utils/transformProperties';
-import { CompositeTemplateResDto, ICompositeTemplateResDto } from './get-contract-composite-template.dto';
+import { ExposeProp } from 'src/shared/decorators';
+import { CompositeTemplateResDto } from './get-contract-composite-template.dto';
 
 export class SaveContractCompositeTemplateDto {
-  @ApiProperty()
+  @ExposeProp()
   responseStatus: string;
 
-  @ApiPropertyOptional({ type: () => CompositeTemplateResDto })
+  @ExposeProp({ type: CompositeTemplateResDto, required: false })
   newUpdatedCompositeTemplate: CompositeTemplateResDto | null;
-
-  constructor(responseStatus: string, props?: ICompositeTemplateResDto) {
-    this.responseStatus = responseStatus;
-    this.newUpdatedCompositeTemplate = props
-      ? {
-          templateDetails: props?.templateDetails.map(item => ({
-            ...toCamelCase(item),
-            recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
-          })),
-          compositeTemplateData: toCamelCase(props?.compositeTemplateData),
-        }
-      : null;
-  }
 }
 
 export class SaveContractCompositeTemplateRes implements ServiceResponse<SaveContractCompositeTemplateDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: () => SaveContractCompositeTemplateDto })
+  @ExposeProp({ type: SaveContractCompositeTemplateDto })
   data: SaveContractCompositeTemplateDto;
 }

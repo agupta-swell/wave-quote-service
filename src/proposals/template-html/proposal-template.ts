@@ -1,3 +1,5 @@
+import { EmailService } from 'src/emails/email.service';
+
 const header = (title: string) => `<div style="width: 100%; background: #005f9f">
       <img src="https://s3-us-west-2.amazonaws.com/swell-docs/logos/logo-text-white.png" style="width: 150px; margin-top: 0px; margin-bottom: 0px; margin-right: auto; margin-left: auto; display: block; padding-top: 40px" />
       <img src="https://s3.amazonaws.com/switchboard-docs/images/New_task.png" style="width: 150px; display: block; margin-top: 0px; margin-bottom: 0px; margin-right: auto; margin-left: auto; padding-top: 30px; padding-right: 32px" />
@@ -20,7 +22,7 @@ const footer = () => `<div style="font-size: 14px; color: #58595B; margin-top: 2
       </p>
     </div>`;
 
-export default `
+const proposalTemplate = `
   <html>
     <head>
       <title>Swell Energy: Your Proposal</title>
@@ -59,3 +61,7 @@ export default `
     </body>
   </html>
 `;
+
+export const PROPOSAL_EMAIL_TEMPLATE = 'PROPOSAL_EMAIL_TEMPLATE';
+
+EmailService.register(PROPOSAL_EMAIL_TEMPLATE, proposalTemplate);

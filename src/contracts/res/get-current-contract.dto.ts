@@ -1,42 +1,25 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
-import { Contract } from '../contract.schema';
+import { ExposeProp } from 'src/shared/decorators';
 import { ContractResDto } from './sub-dto';
 
-interface IGetCurrentContractDto {
-  contractData: LeanDocument<Contract>;
-  changeOrders: LeanDocument<Contract>[];
-}
 
 class ContractDetailDataResDto {
-  @ApiProperty({ type: ContractResDto })
+  @ExposeProp({ type: ContractResDto })
   contractData: ContractResDto;
 
-  @ApiProperty({ type: ContractResDto, isArray: true })
+  @ExposeProp({ type: ContractResDto, isArray: true })
   changeOrders: ContractResDto[];
 }
 
 export class GetCurrentContractDto {
-  @ApiProperty({ type: ContractDetailDataResDto, isArray: true })
+  @ExposeProp({ type: ContractDetailDataResDto, isArray: true })
   contracts: ContractDetailDataResDto[];
-
-  constructor(props: IGetCurrentContractDto[]) {
-    this.contracts = props.map(item => this.transformData(item));
-  }
-
-  transformData(contract: IGetCurrentContractDto): ContractDetailDataResDto {
-    return {
-      contractData: new ContractResDto(contract.contractData),
-      changeOrders: contract.changeOrders.map(changeOrder => new ContractResDto(changeOrder)),
-    };
-  }
 }
 
 export class GetCurrentContractRes implements ServiceResponse<GetCurrentContractDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetCurrentContractDto })
+  @ExposeProp({ type: GetCurrentContractDto })
   data: GetCurrentContractDto;
 }

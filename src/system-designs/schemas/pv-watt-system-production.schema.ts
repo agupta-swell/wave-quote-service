@@ -5,19 +5,19 @@ export const PV_WATT_SYSTEM_PRODUCTION = Symbol('PV_WATT_SYSTEM_PRODUCTION').toS
 export interface PvWattSystemProduction extends Document {
   lat: number;
   lon: number;
-  system_capacity_kW: number;
+  systemCapacityKW: number;
   azimuth: number;
   tilt: number;
-  array_type: number;
-  module_type: number;
+  arrayType: number;
+  moduleType: number;
   losses: number;
-  ac_annual_hourly_production: number[];
-  ac_monthly_production: number[];
-  ac_annual_production: number;
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  acAnnualHourlyProduction: number[];
+  acMonthlyProduction: number[];
+  acAnnualProduction: number;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const PvWattSystemProductionSchema = new Schema<PvWattSystemProduction>({

@@ -1,35 +1,29 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { Manufacturer } from '../manufacturer.schema';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class ManufacturerDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
-
-  constructor(props: Manufacturer) {
-    this.id = props._id;
-    this.name = props.name;
-  }
 }
 
 class ManufacturerPaginationDto implements Pagination<ManufacturerDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: ManufacturerDto,
     isArray: true,
   })
   data: ManufacturerDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class ManufacturerPaginationRes implements ServiceResponse<ManufacturerPaginationDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ManufacturerPaginationDto })
+  @ExposeProp({ type: ManufacturerPaginationDto })
   data: ManufacturerPaginationDto;
 }

@@ -3,12 +3,12 @@ import { Document, Schema } from 'mongoose';
 export const SIGNER_ROLE_MASTER = Symbol('SIGNER_ROLE_MASTER').toString();
 
 export interface SignerRoleMaster extends Document {
-  role_name: string;
-  role_description: string;
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  roleName: string;
+  roleDescription: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 // export const SignerRoleMasterSchemaWithoutId = new Schema<SignerRoleMaster>(

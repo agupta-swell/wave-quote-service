@@ -4,15 +4,15 @@ import { TEMPLATE_STATUS } from './constants';
 export const DOCUSIGN_TEMPLATE_MASTER = Symbol('DOCUSIGN_TEMPLATE_MASTER').toString();
 
 export interface DocusignTemplateMaster extends Document {
-  template_name: string;
+  templateName: string;
   description: string;
-  docusign_template_id: string;
-  recipient_roles: string[];
-  template_status: TEMPLATE_STATUS;
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  docusignTemplateId: string;
+  recipientRoles: string[];
+  templateStatus: TEMPLATE_STATUS;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const DocusignTemplateMasterSchema = new Schema<DocusignTemplateMaster>({

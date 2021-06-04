@@ -1,72 +1,72 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class FinanceProductDetailDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   fundingSourceId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   isActive: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   fundId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   allowDownPayment: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   minDownPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   defaultDownPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxDownPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   annualDegradation: number;
 
-  @ApiProperty()
+  @ExposeProp()
   guaranteedProduction: number;
 
-  @ApiProperty()
+  @ExposeProp()
   minMargin: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxMargin: number;
 
-  @ApiProperty()
+  @ExposeProp()
   minSystemKw: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxSystemKw: number;
 
-  @ApiProperty()
+  @ExposeProp()
   minBatteryKwh: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxBatteryKwh: number;
 
-  @ApiProperty()
+  @ExposeProp()
   minProductivity: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxProductivity: number;
 
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeProp({ type: String, isArray: true })
   allowedStates: string[];
 
-  @ApiProperty()
+  @ExposeProp()
   interestRate: number;
 
-  @ApiProperty()
+  @ExposeProp()
   termMonths: number;
 
-  @ApiProperty()
+  @ExposeProp()
   dealerFee: number;
 }

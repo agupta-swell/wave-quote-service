@@ -18,7 +18,7 @@ import {
   StorageProductSchema,
   SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
-import { toSnakeCase } from 'src/utils/transformProperties';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { ELaborCostType, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
@@ -46,6 +46,8 @@ const GridServiceDetailsSchema = new Schema<Document<IGridServiceDetails>>(
   { _id: false },
 );
 
+MongooseNamingStrategy.ExcludeOne(GridServiceDetailsSchema);
+
 export interface IIncentiveDetailsSchema {
   type: REBATE_TYPE;
   detail: IGridServiceDetails;
@@ -61,11 +63,12 @@ const IncentiveDetailsSchema = new Schema<Document<IIncentiveDetailsSchema>>(
   { _id: false },
 );
 
+MongooseNamingStrategy.ExcludeOne(IncentiveDetailsSchema);
 export interface IRebateDetailsSchema {
   amount: number;
   type: string;
   description: string;
-  is_float_rebate?: boolean;
+  isFloatRebate?: boolean;
 }
 
 const RebateDetailsSchema = new Schema<Document<IRebateDetailsSchema>>(
@@ -79,81 +82,81 @@ const RebateDetailsSchema = new Schema<Document<IRebateDetailsSchema>>(
 );
 
 export interface IMonthlyLoanPaymentDetails {
-  payment_due_date: Date;
+  paymentDueDate: Date;
   period: number;
-  payment_number: number;
-  days_in_period: number;
-  days_in_year: number;
-  starting_balance: number;
-  monthly_payment: number;
-  interest_component: number;
-  principle_component: number;
-  ending_balance: number;
-  adjusted_monthly_payment: number;
-  pre_payment: number;
-  unpaid_interest_for_current_month: number;
-  unpaid_interest_cumulative: number;
+  paymentNumber: number;
+  daysInPeriod: number;
+  daysInYear: number;
+  startingBalance: number;
+  monthlyPayment: number;
+  interestComponent: number;
+  principleComponent: number;
+  endingBalance: number;
+  adjustedMonthlyPayment: number;
+  prePayment: number;
+  unpaidInterestForCurrentMonth: number;
+  unpaidInterestCumulative: number;
 }
 
 export interface IYearlyLoanPaymentDetails {
   year: number;
-  monthly_payment_details: IMonthlyLoanPaymentDetails[];
+  monthlyPaymentDetails: IMonthlyLoanPaymentDetails[];
 }
 
 export interface IReinvestment {
-  reinvestment_amount: number;
-  reinvestment_month: number;
+  reinvestmentAmount: number;
+  reinvestmentMonth: number;
   description: string;
 }
 
 export interface ILoanProductAttributes {
-  upfront_payment: number;
-  loan_amount: number;
-  interest_rate: number;
-  loan_term: number;
+  upfrontPayment: number;
+  loanAmount: number;
+  interestRate: number;
+  loanTerm: number;
   reinvestment: IReinvestment[];
-  loan_start_date: Date;
-  tax_credit_prepayment_amount: number;
-  willing_to_pay_through_ach: boolean;
-  monthly_loan_payment: number;
-  current_monthly_average_utility_payment: number;
-  monthly_utility_payment: number;
-  grid_service_payment: number;
-  net_customer_energy_spend: number;
-  return_on_investment: number;
-  pay_back_period: number;
-  current_price_per_kWh: number;
-  new_price_per_kWh: number;
-  yearly_loan_payment_details: IYearlyLoanPaymentDetails[];
+  loanStartDate: Date;
+  taxCreditPrepaymentAmount: number;
+  willingToPayThroughAch: boolean;
+  monthlyLoanPayment: number;
+  currentMonthlyAverageUtilityPayment: number;
+  monthlyUtilityPayment: number;
+  gridServicePayment: number;
+  netCustomerEnergySpend: number;
+  returnOnInvestment: number;
+  payBackPeriod: number;
+  currentPricePerKWh: number;
+  newPricePerKWh: number;
+  yearlyLoanPaymentDetails: IYearlyLoanPaymentDetails[];
 }
 
 export interface IMonthlyLeasePaymentDetails {
   month: number;
-  payment_amount: number;
+  paymentAmount: number;
   pv: number;
   es: number;
 }
 
 export interface IYearlyLeasePaymentDetails {
   year: number;
-  monthly_payment_details: IMonthlyLeasePaymentDetails[];
+  monthlyPaymentDetails: IMonthlyLeasePaymentDetails[];
 }
 
 export interface ILeaseProductAttributes {
-  upfront_payment: number;
-  lease_amount: number;
-  rate_escalator: number;
-  lease_term: number;
-  monthly_lease_payment: number;
-  current_monthly_average_utility_payment: number;
-  monthly_utility_payment: number;
-  monthly_energy_payment: number;
-  grid_service_payment: number;
-  net_customer_energy_spend: number;
-  current_price_per_kWh: number;
-  new_price_per_kWh: number;
-  yearly_lease_payment_details: IYearlyLeasePaymentDetails[];
-  rate_per_kWh: number;
+  upfrontPayment: number;
+  leaseAmount: number;
+  rateEscalator: number;
+  leaseTerm: number;
+  monthlyLeasePayment: number;
+  currentMonthlyAverageUtilityPayment: number;
+  monthlyUtilityPayment: number;
+  monthlyEnergyPayment: number;
+  gridServicePayment: number;
+  netCustomerEnergySpend: number;
+  currentPricePerKWh: number;
+  newPricePerKWh: number;
+  yearlyLeasePaymentDetails: IYearlyLeasePaymentDetails[];
+  ratePerKWh: number;
 }
 
 export interface IMilestonePayment {
@@ -171,23 +174,23 @@ export interface ICashQuoteConfigSnapshot {
 }
 
 export interface ICashProductAttributes {
-  upfront_payment: number;
+  upfrontPayment: number;
   balance: number;
-  milestone_payment: IMilestonePayment[];
-  cash_quote_config_snapshot: ICashQuoteConfigSnapshot;
-  cash_quote_config_snapshot_date: Date;
-  current_average_monthly_bill: number;
-  new_average_monthly_bill: number;
-  current_price_per_kWh: number;
-  new_price_per_kWh: number;
+  milestonePayment: IMilestonePayment[];
+  cashQuoteConfigSnapshot: ICashQuoteConfigSnapshot;
+  cashQuoteConfigSnapshotDate: Date;
+  currentAverageMonthlyBill: number;
+  newAverageMonthlyBill: number;
+  currentPricePerKWh: number;
+  newPricePerKWh: number;
 }
 
 export interface IFinanceProductSchema {
-  product_type: string;
-  funding_source_id: string;
-  funding_source_name: string;
-  product_attribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
-  financial_product_snapshot: FinancialProduct;
+  productType: string;
+  fundingSourceId: string;
+  fundingSourceName: string;
+  productAttribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
+  financialProductSnapshot: FinancialProduct;
 }
 
 const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
@@ -203,12 +206,12 @@ const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
 
 export interface IProjectDiscountDetailSchema {
   id: string;
-  discount_id: string;
+  discountId: string;
   name: string;
   amount: number;
   type: string;
-  start_date: Date;
-  end_date: Date;
+  startDate: Date;
+  endDate: Date;
 }
 
 const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSchema>>(
@@ -226,37 +229,37 @@ const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSc
 );
 
 export interface IFinancialProductDetails {
-  funding_source_id: string;
-  is_active: boolean;
+  fundingSourceId: string;
+  isActive: boolean;
   name: string;
-  fund_id: string;
-  allow_down_payment: boolean;
-  min_down_payment: number;
-  default_down_payment: number;
-  max_down_payment: number;
-  annual_degradation: number;
-  guaranteed_production: number;
-  min_margin: number;
-  max_margin: number;
-  min_system_kw: number;
-  max_system_kw: number;
-  min_battery_kwh: number;
-  max_battery_kwh: number;
-  min_productivity: number;
-  max_productivity: number;
-  allowed_states: string[];
-  interest_rate: number;
-  term_months: number;
-  dealer_fee: number;
+  fundId: string;
+  allowDownPayment: boolean;
+  minDownPayment: number;
+  defaultDownPayment: number;
+  maxDownPayment: number;
+  annualDegradation: number;
+  guaranteedProduction: number;
+  minMargin: number;
+  maxMargin: number;
+  minSystemKw: number;
+  maxSystemKw: number;
+  minBatteryKwh: number;
+  maxBatteryKwh: number;
+  minProductivity: number;
+  maxProductivity: number;
+  allowedStates: string[];
+  interestRate: number;
+  termMonths: number;
+  dealerFee: number;
 }
 
 export interface IQuoteFinanceProductSchema {
-  finance_product: IFinanceProductSchema;
-  net_amount: number;
-  incentive_details: IIncentiveDetailsSchema[];
-  rebate_details: IRebateDetailsSchema[];
-  project_discount_details: IProjectDiscountDetailSchema[];
-  financial_product_snapshot: IFinancialProductDetails;
+  financeProduct: IFinanceProductSchema;
+  netAmount: number;
+  incentiveDetails: IIncentiveDetailsSchema[];
+  rebateDetails: IRebateDetailsSchema[];
+  projectDiscountDetails: IProjectDiscountDetailSchema[];
+  financialProductSnapshot: IFinancialProductDetails;
 }
 
 const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema>>(
@@ -272,7 +275,7 @@ const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema
 
 export interface IUtilityProgramDataSnapshot {
   name: string;
-  rebate_amount: number;
+  rebateAmount: number;
 }
 
 const UtilityProgramDataSnapshot = new Schema<Document<IUtilityProgramDataSnapshot>>(
@@ -284,11 +287,11 @@ const UtilityProgramDataSnapshot = new Schema<Document<IUtilityProgramDataSnapsh
 );
 
 export interface IUtilityProgramSchema {
-  utility_program_id: string;
-  utility_program_name: string;
-  rebate_amount: number;
-  utility_program_data_snapshot: IUtilityProgramDataSnapshot;
-  utility_program_data_snapshot_date: Date;
+  utilityProgramId: string;
+  utilityProgramName: string;
+  rebateAmount: number;
+  utilityProgramDataSnapshot: IUtilityProgramDataSnapshot;
+  utilityProgramDataSnapshotDate: Date;
 }
 
 const UtilityProgramSchema = new Schema<Document<IUtilityProgramSchema>>(
@@ -304,11 +307,11 @@ const UtilityProgramSchema = new Schema<Document<IUtilityProgramSchema>>(
 
 export interface ISavingsDetailsSchema {
   year: number;
-  current_utility_bill: number;
-  new_utility_bill: number;
+  currentUtilityBill: number;
+  newUtilityBill: number;
   payment: number;
-  discount_and_incentives: number;
-  annual_saving: number;
+  discountAndIncentives: number;
+  annualSaving: number;
 }
 
 const SavingsDetailsSchema = new Schema<Document<ISavingsDetailsSchema>>(
@@ -325,16 +328,16 @@ const SavingsDetailsSchema = new Schema<Document<ISavingsDetailsSchema>>(
 
 export interface IQuoteCostCommonSchema {
   cost: number;
-  net_cost: number;
-  subcontractor_markup: number;
+  netCost: number;
+  subcontractorMarkup: number;
 }
 
 interface IQuotePartnerConfig {
   id: string;
-  solar_only_labor_fee_per_watt: number;
-  storage_retrofit_labor_fee_per_project: number;
-  solar_with_a_c_storage_labor_fee_per_project: number;
-  solar_with_d_c_storage_labor_fee_per_project: number;
+  solarOnlyLaborFeePerWatt: number;
+  storageRetrofitLaborFeePerProject: number;
+  solarWithACStorageLaborFeePerProject: number;
+  solarWithDCStorageLaborFeePerProject: number;
 }
 
 const QuotePartnerConfig = new Schema<Document<IQuotePartnerConfig>>(
@@ -349,9 +352,9 @@ const QuotePartnerConfig = new Schema<Document<IQuotePartnerConfig>>(
 );
 
 export interface ILaborCostSchema extends IQuoteCostCommonSchema {
-  labor_cost_data_snapshot: IQuotePartnerConfig;
-  labor_cost_snapshot_date: Date;
-  labor_cost_type: ELaborCostType;
+  laborCostDataSnapshot: IQuotePartnerConfig;
+  laborCostSnapshotDate: Date;
+  laborCostType: ELaborCostType;
 }
 
 const LaborCostSchema = new Schema<Document<ILaborCostSchema>>(
@@ -365,9 +368,9 @@ const LaborCostSchema = new Schema<Document<ILaborCostSchema>>(
 );
 
 export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
-  panel_model_id: string;
-  panel_model_data_snapshot: IPanelProductSchema;
-  panel_model_snapshot_date: Date;
+  panelModelId: string;
+  panelModelDataSnapshot: IPanelProductSchema;
+  panelModelSnapshotDate: Date;
   quantity: number;
 }
 
@@ -385,9 +388,9 @@ const PanelQuoteDetailsSchema = new Schema<Document<IPanelQuoteDetailsSchema>>(
 );
 
 export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
-  inverter_model_id: string;
-  inverter_model_data_snapshot: IInverterProductSchema;
-  inverter_model_snapshot_date: Date;
+  inverterModelId: string;
+  inverterModelDataSnapshot: IInverterProductSchema;
+  inverterModelSnapshotDate: Date;
   quantity: number;
 }
 
@@ -405,9 +408,9 @@ const InverterQuoteDetailsSchema = new Schema<Document<IInverterQuoteDetailsSche
 );
 
 export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
-  storage_model_id: string;
-  storage_model_data_snapshot: IStorageProductSchema;
-  storage_model_snapshot_date: Date;
+  storageModelId: string;
+  storageModelDataSnapshot: IStorageProductSchema;
+  storageModelSnapshotDate: Date;
   quantity: number;
 }
 
@@ -425,9 +428,9 @@ const StorageQuoteDetailsSchema = new Schema<Document<IStorageQuoteDetailsSchema
 );
 
 export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
-  adder_model_id: string;
-  adder_model_data_snapshot: IAdderModel;
-  adder_model_snapshot_date: Date;
+  adderModelId: string;
+  adderModelDataSnapshot: IAdderModel;
+  adderModelSnapshotDate: Date;
   quantity: number;
   unit: COST_UNIT_TYPE;
 }
@@ -447,9 +450,9 @@ const AdderQuoteDetailsSchema = new Schema<Document<IAdderQuoteDetailsSchema>>(
 );
 
 export interface IBalanceOfSystemDetailsSchema extends IQuoteCostCommonSchema {
-  balance_of_system_model_id: string;
-  balance_of_system_model_data_snapshot: IBalanceOfSystemProductSchema;
-  balance_of_system_model_data_snapshot_date: Date;
+  balanceOfSystemModelId: string;
+  balanceOfSystemModelDataSnapshot: IBalanceOfSystemProductSchema;
+  balanceOfSystemModelDataSnapshotDate: Date;
   unit: COST_UNIT_TYPE;
 }
 
@@ -467,9 +470,9 @@ const BalanceOfSystemDetailsSchema = new Schema<Document<IBalanceOfSystemDetails
 );
 
 export interface IAncillaryEquipmentSchema extends IQuoteCostCommonSchema {
-  ancillary_equipment_id: string;
-  ancillary_equipment_model_data_snapshot: IAncillaryEquipment;
-  ancillary_equipment_model_data_snapshot_date: Date;
+  ancillaryEquipmentId: string;
+  ancillaryEquipmentModelDataSnapshot: IAncillaryEquipment;
+  ancillaryEquipmentModelDataSnapshotDate: Date;
   quantity: number;
 }
 
@@ -487,16 +490,16 @@ const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>
 );
 
 export interface IQuoteCostBuildupSchema {
-  panel_quote_details: IPanelQuoteDetailsSchema[];
-  inverter_quote_details: IInverterQuoteDetailsSchema[];
-  storage_quote_details: IStorageQuoteDetailsSchema[];
-  adder_quote_details: IAdderQuoteDetailsSchema[];
-  balance_of_system_details: IBalanceOfSystemDetailsSchema[];
-  ancillary_equipment_details: IAncillaryEquipmentSchema[];
-  swell_standard_markup: number;
-  labor_cost: ILaborCostSchema;
-  gross_price: number;
-  total_net_cost: number;
+  panelQuoteDetails: IPanelQuoteDetailsSchema[];
+  inverterQuoteDetails: IInverterQuoteDetailsSchema[];
+  storageQuoteDetails: IStorageQuoteDetailsSchema[];
+  adderQuoteDetails: IAdderQuoteDetailsSchema[];
+  balanceOfSystemDetails: IBalanceOfSystemDetailsSchema[];
+  ancillaryEquipmentDetails: IAncillaryEquipmentSchema[];
+  swellStandardMarkup: number;
+  laborCost: ILaborCostSchema;
+  grossPrice: number;
+  totalNetCost: number;
 }
 
 const QuoteCostBuildupSchema = new Schema<Document<IQuoteCostBuildupSchema>>({
@@ -514,9 +517,9 @@ const QuoteCostBuildupSchema = new Schema<Document<IQuoteCostBuildupSchema>>({
 
 export interface ITaxCreditConfigDataSnapshotSchema {
   name: string;
-  tax_credit_percentage: number;
-  tax_credit_start_date: Date;
-  tax_credit_end_date: Date;
+  taxCreditPercentage: number;
+  taxCreditStartDate: Date;
+  taxCreditEndDate: Date;
 }
 
 const TaxCreditConfigDataSnapshotSchema = new Schema<Document<ITaxCreditConfigDataSnapshotSchema>>(
@@ -532,9 +535,9 @@ const TaxCreditConfigDataSnapshotSchema = new Schema<Document<ITaxCreditConfigDa
 export interface ITaxCreditDataSchema {
   name: string;
   percentage: number;
-  tax_credit_config_data_id: string;
-  tax_credit_config_data_snapshot: ITaxCreditConfigDataSnapshotSchema;
-  tax_credit_config_data_snapshot_date: Date;
+  taxCreditConfigDataId: string;
+  taxCreditConfigDataSnapshot: ITaxCreditConfigDataSnapshotSchema;
+  taxCreditConfigDataSnapshotDate: Date;
 }
 
 const TaxCreditDataSchema = new Schema<Document<ITaxCreditDataSchema>>(
@@ -549,8 +552,8 @@ const TaxCreditDataSchema = new Schema<Document<ITaxCreditDataSchema>>(
 );
 
 export interface IQuotePricePerWattSchema {
-  price_per_watt: number;
-  gross_price: number;
+  pricePerWatt: number;
+  grossPrice: number;
 }
 
 const QuotePricePerWattSchema = new Schema<Document<IQuotePricePerWattSchema>>(
@@ -562,7 +565,7 @@ const QuotePricePerWattSchema = new Schema<Document<IQuotePricePerWattSchema>>(
 );
 
 export interface IQuotePriceOverride {
-  gross_price: number;
+  grossPrice: number;
 }
 
 const QuotePriceOverride = new Schema<Document<IQuotePriceOverride>>(
@@ -575,31 +578,31 @@ const QuotePriceOverride = new Schema<Document<IQuotePriceOverride>>(
 export interface INote {
   id: string;
   text: string;
-  show_on_proposal: boolean;
-  show_on_contract: boolean;
-  is_approved: boolean;
-  approval_comment: string;
-  approved_by: string;
-  approved_at: Date | null;
+  showOnProposal: boolean;
+  showOnContract: boolean;
+  isApproved: boolean;
+  approvalComment: string;
+  approvedBy: string;
+  approvedAt: Date | null;
 }
 
 export interface IDetailedQuoteSchema {
-  system_production: ISystemProductionSchema;
-  utility_program: IUtilityProgramSchema;
-  quote_finance_product: IQuoteFinanceProductSchema;
-  savings_details: ISavingsDetailsSchema[];
-  quote_cost_buildup: IQuoteCostBuildupSchema;
-  quote_name: string;
-  is_selected: boolean;
-  is_solar: boolean;
-  is_retrofit: boolean;
-  tax_credit_data: ITaxCreditDataSchema[];
-  utility_program_selected_for_reinvestment: boolean;
-  tax_credit_selected_for_reinvestment: boolean;
-  allowed_quote_modes: QUOTE_MODE_TYPE[];
-  selected_quote_mode: QUOTE_MODE_TYPE;
-  quote_price_per_watt: IQuotePricePerWattSchema;
-  quote_price_override: IQuotePriceOverride;
+  systemProduction: ISystemProductionSchema;
+  utilityProgram: IUtilityProgramSchema;
+  quoteFinanceProduct: IQuoteFinanceProductSchema;
+  savingsDetails: ISavingsDetailsSchema[];
+  quoteCostBuildup: IQuoteCostBuildupSchema;
+  quoteName: string;
+  isSelected: boolean;
+  isSolar: boolean;
+  isRetrofit: boolean;
+  taxCreditData: ITaxCreditDataSchema[];
+  utilityProgramSelectedForReinvestment: boolean;
+  taxCreditSelectedForReinvestment: boolean;
+  allowedQuoteModes: QUOTE_MODE_TYPE[];
+  selectedQuoteMode: QUOTE_MODE_TYPE;
+  quotePricePerWatt: IQuotePricePerWattSchema;
+  quotePriceOverride: IQuotePriceOverride;
   notes: INote[];
 }
 
@@ -641,16 +644,16 @@ export const DetailedQuoteSchema = new Schema<Document<IDetailedQuoteSchema>>(
 );
 
 export interface Quote extends Document {
-  opportunity_id: string;
-  system_design_id: string;
-  quote_model_type: string;
-  detailed_quote: IDetailedQuoteSchema;
-  is_sync: boolean;
-  is_sync_messages: string[];
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  opportunityId: string;
+  systemDesignId: string;
+  quoteModelType: string;
+  detailedQuote: IDetailedQuoteSchema;
+  isSync: boolean;
+  isSyncMessages: string[];
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const QuoteSchema = new Schema<Quote>({
@@ -667,23 +670,23 @@ export const QuoteSchema = new Schema<Quote>({
 });
 
 export class QuoteModel {
-  opportunity_id: string;
+  opportunityId: string;
 
-  system_design_id: string;
+  systemDesignId: string;
 
-  quote_model_type: string;
+  quoteModelType: string;
 
-  detailed_quote: IDetailedQuoteSchema;
+  detailedQuote: IDetailedQuoteSchema;
 
-  is_sync: boolean;
+  isSync: boolean;
 
-  is_sync_messages: string[];
+  isSyncMessages: string[];
 
   constructor(data: CreateQuoteDto | UpdateQuoteDto, detailedQuote: any) {
-    this.opportunity_id = data.opportunityId;
-    this.system_design_id = data.systemDesignId;
-    this.quote_model_type = 'detailed';
-    this.detailed_quote = this.transformDetailedQuote(detailedQuote);
+    this.opportunityId = data.opportunityId;
+    this.systemDesignId = data.systemDesignId;
+    this.quoteModelType = 'detailed';
+    this.detailedQuote = this.transformDetailedQuote(detailedQuote);
   }
 
   transformDetailedQuote(data: any): IDetailedQuoteSchema {
@@ -699,18 +702,7 @@ export class QuoteModel {
         financialProductSnapshot,
       },
       savingsDetails,
-      quoteCostBuildup: {
-        panelQuoteDetails,
-        inverterQuoteDetails,
-        storageQuoteDetails,
-        adderQuoteDetails,
-        balanceOfSystemDetails,
-        ancillaryEquipmentDetails,
-        swellStandardMarkup,
-        laborCost,
-        grossPrice,
-        totalNetCost,
-      },
+      quoteCostBuildup,
       quoteName,
       isSelected,
       isSolar,
@@ -725,69 +717,54 @@ export class QuoteModel {
       notes,
     } = data;
     return {
-      system_production: systemProduction,
-      quote_name: quoteName,
-      is_selected: isSelected,
-      is_solar: isSolar,
-      is_retrofit: isRetrofit,
-      utility_program: toSnakeCase(utilityProgram),
-      quote_finance_product: {
-        incentive_details: incentiveDetails,
-        rebate_details: rebateDetails?.map(item => toSnakeCase(item)),
-        finance_product: toSnakeCase(financeProduct),
-        net_amount: netAmount,
-        project_discount_details: projectDiscountDetails.map(item => {
-          item.discount_id = item.id;
-          return toSnakeCase(item);
+      systemProduction,
+      quoteName,
+      isSelected,
+      isSolar,
+      isRetrofit,
+      utilityProgram,
+      quoteFinanceProduct: {
+        incentiveDetails: incentiveDetails.map(e => ({
+          ...e,
+          '@@keep': true,
+        })),
+        rebateDetails,
+        financeProduct,
+        netAmount,
+        projectDiscountDetails: projectDiscountDetails.map(item => {
+          item.discountId = item.id;
+          return item;
         }),
-        financial_product_snapshot: toSnakeCase(financialProductSnapshot),
+        financialProductSnapshot,
       },
-      savings_details: savingsDetails.map(item => toSnakeCase(item)),
-      quote_cost_buildup: {
-        panel_quote_details: panelQuoteDetails.map(panelQuote => toSnakeCase(panelQuote)),
-        inverter_quote_details: inverterQuoteDetails.map(inverterQuote => toSnakeCase(inverterQuote)),
-        storage_quote_details: storageQuoteDetails.map(storageQuote => toSnakeCase(storageQuote)),
-        adder_quote_details: adderQuoteDetails.map(adderQuote => toSnakeCase(adderQuote)),
-        balance_of_system_details: balanceOfSystemDetails.map(balanceOfSystemDetail =>
-          toSnakeCase(balanceOfSystemDetail),
-        ),
-        ancillary_equipment_details: ancillaryEquipmentDetails.map(item => toSnakeCase(item)),
-        swell_standard_markup: swellStandardMarkup,
-        labor_cost: toSnakeCase(laborCost),
-        gross_price: grossPrice,
-        total_net_cost: totalNetCost,
-      } as IQuoteCostBuildupSchema,
-      tax_credit_selected_for_reinvestment: taxCreditSelectedForReinvestment,
-      utility_program_selected_for_reinvestment: utilityProgramSelectedForReinvestment,
-      tax_credit_data: (taxCreditData || []).map(item => ({
-        tax_credit_config_data_id: item.id,
+      savingsDetails,
+      quoteCostBuildup,
+      taxCreditSelectedForReinvestment,
+      utilityProgramSelectedForReinvestment,
+      taxCreditData: (taxCreditData || []).map(item => ({
+        taxCreditConfigDataId: item.id,
         name: item.name,
         percentage: item.percentage,
-        tax_credit_config_data_snapshot: {
+        taxCreditConfigDataSnapshot: {
           name: item.name,
           percentage: item.percentage,
-          start_date: item.startDate,
-          end_date: item.endDate,
+          startDate: item.startDate,
+          endDate: item.endDate,
         },
-        tax_credit_config_data_snapshot_date: new Date(),
+        taxCreditConfigDataSnapshotDate: new Date(),
       })),
-      allowed_quote_modes: allowedQuoteModes,
-      selected_quote_mode: selectedQuoteMode,
-      quote_price_per_watt: {
-        price_per_watt: quotePricePerWatt?.pricePerWatt,
-        gross_price: quotePricePerWatt?.grossPrice,
-      },
-      quote_price_override: {
-        gross_price: quotePriceOverride?.grossPrice,
-      },
-      notes: notes.map(i => ({ ...(toSnakeCase(i) as any), approved_at: i.approvedAt })),
+      allowedQuoteModes,
+      selectedQuoteMode,
+      quotePricePerWatt,
+      quotePriceOverride,
+      notes,
     };
   }
 
   setIsSync(isSync: boolean): void {
-    this.is_sync = isSync;
-    if (this.is_sync) {
-      this.is_sync_messages = [];
+    this.isSync = isSync;
+    if (this.isSync) {
+      this.isSyncMessages = [];
     }
   }
 }

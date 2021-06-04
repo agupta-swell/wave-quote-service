@@ -1,10 +1,10 @@
 import { Document, Schema } from 'mongoose';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from './constants';
 
-export const QUALIFICATION_CREDIT = Symbol('QUALIFICATION_CREDIT').toString();
+export const QUALIFICATION_CREDIT = 'QUALIFICATION_CREDIT';
 
 export interface ICustomerNotification {
-  sent_on: Date;
+  sentOn: Date;
   email: string;
 }
 
@@ -17,7 +17,7 @@ export const CustomerNotificationSchema = new Schema<Document<ICustomerNotificat
 );
 
 export interface IEventHistory {
-  issue_date: Date;
+  issueDate: Date;
   by: string;
   detail: string;
 }
@@ -32,19 +32,19 @@ export const EventHistorySchema = new Schema<Document<IEventHistory>>(
 );
 
 export interface QualificationCredit extends Document {
-  opportunity_id: string;
-  started_on: Date;
-  process_status: PROCESS_STATUS;
-  customer_notifications: ICustomerNotification[];
-  event_histories: IEventHistory[];
-  vendor_id: VENDOR_ID;
-  approval_mode: APPROVAL_MODE;
-  approved_by: string;
-  qualification_status: QUALIFICATION_STATUS;
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  opportunityId: string;
+  startedOn: Date;
+  processStatus: PROCESS_STATUS;
+  customerNotifications: ICustomerNotification[];
+  eventHistories: IEventHistory[];
+  vendorId: VENDOR_ID;
+  approvalMode: APPROVAL_MODE;
+  approvedBy: string;
+  qualificationStatus: QUALIFICATION_STATUS;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const QualificationCreditSchema = new Schema<QualificationCredit>({

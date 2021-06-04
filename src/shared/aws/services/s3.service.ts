@@ -2,8 +2,10 @@ import { Stream, PassThrough } from 'stream';
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import * as mime from 'mime';
+import { ApplicationException } from 'src/app/app.exception';
 import { CredentialService } from './credential.service';
 import { IS3GetLocationFromUrlResult, IS3GetUrlOptions, IS3RootDir } from '../interfaces';
+
 @Injectable()
 export class S3Service {
   private S3: AWS.S3;
@@ -12,7 +14,7 @@ export class S3Service {
     this.S3 = new AWS.S3(this.credentialService.getCredentials());
   }
 
-  public getUrl(bucketName: string, fileName: string, opts: IS3GetUrlOptions = {}) {
+  public async getUrl(bucketName: string, fileName: string, opts: IS3GetUrlOptions = {}): Promise<string> {
     const { downloadable, expires, extName, responseContentType, rootDir } = opts;
     const fileNameWithExt = extName ? `${fileName}.${extName}` : fileName;
 
@@ -23,6 +25,12 @@ export class S3Service {
       if (parts.length > 1) extractedExt = parts[fileName.length - 1];
     }
     const filePath = this.buildObjectKey(fileName, fileNameWithExt, rootDir);
+
+    const fileExisted = await this.hasFile(bucketName, filePath);
+
+    if (!fileExisted) {
+      throw ApplicationException.NotFoundStatus('File', filePath);
+    }
 
     const attachment = downloadable ? `attachment; filename="${fileNameWithExt}"` : undefined;
 
@@ -44,7 +52,6 @@ export class S3Service {
 
     if (contentType) params.ResponseContentType = contentType;
 
-    // this.S3
     return this.S3.getSignedUrlPromise('getObject', params);
   }
 
@@ -111,8 +118,6 @@ export class S3Service {
         return resolve(data?.Location);
       });
     });
-
-    // return result?.Location;
   }
 
   public copySource(
@@ -180,7 +185,25 @@ export class S3Service {
         },
         (err, _) => {
           if (err) return reject(err);
-          resolve();
+          return resolve();
+        },
+      );
+    });
+  }
+
+  private hasFile(bucket: string, filePath: string): Promise<boolean> {
+    return new Promise((resolve, _) => {
+      this.S3.headObject(
+        {
+          Bucket: bucket,
+          Key: filePath,
+        },
+        (err, _) => {
+          if (err) {
+            return resolve(false);
+          }
+
+          return resolve(true);
         },
       );
     });

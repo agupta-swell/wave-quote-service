@@ -1,11 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceDto } from 'src/funding-sources/res/funding-source.dto';
+import { ExposeProp } from 'src/shared/decorators'
 import { UtilityProgramMasterDto } from 'src/utility-programs-master/res/utility-program-master.dto';
 import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
-import { toCamelCase } from '../../utils/transformProperties';
 import { UtilityMaster } from '../schemas/utility-master.schema';
 import { UtilityMasterResDto } from './sub-dto';
 
@@ -16,26 +15,20 @@ export interface IGetContractApplicabilityDataDto {
 }
 
 export class GetContractApplicabilityDataDto {
-  @ApiProperty({ type: FundingSourceDto, isArray: true })
+  @ExposeProp({ type: FundingSourceDto, isArray: true })
   applicableFundingSources: FundingSourceDto[];
 
-  @ApiProperty({ type: UtilityProgramMasterDto, isArray: true })
+  @ExposeProp({ type: UtilityProgramMasterDto, isArray: true })
   applicableUtilityPrograms: UtilityProgramMasterDto[];
 
-  @ApiProperty({ type: UtilityMasterResDto, isArray: true })
+  @ExposeProp({ type: UtilityMasterResDto, isArray: true })
   applicableUtilities: UtilityMasterResDto[];
-
-  constructor(props: IGetContractApplicabilityDataDto) {
-    this.applicableFundingSources = props.applicableFundingSources.map(item => toCamelCase(item));
-    this.applicableUtilityPrograms = props.applicableUtilityPrograms.map(item => toCamelCase(item));
-    this.applicableUtilities = props.applicableUtilities.map(item => toCamelCase(item));
-  }
 }
 
 export class GetContractApplicabilityDataRes implements ServiceResponse<GetContractApplicabilityDataDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetContractApplicabilityDataDto })
+  @ExposeProp({ type: GetContractApplicabilityDataDto })
   data: GetContractApplicabilityDataDto;
 }

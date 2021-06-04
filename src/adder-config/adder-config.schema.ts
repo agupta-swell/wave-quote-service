@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 
 export const ADDER_CONFIG = Symbol('AdderConfig').toString();
 
@@ -17,3 +18,5 @@ export const AdderConfigSchema = new Schema<AdderConfig>({
   increment: String,
   modifiedAt: { type: Date, default: Date.now },
 });
+
+MongooseNamingStrategy.ExcludeOne(AdderConfigSchema);

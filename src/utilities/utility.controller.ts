@@ -1,9 +1,11 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
-import { CalculateActualUsageCostDto, CreateUtilityDto, GetActualUsageDto } from './req';
+import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
 import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
 import { UtilityService } from './utility.service';
 
@@ -35,8 +37,11 @@ export class UtilityController {
   @Get('/tariffs')
   @ApiOperation({ summary: 'Get Tariff List' })
   @ApiOkResponse({ type: TariffDto, isArray: true })
-  async getTariff(@Query() query: { zipCode: string; lseId: string }): Promise<ServiceResponse<TariffDto>> {
-    const res = await this.utilityService.getTariffs(Number(query.zipCode), Number(query.lseId));
+  async getTariff(
+    @Query('zipCode', ParseIntPipe) zipCode: number,
+    @Query('lseId', ParseIntPipe) lseId: number,
+  ): Promise<ServiceResponse<TariffDto>> {
+    const res = await this.utilityService.getTariffs(zipCode, lseId);
     return ServiceResponse.fromResult(res);
   }
 
@@ -46,9 +51,10 @@ export class UtilityController {
   @ApiQuery({ name: 'masterTariffId', required: true })
   @ApiOkResponse({ type: CostDataDto })
   async calculateTypicalUsageCost(
-    @Query() query: { zipCode: string; masterTariffId: string },
+    @Query('zipCode', ParseIntPipe) zipCode: number,
+    @Query('masterTariffId') masterTariffId: string,
   ): Promise<ServiceResponse<CostDataDto>> {
-    const res = await this.utilityService.calculateTypicalUsageCost(Number(query.zipCode), query.masterTariffId);
+    const res = await this.utilityService.calculateTypicalUsageCost(zipCode, masterTariffId);
     return ServiceResponse.fromResult(res);
   }
 
@@ -72,7 +78,7 @@ export class UtilityController {
   @ApiOperation({ summary: 'Create A Utility Usage Detail' })
   @ApiOkResponse({ type: UtilityDetailsDto })
   @CheckOpportunity()
-  async createUtility(@Body() utility: CreateUtilityDto): Promise<ServiceResponse<UtilityDetailsDto>> {
+  async createUtility(@Body() utility: CreateUtilityReqDto): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.createUtilityUsageDetail(utility);
     return ServiceResponse.fromResult(res);
   }
@@ -82,8 +88,8 @@ export class UtilityController {
   @ApiOkResponse({ type: UtilityDetailsDto })
   @CheckOpportunity()
   async updateUtility(
-    @Param('utilityId') utilityId: string,
-    @Body() utilityDto: CreateUtilityDto,
+    @Param('utilityId', ParseObjectIdPipe) utilityId: ObjectId,
+    @Body() utilityDto: CreateUtilityReqDto,
   ): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.updateUtilityUsageDetail(utilityId, utilityDto);
     return ServiceResponse.fromResult(res);

@@ -1,35 +1,22 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { ServiceResponse } from '../../app/common';
-import { QualificationCredit } from '../qualification.schema';
 import { QualificationDto } from './qualification.dto';
 
-interface IProps {
-  status: boolean;
-  status_detail: string;
-}
-
 export class ManualApprovalDto {
-  @ApiProperty()
+  @ExposeProp()
   status: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   statusDetail: string;
 
-  @ApiProperty({ type: () => QualificationDto })
+  @ExposeAndMap({ type: QualificationDto }, ({ obj }) => obj.qualificationCredit)
   qualificationCreditData?: QualificationDto;
-
-  constructor(props: IProps, qualificationCredit?: LeanDocument<QualificationCredit>) {
-    this.status = props.status;
-    this.statusDetail = props.status_detail;
-    this.qualificationCreditData = qualificationCredit && new QualificationDto(qualificationCredit);
-  }
 }
 
 export class ManualApprovalRes implements ServiceResponse<ManualApprovalDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ManualApprovalDto })
+  @ExposeProp({ type: ManualApprovalDto })
   data: ManualApprovalDto;
 }

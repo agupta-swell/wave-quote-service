@@ -26,14 +26,14 @@ export const GenebilityTariffDataSchema = new Schema({
 });
 
 export interface GenebilityTariffDataDetail extends Document {
-  tariff_code: string;
-  master_tariff_id: string;
-  tariff_name: string;
+  tariffCode: string;
+  masterTariffId: string;
+  tariffName: string;
 }
 
 export interface GenebilityTeriffData extends Document {
-  zip_code: number;
-  lse_id: string;
-  lse_name: string;
-  tariff_details: GenebilityTariffDataDetail[];
+  zipCode: number;
+  lseId: string;
+  lseName: string;
+  tariffDetails: GenebilityTariffDataDetail[];
 }

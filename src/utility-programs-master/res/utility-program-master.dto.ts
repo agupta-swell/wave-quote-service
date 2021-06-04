@@ -1,47 +1,52 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { UtilityProgramMaster } from '../utility-program-master.schema';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class UtilityProgramMasterDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   rebateAmount: number;
 
-  @ApiProperty()
+  @ExposeProp()
+  gsaDisplayName: string;
+
+  @ExposeProp()
+  programManagerId: string;
+
+  @ExposeProp()
   utilityProgramName: string;
 
-  constructor(props: UtilityProgramMaster) {
-    this.id = props._id;
-    this.rebateAmount = props.rebate_amount;
-    this.utilityProgramName = props.utility_program_name;
-  }
+  @ExposeProp()
+  isActive: boolean;
+
+  @ExposeProp()
+  endDate: string;
 }
 
 class UtilityProgramMasterPaginationRes implements Pagination<UtilityProgramMasterDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: UtilityProgramMasterDto,
     isArray: true,
   })
   data: UtilityProgramMasterDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class UtilityProgramMasterListRes implements ServiceResponse<UtilityProgramMasterPaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: UtilityProgramMasterPaginationRes })
+  @ExposeProp({ type: UtilityProgramMasterPaginationRes })
   data: UtilityProgramMasterPaginationRes;
 }
 
 export class UtilityProgramMasterRes implements ServiceResponse<UtilityProgramMasterDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: UtilityProgramMasterDto })
+  @ExposeProp({ type: UtilityProgramMasterDto })
   data: UtilityProgramMasterDto;
 }

@@ -11,6 +11,7 @@ export class CashPaymentConfigService {
 
   async getFirst(): Promise<LeanDocument<CashPaymentConfig> | null> {
     const [product] = await this.cashPaymentConfig.find().lean();
+
     return product;
   }
 }

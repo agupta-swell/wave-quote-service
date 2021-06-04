@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from '../app/securities';
 import { FundingSource } from './funding-source.schema';
@@ -27,7 +27,7 @@ export class FundingSourceController {
   }
 
   @Get('/:fundingSourceId')
-  @ApiQuery({ name: 'fundingSourceId' })
+  @ApiParam({ name: 'fundingSourceId' })
   @ApiOperation({ summary: 'Get funding source by Id' })
   async getFundingSourceById(
     @Param('fundingSourceId') fundingSourceId: string,

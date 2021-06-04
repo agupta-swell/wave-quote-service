@@ -4,12 +4,12 @@ import { CALCULATION_TYPE, RATE_NAME_TYPE, SCENARIO_TYPE } from '../constants';
 export const SAVING_ENGINE_BILL = Symbol('SAVING_ENGINE_BILL').toString();
 
 export interface SavingEngineBill extends Document {
-  year_month: Date;
-  scenario_id: string;
+  yearMonth: Date;
+  scenarioId: string;
   cost: number;
-  calculation_type: CALCULATION_TYPE;
-  scenario_type: SCENARIO_TYPE;
-  rate_name_type: RATE_NAME_TYPE;
+  calculationType: CALCULATION_TYPE;
+  scenarioType: SCENARIO_TYPE;
+  rateNameType: RATE_NAME_TYPE;
 }
 
 export const SavingEngineBillSchema = new Schema<SavingEngineBill>({

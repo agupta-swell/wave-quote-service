@@ -3,21 +3,21 @@ import { Document, Schema } from 'mongoose';
 export const LEASE_SOLVER_CONFIG = Symbol('LEASE_SOLVER_CONFIG').toString();
 
 export interface LeaseSolverConfig extends Document {
-  is_solar: boolean;
-  is_retrofit: boolean;
-  utility_program_name: string;
-  contract_term: number;
-  storage_size: number;
-  solar_size_minimum: number;
-  solar_size_maximum: number;
-  adjusted_install_cost: number;
-  rate_factor: number;
-  productivity_min: number;
-  productivity_max: number;
-  rate_escalator: number;
-  rate_per_kWh: number;
-  storage_payment: number;
-  grid_services_discount: number;
+  isSolar: boolean;
+  isRetrofit: boolean;
+  utilityProgramName: string;
+  contractTerm: number;
+  storageSize: number;
+  solarSizeMinimum: number;
+  solarSizeMaximum: number;
+  adjustedInstallCost: number;
+  rateFactor: number;
+  productivityMin: number;
+  productivityMax: number;
+  rateEscalator: number;
+  ratePerKWh: number;
+  storagePayment: number;
+  gridServicesDiscount: number;
 }
 
 export const LeaseSolverConfigSchema = new Schema<LeaseSolverConfig>({

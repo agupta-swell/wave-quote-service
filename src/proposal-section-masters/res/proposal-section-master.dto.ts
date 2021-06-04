@@ -1,56 +1,46 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { ProposalSectionMaster } from '../proposal-section-master.schema';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class ProposalSectionMasterDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   applicableFinancialProducts: string[];
 
-  @ApiProperty()
+  @ExposeProp()
   applicableProducts: string[];
 
-  @ApiProperty()
+  @ExposeProp()
   componentName: string;
-
-  constructor(props: LeanDocument<ProposalSectionMaster>) {
-    this.id = props._id;
-    this.name = props.name;
-    this.applicableFinancialProducts = props.applicable_financial_products;
-    this.applicableProducts = props.applicable_products;
-    this.componentName = props.component_name;
-  }
 }
 
 class ProposalSectionMasterPaginationRes implements Pagination<ProposalSectionMasterDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: ProposalSectionMasterDto,
     isArray: true,
   })
   data: ProposalSectionMasterDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class ProposalSectionMasterListRes implements ServiceResponse<ProposalSectionMasterPaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ProposalSectionMasterPaginationRes })
+  @ExposeProp({ type: ProposalSectionMasterPaginationRes })
   data: ProposalSectionMasterPaginationRes;
 }
 
 export class ProposalSectionMasterRes implements ServiceResponse<ProposalSectionMasterDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ProposalSectionMasterDto })
+  @ExposeProp({ type: ProposalSectionMasterDto })
   data: ProposalSectionMasterDto;
 }

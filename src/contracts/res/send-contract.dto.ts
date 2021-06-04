@@ -1,30 +1,22 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
-import { Contract } from '../contract.schema';
+import { ExposeProp } from 'src/shared/decorators';
 import { ContractResDto } from './sub-dto';
 
 export class SendContractDto {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty()
+  @ExposeProp()
   statusDescription: string;
 
-  @ApiProperty({ type: ContractResDto })
+  @ExposeProp({ type: ContractResDto })
   newlyUpdatedContract: ContractResDto | null;
-
-  constructor(status: string, statusDescription: string, contract: LeanDocument<Contract> | null) {
-    this.status = status;
-    this.statusDescription = statusDescription;
-    this.newlyUpdatedContract = contract && new ContractResDto(contract);
-  }
 }
 
 export class SendContractRes implements ServiceResponse<SendContractDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: SendContractDto })
+  @ExposeProp({ type: SendContractDto })
   data: SendContractDto;
 }

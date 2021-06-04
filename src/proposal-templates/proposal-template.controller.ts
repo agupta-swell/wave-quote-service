@@ -1,6 +1,9 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { isValidObjectId, ObjectId } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ProposalTemplateService } from './proposal-template.service';
 import { CreateProposalTemplateDto } from './req/create-proposal-template.dto';
@@ -28,7 +31,7 @@ export class ProposalTemplateController {
   @ApiOperation({ summary: 'Update Proposal Template' })
   @ApiOkResponse({ type: ProposalTemplateRes })
   async updateProposalTemplate(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
     @Body()
     proposalTemplateDto: UpdateProposalTemplateDto,
   ): Promise<ServiceResponse<ProposalTemplateDto>> {
@@ -45,6 +48,11 @@ export class ProposalTemplateController {
   async getList(
     @Query() query: { limit: string; skip: string; quoteId?: string },
   ): Promise<ServiceResponse<Pagination<ProposalTemplateDto>>> {
+    if (query.quoteId) {
+      if (!isValidObjectId(query.quoteId)) {
+        throw ApplicationException.ValidationFailed('Must be a valid Mongo ObjectID String');
+      }
+    }
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
     const res = await this.proposalTemplateService.getList(limit, skip, query.quoteId);

@@ -1,111 +1,86 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { Product } from '../product.schema';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class ProductDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   manufacturerId: string;
 
-  @ApiProperty()
+  @ExposeProp()
+  manufacturer: string;
+
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   type: string;
 
-  @ApiProperty()
+  @ExposeProp()
   price: number;
 
-  @ApiProperty()
+  @ExposeProp()
   sizeW: number;
 
-  @ApiProperty()
+  @ExposeProp()
   sizekWh: number;
 
-  @ApiProperty()
+  @ExposeProp()
   partNumber: string[];
 
-  @ApiProperty()
+  @ExposeProp()
   dimension: {
     length: number;
     width: number;
   };
 
-  // @ApiProperty()
+  // @ExposeProp()
   // modelName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   approvedForGsa: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   approvedForEsa: boolean;
 
-  @ApiPropertyOptional()
+  @ExposeProp({ required: false })
   pvWattModuleType: string;
 
-  @ApiPropertyOptional()
+  @ExposeProp({ required: false })
   panelOutputMode: string;
 
-  @ApiPropertyOptional()
+  @ExposeProp({ required: false })
   wattClassStcdc: number;
 
-  @ApiPropertyOptional()
+  @ExposeProp({ required: false })
   inverterType: string;
 
-  @ApiPropertyOptional()
+  @ExposeProp({ required: false })
   batteryType: string;
 
-  @ApiPropertyOptional()
+  @ExposeProp({ required: false })
   relatedComponent: string;
 
-  @ApiPropertyOptional()
+  @ExposeProp({ required: false })
   insertionRule: string | undefined;
-
-  constructor(props: LeanDocument<Product>) {
-    this.id = props._id;
-    this.manufacturerId = props.manufacturer_id;
-    this.name = props.name;
-    this.type = props.type;
-    this.price = props.price;
-    this.sizeW = props.sizeW;
-    this.sizekWh = props.sizekWh;
-    this.partNumber = props.partNumber;
-    this.dimension = props.dimension;
-    // this.modelName = props.model_name;
-    this.approvedForGsa = props.approved_for_gsa;
-    this.approvedForEsa = props.approved_for_esa;
-    // For Panel
-    this.pvWattModuleType = props.pv_watt_module_type;
-    this.panelOutputMode = props.panel_output_mode;
-    this.wattClassStcdc = props.watt_class_stcdc;
-    // For Inverter
-    this.inverterType = props.inverter_type;
-    // For Storage/Battery
-    this.batteryType = props.battery_type;
-    // For Balance of System
-    this.relatedComponent = props.related_component;
-    this.insertionRule = props.insertion_rule || undefined;
-  }
 }
 
 class ProductPaginationRes implements Pagination<ProductDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: ProductDto,
     isArray: true,
   })
   data: ProductDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class ProductResponse implements ServiceResponse<ProductPaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ProductPaginationRes })
+  @ExposeProp({ type: ProductPaginationRes })
   data: ProductPaginationRes;
 }

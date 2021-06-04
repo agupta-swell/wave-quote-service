@@ -8,6 +8,7 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ProductService } from '../products/product.service';
 import { CALCULATION_MODE } from '../utilities/constants';
@@ -30,6 +31,7 @@ export class SystemDesignService {
   private SYSTEM_DESIGN_S3_BUCKET = process.env.AWS_S3_BUCKET as string;
 
   constructor(
+    // @ts-ignore
     @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
     @InjectModel(SYSTEM_DESIGN_ANCILLARY_MASTER)
     private readonly ancillaryMasterModel: Model<SystemDesignAncillaryMaster>,
@@ -79,21 +81,21 @@ export class SystemDesignService {
       },
     });
 
-    if (systemDesign.design_mode === DESIGN_MODE.ROOF_TOP) {
+    if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
       const [thumbnail] = await Promise.all(
         flatten([
           this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
-          systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
-            item.array_id = Types.ObjectId();
+          systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
+            item.arrayId = Types.ObjectId();
             const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
-            item.panel_model_id = panelModelId;
+            item.panelModelId = panelModelId;
             const panelModelData = await this.productService.getDetailById(panelModelId);
-            const data = { ...panelModelData, part_number: panelModelData?.partNumber } as any;
+            const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
             systemDesign.setPanelModelDataSnapshot(data, index);
-            const capacity = (item.number_of_panels * (panelModelData?.sizeW ?? 0)) / 1000;
+            const capacity = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
             const acAnnual = await this.systemProductService.pvWatCalculation({
               lat: systemDesign.latitude,
               lon: systemDesign.longtitude,
@@ -105,37 +107,35 @@ export class SystemDesignService {
             cumulativeGenerationKWh += acAnnual;
             cumulativeCapacityKW += capacity;
           }),
-          systemDesign.roof_top_design_data.adders.map(async (item, index) => {
-            const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
+          systemDesign.roofTopDesignData.adders.map(async (item, index) => {
+            const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
             systemDesign.setAdder(
-              { ...adder, modified_at: adder?.modifiedAt } as any,
+              { ...adder, modifiedAt: adder?.modifiedAt } as any,
               this.convertIncrementAdder((adder as any)?.increment as string),
               index,
             );
           }),
-          systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
-            const inverterModelData = await this.productService.getDetailById(inverter.inverter_model_id);
-            const data = { ...inverterModelData, part_number: inverterModelData?.partNumber } as any;
+          systemDesign.roofTopDesignData.inverters.map(async (inverter, index) => {
+            const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
+            const data = { ...inverterModelData, partNumber: inverterModelData?.partNumber } as any;
             systemDesign.setInverter(data, index);
           }),
-          systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
-            const storageModelData = await this.productService.getDetailById(storage.storage_model_id);
-            const data = { ...storageModelData, part_number: storageModelData?.partNumber } as any;
+          systemDesign.roofTopDesignData.storage.map(async (storage, index) => {
+            const storageModelData = await this.productService.getDetailById(storage.storageModelId);
+            const data = { ...storageModelData, partNumber: storageModelData?.partNumber } as any;
             systemDesign.setStorage(data, index);
           }),
-          systemDesign.roof_top_design_data.balance_of_systems.map(async (balanceOfSystem, index) => {
-            const balanceOfSystemModelData = await this.productService.getDetailById(
-              balanceOfSystem.balance_of_system_id,
-            );
+          systemDesign.roofTopDesignData.balanceOfSystems.map(async (balanceOfSystem, index) => {
+            const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
             const data = {
               ...balanceOfSystemModelData,
-              part_number: balanceOfSystemModelData?.partNumber,
+              partNumber: balanceOfSystemModelData?.partNumber,
             } as any;
             systemDesign.setBalanceOfSystem(data, index);
           }),
-          systemDesign.roof_top_design_data.ancillary_equipments.map(async (ancillary, index) => {
-            const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillary_id).lean();
-            const data = { ...ancillaryModelData, ancillary_id: ancillary.ancillary_id } as any;
+          systemDesign.roofTopDesignData.ancillaryEquipments.map(async (ancillary, index) => {
+            const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
+            const data = { ...ancillaryModelData, ancillaryId: ancillary.ancillaryId } as any;
             systemDesign.setAncillaryEquipment(data, index);
           }),
         ]),
@@ -144,29 +144,29 @@ export class SystemDesignService {
       systemDesign.setThumbnail(thumbnail);
       // systemDesign.setIsSelected(systemDesignDto.isSelected);
 
-      const annualUsageKWh = utilityAndUsage?.utility_data.actual_usage?.annual_consumption || 0;
+      const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
         generationKWh: cumulativeGenerationKWh,
         productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
-        annual_usageKWh: annualUsageKWh,
-        offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+        annualUsageKWh,
+        offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
       });
     }
 
     const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-      (utilityAndUsage?.utility_data?.actual_usage?.hourly_usage || []).map(item => item.v),
+      (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
       systemProductionArray.hourly,
     );
 
     const costPostInstallation = await this.utilityService.calculateCost(
-      netUsagePostInstallation.hourly_net_usage,
-      utilityAndUsage?.cost_data?.master_tariff_id || '',
+      netUsagePostInstallation.hourlyNetUsage,
+      utilityAndUsage?.costData?.masterTariffId || '',
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
-      utilityAndUsage?.utility_data?.typical_baseline_usage?.zip_code,
+      utilityAndUsage?.utilityData?.typicalBaselineUsage?.zipCode,
     );
 
     systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
@@ -175,7 +175,7 @@ export class SystemDesignService {
     const createdSystemDesign = new this.systemDesignModel(systemDesign);
     await createdSystemDesign.save();
 
-    return OperationResult.ok(new SystemDesignDto(createdSystemDesign.toObject()));
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, createdSystemDesign.toJSON()));
   }
 
   async calculateSystemDesign<AuxCalculateResult>(
@@ -197,14 +197,14 @@ export class SystemDesignService {
       ]);
 
       const handlers = [
-        systemDesign.roof_top_design_data.panel_array.map(async (item, index) => {
-          item.array_id = Types.ObjectId();
+        systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
+          item.arrayId = Types.ObjectId();
           const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
-          item.panel_model_id = panelModelId;
+          item.panelModelId = panelModelId;
           const panelModelData = await this.productService.getDetailById(panelModelId);
           const data = { ...panelModelData, part_number: panelModelData?.partNumber } as any;
           systemDesign.setPanelModelDataSnapshot(data, index);
-          const capacity = (item.number_of_panels * (panelModelData?.sizeW ?? 0)) / 1000;
+          const capacity = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
           const acAnnual = await this.systemProductService.pvWatCalculation({
             lat: systemDesign.latitude,
             lon: systemDesign.longtitude,
@@ -216,36 +216,34 @@ export class SystemDesignService {
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
         }),
-        systemDesign.roof_top_design_data.adders.map(async (item, index) => {
-          const adder = await this.adderConfigService.getAdderConfigDetail(item.adder_id);
+        systemDesign.roofTopDesignData.adders.map(async (item, index) => {
+          const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
           systemDesign.setAdder(
             { ...adder, modified_at: adder?.modifiedAt } as any,
             this.convertIncrementAdder((adder as any)?.increment as string),
             index,
           );
         }),
-        systemDesign.roof_top_design_data.inverters.map(async (inverter, index) => {
-          const inverterModelData = await this.productService.getDetailById(inverter.inverter_model_id);
+        systemDesign.roofTopDesignData.inverters.map(async (inverter, index) => {
+          const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
           const data = { ...inverterModelData, part_number: inverterModelData?.partNumber } as any;
           systemDesign.setInverter(data, index);
         }),
-        systemDesign.roof_top_design_data.storage.map(async (storage, index) => {
-          const storageModelData = await this.productService.getDetailById(storage.storage_model_id);
+        systemDesign.roofTopDesignData.storage.map(async (storage, index) => {
+          const storageModelData = await this.productService.getDetailById(storage.storageModelId);
           const data = { ...storageModelData, part_number: storageModelData?.partNumber } as any;
           systemDesign.setStorage(data, index);
         }),
-        systemDesign.roof_top_design_data.balance_of_systems.map(async (balanceOfSystem, index) => {
-          const balanceOfSystemModelData = await this.productService.getDetailById(
-            balanceOfSystem.balance_of_system_id,
-          );
+        systemDesign.roofTopDesignData.balanceOfSystems.map(async (balanceOfSystem, index) => {
+          const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
           const data = {
             ...balanceOfSystemModelData,
-            part_number: balanceOfSystemModelData?.partNumber,
+            partNumber: balanceOfSystemModelData?.partNumber,
           } as any;
           systemDesign.setBalanceOfSystem(data, index);
         }),
-        systemDesign.roof_top_design_data.ancillary_equipments.map(async (ancillary, index) => {
-          const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillary_id).lean();
+        systemDesign.roofTopDesignData.ancillaryEquipments.map(async (ancillary, index) => {
+          const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
           systemDesign.setAncillaryEquipment(ancillaryModelData as any, index);
         }),
       ];
@@ -260,28 +258,28 @@ export class SystemDesignService {
         postExtendCalculate(result as any);
       }
 
-      const annualUsageKWh = utilityAndUsage?.utility_data.actual_usage?.annual_consumption || 0;
+      const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
         generationKWh: cumulativeGenerationKWh,
         productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
-        annual_usageKWh: annualUsageKWh,
-        offset_percentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+        annualUsageKWh,
+        offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-        (utilityAndUsage?.utility_data?.actual_usage?.hourly_usage || []).map(item => item.v),
+        (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
         systemProductionArray.hourly,
       );
 
       const costPostInstallation = await this.utilityService.calculateCost(
-        netUsagePostInstallation.hourly_net_usage,
-        utilityAndUsage?.cost_data?.master_tariff_id || '',
+        netUsagePostInstallation.hourlyNetUsage,
+        utilityAndUsage?.costData?.masterTariffId || '',
         CALCULATION_MODE.TYPICAL,
         new Date().getFullYear(),
-        utilityAndUsage?.utility_data?.typical_baseline_usage?.zip_code,
+        utilityAndUsage?.utilityData?.typicalBaselineUsage?.zipCode,
       );
 
       systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
@@ -296,7 +294,7 @@ export class SystemDesignService {
     return undefined;
   }
 
-  async update(id: string, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
+  async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (
       systemDesignDto.roofTopDesignData &&
       !systemDesignDto.roofTopDesignData.panelArray.length &&
@@ -309,7 +307,7 @@ export class SystemDesignService {
     const foundSystemDesign = await this.systemDesignModel.findById(id);
 
     if (!foundSystemDesign) {
-      throw ApplicationException.EntityNotFound(id);
+      throw ApplicationException.EntityNotFound(id.toString());
     }
 
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
@@ -365,7 +363,9 @@ export class SystemDesignService {
       systemDesignDto.designMode && this.quoteService.setOutdatedData(systemDesignDto.opportunityId, 'System Design'),
     ]);
 
-    return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...removedUndefined } as any));
+    return OperationResult.ok(
+      strictPlainToClass(SystemDesignDto, { ...foundSystemDesign.toJSON(), ...removedUndefined }),
+    );
   }
 
   async recalculateSystemDesign(
@@ -390,7 +390,12 @@ export class SystemDesignService {
 
       const result = await this.calculateSystemDesign(systemDesign, systemDesignDto);
 
-      return OperationResult.ok(new SystemDesignDto({ ...foundSystemDesign.toObject(), ...result } as any));
+      return OperationResult.ok(
+        strictPlainToClass(SystemDesignDto, {
+          ...foundSystemDesign.toJSON(),
+          ...result,
+        }),
+      );
     }
 
     if (
@@ -406,7 +411,7 @@ export class SystemDesignService {
 
     const result = await this.calculateSystemDesign(systemDesign, systemDesignDto);
 
-    return OperationResult.ok(new SystemDesignDto(result as any));
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, result!));
   }
 
   async getInverterClippingDetails(
@@ -424,10 +429,13 @@ export class SystemDesignService {
       inverter => inverter.numberOfInverters * inverter.inverterRating,
     );
 
-    const response = new GetInverterClippingDetailResDto(req.panelAndInverterDetail, {
-      totalSTCProductionInWatt: totalPvSTCRating,
-      totalInverterCapacityInWatt: totalInverterRating,
-      recommendationDetail: {} as any,
+    const response = strictPlainToClass(GetInverterClippingDetailResDto, {
+      panelAndInverterDetail: req.panelAndInverterDetail,
+      clippingDetails: {
+        totalSTCProductionInWatt: totalPvSTCRating,
+        totalInverterCapacityInWatt: totalInverterRating,
+        recommendationDetail: {} as any,
+      },
     });
 
     if (partnerConfigData.defaultDCClipping === null || !partnerConfigData.enableModuleDCClipping) {
@@ -465,10 +473,10 @@ export class SystemDesignService {
     return OperationResult.ok(response);
   }
 
-  async delete(id: string, opportunityId: string): Promise<OperationResult<string>> {
-    const systemDesign = await this.systemDesignModel.findOne({ _id: id, opportunity_id: opportunityId });
+  async delete(id: ObjectId, opportunityId: string): Promise<OperationResult<string>> {
+    const systemDesign = await this.systemDesignModel.findOne({ _id: id, opportunityId });
     if (!systemDesign) {
-      throw ApplicationException.EntityNotFound(id);
+      throw ApplicationException.EntityNotFound(id.toString());
     }
     await systemDesign.deleteOne();
     return OperationResult.ok('Deleted Successfully');
@@ -480,50 +488,51 @@ export class SystemDesignService {
     opportunityId: string,
   ): Promise<OperationResult<Pagination<SystemDesignDto>>> {
     const [systemDesigns, count] = await Promise.all([
-      this.systemDesignModel.find({ opportunity_id: opportunityId }).limit(limit).skip(skip).lean(),
-      this.systemDesignModel.countDocuments({ opportunity_id: opportunityId }).lean(),
+      this.systemDesignModel.find({ opportunityId }).limit(limit).skip(skip).lean(),
+      this.systemDesignModel.countDocuments({ opportunityId }).lean(),
     ]);
+
     return OperationResult.ok(
-      new Pagination({ data: systemDesigns.map(item => new SystemDesignDto(item)), total: count }),
+      new Pagination({ data: strictPlainToClass(SystemDesignDto, systemDesigns), total: count }),
     );
   }
 
-  async getDetails(id: string): Promise<OperationResult<SystemDesignDto>> {
-    const foundSystemDesign = await this.systemDesignModel.findById(id).lean();
+  async getDetails(id: ObjectId): Promise<OperationResult<SystemDesignDto>> {
+    const foundSystemDesign = await this.systemDesignModel.findOne({ _id: id }).lean();
     if (!foundSystemDesign) {
-      throw ApplicationException.EntityNotFound(id);
+      throw ApplicationException.EntityNotFound(id.toString());
     }
-    return OperationResult.ok(new SystemDesignDto(foundSystemDesign));
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign as any));
   }
 
   async getAncillaryList(): Promise<OperationResult<Pagination<SystemDesignAncillaryMasterDto>>> {
     const res = await this.ancillaryMasterModel.find().lean();
     return OperationResult.ok(
-      new Pagination({ data: res.map(item => new SystemDesignAncillaryMasterDto(item)), total: res.length }),
+      new Pagination({ data: strictPlainToClass(SystemDesignAncillaryMasterDto, res), total: res.length }),
     );
   }
 
   async updateAncillaryMaster(
-    id: string,
+    id: ObjectId,
     req: UpdateAncillaryMasterDtoReq,
   ): Promise<OperationResult<SystemDesignAncillaryMasterDto>> {
     const updatedModel = await this.ancillaryMasterModel
-      .findByIdAndUpdate(id, { insertion_rule: req.insertionRule }, { new: true })
+      .findByIdAndUpdate(id, { insertionRule: req.insertionRule }, { new: true })
       .lean();
 
-    return OperationResult.ok(new SystemDesignAncillaryMasterDto(updatedModel || ({} as any)));
+    return OperationResult.ok(strictPlainToClass(SystemDesignAncillaryMasterDto, updatedModel));
   }
 
   //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-
 
-  async getOneById(id: string): Promise<LeanDocument<SystemDesign> | null> {
+  async getOneById(id: string | ObjectId): Promise<LeanDocument<SystemDesign> | null> {
     const systemDesign = await this.systemDesignModel.findById(id).lean();
     return systemDesign;
   }
 
   async getRoofTopDesignById(id: string): Promise<IRoofTopSchema | undefined> {
     const systemDesign = await this.systemDesignModel.findById(id).lean();
-    return systemDesign?.roof_top_design_data;
+    return systemDesign?.roofTopDesignData;
   }
 
   async updateListSystemDesign(opportunityId: string, annualUsageKWh: number): Promise<boolean> {
@@ -531,9 +540,9 @@ export class SystemDesignService {
     try {
       await Promise.all(
         systemDesigns.map(item => {
-          item.system_production_data.annual_usageKWh = annualUsageKWh;
-          item.system_production_data.offset_percentage =
-            annualUsageKWh > 0 ? item.system_production_data.generationKWh / annualUsageKWh : 0;
+          item.systemProductionData.annualUsageKWh = annualUsageKWh;
+          item.systemProductionData.offsetPercentage =
+            annualUsageKWh > 0 ? item.systemProductionData.generationKWh / annualUsageKWh : 0;
           return item.updateOne(item.toObject());
         }),
       );
@@ -545,7 +554,7 @@ export class SystemDesignService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    const counter = await this.systemDesignModel.countDocuments({ opportunity_id: opportunityId }).lean();
+    const counter = await this.systemDesignModel.countDocuments({ opportunityId }).lean();
     return counter;
   }
 

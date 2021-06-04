@@ -5538,6 +5538,11 @@ mongoose-legacy-pluralize@1.0.2:
   resolved "https://registry.yarnpkg.com/mongoose-legacy-pluralize/-/mongoose-legacy-pluralize-1.0.2.tgz#3ba9f91fa507b5186d399fb40854bff18fb563e4"
   integrity sha512-Yo/7qQU4/EyIS8YDFSeenIvXxZN+ld7YdV9LqFVQJzTLye8unujAWPZ4NWKfFA+RNjh+wvTWKY9Z3E5XM6ZZiQ==
 
+mongoose-schema-mapper@0.0.4-b:
+  version "0.0.4-b"
+  resolved "https://registry.yarnpkg.com/mongoose-schema-mapper/-/mongoose-schema-mapper-0.0.4-b.tgz#f81dcb2d2e9f84f2062b7452b36f29c2c4a7ea10"
+  integrity sha512-5G5jYQQdC2f4G0G/3CrvuqPwI6KjJPBb6uuSt3Cfc0ZQMqWSUZKj+MtEI/ZyjID6DXLAMpXjv4hqKf/Cw/3uMQ==
+
 mongoose@~5.12.3:
   version "5.12.3"
   resolved "https://registry.yarnpkg.com/mongoose/-/mongoose-5.12.3.tgz#e48b4cfd898bd779f6a776fc0e232bf790ac4c1a"
