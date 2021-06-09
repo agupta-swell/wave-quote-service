@@ -2,11 +2,13 @@ import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
+import { ContractResDto } from 'src/contracts/res/sub-dto';
 import { OpportunityService } from './opportunity.service';
 import { UpdateOpportunityUtilityProgramDto } from './req/update-opportunity-utility-program.dto';
 import { UpdateOpportunityRebateProgramDto } from './req/update-opportunity-rebate-program.dto'
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto, GetRelatedInformationRes } from './res/get-related-information.dto';
+import { QuoteDetailResDto } from './res/quote-detail.dto';
 
 @ApiTags('Opportunity')
 @ApiBearerAuth()
@@ -57,6 +59,22 @@ export class OpportunityController {
   ): Promise<ServiceResponse<GetFinancialSelectionsDto>> {
     const res = await this.opportunityService.getFinancialSelections(oppId);
 
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/:opportunityId/contract')
+  @ApiOperation({ summary: 'Get latest primary contract' })
+  @ApiOkResponse({ type: ContractResDto })
+  async getLatestPrimaryContract(@Param('opportunityId') oppId: string): Promise<ServiceResponse<ContractResDto>> {
+    const res = await this.opportunityService.getLatestPrimaryContract(oppId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/:opportunityId/quote')
+  @ApiOperation({ summary: 'Get quote of latest contract' })
+  @ApiOkResponse({ type: QuoteDetailResDto })
+  async getQuote(@Param('opportunityId') oppId: string): Promise<ServiceResponse<QuoteDetailResDto>> {
+    const res = await this.opportunityService.getQuoteDetail(oppId);
     return ServiceResponse.fromResult(res);
   }
 }

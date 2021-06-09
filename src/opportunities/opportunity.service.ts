@@ -4,6 +4,8 @@ import { LeanDocument, Model, UpdateQuery } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
+import { ContractService } from 'src/contracts/contract.service';
+import { ContractResDto } from 'src/contracts/res/sub-dto';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FinancierService } from 'src/financier/financier.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -12,6 +14,7 @@ import { QuoteService } from 'src/quotes/quote.service';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
+import { QuoteDetailResDto } from './res/quote-detail.dto';
 import { UpdateOpportunityRebateProgramDto as UpdateOpportunityRebateProgramDtoRes } from './res/update-opportunity-rebate-program.dto';
 import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } from './res/update-opportunity-utility-program.dto';
 
@@ -27,6 +30,8 @@ export class OpportunityService {
     private readonly financierService: FinancierService,
     private readonly financialProductsService: FinancialProductsService,
     private readonly fundingSourceService: FundingSourceService,
+    @Inject(forwardRef(() => ContractService))
+    private readonly contractService: ContractService,
   ) {}
 
   async getRelatedInformation(opportunityId: string): Promise<OperationResult<GetRelatedInformationDto>> {
@@ -165,5 +170,18 @@ export class OpportunityService {
   ): Promise<LeanDocument<Opportunity> | null> {
     const res = await this.opportunityModel.findByIdAndUpdate(opportunityId, updateQuery, { new: true }).lean();
     return res;
+  }
+
+  async getLatestPrimaryContract(opportunityId: string): Promise<OperationResult<ContractResDto>> {
+    const contract = await this.contractService.getLatestPrimaryContractByOpportunity(opportunityId);
+
+    return OperationResult.ok(contract);
+  }
+
+  async getQuoteDetail(opportunityId: string): Promise<OperationResult<QuoteDetailResDto>> {
+    const contract = await this.contractService.getLatestPrimaryContractByOpportunity(opportunityId);
+    const quoteDetail = await this.quoteService.getOneById(contract.associatedQuoteId);
+
+    return OperationResult.ok(new QuoteDetailResDto(quoteDetail));
   }
 }

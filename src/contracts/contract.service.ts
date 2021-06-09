@@ -32,11 +32,13 @@ import {
   SendContractDto,
 } from './res';
 import { GetDocusignCommunicationDetailsDto } from './res/get-docusign-communication-details.dto';
+import { ContractResDto } from './res/sub-dto';
 
 @Injectable()
 export class ContractService {
   constructor(
     @InjectModel(CONTRACT) private readonly contractModel: Model<Contract>,
+    @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly quoteService: QuoteService,
     private readonly utilityService: UtilityService,
@@ -45,6 +47,7 @@ export class ContractService {
     @Inject(forwardRef(() => DocusignCommunicationService))
     private readonly docusignCommunicationService: DocusignCommunicationService,
     private readonly userService: UserService,
+    @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
     private readonly customerPaymentService: CustomerPaymentService,
     private readonly systemDesignService: SystemDesignService,
@@ -419,5 +422,28 @@ export class ContractService {
 
     // eslint-disable-next-line consistent-return
     return this.docusignCommunicationService.downloadContract(foundContract.contracting_system_reference_id);
+  }
+
+  async getLatestPrimaryContractByOpportunity(opportunityId: string): Promise<ContractResDto> {
+    const contract = await this.contractModel
+      .findOne(
+        {
+          opportunity_id: opportunityId,
+          contract_type: CONTRACT_TYPE.PRIMARY,
+        },
+        {},
+        {
+          sort: {
+            created_at: -1,
+          },
+        },
+      )
+      .lean();
+
+    if (!contract) {
+      throw ApplicationException.EntityNotFound(opportunityId);
+    }
+
+    return new ContractResDto(contract as any);
   }
 }
