@@ -70,8 +70,8 @@ export class OpportunityController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Get('/:opportunityId/quote')
-  @ApiOperation({ summary: 'Get quote of latest contract' })
+  @Get('/:opportunityId/quote-detail')
+  @ApiOperation({ summary: 'Get quote detail of latest contract' })
   @ApiOkResponse({ type: QuoteDetailResDto })
   async getQuote(@Param('opportunityId') oppId: string): Promise<ServiceResponse<QuoteDetailResDto>> {
     const res = await this.opportunityService.getQuoteDetail(oppId);
