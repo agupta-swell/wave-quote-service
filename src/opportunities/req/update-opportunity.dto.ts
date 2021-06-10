@@ -26,6 +26,9 @@ export class UpdateOpportunityDto {
   utilityProgramId?: string;
 
   @ApiProperty()
+  rebateProgramId?: string;
+
+  @ApiProperty()
   zipCode?: string;
 
   @ApiProperty()

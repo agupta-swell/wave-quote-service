@@ -8,6 +8,7 @@ export interface Opportunity extends Document {
   contactId: string;
   utilityId: string;
   utilityProgramId: string;
+  rebateProgramId: string;
   fundingSourceId: string;
   contractorCompanyName: string;
   contractorAddress1: string;
@@ -38,6 +39,7 @@ export const OpportunitySchema = new Schema<Opportunity>({
   contactId: String,
   utilityId: String,
   utilityProgramId: String,
+  rebateProgramId: String,
   fundingSourceId: String,
   contractorCompanyName: String,
   contractorAddress1: String,

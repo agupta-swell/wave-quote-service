@@ -4,6 +4,7 @@ import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { OpportunityService } from './opportunity.service';
 import { UpdateOpportunityUtilityProgramDto } from './req/update-opportunity-utility-program.dto';
+import { UpdateOpportunityRebateProgramDto } from './req/update-opportunity-rebate-program.dto'
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto, GetRelatedInformationRes } from './res/get-related-information.dto';
 
@@ -32,6 +33,18 @@ export class OpportunityController {
     @Param('opportunityId') opportunityId: string,
   ): Promise<ServiceResponse<GetRelatedInformationDto>> {
     const res = await this.opportunityService.updateOpportunityUtilityProgram(opportunityId, utilityProgramId);
+
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put('/:opportunityId/rebate-program')
+  @ApiOperation({ summary: "Update Opportunity's Rebate Program" })
+  @ApiOkResponse({ type: GetRelatedInformationDto })
+  async updateOpportunityRebateProgram(
+    @Body() { rebateProgramId }: UpdateOpportunityRebateProgramDto,
+    @Param('opportunityId') opportunityId: string,
+  ): Promise<ServiceResponse<GetRelatedInformationDto>> {
+    const res = await this.opportunityService.updateOpportunityRebateProgram(opportunityId, rebateProgramId);
 
     return ServiceResponse.fromResult(res);
   }

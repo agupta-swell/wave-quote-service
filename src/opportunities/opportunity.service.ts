@@ -13,6 +13,7 @@ import { Opportunity, OPPORTUNITY } from './opportunity.schema';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
 import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } from './res/update-opportunity-utility-program.dto';
+import { UpdateOpportunityRebateProgramDto as UpdateOpportunityRebateProgramDtoRes } from './res/update-opportunity-rebate-program.dto';
 
 @Injectable()
 export class OpportunityService {
@@ -45,6 +46,7 @@ export class OpportunityService {
       opportunityId,
       state: contact?.state || '',
       utilityProgramId: foundOpportunity.utilityProgramId ?? '',
+      rebateProgramId: foundOpportunity.rebateProgramId ?? '',
       zipCode: contact?.zip || '',
       partnerId: foundOpportunity.accountId,
       opportunityName: foundOpportunity.name,
@@ -80,6 +82,27 @@ export class OpportunityService {
     const updatedOpportunity = new UpdateOpportunityUtilityProgramDtoRes(savedOpportunity as any);
 
     await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
+
+    return OperationResult.ok(updatedOpportunity);
+  }
+
+  async updateOpportunityRebateProgram(
+    opportunityId: string,
+    rebateProgramId: string,
+  ): Promise<OperationResult<UpdateOpportunityRebateProgramDtoRes>> {
+    const foundOpportunity = await this.opportunityModel.findById(opportunityId);
+
+    if (!foundOpportunity) {
+      throw ApplicationException.EntityNotFound(opportunityId);
+    }
+
+    const savedOpportunity = await this.opportunityModel
+      .findByIdAndUpdate(opportunityId, { rebateProgramId }, { new: true })
+      .lean();
+
+    const updatedOpportunity = new UpdateOpportunityRebateProgramDtoRes(savedOpportunity as any);
+
+    await this.quoteService.setOutdatedData(opportunityId, 'Rebate Program');
 
     return OperationResult.ok(updatedOpportunity);
   }

@@ -28,6 +28,9 @@ export class GetRelatedInformationDto {
   utilityProgramId: string;
 
   @ApiProperty()
+  rebateProgramId: string;
+
+  @ApiProperty()
   zipCode: string;
 
   @ApiProperty()
@@ -78,6 +81,7 @@ export class GetRelatedInformationDto {
     this.opportunityId = props.opportunityId;
     this.state = props.state;
     this.utilityProgramId = props.utilityProgramId ?? '';
+    this.rebateProgramId = props.rebateProgramId ?? '';
     this.zipCode = props.zipCode;
     this.partnerId = props.partnerId;
     this.opportunityName = props.opportunityName;

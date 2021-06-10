@@ -14,6 +14,9 @@ export class UpdateOpportunityDto {
   utilityProgramId: string;
 
   @ApiProperty()
+  rebateProgramId: string;
+
+  @ApiProperty()
   fundingSourceId: string;
 
   @ApiProperty()
@@ -50,6 +53,7 @@ export class UpdateOpportunityDto {
     this.contactId = props.contactId;
     this.utilityId = props.utilityId;
     this.utilityProgramId = props.utilityProgramId;
+    this.rebateProgramId = props.rebateProgramId;
     this.fundingSourceId = props.fundingSourceId;
     this.contractorCompanyName = props.contractorCompanyName;
     this.contractorAddress1 = props.contractorAddress1;
