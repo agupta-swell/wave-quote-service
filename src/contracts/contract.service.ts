@@ -440,10 +440,6 @@ export class ContractService {
       )
       .lean();
 
-    if (!contract) {
-      throw ApplicationException.EntityNotFound(opportunityId);
-    }
-
     return new ContractResDto(contract as any);
   }
 }
