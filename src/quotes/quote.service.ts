@@ -317,7 +317,6 @@ export class QuoteService {
           },
         ],
         rebateDetails: this.createRebateDetails({
-          utilityProgramName: utilityProgram?.utility_program_name ?? '',
           itcRate: v2_itc?.itc_rate ?? 0,
           grossPrice: grossPriceData.grossPrice ?? 0,
         }) as IRebateDetailsSchema[],
@@ -711,7 +710,6 @@ export class QuoteService {
     );
 
     detailedQuote.quoteFinanceProduct.rebateDetails = this.createRebateDetails({
-      utilityProgramName: detailedQuote.utilityProgram?.utilityProgramName ?? '',
       itcRate: v2_itc?.itc_rate ?? 0,
       grossPrice: grossPriceData.grossPrice ?? 0,
     });
@@ -1106,11 +1104,9 @@ export class QuoteService {
   }
 
   createRebateDetails({
-    utilityProgramName,
     itcRate,
     grossPrice,
   }: {
-    utilityProgramName: string;
     itcRate: number;
     grossPrice: number;
   }): IRebateDetailsSchema[] {
@@ -1121,14 +1117,6 @@ export class QuoteService {
       description: '',
       is_float_rebate: true,
     });
-    if (utilityProgramName && utilityProgramName.includes('+SGIP')) {
-      rebateDetails.push({
-        amount: 0,
-        type: REBATE_TYPE.SGIP,
-        description: '',
-        is_float_rebate: false,
-      });
-    }
     return rebateDetails;
   }
 }
