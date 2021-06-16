@@ -42,8 +42,10 @@ export class CalculationService {
       productivity: detailedQuote.systemProduction.productivity,
     };
 
-    const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
-
+    const [leaseSolverConfig, utilityUsage] = await Promise.all([
+      this.leaseSolverConfigService.getDetailByConditions(query),
+      this.utilityService.getUtilityByOpportunityId(detailedQuote.opportunityId),
+    ]);
     if (!leaseSolverConfig) {
       throw ApplicationException.NullEntityFound('Lease Config');
     }
@@ -78,6 +80,12 @@ export class CalculationService {
     productAttribute.monthlyUtilityPayment = monthlyUtilityPayment;
     // eslint-disable-next-line no-param-reassign
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
+
+    const actualUsage = sumBy(utilityUsage?.utility_data.actual_usage.monthly_usage, item => item.v);
+    const currentBill = sumBy(utilityUsage?.cost_data.actual_usage_cost.cost, item => item.v);
+    productAttribute.currentPricePerKwh = currentBill / actualUsage;
+    productAttribute.newPricePerKwh = (productAttribute.monthlyEnergyPayment * 12) / actualUsage;
+
     return detailedQuote;
   }
 
