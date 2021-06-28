@@ -9,6 +9,9 @@ class QuoteDetailDataDto {
   pricePerKwh: number;
 
   @ApiProperty()
+  pricePerKwhWithStorage: number;
+
+  @ApiProperty()
   estimatedIncrease: number;
 
   @ApiProperty()

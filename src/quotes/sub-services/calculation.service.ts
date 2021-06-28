@@ -100,7 +100,7 @@ export class CalculationService {
     productivity: number,
     addGridServiceDiscount: boolean, // NOTE : FUTURE USE
     utilityProgramName: string,
-  ): Promise<{ monthlyLeasePayment: number; rate_per_kWh: number }> {
+  ): Promise<{ monthlyLeasePayment: number; rate_per_kWh: number; rate_per_kWh_with_storage: number }> {
     const query = {
       isSolar,
       isRetrofit,
@@ -115,7 +115,7 @@ export class CalculationService {
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
     if (!leaseSolverConfig) {
-      return { monthlyLeasePayment: -1, rate_per_kWh: -1 };
+      return { monthlyLeasePayment: -1, rate_per_kWh: -1, rate_per_kWh_with_storage: -1 };
     }
 
     // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
@@ -131,6 +131,13 @@ export class CalculationService {
     const adjustedSolarRate = leaseSolverConfig.rate_per_kWh + rateDeltaPerkWh;
     const monthlyLeasePayment =
       (adjustedSolarRate * averageSystemSize * averageProductivity) / 12 + leaseSolverConfig.storage_payment;
+
+    const estimatedAnnualkWh = averageSystemSize * averageProductivity;
+    const estimatedAnnualCost = estimatedAnnualkWh * leaseSolverConfig.rate_per_kWh;
+    const annualStorageCost = leaseSolverConfig.storage_payment * 12;
+    const totalEstimatedAnnualCost = estimatedAnnualCost + annualStorageCost;
+    const totalEstimatedCostkWhWithStorage = totalEstimatedAnnualCost / estimatedAnnualkWh;
+
     // IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuote() ALSO.
 
@@ -151,7 +158,7 @@ export class CalculationService {
 
     */
 
-    return { monthlyLeasePayment, rate_per_kWh: leaseSolverConfig.rate_per_kWh };
+    return { monthlyLeasePayment, rate_per_kWh: leaseSolverConfig.rate_per_kWh, rate_per_kWh_with_storage: totalEstimatedCostkWhWithStorage };
   }
 
   private getYearlyLeasePaymentDetails(leaseTerm: number, monthlyLeasePayment: number) {

@@ -311,10 +311,11 @@ export class ECommerceService {
     const rateEscalator = ecomConfig?.esa_rate_escalator || 2.9; // "Rate escalator is currently assumed to be 2.9"
     const contractTerm = ecomConfig?.esa_contract_term_in_years || 25; // "Contract term is currently assumed to be 25"
     const utilityProgramName = ecomConfig?.esa_utility_program_name || 'None';
+    
 
     // LEASE FOR ESSENTIAL BACKUP
     // const pricePerKwhForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;
-    const { monthlyLeasePayment, rate_per_kWh } = await this.calculationService.calculateLeaseQuoteForECom(
+    const { monthlyLeasePayment, rate_per_kWh, rate_per_kWh_with_storage } = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
       overallCost,
@@ -349,6 +350,7 @@ export class ECommerceService {
       quoteDetail: {
         monthlyCost: monthlyLeasePayment,
         pricePerKwh: rate_per_kWh,
+        pricePerKwhWithStorage: rate_per_kWh_with_storage,
         estimatedIncrease: rateEscalator,
         estimatedBillInTenYears: monthlyLeasePayment * Math.pow(1 + rateEscalator / 100, 10),
         cumulativeSavingsOverTwentyFiveYears: -1, // TO DO:  CALCULATION TBD - PENDING JON'S SAVING DATA
@@ -480,6 +482,8 @@ export class ECommerceService {
 
   private getLeaseEnergyServiceTypeByBatteryCount(numberOfBatteries: number) {
     switch (numberOfBatteries) {
+      case 0:
+        return ENERGY_SERVICE_TYPE.SWELL_ESA_SOLAR_ONLY;
       case 1:
         return ENERGY_SERVICE_TYPE.SWELL_ESA_ESSENTIAL_BACKUP;
       case 2:
@@ -493,6 +497,8 @@ export class ECommerceService {
 
   private getLeasePaymentTypeByBatteryCount(numberOfBatteries: number) {
     switch (numberOfBatteries) {
+      case 0:
+        return PAYMENT_TYPE.LEASE_SOLAR_ONLY;
       case 1:
         return PAYMENT_TYPE.LEASE_ESSENTIAL_BACKUP;
       case 2:
@@ -513,7 +519,7 @@ export class ECommerceService {
   ): Promise<SolarStorageQuoteDto> {
     const storageQuotes: StorageQuoteDto[] = [];
 
-    for (let batteryCount = 1; batteryCount <= 3; batteryCount += 1) {
+    for (let batteryCount = 0; batteryCount <= 2; batteryCount += 1) {
       const storageQuote = await this.getStorageQuoteDto(
         zipCode,
         deposit,
