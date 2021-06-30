@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { sumBy } from 'lodash';
-import { ObjectId, Model, Types } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
@@ -227,7 +227,6 @@ export class ContractService {
       .product_attribute as ILeaseProductAttributes;
     const query = {
       isSolar: systemDesign!.is_solar,
-      isRetrofit: systemDesign!.is_retrofit,
       utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utility_program_name : '',
       contractTerm: lease_product_attribute.lease_term,
       storageSize: sumBy(

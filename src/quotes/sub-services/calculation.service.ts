@@ -30,7 +30,6 @@ export class CalculationService {
 
     const query = {
       isSolar: detailedQuote.isSolar,
-      isRetrofit: detailedQuote.isRetrofit,
       utilityProgramName: detailedQuote.utilityProgram.utilityProgramName || 'PRP2',
       contractTerm: productAttribute.leaseTerm,
       storageSize: sumBy(

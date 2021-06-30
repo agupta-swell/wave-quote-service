@@ -841,7 +841,6 @@ export class QuoteService {
 
     const query = {
       isSolar: data.isSolar,
-      isRetrofit: data.isRetrofit,
       utilityProgramName: data.utilityProgram.utilityProgramName || 'PRP2',
       contractTerm: productAttribute.leaseTerm,
       storageSize: sumBy(data.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
@@ -859,7 +858,6 @@ export class QuoteService {
 
     leaseSolverConfig = await this.leaseSolverConfigService.getListSolverCofigsByConditions(
       data.isSolar,
-      data.isRetrofit,
       data.utilityProgram.utilityProgramName || 'PRP2',
     );
 

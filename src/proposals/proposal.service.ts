@@ -493,7 +493,6 @@ export class ProposalService {
       .product_attribute as ILeaseProductAttributes;
     const query = {
       isSolar: systemDesign!.is_solar,
-      isRetrofit: systemDesign!.is_retrofit,
       utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utility_program_name : '',
       contractTerm: lease_product_attribute.lease_term,
       storageSize: sumBy(

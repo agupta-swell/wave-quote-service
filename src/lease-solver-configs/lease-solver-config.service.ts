@@ -65,7 +65,6 @@ export class LeaseSolverConfigService {
   async getDetailByConditions(condition: IGetDetail): Promise<LeaseSolverConfig | null> {
     const leaseSolverConfig = await this.leaseSolverConfig.findOne({
       is_solar: condition.isSolar,
-      is_retrofit: condition.isRetrofit,
       utility_program_name: condition.utilityProgramName,
       contract_term: condition.contractTerm,
       storage_size: condition.storageSize,
@@ -78,14 +77,9 @@ export class LeaseSolverConfigService {
     return leaseSolverConfig;
   }
 
-  async getListSolverCofigsByConditions(
-    isSolar: boolean,
-    isRetrofit: boolean,
-    utilityProgramName: string,
-  ): Promise<LeaseSolverConfig[]> {
+  async getListSolverCofigsByConditions(isSolar: boolean, utilityProgramName: string): Promise<LeaseSolverConfig[]> {
     const leaseSolverConfig = await this.leaseSolverConfig.find({
       is_solar: isSolar,
-      is_retrofit: isRetrofit,
       utility_program_name: utilityProgramName,
     });
 
