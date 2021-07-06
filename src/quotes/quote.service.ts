@@ -8,6 +8,7 @@ import { ApplicationException } from 'src/app/app.exception';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FinancialProductDto } from 'src/financial-products/res/financial-product.dto';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { COMPONENT_TYPE, COST_UNIT_TYPE, PRODUCT_CATEGORY_TYPE } from 'src/system-designs/constants';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
@@ -839,11 +840,14 @@ export class QuoteService {
   async getValidationForLease(data: CalculateQuoteDetailDto): Promise<OperationResult<string>> {
     const productAttribute = data.quoteFinanceProduct.financeProduct.productAttribute as LeaseProductAttributesDto;
 
-    const query = {
+    // TODO: Tier/StorageManufacturer support
+    const query: IGetDetail = {
+      tier: 'DTC',
       isSolar: data.isSolar,
       utilityProgramName: data.utilityProgram.utilityProgramName || 'PRP2',
       contractTerm: productAttribute.leaseTerm,
       storageSize: sumBy(data.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
+      storageManufacturer: 'Tesla',
       rateEscalator: productAttribute.rateEscalator,
       capacityKW: data.systemProduction.capacityKW,
       productivity: data.systemProduction.productivity,

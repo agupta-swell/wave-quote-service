@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { groupBy, sumBy } from 'lodash';
 import { ApplicationException } from 'src/app/app.exception';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
+import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { UtilityService } from 'src/utilities/utility.service';
 import { dateAdd, getDaysInMonth } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
@@ -28,7 +29,9 @@ export class CalculationService {
       .productAttribute as LeaseProductAttributesDto;
     productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossPrice;
 
-    const query = {
+    // TODO: Tier/StorageManufacturer update
+    const query: IGetDetail = {
+      tier: 'DTC',
       isSolar: detailedQuote.isSolar,
       utilityProgramName: detailedQuote.utilityProgram.utilityProgramName || 'PRP2',
       contractTerm: productAttribute.leaseTerm,
@@ -36,6 +39,7 @@ export class CalculationService {
         detailedQuote.quoteCostBuildup.storageQuoteDetails,
         item => item.storageModelDataSnapshot.sizekWh,
       ),
+      storageManufacturer: 'Tesla',
       rateEscalator: productAttribute.rateEscalator,
       capacityKW: detailedQuote.systemProduction.capacityKW,
       productivity: detailedQuote.systemProduction.productivity,
@@ -100,12 +104,13 @@ export class CalculationService {
     addGridServiceDiscount: boolean, // NOTE : FUTURE USE
     utilityProgramName: string,
   ): Promise<{ monthlyLeasePayment: number; rate_per_kWh: number; rate_per_kWh_with_storage: number }> {
-    const query = {
+    const query: IGetDetail = {
+      tier: 'DTC',
       isSolar,
-      isRetrofit,
       utilityProgramName: utilityProgramName || 'none',
       contractTerm,
       storageSize,
+      storageManufacturer: 'Tesla', //ECom hard coded for Tesla
       rateEscalator,
       capacityKW,
       productivity,

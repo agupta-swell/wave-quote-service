@@ -10,6 +10,7 @@ import { DocusignCommunicationService } from 'src/docusign-communications/docusi
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
+import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
@@ -225,7 +226,10 @@ export class ContractService {
     // Get lease solver config
     const lease_product_attribute = quote.detailed_quote.quote_finance_product.finance_product
       .product_attribute as ILeaseProductAttributes;
-    const query = {
+
+    // TODO: Tier/StorageManufacturer support
+    const query: IGetDetail = {
+      tier: 'DTC',
       isSolar: systemDesign!.is_solar,
       utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utility_program_name : '',
       contractTerm: lease_product_attribute.lease_term,
@@ -233,6 +237,7 @@ export class ContractService {
         quote.detailed_quote.quote_cost_buildup.storage_quote_details,
         item => item.storage_model_data_snapshot.sizekWh,
       ),
+      storageManufacturer: 'Tesla',
       rateEscalator: lease_product_attribute.rate_escalator,
       capacityKW: systemDesign!.system_production_data.capacityKW,
       productivity: systemDesign!.system_production_data.productivity,
