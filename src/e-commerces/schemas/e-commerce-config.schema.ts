@@ -10,6 +10,7 @@ export interface ECommerceConfig extends Document {
   labor_cost_perWatt: number;
   loan_interest_rate: number;
   loan_terms_in_months: number;
+  loan_dealer_fee: number;
   esa_rate_escalator: number;
   esa_contract_term_in_years: number;
   esa_utility_program_name: string;

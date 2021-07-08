@@ -205,7 +205,8 @@ export class CalculationService {
       .productAttribute as LoanProductAttributesDto;
 
     const annualInterestRate = productAttribute.interestRate;
-    const { loanAmount } = productAttribute;
+    const { dealerFee } = productAttribute;
+    const loanAmount = productAttribute.loanAmount / (1.0 - (dealerFee || 0));
     const startDate = new Date(productAttribute.loanStartDate);
     const loanPeriod = productAttribute.loanTerm;
     const principlePaymentPeriodStart = 18;

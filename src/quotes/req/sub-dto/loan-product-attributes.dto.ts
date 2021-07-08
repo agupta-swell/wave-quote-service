@@ -65,4 +65,8 @@ export class LoanProductAttributesDto {
   @ApiProperty()
   @IsNumber()
   payBackPeriod: number;
+
+  @ApiProperty()
+  @IsNumber()
+  dealerFee: number;
 }

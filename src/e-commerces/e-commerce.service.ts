@@ -81,8 +81,16 @@ export class ECommerceService {
       const highEndProductivity = highEndNet / highEndSystem.capacityKW;
       const highEndQuote = await this.getSolarStorageQuoteDto(zip, highEndSystem, highEndProductivity, false, deposit);
 
-      const isValidQuote = (quote: SolarStorageQuoteDto) =>
-        quote.storageData.every(s => s.paymentOptionData.every(p => p.paymentDetail.monthlyPaymentAmount > 0));
+      const isValidQuote = (quote: SolarStorageQuoteDto) => {
+        const isValid = quote.storageData.every(s => s.paymentOptionData.every(p => p.paymentDetail.monthlyPaymentAmount > 0));
+
+        if (!isValid) {
+          console.warn('Dropping quote, missing payment amount', JSON.stringify(quote));
+        }
+
+        return isValid;
+      }
+        
 
       // Generate the variants for the optimal system design
       const systems: SolarStorageQuoteDto[] = [];
@@ -266,6 +274,7 @@ export class ECommerceService {
     loanProductAttributesDto.loanTerm = loan_terms_in_months;
     loanProductAttributesDto.reinvestment = null as any;
     loanProductAttributesDto.loanStartDate = new Date(new Date().setDate(15)).getTime();
+    loanProductAttributesDto.dealerFee = foundECommerceConfig.loan_dealer_fee;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productAttribute = loanProductAttributesDto;
     const calculateQuoteDetailDtoResponse = await this.calculationService.calculateLoanSolver(
       calculateQuoteDetailDto,

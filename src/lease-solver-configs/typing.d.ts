@@ -3,7 +3,7 @@ export interface IGetDetail {
   isSolar: boolean;
   utilityProgramName: string;
   contractTerm: number;
-  storageManufacturer: 'Tesla' | 'Enphase';
+  storageManufacturer: 'None' | 'Tesla' | 'Enphase';
   storageSize: number;
   rateEscalator: number;
   capacityKW: number;
