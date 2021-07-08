@@ -66,19 +66,21 @@ export class LeaseSolverConfigService {
     // Tier and Storage Manufacturer backwards compatible lookup; the $in check
     // including `null` can be changed to a straight match after pushed through
     // all environments and the data is updated.
-    const leaseSolverConfig = await this.leaseSolverConfig.findOne({
+    const query = {
       tier: { $in: [ null, condition.tier ]},
       is_solar: condition.isSolar,
       utility_program_name: condition.utilityProgramName,
       contract_term: condition.contractTerm,
       storage_size: condition.storageSize,
-      storage_manufacturer: { $in: [ null, condition.storageManufacturer ]},
+      storage_manufacturer: { $in: [ null, condition.storageSize > 0 ? condition.storageManufacturer : 'None' ]},
       solar_size_minimum: { $lte: condition.capacityKW },
       solar_size_maximum: { $gt: condition.capacityKW },
       rate_escalator: condition.rateEscalator,
       productivity_min: { $lte: condition.productivity },
       productivity_max: { $gt: condition.productivity },
-    });
+    };
+    
+    const leaseSolverConfig = await this.leaseSolverConfig.findOne(query);
     return leaseSolverConfig;
   }
 
