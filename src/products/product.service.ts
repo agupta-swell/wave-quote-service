@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, Types } from 'mongoose';
-import { isObjectId } from 'src/utils/common';
+import { isObjectId, transformToValidId } from 'src/utils/common';
 import { OperationResult, Pagination } from '../app/common';
 import { Product, PRODUCT } from './product.schema';
 import { UpdateProductDtoReq } from './req/update-product.dto';
@@ -45,7 +45,7 @@ export class ProductService {
   }
 
   async getDetailByIdList(idList: string[]): Promise<LeanDocument<Product[]> | null> {
-    const newIdList = idList.map(item => Types.ObjectId(item));
+    const newIdList = idList.map(id => transformToValidId(id));
     const query = {
       _id: { $in: newIdList },
     };
