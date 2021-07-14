@@ -29,6 +29,7 @@ export const ECommerceConfigSchema = new Schema<ECommerceConfig>({
   labor_cost_perWatt: Number,
   loan_interest_rate: Number,
   loan_terms_in_months: Number,
+  loan_dealer_fee: Number,
   esa_rate_escalator: Number,
   esa_contract_term_in_years: Number,
   esa_utility_program_name: String,

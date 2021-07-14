@@ -259,7 +259,7 @@ export class ECommerceService {
     systemCapacityKW: number,
   ): Promise<PaymentOptionDataDto> {
     const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
-    const { loan_terms_in_months, loan_interest_rate } = foundECommerceConfig;
+    const { loan_terms_in_months, loan_interest_rate, loan_dealer_fee } = foundECommerceConfig;
     const calculateQuoteDetailDto: CalculateQuoteDetailDto = {
       quoteId: '',
       systemProduction: {} as any,
@@ -277,8 +277,9 @@ export class ECommerceService {
     loanProductAttributesDto.loanTerm = loan_terms_in_months;
     loanProductAttributesDto.reinvestment = null as any;
     loanProductAttributesDto.loanStartDate = new Date(new Date().setDate(15)).getTime();
-    loanProductAttributesDto.dealerFee = foundECommerceConfig.loan_dealer_fee;
+    loanProductAttributesDto.dealerFee = loan_dealer_fee;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productAttribute = loanProductAttributesDto;
+
     const calculateQuoteDetailDtoResponse = await this.calculationService.calculateLoanSolver(
       calculateQuoteDetailDto,
       0,
