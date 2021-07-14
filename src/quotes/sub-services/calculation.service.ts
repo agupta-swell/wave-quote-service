@@ -313,7 +313,7 @@ export class CalculationService {
 
       endingBalanceVariation =
         0 -
-          v2_cls_AmortTableInstanceWithoutPrePay?.[v2_cls_AmortTableInstanceWithoutPrePay.length - 1]?.endingBalance ||
+        v2_cls_AmortTableInstanceWithoutPrePay?.[v2_cls_AmortTableInstanceWithoutPrePay.length - 1]?.endingBalance ||
         0;
       if (endingBalanceVariation > 0) {
         if (endingBalanceVariation > approximateAccuracy) {
