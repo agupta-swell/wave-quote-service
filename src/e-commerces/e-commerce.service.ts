@@ -108,9 +108,12 @@ export class ECommerceService {
         panelCountAdjust <= panelVariance - 1;
         panelCountAdjust += 1
       ) {
+        // panelCountAdjust represents the number of panels to add/remove from the "default" system
+        // systemIndex is panelCountAdjust, shifted to 0...(panelVarience * 2)
         const systemIndex = panelCountAdjust + panelVariance;
         const variantSystem = await this.generateSolarSystem(zip, typicalUsage, panelCountAdjust);
-        const approximateNetGeneration = this.lerp(lowEndNet, highEndNet, systemIndex / numberOfSystemsToGenerate);
+        // Interpolate the net generation between the low and high end systems, based on the systemIndex / upper bound of systems [count - 1]
+        const approximateNetGeneration = this.lerp(lowEndNet, highEndNet, systemIndex / (numberOfSystemsToGenerate - 1));
         const systemProductivity = approximateNetGeneration / variantSystem.capacityKW;
         const isOptimalSystem = panelCountAdjust === 0;
         const quote = await this.getSolarStorageQuoteDto(
