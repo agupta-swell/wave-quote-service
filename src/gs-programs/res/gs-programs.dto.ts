@@ -4,6 +4,7 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { ProductDto } from 'src/products/res/product.dto';
 import { UtilityProgramMasterDto } from 'src/utility-programs-master/res/utility-program-master.dto';
 import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
+import { compareIds } from 'src/utils/common';
 import { GsPrograms } from '../gs-programs.schema';
 
 export class GsProgramsDto {
@@ -35,7 +36,7 @@ export class GsProgramsDto {
     this.numberBatteries = props.numberBatteries;
     this.upfrontIncentives = props.upfrontIncentives;
     this.utilityProgram = new UtilityProgramMasterDto(utilityProgram);
-    const filterBattery = battery.find(({ _id }) => _id.equals(props.batteryId));
+    const filterBattery = battery.find(({ _id }) => compareIds(_id, props.batteryId));
     this.battery = filterBattery ? new ProductDto(filterBattery) : undefined;
   }
 }
