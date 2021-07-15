@@ -72,4 +72,11 @@ export class ApplicationException extends HttpException {
       HttpStatus.NOT_FOUND,
     );
   }
+
+  static InvalidContract(): ApplicationException {
+    return new ApplicationException(
+      'Contract is not invalid',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+    );
+  }
 }
