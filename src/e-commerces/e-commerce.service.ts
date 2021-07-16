@@ -39,9 +39,6 @@ import { GetStorageOnlyQuoteDto } from './res/get-storage-only-quote.dto';
 
 @Injectable()
 export class ECommerceService {
-  private solarProduct: LeanDocument<ECommerceProduct>;
-  private storageProduct: LeanDocument<ECommerceProduct>;
-
   constructor(
     private readonly utilityService: UtilityService,
     private readonly systemProductService: SystemProductService,
@@ -425,37 +422,43 @@ export class ECommerceService {
   }
 
   private async getPanelProduct() {
-    if (!this.solarProduct) {
-      const foundEComProduct = await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }).lean();
-      if (!foundEComProduct) {
+    const cacheKey = `e-commerce.service.getPanelProduct`;
+    let cachedResult = await this.cacheManager.get<LeanDocument<ECommerceProduct>>(cacheKey);
+
+    if (!cachedResult) {
+      cachedResult = await this.eCommerceProductModel.findOne({ type: ECOM_PRODUCT_TYPE.PANEL }).lean();
+      if (!cachedResult) {
         const subject = `E Commerce Product does not find with panel type `;
         const body = `E Commerce Product does not find with panel type `;
         await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
         throw ApplicationException.EntityNotFound('E Commerce Product');
       }
 
-      this.solarProduct = foundEComProduct;
+      await this.cacheManager.set(cacheKey, cachedResult, 30);
     }
 
-    return this.solarProduct;
+    return cachedResult;
   }
 
   private async getBatteryProduct() {
-    if (!this.storageProduct) {
-      const foundEComBatteryProduct = await this.eCommerceProductModel
+    const cacheKey = `e-commerce.service.getBatteryProduct`;
+    let cachedResult = await this.cacheManager.get<LeanDocument<ECommerceProduct>>(cacheKey);
+
+    if (!cachedResult) {
+      cachedResult = await this.eCommerceProductModel
         .findOne({ type: ECOM_PRODUCT_TYPE.BATTERY })
         .lean();
-      if (!foundEComBatteryProduct) {
+      if (!cachedResult) {
         const subject = `E Commerce Product does not find with battery type `;
         const body = `E Commerce Product does not find with battery type `;
         await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
         throw ApplicationException.EntityNotFound('E Commerce Product');
       }
 
-      this.storageProduct = foundEComBatteryProduct;
+      await this.cacheManager.set(cacheKey, cachedResult, 30);
     }
 
-    return this.storageProduct;
+    return cachedResult;
   }
 
   private async getCostBreakdown(zipCode: number, numberOfPanelsToInstall: number = 0, numberOfBatteries: number = 0) {

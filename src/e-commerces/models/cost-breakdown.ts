@@ -5,6 +5,6 @@ export class CostBreakdown {
     public markupRate: number;
 
     public get totalCost() {
-        return (this.solarCost + this.storageCost + this.laborCost) * (1.0 + this.markupRate);
+        return (this.solarCost + this.storageCost + this.laborCost) * (1.0 + (this.markupRate || 0));
     }
 }
