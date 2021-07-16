@@ -1,5 +1,6 @@
 import { Document, Schema } from 'mongoose';
-import { GsPrograms, GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
+import { FinancialProduct, FinancialProductSchema } from 'src/financial-products/financial-product.schema';
+import { GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import {
   AdderModelSchema,
@@ -18,7 +19,6 @@ import {
   SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
 import { toSnakeCase } from 'src/utils/transformProperties';
-import { FinancialProduct, FinancialProductSchema } from 'src/financial-products/financial-product.schema';
 import { ELaborCostType, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
