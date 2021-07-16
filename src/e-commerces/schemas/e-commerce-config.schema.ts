@@ -14,6 +14,7 @@ export interface ECommerceConfig extends Document {
   esa_rate_escalator: number;
   esa_contract_term_in_years: number;
   esa_utility_program_name: string;
+  es_markup: number;
   
   created_by: string;
   created_at: Date;
@@ -33,6 +34,7 @@ export const ECommerceConfigSchema = new Schema<ECommerceConfig>({
   esa_rate_escalator: Number,
   esa_contract_term_in_years: Number,
   esa_utility_program_name: String,
+  es_markup: Number,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,

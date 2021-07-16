@@ -324,14 +324,14 @@ export class ECommerceService {
     const rateEscalator = ecomConfig.esa_rate_escalator; // "Rate escalator is currently assumed to be 2.9"
     const contractTerm = ecomConfig.esa_contract_term_in_years; // "Contract term is currently assumed to be 25"
     const utilityProgramName = ecomConfig?.esa_utility_program_name || 'None';
+    const overallCostWithMarkup = numberOfBatteries === 0 ? overallCost : overallCost * (1 + ecomConfig.es_markup);
     
-
     // LEASE FOR ESSENTIAL BACKUP
     // const pricePerKwhForEssentialBackup = overAllCost / systemProduction.capacityKW / 1000;
     const { monthlyLeasePayment, rate_per_kWh, rate_per_kWh_with_storage } = await this.calculationService.calculateLeaseQuoteForECom(
       true,
       false,
-      overallCost,
+      overallCostWithMarkup,
       contractTerm,
       totalStorageRequested,
       systemCapacityKW,
