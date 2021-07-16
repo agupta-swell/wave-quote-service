@@ -2,8 +2,8 @@
 /* eslint-disable no-return-assign */
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { differenceBy, groupBy, isNil, max, min, omitBy, pickBy, sumBy, uniq } from 'lodash';
-import { LeanDocument, Model } from 'mongoose';
+import { differenceBy, groupBy, isNil, max, min, omit, omitBy, pickBy, sumBy, uniq } from 'lodash';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FinancialProductDto } from 'src/financial-products/res/financial-product.dto';
@@ -358,6 +358,35 @@ export class QuoteService {
 
     const obj = new this.quoteModel(model);
 
+    await obj.save();
+
+    return OperationResult.ok(new QuoteDto(obj.toJSON())) as any;
+  }
+
+  async cloneQuote(quoteId: ObjectId): Promise<OperationResult<QuoteDto>> {
+    const foundQuote = await this.quoteModel.findById(quoteId).lean();
+    if (!foundQuote) {
+      throw ApplicationException.EntityNotFound(quoteId.toString());
+    }
+
+    const originQuoteName = foundQuote.detailed_quote.quote_name.replace(/\s\([0-9]*(\)$)/, '');
+    const totalSameNameQuotes = await this.quoteModel
+      .find({
+        opportunity_id: foundQuote.opportunity_id,
+        system_design_id: foundQuote.system_design_id,
+        'detailed_quote.quote_name': { $regex: originQuoteName },
+      })
+      .count();
+
+    const obj = new this.quoteModel({
+      ...omit(foundQuote, ['_id', 'created_at', 'updated_at']),
+      detailed_quote: {
+        ...foundQuote.detailed_quote,
+        quote_name: `${originQuoteName} (${totalSameNameQuotes + 1})`,
+      },
+      is_sync: true,
+      is_sync_messages: [],
+    });
     await obj.save();
 
     return OperationResult.ok(new QuoteDto(obj.toJSON())) as any;
@@ -1103,13 +1132,7 @@ export class QuoteService {
     return OperationResult.ok(new Pagination({ total: result.length, data: result.map(i => new DiscountsDto(i)) }));
   }
 
-  createRebateDetails({
-    itcRate,
-    grossPrice,
-  }: {
-    itcRate: number;
-    grossPrice: number;
-  }): IRebateDetailsSchema[] {
+  createRebateDetails({ itcRate, grossPrice }: { itcRate: number; grossPrice: number }): IRebateDetailsSchema[] {
     const rebateDetails: IRebateDetailsSchema[] = [];
     rebateDetails.push({
       amount: (itcRate * grossPrice) / 100,

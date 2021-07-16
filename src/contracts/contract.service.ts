@@ -413,15 +413,30 @@ export class ContractService {
     return foundContract;
   }
 
-  async downloadDocusignContract(id: ObjectId): Promise<IncomingMessage | undefined> {
-    const foundContract = await this.getOneByContractId(id);
-
-    if (foundContract.contracting_system !== 'DOCUSIGN') return;
-
-    if (!foundContract.contracting_system_reference_id) return;
-
+  async downloadDocusignContract(id: string): Promise<IncomingMessage | undefined> {
     // eslint-disable-next-line consistent-return
-    return this.docusignCommunicationService.downloadContract(foundContract.contracting_system_reference_id);
+    return this.docusignCommunicationService.downloadContract(id);
+  }
+
+  async getContractDownloadData(id: ObjectId): Promise<[string, IncomingMessage]> {
+    const foundContract = await this.getOneByContractId(id);
+    if (foundContract.contracting_system !== 'DOCUSIGN' || !foundContract.contracting_system_reference_id)
+      throw ApplicationException.InvalidContract();
+
+    const foundOpp = await this.opportunityService.getRelatedInformation(foundContract.opportunity_id);
+
+    const { name } = foundContract.contract_template_detail?.composite_template_data;
+    const { firstName, lastName } = foundOpp.data as any;
+
+    const contract = await this.downloadDocusignContract(foundContract.contracting_system_reference_id);
+
+    if (!contract) {
+      throw ApplicationException.NotFoundStatus('Contract Envelope', `${id.toString()}`);
+    }
+
+    const fileName = `${lastName}-${firstName}-${name}.pdf`;
+
+    return [fileName, contract];
   }
 
   async getLatestPrimaryContractByOpportunity(opportunityId: string): Promise<ContractResDto> {

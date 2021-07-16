@@ -124,11 +124,11 @@ export class CalculationService {
 
     // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuote() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuote() ALSO.
-    const actualSystemCostPerkW = leaseSolverConfig.adjusted_install_cost + 0.1;
+    const actualSystemCostPerW = leaseAmount / (capacityKW * 1000);
     const averageSystemSize = (leaseSolverConfig.solar_size_minimum + leaseSolverConfig.solar_size_maximum) / 2;
     const averageProductivity = (leaseSolverConfig.productivity_min + leaseSolverConfig.productivity_max) / 2;
     const rateDeltaPerkWh =
-      (actualSystemCostPerkW - leaseSolverConfig.adjusted_install_cost) *
+      (actualSystemCostPerW - leaseSolverConfig.adjusted_install_cost) *
       leaseSolverConfig.rate_factor *
       averageSystemSize *
       1000;

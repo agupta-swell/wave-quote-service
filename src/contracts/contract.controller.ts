@@ -1,7 +1,6 @@
-import { Body, Controller, Get, Param, ParseArrayPipe, Post, Query, Res, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
-import { ApplicationException } from 'src/app/app.exception';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/aws/pipes/parse-objectid.pipe';
@@ -93,17 +92,11 @@ export class ContractController {
   @ApiParam({ name: 'contractId' })
   @ApiOperation({ summary: 'Download Contract envelope' })
   async downloadContract(@Param('contractId', ParseObjectIdPipe) id: ObjectId, @Res() res: any) {
-    const contract = await this.contractService.downloadDocusignContract(id);
-    if (!contract) {
-      throw ApplicationException.NotFoundStatus('Contract Envelope', `${id.toString()}`);
-    }
-
-    const fileName = `${id.toString()}_${Date.now()}.pdf`;
-
+    const [fileName, contract] = await this.contractService.getContractDownloadData(id);
     res
       .code(200)
       .header('Access-Control-Expose-Headers', 'Content-Disposition')
-      .header('Content-Disposition', `attachment; filename=${fileName}`)
+      .header('Content-Disposition', `${fileName}`)
       .header('Content-Length', `${contract.headers['content-length']}`)
       .type('application/pdf')
       .send(contract);
