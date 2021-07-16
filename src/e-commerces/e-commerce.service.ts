@@ -274,7 +274,8 @@ export class ECommerceService {
     loanProductAttributesDto.loanTerm = loan_terms_in_months;
     loanProductAttributesDto.reinvestment = null as any;
     loanProductAttributesDto.loanStartDate = new Date(new Date().setDate(15)).getTime();
-    loanProductAttributesDto.dealerFee = loan_dealer_fee;
+    // Do not include a dealer fee for storage-only
+    loanProductAttributesDto.dealerFee = systemCapacityKW > 0 ? loan_dealer_fee : 0;
     calculateQuoteDetailDto.quoteFinanceProduct.financeProduct.productAttribute = loanProductAttributesDto;
 
     const calculateQuoteDetailDtoResponse = await this.calculationService.calculateLoanSolver(
@@ -464,7 +465,6 @@ export class ECommerceService {
   private async getCostBreakdown(zipCode: number, numberOfPanelsToInstall: number = 0, numberOfBatteries: number = 0) {
     const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
     const result = new CostBreakdown();
-    result.storageCost = numberOfBatteries * foundECommerceConfig.storage_price;
     result.solarCost = 0;
     result.laborCost = 0;
 
@@ -473,12 +473,24 @@ export class ECommerceService {
       const { module_price_per_watt, labor_cost_perWatt } = foundECommerceConfig;
 
       const wattsBeingInstalled = solarProduct.sizeW * numberOfPanelsToInstall;
+      result.storageCost = numberOfBatteries * foundECommerceConfig.storage_price;
       result.laborCost = labor_cost_perWatt * wattsBeingInstalled;
       result.solarCost = module_price_per_watt * wattsBeingInstalled;
-    }
 
-    if (numberOfBatteries > 0) {
-      result.markupRate = foundECommerceConfig.es_markup;
+      if (numberOfBatteries > 0) {
+        result.markupRate = foundECommerceConfig.es_markup;
+      }
+    } else {
+      const retrofitLookup = foundECommerceConfig.retrofit_storage_prices?.find(p => p.battery_count === numberOfBatteries);
+
+      if (!retrofitLookup) {
+        const subject = `E Commerce Config does not have retrofit storage price ${numberOfBatteries}`;
+        const body = `E Commerce Config does not have retrofit storage price ${numberOfBatteries}`;
+        await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+        throw ApplicationException.EntityNotFound('E Commerce Config');
+      }
+
+      result.storageCost = retrofitLookup.cost;
     }
 
     return result;

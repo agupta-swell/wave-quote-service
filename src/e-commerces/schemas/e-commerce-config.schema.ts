@@ -2,6 +2,19 @@ import { Document, Schema, Types } from 'mongoose';
 
 export const E_COMMERCE_CONFIG = Symbol('E_COMMERCE_CONFIG').toString();
 
+export interface IRetrofitStoragePriceSchema extends Document {
+  battery_count: number;
+  cost: number;
+}
+
+const RetrofitStoragePriceSchema = new Schema<IRetrofitStoragePriceSchema>(
+  {
+    battery_count: Number,
+    cost: Number,
+  },
+  { _id: false },
+);
+
 export interface ECommerceConfig extends Document {
   region_id: Types.ObjectId;
   design_factor: number;
@@ -15,6 +28,7 @@ export interface ECommerceConfig extends Document {
   esa_contract_term_in_years: number;
   esa_utility_program_name: string;
   es_markup: number;
+  retrofit_storage_prices: IRetrofitStoragePriceSchema[];
   
   created_by: string;
   created_at: Date;
@@ -35,6 +49,7 @@ export const ECommerceConfigSchema = new Schema<ECommerceConfig>({
   esa_contract_term_in_years: Number,
   esa_utility_program_name: String,
   es_markup: Number,
+  retrofit_storage_prices: [RetrofitStoragePriceSchema],
 
   created_at: { type: Date, default: Date.now },
   created_by: String,
