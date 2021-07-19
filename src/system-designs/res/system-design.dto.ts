@@ -152,7 +152,28 @@ export class SystemDesignDto {
         };
       }),
       adders: adders.map(item => toCamelCase(item)),
-      ancillaryEquipments: (ancillary_equipments || []).map(item => toCamelCase(item)),
+      ancillaryEquipments: (ancillary_equipments || []).map(item => {
+        const {
+          ancillary_equipment_model_data_snapshot: {
+            manufacturer_id,
+            model_name,
+            related_component,
+            description,
+            quantity,
+          },
+        } = item;
+
+        return {
+          ...toCamelCase(item),
+          ancillaryEquipmentModelDataSnapshot: {
+            manufacturerId: manufacturer_id,
+            modelName: model_name,
+            relatedComponent: related_component,
+            description,
+            quantity,
+          },
+        };
+      }),
       balanceOfSystems: (balance_of_systems || []).map(item => toCamelCase(item)),
     };
   };

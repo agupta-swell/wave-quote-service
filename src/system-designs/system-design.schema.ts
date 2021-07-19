@@ -283,6 +283,7 @@ export interface IAncillaryEquipment {
   description: string;
   average_whole_sale_price: number;
   applicable_product_manufacturer_id: string;
+  quantity: number;
 }
 
 export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
@@ -294,6 +295,7 @@ export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
     description: String,
     average_whole_sale_price: Number,
     applicable_product_manufacturer_id: String,
+    quantity: Number,
   },
   { _id: false },
 );
