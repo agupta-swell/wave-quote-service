@@ -4,8 +4,12 @@ import { ApplicationException } from 'src/app/app.exception';
 
 @Injectable()
 export class ParseObjectIdPipe implements PipeTransform<any, any> {
-  transform(value: unknown): ObjectId {
-    if (typeof value !== 'string' && !Types.ObjectId.isValid(<string>value)) {
+  transform(value: unknown): ObjectId | null {
+    if (value === '-1') {
+      return null;
+    }
+
+    if (typeof value !== 'string' || !Types.ObjectId.isValid(<string>value)) {
       throw ApplicationException.ValidationFailed('Must be a valid Mongo ObjectID String');
     }
 

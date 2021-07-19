@@ -7,7 +7,6 @@ import { ExistingSolarDataDto } from './sub-dto/existing-solar.dto';
 
 export class UpdateSystemDesignDto {
   @ApiProperty()
-  @IsNotEmpty()
   @IsString()
   opportunityId: string;
 
