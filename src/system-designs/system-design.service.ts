@@ -1,8 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { flatten, pickBy, sumBy } from 'lodash';
-import { ObjectId } from 'mongoose';
-import { LeanDocument, Model, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
@@ -261,7 +260,7 @@ export class SystemDesignService {
         postExtendCalculate(result as any);
       }
 
-      const annualUsageKWh = utilityAndUsage?.utility_data.typical_baseline_usage?.annual_consumption || 0;
+      const annualUsageKWh = utilityAndUsage?.utility_data.actual_usage?.annual_consumption || 0;
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
