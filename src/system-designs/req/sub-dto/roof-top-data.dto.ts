@@ -23,7 +23,7 @@ export class RoofTopDataReqDto {
     isArray: true,
   })
   @ValidateNested({ each: true })
-  @IsNotEmpty()
+  @IsOptional()
   @Type(() => InverterDto)
   inverters: InverterDto[];
 
@@ -31,7 +31,7 @@ export class RoofTopDataReqDto {
     type: StorageDto,
     isArray: true,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => StorageDto)
   storage: StorageDto[];
@@ -40,7 +40,7 @@ export class RoofTopDataReqDto {
     type: AdderDto,
     isArray: true,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => AdderDto)
   adders: AdderDto[];

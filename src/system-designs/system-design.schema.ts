@@ -283,6 +283,7 @@ export interface IAncillaryEquipment {
   description: string;
   average_whole_sale_price: number;
   applicable_product_manufacturer_id: string;
+  quantity: number;
 }
 
 export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
@@ -294,6 +295,7 @@ export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
     description: String,
     average_whole_sale_price: Number,
     applicable_product_manufacturer_id: String,
+    quantity: Number,
   },
   { _id: false },
 );
@@ -470,11 +472,11 @@ export class SystemDesignModel {
     const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
     return {
       panel_array: (panelArray || []).map(item => toSnakeCase(item)),
-      inverters: inverters.map(item => toSnakeCase(item)),
-      storage: storage.map(item => toSnakeCase(item)),
-      adders: adders.map(item => toSnakeCase(item)),
-      balance_of_systems: balanceOfSystems.map(item => toSnakeCase(item)),
-      ancillary_equipments: ancillaryEquipments.map(item => toSnakeCase(item)),
+      inverters: inverters?.map(item => toSnakeCase(item)) || [],
+      storage: storage?.map(item => toSnakeCase(item)) || [],
+      adders: adders?.map(item => toSnakeCase(item)) || [],
+      balance_of_systems: balanceOfSystems?.map(item => toSnakeCase(item)) || [],
+      ancillary_equipments: ancillaryEquipments?.map(item => toSnakeCase(item)) || [],
     };
   };
 
