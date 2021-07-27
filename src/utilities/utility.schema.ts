@@ -185,6 +185,7 @@ export interface ICostData {
   master_tariff_id: string;
   typical_usage_cost: IUtilityCostData;
   actual_usage_cost: IUtilityCostData;
+  post_install_master_tariff_id: string;
 }
 
 export const CostDataSchema = new Schema<Document<ICostData>>(
@@ -192,6 +193,7 @@ export const CostDataSchema = new Schema<Document<ICostData>>(
     master_tariff_id: String,
     typical_usage_cost: UtilityCostDataSchema,
     actual_usage_cost: UtilityCostDataSchema,
+    post_install_master_tariff_id: String,
   },
   { _id: false },
 );
