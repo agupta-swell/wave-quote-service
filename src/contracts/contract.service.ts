@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { sumBy } from 'lodash';
 import { Model, ObjectId } from 'mongoose';
@@ -118,24 +118,22 @@ export class ContractService {
     const { mode, contractDetail } = req;
 
     if (mode === REQUEST_MODE.ADD && contractDetail.id) {
-      return OperationResult.ok(new SaveContractDto(false, 'Add request cannot have an id value'));
+      throw new BadRequestException({ message: 'Add request cannot have an id value' });
     }
 
     if (mode === REQUEST_MODE.UPDATE && !contractDetail.id) {
-      return OperationResult.ok(new SaveContractDto(false, 'Update request should have an id value'));
+      throw new BadRequestException({ message: 'Update request should have an id value' });
     }
 
     if (mode === REQUEST_MODE.UPDATE) {
       const contract = await this.contractModel.findById(contractDetail.id).lean();
 
       if (!contract) {
-        return OperationResult.ok(
-          new SaveContractDto(false, `No matching record to update for id ${contractDetail.id}`),
-        );
+        throw new BadRequestException({ message: `No matching record to update for id ${contractDetail.id}` });
       }
 
       if (contract.contract_status !== PROCESS_STATUS.INITIATED) {
-        return OperationResult.ok(new SaveContractDto(false, 'Contract is already in progress or completed'));
+        throw new BadRequestException({ message: 'Contract is already in progress or completed' });
       }
 
       const updatedContract = await this.contractModel
