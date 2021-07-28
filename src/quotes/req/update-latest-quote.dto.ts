@@ -1,25 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsMongoId, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsEnum, IsMongoId, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { QUOTE_MODE_TYPE } from '../constants';
+import { QuotePriceOverride, QuotePricePerWatt } from './create-quote.dto';
 
-export class QuotePricePerWatt {
-  @ApiProperty()
-  @IsNumber()
-  pricePerWatt: number;
-
-  @ApiProperty()
-  @IsNumber()
-  grossPrice: number;
-}
-
-export class QuotePriceOverride {
-  @ApiProperty()
-  @IsNumber()
-  grossPrice: number;
-}
-
-export class CreateQuoteDto {
+export class UpdateLatestQuoteDto {
   @ApiProperty()
   @IsString()
   opportunityId: string;
@@ -30,22 +15,27 @@ export class CreateQuoteDto {
 
   @ApiProperty()
   @IsString()
+  @IsOptional()
   fundingSourceId: string;
 
   @ApiProperty()
   @IsMongoId()
+  @IsOptional()
   financialProductId: string;
 
   @ApiProperty()
   @IsMongoId()
+  @IsOptional()
   utilityProgramId: string;
 
   @ApiProperty()
   @IsString()
+  @IsOptional()
   quoteName: string;
 
   @ApiProperty()
   @IsString()
+  @IsOptional()
   partnerId: string;
 
   @ApiProperty({ enum: QUOTE_MODE_TYPE, isArray: true })

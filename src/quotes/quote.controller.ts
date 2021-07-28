@@ -7,6 +7,7 @@ import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { QuoteService } from './quote.service';
 import { CalculateQuoteDetailDto, CreateQuoteDto, LeaseQuoteValidationDto, UpdateQuoteDto } from './req';
+import { UpdateLatestQuoteDto } from './req/update-latest-quote.dto';
 import { DiscountListRes, DiscountsDto, QuoteDto, QuoteListRes, QuoteRes, TaxCreditDto, TaxCreditListRes } from './res';
 
 @ApiTags('Quote')
@@ -93,7 +94,7 @@ export class QuoteController {
   @ApiOperation({ summary: 'Update Latest Quote' })
   @ApiOkResponse({ type: QuoteRes })
   async updateLatestQuote(
-    @Body() data: CreateQuoteDto,
+    @Body() data: UpdateLatestQuoteDto,
     @Param('quoteId') quoteId: string,
   ): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.updateLatestQuote(data, quoteId);

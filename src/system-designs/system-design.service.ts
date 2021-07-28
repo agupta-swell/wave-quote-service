@@ -373,7 +373,7 @@ export class SystemDesignService {
     systemDesignDto: UpdateSystemDesignDto,
   ): Promise<OperationResult<SystemDesignDto>> {
     if (id) {
-      const foundSystemDesign = await this.systemDesignModel.findOne(id);
+      const foundSystemDesign = await this.systemDesignModel.findOne({ _id: id });
 
       if (!foundSystemDesign) throw ApplicationException.NotFoundStatus('System Design', id.toString());
 
