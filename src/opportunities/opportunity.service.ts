@@ -51,6 +51,8 @@ export class OpportunityService {
       email: contact?.email || '',
       opportunityId,
       state: contact?.state || '',
+      latitude: contact?.lat || '',
+      longitude: contact?.lng || '',
       utilityProgramId: foundOpportunity.utilityProgramId ?? '',
       rebateProgramId: foundOpportunity.rebateProgramId ?? '',
       zipCode: contact?.zip || '',

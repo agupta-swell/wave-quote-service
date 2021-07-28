@@ -188,6 +188,7 @@ export class SystemDesignService {
     dispatch?: (systemDesign: SystemDesignModel) => Promise<void>,
   ): Promise<Partial<SystemDesignModel> | undefined> {
     if (preCalculate) await preCalculate();
+
     if (systemDesignDto.roofTopDesignData) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -292,6 +293,37 @@ export class SystemDesignService {
 
       return pickBy(systemDesign, item => typeof item !== 'undefined');
     }
+
+    if (systemDesignDto.capacityProductionDesignData) {
+      const { capacity, azimuth, pitch, losses } = systemDesignDto.capacityProductionDesignData;
+      const [utilityAndUsage, systemProductionArray] = await Promise.all([
+        this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
+        this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
+      ]);
+
+      const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
+
+      const generation = await this.systemProductService.pvWatCalculation({
+        lat: systemDesign.latitude,
+        lon: systemDesign.longtitude,
+        azimuth,
+        systemCapacity: capacity,
+        tilt: pitch,
+        losses,
+      });
+
+      systemDesign.setSystemProductionData({
+        capacityKW: capacity,
+        generationKWh: generation,
+        productivity: capacity === 0 ? 0 : generation / capacity,
+        annualUsageKWh,
+        offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
+        generationMonthlyKWh: systemProductionArray.monthly,
+      });
+
+      return pickBy(systemDesign, item => typeof item !== 'undefined');
+    }
+
     return undefined;
   }
 
@@ -386,7 +418,8 @@ export class SystemDesignService {
         systemDesignDto.roofTopDesignData &&
         !systemDesignDto.roofTopDesignData.panelArray.length &&
         !systemDesignDto.roofTopDesignData.storage.length &&
-        !systemDesignDto.roofTopDesignData.inverters.length
+        !systemDesignDto.roofTopDesignData.inverters.length &&
+        !systemDesignDto.capacityProductionDesignData
       ) {
         throw ApplicationException.ValidationFailed('Please add at least 1 product');
       }
@@ -407,7 +440,8 @@ export class SystemDesignService {
       systemDesignDto.roofTopDesignData &&
       !systemDesignDto.roofTopDesignData.panelArray.length &&
       !systemDesignDto.roofTopDesignData.storage.length &&
-      !systemDesignDto.roofTopDesignData.inverters.length
+      !systemDesignDto.roofTopDesignData.inverters.length &&
+      !systemDesignDto.capacityProductionDesignData
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }

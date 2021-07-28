@@ -15,6 +15,15 @@ export class CapacityProductionDataDto {
   @ExposeProp()
   panelModelId: number;
 
+  @ExposeProp()
+  pitch: number;
+
+  @ExposeProp()
+  azimuth: number;
+
+  @ExposeProp()
+  losses: number;
+
   @ExposeProp({
     type: InverterDto,
     isArray: true,
