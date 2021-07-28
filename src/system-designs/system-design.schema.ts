@@ -21,8 +21,6 @@ const LatLngSchema = new Schema<Document<ILatLngSchema>>(
   { _id: false },
 );
 
-MongooseNamingStrategy.ExcludeOne(LatLngSchema);
-
 interface IProductCommonSchema {
   name: string;
   type: string;

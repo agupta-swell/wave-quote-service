@@ -8,6 +8,7 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
+import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ProductService } from '../products/product.service';
@@ -358,14 +359,18 @@ export class SystemDesignService {
       }
     });
 
+    delete removedUndefined?._id;
+
+    assignToModel(foundSystemDesign, removedUndefined);
+
     await Promise.all([
-      foundSystemDesign.updateOne(removedUndefined as any),
+      // this.systemDesignModel.updateOne({_id: foundSystemDesign._id}, {$set: {...removedUndefined} as any});
+      foundSystemDesign.save(),
+      // foundSystemDesign.updateOne(removedUndefined as any),
       systemDesignDto.designMode && this.quoteService.setOutdatedData(systemDesignDto.opportunityId, 'System Design'),
     ]);
 
-    return OperationResult.ok(
-      strictPlainToClass(SystemDesignDto, { ...foundSystemDesign.toJSON(), ...removedUndefined }),
-    );
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign.toJSON()));
   }
 
   async recalculateSystemDesign(

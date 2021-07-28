@@ -1,9 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class AncillaryEquipmentDto {
   @ApiProperty()
   @IsString()
+  @IsOptional()
   @IsNotEmpty()
   ancillaryId: string;
 
