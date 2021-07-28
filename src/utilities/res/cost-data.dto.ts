@@ -44,4 +44,7 @@ export class CostDataDto {
 
   @ExposeProp({ type: UtilityCostData })
   actualUsageCost: UtilityCostData | undefined;
+
+  @ExposeProp()
+  postInstallMasterTariffId: string;
 }
