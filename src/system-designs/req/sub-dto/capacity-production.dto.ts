@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from 'class-validator';
 import { InverterDto } from './inverter.dto';
 import { StorageDto } from './storage.dto';
 
@@ -33,12 +33,13 @@ export class CapacityProductionDataDto {
   @ApiProperty()
   @IsOptional()
   @IsNumber()
+  @IsPositive()
   numberOfPanels: number;
 
   @ApiProperty()
-  @IsOptional()
-  @IsNumber()
-  panelModelId: number;
+  @IsNotEmpty()
+  @IsString()
+  panelModelId: string;
 
   @ApiProperty({
     type: InverterDto,

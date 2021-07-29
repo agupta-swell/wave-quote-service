@@ -42,6 +42,7 @@ export class CreateSystemDesignDto {
 
   @ApiPropertyOptional()
   @IsString()
+  @IsOptional()
   thumbnail: string;
 
   @ApiPropertyOptional({ type: RoofTopDataReqDto })

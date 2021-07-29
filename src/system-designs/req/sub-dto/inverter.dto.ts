@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { INVERTER_TYPE } from '../../constants';
 
 export class InverterDto {
   @ApiProperty({ enum: [INVERTER_TYPE.MICRO, INVERTER_TYPE.STRING] })
-  @IsNotEmpty()
+  @IsOptional()
   type: INVERTER_TYPE;
 
   @ApiProperty()
@@ -13,7 +13,7 @@ export class InverterDto {
   inverterModelId: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   quantity: number;
 }

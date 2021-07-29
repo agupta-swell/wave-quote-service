@@ -56,9 +56,11 @@ export class SystemDesignService {
     }
 
     if (
-      !systemDesignDto.roofTopDesignData.panelArray.length &&
-      !systemDesignDto.roofTopDesignData.storage.length &&
-      !systemDesignDto.roofTopDesignData.inverters.length
+      (systemDesignDto.roofTopDesignData &&
+        !systemDesignDto.roofTopDesignData.panelArray.length &&
+        !systemDesignDto.roofTopDesignData.storage.length &&
+        !systemDesignDto.roofTopDesignData.inverters.length) ||
+      !systemDesignDto.capacityProductionDesignData
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -155,6 +157,64 @@ export class SystemDesignService {
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
       });
+    } else if (systemDesign.designMode === DESIGN_MODE.CAPACITY_PRODUCTION) {
+      const {
+        capacity,
+        azimuth,
+        pitch,
+        losses,
+        production,
+        panelModelId,
+        inverters,
+        storage,
+      } = systemDesignDto.capacityProductionDesignData;
+
+      const setPanelModelDataSnapshot = async () => {
+        const panelModelData = await this.productService.getDetailById(panelModelId);
+        const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
+        systemDesign.setCapacityProductionPanelModelDataSnapshot(data);
+      };
+
+      await Promise.all(
+        flatten([
+          setPanelModelDataSnapshot as any,
+          inverters.map(async (inverter, index) => {
+            const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
+            const data = { ...inverterModelData, partNumber: inverterModelData?.partNumber } as any;
+            systemDesign.setInverter(data, index, systemDesign.designMode);
+          }),
+          storage.map(async (storage, index) => {
+            const storageModelData = await this.productService.getDetailById(storage.storageModelId);
+            const data = { ...storageModelData, partNumber: storageModelData?.partNumber } as any;
+            systemDesign.setStorage(data, index, systemDesign.designMode);
+          }),
+        ]),
+      );
+
+      const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
+      let generation = 0;
+
+      if (production > 0) {
+        generation = production;
+      } else {
+        generation = await this.systemProductService.pvWatCalculation({
+          lat: systemDesign.latitude,
+          lon: systemDesign.longtitude,
+          azimuth,
+          systemCapacity: capacity,
+          tilt: pitch,
+          losses,
+        });
+      }
+
+      systemDesign.setSystemProductionData({
+        capacityKW: capacity,
+        generationKWh: generation,
+        productivity: capacity === 0 ? 0 : generation / capacity,
+        annualUsageKWh,
+        offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
+        generationMonthlyKWh: systemProductionArray.monthly,
+      });
     }
 
     const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
@@ -189,14 +249,14 @@ export class SystemDesignService {
   ): Promise<Partial<SystemDesignModel> | undefined> {
     if (preCalculate) await preCalculate();
 
+    const [utilityAndUsage, systemProductionArray] = await Promise.all([
+      this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
+      this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
+    ]);
+
     if (systemDesignDto.roofTopDesignData) {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
-
-      const [utilityAndUsage, systemProductionArray] = await Promise.all([
-        this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
-        this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
-      ]);
 
       const handlers = [
         systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
@@ -295,22 +355,22 @@ export class SystemDesignService {
     }
 
     if (systemDesignDto.capacityProductionDesignData) {
-      const { capacity, azimuth, pitch, losses } = systemDesignDto.capacityProductionDesignData;
-      const [utilityAndUsage, systemProductionArray] = await Promise.all([
-        this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
-        this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
-      ]);
-
+      const { capacity, azimuth, pitch, losses, production } = systemDesignDto.capacityProductionDesignData;
       const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
+      let generation = 0;
 
-      const generation = await this.systemProductService.pvWatCalculation({
-        lat: systemDesign.latitude,
-        lon: systemDesign.longtitude,
-        azimuth,
-        systemCapacity: capacity,
-        tilt: pitch,
-        losses,
-      });
+      if (production > 0) {
+        generation = production;
+      } else {
+        generation = await this.systemProductService.pvWatCalculation({
+          lat: systemDesign.latitude,
+          lon: systemDesign.longtitude,
+          azimuth,
+          systemCapacity: capacity,
+          tilt: pitch,
+          losses,
+        });
+      }
 
       systemDesign.setSystemProductionData({
         capacityKW: capacity,
@@ -329,10 +389,11 @@ export class SystemDesignService {
 
   async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (
-      systemDesignDto.roofTopDesignData &&
-      !systemDesignDto.roofTopDesignData.panelArray.length &&
-      !systemDesignDto.roofTopDesignData.storage.length &&
-      !systemDesignDto.roofTopDesignData.inverters.length
+      (systemDesignDto.roofTopDesignData &&
+        !systemDesignDto.roofTopDesignData.panelArray.length &&
+        !systemDesignDto.roofTopDesignData.storage.length &&
+        !systemDesignDto.roofTopDesignData.inverters.length) ||
+      !systemDesignDto.capacityProductionDesignData
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -415,10 +476,10 @@ export class SystemDesignService {
       if (!foundSystemDesign) throw ApplicationException.NotFoundStatus('System Design', id.toString());
 
       if (
-        systemDesignDto.roofTopDesignData &&
-        !systemDesignDto.roofTopDesignData.panelArray.length &&
-        !systemDesignDto.roofTopDesignData.storage.length &&
-        !systemDesignDto.roofTopDesignData.inverters.length &&
+        (systemDesignDto.roofTopDesignData &&
+          !systemDesignDto.roofTopDesignData.panelArray.length &&
+          !systemDesignDto.roofTopDesignData.storage.length &&
+          !systemDesignDto.roofTopDesignData.inverters.length) ||
         !systemDesignDto.capacityProductionDesignData
       ) {
         throw ApplicationException.ValidationFailed('Please add at least 1 product');
@@ -620,6 +681,7 @@ export class SystemDesignService {
       };
       if (existingSolarData.financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO) {
         delete updateQuery.$set.tpoFundingSource;
+        // eslint-disable-next-line
         updateQuery['$unset'] = { tpoFundingSource: '' };
       }
       this.opportunityService.updateExistingOppDataById(opportunityId, updateQuery);

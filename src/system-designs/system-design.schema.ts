@@ -1,10 +1,9 @@
 import { Document, Schema, Types } from 'mongoose';
-import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { BATTERY_TYPE } from 'src/products/constants';
 import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
-import { COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
-import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
+import { COMPONENT_TYPE, COST_UNIT_TYPE, DESIGN_MODE } from './constants';
+import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
 
@@ -326,6 +325,20 @@ export interface IRoofTopSchema {
   ancillaryEquipments: IAncillaryEquipmentSchema[];
 }
 
+export interface ICapacityProductionSchema {
+  capacity: number;
+  production: number;
+  azimuth: number;
+  losses: number;
+  pitch: number;
+  numberOfPanels: number;
+  panelModelId: string;
+  panelModelDataSnapshot: IPanelProductSchema;
+  panelModelSnapshotDate: Date;
+  inverters: IInverterSchema[];
+  storage: IStorageSchema[];
+}
+
 export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
   {
     panel_array: [SolarPanelArraySchema],
@@ -334,6 +347,23 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
     adders: [AdderSchema],
     balance_of_systems: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
+  },
+  { _id: false },
+);
+
+export const CapacityProductionSchema = new Schema<Document<ICapacityProductionSchema>>(
+  {
+    capacity: Number,
+    production: Number,
+    azimuth: Number,
+    losses: Number,
+    pitch: Number,
+    panel_model_id: String,
+    number_of_panels: Number,
+    panel_model_data_snapshot: PanelProductSchema,
+    panel_model_snapshot_date: Date,
+    inverters: [InverterSchema],
+    storage: [StorageSchema],
   },
   { _id: false },
 );
@@ -406,8 +436,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   is_solar: Boolean,
   is_retrofit: Boolean,
   roof_top_design_data: RoofTopSchema,
-  // TODO: implement later
-  capacity_production_design_data: String,
+  capacity_production_design_data: CapacityProductionSchema,
   net_usage_post_installation: NetUsagePostInstallationSchema,
   cost_post_installation: UtilityCostDataSchema,
   system_production_data: SystemProductionSchema,
@@ -440,7 +469,7 @@ export class SystemDesignModel {
 
   roofTopDesignData: IRoofTopSchema;
 
-  capacityProductionDesignData: string;
+  capacityProductionDesignData: ICapacityProductionSchema;
 
   systemProductionData: ISystemProductionSchema;
 
@@ -467,7 +496,9 @@ export class SystemDesignModel {
     this.designMode = systemDesign.designMode;
     this.roofTopDesignData =
       systemDesign.roofTopDesignData && this.transformRoofTopData(systemDesign.roofTopDesignData);
-    this.capacityProductionDesignData = systemDesign.capacityProductionDesignData as any;
+    this.capacityProductionDesignData =
+      systemDesign.capacityProductionDesignData &&
+      this.transformCapacityProductionData(systemDesign.capacityProductionDesignData);
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
@@ -482,9 +513,29 @@ export class SystemDesignModel {
     } as any;
   };
 
+  transformCapacityProductionData = (data: CapacityProductionDataDto): ICapacityProductionSchema => {
+    const { capacity, production, azimuth, losses, pitch, numberOfPanels, panelModelId, inverters, storage } = data;
+    return {
+      capacity,
+      production,
+      azimuth,
+      losses,
+      pitch,
+      numberOfPanels,
+      panelModelId,
+      inverters,
+      storage,
+    } as any;
+  };
+
   setPanelModelDataSnapshot(panelModelData: IPanelProductSchema, index: number) {
     this.roofTopDesignData.panelArray[index].panelModelDataSnapshot = panelModelData;
     this.roofTopDesignData.panelArray[index].panelModelSnapshotDate = new Date();
+  }
+
+  setCapacityProductionPanelModelDataSnapshot(panelModelData: IPanelProductSchema) {
+    this.capacityProductionDesignData.panelModelDataSnapshot = panelModelData;
+    this.capacityProductionDesignData.panelModelSnapshotDate = new Date();
   }
 
   setAdder(adder: IAdderModel, unit: COST_UNIT_TYPE, index: number) {
@@ -493,14 +544,24 @@ export class SystemDesignModel {
     this.roofTopDesignData.adders[index].adderModelSnapshotDate = new Date();
   }
 
-  setInverter(inverter: IInverterProductSchema, index: number) {
-    this.roofTopDesignData.inverters[index].inverterModelDataSnapshot = inverter;
-    this.roofTopDesignData.inverters[index].inverterModelSnapshotDate = new Date();
+  setInverter(inverter: IInverterProductSchema, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.inverters[index].inverterModelDataSnapshot = inverter;
+      this.roofTopDesignData.inverters[index].inverterModelSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.inverters[index].inverterModelDataSnapshot = inverter;
+      this.capacityProductionDesignData.inverters[index].inverterModelSnapshotDate = new Date();
+    }
   }
 
-  setStorage(storage: IStorageProductSchema, index: number) {
-    this.roofTopDesignData.storage[index].storageModelDataSnapshot = storage;
-    this.roofTopDesignData.storage[index].storageModelSnapshotDate = new Date();
+  setStorage(storage: IStorageProductSchema, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.storage[index].storageModelDataSnapshot = storage;
+      this.roofTopDesignData.storage[index].storageModelSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.storage[index].storageModelDataSnapshot = storage;
+      this.capacityProductionDesignData.storage[index].storageModelSnapshotDate = new Date();
+    }
   }
 
   setBalanceOfSystem(balanceOfSystems: IBalanceOfSystemProductSchema, index: number) {
