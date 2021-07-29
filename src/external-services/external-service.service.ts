@@ -181,26 +181,51 @@ export class ExternalService {
       populateProperties: true,
       isActive: true,
       customerClasses: 'RESIDENTIAL',
+      pageCount: 100,
     };
 
     if (lseId) {
       params['lseId'] = lseId;
     }
-
-    let tariff: any;
     try {
-      tariff = await axios.get('https://api.genability.com/rest/public/tariffs', {
+      const res = await axios.get('https://api.genability.com/rest/public/tariffs', {
         headers: {
           Authorization: this.genabilityToken,
         },
         params,
       });
+
+      const total = res.data.count;
+
+      if (total > params.pageCount) {
+        const remain = Math.ceil(total / params.pageCount) - 1;
+
+        const batches = await Promise.all(
+          Array.from({ length: remain }, (_, idx) =>
+            axios.get('https://api.genability.com/rest/public/tariffs', {
+              headers: {
+                Authorization: this.genabilityToken,
+              },
+              params: {
+                ...params,
+                pageStart: (idx + 1) * params.pageCount,
+              },
+            }),
+          ),
+        );
+
+        const batchResults = batches.reduce((acc, cur) => {
+          acc = [...acc, ...cur.data.results];
+          return acc;
+        }, res.data.results);
+
+        return batchResults;
+      }
+      return res.data.results || [];
     } catch (error) {
       this.logger.errorAPICalling(url, error.message);
       throw ApplicationException.ServiceError();
     }
-
-    return tariff.data.results;
   }
 
   async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string): Promise<any> {
