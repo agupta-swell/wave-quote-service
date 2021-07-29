@@ -712,7 +712,7 @@ export class QuoteService {
           fundingSourceId: financeProduct.fundingSourceId,
           fundingSourceName: financeProduct.fundingSourceName,
           productAttribute,
-          financialProductSnapshot: financeProduct.financialProductSnapshot?.minSystemKw,
+          financialProductSnapshot: financeProduct.financialProductSnapshot,
         },
         netAmount: quoteCostBuildup.grossPrice,
         incentiveDetails,
