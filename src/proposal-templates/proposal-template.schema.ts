@@ -11,7 +11,7 @@ export enum EApplicableProducts {
 export interface ISectionSchema {
   id: string;
   name: string;
-  component_name: string;
+  componentName: string;
 }
 
 const SectionSchema = new Schema<Document<ISectionSchema>>(
@@ -23,9 +23,13 @@ const SectionSchema = new Schema<Document<ISectionSchema>>(
   { _id: false },
 );
 
+SectionSchema.virtual('_id').set(function (value) {
+  this.id = value;
+});
+
 export interface IProposalSectionMaster {
-  applicable_financial_product: string[];
-  applicable_products: string[];
+  applicableFinancialProduct: string[];
+  applicableProducts: string[];
 }
 
 const ProposalSectionMaster = new Schema<Document<IProposalSectionMaster>>({
@@ -36,7 +40,7 @@ const ProposalSectionMaster = new Schema<Document<IProposalSectionMaster>>({
 export interface ProposalTemplate extends Document {
   name: string;
   sections: ISectionSchema[];
-  proposal_section_master: IProposalSectionMaster;
+  proposalSectionMaster: IProposalSectionMaster;
 }
 
 export const ProposalTemplateSchema = new Schema<ProposalTemplate>({

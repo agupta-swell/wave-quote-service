@@ -3,12 +3,12 @@ import { Document, Schema } from 'mongoose';
 export const UTILITY_MASTER = Symbol('UTILITY_MASTER').toString();
 
 export interface UtilityMaster extends Document {
-  utility_name: string;
-  lse_id: string;
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  utilityName: string;
+  lseId: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const UtilityMasterSchema = new Schema<UtilityMaster>({

@@ -1,4 +1,4 @@
-import { Document, Schema } from 'mongoose';
+import { Document, LeanDocument, Schema } from 'mongoose';
 import { TEMPLATE_STATUS } from 'src/docusign-templates-master/constants';
 import { DocusignCompositeTemplateMaster, SignerRoleMaster } from 'src/docusign-templates-master/schemas';
 import { DocusignCompositeTemplateMasterSchemaWithoutId } from '../docusign-templates-master/schemas/docusign-composite-template-master.schema';
@@ -8,18 +8,18 @@ import { CONTRACT_TYPE, PROCESS_STATUS, SIGN_STATUS } from './constants';
 export const CONTRACT = Symbol('CONTRACT').toString();
 
 export interface ISignerDetailDataSchema {
-  role_id: string;
+  roleId: string;
   role: string;
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  sign_status: SIGN_STATUS;
-  sent_on: Date;
-  signed_on: Date;
-  phone_number: string;
+  signStatus: SIGN_STATUS;
+  sentOn: Date;
+  signedOn: Date;
+  phoneNumber: string;
 }
 
-const SignerDetailDataSchema = new Schema<Document<ISignerDetailDataSchema>>(
+const SignerDetailDataSchema = new Schema<Document<any>>(
   {
     role_id: String,
     role: String,
@@ -36,18 +36,18 @@ const SignerDetailDataSchema = new Schema<Document<ISignerDetailDataSchema>>(
 
 export interface ITemplateDetailSchema {
   id: string;
-  template_name: string;
+  templateName: string;
   description: string;
-  docusign_template_id: string;
-  template_status: TEMPLATE_STATUS;
-  recipient_roles: SignerRoleMaster[];
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  docusignTemplateId: string;
+  templateStatus: TEMPLATE_STATUS;
+  recipientRoles: SignerRoleMaster[] | LeanDocument<SignerRoleMaster>[];
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
-const TemplateDetailSchema = new Schema<Document<ITemplateDetailSchema>>(
+const TemplateDetailSchema = new Schema<Document<any>>(
   {
     id: String,
     template_name: String,
@@ -64,8 +64,8 @@ const TemplateDetailSchema = new Schema<Document<ITemplateDetailSchema>>(
 );
 
 export interface ICompositeTemplateSchema {
-  template_details: ITemplateDetailSchema[];
-  composite_template_data: DocusignCompositeTemplateMaster;
+  templateDetails: ITemplateDetailSchema[];
+  compositeTemplateData: DocusignCompositeTemplateMaster;
 }
 
 const CompositeTemplateSchema = new Schema<Document<ICompositeTemplateSchema>>(
@@ -77,23 +77,23 @@ const CompositeTemplateSchema = new Schema<Document<ICompositeTemplateSchema>>(
 );
 
 export interface Contract extends Document {
-  opportunity_id: string;
-  contract_type: CONTRACT_TYPE;
+  opportunityId: string;
+  contractType: CONTRACT_TYPE;
   name: string;
-  associated_quote_id: string;
-  contract_template_id: string;
-  signer_details: ISignerDetailDataSchema[];
-  contract_template_detail: ICompositeTemplateSchema;
-  contracting_system: string;
-  primary_contract_id: string;
-  contract_status: PROCESS_STATUS;
-  chnage_order_description: string;
-  completion_date: string;
-  contracting_system_reference_id: string;
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  associatedQuoteId: string;
+  contractTemplateId: string;
+  signerDetails: ISignerDetailDataSchema[];
+  contractTemplateDetail: ICompositeTemplateSchema;
+  contractingSystem: string;
+  primaryContractId: string;
+  contractStatus: PROCESS_STATUS;
+  chnageOrderDescription: string;
+  completionDate: string;
+  contractingSystemReferenceId: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const ContractSchema = new Schema<Contract>({

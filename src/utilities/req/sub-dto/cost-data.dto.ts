@@ -37,4 +37,7 @@ export class CostDataDto {
 
   @ApiProperty({ type: UtilityCostData })
   actualUsageCost: UtilityCostData;
+
+  @ApiProperty()
+  postInstallMasterTariffId: string;
 }

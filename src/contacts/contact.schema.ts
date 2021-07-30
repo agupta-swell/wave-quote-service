@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 
 export const CONTACT = Symbol('CONTACT').toString();
 
@@ -34,3 +35,5 @@ export const ContactSchema = new Schema<Contact>({
   lat: Number,
   lng: Number,
 });
+
+MongooseNamingStrategy.ExcludeOne(ContactSchema);

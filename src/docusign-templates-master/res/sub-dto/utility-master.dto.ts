@@ -1,15 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UtilityMaster } from 'src/docusign-templates-master/schemas';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class UtilityMasterResDto {
-  @ApiProperty()
-  utility_name: string;
+  @ExposeMongoId({ eitherId: true })
+  id: string;
 
   @ApiProperty()
-  lse_id: string;
+  @ExposeProp()
+  utilityName: string;
 
-  constructor(props: UtilityMaster) {
-    this.lse_id = props.lse_id;
-    this.utility_name = props.utility_name;
-  }
+  @ExposeProp()
+  lseId: string;
 }

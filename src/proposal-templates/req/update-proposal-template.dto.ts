@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional } from 'class-validator';
+import { IsArray, IsMongoId, IsOptional, ValidateNested } from 'class-validator';
 import { ProposalSectionMasterDto } from './create-proposal-template.dto';
 
 export class UpdateProposalTemplateDto {
@@ -7,10 +7,13 @@ export class UpdateProposalTemplateDto {
   @IsOptional()
   name: string;
 
-  @ApiPropertyOptional({ type: String, isArray: true })
+  @ApiPropertyOptional({ isArray: true })
+  @IsArray()
+  @IsMongoId({ each: true })
   @IsOptional()
   sections: string[];
 
   @ApiProperty({ type: ProposalSectionMasterDto })
+  @ValidateNested()
   proposalSectionMaster: ProposalSectionMasterDto;
 }

@@ -1,31 +1,31 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 import { SIGN_STATUS } from '../../constants';
 
 export class SignerDetailResDto {
-  @ApiProperty()
+  @ExposeProp()
   roleId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   role: string;
 
-  @ApiProperty()
+  @ExposeProp()
   firstName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lastName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   email: string;
 
-  @ApiProperty()
+  @ExposeProp()
   signStatus: SIGN_STATUS;
 
-  @ApiProperty()
+  @ExposeProp()
   sentOn: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   signedOn: Date;
 
-  @ApiPropertyOptional()
-  phoneNumber: string
+  @ExposeProp({ required: false })
+  phoneNumber: string;
 }

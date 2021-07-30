@@ -1,124 +1,63 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ITemplateDetailSchema, ISignerDetailDataSchema } from 'src/contracts/contract.schema';
-import { Expose, Type } from 'class-transformer';
-import { TEMPLATE_STATUS } from 'src/docusign-templates-master/constants';
+import { Type } from 'class-transformer';
 import { SIGN_STATUS } from 'src/contracts/constants';
+import { IsDateString, IsEmail, IsEnum, IsMongoId, IsOptional, IsString, ValidateNested } from 'class-validator';
 
-export class SignerRoleMasterDto {
-  @ApiProperty({ name: 'roleName' })
-  @Expose({ name: 'roleName' })
-  role_name: string;
-
-  @ApiProperty({ name: 'roleDescription' })
-  @Expose({ name: 'roleDescription' })
-  role_description: string;
-
-  @ApiProperty({ name: 'createdBy' })
-  @Expose({ name: 'createdBy' })
-  created_by: string;
-
-  @ApiProperty({ name: 'createdAt' })
-  @Expose({ name: 'createdAt' })
-  created_at: Date;
-
-  @ApiProperty({ name: 'updatedBy' })
-  @Expose({ name: 'updatedBy' })
-  updated_by: string;
-
-  @ApiProperty({ name: 'updatedAt' })
-  @Expose({ name: 'updatedAt' })
-  updated_at: Date;
-}
-export class TemplateDetailDto implements ITemplateDetailSchema {
+export class TemplateDetailDto {
   @ApiProperty()
-  _id: string;
-
-  @ApiProperty({ name: 'templateName' })
-  @Expose({ name: 'templateName' })
-  template_name: string;
-
-  @ApiProperty()
-  description: string;
-
-  @ApiProperty({ name: 'docusignTemplateId' })
-  @Expose({ name: 'docusignTemplateId' })
-  docusign_template_id: string;
-
-  @ApiProperty({ name: 'templateStatus', enum: TEMPLATE_STATUS })
-  @Expose({ name: 'templateStatus' })
-  template_status: TEMPLATE_STATUS;
-
-  // TODO remove annotation
-  @ApiProperty({ name: 'recipientRoles' })
-  @Expose({ name: 'recipientRoles' })
-  @Type(() => SignerRoleMasterDto)
-  // @ts-ignore
-  recipient_roles: SignerRoleMasterDto[];
-
-  @ApiProperty({ name: 'createdBy' })
-  @Expose({ name: 'createdBy' })
-  created_by: string;
-
-  @ApiProperty({ name: 'createdAt' })
-  @Expose({ name: 'createdAt' })
-  created_at: Date;
-
-  @ApiProperty({ name: 'updatedBy' })
-  @Expose({ name: 'updatedBy' })
-  updated_by: string;
-
-  @ApiProperty({ name: 'updatedAt' })
-  @Expose({ name: 'updatedAt' })
-  updated_at: Date;
-
-  @ApiProperty()
+  @IsMongoId()
   id: string;
 }
 
-export class SignerDetailDto implements ISignerDetailDataSchema {
-  @ApiProperty({ name: 'roleId' })
-  @Expose({ name: 'roleId' })
-  role_id: string;
+export class SignerDetailDto {
+  @ApiProperty()
+  @IsMongoId()
+  roleId: string;
 
   @ApiProperty()
+  @IsString()
   role: string;
 
-  @ApiProperty({ name: 'firstName' })
-  @Expose({ name: 'firstName' })
-  first_name: string;
-
-  @ApiProperty({ name: 'lastName' })
-  @Expose({ name: 'lastName' })
-  last_name: string;
+  @ApiProperty()
+  @IsString()
+  firstName: string;
 
   @ApiProperty()
+  @IsString()
+  lastName: string;
+
+  @ApiProperty()
+  @IsEmail()
   email: string;
 
-  @ApiProperty({ name: 'signStatus', enum: SIGN_STATUS })
-  @Expose({ name: 'signStatus' })
-  sign_status: SIGN_STATUS;
+  @ApiProperty({ enum: SIGN_STATUS })
+  @IsEnum(SIGN_STATUS)
+  signStatus: SIGN_STATUS;
 
-  @ApiProperty({ name: 'sentOn' })
-  @Expose({ name: 'sentOn' })
-  sent_on: Date;
+  @ApiProperty()
+  @IsOptional()
+  @IsDateString()
+  sentOn: Date;
 
-  @ApiProperty({ name: 'signedOn' })
-  @Expose({ name: 'signedOn' })
-  signed_on: Date;
+  @ApiProperty()
+  @IsOptional()
+  @IsDateString()
+  signedOn: Date;
 
-  @ApiProperty({ name: 'phoneNumber' })
-  @Expose({ name: 'phoneNumber' })
-  phone_number: string;
+  @ApiProperty()
+  @IsOptional()
+  @IsDateString()
+  phoneNumber: string;
 }
 
 export class ProposalSendSampleContractDto {
-  @ApiProperty({ name: 'templateDetails', type: [TemplateDetailDto] })
-  @Expose({ name: 'templateDetails' })
+  @ApiProperty({ type: [TemplateDetailDto] })
   @Type(() => TemplateDetailDto)
-  template_details: TemplateDetailDto[];
+  @ValidateNested({ each: true })
+  templateDetails: TemplateDetailDto[];
 
   @ApiProperty({ name: 'signerDetails', type: [SignerDetailDto] })
-  @Expose({ name: 'signerDetails' })
   @Type(() => SignerDetailDto)
-  signer_details: SignerDetailDto[];
+  @ValidateNested({ each: true })
+  signerDetails: SignerDetailDto[];
 }

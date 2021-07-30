@@ -1,59 +1,46 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
-import { toCamelCase } from '../../utils/transformProperties';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { TEMPLATE_STATUS } from '../constants';
-import { DocusignTemplateMaster } from '../docusign-template-master.schema';
 import { SignerRoleDataResDto } from './sub-dto';
 
 class TemplateDataResDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   templateName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   description: string;
 
-  @ApiProperty()
+  @ExposeProp()
   docusignTemplateId: string;
 
-  @ApiProperty({ enum: TEMPLATE_STATUS })
+  @ExposeProp({ enum: TEMPLATE_STATUS })
   templateStatus: TEMPLATE_STATUS;
 
-  @ApiProperty({ type: SignerRoleDataResDto, isArray: true })
+  @ExposeProp({ type: SignerRoleDataResDto, isArray: true })
   recipientRoles: SignerRoleDataResDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   createdAt: string;
 
-  @ApiProperty()
+  @ExposeProp()
   updatedAt: string;
 }
 
 export class SaveTemplateDto {
-  @ApiProperty()
+  @ExposeProp()
   responseStatus: string;
 
-  @ApiPropertyOptional({ type: () => TemplateDataResDto })
-  newUpdatedTemplateMaster: TemplateDataResDto | undefined;
-
-  constructor(responseStatus: string, props?: LeanDocument<DocusignTemplateMaster>) {
-    this.responseStatus = responseStatus;
-    this.newUpdatedTemplateMaster =
-      props &&
-      ({
-        ...toCamelCase(props),
-        recipientRoles: props.recipient_roles.map(item => toCamelCase(item)),
-      } as any);
-  }
+  @ExposeProp({ type: TemplateDataResDto, required: false })
+  newUpdatedTemplateMaster?: TemplateDataResDto | undefined;
 }
 
 export class SaveTemplateRes implements ServiceResponse<SaveTemplateDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: () => SaveTemplateDto })
+  @ExposeProp({ type: SaveTemplateDto })
   data: SaveTemplateDto;
 }

@@ -1,27 +1,27 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 import { InverterDto } from './inverter.dto';
 import { StorageDto } from './storage.dto';
 
 export class CapacityProductionDataDto {
-  @ApiProperty()
+  @ExposeProp()
   capacity: number;
 
-  @ApiProperty()
+  @ExposeProp()
   production: number;
 
-  @ApiProperty()
+  @ExposeProp()
   numberOfPanels: number;
 
-  @ApiProperty()
+  @ExposeProp()
   panelModelId: number;
 
-  @ApiProperty({
+  @ExposeProp({
     type: InverterDto,
     isArray: true,
   })
   inverters: InverterDto[];
 
-  @ApiProperty({
+  @ExposeProp({
     type: StorageDto,
     isArray: true,
   })

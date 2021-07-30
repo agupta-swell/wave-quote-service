@@ -3,15 +3,10 @@ import * as dayjs from 'dayjs';
 import { sumBy } from 'lodash';
 import { TemplateDataBuilder } from 'src/docusign-communications/typing';
 
-export const getContractOneData: TemplateDataBuilder = ({
-  opportunity,
-  customerPayment,
-  contact,
-  recordOwner,
-  utilityName,
-  roofTopDesign,
-  isCash,
-}, defaultContractor) => {
+export const getContractOneData: TemplateDataBuilder = (
+  { opportunity, customerPayment, contact, recordOwner, utilityName, roofTopDesign, isCash },
+  defaultContractor,
+) => {
   const now = dayjs().format('MM/DD/YYYY');
   const next3Date = dayjs(new Date().getTime() + 3 * 24 * 60 * 60 * 1000);
 
@@ -103,8 +98,8 @@ export const getContractOneData: TemplateDataBuilder = ({
   obj['Text Prg Incentives - 1'] = accounting.formatMoney(customerPayment.programIncentiveDiscount);
   obj['Text Utility Program - 1'] = utilityName;
   obj['Text Adders - 1'] = roofTopDesign.adders.reduce((acc, item, index) => {
-    if (index === 0) return item.adder_model_data_snapshot.adder;
-    return `${acc}, ${item.adder_model_data_snapshot.adder}`;
+    if (index === 0) return item.adderModelDataSnapshot.adder;
+    return `${acc}, ${item.adderModelDataSnapshot.adder}`;
   }, '');
   obj['Text Amount Due Approved - 1'] = isCash
     ? ''
@@ -138,20 +133,18 @@ export const getContractOneData: TemplateDataBuilder = ({
   obj['Text Payment 2 Timing 1 - 7'] = isCash ? 'Due upon building department inspection approval' : '';
   obj['Text Project Adders - 1'] = roofTopDesign.adders.length > 0 ? 'Project Adders:' : '';
   obj['Text ES kW rollup - 1'] =
-    sumBy(roofTopDesign.storage, item => item.quantity * item.storage_model_data_snapshot.sizeW) / 1000;
+    sumBy(roofTopDesign.storage, item => item.quantity * item.storageModelDataSnapshot.sizeW) / 1000;
   obj['Text kW rollup - 1'] =
-    sumBy(roofTopDesign.panel_array, item => item.number_of_panels * item.panel_model_data_snapshot.sizeW) / 1000;
+    sumBy(roofTopDesign.panelArray, item => item.numberOfPanels * item.panelModelDataSnapshot.sizeW) / 1000;
   obj['Text ES kWh rollup - 1'] = sumBy(
     roofTopDesign.storage,
-    item => item.quantity * item.storage_model_data_snapshot.sizekWh,
+    item => item.quantity * item.storageModelDataSnapshot.sizekWh,
   );
   obj['Text PV Inverter Product - 1'] = roofTopDesign.inverters
-    .map(item => item.inverter_model_data_snapshot.name)
+    .map(item => item.inverterModelDataSnapshot.name)
     .join(', ');
-  obj['Text PV Module Product - 1'] = roofTopDesign.panel_array
-    .map(item => item.panel_model_data_snapshot.name)
-    .join(', ');
-  obj['Text Storage Product - 1'] = roofTopDesign.storage.map(item => item.storage_model_data_snapshot.name).join(', ');
+  obj['Text PV Module Product - 1'] = roofTopDesign.panelArray.map(item => item.panelModelDataSnapshot.name).join(', ');
+  obj['Text Storage Product - 1'] = roofTopDesign.storage.map(item => item.storageModelDataSnapshot.name).join(', ');
 
   return obj;
 };

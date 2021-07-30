@@ -1,61 +1,61 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ProductDto } from 'src/products/res/product.dto';
+import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { UtilityProgramMasterDto } from 'src/utility-programs-master/res/utility-program-master.dto';
-import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
 import { compareIds } from 'src/utils/common';
-import { GsPrograms } from '../gs-programs.schema';
 
 export class GsProgramsDto {
-  @ApiProperty()
+  @ExposeMongoId({ eitherId: true })
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   annualIncentives: number;
 
-  @ApiProperty()
+  @ExposeProp()
   termYears: string;
 
-  @ApiProperty()
+  @ExposeProp()
   numberBatteries: string;
 
-  @ApiProperty()
+  @ExposeProp()
   upfrontIncentives: number;
 
-  @ApiProperty({ type: UtilityProgramMasterDto })
+  @ExposeProp({ type: UtilityProgramMasterDto })
   utilityProgram?: UtilityProgramMasterDto;
 
-  @ApiProperty({ type: ProductDto })
+  @ExposeAndMap({ type: ProductDto }, params =>
+    params.obj.battery?.find(({ _id }) => compareIds(_id, params.obj.batteryId)),
+  )
   battery?: ProductDto;
 
-  constructor(props: LeanDocument<GsPrograms>, utilityProgram: UtilityProgramMaster, battery: any) {
-    this.id = props._id;
-    this.annualIncentives = props.annualIncentives;
-    this.termYears = props.termYears;
-    this.numberBatteries = props.numberBatteries;
-    this.upfrontIncentives = props.upfrontIncentives;
-    this.utilityProgram = new UtilityProgramMasterDto(utilityProgram);
-    const filterBattery = battery.find(({ _id }) => compareIds(_id, props.batteryId));
-    this.battery = filterBattery ? new ProductDto(filterBattery) : undefined;
-  }
+  @ExposeAndMap({}, ({ obj }) => obj.createdAt)
+  created_at: string;
+
+  @ExposeAndMap({}, ({ obj }) => obj.updatedAt)
+  updated_at: string;
+
+  @ExposeProp()
+  createdAt: string;
+
+  @ExposeProp()
+  updatedAt: string;
 }
 
 class GsProgramsPaginationDto implements Pagination<GsProgramsDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: GsProgramsDto,
     isArray: true,
   })
   data: GsProgramsDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class GsProgramsPaginationRes implements ServiceResponse<GsProgramsPaginationDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GsProgramsPaginationDto })
+  @ExposeProp({ type: GsProgramsPaginationDto })
   data: GsProgramsPaginationDto;
 }

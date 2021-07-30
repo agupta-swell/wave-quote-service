@@ -31,34 +31,31 @@ export class SystemProductService {
   ) {}
 
   async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
+    const { systemCapacity, ...p } = data;
     const pvWattSystemProduction = await this.pvWattSystemProduction
       .findOne({
-        lat: data.lat,
-        lon: data.lon,
-        system_capacity_kW: data.systemCapacity,
-        azimuth: data.azimuth,
-        tilt: data.tilt,
-        losses: data.losses,
+        ...p,
+        systemCapacityKW: systemCapacity,
       })
       .lean();
 
     if (pvWattSystemProduction) {
-      return pvWattSystemProduction.ac_annual_production;
+      return pvWattSystemProduction.acAnnualProduction;
     }
 
     const res = await this.externalService.calculateSystemProduction(data);
     const createdPvWattSystemProduction = new this.pvWattSystemProduction({
       lat: data.lat,
       lon: data.lon,
-      system_capacity_kW: data.systemCapacity,
+      systemCapacityKW: data.systemCapacity,
       azimuth: data.azimuth,
       tilt: data.tilt,
       losses: data.losses,
-      array_type: 1,
-      module_type: 1,
-      ac_annual_hourly_production: res.ac,
-      ac_monthly_production: res.ac_monthly,
-      ac_annual_production: res.ac_annual,
+      arrayType: 1,
+      moduleType: 1,
+      acAnnualHourlyProduction: res.ac,
+      acMonthlyProduction: res.ac_monthly,
+      acAnnualProduction: res.ac_annual,
     });
 
     await createdPvWattSystemProduction.save();
@@ -87,9 +84,9 @@ export class SystemProductService {
             .lean();
 
           if (pvWattSystemProduction) {
-            arrayProductionData.hourly = pvWattSystemProduction.ac_annual_hourly_production;
-            arrayProductionData.monthly = pvWattSystemProduction.ac_monthly_production;
-            arrayProductionData.annual = pvWattSystemProduction.ac_annual_production;
+            arrayProductionData.hourly = pvWattSystemProduction.acAnnualHourlyProduction;
+            arrayProductionData.monthly = pvWattSystemProduction.acMonthlyProduction;
+            arrayProductionData.annual = pvWattSystemProduction.acAnnualProduction;
             return arrayProductionData;
           }
 
@@ -106,15 +103,15 @@ export class SystemProductService {
           const createdPvWattSystemProduction = new this.pvWattSystemProduction({
             lat: systemDesignDto.latitude,
             lon: systemDesignDto.longtitude,
-            system_capacity_kW: systemCapacityInkWh,
+            systemCapacityKW: systemCapacityInkWh,
             azimuth: item.azimuth,
             tilt: item.pitch,
             losses: item.losses,
             array_type: 1,
             module_type: 1,
-            ac_annual_hourly_production: res.ac,
-            ac_monthly_production: res.ac_monthly,
-            ac_annual_production: res.ac_annual,
+            acAnnualHourlyProduction: res.ac,
+            acMonthlyProduction: res.ac_monthly,
+            acAnnualProduction: res.ac_annual,
           });
           await createdPvWattSystemProduction.save();
 
@@ -154,12 +151,12 @@ export class SystemProductService {
     currentUtilityUsage: number[],
     pvProduction: number[],
   ): INetUsagePostInstallationSchema {
-    const netUsagePostInstallation = ({ hourly_net_usage: [] } as unknown) as INetUsagePostInstallationSchema;
+    const netUsagePostInstallation = ({ hourlyNetUsage: [] } as unknown) as INetUsagePostInstallationSchema;
     currentUtilityUsage.forEach((value, index) => {
-      netUsagePostInstallation.hourly_net_usage[index] = value - (pvProduction[index] || 0);
+      netUsagePostInstallation.hourlyNetUsage[index] = value - (pvProduction[index] || 0);
     });
 
-    netUsagePostInstallation.calculation_mode = 'SelfConsumption';
+    netUsagePostInstallation.calculationMode = 'SelfConsumption';
 
     return netUsagePostInstallation;
   }

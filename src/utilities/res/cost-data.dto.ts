@@ -1,55 +1,50 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { toCamelCase } from '../../utils/transformProperties';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { INTERVAL_VALUE } from '../constants';
-import { ICostData } from '../utility.schema';
 
 class CostDetailData {
-  @ApiProperty()
+  @ExposeProp()
   startDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   endDate: Date;
 
-  @ApiProperty()
+  @ExposeAndMap({}, ({obj}) => obj.startDate)
+  start_date: Date;
+
+  @ExposeAndMap({}, ({obj}) => obj.endDate)
+  end_date: Date;
+
+  @ExposeProp()
   i: number;
 
-  @ApiProperty()
+  @ExposeProp()
   v: number;
 }
 
 class UtilityCostData {
-  @ApiProperty()
+  @ExposeProp()
   startDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   endDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   interval: INTERVAL_VALUE;
 
-  @ApiProperty({ type: CostDetailData, isArray: true })
+  @ExposeProp({ type: CostDetailData, isArray: true })
   cost: CostDetailData[];
 }
 
 export class CostDataDto {
-  @ApiProperty()
+  @ExposeProp()
   masterTariffId: string;
 
-  @ApiProperty({ type: UtilityCostData })
+  @ExposeProp({ type: UtilityCostData })
   typicalUsageCost: UtilityCostData;
 
-  @ApiProperty({ type: UtilityCostData })
+  @ExposeProp({ type: UtilityCostData })
   actualUsageCost: UtilityCostData | undefined;
 
-  constructor(props: ICostData) {
-    this.masterTariffId = props.master_tariff_id;
-    this.typicalUsageCost = props.typical_usage_cost && {
-      ...toCamelCase(props.typical_usage_cost),
-      cost: props.typical_usage_cost.cost.map(item => toCamelCase(item)),
-    };
-    this.actualUsageCost = props.actual_usage_cost && {
-      ...toCamelCase(props.actual_usage_cost),
-      cost: props.actual_usage_cost.cost.map(item => toCamelCase(item)),
-    } as any;
-  }
+  @ExposeProp()
+  postInstallMasterTariffId: string;
 }

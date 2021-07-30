@@ -1,26 +1,26 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { RATE_NAME_TYPE, SCENARIO_TYPE } from 'src/saving-calculations/constants';
+import { ExposeProp } from 'src/shared/decorators';
 
 class CostData {
-  @ApiProperty()
+  @ExposeProp()
   cost: number;
 
-  @ApiProperty()
+  @ExposeProp()
   yearMonth: Date;
 }
 
 class SavingData {
-  @ApiProperty({ type: CostData, isArray: true })
+  @ExposeProp({ type: CostData, isArray: true })
   costDataDetail: CostData[];
 
-  @ApiProperty({ enum: RATE_NAME_TYPE })
+  @ExposeProp({ enum: RATE_NAME_TYPE })
   rateNameType: RATE_NAME_TYPE;
 }
 
 export class ScenarioDataDto {
-  @ApiProperty({ type: SavingData, isArray: true })
+  @ExposeProp({ type: SavingData, isArray: true })
   savingsDataDetail: SavingData[];
 
-  @ApiProperty({ enum: SCENARIO_TYPE })
+  @ExposeProp({ enum: SCENARIO_TYPE })
   scenarioType: SCENARIO_TYPE;
 }

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model, Types } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { FundingSource, FUNDING_SOURCE } from './funding-source.schema';
 import { FundingSourceDto } from './res/funding-source.dto';
 
@@ -17,7 +18,7 @@ export class FundingSourceService {
 
     return OperationResult.ok(
       new Pagination({
-        data: fundingSources.map(fundingSource => new FundingSourceDto(fundingSource)),
+        data: strictPlainToClass(FundingSourceDto, fundingSources),
         total,
       }),
     );
@@ -25,7 +26,7 @@ export class FundingSourceService {
 
   async getFundingSourceById(fundingSourceId: string): Promise<OperationResult<FundingSourceDto>> {
     const result = await this.fundingSource.findById(fundingSourceId).lean();
-    return OperationResult.ok(new FundingSourceDto(result as any));
+    return OperationResult.ok(strictPlainToClass(FundingSourceDto, result));
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

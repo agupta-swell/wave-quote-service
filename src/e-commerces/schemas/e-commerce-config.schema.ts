@@ -3,7 +3,7 @@ import { Document, Schema, Types } from 'mongoose';
 export const E_COMMERCE_CONFIG = Symbol('E_COMMERCE_CONFIG').toString();
 
 export interface IRetrofitStoragePriceSchema extends Document {
-  battery_count: number;
+  batteryCount: number;
   cost: number;
 }
 
@@ -16,24 +16,24 @@ const RetrofitStoragePriceSchema = new Schema<IRetrofitStoragePriceSchema>(
 );
 
 export interface ECommerceConfig extends Document {
-  region_id: Types.ObjectId;
-  design_factor: number;
-  module_price_per_watt: number;
-  storage_price: number;
-  labor_cost_perWatt: number;
-  loan_interest_rate: number;
-  loan_terms_in_months: number;
-  loan_dealer_fee: number;
-  esa_rate_escalator: number;
-  esa_contract_term_in_years: number;
-  esa_utility_program_name: string;
-  es_markup: number;
-  retrofit_storage_prices: IRetrofitStoragePriceSchema[];
+  regionId: Types.ObjectId;
+  designFactor: number;
+  modulePricePerWatt: number;
+  storagePrice: number;
+  laborCostPerWatt: number;
+  loanInterestRate: number;
+  loanTermsInMonths: number; 
+  loanDealerFee: number;
+  esaRateEscalator: number;
+  esaContractTermInYears: number;
+  esaUtilityProgramName: string;
+  esMarkup: number;
+  retrofitStoragePrices: IRetrofitStoragePriceSchema[];
   
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const ECommerceConfigSchema = new Schema<ECommerceConfig>({

@@ -1,26 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
+import { Type } from 'class-transformer';
 import { ServiceResponse } from 'src/app/common';
-import { toCamelCase } from '../../utils/transformProperties';
-import { DocusignTemplateMaster } from '../docusign-template-master.schema';
+import { ExposeProp } from 'src/shared/decorators';
 import { TemplateMasterDataResDto } from './sub-dto';
 
 export class GetTemplateMasterDto {
-  @ApiProperty({ type: TemplateMasterDataResDto, isArray: true })
+  @ExposeProp({ type: TemplateMasterDataResDto, isArray: true })
   templateMasters: TemplateMasterDataResDto[];
-
-  constructor(props: LeanDocument<DocusignTemplateMaster>[]) {
-    this.templateMasters = props?.map(item => ({
-      ...toCamelCase(item),
-      recipientRoles: item.recipient_roles.map(role => toCamelCase(role)),
-    }));
-  }
 }
 
 export class GetTemplateMasterRes implements ServiceResponse<GetTemplateMasterDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetTemplateMasterDto })
+  @ExposeProp({ type: GetTemplateMasterDto })
   data: GetTemplateMasterDto;
 }

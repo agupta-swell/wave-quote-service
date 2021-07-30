@@ -6,14 +6,14 @@ export const E_COMMERCE_PRODUCT = Symbol('E_COMMERCE_PRODUCT').toString();
 export interface ECommerceProduct extends Document {
   type: ECOM_PRODUCT_TYPE;
   manufacturer: string;
-  model_name: string;
+  modelName: string;
   sizeW: number;
   price: number;
 
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const ECommerceProductSchema = new Schema<ECommerceProduct>({

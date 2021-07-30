@@ -1,36 +1,36 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 
 export class LoanProductAttributesDto {
-  @ApiProperty()
+  @ExposeProp()
   upfrontPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   loanAmount: number;
 
-  @ApiProperty()
+  @ExposeProp()
   interestRate: number;
 
-  @ApiProperty()
+  @ExposeProp()
   loanTerm: number;
 
-  @ApiProperty()
+  @ExposeProp()
   monthlyLoanPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   currentMonthlyAverageUtilityPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   monthlyUtilityPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   gridServicePayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   netCustomerEnergySpend: number;
 
-  @ApiProperty()
+  @ExposeProp()
   returnOnInvestment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   payBackPeriod: number;
 }

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { inRange } from 'lodash';
-import { LeanDocument, Model, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { FinancialProduct, FINANCIAL_PRODUCT } from './financial-product.schema';
@@ -21,7 +22,7 @@ export class FinancialProductsService {
   async getList(
     limit: number,
     skip: number,
-    systemDesignId: string,
+    systemDesignId: ObjectId,
   ): Promise<OperationResult<Pagination<FinancialProductDto>>> {
     const [financialProducts, total] = await Promise.all([
       this.financialProduct.find().limit(limit).skip(skip).lean(),
@@ -29,7 +30,7 @@ export class FinancialProductsService {
     ]);
 
     const fundingSources = await Promise.all(
-      financialProducts.map(e => this.fundingSourceService.getDetailById(e.funding_source_id)),
+      financialProducts.map(e => this.fundingSourceService.getDetailById(e.fundingSourceId)),
     );
 
     let systemDesign: LeanDocument<SystemDesign> | null = null;
@@ -39,8 +40,9 @@ export class FinancialProductsService {
 
     return OperationResult.ok(
       new Pagination({
-        data: this.checkEligibleByQuoteType(financialProducts, fundingSources, { systemDesign }).map(
-          financialProduct => new FinancialProductDto(financialProduct),
+        data: strictPlainToClass(
+          FinancialProductDto,
+          this.checkEligibleByQuoteType(financialProducts, fundingSources, { systemDesign }),
         ),
         total,
       }),
@@ -68,21 +70,21 @@ export class FinancialProductsService {
     data: any,
   ): LeanDocument<FinancialProduct>[] {
     return financialProducts.map(e => {
-      const foundFundingSource = fundingSources.find(fs => fs?._id.toString() === e.funding_source_id)?.toObject();
+      const foundFundingSource = fundingSources.find(fs => fs?._id.toString() === e.fundingSourceId)?.toObject();
       if (foundFundingSource?.type === 'lease') {
         const systemDesign: LeanDocument<SystemDesign> = data.systemDesign;
 
-        const systemKW = systemDesign.system_production_data.capacityKW;
-        const batteryKwh = systemDesign.roof_top_design_data.storage.reduce(
-          (acc, cv) => (acc += cv.quantity * cv.storage_model_data_snapshot.sizekWh),
+        const systemKW = systemDesign.systemProductionData.capacityKW;
+        const batteryKwh = systemDesign.roofTopDesignData.storage.reduce(
+          (acc, cv) => (acc += cv.quantity * cv.storageModelDataSnapshot.sizekWh),
           0,
         );
-        const systemProductivity = systemDesign.system_production_data.productivity;
+        const systemProductivity = systemDesign.systemProductionData.productivity;
 
         if (
-          !inRange(systemKW, e.min_system_kw, e.max_system_kw) ||
-          !inRange(batteryKwh, e.min_battery_kwh, e.max_battery_kwh) ||
-          !inRange(systemProductivity, e.min_productivity, e.max_productivity)
+          !inRange(systemKW, e.minSystemKw, e.maxSystemKw) ||
+          !inRange(batteryKwh, e.minBatteryKwh, e.maxBatteryKwh) ||
+          !inRange(systemProductivity, e.minProductivity, e.maxProductivity)
         ) {
           e.name = `${e.name} (not eligible)`;
         }

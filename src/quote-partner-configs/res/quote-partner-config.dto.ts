@@ -1,76 +1,57 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { ServiceResponse } from '../../app/common/service-response';
-import { QuotePartnerConfig } from '../quote-partner-config.schema';
 
 export class QuotePartnerConfigDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   partnerId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   enableCostBuildup: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   enablePricePerWatt: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   enablePriceOverride: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   enableModuleDCClipping: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   pricePerWatt: number;
 
-  @ApiProperty()
+  @ExposeProp()
   defaultDCClipping: number;
 
-  @ApiProperty()
+  @ExposeProp()
   maxModuleDCClipping: number;
 
-  @ApiProperty()
+  @ExposeProp()
   solarOnlyLaborFeePerWatt: number;
 
-  @ApiProperty()
+  @ExposeProp()
   storageRetrofitLaborFeePerProject: number;
 
-  @ApiProperty()
+  @ExposeProp()
   solarWithACStorageLaborFeePerProject: number;
 
-  @ApiProperty()
+  @ExposeProp()
   solarWithDCStorageLaborFeePerProject: number;
 
-  @ApiProperty()
+  @ExposeProp()
   swellStandardMarkup: number;
 
-  @ApiProperty()
+  @ExposeProp({ default: [] })
   enabledFinancialProducts: string[];
-
-  constructor(props: QuotePartnerConfig) {
-    this.id = props.id;
-    this.partnerId = props.partnerId;
-    this.enableCostBuildup = props.enableCostBuildup;
-    this.enablePricePerWatt = props.enablePricePerWatt;
-    this.enablePriceOverride = props.enablePriceOverride;
-    this.enableModuleDCClipping = props.enableModuleDCClipping;
-    this.pricePerWatt = props.pricePerWatt;
-    this.defaultDCClipping = props.defaultDCClipping;
-    this.maxModuleDCClipping = props.maxModuleDCClipping;
-    this.solarOnlyLaborFeePerWatt = props.solarOnlyLaborFeePerWatt;
-    this.storageRetrofitLaborFeePerProject = props.storageRetrofitLaborFeePerProject;
-    this.solarWithACStorageLaborFeePerProject = props.solarWithACStorageLaborFeePerProject;
-    this.solarWithDCStorageLaborFeePerProject = props.solarWithDCStorageLaborFeePerProject;
-    this.swellStandardMarkup = props.swellStandardMarkup;
-    this.enabledFinancialProducts = props.enabledFinancialProducts;
-  }
 }
 
 export class QuotePartnerConfigResponse implements ServiceResponse<QuotePartnerConfigDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: QuotePartnerConfigDto })
+  @ExposeProp({ type: QuotePartnerConfigDto })
   data: QuotePartnerConfigDto;
 }

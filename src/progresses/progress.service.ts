@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuoteService } from 'src/quotes/quote.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { OperationResult } from '../app/common/operation-result';
 import { QualificationService } from '../qualifications/qualification.service';
@@ -11,7 +12,7 @@ import { ProgressDto } from './res/progress.dto';
 export class ProgressService {
   constructor(
     private readonly utilityService: UtilityService,
-    private readonly systemDesignSerivce: SystemDesignService,
+    private readonly systemDesignService: SystemDesignService,
     private readonly quoteService: QuoteService,
     private readonly proposalService: ProposalService,
     private readonly qualificationService: QualificationService,
@@ -26,14 +27,14 @@ export class ProgressService {
       qualificationCounter,
     ] = await Promise.all([
       this.utilityService.countByOpportunityId(opportunityId),
-      this.systemDesignSerivce.countByOpportunityId(opportunityId),
+      this.systemDesignService.countByOpportunityId(opportunityId),
       this.quoteService.countByOpportunityId(opportunityId),
       this.proposalService.countByOpportunityId(opportunityId),
       this.qualificationService.countByOpportunityId(opportunityId),
     ]);
 
     return OperationResult.ok(
-      new ProgressDto({
+      strictPlainToClass(ProgressDto, {
         utilityAndUsageCounter: utilityCounter,
         systemDesignCounter,
         quoteCounter,

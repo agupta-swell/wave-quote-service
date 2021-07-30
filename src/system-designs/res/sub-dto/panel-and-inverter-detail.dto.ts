@@ -1,25 +1,25 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 
 class PvPanelDetailData {
-  @ApiProperty()
+  @ExposeProp()
   numberOfPanels: number;
 
-  @ApiProperty()
+  @ExposeProp()
   panelSTCRating: number;
 }
 
 class InverterDetailData {
-  @ApiProperty()
+  @ExposeProp()
   numberOfInverters: number;
 
-  @ApiProperty()
+  @ExposeProp()
   inverterRating: number;
 }
 
 export class PanelAndInverterDetailDataDto {
-  @ApiProperty({ type: PvPanelDetailData, isArray: true })
+  @ExposeProp({ type: PvPanelDetailData, isArray: true })
   panelsDetail: PvPanelDetailData[];
 
-  @ApiProperty({ type: InverterDetailData, isArray: true })
+  @ExposeProp({ type: InverterDetailData, isArray: true })
   invertersDetail: InverterDetailData[];
 }

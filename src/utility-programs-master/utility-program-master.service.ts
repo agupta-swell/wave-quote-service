@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult, Pagination } from '../app/common';
 import { UtilityProgramMasterDto } from './res/utility-program-master.dto';
 import { UtilityProgramMaster, UTILITY_PROGRAM_MASTER } from './utility-program-master.schema';
@@ -12,19 +13,19 @@ export class UtilityProgramMasterService {
 
   async getList(): Promise<OperationResult<Pagination<UtilityProgramMasterDto>>> {
     const [utilityPrograms, total] = await Promise.all([
-      this.utilityProgramMaster.find(),
+      this.utilityProgramMaster.find().lean(),
       this.utilityProgramMaster.estimatedDocumentCount(),
     ]);
 
     return OperationResult.ok(
-      new Pagination({ data: utilityPrograms.map(item => new UtilityProgramMasterDto(item)), total }),
+      new Pagination({ data: strictPlainToClass(UtilityProgramMasterDto, utilityPrograms), total }),
     );
   }
 
   async createDataFeed(): Promise<void> {
     const data = ['ACES', 'ACES+SGIP', 'none', 'PRP2', 'PRP2+SGIP', 'SGIP'];
     await Promise.all(
-      data.map(item => new this.utilityProgramMaster({ utility_program_name: item, rebate_amount: 1000 }).save()),
+      data.map(item => new this.utilityProgramMaster({ utilityProgramName: item, rebateAmount: 1000 }).save()),
     );
   }
 

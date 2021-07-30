@@ -12,7 +12,7 @@ export class AuthenticationController {
 
   @Post('login')
   async login(@Body() req: LoginDto): Promise<AuthenticationDto> {
-    return await this.authenticationService.login(req.email, req.password);
+    return this.authenticationService.login(req.email, req.password);
   }
 
   @Get()

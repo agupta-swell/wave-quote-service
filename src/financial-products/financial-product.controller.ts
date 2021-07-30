@@ -1,7 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { FinancialProductsService } from './financial-product.service';
 import { FinancialProductDto } from './res/financial-product.dto';
 
@@ -18,11 +20,13 @@ export class FinancialProductsController {
   @ApiQuery({ name: 'systemDesignId' })
   @ApiOperation({ summary: 'Get all financial product' })
   async getFinancialProduct(
-    @Query() query: { limit: string; skip: string; systemDesignId: string; quoteType: string },
+    @Query('limit') limit: string,
+    @Query('skip') skip: string,
+    @Query('systemDesignId', ParseObjectIdPipe) systemDesignId: ObjectId,
   ): Promise<ServiceResponse<Pagination<FinancialProductDto>>> {
-    const limit = Number(query.limit || 100);
-    const skip = Number(query.skip || 0);
-    const result = await this.financialProductService.getList(limit, skip, query.systemDesignId);
+    const limitNumber = Number(limit || 100);
+    const skipNumber = Number(skip || 0);
+    const result = await this.financialProductService.getList(limitNumber, skipNumber, systemDesignId);
     return ServiceResponse.fromResult(result);
   }
 }

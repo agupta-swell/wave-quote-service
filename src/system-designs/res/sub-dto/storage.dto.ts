@@ -1,23 +1,35 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { BATTERY_PURPOSE } from '../../constants';
 import { ProductDto } from './product.dto';
 
 export class StorageDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty({ enum: [BATTERY_PURPOSE.BACKUP_POWER, BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION, BATTERY_PURPOSE.PV_SELF_CONSUMPTION] })
+  @ExposeProp({
+    enum: [
+      BATTERY_PURPOSE.BACKUP_POWER,
+      BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION,
+      BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
+    ],
+  })
   purpose: BATTERY_PURPOSE;
 
-  @ApiProperty()
+  @ExposeProp()
   storageModelId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   quantity: number;
 
-  @ApiProperty({ type: ProductDto })
+  @ExposeProp({ type: ProductDto })
   storageModelDataSnapshot: ProductDto;
 
-  @ApiProperty()
+  @ExposeProp()
   storageModelSnapshotDate: Date;
+
+  @ExposeProp()
+  type: string;
+
+  @ExposeProp()
+  reserve: number;
 }

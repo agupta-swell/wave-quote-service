@@ -1,35 +1,27 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsDate, IsString } from 'class-validator';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class NotesDto {
-  @ApiProperty()
-  @IsString()
+  @ExposeProp()
   id: string;
 
-  @ApiProperty()
-  @IsString()
+  @ExposeProp()
   text: string;
 
-  @ApiProperty()
-  @IsBoolean()
+  @ExposeProp()
   showOnProposal: boolean;
 
-  @ApiProperty()
-  @IsBoolean()
+  @ExposeProp()
   showOnContract: boolean;
 
-  @ApiProperty()
-  @IsBoolean()
+  @ExposeProp()
   isApproved: boolean;
 
-  @ApiProperty()
-  @IsString()
+  @ExposeProp()
   approvalComment: string;
 
-  @ApiProperty()
-  @IsString()
+  @ExposeProp()
   approvedBy: string;
 
-  @ApiProperty()
+  @ExposeProp()
   approvedAt: Date | null;
 }

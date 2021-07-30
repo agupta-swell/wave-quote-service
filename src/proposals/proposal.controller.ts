@@ -1,8 +1,18 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags, ApiBody, ApiCreatedResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+  ApiCreatedResponse,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { plainToClass } from 'class-transformer';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
+import { ObjectId } from 'mongoose';
 import { CurrentUser, CustomJWTSecretKey, PreAuthenticate } from '../app/securities';
 import { CurrentUserType } from '../app/securities/current-user';
 import { ProposalService } from './proposal.service';
@@ -10,6 +20,9 @@ import { CreateProposalDto, SaveProposalAnalyticDto, UpdateProposalDto, Validate
 import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
 import { ProposalSendSampleContractDto } from './req/send-sample-contract.dto';
 import { ProposalSendSampleContractRes } from './res/proposal-send-sample-contract.dto';
+import { CreateProposalLinkDto } from './req/create-proposal-link.dto';
+import { GetPresignedUrlDto } from './req/get-presigned-url.dto';
+import { GetPresignedUrlSqtDto } from './req/get-presigned-url-sqt.dto';
 
 @ApiTags('Proposal')
 @Controller('/proposals')
@@ -34,7 +47,7 @@ export class ProposalController {
   @ApiOkResponse({ type: ProposalRes })
   @CheckOpportunity()
   async updateProposal(
-    @Param('id') id: string,
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
     @Body()
     proposalDto: UpdateProposalDto,
   ): Promise<ServiceResponse<ProposalDto>> {
@@ -64,7 +77,7 @@ export class ProposalController {
   @PreAuthenticate()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate Link To Access Proposal Page' })
-  async generateLinkByAgent(@Body() body: { proposalId: string }): Promise<ServiceResponse<{ proposalLink: string }>> {
+  async generateLinkByAgent(@Body() body: CreateProposalLinkDto): Promise<ServiceResponse<{ proposalLink: string }>> {
     const res = await this.proposalService.generateLinkByAgent(body.proposalId);
     return ServiceResponse.fromResult(res);
   }
@@ -74,7 +87,7 @@ export class ProposalController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Get Detail' })
   @ApiOkResponse({ type: ProposalRes })
-  async getProposalById(@Param('id') id: string): Promise<ServiceResponse<ProposalDto>> {
+  async getProposalById(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<ProposalDto>> {
     const res = await this.proposalService.getProposalDetails(id);
     return ServiceResponse.fromResult(res);
   }
@@ -85,7 +98,7 @@ export class ProposalController {
   @ApiOperation({ summary: 'Send Emails' })
   @ApiOkResponse({ type: Boolean })
   async sendRecipients(
-    @Param('proposalId') proposalId: string,
+    @Param('proposalId', ParseObjectIdPipe) proposalId: ObjectId,
     @CurrentUser() user: CurrentUserType,
   ): Promise<ServiceResponse<boolean>> {
     const res = await this.proposalService.sendRecipients(proposalId);
@@ -116,9 +129,7 @@ export class ProposalController {
   @ApiOperation({ summary: 'Validate and Response Url' })
   @ApiOkResponse({ type: String })
   @CustomJWTSecretKey(process.env.PROPOSAL_JWT_SECRET || '')
-  async getPresignedUrlProposalApp(
-    @Body() body: { fileName: string; fileType: string; token: string; isDownload: boolean },
-  ): Promise<ServiceResponse<string>> {
+  async getPresignedUrlProposalApp(@Body() body: GetPresignedUrlDto): Promise<ServiceResponse<string>> {
     const res = await this.proposalService.getPreSignedObjectUrl(
       body.fileName,
       body.fileType,
@@ -134,7 +145,7 @@ export class ProposalController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Validate and Response Url' })
   @ApiOkResponse({ type: String })
-  async getPresignedUrl(@Body() body: { fileName: string; fileType: string }): Promise<ServiceResponse<string>> {
+  async getPresignedUrl(@Body() body: GetPresignedUrlSqtDto): Promise<ServiceResponse<string>> {
     const res = await this.proposalService.getPreSignedObjectUrl(body.fileName, body.fileType, '', true, false);
     return ServiceResponse.fromResult(res);
   }
@@ -142,12 +153,16 @@ export class ProposalController {
   @Post(':proposalId/sample-contracts')
   @PreAuthenticate()
   @ApiBearerAuth()
+  @ApiParam({ name: 'proposalId', type: String })
   @ApiOperation({ summary: 'Send sample contract' })
   @ApiCreatedResponse({ type: ProposalSendSampleContractRes })
-  async sendSampleContracts(@Param('proposalId') proposalId: string, @Body() body: ProposalSendSampleContractDto) {
-    const { template_details, signer_details } = plainToClass(ProposalSendSampleContractDto, body);
-    // TODO remove `any` type
-    const res = await this.proposalService.sendSampleContract(proposalId, template_details as any, signer_details);
+  async sendSampleContracts(
+    @Param('proposalId', ParseObjectIdPipe) proposalId: ObjectId,
+    @Body() body: ProposalSendSampleContractDto,
+  ) {
+    const { templateDetails, signerDetails } = plainToClass(ProposalSendSampleContractDto, body);
+
+    const res = await this.proposalService.sendSampleContract(proposalId, templateDetails, signerDetails);
     return ServiceResponse.fromResult(res);
   }
 }

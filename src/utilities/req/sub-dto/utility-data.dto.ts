@@ -20,7 +20,7 @@ export class UtilityDataReqDto {
   @ApiProperty({ type: LoadServingEntityDto })
   loadServingEntityData: LoadServingEntityDto;
 
-  @ApiProperty({ type: () => TypicalBaselineUsageExtendDto })
+  @ApiProperty({ type: TypicalBaselineUsageExtendDto })
   @Type(() => TypicalBaselineUsageExtendDto)
   typicalBaselineUsage: TypicalBaselineUsageExtendDto;
 

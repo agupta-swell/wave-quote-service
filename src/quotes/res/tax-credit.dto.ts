@@ -1,48 +1,38 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { Pagination, ServiceResponse } from '../../app/common';
-import { TaxCreditConfig } from '../schemas/tax-credit-config.schema';
 
 export class TaxCreditDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   percentage: number;
 
-  @ApiProperty()
+  @ExposeProp()
   startDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   endDate: Date;
-
-  constructor(props: LeanDocument<TaxCreditConfig>) {
-    this.id = props._id;
-    this.name = props.name;
-    this.percentage = props.percentage;
-    this.startDate = props.start_date;
-    this.endDate = props.end_date;
-  }
 }
 
 class TaxCreditPaginationRes implements Pagination<TaxCreditDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: TaxCreditDto,
     isArray: true,
   })
   data: TaxCreditDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class TaxCreditListRes implements ServiceResponse<TaxCreditPaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: TaxCreditPaginationRes })
+  @ExposeProp({ type: TaxCreditPaginationRes })
   data: TaxCreditPaginationRes;
 }

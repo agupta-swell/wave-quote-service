@@ -68,7 +68,7 @@ describe('Lease Solver Config Service', () => {
       } as any;
 
       leaseSolverConfigService = new LeaseSolverConfigService(mockFundingSource);
-      const res = await leaseSolverConfigService.getListSolverCofigsByConditions(true, true, 'utilityProgramName');
+      const res = await leaseSolverConfigService.getListSolverConfigsByConditions(true, true, 'utilityProgramName');
 
       expect(res).toMatchSnapshot();
       expect(res).toHaveLength(0);
@@ -103,7 +103,7 @@ describe('Lease Solver Config Service', () => {
       } as any;
 
       leaseSolverConfigService = new LeaseSolverConfigService(mockFundingSource);
-      const res = await leaseSolverConfigService.getListSolverCofigsByConditions(true, false, 'utilityProgramName');
+      const res = await leaseSolverConfigService.getListSolverConfigsByConditions(true, false, 'utilityProgramName');
 
       expect(res).toMatchSnapshot();
       expect(res).toHaveLength(1);

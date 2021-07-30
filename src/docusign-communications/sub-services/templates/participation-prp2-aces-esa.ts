@@ -6,15 +6,15 @@ export const getParticipationPRP2ACESEsa: TemplateDataBuilder = genericObj => {
   const { quote, gsProgram, utilityProgramMaster, leaseSolverConfig } = genericObj;
   const result: Record<string, string> = {};
 
-  result.utility_program_name = quote.utility_program.utility_program_name;
+  result.utility_program_name = quote.utilityProgram.utilityProgramName;
 
-  result.monthly_incentive_amount = leaseSolverConfig?.grid_services_discount + '';
+  result.monthly_incentive_amount = leaseSolverConfig?.gridServicesDiscount + '';
 
   result.residual_lease_term_word = toWord(+(gsProgram?.termYears ?? 0));
 
   result.residual_lease_term_number = (+(gsProgram?.termYears ?? 0) * 12).toString();
 
-  result.program_end_date = dayjs(utilityProgramMaster?.end_date).format('MM/DD/YYYY');
+  result.program_end_date = dayjs(utilityProgramMaster?.endDate).format('MM/DD/YYYY');
 
   return result;
 };

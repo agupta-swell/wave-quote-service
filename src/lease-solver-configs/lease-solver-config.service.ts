@@ -63,31 +63,40 @@ export class LeaseSolverConfigService {
   // --->>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<---
 
   async getDetailByConditions(condition: IGetDetail): Promise<LeaseSolverConfig | null> {
-    // Tier and Storage Manufacturer backwards compatible lookup; the $in check
-    // including `null` can be changed to a straight match after pushed through
-    // all environments and the data is updated.
+    const {
+      capacityKW,
+      productivity,
+      isSolar,
+      utilityProgramName,
+      contractTerm,
+      rateEscalator,
+      tier,
+      storageSize,
+      storageManufacturer,
+    } = condition;
+
     const query = {
-      tier: { $in: [ null, condition.tier ]},
-      is_solar: condition.isSolar,
-      utility_program_name: condition.utilityProgramName,
-      contract_term: condition.contractTerm,
-      storage_size: condition.storageSize,
-      storage_manufacturer: { $in: [ null, condition.storageSize > 0 ? condition.storageManufacturer : 'None' ]},
-      solar_size_minimum: { $lte: condition.capacityKW },
-      solar_size_maximum: { $gt: condition.capacityKW },
-      rate_escalator: condition.rateEscalator,
-      productivity_min: { $lte: condition.productivity },
-      productivity_max: { $gt: condition.productivity },
+      tier: { $in: [null, tier] },
+      isSolar,
+      utilityProgramName,
+      contractTerm,
+      storageSize,
+      storageManufacturer: { $in: [null, storageSize > 0 ? storageManufacturer : 'None'] },
+      rateEscalator,
+      solarSizeMinimum: { $lte: capacityKW },
+      solarSizeMaximum: { $gt: capacityKW },
+      productivityMin: { $lte: productivity },
+      productivityMax: { $gt: productivity },
     };
-    
+
     const leaseSolverConfig = await this.leaseSolverConfig.findOne(query);
     return leaseSolverConfig;
   }
 
-  async getListSolverCofigsByConditions(isSolar: boolean, utilityProgramName: string): Promise<LeaseSolverConfig[]> {
+  async getListSolverConfigsByConditions(isSolar: boolean, utilityProgramName: string): Promise<LeaseSolverConfig[]> {
     const leaseSolverConfig = await this.leaseSolverConfig.find({
-      is_solar: isSolar,
-      utility_program_name: utilityProgramName,
+      isSolar,
+      utilityProgramName,
     });
 
     return leaseSolverConfig;

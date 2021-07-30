@@ -1,63 +1,50 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
-import { DocusignCommunication } from 'src/docusign-communications/docusign-communication.schema';
-import { toCamelCase } from 'src/utils/transformProperties';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 class DocusignAccountDetail {
-  @ApiProperty()
+  @ExposeProp()
   accountName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   accountReferenceId: string;
 }
 
 class DocusignCommunicationDetailResDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   dateTime: string;
 
-  @ApiProperty()
+  @ExposeProp()
   contractId: string;
 
-  @ApiProperty()
-  envelopeId: string;
+  // Should be envelopeId
+  @ExposeProp()
+  envelopId: string;
 
-  @ApiProperty({ type: DocusignAccountDetail })
+  @ExposeProp({ type: DocusignAccountDetail })
   docusignAccountDetail: DocusignAccountDetail;
 
-  @ApiProperty()
+  @ExposeProp()
   requestType: string;
 
-  @ApiProperty()
+  @ExposeProp()
   payloadFromDocusign: string;
 
-  @ApiProperty()
+  @ExposeProp()
   payloadToDocusign: string;
 }
 
 export class GetDocusignCommunicationDetailsDto {
-  @ApiProperty({ type: DocusignCommunicationDetailResDto, isArray: true })
+  @ExposeProp({ type: DocusignCommunicationDetailResDto, isArray: true })
   docusignCommunicationDetails: DocusignCommunicationDetailResDto[];
-
-  constructor(props: LeanDocument<DocusignCommunication>[]) {
-    this.docusignCommunicationDetails = props.map(item => this.transformData(item));
-  }
-
-  transformData(docusignCommunication: LeanDocument<DocusignCommunication>): DocusignCommunicationDetailResDto {
-    return {
-      ...toCamelCase(docusignCommunication),
-      docusignAccountDetail: toCamelCase(docusignCommunication.docusign_account_detail),
-    };
-  }
 }
 
 export class GetDocusignCommunicationDetailsRes implements ServiceResponse<GetDocusignCommunicationDetailsDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetDocusignCommunicationDetailsDto })
+  @ExposeProp({ type: GetDocusignCommunicationDetailsDto })
   data: GetDocusignCommunicationDetailsDto;
 }

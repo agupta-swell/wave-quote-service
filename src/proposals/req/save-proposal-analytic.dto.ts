@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsJWT, IsMongoId, IsNotEmpty } from 'class-validator';
 import { PROPOSAL_ANALYTIC_TYPE } from '../constants';
 
 export class SaveProposalAnalyticDto {
@@ -19,5 +19,6 @@ export class SaveProposalAnalyticDto {
 
   @ApiProperty()
   @IsNotEmpty()
+  @IsJWT()
   token: string;
 }

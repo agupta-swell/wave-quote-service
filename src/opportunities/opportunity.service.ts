@@ -11,6 +11,7 @@ import { FinancierService } from 'src/financier/financier.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
@@ -67,7 +68,7 @@ export class OpportunityService {
       inverterModel: foundOpportunity.inverterModel,
       tpoFundingSource: foundOpportunity.tpoFundingSource,
     };
-    return OperationResult.ok(new GetRelatedInformationDto(data));
+    return OperationResult.ok(strictPlainToClass(GetRelatedInformationDto, data));
   }
 
   async updateOpportunityUtilityProgram(
@@ -84,7 +85,7 @@ export class OpportunityService {
       .findByIdAndUpdate(opportunityId, { utilityProgramId }, { new: true })
       .lean();
 
-    const updatedOpportunity = new UpdateOpportunityUtilityProgramDtoRes(savedOpportunity as any);
+    const updatedOpportunity = strictPlainToClass(UpdateOpportunityUtilityProgramDtoRes, savedOpportunity);
 
     await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
 
@@ -124,23 +125,23 @@ export class OpportunityService {
     const quoteConfig = await this.quotePartnerConfigService.getDetailByPartnerId(partnerId);
 
     if (!quoteConfig || !Array.isArray(quoteConfig.enabledFinancialProducts))
-      return OperationResult.ok(new GetFinancialSelectionsDto({}));
+      return OperationResult.ok(strictPlainToClass(GetFinancialSelectionsDto, {}));
 
     const financialProducts = await this.financialProductsService.getAllFinancialProductsByIds(
       quoteConfig.enabledFinancialProducts,
     );
 
     if (!financialProducts) {
-      return OperationResult.ok(new GetFinancialSelectionsDto({}));
+      return OperationResult.ok(strictPlainToClass(GetFinancialSelectionsDto, {}));
     }
 
     const [financiers, fundingSources] = await Promise.all([
-      this.financierService.getAllFinanciersByIds(financialProducts.map(e => e.financier_id)),
-      this.fundingSourceService.getFundingSourcesByIds(financialProducts.map(e => e.funding_source_id)),
+      this.financierService.getAllFinanciersByIds(financialProducts.map(e => e.financierId)),
+      this.fundingSourceService.getFundingSourcesByIds(financialProducts.map(e => e.fundingSourceId)),
     ]);
 
     return OperationResult.ok(
-      new GetFinancialSelectionsDto({
+      strictPlainToClass(GetFinancialSelectionsDto, {
         fundingSources,
         financiers,
       }),

@@ -1,53 +1,37 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { REQUEST_CATEGORY, REQUEST_TYPE } from '../../constants';
-import { FNI_Communication } from '../../schemas/fni-communication.schema';
 
 export class FniCommunicationDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   qualificationCreditId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   sentOn: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   receivedOn: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   vendorRefId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   requestCategory: REQUEST_CATEGORY;
 
-  @ApiProperty()
+  @ExposeProp()
   requestType: REQUEST_TYPE;
 
-  @ApiProperty()
+  @ExposeProp()
   responseStatus: string;
 
-  @ApiProperty()
+  @ExposeProp()
   responseCode: string;
 
-  @ApiProperty()
+  @ExposeProp()
   rawDataFromFni: string;
 
-  @ApiProperty()
+  @ExposeProp()
   errorMessageSentToFni: string[];
-
-  constructor(props: LeanDocument<FNI_Communication>) {
-    this.id = props._id;
-    this.qualificationCreditId = props.qualification_credit_id;
-    this.sentOn = props.sent_on;
-    this.receivedOn = props.received_on;
-    this.vendorRefId = props.vendor_ref_id;
-    this.requestCategory = props.request_category;
-    this.requestType = props.request_type;
-    this.responseStatus = props.response_status;
-    this.responseCode = props.response_code;
-    this.rawDataFromFni = props.raw_data_from_fni;
-    this.errorMessageSentToFni = props.error_message_sent_to_fni;
-  }
 }

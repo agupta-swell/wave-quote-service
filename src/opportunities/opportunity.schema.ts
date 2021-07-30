@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export const OPPORTUNITY = Symbol('OPPORTUNITY').toString();
@@ -64,3 +65,5 @@ export const OpportunitySchema = new Schema<Opportunity>({
   tpoFundingSource: String,
   assignedMember: String,
 });
+
+MongooseNamingStrategy.ExcludeOne(OpportunitySchema);

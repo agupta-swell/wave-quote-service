@@ -1,79 +1,93 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { ORIENTATION } from '../../constants';
 import { ProductDto } from './product.dto';
 
 export class LatLng {
-  @ApiProperty()
+  @ExposeProp()
   lat: number;
 
-  @ApiProperty()
+  @ExposeProp()
   lng: number;
 }
 
 export class SolarPanelArrayDto {
-  @ApiProperty()
+  @ExposeAndMap({}, ({ obj }) => obj.arrayId)
+  arrayId: string;
+
+  @ExposeProp()
   primaryOrientationSide: number;
 
-  @ApiProperty()
+  @ExposeProp()
   panelOrientation: ORIENTATION;
 
-  @ApiProperty({ isArray: true, type: LatLng })
+  @ExposeProp({ isArray: true, type: LatLng })
   boundPolygon: LatLng[];
 
-  @ApiProperty({
-    type: 'array',
-    items: {
+  @ExposeAndMap(
+    {
       type: 'array',
       items: {
-        type: 'object',
-        properties: {
-          lat: { type: 'number' },
-          lng: { type: 'number' },
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            lat: { type: 'number' },
+            lng: { type: 'number' },
+          },
         },
       },
+      skipTransform: true,
     },
-  })
+    ({ obj }) => obj.panels,
+  )
   panels: LatLng[][];
 
-  @ApiPropertyOptional()
+  @ExposeProp()
+  panelModelId: string;
+
+  @ExposeProp({ required: false })
   setbacks: Map<string, number>;
 
-  @ApiPropertyOptional({ isArray: true, type: LatLng })
+  @ExposeProp({ isArray: true, type: LatLng, required: false })
   setbacksPolygon: LatLng[];
 
-  @ApiProperty({
-    type: 'array',
-    items: {
+  @ExposeAndMap(
+    {
       type: 'array',
       items: {
-        type: 'object',
-        properties: {
-          lat: { type: 'number' },
-          lng: { type: 'number' },
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            lat: { type: 'number' },
+            lng: { type: 'number' },
+          },
         },
       },
+      skipTransform: true,
     },
-  })
+    ({ obj }) => obj.keepouts,
+  )
   keepouts: LatLng[][];
 
-  @ApiProperty()
+  @ExposeProp()
   pitch: number;
 
-  @ApiProperty()
+  @ExposeProp()
   azimuth: number;
 
-  @ApiPropertyOptional()
+  @ExposeProp({ required: false })
   rowSpacing: number;
 
-  @ApiProperty({ type: ProductDto })
+  @ExposeProp({ type: ProductDto })
   panelModelDataSnapshot: ProductDto;
 
-  @ApiProperty()
+  @ExposeProp()
   panelModelSnapshotDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   numberOfPanels: number;
 
-  @ApiProperty()
+  @ExposeProp()
   losses: number;
 }

@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 
 export const QUOTE_PARTNER_CONFIG = Symbol('QUOTE_PARTNER_CONFIG').toString();
 
@@ -36,3 +37,5 @@ export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
   swellStandardMarkup: Number,
   enabledFinancialProducts: Array,
 });
+
+MongooseNamingStrategy.ExcludeOne(QuotePartnerConfigSchema);

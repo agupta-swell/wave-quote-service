@@ -2,8 +2,8 @@ import { Document, Schema } from 'mongoose';
 
 export const PROPOSAL_ANALYTIC = Symbol('PROPOSAL_ANALYTIC').toString();
 export interface ProposalAnalytic extends Document {
-  proposal_id: string;
-  view_by: string;
+  proposalId: string;
+  viewBy: string;
   views: Date[];
   downloads: Date[];
 }

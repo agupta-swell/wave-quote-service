@@ -1,23 +1,23 @@
 import { Document, Schema } from 'mongoose';
 import { REQUEST_CATEGORY, REQUEST_TYPE } from '../constants';
 
-export const FNI_COMMUNICATION = Symbol('FNI_COMMUNICATION').toString();
+export const FNI_COMMUNICATION = 'FNI_COMMUNICATION';
 
 export interface FNI_Communication extends Document {
-  qualification_credit_id: string;
-  sent_on: Date;
-  received_on: Date;
-  vendor_ref_id: string;
-  request_category: REQUEST_CATEGORY;
-  request_type: REQUEST_TYPE;
-  response_status: string;
-  response_code: string;
-  raw_data_from_fni: string;
-  error_message_sent_to_fni: string[];
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  qualificationCreditId: string;
+  sentOn: Date;
+  receivedOn: Date;
+  vendorRefId: string;
+  requestCategory: REQUEST_CATEGORY;
+  requestType: REQUEST_TYPE;
+  responseStatus: string;
+  responseCode: string;
+  rawDataFromFni: string;
+  errorMessageSentToFni: string[];
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const FNI_CommunicationSchema = new Schema<FNI_Communication>({

@@ -33,13 +33,16 @@ export class FniEngineService {
 
   async apply(req: IFniApplyReq): Promise<string> {
     const fniModel = new this.fniCommunicationModel({
-      qualification_credit_id: req.qualificationCreditId,
-      sent_on: new Date(),
-      request_category: REQUEST_CATEGORY.CREDIT,
-      request_type: REQUEST_TYPE.OUTBOUND,
+      qualificationCreditId: req.qualificationCreditId,
+      sentOn: new Date(),
+      requestCategory: REQUEST_CATEGORY.CREDIT,
+      requestType: REQUEST_TYPE.OUTBOUND,
     });
+
     const fniKey: any = JSON.parse(await this.getSecretManager(process.env.FNI_SECRET_MANAGER_NAME as string));
+
     await fniModel.save();
+
     const applyReq = {
       transaction: {
         // FIXME: need to change if Hari notify
@@ -87,29 +90,24 @@ export class FniEngineService {
     }
     const applyResponse = await this.externalService.getFniResponse(applyReq);
     if (applyResponse.transaction.status === 'ERROR') {
-      await this.fniCommunicationModel.updateOne(
-        { _id: fniModel._id },
-        {
-          received_on: new Date(),
-          vendor_ref_id: applyResponse.transaction.refNum,
-          response_status: applyResponse.transaction.status,
-          raw_data_from_fni: JSON.stringify(applyResponse),
-        },
-      );
+      fniModel.receivedOn = new Date();
+      fniModel.vendorRefId = applyResponse.transaction.refNum;
+      fniModel.responseStatus = applyResponse.transaction.status;
+      fniModel.rawDataFromFni = JSON.stringify(applyResponse);
+
+      await fniModel.save();
+
       return 'ERROR';
     }
 
     if (applyResponse.transaction.status === 'SUCCESS') {
-      await this.fniCommunicationModel.updateOne(
-        { _id: fniModel._id },
-        {
-          received_on: new Date(),
-          vendor_ref_id: applyResponse.transaction.refNum,
-          response_status: applyResponse.transaction.status,
-          response_code: applyResponse.application.code,
-          raw_data_from_fni: JSON.stringify(applyResponse),
-        },
-      );
+      fniModel.receivedOn = new Date();
+      fniModel.vendorRefId = applyResponse.transaction.refNum;
+      fniModel.responseStatus = applyResponse.transaction.status;
+      fniModel.responseCode = applyResponse.application.code;
+      fniModel.rawDataFromFni = JSON.stringify(applyResponse);
+
+      await fniModel.save();
     }
 
     const status = this.translateFniResponseCode(applyResponse.application.code);
@@ -129,31 +127,31 @@ export class FniEngineService {
 
       const now = new Date();
       fniCommunication = new this.fniCommunicationModel({
-        qualification_credit_id: req.qualificationCreditId,
-        received_on: now,
-        sent_on: now,
-        vendor_ref_id: req.vendorRefId,
-        request_category: REQUEST_CATEGORY.CREDIT,
-        request_type: REQUEST_TYPE.INBOUND,
-        response_status: 'FAILURE IN WAVE',
-        response_code: req.code,
-        raw_data_from_fni: req.rawRequest,
+        qualificationCreditId: req.qualificationCreditId,
+        receivedOn: now,
+        sentOn: now,
+        vendorRefId: req.vendorRefId,
+        requestCategory: REQUEST_CATEGORY.CREDIT,
+        requestType: REQUEST_TYPE.INBOUND,
+        responseStatus: 'FAILURE IN WAVE',
+        responseCode: req.code,
+        rawDataFromFni: req.rawRequest,
       });
 
       await fniCommunication.save();
     } else {
-      fniCommunication.raw_data_from_fni = req.rawRequest;
+      fniCommunication.rawDataFromFni = req.rawRequest;
     }
 
-    if (fniCommunication.vendor_ref_id !== req.vendorRefId) {
+    if (fniCommunication.vendorRefId !== req.vendorRefId) {
       coinedErrorMessage = `${coinedErrorMessage} - VendorId: ${req.vendorRefId} not found !!!`;
     }
 
-    if (fniCommunication.qualification_credit_id !== req.qualificationCreditId) {
+    if (fniCommunication.qualificationCreditId !== req.qualificationCreditId) {
       coinedErrorMessage = `${coinedErrorMessage} - Credit Qualification Id: ${req.qualificationCreditId} not found !!!`;
     }
 
-    const qualificationCredit = await this.qualificationService.getOneById(fniCommunication.qualification_credit_id);
+    const qualificationCredit = await this.qualificationService.getOneById(fniCommunication.qualificationCreditId);
     if (!qualificationCredit) {
       coinedErrorMessage = `${coinedErrorMessage} - Credit Qualification Id: ${req.qualificationCreditId} not found !!!`;
     }
@@ -166,8 +164,9 @@ export class FniEngineService {
       res.status = 'ERROR';
       res.errorMsgs = [{ fieldId: null as any, errorType: 'GENERAL', message: coinedErrorMessage }];
 
-      fniCommunication.error_message_sent_to_fni = [JSON.stringify(res), ...fniCommunication.error_message_sent_to_fni];
-      await this.fniCommunicationModel.updateOne({ _id: fniCommunication._id }, fniCommunication.toObject());
+      fniCommunication.errorMessageSentToFni.unshift(JSON.stringify(res));
+
+      await fniCommunication.save();
 
       return res;
     }
@@ -181,15 +180,15 @@ export class FniEngineService {
       );
       res.refNum = req.vendorRefId;
       res.status = 'SUCCESS';
-      fniCommunication.error_message_sent_to_fni = [JSON.stringify(res), ...fniCommunication.error_message_sent_to_fni];
+      fniCommunication.errorMessageSentToFni.unshift(JSON.stringify(res));
     } catch (error) {
       res.refNum = req.vendorRefId;
       res.status = 'ERROR';
       res.errorMsgs = [{ fieldId: null as any, errorType: 'GENERAL', message: 'System Error' }];
-      fniCommunication.error_message_sent_to_fni = [JSON.stringify(res), ...fniCommunication.error_message_sent_to_fni];
+      fniCommunication.errorMessageSentToFni.unshift(JSON.stringify(res));
     }
 
-    await this.fniCommunicationModel.updateOne({ _id: fniCommunication._id }, fniCommunication.toObject());
+    await fniCommunication.save();
 
     return res;
   }

@@ -33,7 +33,7 @@ class InverterQuoteDetailsDto extends QuoteCostBuildupCommon {
   inverterModelSnapshotDate: Date;
 }
 
-class StorageQuoteDetailsDto extends QuoteCostBuildupCommon {
+export class StorageQuoteDetailsDto extends QuoteCostBuildupCommon {
   @ApiProperty({ type: ProductDto })
   storageModelDataSnapshot: ProductDto;
 

@@ -1,70 +1,57 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { SystemDesignAncillaryMaster } from '../schemas';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class SystemDesignAncillaryMasterDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   manufacturerId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   modelName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   relatedComponent: string;
 
-  @ApiProperty()
+  @ExposeProp()
   description: string;
 
-  @ApiProperty()
+  @ExposeProp()
   averageWholeSalePrice: number;
 
-  @ApiProperty()
+  @ExposeProp()
   applicableProductManufacturerId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   insertionRule: string | undefined;
-
-  constructor(props: LeanDocument<SystemDesignAncillaryMaster>) {
-    this.id = props._id;
-    this.manufacturerId = props.manufacturer_id;
-    this.modelName = props.model_name;
-    this.relatedComponent = props.related_component;
-    this.description = props.description;
-    this.averageWholeSalePrice = props.average_whole_sale_price;
-    this.applicableProductManufacturerId = props.applicable_product_manufacturer_id;
-    this.insertionRule = props.insertion_rule || undefined;
-  }
 }
 
 export class AnciallaryMasterRes implements ServiceResponse<SystemDesignAncillaryMasterDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: SystemDesignAncillaryMasterDto,
   })
   data: SystemDesignAncillaryMasterDto;
 
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 }
 
 class AnciallaryMasterPaginationRes implements Pagination<SystemDesignAncillaryMasterDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: SystemDesignAncillaryMasterDto,
     isArray: true,
   })
   data: SystemDesignAncillaryMasterDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class SystemDesignAncillaryMasterListRes implements ServiceResponse<AnciallaryMasterPaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: AnciallaryMasterPaginationRes })
+  @ExposeProp({ type: AnciallaryMasterPaginationRes })
   data: AnciallaryMasterPaginationRes;
 }

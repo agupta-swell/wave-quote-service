@@ -3,12 +3,12 @@ import { Document, Schema } from 'mongoose';
 export const REGION = Symbol('REGION').toString();
 
 export interface Region extends Document {
-  region_description: string;
+  regionDescription: string;
 
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const RegionSchema = new Schema<Region>({

@@ -4,8 +4,8 @@ import { REQUEST_TYPE } from './typing';
 export const DOCUSIGN_COMMUNICATION = Symbol('DOCUSIGN_COMMUNICATION').toString();
 
 export interface IDocusignAccountDetailSchema {
-  account_name: string;
-  account_reference_id: string;
+  accountName: string;
+  accountReferenceId: string;
 }
 
 const DocusignAccountDetailSchema = new Schema<Document<IDocusignAccountDetailSchema>>(
@@ -17,18 +17,18 @@ const DocusignAccountDetailSchema = new Schema<Document<IDocusignAccountDetailSc
 );
 
 export interface DocusignCommunication extends Document {
-  date_time: Date;
-  contract_id?: string;
-  envelop_id: string;
-  docusign_account_detail: IDocusignAccountDetailSchema;
-  request_type: REQUEST_TYPE;
-  payload_from_docusign: string;
-  payload_to_docusign: string;
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
-  proposal_id?: string;
+  dateTime: Date;
+  contractId?: string;
+  envelopId: string;
+  docusignAccountDetail: IDocusignAccountDetailSchema;
+  requestType: REQUEST_TYPE;
+  payloadFromDocusign: string;
+  payloadToDocusign: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
+  proposalId?: string;
 }
 
 export const DocusignCommunicationSchema = new Schema<DocusignCommunication>({

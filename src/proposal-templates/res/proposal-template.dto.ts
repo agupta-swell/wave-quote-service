@@ -1,72 +1,65 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { toCamelCase } from '../../utils/transformProperties';
-import { ProposalTemplate } from '../proposal-template.schema';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 class SectionDto {
-  @ApiProperty()
+  @ExposeMongoId({ eitherId: true })
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   componentName: string;
 }
 
 class ProposalSectionMasterDto {
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeMongoId({ eitherId: true })
+  id: string;
+
+  @ExposeProp({ type: String, isArray: true })
   applicableFinancialProduct: string[];
 
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeProp({ type: String, isArray: true })
   applicableProducts: string[];
 }
 
 export class ProposalTemplateDto {
-  @ApiProperty()
+  @ExposeMongoId({ eitherId: true })
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty({ type: SectionDto, isArray: true })
+  @ExposeProp({ type: SectionDto, isArray: true })
   sections: SectionDto[];
 
-  @ApiProperty({ type: ProposalSectionMasterDto })
+  @ExposeProp({ type: ProposalSectionMasterDto })
   proposalSectionMaster: ProposalSectionMasterDto;
-
-  constructor(props: LeanDocument<ProposalTemplate>) {
-    this.id = props._id;
-    this.name = props.name;
-    this.sections = props.sections?.map(item => toCamelCase(item));
-    this.proposalSectionMaster = toCamelCase(props.proposal_section_master);
-  }
 }
 
 class ProposalTemplatePaginationRes implements Pagination<ProposalTemplateDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: ProposalTemplateDto,
     isArray: true,
   })
   data: ProposalTemplateDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class ProposalTemplateListRes implements ServiceResponse<ProposalTemplatePaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ProposalTemplatePaginationRes })
+  @ExposeProp({ type: ProposalTemplatePaginationRes })
   data: ProposalTemplatePaginationRes;
 }
 
 export class ProposalTemplateRes implements ServiceResponse<ProposalTemplateDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: ProposalTemplateDto })
+  @ExposeProp({ type: ProposalTemplateDto })
   data: ProposalTemplateDto;
 }

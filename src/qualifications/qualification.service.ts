@@ -3,8 +3,9 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as Handlebars from 'handlebars';
-import { LeanDocument, Model } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
@@ -27,7 +28,7 @@ import {
 } from './res';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import { FniEngineService } from './sub-services/fni-engine.service';
-import qualificationTemplate from './template-html/qualification-template';
+import { QUALIFICATION_TEMPLATE } from './template-html/qualification-template';
 import { IFniApplyReq } from './typing.d';
 
 @Injectable()
@@ -43,34 +44,32 @@ export class QualificationService {
   ) {}
 
   async createQualification(qualificationDto: CreateQualificationReqDto): Promise<OperationResult<QualificationDto>> {
-    const found = await this.qualificationCreditModel
-      .findOne({ opportunity_id: qualificationDto.opportunityId })
-      .lean();
+    const found = await this.qualificationCreditModel.findOne({ opportunityId: qualificationDto.opportunityId }).lean();
     if (found) {
       throw ApplicationException.ExistedEntity('opportunityId', qualificationDto.opportunityId);
     }
 
     const now = new Date();
     const model = new this.qualificationCreditModel({
-      opportunity_id: qualificationDto.opportunityId,
-      started_on: now,
-      process_status: PROCESS_STATUS.INITIATED,
-      event_histories: [
+      opportunityId: qualificationDto.opportunityId,
+      startedOn: now,
+      processStatus: PROCESS_STATUS.INITIATED,
+      eventHistories: [
         {
-          issue_date: now,
+          issueDate: now,
           by: `${qualificationDto.agentDetail.name} - (${qualificationDto.agentDetail.userId})`,
           detail: 'Request Initiated',
         },
       ],
-      vendor_id: VENDOR_ID.FNI,
+      vendorId: VENDOR_ID.FNI,
     });
     await model.save();
 
-    return OperationResult.ok(new QualificationDto(model.toObject()));
+    return OperationResult.ok(strictPlainToClass(QualificationDto, model.toJSON()));
   }
 
   async getQualificationDetail(opportunityId: string): Promise<OperationResult<GetQualificationDetailDto>> {
-    const qualificationCredit = await this.qualificationCreditModel.findOne({ opportunity_id: opportunityId }).lean();
+    const qualificationCredit = await this.qualificationCreditModel.findOne({ opportunityId }).lean();
     if (!qualificationCredit) {
       return OperationResult.ok({
         qualificationCreditData: null,
@@ -82,15 +81,20 @@ export class QualificationService {
 
     const fniCommunications = await this.fniCommunicationModel
       .find({
-        qualification_credit_id: qualificationCredit._id,
+        qualificationCreditId: qualificationCredit._id,
       })
       .lean();
 
-    return OperationResult.ok(new GetQualificationDetailDto(qualificationCredit, fniCommunications));
+    return OperationResult.ok(
+      strictPlainToClass(GetQualificationDetailDto, {
+        qualificationCredit,
+        fniCommunications,
+      }),
+    );
   }
 
   async setManualApproval(
-    id: string,
+    id: ObjectId,
     manualApprovalDto: SetManualApprovalReqDto,
   ): Promise<OperationResult<ManualApprovalDto>> {
     if (process.env.NODE_ENV === 'production') {
@@ -98,34 +102,41 @@ export class QualificationService {
     }
 
     const now = new Date();
-    const qualificationCredit = await this.qualificationCreditModel.findById(id).lean();
+    const qualificationCredit = await this.qualificationCreditModel.findById(id);
     if (!qualificationCredit) {
-      throw ApplicationException.EntityNotFound(id);
+      throw ApplicationException.EntityNotFound(id.toString());
     }
 
-    qualificationCredit.process_status = PROCESS_STATUS.COMPLETED;
-    qualificationCredit.event_histories = [
-      ...qualificationCredit.event_histories,
-      { issue_date: now, by: manualApprovalDto.agentFullName, detail: 'Credit Check Approved By Agent' },
-    ];
-    qualificationCredit.approval_mode = APPROVAL_MODE.AGENT;
-    qualificationCredit.qualification_status = QUALIFICATION_STATUS.APPROVED;
-    qualificationCredit.approved_by = manualApprovalDto.agentUserId;
+    qualificationCredit.processStatus = PROCESS_STATUS.COMPLETED;
+    qualificationCredit.eventHistories.push({
+      issueDate: now,
+      by: manualApprovalDto.agentFullName,
+      detail: 'Credit Check Approved By Agent',
+    });
+    qualificationCredit.approvalMode = APPROVAL_MODE.AGENT;
+    qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.APPROVED;
+    qualificationCredit.approvedBy = manualApprovalDto.agentUserId;
 
-    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, qualificationCredit);
+    await qualificationCredit.save();
 
-    return OperationResult.ok(new ManualApprovalDto({ status: true, status_detail: 'SUCCESS' }, qualificationCredit));
+    return OperationResult.ok(
+      strictPlainToClass(ManualApprovalDto, {
+        status: true,
+        statusDetail: 'SUCCESS',
+        qualificationCredit: qualificationCredit.toJSON(),
+      }),
+    );
   }
 
   async sendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
-    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId).lean();
+    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound(req.qualificationCreditId);
     }
 
-    const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunity_id);
+    const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
     const email = await this.contactService.getEmailById(contactId || '');
-    const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunity_id, ROLE.CUSTOMER);
+    const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER);
 
     const data = {
       customerName: 'Customer',
@@ -134,33 +145,23 @@ export class QualificationService {
       qualificationLink: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
     };
 
-    const source = qualificationTemplate;
-    const template = Handlebars.compile(source);
-    const htmlToSend = template(data);
+    await this.emailService.sendMailByTemplate(email || '', 'Qualification Invitation', QUALIFICATION_TEMPLATE, data);
 
-    await this.emailService.sendMail(email || '', htmlToSend, 'Qualification Invitation');
     const now = new Date();
 
-    qualificationCredit.event_histories = [
-      ...qualificationCredit.event_histories,
-      { issue_date: now, by: `${req.agentDetail.name} - (${req.agentDetail.userId})`, detail: 'Email Sent' },
-    ];
+    qualificationCredit.eventHistories.push({
+      issueDate: now,
+      by: `${req.agentDetail.name} - (${req.agentDetail.userId})`,
+      detail: 'Email Sent',
+    });
 
-    qualificationCredit.customer_notifications = [
-      ...qualificationCredit.customer_notifications,
-      {
-        sent_on: now,
-        email,
-      },
-    ] as any;
+    qualificationCredit.customerNotifications.push({
+      sentOn: now,
+      email: email || '',
+    });
 
-    const res = await this.qualificationCreditModel
-      .findByIdAndUpdate(qualificationCredit.id, qualificationCredit, {
-        new: true,
-      })
-      .lean();
-
-    return OperationResult.ok(new SendMailDto({ status: true, detail: res || ({} as any) }));
+    await qualificationCredit.save();
+    return OperationResult.ok(strictPlainToClass(SendMailDto, { status: true, detail: qualificationCredit.toJSON() }));
   }
 
   async getApplicationDetail(req: GetApplicationDetailReqDto): Promise<OperationResult<GetApplicationDetailDto>> {
@@ -199,55 +200,42 @@ export class QualificationService {
         break;
     }
 
-    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId).lean();
+    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound('Qualification Credit');
     }
 
-    if (![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED].includes(qualificationCredit.process_status)) {
+    if (![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED].includes(qualificationCredit.processStatus)) {
       return OperationResult.ok(
-        new GetApplicationDetailDto({
+        strictPlainToClass(GetApplicationDetailDto, {
           qualificationCreditId,
-          processStatus: qualificationCredit.process_status,
+          processStatus: qualificationCredit.processStatus,
           responseStatus: false,
         }),
       );
     }
 
-    const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunity_id);
+    const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
     const contact = await this.contactService.getContactById(contactId || '');
 
-    qualificationCredit.process_status = PROCESS_STATUS.STARTED;
-    qualificationCredit.event_histories = [
-      ...qualificationCredit.event_histories,
-      {
-        issue_date: new Date(),
-        by: `${contact?.firstName} ${contact?.lastName}`,
-        detail: `Application Started by ${applicationInitatedBy}`,
-      },
-    ];
+    qualificationCredit.processStatus = PROCESS_STATUS.STARTED;
+    qualificationCredit.eventHistories.push({
+      issueDate: new Date(),
+      by: `${contact?.firstName} ${contact?.lastName}`,
+      detail: `Application Started by ${applicationInitatedBy}`,
+    });
 
-    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, { $set: qualificationCredit });
+    await qualificationCredit.save();
 
     const newToken = await this.generateToken(qualificationCreditId, opportunityId, ROLE.SYSTEM);
 
     return OperationResult.ok(
-      new GetApplicationDetailDto({
+      strictPlainToClass(GetApplicationDetailDto, {
         qualificationCreditId,
         opportunityId,
         responseStatus: true,
-        processStatus: qualificationCredit.process_status,
-        primaryApplicantData: {
-          firstName: contact?.firstName,
-          lastName: contact?.lastName,
-          email: contact?.email,
-          phoneNumber: contact?.cellPhone,
-          addressLine1: contact?.address1,
-          addressLine2: contact?.address2,
-          city: contact?.city,
-          state: contact?.state,
-          zipcode: contact?.zip,
-        },
+        processStatus: qualificationCredit.processStatus,
+        contact,
         newJWTToken: newToken,
       }),
     );
@@ -279,12 +267,12 @@ export class QualificationService {
       }
     }
 
-    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId).lean();
+    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound('Qualification Credit');
     }
 
-    if (qualificationCredit.process_status !== PROCESS_STATUS.STARTED) {
+    if (qualificationCredit.processStatus !== PROCESS_STATUS.STARTED) {
       return OperationResult.ok({ responseStatus: 'NO_ACTIVE_VALIDATION' });
     }
 
@@ -328,18 +316,14 @@ export class QualificationService {
       };
     }
 
-    qualificationCredit.process_status = PROCESS_STATUS.IN_PROGRESS;
-    qualificationCredit.event_histories = [
-      ...qualificationCredit.event_histories,
-      {
-        issue_date: new Date(),
-        by: `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
-        detail: 'Application sent for Credit Check',
-      },
-    ];
+    qualificationCredit.processStatus = PROCESS_STATUS.IN_PROGRESS;
+    qualificationCredit.eventHistories.push({
+      issueDate: new Date(),
+      by: `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
+      detail: 'Application sent for Credit Check',
+    });
 
-    await this.qualificationCreditModel.updateOne({ _id: qualificationCredit._id }, qualificationCredit);
-
+    await qualificationCredit.save();
     fniApplyRequest.qualificationCreditId = qualificationCredit._id;
 
     const applyResponse = await this.fniEngineService.apply(fniApplyRequest);
@@ -422,38 +406,41 @@ export class QualificationService {
     switch (fniResponse) {
       case 'SUCCESS': {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
-        qualificationCreditRecordInst.process_status = PROCESS_STATUS.COMPLETED;
-        qualificationCreditRecordInst.event_histories = [
-          ...qualificationCreditRecordInst.event_histories,
-          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation Completed' },
-        ];
-        qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
-        qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.APPROVED;
-        qualificationCreditRecordInst.approved_by = 'SYSTEM';
+        qualificationCreditRecordInst.processStatus = PROCESS_STATUS.COMPLETED;
+        qualificationCreditRecordInst.eventHistories.push({
+          issueDate: new Date(),
+          by: customerNameInst,
+          detail: 'Credit Validation Completed',
+        });
+        qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
+        qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.APPROVED;
+        qualificationCreditRecordInst.approvedBy = 'SYSTEM';
         break;
       }
       case 'FAILURE': {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
-        qualificationCreditRecordInst.process_status = PROCESS_STATUS.COMPLETED;
-        qualificationCreditRecordInst.event_histories = [
-          ...qualificationCreditRecordInst.event_histories,
-          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation Completed' },
-        ];
-        qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
-        qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.DECLINED;
-        qualificationCreditRecordInst.approved_by = 'SYSTEM';
+        qualificationCreditRecordInst.processStatus = PROCESS_STATUS.COMPLETED;
+        qualificationCreditRecordInst.eventHistories.push({
+          issueDate: new Date(),
+          by: customerNameInst,
+          detail: 'Credit Validation Completed',
+        });
+        qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
+        qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.DECLINED;
+        qualificationCreditRecordInst.approvedBy = 'SYSTEM';
         break;
       }
       case 'PENDING': {
         applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
-        qualificationCreditRecordInst.process_status = PROCESS_STATUS.PENDING;
-        qualificationCreditRecordInst.event_histories = [
-          ...qualificationCreditRecordInst.event_histories,
-          { issue_date: new Date(), by: customerNameInst, detail: 'Credit Validation In Progress' },
-        ];
-        qualificationCreditRecordInst.approval_mode = APPROVAL_MODE.CREDIT_VENDOR;
-        qualificationCreditRecordInst.qualification_status = QUALIFICATION_STATUS.PENDING;
-        qualificationCreditRecordInst.approved_by = 'SYSTEM';
+        qualificationCreditRecordInst.processStatus = PROCESS_STATUS.PENDING;
+        qualificationCreditRecordInst.eventHistories.push({
+          issueDate: new Date(),
+          by: customerNameInst,
+          detail: 'Credit Validation In Progress',
+        });
+        qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
+        qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.PENDING;
+        qualificationCreditRecordInst.approvedBy = 'SYSTEM';
         break;
       }
       case 'ERROR': {
@@ -476,7 +463,7 @@ export class QualificationService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    const counter = await this.qualificationCreditModel.countDocuments({ opportunity_id: opportunityId });
+    const counter = await this.qualificationCreditModel.countDocuments({ opportunityId });
     return counter;
   }
 

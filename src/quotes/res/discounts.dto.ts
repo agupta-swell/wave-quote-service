@@ -1,52 +1,41 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { Pagination, ServiceResponse } from '../../app/common';
-import { Discounts } from '../schemas/discounts.schema';
 
 export class DiscountsDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   amount: number;
 
-  @ApiProperty()
+  @ExposeProp()
   type: string;
 
-  @ApiProperty()
+  @ExposeProp()
   startDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   endDate: Date;
-
-  constructor(props: LeanDocument<Discounts>) {
-    this.id = props._id;
-    this.name = props.name;
-    this.type = props.type;
-    this.amount = props.amount;
-    this.startDate = props.startDate;
-    this.endDate = props.endDate;
-  }
 }
 
 class PaginationRes implements Pagination<DiscountsDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: DiscountsDto,
     isArray: true,
   })
   data: DiscountsDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class DiscountListRes implements ServiceResponse<PaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: PaginationRes })
+  @ExposeProp({ type: PaginationRes })
   data: PaginationRes;
 }

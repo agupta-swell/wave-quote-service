@@ -1,110 +1,78 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
-import { toCamelCase } from '../../utils/transformProperties';
+import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
-import { QualificationCredit } from '../qualification.schema';
 
 class CustomerNotificationDto {
-  @ApiProperty()
+  @ExposeProp()
   sentOn: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   email: string;
 }
 
 class EventDto {
-  @ApiProperty()
+  @ExposeProp()
   issueDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   by: string;
 
-  @ApiProperty()
+  @ExposeProp()
   detail: string;
 }
 
 class QualificationDetailDto {
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   startedOn: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   processStatus: PROCESS_STATUS;
 
-  @ApiProperty({ isArray: true, type: CustomerNotificationDto })
+  @ExposeProp({ isArray: true, type: CustomerNotificationDto })
   customerNotifications: CustomerNotificationDto[];
 
-  @ApiProperty({ isArray: true, type: EventDto })
+  @ExposeProp({ isArray: true, type: EventDto })
   eventHistories: EventDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   vendorId: VENDOR_ID;
 
-  @ApiProperty()
+  @ExposeProp()
   approvalMode: APPROVAL_MODE;
 
-  @ApiProperty()
+  @ExposeProp()
   approvedBy: string;
 
-  @ApiProperty()
+  @ExposeProp()
   qualificationStatus: QUALIFICATION_STATUS;
 }
 
 class QualificationDto {
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
 
-  @ApiProperty()
+  @ExposeMongoId()
   qualificationCreditId: string;
 
-  @ApiProperty({ type: QualificationDetailDto })
+  @ExposeAndMap({ type: QualificationDetailDto }, ({ obj }) => obj)
   qualificationCreditData: QualificationDetailDto;
-
-  constructor(qualificationCredit: QualificationCredit) {
-    this.opportunityId = qualificationCredit.opportunity_id;
-    this.qualificationCreditId = qualificationCredit._id;
-    this.qualificationCreditData = this.transformQualificationCreditData(qualificationCredit);
-  }
-
-  transformQualificationCreditData(props: QualificationCredit): QualificationDetailDto {
-    return {
-      opportunityId: props.opportunity_id,
-      startedOn: props.started_on,
-      processStatus: props.process_status,
-      customerNotifications: (props.customer_notifications || []).map(item => toCamelCase(item)),
-      eventHistories: (props.event_histories || []).map(item => toCamelCase(item)),
-      vendorId: props.vendor_id,
-      approvalMode: props.approval_mode,
-      approvedBy: props.approved_by,
-      qualificationStatus: props.qualification_status,
-    };
-  }
-}
-
-interface IProps {
-  status: boolean;
-  detail: QualificationCredit;
 }
 
 export class SendMailDto {
-  @ApiProperty()
+  @ExposeProp()
   status: boolean;
 
-  @ApiProperty({ type: QualificationDto })
+  @ExposeProp({ type: QualificationDto })
   detail: QualificationDto;
-
-  constructor(props: IProps) {
-    this.status = props.status;
-    this.detail = new QualificationDto(props.detail);
-  }
 }
 
 export class SendMailRes implements ServiceResponse<SendMailDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: SendMailDto })
+  @ExposeProp({ type: SendMailDto })
   data: SendMailDto;
 }

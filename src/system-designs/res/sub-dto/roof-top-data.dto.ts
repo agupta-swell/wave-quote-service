@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 import { AdderDto } from './adder.dto';
 import { AncillaryEquipmentDto } from './ancillary-equipment.dto';
 import { BalanceOfSystemDto } from './balance-of-system.dto';
@@ -7,37 +7,37 @@ import { SolarPanelArrayDto } from './solar-panel-array.dto';
 import { StorageDto } from './storage.dto';
 
 export class RoofTopDataDto {
-  @ApiProperty({
+  @ExposeProp({
     type: SolarPanelArrayDto,
     isArray: true,
   })
   panelArray: SolarPanelArrayDto[];
 
-  @ApiProperty({
+  @ExposeProp({
     type: InverterDto,
     isArray: true,
   })
   inverters: InverterDto[];
 
-  @ApiProperty({
+  @ExposeProp({
     type: StorageDto,
     isArray: true,
   })
   storage: StorageDto[];
 
-  @ApiProperty({
+  @ExposeProp({
     type: AdderDto,
     isArray: true,
   })
   adders: AdderDto[];
 
-  @ApiProperty({
+  @ExposeProp({
     type: BalanceOfSystemDto,
     isArray: true,
   })
   balanceOfSystems: BalanceOfSystemDto[];
 
-  @ApiProperty({
+  @ExposeProp({
     type: AncillaryEquipmentDto,
     isArray: true,
   })

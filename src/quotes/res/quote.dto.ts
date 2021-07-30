@@ -1,241 +1,193 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
+import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
-import { toCamelCase } from 'src/utils/transformProperties';
 import { Pagination, ServiceResponse } from '../../app/common';
-import { IQuoteCostBuildupSchema, IQuoteFinanceProductSchema, ISavingsDetailsSchema, Quote } from '../quote.schema';
 import { NotesDto, QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
 
+class UtilityProgramDataSnapshotDto {
+  @ExposeProp()
+  name: string;
+}
 class UtilityProgramDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   rebateAmount: number;
+
+  @ExposeProp({ type: UtilityProgramDataSnapshotDto })
+  utilityProgramDataSnapshot: UtilityProgramDataSnapshotDto;
+
+  @ExposeProp()
+  utilityProgramDataSnapshotDate: Date;
+
+  @ExposeProp()
+  utilityProgramId: string;
+
+  @ExposeProp()
+  utilityProgramName: string;
 }
 
 class SavingsDetailDto {
-  @ApiProperty()
+  @ExposeProp()
   year: number;
 
-  @ApiProperty()
+  @ExposeProp()
   currentUtilityBill: number;
 
-  @ApiProperty()
+  @ExposeProp()
   newUtilityBill: number;
 
-  @ApiProperty()
+  @ExposeProp()
   payment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   discountAndIncentives: number;
 
-  @ApiProperty()
+  @ExposeProp()
   annualSaving: number;
 }
 
 class TaxCreditConfigSnapshot {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   taxCreditPrecentage: number;
 
-  @ApiProperty()
+  @ExposeProp()
   taxCreditStartDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   taxCreditEndDate: Date;
 }
 
 class TaxCreditDto {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   percentage: number;
 
-  @ApiProperty({ type: TaxCreditConfigSnapshot })
+  @ExposeProp({ type: TaxCreditConfigSnapshot })
   taxCreditConfigDataSnapshot: TaxCreditConfigSnapshot;
 
-  @ApiProperty()
+  @ExposeProp()
   taxCreditConfigDataSnapshotDate: Date;
+
+  @ExposeProp()
+  taxCreditConfigDataId: string;
 }
 
 class QuotePricePerWatt {
-  @ApiProperty()
+  @ExposeProp()
   pricePerWatt: number;
 
-  @ApiProperty()
+  @ExposeProp()
   grossPrice: number;
 }
 
 class QuotePriceOverride {
-  @ApiProperty()
+  @ExposeProp()
   grossPrice: number;
 }
 
 export class QuoteDto {
-  @ApiProperty()
+  @ExposeMongoId()
   quoteId: string;
 
-  @ApiProperty()
+  @ExposeAndMap({ root: 'detailedQuote', checkParent: true })
   quoteName: string;
 
-  @ApiProperty()
+  @ExposeAndMap({ root: 'detailedQuote', checkParent: true })
   isRetrofit: boolean;
 
-  @ApiProperty()
+  @ExposeAndMap({ root: 'detailedQuote', checkParent: true })
   isSolar: boolean;
 
-  @ApiProperty()
+  @ExposeAndMap({ root: 'detailedQuote', checkParent: true })
   isSelected: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   systemDesignId: string;
 
-  @ApiProperty({ type: () => SystemProductionDto })
+  @ExposeAndMap({ type: SystemProductionDto, root: 'detailedQuote', checkParent: true })
   systemProduction: SystemProductionDto;
 
-  @ApiProperty({ type: () => QuoteCostBuildupDto })
+  @ExposeAndMap({ type: QuoteCostBuildupDto, root: 'detailedQuote', checkParent: true })
   quoteCostBuildup: QuoteCostBuildupDto;
 
-  @ApiProperty({ type: () => UtilityProgramDto })
+  @ExposeAndMap({ type: UtilityProgramDto, root: 'detailedQuote', checkParent: true })
   utilityProgram: UtilityProgramDto;
 
-  @ApiProperty({ type: () => QuoteFinanceProductDto })
+  @ExposeAndMap({ type: QuoteFinanceProductDto, root: 'detailedQuote', checkParent: true })
   quoteFinanceProduct: QuoteFinanceProductDto;
 
-  @ApiProperty({ type: () => SavingsDetailDto, isArray: true })
+  @ExposeAndMap({ type: SavingsDetailDto, isArray: true, root: 'detailedQuote', checkParent: true })
   savingsDetails: SavingsDetailDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   isSync: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   isSyncMessages: string[];
 
-  @ApiProperty({ type: TaxCreditDto, isArray: true })
+  @ExposeAndMap({ type: TaxCreditDto, isArray: true, root: 'detailedQuote', checkParent: true })
   taxCreditData: TaxCreditDto[];
 
-  @ApiProperty()
+  @ExposeAndMap({ root: 'detailedQuote', checkParent: true })
   utilityProgramSelectedForReinvestment: boolean;
 
-  @ApiProperty()
+  @ExposeAndMap({ root: 'detailedQuote', checkParent: true })
   taxCreditSelectedForReinvestment: boolean;
 
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeAndMap({ root: 'detailedQuote', checkParent: true, isArray: true })
   allowedQuoteModes: string[];
 
-  @ApiProperty()
+  @ExposeAndMap({ root: 'detailedQuote', checkParent: true })
   selectedQuoteMode: string;
 
-  @ApiProperty({ type: QuotePricePerWatt })
+  @ExposeAndMap({ type: QuotePricePerWatt, root: 'detailedQuote', checkParent: true })
   quotePricePerWatt: QuotePricePerWatt;
 
-  @ApiProperty({ type: QuotePriceOverride })
+  @ExposeAndMap({ type: QuotePriceOverride, root: 'detailedQuote', checkParent: true })
   quotePriceOverride: QuotePriceOverride;
 
-  @ApiProperty({ type: NotesDto, isArray: true })
+  @ExposeAndMap({ type: NotesDto, isArray: true }, ({ obj }) => obj.detailedQuote?.notes ?? [])
   notes: NotesDto[];
 
-  @ApiProperty()
+  @ExposeAndMap({}, ({ obj }) => obj?.itcRate?.itcRate)
   itc_rate?: number;
-
-  constructor(props: LeanDocument<Quote>, itc_rate?: number) {
-    this.quoteId = props._id;
-    this.quoteName = props.detailed_quote.quote_name;
-    this.opportunityId = props.opportunity_id;
-    this.systemDesignId = props.system_design_id;
-    this.isSelected = props.detailed_quote.is_selected;
-    this.isRetrofit = props.detailed_quote.is_retrofit;
-    this.isSolar = props.detailed_quote.is_solar;
-    this.systemProduction = toCamelCase(props.detailed_quote.system_production);
-    this.utilityProgram = props.detailed_quote.utility_program && toCamelCase(props.detailed_quote.utility_program);
-    this.quoteFinanceProduct = this.transformQuoteFinanceProduct(props.detailed_quote.quote_finance_product);
-    this.savingsDetails = this.transformSavingsDetails(props.detailed_quote.savings_details);
-    this.quoteCostBuildup = this.transformQuoteCostBuildup(props.detailed_quote.quote_cost_buildup);
-    this.taxCreditData = props.detailed_quote.tax_credit_data.map(item => toCamelCase(item));
-    this.utilityProgramSelectedForReinvestment = props.detailed_quote.utility_program_selected_for_reinvestment;
-    this.taxCreditSelectedForReinvestment = props.detailed_quote.tax_credit_selected_for_reinvestment;
-    this.isSync = props.is_sync;
-    this.isSyncMessages = props.is_sync_messages;
-    this.allowedQuoteModes = props.detailed_quote.allowed_quote_modes;
-    this.selectedQuoteMode = props.detailed_quote.selected_quote_mode;
-    this.quotePricePerWatt = toCamelCase(props.detailed_quote.quote_price_per_watt);
-    this.quotePriceOverride = toCamelCase(props.detailed_quote.quote_price_override);
-    this.notes = (props.detailed_quote.notes ?? []).map(item => toCamelCase(item));
-    this.itc_rate = itc_rate;
-  }
-
-  transformQuoteCostBuildup(quoteCostBuildup: IQuoteCostBuildupSchema): QuoteCostBuildupDto {
-    return {
-      panelQuoteDetails: quoteCostBuildup.panel_quote_details.map(item => toCamelCase(item)),
-      inverterQuoteDetails: quoteCostBuildup.inverter_quote_details.map(item => toCamelCase(item)),
-      storageQuoteDetails: quoteCostBuildup.storage_quote_details.map(item => toCamelCase(item)),
-      adderQuoteDetails: quoteCostBuildup.adder_quote_details.map(item => toCamelCase(item)),
-      balanceOfSystemDetails: quoteCostBuildup.balance_of_system_details?.map(item => toCamelCase(item)),
-      ancillaryEquipmentDetails: quoteCostBuildup.ancillary_equipment_details?.map(item => toCamelCase(item)),
-      swellStandardMarkup: quoteCostBuildup.swell_standard_markup,
-      laborCost: toCamelCase(quoteCostBuildup.labor_cost),
-      grossPrice: quoteCostBuildup.gross_price,
-      totalNetCost: quoteCostBuildup.total_net_cost,
-    };
-  }
-
-  transformQuoteFinanceProduct(quoteFinanceProduct: IQuoteFinanceProductSchema): QuoteFinanceProductDto {
-    return {
-      financeProduct: toCamelCase(quoteFinanceProduct.finance_product),
-      netAmount: quoteFinanceProduct.net_amount,
-      incentiveDetails: quoteFinanceProduct.incentive_details,
-      rebateDetails: quoteFinanceProduct.rebate_details.map(item => toCamelCase(item)),
-      projectDiscountDetails: quoteFinanceProduct.project_discount_details.map(item => {
-        item.id = item.discount_id;
-        return toCamelCase(item);
-      }),
-    };
-  }
-
-  transformSavingsDetails(savingsDetails: ISavingsDetailsSchema[]): SavingsDetailDto[] {
-    return savingsDetails.map(item => toCamelCase(item));
-  }
 }
 
 class PaginationRes implements Pagination<QuoteDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: QuoteDto,
     isArray: true,
   })
   data: QuoteDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class QuoteListRes implements ServiceResponse<PaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: PaginationRes })
+  @ExposeProp({ type: PaginationRes })
   data: PaginationRes;
 }
 
 export class QuoteRes implements ServiceResponse<QuoteDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: QuoteDto })
+  @ExposeProp({ type: QuoteDto })
   data: QuoteDto;
 }

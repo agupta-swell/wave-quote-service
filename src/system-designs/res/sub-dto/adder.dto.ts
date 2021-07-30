@@ -1,35 +1,35 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 class Adder {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   adder: string;
 
-  @ApiProperty()
+  @ExposeProp()
   price: number;
 
-  @ApiProperty()
+  @ExposeProp()
   increment: string;
 
-  @ApiProperty()
+  @ExposeProp()
   modifiedAt: Date;
 }
 
 export class AdderDto {
-  @ApiProperty()
+  @ExposeProp()
   adderDescription: string;
 
-  @ApiProperty()
+  @ExposeProp()
   quantity: number;
 
-  @ApiProperty()
+  @ExposeProp()
   adderId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   adderModelDataSnapshot: Adder;
 
-  @ApiProperty()
+  @ExposeProp()
   adderModelSnapshotDate: Date;
 }

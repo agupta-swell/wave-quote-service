@@ -1,123 +1,93 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { LeanDocument } from 'mongoose';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { Pagination, ServiceResponse } from '../../app/common';
-import { toCamelCase } from '../../utils/transformProperties';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
-import { QualificationCredit } from '../qualification.schema';
-import { FNI_Communication } from '../schemas/fni-communication.schema';
 import { FniCommunicationDto } from './sub-dto/fni-communication.dto';
 
 class CustomerNotificationDto {
-  @ApiProperty()
+  @ExposeProp()
   sentOn: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   email: string;
 }
 
 class EventDto {
-  @ApiProperty()
+  @ExposeProp()
   issueDate: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   by: string;
 
-  @ApiProperty()
+  @ExposeProp()
   detail: string;
 }
 
 class QualificationDetailDto {
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   startedOn: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   processStatus: PROCESS_STATUS;
 
-  @ApiProperty({ isArray: true, type: CustomerNotificationDto })
+  @ExposeProp({ isArray: true, type: CustomerNotificationDto })
   customerNotifications: CustomerNotificationDto[];
 
-  @ApiProperty({ isArray: true, type: EventDto })
+  @ExposeProp({ isArray: true, type: EventDto })
   eventHistories: EventDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   vendorId: VENDOR_ID;
 
-  @ApiProperty()
+  @ExposeProp()
   approvalMode: APPROVAL_MODE;
 
-  @ApiProperty()
+  @ExposeProp()
   approvedBy: string;
 
-  @ApiProperty()
+  @ExposeProp()
   qualificationStatus: QUALIFICATION_STATUS;
 }
 
 export class GetQualificationDetailDto {
-  @ApiProperty()
+  @ExposeAndMap({ root: 'qualificationCredit' })
   opportunityId: string;
 
-  @ApiProperty()
+  @ExposeAndMap({}, ({ obj }) => obj.qualificationCredit?._id)
   qualificationCreditId: string;
 
-  @ApiProperty({ type: QualificationDetailDto })
+  @ExposeAndMap({ type: QualificationDetailDto }, ({ obj }) => obj.qualificationCredit)
   qualificationCreditData: QualificationDetailDto;
 
-  @ApiProperty({ type: FniCommunicationDto, isArray: true })
+  @ExposeAndMap({ type: FniCommunicationDto, isArray: true }, ({ obj }) => obj.fniCommunications)
   fniCommunicationData: FniCommunicationDto[];
-
-  constructor(
-    qualificationCredit: LeanDocument<QualificationCredit>,
-    fniCommunications: LeanDocument<FNI_Communication>[],
-  ) {
-    this.opportunityId = qualificationCredit.opportunity_id;
-    this.qualificationCreditId = qualificationCredit._id;
-    this.qualificationCreditData = this.transformQualificationCreditData(qualificationCredit);
-    this.fniCommunicationData = fniCommunications.length
-      ? fniCommunications.map(item => new FniCommunicationDto(item))
-      : [];
-  }
-
-  transformQualificationCreditData(props: LeanDocument<QualificationCredit>): QualificationDetailDto {
-    return {
-      opportunityId: props.opportunity_id,
-      startedOn: props.started_on,
-      processStatus: props.process_status,
-      customerNotifications: (props.customer_notifications || []).map(item => toCamelCase(item)),
-      eventHistories: (props.event_histories || []).map(item => toCamelCase(item)),
-      vendorId: props.vendor_id,
-      approvalMode: props.approval_mode,
-      approvedBy: props.approved_by,
-      qualificationStatus: props.qualification_status,
-    };
-  }
 }
 
 class GetQualificationPaginationRes implements Pagination<GetQualificationDetailDto> {
-  @ApiProperty({
+  @ExposeProp({
     type: GetQualificationDetailDto,
     isArray: true,
   })
   data: GetQualificationDetailDto[];
 
-  @ApiProperty()
+  @ExposeProp()
   total: number;
 }
 
 export class QualificationDetailListRes implements ServiceResponse<GetQualificationPaginationRes> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetQualificationPaginationRes })
+  @ExposeProp({ type: GetQualificationPaginationRes })
   data: GetQualificationPaginationRes;
 }
 
 export class GetQualificationDetailRes implements ServiceResponse<GetQualificationDetailDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetQualificationDetailDto })
+  @ExposeProp({ type: GetQualificationDetailDto })
   data: GetQualificationDetailDto;
 }

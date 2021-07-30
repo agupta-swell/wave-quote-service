@@ -1,21 +1,53 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 
-export class AncillaryEquipmentDto {
-  @ApiProperty()
+export class AncillaryEquipmentModelDataSnapshotDto {
+  @ExposeProp()
   manufacturerId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   modelName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   relatedComponent: string;
 
-  @ApiProperty()
+  @ExposeProp()
   description: string;
 
-  @ApiProperty()
+  @ExposeProp()
   averageWholeSalePrice: number;
 
-  @ApiProperty()
+  @ExposeProp()
+  quantity: number;
+
+  @ExposeProp()
   applicableProductManufacturerId: string;
+}
+
+export class AncillaryEquipmentDto {
+  @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
+  manufacturerId: string;
+
+  @ExposeProp()
+  ancillaryId: string;
+
+  @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
+  modelName: string;
+
+  @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
+  relatedComponent: string;
+
+  @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
+  description: string;
+
+  @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
+  averageWholeSalePrice: number;
+
+  @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
+  applicableProductManufacturerId: string;
+
+  @ExposeProp()
+  quantity: number;
+
+  @ExposeProp({ type: AncillaryEquipmentModelDataSnapshotDto })
+  ancillaryEquipmentModelDataSnapshot: AncillaryEquipmentModelDataSnapshotDto;
 }

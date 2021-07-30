@@ -1,21 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { ExposeProp } from 'src/shared/decorators';
 import { ScenarioDataDto, ServiceResponseStatusDataDto } from './sub-dto';
 
 export class GetSavingDto {
-  @ApiProperty({ type: ServiceResponseStatusDataDto })
+  @ExposeProp({ type: ServiceResponseStatusDataDto })
   serviceResponseStatus?: ServiceResponseStatusDataDto;
 
-  @ApiProperty({ type: ScenarioDataDto, isArray: true })
+  @ExposeProp({ type: ScenarioDataDto, isArray: true })
   scenarioDataDetail?: ScenarioDataDto[];
-
-  constructor(props: GetSavingDto) {}
 }
 
 export class GetSavingRes implements ServiceResponse<GetSavingDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetSavingDto })
+  @ExposeProp({ type: GetSavingDto })
   data: GetSavingDto;
 }

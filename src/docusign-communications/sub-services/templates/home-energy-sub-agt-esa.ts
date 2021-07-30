@@ -14,11 +14,11 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
   result.WAVE_ID = opportunity._id;
 
   // Sum by net_cost
-  result['Battery X'] = `${sumBy(quote.quote_cost_buildup.storage_quote_details, e => e.net_cost)}`;
-  result['Solar X'] = `${sumBy(quote.quote_cost_buildup.panel_quote_details, e => e.net_cost)}`;
+  result['Battery X'] = `${sumBy(quote.quoteCostBuildup.storageQuoteDetails, e => e.netCost)}`;
+  result['Solar X'] = `${sumBy(quote.quoteCostBuildup.panelQuoteDetails, e => e.netCost)}`;
 
   result['FIRST_1 MI_1 LAST_1'] = `${contact.firstName} ${contact.lastName}`;
-  result['FIRST_2 MI_2 LAST_2'] = coOwner ? `${coOwner.first_name} ${coOwner.last_name}` : '';
+  result['FIRST_2 MI_2 LAST_2'] = coOwner ? `${coOwner.firstName} ${coOwner.lastName}` : '';
   result.HOME_ADDRESS_1 = contact.address1;
   result.HOME_ADDRESS_2 = contact.address2;
   result['CITY, STATE'] = `${contact.city}, ${contact.state}`;
@@ -28,36 +28,36 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
 
   // Temporarily ignore applicant phone for 2
   result['TEL_1'] = contact.primaryPhone === 'HomePhone' ? contact.businessPhone! : contact.cellPhone;
-  result['TEL_2'] = coOwner?.phone_number || '';
+  result['TEL_2'] = coOwner?.phoneNumber || '';
 
-  result.GRID_PROG = quote.utility_program.utility_program_name;
-  result.ES_QUANTITY = quote.quote_cost_buildup.storage_quote_details
-    .map(({ quantity, storage_model_data_snapshot }) => `${quantity},${storage_model_data_snapshot.name}`)
+  result.GRID_PROG = quote.utilityProgram.utilityProgramName;
+  result.ES_QUANTITY = quote.quoteCostBuildup.storageQuoteDetails
+    .map(({ quantity, storageModelDataSnapshot }) => `${quantity},${storageModelDataSnapshot.name}`)
     .join(', ');
-  result.ES_PRODUCT = quote.quote_cost_buildup.storage_quote_details
-    .map(({ storage_model_data_snapshot }) => storage_model_data_snapshot.name)
+  result.ES_PRODUCT = quote.quoteCostBuildup.storageQuoteDetails
+    .map(({ storageModelDataSnapshot }) => storageModelDataSnapshot.name)
     .join(', ');
 
   // Value in KW
   result['ES_KWH | ES_KW'] = `${
-    sumBy(quote.quote_cost_buildup.storage_quote_details, e => e.storage_model_data_snapshot.sizeW) / 1000
+    sumBy(quote.quoteCostBuildup.storageQuoteDetails, e => e.storageModelDataSnapshot.sizeW) / 1000
   }`;
 
-  result.PV_QUANTITY = quote.quote_cost_buildup.panel_quote_details
-    .map(({ quantity, panel_model_data_snapshot }) => `${quantity},${panel_model_data_snapshot.name}`)
+  result.PV_QUANTITY = quote.quoteCostBuildup.panelQuoteDetails
+    .map(({ quantity, panelModelDataSnapshot }) => `${quantity},${panelModelDataSnapshot.name}`)
     .join(', ');
 
-  result.PV_PRODUCT = quote.quote_cost_buildup.panel_quote_details
-    .map(({ panel_model_data_snapshot }) => panel_model_data_snapshot.name)
+  result.PV_PRODUCT = quote.quoteCostBuildup.panelQuoteDetails
+    .map(({ panelModelDataSnapshot }) => panelModelDataSnapshot.name)
     .join(', ');
 
   // Value in KW
   result.PV_KW = `${
-    sumBy(quote.quote_cost_buildup.panel_quote_details, e => e.panel_model_data_snapshot.sizeW) / 1000
+    sumBy(quote.quoteCostBuildup.panelQuoteDetails, e => e.panelModelDataSnapshot.sizeW) / 1000
   }`;
 
-  result.INV_QUANTITY = quote.quote_cost_buildup.inverter_quote_details
-    .map(({ quantity, inverter_model_data_snapshot }) => `${quantity},${inverter_model_data_snapshot.name}`)
+  result.INV_QUANTITY = quote.quoteCostBuildup.inverterQuoteDetails
+    .map(({ quantity, inverterModelDataSnapshot }) => `${quantity},${inverterModelDataSnapshot.name}`)
     .join(', ');
 
   // Current solar energy system?
@@ -76,22 +76,22 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
   result['GrantedRights_Yes'] = opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
   result['GrantedRights_No'] = !opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
 
-  const leaseProductAttribute = quote.quote_finance_product.finance_product
-    .product_attribute as ILeaseProductAttributes;
+  const leaseProductAttribute = quote.quoteFinanceProduct.financeProduct
+    .productAttribute as ILeaseProductAttributes;
 
-  result.ESA_YRS = `${leaseProductAttribute.lease_term}`;
-  result.ESA_MOS = `${leaseProductAttribute.lease_term * 12}`;
-  result.ESA_ESC = `${leaseProductAttribute.rate_escalator}`;
+  result.ESA_YRS = `${leaseProductAttribute.leaseTerm}`;
+  result.ESA_MOS = `${leaseProductAttribute.leaseTerm * 12}`;
+  result.ESA_ESC = `${leaseProductAttribute.rateEscalator}`;
 
   result.ESA_PMT1 = `${
-    Array.isArray(leaseProductAttribute.yearly_lease_payment_details?.[0]?.monthly_payment_details) &&
-    leaseProductAttribute.yearly_lease_payment_details[0]?.monthly_payment_details[0].payment_amount
+    Array.isArray(leaseProductAttribute.yearlyLeasePaymentDetails?.[0]?.monthlyPaymentDetails) &&
+    leaseProductAttribute.yearlyLeasePaymentDetails[0]?.monthlyPaymentDetails[0].paymentAmount
   }`;
 
-  result.ESA_PMT_CUM = `${leaseProductAttribute.lease_amount}`;
+  result.ESA_PMT_CUM = `${leaseProductAttribute.leaseAmount}`;
 
   const { EPV_YLD, EPV_YLD_CUM, GPV_YLD } = generateEPVAndGPVTable({
-    systemProduction: quote.system_production,
+    systemProduction: quote.systemProduction,
     quote,
   });
 

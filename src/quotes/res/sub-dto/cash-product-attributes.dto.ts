@@ -1,19 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 
 export class CashProductAttributesDto {
-  @ApiProperty()
+  @ExposeProp()
   upfrontPayment: number;
 
-  @ApiProperty()
+  @ExposeProp()
   balance: number;
 
   // FIXME: need to implement later
-  @ApiProperty()
+  @ExposeProp()
   milestonePayment: any;
 
-  @ApiProperty()
+  @ExposeProp()
   currentAverageMonthlyBill: number;
 
-  @ApiProperty()
+  @ExposeProp()
   newAverageMonthlyBill: number;
 }

@@ -1,6 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 import { DESIGN_MODE } from '../constants';
 import { CapacityProductionDataDto, RoofTopDataReqDto } from './sub-dto';
 import { ExistingSolarDataDto } from './sub-dto/existing-solar.dto';
@@ -17,6 +26,7 @@ export class CreateSystemDesignDto {
   name: string;
 
   @ApiProperty({ enum: [DESIGN_MODE.ROOF_TOP, DESIGN_MODE.CAPACITY_PRODUCTION] })
+  @IsEnum(DESIGN_MODE)
   @IsNotEmpty()
   designMode: DESIGN_MODE;
 

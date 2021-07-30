@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { Quote } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { ProposalSectionMasterService } from '../proposal-section-masters/proposal-section-master.service';
-import { toSnakeCase } from '../utils/transformProperties';
 import { EApplicableProducts, ProposalTemplate, PROPOSAL_TEMPLATE } from './proposal-template.schema';
 import { CreateProposalTemplateDto } from './req/create-proposal-template.dto';
 import { UpdateProposalTemplateDto } from './req/update-proposal-template.dto';
@@ -23,36 +23,29 @@ export class ProposalTemplateService {
   ) {}
 
   async create(proposalTemplateDto: CreateProposalTemplateDto): Promise<OperationResult<ProposalTemplateDto>> {
-    const proposalSections = await Promise.all(
-      proposalTemplateDto.sections.map(id => this.proposalSectionMasterService.getProposalSectionMasterById(id)),
+    const proposalSections = await this.proposalSectionMasterService.getProposalSectionMastersByIds(
+      proposalTemplateDto.sections,
     );
 
     const model = new this.proposalTemplate({
-      name: proposalTemplateDto.name,
-      sections: proposalSections.map(item => ({
-        id: item?._id,
-        name: item?.name,
-        component_name: item?.component_name,
-      })),
-      proposal_section_master: toSnakeCase(proposalTemplateDto.proposalSectionMaster),
+      ...proposalTemplateDto,
+      sections: proposalSections,
     });
     await model.save();
-    return OperationResult.ok(new ProposalTemplateDto(model.toObject()));
+    return OperationResult.ok(strictPlainToClass(ProposalTemplateDto, model.toJSON()));
   }
 
   async update(
-    id: string,
+    id: ObjectId,
     proposalTemplateDto: UpdateProposalTemplateDto,
   ): Promise<OperationResult<ProposalTemplateDto>> {
     const foundProposalSectionMaster = await this.proposalTemplate.findOne({ _id: id });
     if (!foundProposalSectionMaster) {
-      throw ApplicationException.EntityNotFound(id);
+      throw ApplicationException.EntityNotFound(id.toString());
     }
 
     const proposalSections = proposalTemplateDto.sections
-      ? await Promise.all(
-          proposalTemplateDto.sections.map(id => this.proposalSectionMasterService.getProposalSectionMasterById(id)),
-        )
+      ? await this.proposalSectionMasterService.getProposalSectionMastersByIds(proposalTemplateDto.sections)
       : [];
 
     const updatedModel = await this.proposalTemplate
@@ -60,22 +53,15 @@ export class ProposalTemplateService {
         id,
         {
           name: proposalTemplateDto.name || foundProposalSectionMaster.name,
-          sections: proposalSections.length
-            ? proposalSections.map(item => ({
-                id: item?._id || '',
-                name: item?.name || '',
-                component_name: item?.component_name || '',
-              }))
-            : foundProposalSectionMaster.sections,
-          proposal_section_master: proposalTemplateDto.proposalSectionMaster
-            ? toSnakeCase(proposalTemplateDto.proposalSectionMaster)
-            : foundProposalSectionMaster.proposal_section_master,
+          sections: <any>proposalSections || <any>foundProposalSectionMaster.sections,
+          proposalSectionMaster:
+            <any>proposalTemplateDto.proposalSectionMaster || <any>foundProposalSectionMaster.proposalSectionMaster,
         },
         { new: true },
       )
       .lean();
 
-    return OperationResult.ok(new ProposalTemplateDto(updatedModel || ({} as any)));
+    return OperationResult.ok(strictPlainToClass(ProposalTemplateDto, updatedModel));
   }
 
   async getList(
@@ -95,20 +81,20 @@ export class ProposalTemplateService {
 
     if (quoteId) {
       foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
-      const foundSystemDesign = await this.systemDesignService.getOneById(foundQuote!!.system_design_id);
+      const foundSystemDesign = await this.systemDesignService.getOneById(foundQuote!!.systemDesignId);
 
       query['proposal_section_master.applicable_financial_product'].$in = [
-        foundQuote!!.detailed_quote.quote_finance_product.finance_product.funding_source_id,
+        foundQuote!!.detailedQuote.quoteFinanceProduct.financeProduct.fundingSourceId,
       ];
 
       if (
-        foundSystemDesign?.roof_top_design_data.panel_array?.length &&
-        foundSystemDesign?.roof_top_design_data.storage?.length
+        foundSystemDesign?.roofTopDesignData.panelArray?.length &&
+        foundSystemDesign?.roofTopDesignData.storage?.length
       ) {
         query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.PV_AND_STORAGE];
-      } else if (foundSystemDesign?.roof_top_design_data.panel_array?.length) {
+      } else if (foundSystemDesign?.roofTopDesignData.panelArray?.length) {
         query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.PV];
-      } else if (foundSystemDesign?.roof_top_design_data.storage?.length) {
+      } else if (foundSystemDesign?.roofTopDesignData.storage?.length) {
         query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.STORAGE];
       }
     }
@@ -124,7 +110,7 @@ export class ProposalTemplateService {
 
     return OperationResult.ok(
       new Pagination({
-        data: proposalTemplates.map(proposalTemplate => new ProposalTemplateDto(proposalTemplate)),
+        data: strictPlainToClass(ProposalTemplateDto, proposalTemplates),
         total,
       }),
     );

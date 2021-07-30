@@ -1,40 +1,40 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class DocusignCompositeTemplateMasterDataResDto {
-  @ApiProperty()
+  @ExposeMongoId()
   id: string;
 
-  @ApiProperty()
+  @ExposeProp()
   name: string;
 
-  @ApiProperty()
+  @ExposeProp()
   description: string;
 
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeProp({ type: String, isArray: true })
   docusignTemplateIds: string[];
 
-  @ApiProperty()
+  @ExposeProp()
   isApplicableForChangeOrders: boolean;
 
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeProp({ type: String, isArray: true })
   applicableFundingSources: string[];
 
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeProp({ type: String, isArray: true })
   applicableUtilityPrograms: string[];
 
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeProp({ type: String, isArray: true })
   applicableUtilities: string[];
 
-  @ApiProperty({ type: String, isArray: true })
+  @ExposeProp({ type: String, isArray: true })
   applicableStates: string[];
 
-  @ApiProperty({ enum: SYSTEM_TYPE, type: String, isArray: true })
+  @ExposeProp({ enum: SYSTEM_TYPE, type: String, isArray: true })
   applicableSystemTypes: SYSTEM_TYPE[];
 
-  @ApiProperty()
+  @ExposeProp()
   createdAt: Date;
 
-  @ApiProperty()
+  @ExposeProp()
   updatedAt: Date;
 }

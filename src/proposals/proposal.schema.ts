@@ -19,20 +19,20 @@ const RecipientSchema = new Schema<Document<IRecipientSchema>>(
 );
 
 export interface IDetailedProposalSchema {
-  is_selected: boolean;
-  quote_data: IDetailedQuoteSchema;
-  system_design_data: SystemDesign;
-  proposal_name: string;
-  proposal_creation_date: Date;
-  proposal_sent_date: Date;
+  isSelected: boolean;
+  quoteData: IDetailedQuoteSchema;
+  systemDesignData: SystemDesign;
+  proposalName: string;
+  proposalCreationDate: Date;
+  proposalSentDate: Date;
   recipients: IRecipientSchema[];
-  proposal_validity_period: number;
-  template_id: string;
+  proposalValidityPeriod: number;
+  templateId: string;
   status: PROPOSAL_STATUS;
-  pdf_file_url: string;
-  html_file_url: string;
-  envelope_id?: string;
-  sample_contract_url?: string;
+  pdfFileUrl: string;
+  htmlFileUrl: string;
+  envelopeId?: string;
+  sampleContractUrl?: string;
 }
 
 const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
@@ -56,11 +56,11 @@ const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
 );
 
 export interface Proposal extends Document {
-  opportunity_id: string;
-  system_design_id: string;
-  quote_id: string;
-  detailed_proposal: IDetailedProposalSchema;
-  valid_till: Date;
+  opportunityId: string;
+  systemDesignId: string;
+  quoteId: string;
+  detailedProposal: IDetailedProposalSchema;
+  validTill: Date;
 }
 
 export const ProposalSchema = new Schema<Proposal>({

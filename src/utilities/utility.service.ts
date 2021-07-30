@@ -1,15 +1,16 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
-import { LeanDocument, Model } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { QuoteService } from 'src/quotes/quote.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
-import { CalculateActualUsageCostDto, CreateUtilityDto, GetActualUsageDto } from './req';
-import { CostDataDto, LoadServingEntity, TariffDetailDto, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
+import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
+import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
 import { UTILITIES, Utilities } from './schemas';
 import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
 import { GenebilityTeriffData, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
@@ -19,7 +20,6 @@ import {
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
-  ICostData,
   ITypicalUsage,
   IUtilityCostData,
   UtilityUsageDetails,
@@ -50,63 +50,55 @@ export class UtilityService {
   ) {}
 
   async getLoadServingEntities(zipCode: number): Promise<OperationResult<LoadServingEntity[]>> {
-    const cacheData = await this.genebilityLseDataModel.findOne({ zip_code: zipCode }).lean();
+    const cacheData = await this.genebilityLseDataModel.findOne({ zipCode }).lean();
 
     if (cacheData) {
-      const expiredAt = +new Date((<any>cacheData).created_at) + this.GENEBILITY_CACHING_TIME;
+      const expiredAt = +new Date((<any>cacheData).createdAt) + this.GENEBILITY_CACHING_TIME;
       const now = +new Date();
 
       const remain = expiredAt - now;
-
       if (remain > 0)
         return OperationResult.ok(
-          cacheData.data.map(({ lse_code, lse_id, lse_name, service_type }) => ({
+          cacheData.data.map(({ lseName, lseCode, serviceType, lseId }) => ({
             zipCode,
-            lseName: lse_name,
-            lseCode: lse_code,
-            serviceType: service_type,
-            lseId: lse_id,
+            lseName,
+            lseCode,
+            serviceType,
+            lseId,
           })),
         );
 
-      await this.genebilityLseDataModel.deleteOne({ zip_code: zipCode });
+      await this.genebilityLseDataModel.deleteOne({ zipCode });
     }
 
     const lseList = await this.externalService.getLoadServingEntities(zipCode);
 
-    const data = {
-      zip_code: zipCode,
-      data: lseList.map(({ zipCode, lseName, lseCode, serviceType, lseId }) => ({
-        zip_code: zipCode,
-        lse_name: lseName,
-        lse_code: lseCode,
-        service_type: serviceType,
-        lse_id: lseId,
-      })),
-    };
+    await this.genebilityLseDataModel.create({
+      zipCode,
+      data: lseList,
+    });
 
-    await this.genebilityLseDataModel.create(data);
     return OperationResult.ok(lseList);
   }
 
   async getTypicalBaseline(zipCode: number, isInternal = false): Promise<OperationResult<UtilityDataDto>> {
-    const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode }).lean();
+    const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zipCode }).lean();
     if (typicalBaseLine) {
       if (!isInternal) {
         // @ts-ignore
-        delete typicalBaseLine?.typical_baseline?.typical_hourly_usage;
+        delete typicalBaseLine.typicalBaseline.typicalHourlyUsage;
       }
 
       const data = { typicalBaselineUsage: typicalBaseLine };
-      return OperationResult.ok(new UtilityDataDto(data, isInternal));
+      return OperationResult.ok(strictPlainToClass(UtilityDataDto, data));
     }
 
     const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
     const genabilityTypicalBaseLine = {
-      zip_code: typicalBaseLineAPI.zipCode,
-      lse_id: typicalBaseLineAPI.lseId,
-      typical_baseline: new GenabilityTypicalBaseLineModel(typicalBaseLineAPI),
-      baseline_cost: '',
+      zipCode: typicalBaseLineAPI.zipCode,
+      lseId: typicalBaseLineAPI.lseId,
+      typicalBaseline: new GenabilityTypicalBaseLineModel(typicalBaseLineAPI),
+      baselineCost: '',
     };
 
     const createdTypicalBaseLine = new this.genabilityUsageDataModel(genabilityTypicalBaseLine);
@@ -115,47 +107,41 @@ export class UtilityService {
     const createdTypicalBaseLineObj = createdTypicalBaseLine.toObject();
     if (!isInternal) {
       // @ts-ignore
-      delete createdTypicalBaseLineObj?.typical_baseline?.typical_hourly_usage;
+      delete createdTypicalBaseLineObj?.typicalBaseline?.typicalHourlyUsage;
     }
     const data = { typicalBaselineUsage: createdTypicalBaseLineObj };
-    return OperationResult.ok(new UtilityDataDto(data, isInternal));
+    return OperationResult.ok(strictPlainToClass(UtilityDataDto, data));
   }
 
   async getTariffs(zipCode: number, lseId?: number): Promise<OperationResult<TariffDto>> {
-    const cacheData = await this.genebilityTeriffDataModel
-      .findOne({
-        zip_code: zipCode,
-        lse_id: lseId?.toString() || '',
-      })
-      .lean();
+    const query = lseId
+      ? {
+          zipCode,
+          lseId,
+        }
+      : { zipCode };
+    const cacheData = await this.genebilityTeriffDataModel.findOne(<any>query).lean();
 
     if (cacheData) {
-      const expiredAt = +new Date((<any>cacheData).created_at) + this.GENEBILITY_CACHING_TIME;
+      const expiredAt = +new Date((<any>cacheData).createdAt) + this.GENEBILITY_CACHING_TIME;
       const now = +new Date();
 
       const remain = expiredAt - now;
 
       if (remain > 0) {
         return OperationResult.ok(
-          new TariffDto({
+          strictPlainToClass(TariffDto, {
             zipCode,
-            lseId: `${lseId}`,
-            lseName: cacheData.lse_name,
-            tariffDetails: cacheData.tariff_details.map(
-              ({ master_tariff_id, tariff_code, tariff_name }) =>
-                new TariffDetailDto({
-                  tariffCode: tariff_code,
-                  tariffName: tariff_name,
-                  masterTariffId: master_tariff_id,
-                }),
-            ),
+            lseId,
+            lseName: cacheData.lseName,
+            tariffDetails: cacheData.tariffDetails,
           }),
         );
       }
 
       await this.genebilityTeriffDataModel.deleteOne({
-        zip_code: zipCode,
-        lse_id: `${lseId}`,
+        zipCode,
+        lseId: `${lseId}`,
       });
     }
 
@@ -167,55 +153,39 @@ export class UtilityService {
     }
 
     const newResult = {
-      zipCode: result[0].zipCode,
+      zipCode: result[0].zipCode || zipCode,
       lseId: lseId?.toString() || '',
       lseName: result[0].name,
-      tariffDetails: result.map(item => ({
-        tariffCode: item.tariffCode,
-        masterTariffId: item.masterTariffId,
-        tariffName: item.tariffName,
-      })),
+      tariffDetails: result,
     };
 
-    const updateData: LeanDocument<GenebilityTeriffData> = {
-      lse_id: newResult.lseId,
-      lse_name: newResult.lseName,
-      zip_code: newResult.zipCode,
-      tariff_details: newResult.tariffDetails.map(({ tariffCode, masterTariffId, tariffName }) => ({
-        tariff_code: tariffCode,
-        master_tariff_id: masterTariffId,
-        tariff_name: tariffName,
-      })),
-    };
+    await this.genebilityTeriffDataModel.create(newResult);
 
-    await this.genebilityTeriffDataModel.create({ ...updateData, zip_code: zipCode });
-
-    return OperationResult.ok(new TariffDto({ ...newResult, zipCode }));
+    return OperationResult.ok(strictPlainToClass(TariffDto, newResult));
   }
 
   async calculateTypicalUsageCost(zipCode: number, masterTariffId: string): Promise<OperationResult<CostDataDto>> {
     const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
 
     const monthlyCost = await this.calculateCost(
-      typicalBaseLine.typical_baseline.typical_hourly_usage.map(item => item.v),
+      typicalBaseLine.typicalBaseline.typicalHourlyUsage.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
     );
 
     const costData = {
-      master_tariff_id: masterTariffId,
-      typical_usage_cost: monthlyCost,
-      actual_usage_cost: null as any,
-    } as ICostData;
+      masterTariffId,
+      typicalUsageCost: monthlyCost,
+      actualUsageCost: null as any,
+    };
 
-    return OperationResult.ok(new CostDataDto(costData));
+    return OperationResult.ok(strictPlainToClass(CostDataDto, costData));
   }
 
   async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostDataDto>> {
     const { zipCode, masterTariffId, utilityData } = data;
     const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
-
     const deltaValues = {} as { i: number };
 
     utilityData.actualUsage.monthlyUsage.map((monthly, index) => {
@@ -225,28 +195,28 @@ export class UtilityService {
     });
 
     let i = 0;
-    const { typical_hourly_usage = [] } = typicalBaseLine.typical_baseline;
-    const len = typical_hourly_usage.length;
+    const { typicalHourlyUsage = [] } = typicalBaseLine.typicalBaseline;
+    const len = typicalHourlyUsage.length;
     while (i < len) {
       // eslint-disable-next-line operator-assignment
-      typical_hourly_usage[i].v = (deltaValues[this.getMonth(i)] + 1) * typical_hourly_usage[i].v;
+      typicalHourlyUsage[i].v = (deltaValues[this.getMonth(i)] + 1) * typicalHourlyUsage[i].v;
       i += 1;
     }
 
     const monthlyCost = await this.calculateCost(
-      typical_hourly_usage.map(item => item.v),
+      typicalHourlyUsage.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       new Date().getFullYear(),
     );
 
     const costData = {
-      master_tariff_id: masterTariffId,
-      typical_usage_cost: null as any,
-      actual_usage_cost: monthlyCost,
-    } as ICostData;
+      masterTariffId,
+      typicalUsageCost: null as any,
+      actualUsageCost: monthlyCost,
+    };
 
-    return OperationResult.ok(new CostDataDto(costData));
+    return OperationResult.ok(strictPlainToClass(CostDataDto, costData));
   }
 
   async createActualUsages(data: GetActualUsageDto): Promise<OperationResult<UtilityDataDto>> {
@@ -258,52 +228,53 @@ export class UtilityService {
       utilityData.actualUsage.monthlyUsage[index].v =
         utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
     });
-    return OperationResult.ok(UtilityDataDto.actualUsages(utilityData));
+    return OperationResult.ok(strictPlainToClass(UtilityDataDto, utilityData as any));
   }
 
-  async createUtilityUsageDetail(utilityDto: CreateUtilityDto): Promise<OperationResult<UtilityDetailsDto>> {
-    const found = await this.utilityUsageDetailsModel.findOne({ opportunity_id: utilityDto.opportunityId }).lean();
+  async createUtilityUsageDetail(utilityDto: CreateUtilityReqDto): Promise<OperationResult<UtilityDetailsDto>> {
+    const found = await this.utilityUsageDetailsModel.findOne({ opportunityId: utilityDto.opportunityId }).lean();
     if (found) {
-      delete found.utility_data.typical_baseline_usage._id;
-      return OperationResult.ok(new UtilityDetailsDto(found));
+      delete found.utilityData.typicalBaselineUsage._id;
+      return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, found));
     }
 
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
-    const { typical_hourly_usage = [] } = typicalBaseLine.typical_baseline;
+    const { typicalHourlyUsage = [] } = typicalBaseLine.typicalBaseline;
 
-    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(utilityDto, typical_hourly_usage);
+    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(utilityDto, typicalHourlyUsage);
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
     utilityModel.setActualHourlyUsage(hourlyUsage);
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
     await createdUtility.save();
     const createdUtilityObj = createdUtility.toObject();
-    delete createdUtilityObj.utility_data.typical_baseline_usage._id;
-    return OperationResult.ok(new UtilityDetailsDto(createdUtilityObj));
+    delete createdUtilityObj.utilityData.typicalBaselineUsage._id;
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, createdUtilityObj));
   }
 
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
-    const res = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId }).lean();
+    const res = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
     if (!res) {
       return OperationResult.ok(null as any);
     }
-    delete res.utility_data.typical_baseline_usage._id;
-    return OperationResult.ok(new UtilityDetailsDto(res));
+
+    delete res.utilityData.typicalBaselineUsage._id;
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, res));
   }
 
   async updateUtilityUsageDetail(
-    utilityId: string,
-    utilityDto: CreateUtilityDto,
+    utilityId: ObjectId,
+    utilityDto: CreateUtilityReqDto,
   ): Promise<OperationResult<UtilityDetailsDto>> {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
-    const { typical_hourly_usage = [] } = typicalBaseLine.typical_baseline;
+    const { typicalHourlyUsage = [] } = typicalBaseLine.typicalBaseline;
 
-    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(utilityDto, typical_hourly_usage);
+    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(utilityDto, typicalHourlyUsage);
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
     utilityModel.setActualHourlyUsage(hourlyUsage);
 
     const updatedUtility = await this.utilityUsageDetailsModel
-      .findByIdAndUpdate(utilityId, utilityModel, {
+      .findOneAndUpdate({ _id: utilityId }, utilityModel, {
         new: true,
       })
       .lean();
@@ -320,9 +291,9 @@ export class UtilityService {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
     }
 
-    delete updatedUtility?.utility_data?.typical_baseline_usage?._id;
+    delete updatedUtility?.utilityData?.typicalBaselineUsage?._id;
 
-    return OperationResult.ok(new UtilityDetailsDto(updatedUtility || ({} as any)));
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, updatedUtility));
   }
 
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----
@@ -348,17 +319,17 @@ export class UtilityService {
   }
 
   async getTypicalBaselineData(zipCode: number): Promise<LeanDocument<GenabilityUsageData>> {
-    let typicalBaseLine: any = await this.genabilityUsageDataModel.findOne({ zip_code: zipCode }).lean();
+    let typicalBaseLine: any = await this.genabilityUsageDataModel.findOne({ zipCode }).lean();
     if (typicalBaseLine) {
       return typicalBaseLine;
     }
 
     const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
     const genabilityTypicalBaseLine = {
-      zip_code: typicalBaseLineAPI.zipCode,
-      lse_id: typicalBaseLineAPI.lseId,
-      typical_baseline: new GenabilityTypicalBaseLineModel(typicalBaseLineAPI),
-      baseline_cost: '',
+      zipCode: typicalBaseLineAPI.zipCode,
+      lseId: typicalBaseLineAPI.lseId,
+      typicalBaseline: new GenabilityTypicalBaseLineModel(typicalBaseLineAPI),
+      baselineCost: '',
     };
 
     typicalBaseLine = new this.genabilityUsageDataModel(genabilityTypicalBaseLine);
@@ -374,10 +345,10 @@ export class UtilityService {
     zipCode?: number,
   ): Promise<IUtilityCostData> {
     if (mode === CALCULATION_MODE.TYPICAL) {
-      const genabilityCost = await this.genabilityCostDataModel.findOne({ master_tariff_id: masterTariffId }).lean();
+      const genabilityCost = await this.genabilityCostDataModel.findOne({ masterTariffId }).lean();
 
       if (genabilityCost) {
-        return genabilityCost.utility_cost;
+        return genabilityCost.utilityCost;
       }
     }
 
@@ -387,8 +358,8 @@ export class UtilityService {
       const [year, month] = item.split('-');
       const lastDay = this.getLastDay(Number(month), Number(year));
       const data = {
-        start_date: new Date(`${month}/1/${year}`),
-        end_date: new Date(`${month}/${lastDay}/${year}`),
+        startDate: new Date(`${month}/1/${year}`),
+        endDate: new Date(`${month}/${lastDay}/${year}`),
         i: Number(month),
         v: sumBy(groupByMonth[item], 'cost'),
       };
@@ -398,37 +369,40 @@ export class UtilityService {
     const currentYear = new Date().getFullYear();
 
     const costData = {
-      start_date: new Date(`${currentYear - 1}-01-01`),
-      end_date: new Date(`${currentYear}-01-01`),
+      startDate: new Date(`${currentYear - 1}-01-01`),
+      endDate: new Date(`${currentYear}-01-01`),
       interval: INTERVAL_VALUE.MONTH,
       cost: monthlyCosts,
     } as IUtilityCostData;
 
     if (mode === CALCULATION_MODE.TYPICAL) {
       const genabilityCostData = {
-        zip_code: zipCode,
-        master_tariff_id: masterTariffId,
-        utility_cost: costData,
+        zipCode,
+        masterTariffId,
+        utilityCost: costData,
       };
 
-      const createdgenabilityCost = new this.genabilityCostDataModel(genabilityCostData);
-      await createdgenabilityCost.save();
+      const createdGenabilityCost = new this.genabilityCostDataModel(genabilityCostData);
+      await createdGenabilityCost.save();
     }
 
     return costData;
   }
 
   async getUtilityByOpportunityId(opportunityId: string): Promise<LeanDocument<UtilityUsageDetails> | null> {
-    const utility = await this.utilityUsageDetailsModel.findOne({ opportunity_id: opportunityId }).lean();
+    const utility = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
     return utility;
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    const counter = await this.utilityUsageDetailsModel.countDocuments({ opportunity_id: opportunityId }).lean();
+    const counter = await this.utilityUsageDetailsModel.countDocuments({ opportunityId });
     return counter;
   }
 
-  getHourlyUsageFromMonthlyUsage(utilityDto: CreateUtilityDto, typicalHourlyUsage: ITypicalUsage[]): ITypicalUsage[] {
+  getHourlyUsageFromMonthlyUsage(
+    utilityDto: CreateUtilityReqDto,
+    typicalHourlyUsage: ITypicalUsage[],
+  ): ITypicalUsage[] {
     const deltaValue: any[] = [];
     const hourlyUsage: any[] = [];
 

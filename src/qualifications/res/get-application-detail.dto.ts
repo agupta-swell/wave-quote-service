@@ -1,75 +1,65 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { ServiceResponse } from '../../app/common';
 
 class ApplicantDataDto {
-  @ApiProperty()
+  @ExposeProp()
   firstName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   middleName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   lastName: string;
 
-  @ApiProperty()
+  @ExposeProp()
   email: string;
 
-  @ApiProperty()
+  @ExposeAndMap({}, ({ obj }) => obj.cellPhone)
   phoneNumber: string;
 
-  @ApiProperty()
+  @ExposeAndMap({}, ({ obj }) => obj.address1)
   addressLine1: string;
 
-  @ApiProperty()
+  @ExposeAndMap({}, ({ obj }) => obj.address2)
   addressLine2: string;
 
-  @ApiProperty()
+  @ExposeProp()
   city: string;
 
-  @ApiProperty()
+  @ExposeProp()
   state: string;
 
-  @ApiProperty()
+  @ExposeAndMap({}, ({ obj }) => obj.zip)
   zipcode: number;
 }
 
 export class GetApplicationDetailDto {
-  @ApiProperty()
+  @ExposeProp()
   qualificationCreditId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   opportunityId: string;
 
-  @ApiProperty()
+  @ExposeProp()
   responseStatus: boolean;
 
-  @ApiProperty()
+  @ExposeProp()
   processStatus: boolean;
 
-  @ApiProperty({ type: ApplicantDataDto })
+  @ExposeAndMap({ type: ApplicantDataDto }, ({ obj }) => obj.contact)
   primaryApplicantData: ApplicantDataDto;
 
-  @ApiProperty({ type: ApplicantDataDto })
+  @ExposeProp({ type: ApplicantDataDto })
   coApplicantData: ApplicantDataDto;
 
-  @ApiProperty()
+  @ExposeProp()
   newJWTToken: string;
-
-  constructor(props: any) {
-    this.qualificationCreditId = props.qualificationCreditId;
-    this.opportunityId = props.opportunityId;
-    this.responseStatus = props.responseStatus;
-    this.processStatus = props.processStatus;
-    this.primaryApplicantData = props.primaryApplicantData;
-    this.coApplicantData = props.coApplicantData;
-    this.newJWTToken = props.newJWTToken;
-  }
 }
 
 export class GetApplicationDetailRes implements ServiceResponse<GetApplicationDetailDto> {
-  @ApiProperty()
+  @ExposeProp()
   status: string;
 
-  @ApiProperty({ type: GetApplicationDetailDto })
+  @ExposeProp({ type: GetApplicationDetailDto })
   data: GetApplicationDetailDto;
 }

@@ -6,17 +6,17 @@ export const DOCUSIGN_COMPOSITE_TEMPLATE_MASTER = Symbol('DOCUSIGN_COMPOSITE_TEM
 export interface DocusignCompositeTemplateMaster extends Document {
   name: string;
   description: string;
-  docusign_template_ids: string[];
-  is_applicable_for_change_orders: boolean;
-  applicable_funding_sources: string[];
-  applicable_utility_programs: string[];
-  applicable_utilities: string[];
-  applicable_states: string[];
-  applicable_system_types: SYSTEM_TYPE[];
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  docusignTemplateIds: string[];
+  isApplicableForChangeOrders: boolean;
+  applicableFundingSources: string[];
+  applicableUtilityPrograms: string[];
+  applicableUtilities: string[];
+  applicableStates: string[];
+  applicableSystemTypes: SYSTEM_TYPE[];
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<DocusignCompositeTemplateMaster>(

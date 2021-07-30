@@ -1,8 +1,8 @@
 import { Document, Schema, Types } from 'mongoose';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { BATTERY_TYPE } from 'src/products/constants';
 import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
-import { toSnakeCase } from '../utils/transformProperties';
 import { COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
 import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
@@ -27,15 +27,15 @@ interface IProductCommonSchema {
   price: number;
   sizeW: number;
   sizekWh: number;
-  part_number: string[];
+  partNumber: string[];
   dimension: {
     length: number;
     width: number;
   };
-  manufacturer_id: string;
-  model_name: string;
-  approved_for_gsa: boolean;
-  approved_for_esa: boolean;
+  manufacturerId: string;
+  modelName: string;
+  approvedForGsa: boolean;
+  approvedForEsa: boolean;
 }
 
 export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct {}
@@ -110,21 +110,21 @@ export const PanelProductSchema = new Schema<Document<IPanelProductSchema>>(
 );
 
 export interface ISolarPanelArraySchema {
-  array_id: Types.ObjectId;
-  primary_orientation_side: number;
-  panel_orientation: string;
-  bound_polygon: ILatLngSchema[];
+  arrayId: Types.ObjectId;
+  primaryOrientationSide: number;
+  panelOrientation: string;
+  boundPolygon: ILatLngSchema[];
   panels: ILatLngSchema[][];
   setbacks: Map<string, string>;
-  setbacks_polygon: ILatLngSchema[];
+  setbacksPolygon: ILatLngSchema[];
   keepouts: ILatLngSchema[][];
   pitch: number;
   azimuth: number;
-  row_spacing: number;
-  panel_model_id: string;
-  number_of_panels: number;
-  panel_model_data_snapshot: IPanelProductSchema;
-  panel_model_snapshot_date: Date;
+  rowSpacing: number;
+  panelModelId: string;
+  numberOfPanels: number;
+  panelModelDataSnapshot: IPanelProductSchema;
+  panelModelSnapshotDate: Date;
   losses: number;
 }
 
@@ -152,9 +152,9 @@ const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
 
 export interface IInverterSchema {
   type: string;
-  inverter_model_id: string;
-  inverter_model_data_snapshot: IInverterProductSchema;
-  inverter_model_snapshot_date: Date;
+  inverterModelId: string;
+  inverterModelDataSnapshot: IInverterProductSchema;
+  inverterModelSnapshotDate: Date;
   quantity: number;
 }
 
@@ -172,12 +172,12 @@ const InverterSchema = new Schema<Document<IInverterSchema>>(
 export interface IStorageSchema {
   type: string;
   quantity: number;
-  storage_model_id: string;
-  storage_model_data_snapshot: IStorageProductSchema;
-  storage_model_snapshot_date: Date;
+  storageModelId: string;
+  storageModelDataSnapshot: IStorageProductSchema;
+  storageModelSnapshotDate: Date;
   reserve: number;
   purpose: string;
-  battery_type: BATTERY_TYPE;
+  batteryType: BATTERY_TYPE;
 }
 
 const StorageSchema = new Schema<Document<IStorageSchema>>(
@@ -198,7 +198,7 @@ export interface IAdderModel {
   adder: string;
   price: number;
   increment: string | any;
-  modified_at: Date;
+  modifiedAt: Date;
 }
 
 export const AdderModelSchema = new Schema<Document<IAdderModel>>(
@@ -212,12 +212,12 @@ export const AdderModelSchema = new Schema<Document<IAdderModel>>(
 );
 
 export interface IAdderSchema {
-  adder_description: string;
+  adderDescription: string;
   quantity: number;
   unit: COST_UNIT_TYPE;
-  adder_id: string;
-  adder_model_data_snapshot: IAdderModel;
-  adder_model_snapshot_date: Date;
+  adderId: string;
+  adderModelDataSnapshot: IAdderModel;
+  adderModelSnapshotDate: Date;
 }
 
 const AdderSchema = new Schema<Document<IAdderSchema>>(
@@ -259,9 +259,9 @@ export const BalanceOfSystemProductSchema = new Schema<Document<IBalanceOfSystem
 );
 
 export interface IBalanceOfSystemSchema {
-  balance_of_system_id: string;
-  balance_of_system_model_data_snapshot: IBalanceOfSystemProductSchema;
-  balance_of_system_snapshot_date: Date;
+  balanceOfSystemId: string;
+  balanceOfSystemModelDataSnapshot: IBalanceOfSystemProductSchema;
+  balanceOfSystemSnapshotDate: Date;
   unit: COST_UNIT_TYPE;
 }
 
@@ -276,14 +276,14 @@ export const BalanceOfSystemSchema = new Schema<Document<IBalanceOfSystemSchema>
 );
 
 export interface IAncillaryEquipment {
-  ancillary_id: string;
-  manufacturer_id: string;
-  model_name: string;
-  related_component: COMPONENT_TYPE;
+  ancillaryId: string;
+  manufacturerId: string;
+  modelName: string;
+  relatedComponent: COMPONENT_TYPE;
   description: string;
-  average_whole_sale_price: number;
-  applicable_product_manufacturer_id: string;
-  quantity: number;
+  averageWholeSalePrice: number;
+  applicableProductManufacturerId: string;
+  quantity: number
 }
 
 export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
@@ -301,9 +301,9 @@ export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
 );
 
 export interface IAncillaryEquipmentSchema {
-  ancillary_id: string;
-  ancillary_equipment_model_data_snapshot: IAncillaryEquipment;
-  ancillary_equipment_model_data_snapshot_date: Date;
+  ancillaryId: string;
+  ancillaryEquipmentModelDataSnapshot: IAncillaryEquipment;
+  ancillaryEquipmentModelDataSnapshotDate: Date;
   quantity: number;
 }
 
@@ -318,12 +318,12 @@ export const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentS
 );
 
 export interface IRoofTopSchema {
-  panel_array: ISolarPanelArraySchema[];
+  panelArray: ISolarPanelArraySchema[];
   inverters: IInverterSchema[];
   storage: IStorageSchema[];
   adders: IAdderSchema[];
-  balance_of_systems: IBalanceOfSystemSchema[];
-  ancillary_equipments: IAncillaryEquipmentSchema[];
+  balanceOfSystems: IBalanceOfSystemSchema[];
+  ancillaryEquipments: IAncillaryEquipmentSchema[];
 }
 
 export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
@@ -342,8 +342,8 @@ export interface ISystemProductionSchema {
   capacityKW: number;
   generationKWh: number;
   productivity: number;
-  annual_usageKWh: number;
-  offset_percentage: number;
+  annualUsageKWh: number;
+  offsetPercentage: number;
   generationMonthlyKWh: number[];
 }
 
@@ -360,8 +360,8 @@ export const SystemProductionSchema = new Schema<Document<ISystemProductionSchem
 );
 
 export interface INetUsagePostInstallationSchema {
-  hourly_net_usage: number[];
-  calculation_mode: string;
+  hourlyNetUsage: number[];
+  calculationMode: string;
 }
 
 export const NetUsagePostInstallationSchema = new Schema<Document<INetUsagePostInstallationSchema>>(
@@ -372,27 +372,29 @@ export const NetUsagePostInstallationSchema = new Schema<Document<INetUsagePostI
   { _id: false },
 );
 
+// @ts-ignore
 export interface SystemDesign extends Document {
   name: string;
-  opportunity_id: string;
-  design_mode: string;
+  opportunityId: string;
+  designMode: string;
   thumbnail: string;
-  is_selected: boolean;
-  is_solar: boolean;
-  is_retrofit: boolean;
-  roof_top_design_data: IRoofTopSchema;
-  capacity_production_design_data: '';
-  system_production_data: ISystemProductionSchema;
-  net_usage_post_installation: INetUsagePostInstallationSchema;
-  cost_post_installation: IUtilityCostData;
+  isSelected: boolean;
+  isSolar: boolean;
+  isRetrofit: boolean;
+  roofTopDesignData: IRoofTopSchema;
+  capacityProductionDesignData: '';
+  systemProductionData: ISystemProductionSchema;
+  netUsagePostInstallation: INetUsagePostInstallationSchema;
+  costPostInstallation: IUtilityCostData;
   latitude: number;
   longtitude: number;
-  created_by: string;
-  created_at: Date;
-  updated_by: string;
-  updated_at: Date;
+  createdBy: string;
+  createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
+// @ts-ignore
 export const SystemDesignSchema = new Schema<SystemDesign>({
   name: String,
   latitude: Number,
@@ -424,91 +426,91 @@ export class SystemDesignModel {
 
   longtitude: number;
 
-  opportunity_id: string;
+  opportunityId: string;
 
-  design_mode: string;
+  designMode: string;
 
   thumbnail: string;
 
-  is_selected: boolean;
+  isSelected: boolean;
 
-  is_solar: boolean;
+  isSolar: boolean;
 
-  is_retrofit: boolean;
+  isRetrofit: boolean;
 
-  roof_top_design_data: IRoofTopSchema;
+  roofTopDesignData: IRoofTopSchema;
 
-  capacity_production_design_data: string;
+  capacityProductionDesignData: string;
 
-  system_production_data: ISystemProductionSchema;
+  systemProductionData: ISystemProductionSchema;
 
-  net_usage_post_installation: INetUsagePostInstallationSchema;
+  netUsagePostInstallation: INetUsagePostInstallationSchema;
 
-  cost_post_installation: IUtilityCostData;
+  costPostInstallation: IUtilityCostData;
 
-  created_by: string;
+  createdBy: string;
 
-  created_at: Date;
+  createdAt: Date;
 
-  updated_by: string;
+  updatedBy: string;
 
   updated_at: Date;
 
   constructor(systemDesign: CreateSystemDesignDto) {
     this.name = systemDesign.name;
     // this.is_selected = systemDesign.isSelected;
-    this.is_solar = systemDesign.isSolar;
-    this.is_retrofit = systemDesign.isRetrofit;
+    this.isSolar = systemDesign.isSolar;
+    this.isRetrofit = systemDesign.isRetrofit;
     this.latitude = systemDesign.latitude;
     this.longtitude = systemDesign.longtitude;
-    this.opportunity_id = systemDesign.opportunityId;
-    this.design_mode = systemDesign.designMode;
-    this.roof_top_design_data =
+    this.opportunityId = systemDesign.opportunityId;
+    this.designMode = systemDesign.designMode;
+    this.roofTopDesignData =
       systemDesign.roofTopDesignData && this.transformRoofTopData(systemDesign.roofTopDesignData);
-    this.capacity_production_design_data = systemDesign.capacityProductionDesignData as any;
+    this.capacityProductionDesignData = systemDesign.capacityProductionDesignData as any;
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
     const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
     return {
-      panel_array: (panelArray || []).map(item => toSnakeCase(item)),
-      inverters: inverters?.map(item => toSnakeCase(item)) || [],
-      storage: storage?.map(item => toSnakeCase(item)) || [],
-      adders: adders?.map(item => toSnakeCase(item)) || [],
-      balance_of_systems: balanceOfSystems?.map(item => toSnakeCase(item)) || [],
-      ancillary_equipments: ancillaryEquipments?.map(item => toSnakeCase(item)) || [],
-    };
+      panelArray: panelArray || [],
+      inverters,
+      storage,
+      adders,
+      balanceOfSystems,
+      ancillaryEquipments,
+    } as any;
   };
 
   setPanelModelDataSnapshot(panelModelData: IPanelProductSchema, index: number) {
-    this.roof_top_design_data.panel_array[index].panel_model_data_snapshot = panelModelData;
-    this.roof_top_design_data.panel_array[index].panel_model_snapshot_date = new Date();
+    this.roofTopDesignData.panelArray[index].panelModelDataSnapshot = panelModelData;
+    this.roofTopDesignData.panelArray[index].panelModelSnapshotDate = new Date();
   }
 
   setAdder(adder: IAdderModel, unit: COST_UNIT_TYPE, index: number) {
-    this.roof_top_design_data.adders[index].adder_model_data_snapshot = adder;
-    this.roof_top_design_data.adders[index].unit = unit;
-    this.roof_top_design_data.adders[index].adder_model_snapshot_date = new Date();
+    this.roofTopDesignData.adders[index].adderModelDataSnapshot = adder;
+    this.roofTopDesignData.adders[index].unit = unit;
+    this.roofTopDesignData.adders[index].adderModelSnapshotDate = new Date();
   }
 
   setInverter(inverter: IInverterProductSchema, index: number) {
-    this.roof_top_design_data.inverters[index].inverter_model_data_snapshot = inverter;
-    this.roof_top_design_data.inverters[index].inverter_model_snapshot_date = new Date();
+    this.roofTopDesignData.inverters[index].inverterModelDataSnapshot = inverter;
+    this.roofTopDesignData.inverters[index].inverterModelSnapshotDate = new Date();
   }
 
   setStorage(storage: IStorageProductSchema, index: number) {
-    this.roof_top_design_data.storage[index].storage_model_data_snapshot = storage;
-    this.roof_top_design_data.storage[index].storage_model_snapshot_date = new Date();
+    this.roofTopDesignData.storage[index].storageModelDataSnapshot = storage;
+    this.roofTopDesignData.storage[index].storageModelSnapshotDate = new Date();
   }
 
   setBalanceOfSystem(balanceOfSystems: IBalanceOfSystemProductSchema, index: number) {
-    this.roof_top_design_data.balance_of_systems[index].balance_of_system_model_data_snapshot = balanceOfSystems;
-    this.roof_top_design_data.balance_of_systems[index].balance_of_system_snapshot_date = new Date();
+    this.roofTopDesignData.balanceOfSystems[index].balanceOfSystemModelDataSnapshot = balanceOfSystems;
+    this.roofTopDesignData.balanceOfSystems[index].balanceOfSystemSnapshotDate = new Date();
   }
 
   setAncillaryEquipment(ancillaryEquipment: IAncillaryEquipment, index: number) {
-    this.roof_top_design_data.ancillary_equipments[index].ancillary_equipment_model_data_snapshot = ancillaryEquipment;
-    this.roof_top_design_data.ancillary_equipments[index].ancillary_equipment_model_data_snapshot_date = new Date();
+    this.roofTopDesignData.ancillaryEquipments[index].ancillaryEquipmentModelDataSnapshot = ancillaryEquipment;
+    this.roofTopDesignData.ancillaryEquipments[index].ancillaryEquipmentModelDataSnapshotDate = new Date();
   }
 
   setThumbnail(link: string) {
@@ -520,22 +522,22 @@ export class SystemDesignModel {
   // }
 
   setIsSolar(isSolar: boolean) {
-    this.is_selected = isSolar;
+    this.isSelected = isSolar;
   }
 
   setIsRetrofit(isRetrofit: boolean) {
-    this.is_selected = isRetrofit;
+    this.isSelected = isRetrofit;
   }
 
   setSystemProductionData(data: ISystemProductionSchema) {
-    this.system_production_data = data;
+    this.systemProductionData = data;
   }
 
   setNetUsagePostInstallation(data: INetUsagePostInstallationSchema) {
-    this.net_usage_post_installation = data;
+    this.netUsagePostInstallation = data;
   }
 
   setCostPostInstallation(data: IUtilityCostData) {
-    this.cost_post_installation = data;
+    this.costPostInstallation = data;
   }
 }

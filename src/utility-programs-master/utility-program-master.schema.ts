@@ -4,12 +4,12 @@ import { Document, Schema } from 'mongoose';
 export const UTILITY_PROGRAM_MASTER = Symbol('UTILITY_PROGRAM_MASTER').toString();
 
 export interface UtilityProgramMaster extends Document {
-  utility_program_name: string;
-  rebate_amount: number;
-  program_manager_id?: string;
-  gsa_display_name: string;
-  is_active: boolean;
-  end_date: string;
+  utilityProgramName: string;
+  rebateAmount: number;
+  programManagerId?: string;
+  gsaDisplayName: string;
+  isActive: boolean;
+  endDate: string;
 }
 
 export const UtilityProgramMasterSchema = new Schema<UtilityProgramMaster>({
