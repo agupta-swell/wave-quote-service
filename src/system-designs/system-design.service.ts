@@ -217,7 +217,7 @@ export class SystemDesignService {
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
         }),
-        systemDesign.roofTopDesignData.adders.map(async (item, index) => {
+        systemDesign.roofTopDesignData.adders?.map(async (item, index) => {
           const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
           systemDesign.setAdder(
             { ...adder, modified_at: adder?.modifiedAt } as any,
@@ -225,17 +225,17 @@ export class SystemDesignService {
             index,
           );
         }),
-        systemDesign.roofTopDesignData.inverters.map(async (inverter, index) => {
+        systemDesign.roofTopDesignData.inverters?.map(async (inverter, index) => {
           const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
           const data = { ...inverterModelData, part_number: inverterModelData?.partNumber } as any;
           systemDesign.setInverter(data, index);
         }),
-        systemDesign.roofTopDesignData.storage.map(async (storage, index) => {
+        systemDesign.roofTopDesignData.storage?.map(async (storage, index) => {
           const storageModelData = await this.productService.getDetailById(storage.storageModelId);
           const data = { ...storageModelData, part_number: storageModelData?.partNumber } as any;
           systemDesign.setStorage(data, index);
         }),
-        systemDesign.roofTopDesignData.balanceOfSystems.map(async (balanceOfSystem, index) => {
+        systemDesign.roofTopDesignData.balanceOfSystems?.map(async (balanceOfSystem, index) => {
           const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
           const data = {
             ...balanceOfSystemModelData,
@@ -243,7 +243,7 @@ export class SystemDesignService {
           } as any;
           systemDesign.setBalanceOfSystem(data, index);
         }),
-        systemDesign.roofTopDesignData.ancillaryEquipments.map(async (ancillary, index) => {
+        systemDesign.roofTopDesignData.ancillaryEquipments?.map(async (ancillary, index) => {
           const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
           systemDesign.setAncillaryEquipment(ancillaryModelData as any, index);
         }),
