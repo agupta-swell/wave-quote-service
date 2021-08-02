@@ -541,14 +541,15 @@ export class SystemDesignService {
   }
 
   async updateListSystemDesign(opportunityId: string, annualUsageKWh: number): Promise<boolean> {
-    const systemDesigns = await this.systemDesignModel.find({ opportunity_id: opportunityId });
+    const systemDesigns = await this.systemDesignModel.find({ opportunityId });
+
     try {
       await Promise.all(
         systemDesigns.map(item => {
           item.systemProductionData.annualUsageKWh = annualUsageKWh;
           item.systemProductionData.offsetPercentage =
             annualUsageKWh > 0 ? item.systemProductionData.generationKWh / annualUsageKWh : 0;
-          return item.updateOne(item.toObject());
+          return item.save();
         }),
       );
     } catch (error) {
