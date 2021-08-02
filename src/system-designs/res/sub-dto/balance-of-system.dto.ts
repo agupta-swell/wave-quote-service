@@ -1,24 +1,38 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ExposeProp } from 'src/shared/decorators';
 
-export class BalanceOfSystemDto {
-  @ApiProperty()
-  manufacturerId: string;
+export class BalanceOfSystemModelDataSnapshot {
+  @ExposeProp()
+  name: string;
 
-  @ApiProperty()
-  model: string;
+  @ExposeProp()
+  price: number;
 
-  @ApiProperty()
-  relatedComponentCategory: string;
+  @ExposeProp()
+  type: string;
 
-  @ApiProperty()
+  @ExposeProp()
+  sizeW: number;
+
+  @ExposeProp()
+  sizekWh: number;
+
+  @ExposeProp()
   relatedComponent: string;
 
-  @ApiProperty()
-  description: string;
+  @ExposeProp()
+  manufacturerId: string;
 
-  @ApiProperty()
-  unit: string;
+  @ExposeProp()
+  partNumber: number[];
+}
 
-  @ApiProperty()
-  unitPrice: number;
+export class BalanceOfSystemDto {
+  @ExposeProp()
+  balanceOfSystemId: string;
+
+  @ExposeProp()
+  balanceOfSystemSnapshotDate: Date;
+
+  @ExposeProp({ type: BalanceOfSystemModelDataSnapshot })
+  balanceOfSystemModelDataSnapshot: BalanceOfSystemModelDataSnapshot;
 }
