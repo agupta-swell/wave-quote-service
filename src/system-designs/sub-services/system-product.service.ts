@@ -76,7 +76,7 @@ export class SystemProductService {
           const pvWattSystemProduction = await this.pvWattSystemProduction
             .findOne({
               lat: systemDesignDto.latitude,
-              lon: systemDesignDto.longtitude,
+              lon: systemDesignDto.longitude,
               system_capacity_kW: systemCapacityInkWh,
               azimuth: item.azimuth,
               tilt: item.pitch,
@@ -92,7 +92,7 @@ export class SystemProductService {
 
           const payload = {
             lat: systemDesignDto.latitude,
-            lon: systemDesignDto.longtitude,
+            lon: systemDesignDto.longitude,
             systemCapacity: systemCapacityInkWh,
             azimuth: item.azimuth,
             tilt: item.pitch,
@@ -102,7 +102,7 @@ export class SystemProductService {
 
           const createdPvWattSystemProduction = new this.pvWattSystemProduction({
             lat: systemDesignDto.latitude,
-            lon: systemDesignDto.longtitude,
+            lon: systemDesignDto.longitude,
             systemCapacityKW: systemCapacityInkWh,
             azimuth: item.azimuth,
             tilt: item.pitch,

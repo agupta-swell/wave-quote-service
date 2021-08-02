@@ -38,7 +38,7 @@ export class CreateSystemDesignDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  longtitude: number;
+  longitude: number;
 
   @ApiPropertyOptional()
   @IsString()

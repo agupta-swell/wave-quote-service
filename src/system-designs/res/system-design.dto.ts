@@ -49,7 +49,7 @@ export class SystemDesignDto {
   latitude: number;
 
   @ExposeProp()
-  longtitude: number;
+  longitude: number;
 
   @ExposeProp()
   thumbnail: string;

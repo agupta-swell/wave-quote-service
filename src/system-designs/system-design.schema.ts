@@ -387,7 +387,7 @@ export interface SystemDesign extends Document {
   netUsagePostInstallation: INetUsagePostInstallationSchema;
   costPostInstallation: IUtilityCostData;
   latitude: number;
-  longtitude: number;
+  longitude: number;
   createdBy: string;
   createdAt: Date;
   updatedBy: string;
@@ -398,7 +398,7 @@ export interface SystemDesign extends Document {
 export const SystemDesignSchema = new Schema<SystemDesign>({
   name: String,
   latitude: Number,
-  longtitude: Number,
+  longitude: Number,
   opportunity_id: String,
   design_mode: String,
   thumbnail: String,
@@ -424,7 +424,7 @@ export class SystemDesignModel {
 
   latitude: number;
 
-  longtitude: number;
+  longitude: number;
 
   opportunityId: string;
 
@@ -462,7 +462,7 @@ export class SystemDesignModel {
     this.isSolar = systemDesign.isSolar;
     this.isRetrofit = systemDesign.isRetrofit;
     this.latitude = systemDesign.latitude;
-    this.longtitude = systemDesign.longtitude;
+    this.longitude = systemDesign.longitude;
     this.opportunityId = systemDesign.opportunityId;
     this.designMode = systemDesign.designMode;
     this.roofTopDesignData =

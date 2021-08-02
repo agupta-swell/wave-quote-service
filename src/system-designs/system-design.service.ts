@@ -99,7 +99,7 @@ export class SystemDesignService {
             const capacity = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
             const acAnnual = await this.systemProductService.pvWatCalculation({
               lat: systemDesign.latitude,
-              lon: systemDesign.longtitude,
+              lon: systemDesign.longitude,
               azimuth: item.azimuth,
               systemCapacity: capacity,
               tilt: item.pitch,
@@ -208,7 +208,7 @@ export class SystemDesignService {
           const capacity = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
           const acAnnual = await this.systemProductService.pvWatCalculation({
             lat: systemDesign.latitude,
-            lon: systemDesign.longtitude,
+            lon: systemDesign.longitude,
             azimuth: item.azimuth,
             systemCapacity: capacity,
             tilt: item.pitch,

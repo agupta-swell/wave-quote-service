@@ -27,7 +27,7 @@ export class UpdateSystemDesignDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
-  longtitude: number;
+  longitude: number;
 
   @ApiPropertyOptional()
   @IsOptional()
