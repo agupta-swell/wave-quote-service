@@ -5,7 +5,7 @@ import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { OperationResult, Pagination } from '../app/common';
-import { RebateProgramDto } from './res/reabate-program.dto';
+import { RebateProgramDto } from './res/rebate-program.dto';
 import { RebateProgram, REBATE_PROGRAM } from './rebate-programs.schema';
 
 @Injectable()
