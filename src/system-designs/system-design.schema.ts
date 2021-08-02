@@ -42,7 +42,7 @@ export interface IStorageProductSchema extends IProductCommonSchema, IBatteryPro
 
 export const StorageProductSchema = new Schema<Document<IStorageProductSchema>>(
   {
-    manufacturer_id: String,
+    manufacturerId: String,
     name: String,
     type: String,
     price: Number,
@@ -65,7 +65,7 @@ export interface IInverterProductSchema extends IProductCommonSchema, IInverterP
 
 export const InverterProductSchema = new Schema<Document<IInverterProductSchema>>(
   {
-    manufacturer_id: String,
+    manufacturerId: String,
     name: String,
     type: String,
     price: Number,
@@ -88,7 +88,7 @@ export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct
 
 export const PanelProductSchema = new Schema<Document<IPanelProductSchema>>(
   {
-    manufacturer_id: String,
+    manufacturerId: String,
     name: String,
     type: String,
     price: Number,
@@ -246,7 +246,7 @@ export const BalanceOfSystemProductSchema = new Schema<Document<IBalanceOfSystem
       length: Number,
       width: Number,
     },
-    manufacturer_id: String,
+    manufacturerId: String,
     model_name: String,
     approved_for_gsa: Boolean,
     approved_for_esa: Boolean,
