@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsMongoId, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsEnum, IsMongoId, IsNumber, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
 import { QUOTE_MODE_TYPE } from '../constants';
 
 export class QuotePricePerWatt {
@@ -37,6 +37,7 @@ export class CreateQuoteDto {
   financialProductId: string;
 
   @ApiProperty()
+  @ValidateIf((_, value) => value)
   @IsMongoId()
   utilityProgramId: string;
 

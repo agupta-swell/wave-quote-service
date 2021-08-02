@@ -16,6 +16,7 @@ import { UtilityProgramMasterService } from 'src/utility-programs-master/utility
 import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -71,14 +72,14 @@ export class QuoteService {
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
+    private readonly rebateProgramService: RebateProgramService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const [systemDesign, markupConfigs, quoteConfigData, v2Itc] = await Promise.all([
+    const [systemDesign, markupConfigs, quoteConfigData] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }).lean(),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
-      this.iTCModel.findOne().lean(),
     ]);
 
     if (!systemDesign) {
@@ -317,10 +318,7 @@ export class QuoteService {
             },
           },
         ],
-        rebateDetails: this.createRebateDetails({
-          itcRate: v2Itc?.itcRate ?? 0,
-          grossPrice: grossPriceData.grossPrice ?? 0,
-        }) as IRebateDetailsSchema[],
+        rebateDetails: await this.createRebateDetails(data.opportunityId, grossPriceData.grossPrice ?? 0),
         projectDiscountDetails: [],
       },
       utilityProgramSelectedForReinvestment: false,
@@ -461,9 +459,8 @@ export class QuoteService {
   }
 
   async updateLatestQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
-    const [foundQuote, v2Itc, systemDesign, markupConfigs] = await Promise.all([
+    const [foundQuote, systemDesign, markupConfigs] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
-      this.iTCModel.findOne().lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }).lean(),
     ]);
@@ -736,10 +733,10 @@ export class QuoteService {
       detailedQuote.quoteCostBuildup as any,
     ) as any;
 
-    detailedQuote.quoteFinanceProduct.rebateDetails = this.createRebateDetails({
-      itcRate: v2Itc?.itcRate ?? 0,
-      grossPrice: grossPriceData.grossPrice ?? 0,
-    });
+    detailedQuote.quoteFinanceProduct.rebateDetails = await this.createRebateDetails(
+      data.opportunityId,
+      grossPriceData.grossPrice ?? 0,
+    );
 
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
@@ -1145,13 +1142,29 @@ export class QuoteService {
     return OperationResult.ok(new Pagination({ total: result.length, data: strictPlainToClass(DiscountsDto, result) }));
   }
 
-  createRebateDetails({ itcRate, grossPrice }: { itcRate: number; grossPrice: number }): IRebateDetailsSchema[] {
-    const rebateDetails: IRebateDetailsSchema[] = [];
-    rebateDetails.push({
-      amount: (itcRate * grossPrice) / 100,
-      type: REBATE_TYPE.ITC,
-      description: '',
-      isFloatRebate: true,
+  async createRebateDetails(opportunityId: string, grossPrice: number): Promise<IRebateDetailsSchema[]> {
+    const [v2Itc, rebatePrograms] = await Promise.all([
+      this.iTCModel.findOne().lean(),
+      this.rebateProgramService.findByOpportunityId(opportunityId),
+    ]);
+
+    const itcRate = v2Itc?.itcRate ?? 0;
+
+    const rebateDetails: IRebateDetailsSchema[] = [
+      {
+        amount: (itcRate * grossPrice) / 100,
+        type: REBATE_TYPE.ITC,
+        description: '',
+        isFloatRebate: true,
+      },
+    ];
+
+    rebatePrograms.forEach(rebateProgram => {
+      rebateDetails.push({
+        amount: 0,
+        type: rebateProgram.name,
+        description: '',
+      });
     });
 
     return rebateDetails;
