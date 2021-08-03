@@ -56,11 +56,10 @@ export class SystemDesignService {
     }
 
     if (
-      (systemDesignDto.roofTopDesignData &&
-        !systemDesignDto.roofTopDesignData.panelArray.length &&
-        !systemDesignDto.roofTopDesignData.storage.length &&
-        !systemDesignDto.roofTopDesignData.inverters.length) ||
-      !systemDesignDto.capacityProductionDesignData
+      systemDesignDto.roofTopDesignData &&
+      !systemDesignDto.roofTopDesignData.panelArray.length &&
+      !systemDesignDto.roofTopDesignData.storage.length &&
+      !systemDesignDto.roofTopDesignData.inverters.length
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -167,7 +166,10 @@ export class SystemDesignService {
         panelModelId,
         inverters,
         storage,
-      } = systemDesignDto.capacityProductionDesignData;
+        adders,
+        balanceOfSystems,
+        ancillaryEquipments,
+      } = systemDesign.capacityProductionDesignData;
 
       const setPanelModelDataSnapshot = async () => {
         const panelModelData = await this.productService.getDetailById(panelModelId);
@@ -188,6 +190,28 @@ export class SystemDesignService {
             const data = { ...storageModelData, partNumber: storageModelData?.partNumber } as any;
             systemDesign.setStorage(data, index, systemDesign.designMode);
           }),
+          adders.map(async (item, index) => {
+            const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
+            systemDesign.setAdder(
+              { ...adder, modifiedAt: adder?.modifiedAt } as any,
+              this.convertIncrementAdder((adder as any)?.increment as string),
+              index,
+              systemDesign.designMode,
+            );
+          }),
+          balanceOfSystems.map(async (balanceOfSystem, index) => {
+            const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
+            const data = {
+              ...balanceOfSystemModelData,
+              partNumber: balanceOfSystemModelData?.partNumber,
+            } as any;
+            systemDesign.setBalanceOfSystem(data, index, systemDesign.designMode);
+          }),
+          ancillaryEquipments.map(async (ancillary, index) => {
+            const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
+            const data = { ...ancillaryModelData, ancillaryId: ancillary.ancillaryId } as any;
+            systemDesign.setAncillaryEquipment(data, index, systemDesign.designMode);
+          }),
         ]),
       );
 
@@ -199,7 +223,7 @@ export class SystemDesignService {
       } else {
         generation = await this.systemProductService.pvWatCalculation({
           lat: systemDesign.latitude,
-          lon: systemDesign.longtitude,
+          lon: systemDesign.longitude,
           azimuth,
           systemCapacity: capacity,
           tilt: pitch,
@@ -355,16 +379,71 @@ export class SystemDesignService {
     }
 
     if (systemDesignDto.capacityProductionDesignData) {
-      const { capacity, azimuth, pitch, losses, production } = systemDesignDto.capacityProductionDesignData;
+      const {
+        capacity,
+        azimuth,
+        pitch,
+        losses,
+        production,
+        adders,
+        inverters,
+        storage,
+        balanceOfSystems,
+        ancillaryEquipments,
+      } = systemDesignDto.capacityProductionDesignData;
       const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
       let generation = 0;
+
+      const handlers = [
+        adders?.map(async (item, index) => {
+          const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
+          systemDesign.setAdder(
+            { ...adder, modified_at: adder?.modifiedAt } as any,
+            this.convertIncrementAdder((adder as any)?.increment as string),
+            index,
+            systemDesign.designMode,
+          );
+        }),
+        inverters?.map(async (inverter, index) => {
+          const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
+          const data = { ...inverterModelData, part_number: inverterModelData?.partNumber } as any;
+          systemDesign.setInverter(data, index, systemDesign.designMode);
+        }),
+        storage?.map(async (storage, index) => {
+          const storageModelData = await this.productService.getDetailById(storage.storageModelId);
+          const data = { ...storageModelData, part_number: storageModelData?.partNumber } as any;
+          systemDesign.setStorage(data, index, systemDesign.designMode);
+        }),
+        balanceOfSystems?.map(async (balanceOfSystem, index) => {
+          const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
+          const data = {
+            ...balanceOfSystemModelData,
+            partNumber: balanceOfSystemModelData?.partNumber,
+          } as any;
+          systemDesign.setBalanceOfSystem(data, index, systemDesign.designMode);
+        }),
+        ancillaryEquipments?.map(async (ancillary, index) => {
+          const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
+          systemDesign.setAncillaryEquipment(ancillaryModelData as any, index, systemDesign.designMode);
+        }),
+      ];
+
+      if (extendCalculate) {
+        handlers.unshift(extendCalculate() as any);
+      }
+
+      const result = await Promise.all(flatten(handlers));
+
+      if (extendCalculate && postExtendCalculate) {
+        postExtendCalculate(result as any);
+      }
 
       if (production > 0) {
         generation = production;
       } else {
         generation = await this.systemProductService.pvWatCalculation({
           lat: systemDesign.latitude,
-          lon: systemDesign.longtitude,
+          lon: systemDesign.longitude,
           azimuth,
           systemCapacity: capacity,
           tilt: pitch,
@@ -381,6 +460,26 @@ export class SystemDesignService {
         generationMonthlyKWh: systemProductionArray.monthly,
       });
 
+      const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
+        (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
+        systemProductionArray.hourly,
+      );
+
+      const costPostInstallation = await this.utilityService.calculateCost(
+        netUsagePostInstallation.hourlyNetUsage,
+        utilityAndUsage?.costData?.masterTariffId || '',
+        CALCULATION_MODE.TYPICAL,
+        new Date().getFullYear(),
+        utilityAndUsage?.utilityData?.typicalBaselineUsage?.zipCode,
+      );
+
+      systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
+      systemDesign.setCostPostInstallation(costPostInstallation);
+
+      if (dispatch) {
+        await dispatch(systemDesign);
+      }
+
       return pickBy(systemDesign, item => typeof item !== 'undefined');
     }
 
@@ -388,12 +487,15 @@ export class SystemDesignService {
   }
 
   async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
+    if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
+      throw new Error('Please put your data in body');
+    }
+
     if (
-      (systemDesignDto.roofTopDesignData &&
-        !systemDesignDto.roofTopDesignData.panelArray.length &&
-        !systemDesignDto.roofTopDesignData.storage.length &&
-        !systemDesignDto.roofTopDesignData.inverters.length) ||
-      !systemDesignDto.capacityProductionDesignData
+      systemDesignDto.roofTopDesignData &&
+      !systemDesignDto.roofTopDesignData.panelArray.length &&
+      !systemDesignDto.roofTopDesignData.storage.length &&
+      !systemDesignDto.roofTopDesignData.inverters.length
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -470,20 +572,23 @@ export class SystemDesignService {
     id: ObjectId | null,
     systemDesignDto: UpdateSystemDesignDto,
   ): Promise<OperationResult<SystemDesignDto>> {
+    if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
+      throw new Error('Please put your data in body');
+    }
+
+    if (
+      systemDesignDto.roofTopDesignData &&
+      !systemDesignDto.roofTopDesignData.panelArray.length &&
+      !systemDesignDto.roofTopDesignData.storage.length &&
+      !systemDesignDto.roofTopDesignData.inverters.length
+    ) {
+      throw ApplicationException.ValidationFailed('Please add at least 1 product');
+    }
+
     if (id) {
       const foundSystemDesign = await this.systemDesignModel.findOne({ _id: id });
 
       if (!foundSystemDesign) throw ApplicationException.NotFoundStatus('System Design', id.toString());
-
-      if (
-        (systemDesignDto.roofTopDesignData &&
-          !systemDesignDto.roofTopDesignData.panelArray.length &&
-          !systemDesignDto.roofTopDesignData.storage.length &&
-          !systemDesignDto.roofTopDesignData.inverters.length) ||
-        !systemDesignDto.capacityProductionDesignData
-      ) {
-        throw ApplicationException.ValidationFailed('Please add at least 1 product');
-      }
 
       const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
 
@@ -495,16 +600,6 @@ export class SystemDesignService {
           ...result,
         }),
       );
-    }
-
-    if (
-      systemDesignDto.roofTopDesignData &&
-      !systemDesignDto.roofTopDesignData.panelArray.length &&
-      !systemDesignDto.roofTopDesignData.storage.length &&
-      !systemDesignDto.roofTopDesignData.inverters.length &&
-      !systemDesignDto.capacityProductionDesignData
-    ) {
-      throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
 
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
