@@ -1184,7 +1184,7 @@ export class QuoteService {
     opportunityId: string,
     grossPrice: number,
     rebateAssignment: string,
-    rebateDetailsData?: IRebateDetailsSchema[],
+    existingRebateDetails?: IRebateDetailsSchema[],
   ): Promise<IRebateDetailsSchema[]> {
     const [v2Itc, rebatePrograms] = await Promise.all([
       this.iTCModel.findOne().lean(),
@@ -1205,15 +1205,17 @@ export class QuoteService {
     ];
 
     rebatePrograms.forEach(rebateProgram => {
-      if (rebateDetailsData) {
-        const foundedRebate = rebateDetails.find(item => item.type === rebateProgram.name);
+      if (existingRebateDetails?.length) {
+        const foundedRebate = existingRebateDetails.find(item => item.type === rebateProgram.name);
         isFloatRebate = foundedRebate ? !!foundedRebate?.isFloatRebate : isFloatRebate;
       }
+
       rebateDetails.push({
         amount: 0,
         type: rebateProgram.name,
         description: '',
-        isFloatRebate,
+        isFloatRebate:
+          !existingRebateDetails?.length && rebateProgram.name === REBATE_TYPE.SGIP ? false : isFloatRebate,
       });
     });
 
