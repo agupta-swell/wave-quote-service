@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { differenceBy, groupBy, isNil, max, min, omit, omitBy, pickBy, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
@@ -17,6 +17,8 @@ import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
+import { ProposalService } from 'src/proposals/proposal.service';
+import { ContractService } from 'src/contracts/contract.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -73,6 +75,10 @@ export class QuoteService {
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
     private readonly rebateProgramService: RebateProgramService,
+    @Inject(forwardRef(() => ProposalService))
+    private readonly proposalService: ProposalService,
+    @Inject(forwardRef(() => ContractService))
+    private readonly contractService: ContractService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -462,7 +468,13 @@ export class QuoteService {
     }
   }
 
-  async updateLatestQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
+  async updateLatestQuote(data: CreateQuoteDto, quoteId: string): Promise<OperationResult<QuoteDto>> {
+    const isInUsed = await this.checkInUsed(quoteId);
+
+    if (isInUsed) {
+      throw new BadRequestException('This quote has been used in either proposal or contract');
+    }
+
     const [foundQuote, systemDesign, markupConfigs] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
@@ -776,7 +788,14 @@ export class QuoteService {
       this.quoteModel.countDocuments(condition).lean(),
     ]);
 
-    const data = strictPlainToClass(QuoteDto, quotes);
+    const checkedQuotes = await Promise.all(
+      quotes.map(async q => {
+        const isInUsed = await this.checkInUsed(q._id.toString());
+        return { ...q, editable: !isInUsed };
+      }),
+    );
+
+    const data = strictPlainToClass(QuoteDto, checkedQuotes);
     const result = {
       data,
       total: count,
@@ -815,6 +834,12 @@ export class QuoteService {
   }
 
   async updateQuote(quoteId: ObjectId, data: UpdateQuoteDto): Promise<OperationResult<QuoteDto>> {
+    const isInUsed = await this.checkInUsed(quoteId.toString());
+
+    if (isInUsed) {
+      throw new BadRequestException('This quote has been used in either proposal or contract');
+    }
+
     const foundQuote = await this.quoteModel.findById(quoteId).lean();
     if (!foundQuote) {
       throw ApplicationException.EntityNotFound(quoteId.toString());
@@ -1191,5 +1216,16 @@ export class QuoteService {
     });
 
     return rebateDetails;
+  }
+
+  async checkInUsed(quoteId: string): Promise<boolean> {
+    const hasProposals = await this.proposalService.existByQuoteId(quoteId);
+
+    if (hasProposals) {
+      return hasProposals;
+    }
+
+    const hasContracts = await this.contractService.existsByQuoteId(quoteId);
+    return hasContracts;
   }
 }

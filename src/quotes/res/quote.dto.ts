@@ -163,6 +163,9 @@ export class QuoteDto {
 
   @ExposeAndMap({}, ({ obj }) => obj?.itcRate?.itcRate)
   itc_rate?: number;
+
+  @ExposeProp({ default: true, skipTransform: true })
+  editable: boolean;
 }
 
 class PaginationRes implements Pagination<QuoteDto> {

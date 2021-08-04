@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { Quote } from 'src/quotes/quote.schema';
@@ -18,6 +18,7 @@ export class ProposalTemplateService {
   constructor(
     @InjectModel(PROPOSAL_TEMPLATE) private proposalTemplate: Model<ProposalTemplate>,
     private readonly proposalSectionMasterService: ProposalSectionMasterService,
+    @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly systemDesignService: SystemDesignService,
   ) {}
