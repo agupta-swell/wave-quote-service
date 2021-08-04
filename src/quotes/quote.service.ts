@@ -825,10 +825,12 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound(quoteId);
     }
 
+    const isInUsed = await this.checkInUsed(quoteId);
     return OperationResult.ok(
       strictPlainToClass(QuoteDto, {
         ...quote,
         itcRate,
+        editable: !isInUsed,
       } as any),
     );
   }
