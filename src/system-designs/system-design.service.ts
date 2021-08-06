@@ -1,10 +1,12 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { flatten, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
+import { ContractService } from 'src/contracts/contract.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
@@ -48,6 +50,10 @@ export class SystemDesignService {
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly s3Service: S3Service,
+    @Inject(forwardRef(() => ProposalService))
+    private readonly proposalService: ProposalService,
+    @Inject(forwardRef(() => ContractService))
+    private readonly contractService: ContractService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -506,6 +512,12 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(id.toString());
     }
 
+    const isInUsed = await this.checkInUsed(id.toString());
+
+    if (isInUsed) {
+      throw new BadRequestException('This system design has been used in either proposal or contract');
+    }
+
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
 
     if (systemDesignDto.name) {
@@ -673,6 +685,13 @@ export class SystemDesignService {
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound(id.toString());
     }
+
+    const isInUsed = await this.checkInUsed(id.toString());
+
+    if (isInUsed) {
+      throw new BadRequestException('This system design has been used in either proposal or contract');
+    }
+
     await systemDesign.deleteOne();
     return OperationResult.ok('Deleted Successfully');
   }
@@ -687,8 +706,18 @@ export class SystemDesignService {
       this.systemDesignModel.countDocuments({ opportunityId }).lean(),
     ]);
 
+    const checkedSystemDesigns = await Promise.all(
+      systemDesigns.map(async systemDesign => {
+        const isInUsed = await this.checkInUsed(systemDesign._id.toString());
+        return {
+          ...systemDesign,
+          editable: !isInUsed,
+        };
+      }),
+    );
+
     return OperationResult.ok(
-      new Pagination({ data: strictPlainToClass(SystemDesignDto, systemDesigns), total: count }),
+      new Pagination({ data: strictPlainToClass(SystemDesignDto, checkedSystemDesigns), total: count }),
     );
   }
 
@@ -697,7 +726,15 @@ export class SystemDesignService {
     if (!foundSystemDesign) {
       throw ApplicationException.EntityNotFound(id.toString());
     }
-    return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign as any));
+
+    const isInUsed = await this.checkInUsed(id.toString());
+
+    return OperationResult.ok(
+      strictPlainToClass(SystemDesignDto, {
+        ...foundSystemDesign,
+        editable: !isInUsed,
+      } as any),
+    );
   }
 
   async getAncillaryList(): Promise<OperationResult<Pagination<SystemDesignAncillaryMasterDto>>> {
@@ -797,5 +834,17 @@ export class SystemDesignService {
         },
       });
     }
+  }
+
+  async checkInUsed(systemDesignId: string): Promise<boolean> {
+    const hasProposals = await this.proposalService.existBySystemDesignId(systemDesignId);
+
+    if (hasProposals) {
+      return hasProposals;
+    }
+
+    const hasContracts = await this.contractService.existBySystemDesignId(systemDesignId);
+
+    return hasContracts;
   }
 }

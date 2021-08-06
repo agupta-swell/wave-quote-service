@@ -20,6 +20,7 @@ export class ProposalTemplateService {
     private readonly proposalSectionMasterService: ProposalSectionMasterService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
+    @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
   ) {}
 

@@ -487,4 +487,39 @@ export class ContractService {
 
     return !!doc.length;
   }
+
+  public async existBySystemDesignId(systemDesignId: string): Promise<boolean> {
+    return this.quoteService.existBySystemDesignIdAndSubQuery(systemDesignId, quoteId => [
+      {
+        $lookup: {
+          from: this.contractModel.collection.collectionName,
+          let: {
+            id: quoteId,
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$associated_quote_id', '$$id'],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+              },
+            },
+          ],
+          as: 'contracts',
+        },
+      },
+      {
+        $match: {
+          'contracts.0': {
+            $exists: true,
+          },
+        },
+      },
+    ]);
+  }
 }

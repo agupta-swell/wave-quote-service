@@ -1232,4 +1232,29 @@ export class QuoteService {
     const hasContracts = await this.contractService.existsByQuoteId(quoteId);
     return hasContracts;
   }
+
+  public async existBySystemDesignIdAndSubQuery(
+    systemDesignId: string,
+    subQuery: (quoteIdVar: string) => Record<string, unknown>[],
+  ): Promise<boolean> {
+    const query = [
+      {
+        $match: {
+          system_design_id: systemDesignId,
+        },
+      },
+      {
+        $project: {
+          _id: {
+            $toString: '$_id',
+          },
+        },
+      },
+      ...subQuery('$_id'),
+    ];
+
+    const docs = await this.quoteModel.aggregate(query);
+
+    return !!docs.length;
+  }
 }

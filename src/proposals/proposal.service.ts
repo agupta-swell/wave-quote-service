@@ -50,6 +50,7 @@ export class ProposalService {
   constructor(
     @InjectModel(PROPOSAL) private proposalModel: Model<Proposal>,
     @InjectModel(PROPOSAL_ANALYTIC) private proposalAnalyticModel: Model<ProposalAnalytic>,
+    @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
@@ -59,7 +60,7 @@ export class ProposalService {
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly userService: UserService,
-    @Inject(forwardRef(() => ContractService))
+    @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
     private readonly customerPaymentService: CustomerPaymentService,
     @Inject(forwardRef(() => UtilityService))
@@ -540,6 +541,11 @@ export class ProposalService {
 
   public async existByQuoteId(quoteId: string): Promise<boolean> {
     const doc = await this.proposalModel.find({ quoteId }, { _id: 1 }).limit(1);
+    return !!doc.length;
+  }
+
+  public async existBySystemDesignId(systemDesignId: string): Promise<boolean> {
+    const doc = await this.proposalModel.find({ systemDesignId }, { _id: 1 }).limit(1);
     return !!doc.length;
   }
 

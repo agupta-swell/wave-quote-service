@@ -62,6 +62,9 @@ export class SystemDesignDto {
 
   @ExposeProp()
   isSolar: boolean;
+
+  @ExposeProp({ default: true, skipTransform: true })
+  editable: boolean;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {
