@@ -307,7 +307,7 @@ describe('Quote Controller', () => {
           offset_percentage: 0,
         },
         latitude: 0,
-        longtitude: 0,
+        longitude: 0,
         thumbnail: 'string',
         is_selected: true,
         is_retrofit: true,

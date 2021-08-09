@@ -71,7 +71,7 @@ describe('System Design Service', () => {
         name: 'string',
         designMode: 'roofTop',
         latitude: 0,
-        longtitude: 0,
+        longitude: 0,
         thumbnail: null,
         roofTopDesignData: {
           panelArray: [
@@ -262,7 +262,7 @@ describe('System Design Service', () => {
         name: 'string',
         designMode: 'roofTop',
         latitude: 0,
-        longtitude: 0,
+        longitude: 0,
         thumbnail: null,
         roofTopDesignData: {
           panelArray: [
@@ -516,7 +516,7 @@ describe('System Design Service', () => {
         name: 'string',
         designMode: 'roofTop',
         latitude: 0,
-        longtitude: 0,
+        longitude: 0,
         thumbnail: null,
         roofTopDesignData: {
           panelArray: [
@@ -704,7 +704,7 @@ describe('System Design Service', () => {
         name: 'string',
         designMode: 'roofTop',
         latitude: 0,
-        longtitude: 0,
+        longitude: 0,
         thumbnail: null,
         roofTopDesignData: {
           panelArray: [
@@ -892,7 +892,7 @@ describe('System Design Service', () => {
         name: 'string',
         designMode: 'roofTop',
         latitude: 0,
-        longtitude: 0,
+        longitude: 0,
         thumbnail: null,
         capacityProductionDesignData: {
           capacity: 0,
@@ -1236,7 +1236,7 @@ describe('System Design Service', () => {
           offset_percentage: 0,
         },
         latitude: 0,
-        longtitude: 0,
+        longitude: 0,
         thumbnail: 'string',
         is_selected: true,
         is_retrofit: true,
@@ -1425,7 +1425,7 @@ describe('System Design Service', () => {
           offset_percentage: 0,
         },
         latitude: 0,
-        longtitude: 0,
+        longitude: 0,
         thumbnail: 'string',
         is_selected: true,
         is_retrofit: true,

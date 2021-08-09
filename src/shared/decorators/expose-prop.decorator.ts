@@ -31,7 +31,7 @@ export const ExposeProp = (
 
   if (apiPropertyOptions.skipTransform) {
     if (apiPropertyOptions.default) {
-      Transform(params => params?.value || apiPropertyOptions.default)(target, propertyKey);
+      Transform(params => params?.value ?? apiPropertyOptions.default)(target, propertyKey);
       return;
     }
     return;
@@ -40,7 +40,7 @@ export const ExposeProp = (
   if (apiPropertyOptions.type) {
     if (apiPropertyOptions.default) {
       Transform(params => {
-        if (!params.value && apiPropertyOptions.noTransformDefault) {
+        if ((params.value === undefined || params.value === null) && apiPropertyOptions.noTransformDefault) {
           return apiPropertyOptions.default;
         }
 

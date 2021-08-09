@@ -48,7 +48,7 @@ export interface Product extends Document, IPanelProduct, IInverterProduct, IBat
 
 export const ProductSchema = new Schema<Product>({
   _id: Schema.Types.Mixed,
-  manufacturer_id: String,
+  manufacturerId: String,
   name: String,
   type: String,
   price: Number,

@@ -40,6 +40,7 @@ export class ContractService {
     @InjectModel(CONTRACT) private readonly contractModel: Model<Contract>,
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
+    @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly utilityService: UtilityService,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
@@ -479,5 +480,46 @@ export class ContractService {
       .lean();
 
     return strictPlainToClass(ContractResDto, contract);
+  }
+
+  async existsByQuoteId(associatedQuoteId: string): Promise<boolean> {
+    const doc = await this.contractModel.find({ associatedQuoteId }, { _id: 1 }).limit(1);
+
+    return !!doc.length;
+  }
+
+  public async existBySystemDesignId(systemDesignId: string): Promise<boolean> {
+    return this.quoteService.existBySystemDesignIdAndSubQuery(systemDesignId, quoteId => [
+      {
+        $lookup: {
+          from: this.contractModel.collection.collectionName,
+          let: {
+            id: quoteId,
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$associated_quote_id', '$$id'],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+              },
+            },
+          ],
+          as: 'contracts',
+        },
+      },
+      {
+        $match: {
+          'contracts.0': {
+            $exists: true,
+          },
+        },
+      },
+    ]);
   }
 }

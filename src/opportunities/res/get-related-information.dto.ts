@@ -25,6 +25,12 @@ export class GetRelatedInformationDto {
   state: string;
 
   @ExposeProp()
+  latitude: string;
+
+  @ExposeProp()
+  longitude: string;
+
+  @ExposeProp()
   utilityProgramId: string;
 
   @ExposeProp()

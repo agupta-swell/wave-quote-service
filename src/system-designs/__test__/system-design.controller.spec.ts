@@ -176,7 +176,7 @@ describe('System Design Controller', () => {
       offset_percentage: 0,
     },
     latitude: 0,
-    longtitude: 0,
+    longitude: 0,
     thumbnail: 'string',
     is_selected: true,
     is_retrofit: true,
@@ -188,7 +188,7 @@ describe('System Design Controller', () => {
     name: 'string',
     designMode: 'roofTop',
     latitude: 0,
-    longtitude: 0,
+    longitude: 0,
     thumbnail: null,
     roofTopDesignData: {
       panelArray: [

@@ -94,6 +94,7 @@ export class ApplyCreditQualificationReqDto {
   primaryApplicantSecuredData: PersonalInformationDto;
 
   @ApiProperty({ type: PersonalInformationDto })
+  @IsOptional()
   @Type(() => PersonalInformationDto)
   @ValidateNested()
   coApplicantSecuredData: PersonalInformationDto;

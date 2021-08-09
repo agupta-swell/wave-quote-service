@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { differenceBy, groupBy, isNil, max, min, omit, omitBy, pickBy, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
@@ -16,6 +16,9 @@ import { UtilityProgramMasterService } from 'src/utility-programs-master/utility
 import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
+import { ProposalService } from 'src/proposals/proposal.service';
+import { ContractService } from 'src/contracts/contract.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -71,14 +74,18 @@ export class QuoteService {
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
+    private readonly rebateProgramService: RebateProgramService,
+    @Inject(forwardRef(() => ProposalService))
+    private readonly proposalService: ProposalService,
+    @Inject(forwardRef(() => ContractService))
+    private readonly contractService: ContractService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const [systemDesign, markupConfigs, quoteConfigData, v2Itc] = await Promise.all([
+    const [systemDesign, markupConfigs, quoteConfigData] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }).lean(),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
-      this.iTCModel.findOne().lean(),
     ]);
 
     if (!systemDesign) {
@@ -317,10 +324,11 @@ export class QuoteService {
             },
           },
         ],
-        rebateDetails: this.createRebateDetails({
-          itcRate: v2Itc?.itcRate ?? 0,
-          grossPrice: grossPriceData.grossPrice ?? 0,
-        }) as IRebateDetailsSchema[],
+        rebateDetails: await this.createRebateDetails(
+          data.opportunityId,
+          grossPriceData.grossPrice ?? 0,
+          fundingSource.rebateAssignment,
+        ),
         projectDiscountDetails: [],
       },
       utilityProgramSelectedForReinvestment: false,
@@ -460,10 +468,15 @@ export class QuoteService {
     }
   }
 
-  async updateLatestQuote(data: CreateQuoteDto, quoteId?: string): Promise<OperationResult<QuoteDto>> {
-    const [foundQuote, v2Itc, systemDesign, markupConfigs] = await Promise.all([
+  async updateLatestQuote(data: CreateQuoteDto, quoteId: string): Promise<OperationResult<QuoteDto>> {
+    const isInUsed = await this.checkInUsed(quoteId);
+
+    if (isInUsed) {
+      throw new BadRequestException('This quote has been used in either proposal or contract');
+    }
+
+    const [foundQuote, systemDesign, markupConfigs] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
-      this.iTCModel.findOne().lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quoteMarkupConfigModel.find({ partnerId: data.partnerId }).lean(),
     ]);
@@ -690,6 +703,11 @@ export class QuoteService {
         ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
         : null;
 
+    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
+    if (!fundingSource) {
+      throw ApplicationException.EntityNotFound('funding Source');
+    }
+
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
       quoteCostBuildup,
@@ -736,10 +754,12 @@ export class QuoteService {
       detailedQuote.quoteCostBuildup as any,
     ) as any;
 
-    detailedQuote.quoteFinanceProduct.rebateDetails = this.createRebateDetails({
-      itcRate: v2Itc?.itcRate ?? 0,
-      grossPrice: grossPriceData.grossPrice ?? 0,
-    });
+    detailedQuote.quoteFinanceProduct.rebateDetails = await this.createRebateDetails(
+      data.opportunityId,
+      grossPriceData.grossPrice ?? 0,
+      fundingSource.rebateAssignment,
+      rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
+    );
 
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
@@ -768,7 +788,14 @@ export class QuoteService {
       this.quoteModel.countDocuments(condition).lean(),
     ]);
 
-    const data = strictPlainToClass(QuoteDto, quotes);
+    const checkedQuotes = await Promise.all(
+      quotes.map(async q => {
+        const isInUsed = await this.checkInUsed(q._id.toString());
+        return { ...q, editable: !isInUsed };
+      }),
+    );
+
+    const data = strictPlainToClass(QuoteDto, checkedQuotes);
     const result = {
       data,
       total: count,
@@ -798,15 +825,23 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound(quoteId);
     }
 
+    const isInUsed = await this.checkInUsed(quoteId);
     return OperationResult.ok(
       strictPlainToClass(QuoteDto, {
         ...quote,
         itcRate,
+        editable: !isInUsed,
       } as any),
     );
   }
 
   async updateQuote(quoteId: ObjectId, data: UpdateQuoteDto): Promise<OperationResult<QuoteDto>> {
+    const isInUsed = await this.checkInUsed(quoteId.toString());
+
+    if (isInUsed) {
+      throw new BadRequestException('This quote has been used in either proposal or contract');
+    }
+
     const foundQuote = await this.quoteModel.findById(quoteId).lean();
     if (!foundQuote) {
       throw ApplicationException.EntityNotFound(quoteId.toString());
@@ -1145,15 +1180,81 @@ export class QuoteService {
     return OperationResult.ok(new Pagination({ total: result.length, data: strictPlainToClass(DiscountsDto, result) }));
   }
 
-  createRebateDetails({ itcRate, grossPrice }: { itcRate: number; grossPrice: number }): IRebateDetailsSchema[] {
-    const rebateDetails: IRebateDetailsSchema[] = [];
-    rebateDetails.push({
-      amount: (itcRate * grossPrice) / 100,
-      type: REBATE_TYPE.ITC,
-      description: '',
-      isFloatRebate: true,
+  async createRebateDetails(
+    opportunityId: string,
+    grossPrice: number,
+    rebateAssignment: string,
+    existingRebateDetails?: IRebateDetailsSchema[],
+  ): Promise<IRebateDetailsSchema[]> {
+    const [v2Itc, rebatePrograms] = await Promise.all([
+      this.iTCModel.findOne().lean(),
+      this.rebateProgramService.findByOpportunityId(opportunityId),
+    ]);
+
+    const itcRate = v2Itc?.itcRate ?? 0;
+
+    let isFloatRebate = rebateAssignment === 'customer' ? true : rebateAssignment === 'swell' && false;
+
+    const rebateDetails: IRebateDetailsSchema[] = [
+      {
+        amount: (itcRate * grossPrice) / 100,
+        type: REBATE_TYPE.ITC,
+        description: '',
+        isFloatRebate: true,
+      },
+    ];
+
+    rebatePrograms.forEach(rebateProgram => {
+      if (existingRebateDetails?.length) {
+        const foundedRebate = existingRebateDetails.find(item => item.type === rebateProgram.name);
+        isFloatRebate = foundedRebate ? !!foundedRebate?.isFloatRebate : isFloatRebate;
+      }
+
+      rebateDetails.push({
+        amount: 0,
+        type: rebateProgram.name,
+        description: '',
+        isFloatRebate:
+          !existingRebateDetails?.length && rebateProgram.name === REBATE_TYPE.SGIP ? false : isFloatRebate,
+      });
     });
 
     return rebateDetails;
+  }
+
+  async checkInUsed(quoteId: string): Promise<boolean> {
+    const hasProposals = await this.proposalService.existByQuoteId(quoteId);
+
+    if (hasProposals) {
+      return hasProposals;
+    }
+
+    const hasContracts = await this.contractService.existsByQuoteId(quoteId);
+    return hasContracts;
+  }
+
+  public async existBySystemDesignIdAndSubQuery(
+    systemDesignId: string,
+    subQuery: (quoteIdVar: string) => Record<string, unknown>[],
+  ): Promise<boolean> {
+    const query = [
+      {
+        $match: {
+          system_design_id: systemDesignId,
+        },
+      },
+      {
+        $project: {
+          _id: {
+            $toString: '$_id',
+          },
+        },
+      },
+      ...subQuery('$_id'),
+    ];
+
+    const docs = await this.quoteModel.aggregate(query);
+
+    return !!docs.length;
   }
 }

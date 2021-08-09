@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
@@ -7,6 +7,7 @@ import { IncomingMessage } from 'http';
 import { identity, pickBy, sumBy } from 'lodash';
 import { ObjectId, LeanDocument, Model } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
+import { ContractService } from 'src/contracts/contract.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { IGenericObject } from 'src/docusign-communications/typing';
@@ -49,21 +50,27 @@ export class ProposalService {
   constructor(
     @InjectModel(PROPOSAL) private proposalModel: Model<Proposal>,
     @InjectModel(PROPOSAL_ANALYTIC) private proposalAnalyticModel: Model<ProposalAnalytic>,
+    @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
+    @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly jwtService: JwtService,
     private readonly proposalTemplateService: ProposalTemplateService,
     private readonly emailService: EmailService,
+    @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly userService: UserService,
+    @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
     private readonly customerPaymentService: CustomerPaymentService,
+    @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
     private readonly gsProgramsService: GsProgramsService,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly docusignCommunicationService: DocusignCommunicationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly s3Service: S3Service,
+    @Inject(forwardRef(() => DocusignTemplateMasterService))
     private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
   ) {}
 
@@ -530,6 +537,16 @@ export class ProposalService {
       console.log('s3 upload error', err);
       throw ApplicationException.ServiceError();
     }
+  }
+
+  public async existByQuoteId(quoteId: string): Promise<boolean> {
+    const doc = await this.proposalModel.find({ quoteId }, { _id: 1 }).limit(1);
+    return !!doc.length;
+  }
+
+  public async existBySystemDesignId(systemDesignId: string): Promise<boolean> {
+    const doc = await this.proposalModel.find({ systemDesignId }, { _id: 1 }).limit(1);
+    return !!doc.length;
   }
 
   private saveToStorage(doc: IncomingMessage, fileName: string): Promise<ManagedUpload.SendData> {

@@ -1,9 +1,7 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ServiceResponse } from 'src/app/common';
+import { Controller } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PreAuthenticate } from '../app/securities';
 import { AccountService } from './account.service';
-import { AccountDto } from './res/account.dto';
 
 @ApiTags('Account')
 @ApiBearerAuth()
@@ -11,11 +9,4 @@ import { AccountDto } from './res/account.dto';
 @PreAuthenticate()
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
-
-  @Get(':id/funding-source-access')
-  @ApiOperation({ summary: 'Get Funding Source Accessess' })
-  async getFundingSourceAccesses(@Param('id') id: string): Promise<ServiceResponse<AccountDto>> {
-    const result = await this.accountService.getFundingSourceAccesses(id);
-    return ServiceResponse.fromResult(result);
-  }
 }

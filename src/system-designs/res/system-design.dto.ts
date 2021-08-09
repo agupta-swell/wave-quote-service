@@ -49,7 +49,7 @@ export class SystemDesignDto {
   latitude: number;
 
   @ExposeProp()
-  longtitude: number;
+  longitude: number;
 
   @ExposeProp()
   thumbnail: string;
@@ -62,6 +62,9 @@ export class SystemDesignDto {
 
   @ExposeProp()
   isSolar: boolean;
+
+  @ExposeProp({ default: true, skipTransform: true })
+  editable: boolean;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {

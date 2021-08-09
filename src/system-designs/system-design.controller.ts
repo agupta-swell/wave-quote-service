@@ -125,6 +125,10 @@ export class SystemDesignController {
   }
 
   @Get(':id')
+  @ApiParam({
+    name: 'id',
+    type: String,
+  })
   @ApiOperation({ summary: 'Get detail' })
   @ApiOkResponse({ type: SystemDesignRes })
   async getDetails(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<SystemDesignDto>> {

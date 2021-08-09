@@ -1,10 +1,9 @@
 import { Document, Schema, Types } from 'mongoose';
-import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { BATTERY_TYPE } from 'src/products/constants';
 import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
-import { COMPONENT_TYPE, COST_UNIT_TYPE } from './constants';
-import { CreateSystemDesignDto, RoofTopDataReqDto } from './req';
+import { COMPONENT_TYPE, COST_UNIT_TYPE, DESIGN_MODE } from './constants';
+import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
 
@@ -42,7 +41,7 @@ export interface IStorageProductSchema extends IProductCommonSchema, IBatteryPro
 
 export const StorageProductSchema = new Schema<Document<IStorageProductSchema>>(
   {
-    manufacturer_id: String,
+    manufacturerId: String,
     name: String,
     type: String,
     price: Number,
@@ -65,7 +64,7 @@ export interface IInverterProductSchema extends IProductCommonSchema, IInverterP
 
 export const InverterProductSchema = new Schema<Document<IInverterProductSchema>>(
   {
-    manufacturer_id: String,
+    manufacturerId: String,
     name: String,
     type: String,
     price: Number,
@@ -88,7 +87,7 @@ export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct
 
 export const PanelProductSchema = new Schema<Document<IPanelProductSchema>>(
   {
-    manufacturer_id: String,
+    manufacturerId: String,
     name: String,
     type: String,
     price: Number,
@@ -246,7 +245,7 @@ export const BalanceOfSystemProductSchema = new Schema<Document<IBalanceOfSystem
       length: Number,
       width: Number,
     },
-    manufacturer_id: String,
+    manufacturerId: String,
     model_name: String,
     approved_for_gsa: Boolean,
     approved_for_esa: Boolean,
@@ -283,7 +282,7 @@ export interface IAncillaryEquipment {
   description: string;
   averageWholeSalePrice: number;
   applicableProductManufacturerId: string;
-  quantity: number
+  quantity: number;
 }
 
 export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
@@ -326,9 +325,46 @@ export interface IRoofTopSchema {
   ancillaryEquipments: IAncillaryEquipmentSchema[];
 }
 
+export interface ICapacityProductionSchema {
+  capacity: number;
+  production: number;
+  azimuth: number;
+  losses: number;
+  pitch: number;
+  numberOfPanels: number;
+  panelModelId: string;
+  panelModelDataSnapshot: IPanelProductSchema;
+  panelModelSnapshotDate: Date;
+  inverters: IInverterSchema[];
+  storage: IStorageSchema[];
+  adders: IAdderSchema[];
+  balanceOfSystems: IBalanceOfSystemSchema[];
+  ancillaryEquipments: IAncillaryEquipmentSchema[];
+}
+
 export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
   {
     panel_array: [SolarPanelArraySchema],
+    inverters: [InverterSchema],
+    storage: [StorageSchema],
+    adders: [AdderSchema],
+    balance_of_systems: [BalanceOfSystemSchema],
+    ancillary_equipments: [AncillaryEquipmentSchema],
+  },
+  { _id: false },
+);
+
+export const CapacityProductionSchema = new Schema<Document<ICapacityProductionSchema>>(
+  {
+    capacity: Number,
+    production: Number,
+    azimuth: Number,
+    losses: Number,
+    pitch: Number,
+    panel_model_id: String,
+    number_of_panels: Number,
+    panel_model_data_snapshot: PanelProductSchema,
+    panel_model_snapshot_date: Date,
     inverters: [InverterSchema],
     storage: [StorageSchema],
     adders: [AdderSchema],
@@ -382,12 +418,12 @@ export interface SystemDesign extends Document {
   isSolar: boolean;
   isRetrofit: boolean;
   roofTopDesignData: IRoofTopSchema;
-  capacityProductionDesignData: '';
+  capacityProductionDesignData: ICapacityProductionSchema;
   systemProductionData: ISystemProductionSchema;
   netUsagePostInstallation: INetUsagePostInstallationSchema;
   costPostInstallation: IUtilityCostData;
   latitude: number;
-  longtitude: number;
+  longitude: number;
   createdBy: string;
   createdAt: Date;
   updatedBy: string;
@@ -398,7 +434,7 @@ export interface SystemDesign extends Document {
 export const SystemDesignSchema = new Schema<SystemDesign>({
   name: String,
   latitude: Number,
-  longtitude: Number,
+  longitude: Number,
   opportunity_id: String,
   design_mode: String,
   thumbnail: String,
@@ -406,8 +442,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   is_solar: Boolean,
   is_retrofit: Boolean,
   roof_top_design_data: RoofTopSchema,
-  // TODO: implement later
-  capacity_production_design_data: String,
+  capacity_production_design_data: CapacityProductionSchema,
   net_usage_post_installation: NetUsagePostInstallationSchema,
   cost_post_installation: UtilityCostDataSchema,
   system_production_data: SystemProductionSchema,
@@ -424,7 +459,7 @@ export class SystemDesignModel {
 
   latitude: number;
 
-  longtitude: number;
+  longitude: number;
 
   opportunityId: string;
 
@@ -440,7 +475,7 @@ export class SystemDesignModel {
 
   roofTopDesignData: IRoofTopSchema;
 
-  capacityProductionDesignData: string;
+  capacityProductionDesignData: ICapacityProductionSchema;
 
   systemProductionData: ISystemProductionSchema;
 
@@ -462,12 +497,14 @@ export class SystemDesignModel {
     this.isSolar = systemDesign.isSolar;
     this.isRetrofit = systemDesign.isRetrofit;
     this.latitude = systemDesign.latitude;
-    this.longtitude = systemDesign.longtitude;
+    this.longitude = systemDesign.longitude;
     this.opportunityId = systemDesign.opportunityId;
     this.designMode = systemDesign.designMode;
     this.roofTopDesignData =
       systemDesign.roofTopDesignData && this.transformRoofTopData(systemDesign.roofTopDesignData);
-    this.capacityProductionDesignData = systemDesign.capacityProductionDesignData as any;
+    this.capacityProductionDesignData =
+      systemDesign.capacityProductionDesignData &&
+      this.transformCapacityProductionData(systemDesign.capacityProductionDesignData);
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
@@ -482,35 +519,107 @@ export class SystemDesignModel {
     } as any;
   };
 
+  transformCapacityProductionData = (data: CapacityProductionDataDto): ICapacityProductionSchema => {
+    const {
+      capacity,
+      production,
+      azimuth,
+      losses,
+      pitch,
+      numberOfPanels,
+      panelModelId,
+      inverters,
+      storage,
+      adders,
+      balanceOfSystems,
+      ancillaryEquipments,
+    } = data;
+    return {
+      capacity,
+      production,
+      azimuth,
+      losses,
+      pitch,
+      numberOfPanels,
+      panelModelId,
+      inverters,
+      storage,
+      adders,
+      balanceOfSystems,
+      ancillaryEquipments,
+    } as any;
+  };
+
   setPanelModelDataSnapshot(panelModelData: IPanelProductSchema, index: number) {
     this.roofTopDesignData.panelArray[index].panelModelDataSnapshot = panelModelData;
     this.roofTopDesignData.panelArray[index].panelModelSnapshotDate = new Date();
   }
 
-  setAdder(adder: IAdderModel, unit: COST_UNIT_TYPE, index: number) {
-    this.roofTopDesignData.adders[index].adderModelDataSnapshot = adder;
-    this.roofTopDesignData.adders[index].unit = unit;
-    this.roofTopDesignData.adders[index].adderModelSnapshotDate = new Date();
+  setCapacityProductionPanelModelDataSnapshot(panelModelData: IPanelProductSchema) {
+    this.capacityProductionDesignData.panelModelDataSnapshot = panelModelData;
+    this.capacityProductionDesignData.panelModelSnapshotDate = new Date();
   }
 
-  setInverter(inverter: IInverterProductSchema, index: number) {
-    this.roofTopDesignData.inverters[index].inverterModelDataSnapshot = inverter;
-    this.roofTopDesignData.inverters[index].inverterModelSnapshotDate = new Date();
+  setAdder(adder: IAdderModel, unit: COST_UNIT_TYPE, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.adders[index].adderModelDataSnapshot = adder;
+      this.roofTopDesignData.adders[index].unit = unit;
+      this.roofTopDesignData.adders[index].adderModelSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.adders[index].adderModelDataSnapshot = adder;
+      this.capacityProductionDesignData.adders[index].unit = unit;
+      this.capacityProductionDesignData.adders[index].adderModelSnapshotDate = new Date();
+    }
   }
 
-  setStorage(storage: IStorageProductSchema, index: number) {
-    this.roofTopDesignData.storage[index].storageModelDataSnapshot = storage;
-    this.roofTopDesignData.storage[index].storageModelSnapshotDate = new Date();
+  setInverter(inverter: IInverterProductSchema, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.inverters[index].inverterModelDataSnapshot = inverter;
+      this.roofTopDesignData.inverters[index].inverterModelSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.inverters[index].inverterModelDataSnapshot = inverter;
+      this.capacityProductionDesignData.inverters[index].inverterModelSnapshotDate = new Date();
+    }
   }
 
-  setBalanceOfSystem(balanceOfSystems: IBalanceOfSystemProductSchema, index: number) {
-    this.roofTopDesignData.balanceOfSystems[index].balanceOfSystemModelDataSnapshot = balanceOfSystems;
-    this.roofTopDesignData.balanceOfSystems[index].balanceOfSystemSnapshotDate = new Date();
+  setStorage(storage: IStorageProductSchema, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.storage[index].storageModelDataSnapshot = storage;
+      this.roofTopDesignData.storage[index].storageModelSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.storage[index].storageModelDataSnapshot = storage;
+      this.capacityProductionDesignData.storage[index].storageModelSnapshotDate = new Date();
+    }
   }
 
-  setAncillaryEquipment(ancillaryEquipment: IAncillaryEquipment, index: number) {
-    this.roofTopDesignData.ancillaryEquipments[index].ancillaryEquipmentModelDataSnapshot = ancillaryEquipment;
-    this.roofTopDesignData.ancillaryEquipments[index].ancillaryEquipmentModelDataSnapshotDate = new Date();
+  setBalanceOfSystem(
+    balanceOfSystems: IBalanceOfSystemProductSchema,
+    index: number,
+    designMode: string = DESIGN_MODE.ROOF_TOP,
+  ) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.balanceOfSystems[index].balanceOfSystemModelDataSnapshot = balanceOfSystems;
+      this.roofTopDesignData.balanceOfSystems[index].balanceOfSystemSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.balanceOfSystems[index].balanceOfSystemModelDataSnapshot = balanceOfSystems;
+      this.capacityProductionDesignData.balanceOfSystems[index].balanceOfSystemSnapshotDate = new Date();
+    }
+  }
+
+  setAncillaryEquipment(
+    ancillaryEquipment: IAncillaryEquipment,
+    index: number,
+    designMode: string = DESIGN_MODE.ROOF_TOP,
+  ) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.ancillaryEquipments[index].ancillaryEquipmentModelDataSnapshot = ancillaryEquipment;
+      this.roofTopDesignData.ancillaryEquipments[index].ancillaryEquipmentModelDataSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.ancillaryEquipments[
+        index
+      ].ancillaryEquipmentModelDataSnapshot = ancillaryEquipment;
+      this.capacityProductionDesignData.ancillaryEquipments[index].ancillaryEquipmentModelDataSnapshotDate = new Date();
+    }
   }
 
   setThumbnail(link: string) {

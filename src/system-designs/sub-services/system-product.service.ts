@@ -16,6 +16,14 @@ interface IPvWatCalculation {
   losses?: number;
 }
 
+interface ICalculatePVProduction {
+  latitude: number;
+  longitude: number;
+  systemCapacityInkWh: number;
+  azimuth: number;
+  pitch: number;
+  losses: number;
+}
 export interface ISystemProduction {
   hourly: number[];
   monthly: number[];
@@ -62,65 +70,83 @@ export class SystemProductService {
     return res.ac_annual;
   }
 
+  async calculatePVProduction(data: ICalculatePVProduction) {
+    const { latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses } = data;
+    const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
+
+    const pvWattSystemProduction = await this.pvWattSystemProduction
+      .findOne({
+        lat: latitude,
+        lon: longitude,
+        system_capacity_kW: systemCapacityInkWh,
+        azimuth,
+        tilt: pitch,
+      })
+      .lean();
+
+    if (pvWattSystemProduction) {
+      arrayProductionData.hourly = pvWattSystemProduction.acAnnualHourlyProduction;
+      arrayProductionData.monthly = pvWattSystemProduction.acMonthlyProduction;
+      arrayProductionData.annual = pvWattSystemProduction.acAnnualProduction;
+      return arrayProductionData;
+    }
+
+    const payload = {
+      lat: latitude,
+      lon: longitude,
+      systemCapacity: systemCapacityInkWh,
+      azimuth,
+      tilt: pitch,
+      losses,
+    } as IPvWatCalculation;
+    const res = await this.externalService.calculateSystemProduction(payload);
+
+    const createdPvWattSystemProduction = new this.pvWattSystemProduction({
+      lat: latitude,
+      lon: longitude,
+      systemCapacityKW: systemCapacityInkWh,
+      azimuth,
+      tilt: pitch,
+      losses,
+      array_type: 1,
+      module_type: 1,
+      acAnnualHourlyProduction: res.ac,
+      acMonthlyProduction: res.ac_monthly,
+      acAnnualProduction: res.ac_annual,
+    });
+    await createdPvWattSystemProduction.save();
+
+    arrayProductionData.annual = res.ac_annual;
+    arrayProductionData.monthly = res.ac_monthly;
+    arrayProductionData.hourly = res.ac;
+
+    return arrayProductionData;
+  }
+
   async calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
-    let pvProductionArray: ISystemProduction[] = [];
-    if (!systemDesignDto.roofTopDesignData.panelArray || !systemDesignDto.roofTopDesignData.panelArray.length) {
-      pvProductionArray = [{ hourly: [], monthly: [], annual: 0 }];
-    } else {
+    const { latitude, longitude } = systemDesignDto;
+    let pvProductionArray: ISystemProduction[] = [{ hourly: [], monthly: [], annual: 0 }];
+
+    if (systemDesignDto?.roofTopDesignData?.panelArray) {
       pvProductionArray = await Promise.all(
         systemDesignDto.roofTopDesignData.panelArray.map(async item => {
+          const { azimuth, losses, pitch } = item;
           const panelModelData = await this.productService.getDetailById(item.panelModelId);
           const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
-          const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
-
-          const pvWattSystemProduction = await this.pvWattSystemProduction
-            .findOne({
-              lat: systemDesignDto.latitude,
-              lon: systemDesignDto.longtitude,
-              system_capacity_kW: systemCapacityInkWh,
-              azimuth: item.azimuth,
-              tilt: item.pitch,
-            })
-            .lean();
-
-          if (pvWattSystemProduction) {
-            arrayProductionData.hourly = pvWattSystemProduction.acAnnualHourlyProduction;
-            arrayProductionData.monthly = pvWattSystemProduction.acMonthlyProduction;
-            arrayProductionData.annual = pvWattSystemProduction.acAnnualProduction;
-            return arrayProductionData;
-          }
-
-          const payload = {
-            lat: systemDesignDto.latitude,
-            lon: systemDesignDto.longtitude,
-            systemCapacity: systemCapacityInkWh,
-            azimuth: item.azimuth,
-            tilt: item.pitch,
-            losses: item.losses,
-          } as IPvWatCalculation;
-          const res = await this.externalService.calculateSystemProduction(payload);
-
-          const createdPvWattSystemProduction = new this.pvWattSystemProduction({
-            lat: systemDesignDto.latitude,
-            lon: systemDesignDto.longtitude,
-            systemCapacityKW: systemCapacityInkWh,
-            azimuth: item.azimuth,
-            tilt: item.pitch,
-            losses: item.losses,
-            array_type: 1,
-            module_type: 1,
-            acAnnualHourlyProduction: res.ac,
-            acMonthlyProduction: res.ac_monthly,
-            acAnnualProduction: res.ac_annual,
-          });
-          await createdPvWattSystemProduction.save();
-
-          arrayProductionData.annual = res.ac_annual;
-          arrayProductionData.monthly = res.ac_monthly;
-          arrayProductionData.hourly = res.ac;
-          return arrayProductionData;
+          return this.calculatePVProduction({ latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses });
         }),
       );
+    } else if (systemDesignDto.capacityProductionDesignData) {
+      const { capacity, azimuth, pitch, losses } = systemDesignDto.capacityProductionDesignData;
+      const pvProduction = await this.calculatePVProduction({
+        latitude,
+        longitude,
+        systemCapacityInkWh: capacity,
+        azimuth,
+        pitch,
+        losses,
+      });
+      pvProductionArray = [pvProduction];
     }
 
     const cumulativePvProduction: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
