@@ -482,44 +482,55 @@ export class ContractService {
     return strictPlainToClass(ContractResDto, contract);
   }
 
-  async existsByQuoteId(associatedQuoteId: string): Promise<boolean> {
-    const doc = await this.contractModel.find({ associatedQuoteId }, { _id: 1 }).limit(1);
+  async existsByQuoteId(associatedQuoteId: string): Promise<false | { (name: string): string }> {
+    const doc = await this.contractModel.find({ associatedQuoteId }, { _id: 1, name: 1 }).limit(1);
 
-    return !!doc.length;
+    if (doc.length) {
+      return name => `${name} is being used in the contract named ${doc[0].name} (id: ${doc[0].id})`;
+    }
+
+    return false;
   }
 
-  public async existBySystemDesignId(systemDesignId: string): Promise<boolean> {
-    return this.quoteService.existBySystemDesignIdAndSubQuery(systemDesignId, quoteId => [
-      {
-        $lookup: {
-          from: this.contractModel.collection.collectionName,
-          let: {
-            id: quoteId,
-          },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $eq: ['$associated_quote_id', '$$id'],
+  public async existBySystemDesignId(systemDesignId: string): Promise<false | { (name: string): string }> {
+    return this.quoteService.existBySystemDesignIdAndSubQuery<{
+      _id: ObjectId;
+      quoteName: string;
+    }>(
+      systemDesignId,
+      quoteId => [
+        {
+          $lookup: {
+            from: this.contractModel.collection.collectionName,
+            let: {
+              id: quoteId,
+            },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: ['$associated_quote_id', '$$id'],
+                  },
                 },
               },
-            },
-            {
-              $project: {
-                _id: 1,
+              {
+                $project: {
+                  _id: 1,
+                },
               },
-            },
-          ],
-          as: 'contracts',
-        },
-      },
-      {
-        $match: {
-          'contracts.0': {
-            $exists: true,
+            ],
+            as: 'contracts',
           },
         },
-      },
-    ]);
+        {
+          $match: {
+            'contracts.0': {
+              $exists: true,
+            },
+          },
+        },
+      ],
+      doc => `is being used in the quote named ${doc.quoteName} (id: ${doc._id.toString()})`,
+    );
   }
 }

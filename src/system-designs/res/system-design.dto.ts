@@ -65,6 +65,9 @@ export class SystemDesignDto {
 
   @ExposeProp({ default: true, skipTransform: true })
   editable: boolean;
+
+  @ExposeProp()
+  editableMessage?: string;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {

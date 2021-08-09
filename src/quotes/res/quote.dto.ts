@@ -166,6 +166,9 @@ export class QuoteDto {
 
   @ExposeProp({ default: true, skipTransform: true })
   editable: boolean;
+
+  @ExposeProp()
+  editableMessage?: string;
 }
 
 class PaginationRes implements Pagination<QuoteDto> {

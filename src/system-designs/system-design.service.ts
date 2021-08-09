@@ -515,7 +515,7 @@ export class SystemDesignService {
     const isInUsed = await this.checkInUsed(id.toString());
 
     if (isInUsed) {
-      throw new BadRequestException('This system design has been used in either proposal or contract');
+      throw new BadRequestException(isInUsed);
     }
 
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
@@ -689,7 +689,7 @@ export class SystemDesignService {
     const isInUsed = await this.checkInUsed(id.toString());
 
     if (isInUsed) {
-      throw new BadRequestException('This system design has been used in either proposal or contract');
+      throw new BadRequestException(isInUsed);
     }
 
     await systemDesign.deleteOne();
@@ -712,6 +712,7 @@ export class SystemDesignService {
         return {
           ...systemDesign,
           editable: !isInUsed,
+          editableMessage: isInUsed || null,
         };
       }),
     );
@@ -733,6 +734,7 @@ export class SystemDesignService {
       strictPlainToClass(SystemDesignDto, {
         ...foundSystemDesign,
         editable: !isInUsed,
+        editableMessage: isInUsed || null,
       } as any),
     );
   }
@@ -836,15 +838,19 @@ export class SystemDesignService {
     }
   }
 
-  async checkInUsed(systemDesignId: string): Promise<boolean> {
+  async checkInUsed(systemDesignId: string): Promise<boolean | string> {
     const hasProposals = await this.proposalService.existBySystemDesignId(systemDesignId);
 
     if (hasProposals) {
-      return hasProposals;
+      return hasProposals('This system design');
     }
 
     const hasContracts = await this.contractService.existBySystemDesignId(systemDesignId);
 
-    return hasContracts;
+    if (hasContracts) {
+      return hasContracts('This system design');
+    }
+
+    return false;
   }
 }
