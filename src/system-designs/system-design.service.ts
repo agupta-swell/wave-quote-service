@@ -493,10 +493,6 @@ export class SystemDesignService {
   }
 
   async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
-    if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
-      throw new Error('Please put your data in body');
-    }
-
     if (
       systemDesignDto.roofTopDesignData &&
       !systemDesignDto.roofTopDesignData.panelArray.length &&
