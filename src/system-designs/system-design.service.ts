@@ -276,7 +276,7 @@ export class SystemDesignService {
     extendCalculate?: () => Promise<AuxCalculateResult>,
     postExtendCalculate?: (result: [AuxCalculateResult, ...unknown[]]) => void,
     dispatch?: (systemDesign: SystemDesignModel) => Promise<void>,
-  ): Promise<Partial<SystemDesignModel> | undefined> {
+  ): Promise<Partial<SystemDesignModel>> {
     if (preCalculate) await preCalculate();
 
     const [utilityAndUsage, systemProductionArray] = await Promise.all([
@@ -489,7 +489,7 @@ export class SystemDesignService {
       return pickBy(systemDesign, item => typeof item !== 'undefined');
     }
 
-    return undefined;
+    return pickBy(systemDesign, item => typeof item !== 'undefined');
   }
 
   async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
