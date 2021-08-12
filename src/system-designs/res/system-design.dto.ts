@@ -1,27 +1,8 @@
 import { Pagination } from 'src/app/common';
 import { ServiceResponse } from 'src/app/common/service-response';
-import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { CapacityProductionDataDto, RoofTopDataDto } from './sub-dto';
-
-export class SystemProductionDto {
-  @ExposeProp()
-  capacityKW: number;
-
-  @ExposeProp()
-  generationKWh: number;
-
-  @ExposeProp()
-  productivity: number;
-
-  @ExposeAndMap({}, ({ value }) => value || 0)
-  annualUsageKWh: number;
-
-  @ExposeProp()
-  offsetPercentage: number;
-
-  @ExposeProp()
-  generationMonthlyKWh: number[];
-}
+import { SystemProductionDto } from './sub-dto/system-production.dto';
 
 export class SystemDesignDto {
   @ExposeMongoId()
@@ -65,6 +46,9 @@ export class SystemDesignDto {
 
   @ExposeProp({ default: true, skipTransform: true })
   editable: boolean;
+
+  @ExposeProp()
+  editableMessage?: string;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {

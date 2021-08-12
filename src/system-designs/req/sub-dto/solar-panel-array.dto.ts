@@ -77,7 +77,7 @@ export class SolarPanelArrayDto1 {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   pitch: number;
 
   @ApiProperty()

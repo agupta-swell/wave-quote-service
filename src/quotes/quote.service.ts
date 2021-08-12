@@ -1,8 +1,8 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-return-assign */
-import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { differenceBy, groupBy, isNil, max, min, omit, omitBy, pickBy, sumBy, uniq } from 'lodash';
+import { differenceBy, groupBy, isNil, omit, omitBy, pickBy, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
@@ -472,7 +472,7 @@ export class QuoteService {
     const isInUsed = await this.checkInUsed(quoteId);
 
     if (isInUsed) {
-      throw new BadRequestException('This quote has been used in either proposal or contract');
+      throw new BadRequestException(isInUsed);
     }
 
     const [foundQuote, systemDesign, markupConfigs] = await Promise.all([
@@ -791,7 +791,7 @@ export class QuoteService {
     const checkedQuotes = await Promise.all(
       quotes.map(async q => {
         const isInUsed = await this.checkInUsed(q._id.toString());
-        return { ...q, editable: !isInUsed };
+        return { ...q, editable: !isInUsed, editableMessage: isInUsed || null };
       }),
     );
 
@@ -826,11 +826,13 @@ export class QuoteService {
     }
 
     const isInUsed = await this.checkInUsed(quoteId);
+
     return OperationResult.ok(
       strictPlainToClass(QuoteDto, {
         ...quote,
         itcRate,
         editable: !isInUsed,
+        editableMessage: isInUsed || null,
       } as any),
     );
   }
@@ -839,7 +841,7 @@ export class QuoteService {
     const isInUsed = await this.checkInUsed(quoteId.toString());
 
     if (isInUsed) {
-      throw new BadRequestException('This quote has been used in either proposal or contract');
+      throw new BadRequestException(isInUsed);
     }
 
     const foundQuote = await this.quoteModel.findById(quoteId).lean();
@@ -938,25 +940,35 @@ export class QuoteService {
       return OperationResult.ok('Found One Entity');
     }
 
-    const leaseSolverConfig = await this.leaseSolverConfigService.getListSolverConfigsByConditions(
+    const {
+      solarSizeMinimumArr,
+      solarSizeMaximumArr,
+      productivityMinArr,
+      productivityMaxArr,
+    } = await this.leaseSolverConfigService.getMinMaxLeaseSolver(
       data.isSolar,
       data.utilityProgram.utilityProgramName || 'PRP2',
     );
 
-    if (!leaseSolverConfig.length) {
-      throw ApplicationException.NotFoundStatus('Lease Config');
+    throw ApplicationException.UnprocessableEntity(
+      `System capacity should be between ${solarSizeMinimumArr} and ${solarSizeMaximumArr} and productivity should be between ${productivityMinArr} and ${productivityMaxArr}`,
+    );
+  }
+
+  public async deleteQuote(quoteId: ObjectId): Promise<void> {
+    const found = await this.quoteModel.findOne({ _id: quoteId });
+
+    if (!found) {
+      throw new NotFoundException(`No quote found with id ${quoteId.toString()}`);
     }
 
-    const solarSizeMinimumArr = leaseSolverConfig.map(item => item.solarSizeMinimum);
-    const solarSizeMaximumArr = leaseSolverConfig.map(item => item.solarSizeMaximum);
-    const productivityMinArr = leaseSolverConfig.map(item => item.productivityMin);
-    const productivityMaxArr = leaseSolverConfig.map(item => item.productivityMax);
+    const isInUsed = await this.checkInUsed(quoteId.toString());
 
-    throw ApplicationException.UnprocessableEntity(
-      `System capacity should be between ${min(solarSizeMinimumArr)} and ${max(
-        solarSizeMaximumArr,
-      )} and productivity should be between ${min(productivityMinArr)} and ${max(productivityMaxArr)}`,
-    );
+    if (isInUsed) {
+      throw new BadRequestException(isInUsed);
+    }
+
+    await found.delete();
   }
 
   // ->>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<-\
@@ -1222,21 +1234,23 @@ export class QuoteService {
     return rebateDetails;
   }
 
-  async checkInUsed(quoteId: string): Promise<boolean> {
+  async checkInUsed(quoteId: string): Promise<false | string> {
     const hasProposals = await this.proposalService.existByQuoteId(quoteId);
 
-    if (hasProposals) {
-      return hasProposals;
-    }
+    if (hasProposals) return hasProposals('This quote');
 
     const hasContracts = await this.contractService.existsByQuoteId(quoteId);
-    return hasContracts;
+
+    if (hasContracts) return hasContracts('This quote');
+
+    return false;
   }
 
-  public async existBySystemDesignIdAndSubQuery(
+  public async existBySystemDesignIdAndSubQuery<T = any>(
     systemDesignId: string,
-    subQuery: (quoteIdVar: string) => Record<string, unknown>[],
-  ): Promise<boolean> {
+    subQuery: (quoteIdVar: string, quoteName: string) => Record<string, unknown>[],
+    toMessage: (obj: T) => string,
+  ): Promise<false | { (name: string): string }> {
     const query = [
       {
         $match: {
@@ -1248,13 +1262,18 @@ export class QuoteService {
           _id: {
             $toString: '$_id',
           },
+          quoteName: '$detailed_quote.quote_name',
         },
       },
-      ...subQuery('$_id'),
+      ...subQuery('$_id', 'quoteName'),
     ];
 
     const docs = await this.quoteModel.aggregate(query);
 
-    return !!docs.length;
+    if (docs.length) {
+      return name => `${name} ${toMessage(docs[0])}`;
+    }
+
+    return false;
   }
 }

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
+import { SystemProductionDto } from 'src/system-designs/res/sub-dto/system-production.dto';
 import { UpdateQuoteDto } from './update-quote.dto';
 
 class UtilityProgramDto {

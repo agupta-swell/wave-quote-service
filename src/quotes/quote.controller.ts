@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
@@ -124,5 +124,11 @@ export class QuoteController {
   async cloneQuote(@Param('quoteId', ParseObjectIdPipe) quoteId: ObjectId): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.cloneQuote(quoteId);
     return ServiceResponse.fromResult(res);
+  }
+
+  @Delete('/:quoteId')
+  @ApiOperation({ summary: 'Delete quote' })
+  async deleteQuote(@Param('quoteId', ParseObjectIdPipe) quoteId: ObjectId): Promise<void> {
+    await this.quoteService.deleteQuote(quoteId);
   }
 }

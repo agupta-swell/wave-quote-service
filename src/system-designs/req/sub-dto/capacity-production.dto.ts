@@ -1,48 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, ValidateNested } from 'class-validator';
+import { IsOptional, ValidateNested } from 'class-validator';
 import { AdderDto } from './adder.dto';
 import { AncillaryEquipmentDto } from './ancillary-equipment.dto';
 import { BalanceOfSystemDto } from './balance-of-system.dto';
+import { CapacityPanelArrayReqDto } from './capacity-panel-array.dto';
 import { InverterDto } from './inverter.dto';
 import { StorageDto } from './storage.dto';
 
 export class CapacityProductionDataDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  capacity: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  production: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  azimuth: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  losses: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  pitch: number;
-
-  @ApiProperty()
+  @ApiPropertyOptional({
+    type: CapacityPanelArrayReqDto,
+    isArray: true,
+  })
   @IsOptional()
-  @IsNumber()
-  @IsPositive()
-  numberOfPanels: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  panelModelId: string;
+  @ValidateNested({ each: true })
+  @Type(() => CapacityPanelArrayReqDto)
+  panelArray: CapacityPanelArrayReqDto[];
 
   @ApiProperty({
     type: InverterDto,

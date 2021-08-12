@@ -108,6 +108,27 @@ export const PanelProductSchema = new Schema<Document<IPanelProductSchema>>(
   { _id: false },
 );
 
+export interface ISystemProductionSchema {
+  capacityKW: number;
+  generationKWh: number;
+  productivity: number;
+  annualUsageKWh: number;
+  offsetPercentage: number;
+  generationMonthlyKWh: number[];
+}
+
+export const SystemProductionSchema = new Schema<Document<ISystemProductionSchema>>(
+  {
+    capacityKW: Number,
+    generationKWh: Number,
+    productivity: Number,
+    annual_usageKWh: Number,
+    offset_percentage: Number,
+    generationMonthlyKWh: [Number],
+  },
+  { _id: false },
+);
+
 export interface ISolarPanelArraySchema {
   arrayId: Types.ObjectId;
   primaryOrientationSide: number;
@@ -125,6 +146,12 @@ export interface ISolarPanelArraySchema {
   panelModelDataSnapshot: IPanelProductSchema;
   panelModelSnapshotDate: Date;
   losses: number;
+}
+
+export interface ICapacityPanelArraySchema extends ISolarPanelArraySchema {
+  capacity: number;
+  production: number;
+  systemProductionData: ISystemProductionSchema;
 }
 
 const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
@@ -149,12 +176,30 @@ const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
   { _id: false },
 );
 
+const CapacityPanelArraySchema = new Schema<Document<ICapacityPanelArraySchema>>(
+  {
+    array_id: Schema.Types.ObjectId,
+    capacity: Number,
+    production: Number,
+    pitch: Number,
+    azimuth: Number,
+    panel_model_id: String,
+    number_of_panels: Number,
+    panel_model_data_snapshot: PanelProductSchema,
+    panel_model_snapshot_date: Date,
+    losses: Number,
+    system_production_data: SystemProductionSchema,
+  },
+  { _id: false },
+);
+
 export interface IInverterSchema {
   type: string;
   inverterModelId: string;
   inverterModelDataSnapshot: IInverterProductSchema;
   inverterModelSnapshotDate: Date;
   quantity: number;
+  arrayId: Types.ObjectId;
 }
 
 const InverterSchema = new Schema<Document<IInverterSchema>>(
@@ -164,6 +209,7 @@ const InverterSchema = new Schema<Document<IInverterSchema>>(
     inverter_model_data_snapshot: InverterProductSchema,
     inverter_model_snapshot_date: Date,
     quantity: Number,
+    array_id: Schema.Types.ObjectId,
   },
   { _id: false },
 );
@@ -326,15 +372,7 @@ export interface IRoofTopSchema {
 }
 
 export interface ICapacityProductionSchema {
-  capacity: number;
-  production: number;
-  azimuth: number;
-  losses: number;
-  pitch: number;
-  numberOfPanels: number;
-  panelModelId: string;
-  panelModelDataSnapshot: IPanelProductSchema;
-  panelModelSnapshotDate: Date;
+  panelArray: ICapacityPanelArraySchema[];
   inverters: IInverterSchema[];
   storage: IStorageSchema[];
   adders: IAdderSchema[];
@@ -356,41 +394,12 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
 
 export const CapacityProductionSchema = new Schema<Document<ICapacityProductionSchema>>(
   {
-    capacity: Number,
-    production: Number,
-    azimuth: Number,
-    losses: Number,
-    pitch: Number,
-    panel_model_id: String,
-    number_of_panels: Number,
-    panel_model_data_snapshot: PanelProductSchema,
-    panel_model_snapshot_date: Date,
+    panel_array: [CapacityPanelArraySchema],
     inverters: [InverterSchema],
     storage: [StorageSchema],
     adders: [AdderSchema],
     balance_of_systems: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
-  },
-  { _id: false },
-);
-
-export interface ISystemProductionSchema {
-  capacityKW: number;
-  generationKWh: number;
-  productivity: number;
-  annualUsageKWh: number;
-  offsetPercentage: number;
-  generationMonthlyKWh: number[];
-}
-
-export const SystemProductionSchema = new Schema<Document<ISystemProductionSchema>>(
-  {
-    capacityKW: Number,
-    generationKWh: Number,
-    productivity: Number,
-    annual_usageKWh: Number,
-    offset_percentage: Number,
-    generationMonthlyKWh: [Number],
   },
   { _id: false },
 );
@@ -520,28 +529,9 @@ export class SystemDesignModel {
   };
 
   transformCapacityProductionData = (data: CapacityProductionDataDto): ICapacityProductionSchema => {
-    const {
-      capacity,
-      production,
-      azimuth,
-      losses,
-      pitch,
-      numberOfPanels,
-      panelModelId,
-      inverters,
-      storage,
-      adders,
-      balanceOfSystems,
-      ancillaryEquipments,
-    } = data;
+    const { panelArray, inverters, storage, adders, balanceOfSystems, ancillaryEquipments } = data;
     return {
-      capacity,
-      production,
-      azimuth,
-      losses,
-      pitch,
-      numberOfPanels,
-      panelModelId,
+      panelArray: panelArray || [],
       inverters,
       storage,
       adders,
@@ -550,14 +540,18 @@ export class SystemDesignModel {
     } as any;
   };
 
-  setPanelModelDataSnapshot(panelModelData: IPanelProductSchema, index: number) {
-    this.roofTopDesignData.panelArray[index].panelModelDataSnapshot = panelModelData;
-    this.roofTopDesignData.panelArray[index].panelModelSnapshotDate = new Date();
-  }
-
-  setCapacityProductionPanelModelDataSnapshot(panelModelData: IPanelProductSchema) {
-    this.capacityProductionDesignData.panelModelDataSnapshot = panelModelData;
-    this.capacityProductionDesignData.panelModelSnapshotDate = new Date();
+  setPanelModelDataSnapshot(
+    panelModelData: IPanelProductSchema,
+    index: number,
+    designMode: string = DESIGN_MODE.ROOF_TOP,
+  ) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.panelArray[index].panelModelDataSnapshot = panelModelData;
+      this.roofTopDesignData.panelArray[index].panelModelSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.panelArray[index].panelModelDataSnapshot = panelModelData;
+      this.capacityProductionDesignData.panelArray[index].panelModelSnapshotDate = new Date();
+    }
   }
 
   setAdder(adder: IAdderModel, unit: COST_UNIT_TYPE, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
@@ -640,6 +634,10 @@ export class SystemDesignModel {
 
   setSystemProductionData(data: ISystemProductionSchema) {
     this.systemProductionData = data;
+  }
+
+  setCapacitySystemProduction(data: ISystemProductionSchema, index: number) {
+    this.capacityProductionDesignData.panelArray[index].systemProductionData = data;
   }
 
   setNetUsagePostInstallation(data: INetUsagePostInstallationSchema) {

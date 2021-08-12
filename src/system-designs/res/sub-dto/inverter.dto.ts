@@ -1,5 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { INVERTER_TYPE } from '../../constants';
 import { ProductDto } from './product.dto';
 
@@ -21,4 +20,7 @@ export class InverterDto {
 
   @ExposeProp()
   quantity: number;
+
+  @ExposeAndMap({}, ({ obj }) => obj.arrayId)
+  arrayId: string;
 }

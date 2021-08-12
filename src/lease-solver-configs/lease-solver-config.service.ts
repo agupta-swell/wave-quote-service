@@ -1,6 +1,7 @@
 import { Injectable, Req } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from '../app/common/operation-result';
 import { fromStream } from '../utils/convertToCSV';
 import { LeaseSolverConfig, LEASE_SOLVER_CONFIG } from './lease-solver-config.schema';
@@ -100,5 +101,55 @@ export class LeaseSolverConfigService {
     });
 
     return leaseSolverConfig;
+  }
+
+  async getMinMaxLeaseSolver(
+    isSolar: boolean,
+    utilityProgramName: string,
+  ): Promise<{
+    solarSizeMinimumArr: number;
+    solarSizeMaximumArr: number;
+    productivityMinArr: number;
+    productivityMaxArr: number;
+  }> {
+    const found = await this.leaseSolverConfig.aggregate([
+      {
+        $match: {
+          is_solar: isSolar,
+          utility_program_name: utilityProgramName,
+        },
+      },
+      {
+        $group: {
+          _id: {
+            is_solar: '$is_solar',
+            utility_program_name: '$utility_program_name',
+          },
+          solarSizeMinimumArr: {
+            $min: '$solar_size_minimum',
+          },
+          solarSizeMaximumArr: {
+            $max: '$solar_size_maximum',
+          },
+          productivityMinArr: {
+            $min: '$productivity_min',
+          },
+          productivityMaxArr: {
+            $max: '$productivity_max',
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+        },
+      },
+    ]);
+
+    if (!found[0]) {
+      throw ApplicationException.NotFoundStatus('Lease Config');
+    }
+
+    return found[0];
   }
 }

@@ -539,14 +539,26 @@ export class ProposalService {
     }
   }
 
-  public async existByQuoteId(quoteId: string): Promise<boolean> {
-    const doc = await this.proposalModel.find({ quoteId }, { _id: 1 }).limit(1);
-    return !!doc.length;
+  public async existByQuoteId(quoteId: string): Promise<false | { (name: string): string }> {
+    const doc = await this.proposalModel.find({ quoteId }, { _id: 1, 'detailed_proposal.proposal_name': 1 }).limit(1);
+
+    if (doc.length) {
+      return name =>
+        `${name} is being used in the proposal named ${doc[0].detailedProposal.proposalName} (id: ${doc[0]._id.toString()})`;
+    }
+    return false;
   }
 
-  public async existBySystemDesignId(systemDesignId: string): Promise<boolean> {
-    const doc = await this.proposalModel.find({ systemDesignId }, { _id: 1 }).limit(1);
-    return !!doc.length;
+  public async existBySystemDesignId(systemDesignId: string): Promise<false | { (name: string): string }> {
+    const doc = await this.proposalModel
+      .find({ systemDesignId }, { _id: 1, 'detailed_proposal.proposal_name': 1 })
+      .limit(1);
+
+    if (doc.length) {
+      return name =>
+        `${name} is being used in the proposal named ${doc[0].detailedProposal.proposalName} (id: ${doc[0]._id.toString()})`;
+    }
+    return false;
   }
 
   private saveToStorage(doc: IncomingMessage, fileName: string): Promise<ManagedUpload.SendData> {

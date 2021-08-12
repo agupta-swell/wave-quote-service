@@ -62,10 +62,13 @@ export class SystemDesignService {
     }
 
     if (
-      systemDesignDto.roofTopDesignData &&
-      !systemDesignDto.roofTopDesignData.panelArray.length &&
-      !systemDesignDto.roofTopDesignData.storage.length &&
-      !systemDesignDto.roofTopDesignData.inverters.length
+      (systemDesignDto.roofTopDesignData &&
+        !systemDesignDto.roofTopDesignData.panelArray.length &&
+        !systemDesignDto.roofTopDesignData.storage.length &&
+        !systemDesignDto.roofTopDesignData.inverters.length) ||
+      (systemDesignDto.capacityProductionDesignData &&
+        !systemDesignDto.capacityProductionDesignData.panelArray.length &&
+        !systemDesignDto.capacityProductionDesignData.inverters.length)
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -75,6 +78,7 @@ export class SystemDesignService {
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
+    const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
@@ -152,8 +156,6 @@ export class SystemDesignService {
       systemDesign.setThumbnail(thumbnail);
       // systemDesign.setIsSelected(systemDesignDto.isSelected);
 
-      const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
-
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
         generationKWh: cumulativeGenerationKWh,
@@ -164,12 +166,6 @@ export class SystemDesignService {
       });
     } else if (systemDesign.designMode === DESIGN_MODE.CAPACITY_PRODUCTION) {
       const {
-        capacity,
-        azimuth,
-        pitch,
-        losses,
-        production,
-        panelModelId,
         inverters,
         storage,
         adders,
@@ -177,15 +173,55 @@ export class SystemDesignService {
         ancillaryEquipments,
       } = systemDesign.capacityProductionDesignData;
 
-      const setPanelModelDataSnapshot = async () => {
-        const panelModelData = await this.productService.getDetailById(panelModelId);
-        const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
-        systemDesign.setCapacityProductionPanelModelDataSnapshot(data);
-      };
+      let cumulativeGenerationKWh = 0;
+      let cumulativeCapacityKW = 0;
 
       await Promise.all(
         flatten([
-          setPanelModelDataSnapshot as any,
+          systemDesign.capacityProductionDesignData.panelArray.map(async (item, index) => {
+            const { panelModelId, capacity, production, pitch, azimuth, losses } = item;
+            const newObjectId = Types.ObjectId();
+            let generation = 0;
+
+            const panelModelData = await this.productService.getDetailById(panelModelId);
+            const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
+            systemDesign.setPanelModelDataSnapshot(data, index, systemDesign.designMode);
+
+            const relatedInverterIndex = systemDesign.capacityProductionDesignData.inverters.findIndex(
+              inverter => inverter.arrayId === item.arrayId,
+            );
+            if (relatedInverterIndex !== -1) {
+              systemDesign.capacityProductionDesignData.inverters[relatedInverterIndex].arrayId = newObjectId;
+            }
+            item.arrayId = newObjectId;
+
+            if (production > 0) {
+              generation = production;
+            } else {
+              generation = await this.systemProductService.pvWatCalculation({
+                lat: systemDesign.latitude,
+                lon: systemDesign.longitude,
+                azimuth,
+                systemCapacity: capacity,
+                tilt: pitch,
+                losses,
+              });
+            }
+            cumulativeCapacityKW += capacity;
+            cumulativeGenerationKWh += generation;
+
+            systemDesign.setCapacitySystemProduction(
+              {
+                capacityKW: capacity,
+                generationKWh: generation,
+                productivity: capacity === 0 ? 0 : generation / capacity,
+                annualUsageKWh,
+                offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
+                generationMonthlyKWh: systemProductionArray.monthly,
+              },
+              index,
+            );
+          }),
           inverters.map(async (inverter, index) => {
             const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
             const data = { ...inverterModelData, partNumber: inverterModelData?.partNumber } as any;
@@ -221,28 +257,12 @@ export class SystemDesignService {
         ]),
       );
 
-      const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
-      let generation = 0;
-
-      if (production > 0) {
-        generation = production;
-      } else {
-        generation = await this.systemProductService.pvWatCalculation({
-          lat: systemDesign.latitude,
-          lon: systemDesign.longitude,
-          azimuth,
-          systemCapacity: capacity,
-          tilt: pitch,
-          losses,
-        });
-      }
-
       systemDesign.setSystemProductionData({
-        capacityKW: capacity,
-        generationKWh: generation,
-        productivity: capacity === 0 ? 0 : generation / capacity,
+        capacityKW: cumulativeCapacityKW,
+        generationKWh: cumulativeGenerationKWh,
+        productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
         annualUsageKWh,
-        offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
+        offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
       });
     }
@@ -276,13 +296,14 @@ export class SystemDesignService {
     extendCalculate?: () => Promise<AuxCalculateResult>,
     postExtendCalculate?: (result: [AuxCalculateResult, ...unknown[]]) => void,
     dispatch?: (systemDesign: SystemDesignModel) => Promise<void>,
-  ): Promise<Partial<SystemDesignModel> | undefined> {
+  ): Promise<Partial<SystemDesignModel>> {
     if (preCalculate) await preCalculate();
 
     const [utilityAndUsage, systemProductionArray] = await Promise.all([
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
+    const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
 
     if (systemDesignDto.roofTopDesignData) {
       let cumulativeGenerationKWh = 0;
@@ -350,8 +371,6 @@ export class SystemDesignService {
         postExtendCalculate(result as any);
       }
 
-      const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
-
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
         generationKWh: cumulativeGenerationKWh,
@@ -386,21 +405,51 @@ export class SystemDesignService {
 
     if (systemDesignDto.capacityProductionDesignData) {
       const {
-        capacity,
-        azimuth,
-        pitch,
-        losses,
-        production,
         adders,
         inverters,
         storage,
         balanceOfSystems,
         ancillaryEquipments,
       } = systemDesignDto.capacityProductionDesignData;
-      const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
-      let generation = 0;
+      let cumulativeGenerationKWh = 0;
+      let cumulativeCapacityKW = 0;
 
       const handlers = [
+        systemDesign.capacityProductionDesignData.panelArray.map(async (item, index) => {
+          const { panelModelId, capacity, production, pitch, azimuth, losses } = item;
+          let generation = 0;
+
+          const panelModelData = await this.productService.getDetailById(panelModelId);
+          const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
+          systemDesign.setPanelModelDataSnapshot(data, index, systemDesign.designMode);
+
+          if (production > 0) {
+            generation = production;
+          } else {
+            generation = await this.systemProductService.pvWatCalculation({
+              lat: systemDesign.latitude,
+              lon: systemDesign.longitude,
+              azimuth,
+              systemCapacity: capacity,
+              tilt: pitch,
+              losses,
+            });
+          }
+          cumulativeCapacityKW += capacity;
+          cumulativeGenerationKWh += generation;
+
+          systemDesign.setCapacitySystemProduction(
+            {
+              capacityKW: capacity,
+              generationKWh: generation,
+              productivity: capacity === 0 ? 0 : generation / capacity,
+              annualUsageKWh,
+              offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
+              generationMonthlyKWh: systemProductionArray.monthly,
+            },
+            index,
+          );
+        }),
         adders?.map(async (item, index) => {
           const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
           systemDesign.setAdder(
@@ -444,25 +493,12 @@ export class SystemDesignService {
         postExtendCalculate(result as any);
       }
 
-      if (production > 0) {
-        generation = production;
-      } else {
-        generation = await this.systemProductService.pvWatCalculation({
-          lat: systemDesign.latitude,
-          lon: systemDesign.longitude,
-          azimuth,
-          systemCapacity: capacity,
-          tilt: pitch,
-          losses,
-        });
-      }
-
       systemDesign.setSystemProductionData({
-        capacityKW: capacity,
-        generationKWh: generation,
-        productivity: capacity === 0 ? 0 : generation / capacity,
+        capacityKW: cumulativeCapacityKW,
+        generationKWh: cumulativeGenerationKWh,
+        productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
         annualUsageKWh,
-        offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
+        offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
       });
 
@@ -489,19 +525,18 @@ export class SystemDesignService {
       return pickBy(systemDesign, item => typeof item !== 'undefined');
     }
 
-    return undefined;
+    return pickBy(systemDesign, item => typeof item !== 'undefined');
   }
 
   async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
-    if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
-      throw new Error('Please put your data in body');
-    }
-
     if (
-      systemDesignDto.roofTopDesignData &&
-      !systemDesignDto.roofTopDesignData.panelArray.length &&
-      !systemDesignDto.roofTopDesignData.storage.length &&
-      !systemDesignDto.roofTopDesignData.inverters.length
+      (systemDesignDto.roofTopDesignData &&
+        !systemDesignDto.roofTopDesignData.panelArray.length &&
+        !systemDesignDto.roofTopDesignData.storage.length &&
+        !systemDesignDto.roofTopDesignData.inverters.length) ||
+      (systemDesignDto.capacityProductionDesignData &&
+        !systemDesignDto.capacityProductionDesignData.panelArray.length &&
+        !systemDesignDto.capacityProductionDesignData.inverters.length)
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -515,7 +550,7 @@ export class SystemDesignService {
     const isInUsed = await this.checkInUsed(id.toString());
 
     if (isInUsed) {
-      throw new BadRequestException('This system design has been used in either proposal or contract');
+      throw new BadRequestException(isInUsed);
     }
 
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
@@ -689,7 +724,7 @@ export class SystemDesignService {
     const isInUsed = await this.checkInUsed(id.toString());
 
     if (isInUsed) {
-      throw new BadRequestException('This system design has been used in either proposal or contract');
+      throw new BadRequestException(isInUsed);
     }
 
     await systemDesign.deleteOne();
@@ -712,6 +747,7 @@ export class SystemDesignService {
         return {
           ...systemDesign,
           editable: !isInUsed,
+          editableMessage: isInUsed || null,
         };
       }),
     );
@@ -733,6 +769,7 @@ export class SystemDesignService {
       strictPlainToClass(SystemDesignDto, {
         ...foundSystemDesign,
         editable: !isInUsed,
+        editableMessage: isInUsed || null,
       } as any),
     );
   }
@@ -836,15 +873,19 @@ export class SystemDesignService {
     }
   }
 
-  async checkInUsed(systemDesignId: string): Promise<boolean> {
+  async checkInUsed(systemDesignId: string): Promise<boolean | string> {
     const hasProposals = await this.proposalService.existBySystemDesignId(systemDesignId);
 
     if (hasProposals) {
-      return hasProposals;
+      return hasProposals('This system design');
     }
 
     const hasContracts = await this.contractService.existBySystemDesignId(systemDesignId);
 
-    return hasContracts;
+    if (hasContracts) {
+      return hasContracts('This system design');
+    }
+
+    return false;
   }
 }
