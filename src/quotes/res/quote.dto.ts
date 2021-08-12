@@ -1,5 +1,5 @@
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
-import { SystemProductionDto } from 'src/system-designs/res/system-design.dto';
+import { SystemProductionDto } from 'src/system-designs/res/sub-dto/system-production.dto';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { NotesDto, QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
 

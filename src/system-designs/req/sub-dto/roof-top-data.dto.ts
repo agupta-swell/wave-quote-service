@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
+import { IsOptional, ValidateNested } from 'class-validator';
 import { AdderDto } from './adder.dto';
 import { AncillaryEquipmentDto } from './ancillary-equipment.dto';
 import { BalanceOfSystemDto } from './balance-of-system.dto';

@@ -127,7 +127,7 @@ export class SystemProductService {
     const { latitude, longitude } = systemDesignDto;
     let pvProductionArray: ISystemProduction[] = [{ hourly: [], monthly: [], annual: 0 }];
 
-    if (systemDesignDto?.roofTopDesignData?.panelArray) {
+    if (systemDesignDto?.roofTopDesignData?.panelArray?.length) {
       pvProductionArray = await Promise.all(
         systemDesignDto.roofTopDesignData.panelArray.map(async item => {
           const { azimuth, losses, pitch } = item;
@@ -136,17 +136,20 @@ export class SystemProductService {
           return this.calculatePVProduction({ latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses });
         }),
       );
-    } else if (systemDesignDto.capacityProductionDesignData) {
-      const { capacity, azimuth, pitch, losses } = systemDesignDto.capacityProductionDesignData;
-      const pvProduction = await this.calculatePVProduction({
-        latitude,
-        longitude,
-        systemCapacityInkWh: capacity,
-        azimuth,
-        pitch,
-        losses,
-      });
-      pvProductionArray = [pvProduction];
+    } else if (systemDesignDto?.capacityProductionDesignData?.panelArray?.length) {
+      pvProductionArray = await Promise.all(
+        systemDesignDto.capacityProductionDesignData.panelArray.map(async item => {
+          const { capacity, azimuth, pitch, losses } = item;
+          return this.calculatePVProduction({
+            latitude,
+            longitude,
+            systemCapacityInkWh: capacity,
+            azimuth,
+            pitch,
+            losses,
+          });
+        }),
+      );
     }
 
     const cumulativePvProduction: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
