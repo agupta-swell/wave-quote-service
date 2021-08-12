@@ -2,7 +2,7 @@
 /* eslint-disable no-return-assign */
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { differenceBy, groupBy, isNil, max, min, omit, omitBy, pickBy, sumBy, uniq } from 'lodash';
+import { differenceBy, groupBy, isNil, omit, omitBy, pickBy, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
@@ -940,24 +940,18 @@ export class QuoteService {
       return OperationResult.ok('Found One Entity');
     }
 
-    const leaseSolverConfig = await this.leaseSolverConfigService.getListSolverConfigsByConditions(
+    const {
+      solarSizeMinimumArr,
+      solarSizeMaximumArr,
+      productivityMinArr,
+      productivityMaxArr,
+    } = await this.leaseSolverConfigService.getMinMaxLeaseSolver(
       data.isSolar,
       data.utilityProgram.utilityProgramName || 'PRP2',
     );
 
-    if (!leaseSolverConfig.length) {
-      throw ApplicationException.NotFoundStatus('Lease Config');
-    }
-
-    const solarSizeMinimumArr = leaseSolverConfig.map(item => item.solarSizeMinimum);
-    const solarSizeMaximumArr = leaseSolverConfig.map(item => item.solarSizeMaximum);
-    const productivityMinArr = leaseSolverConfig.map(item => item.productivityMin);
-    const productivityMaxArr = leaseSolverConfig.map(item => item.productivityMax);
-
     throw ApplicationException.UnprocessableEntity(
-      `System capacity should be between ${min(solarSizeMinimumArr)} and ${max(
-        solarSizeMaximumArr,
-      )} and productivity should be between ${min(productivityMinArr)} and ${max(productivityMaxArr)}`,
+      `System capacity should be between ${solarSizeMinimumArr} and ${solarSizeMaximumArr} and productivity should be between ${productivityMinArr} and ${productivityMaxArr}`,
     );
   }
 
