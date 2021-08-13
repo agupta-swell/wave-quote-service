@@ -70,6 +70,7 @@ export class CalculationService {
     // IMPORTANT NOTE: THIS ABOVE LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuoteForECom() ALSO.
 
+    productAttribute.gridServicePayment = leaseSolverConfig.gridServicesDiscount;
     productAttribute.monthlyLeasePayment = monthlyLeasePayment;
     productAttribute.ratePerkWh = leaseSolverConfig.ratePerKWh;
     productAttribute.yearlyLoanPaymentDetails = this.getYearlyLeasePaymentDetails(
