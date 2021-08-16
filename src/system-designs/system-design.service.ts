@@ -417,11 +417,20 @@ export class SystemDesignService {
       const handlers = [
         systemDesign.capacityProductionDesignData.panelArray.map(async (item, index) => {
           const { panelModelId, capacity, production, pitch, azimuth, losses } = item;
+          const newObjectId = Types.ObjectId();
           let generation = 0;
 
           const panelModelData = await this.productService.getDetailById(panelModelId);
           const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
           systemDesign.setPanelModelDataSnapshot(data, index, systemDesign.designMode);
+
+          const relatedInverterIndex = systemDesign.capacityProductionDesignData.inverters.findIndex(
+            inverter => inverter.arrayId === item.arrayId,
+          );
+          if (relatedInverterIndex !== -1) {
+            systemDesign.capacityProductionDesignData.inverters[relatedInverterIndex].arrayId = newObjectId;
+          }
+          item.arrayId = newObjectId;
 
           if (production > 0) {
             generation = production;
