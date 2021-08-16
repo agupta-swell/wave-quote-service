@@ -16,7 +16,6 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
-import { CostBreakdown } from './models/cost-breakdown';
 import { GeneratedSolarSystem } from './models/generated-solar-system';
 import { TypicalUsage } from './models/typical-usage';
 import { GetEcomSystemDesignAndQuoteReq } from './req/get-ecom-system-design-and-quote.dto';
@@ -116,31 +115,6 @@ export class ECommerceService {
         panelCountAdjust <= panelVariance - 1;
         panelCountAdjust += 1
       ) {
-        // Note: These lines of code are commented due to the usage of async-await inside for ... i loop which
-        // is regarded as an anti pattern in most cases. You can uncomment this and remove my code if you
-        // don't care about the warning from eslint
-
-        // // panelCountAdjust represents the number of panels to add/remove from the "default" system
-        // // systemIndex is panelCountAdjust, shifted to 0...(panelVarience * 2)
-        // const systemIndex = panelCountAdjust + panelVariance;
-        // const variantSystem = await this.generateSolarSystem(zip, typicalUsage, panelCountAdjust);
-        // // Interpolate the net generation between the low and high end systems, based on the systemIndex / upper bound of systems [count - 1]
-        // const approximateNetGeneration = this.lerp(lowEndNet, highEndNet, systemIndex / (numberOfSystemsToGenerate - 1));
-        // const systemProductivity = approximateNetGeneration / variantSystem.capacityKW;
-        // const isOptimalSystem = panelCountAdjust === 0;
-        // const quote = await this.getSolarStorageQuoteDto(
-        //   zip,
-        //   variantSystem,
-        //   systemProductivity,
-        //   isOptimalSystem,
-        //   deposit,
-        // );
-
-        // // If we have invalid amounts, drop it from the response (like if Lease Solver wasn't found)
-        // if (isValidQuote(quote)) {
-        //   systems.push(quote);
-        // }
-
         panelCounts.push(panelCountAdjust);
       }
 
@@ -189,12 +163,6 @@ export class ECommerceService {
   public async getStorageOnlyQuote(req: GetEcomStorageOnlyQuoteReq) {
     const { zip } = req.addressDataDetail;
     const deposit = req.depositAmount;
-    // const quotes: StorageQuoteDto[] = [];
-    // for (let storageCount = 1; storageCount <= 3; storageCount++) {
-    //   const totalCost = await this.getCostBreakdown(zip, 0, storageCount);
-    //   const quote = await this.getStorageQuoteDto(zip, deposit, 0, storageCount, 0, 0);
-    //   quotes.push(quote);
-    // }
 
     // Generate the variants for storage count
     const quotes = await Promise.all(
@@ -519,24 +487,35 @@ export class ECommerceService {
     return cachedResult;
   }
 
-  private async getCostBreakdown(zipCode: number, numberOfPanelsToInstall = 0, numberOfBatteries = 0) {
+  private async getTotalCost(zipCode: number, numberOfPanelsToInstall = 0, numberOfBatteries = 0) {
     const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
-    const result = new CostBreakdown();
-    result.solarCost = 0;
-    result.laborCost = 0;
-
+    
     if (numberOfPanelsToInstall > 0) {
       const solarProduct = await this.getPanelProduct();
-      const { modulePricePerWatt, laborCostPerWatt } = foundECommerceConfig;
+      const { 
+        modulePricePerWatt,
+        moduleLaborPerWatt,
+        moduleMarkup,
+        storagePrice,
+        storageBaseCost,
+        storageLaborPerHour,
+        storageMarkup
+      } = foundECommerceConfig;
 
       const wattsBeingInstalled = solarProduct.sizeW * numberOfPanelsToInstall;
-      result.storageCost = numberOfBatteries * foundECommerceConfig.storagePrice;
-      result.laborCost = laborCostPerWatt * wattsBeingInstalled;
-      result.solarCost = modulePricePerWatt * wattsBeingInstalled;
+      const totalCost = this.getTotalCostForSolarSystem(
+        modulePricePerWatt,
+        moduleLaborPerWatt || 0,
+        moduleMarkup,
+        storagePrice,
+        storageLaborPerHour,
+        storageBaseCost,
+        storageMarkup,
+        wattsBeingInstalled,
+        numberOfBatteries
+      );
 
-      if (numberOfBatteries > 0) {
-        result.markupRate = foundECommerceConfig.esMarkup;
-      }
+      return totalCost;
     } else {
       const retrofitLookup = foundECommerceConfig.retrofitStoragePrices?.find(
         p => p.batteryCount === numberOfBatteries,
@@ -549,16 +528,14 @@ export class ECommerceService {
         throw ApplicationException.EntityNotFound('E Commerce Config');
       }
 
-      result.storageCost = retrofitLookup.cost;
+      return retrofitLookup.cost;
     }
-
-    return result;
   }
 
   private getNetGeneration(lat: number, long: number, systemCapacityKW: number) {
     const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
     const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
-    const losses = 5.5; // "Assuming a loss factor of 5.5"
+    const losses = 14.08; // "Assuming a loss factor of 14.08" -- PVWatts default
 
     return this.systemProductService.pvWatCalculation({
       lat,
@@ -629,8 +606,8 @@ export class ECommerceService {
     systemCapacityKW = 0,
     systemProductivity = 0,
   ): Promise<StorageQuoteDto> {
-    const [costBreakdown, batteryProduct] = await Promise.all([
-      this.getCostBreakdown(zipCode, numberOfPanelsToInstall, numberOfBatteries),
+    const [totalCost, batteryProduct] = await Promise.all([
+      this.getTotalCost(zipCode, numberOfPanelsToInstall, numberOfBatteries),
       this.getBatteryProduct(),
     ]);
 
@@ -640,7 +617,7 @@ export class ECommerceService {
     if (numberOfPanelsToInstall > 0) {
       const leaseDetails = await this.getLeaseDetails(
         zipCode,
-        costBreakdown.totalCost,
+        totalCost,
         numberOfBatteries,
         systemCapacityKW,
         systemProductivity,
@@ -648,13 +625,13 @@ export class ECommerceService {
       costDetailsData.push(leaseDetails.costDetail);
       paymentOptionData.push(leaseDetails.paymentOption);
 
-      const cashDetails = await this.getCashPaymentOptionDetails(costBreakdown.totalCost, deposit);
+      const cashDetails = await this.getCashPaymentOptionDetails(totalCost, deposit);
       paymentOptionData.push(cashDetails);
     }
 
     const loanDetails = await this.getLoanPaymentOptionDetails(
       zipCode,
-      costBreakdown.totalCost,
+      totalCost,
       deposit,
       systemCapacityKW,
     );
@@ -682,5 +659,29 @@ export class ECommerceService {
 
   private lerp(start: number, end: number, desired: number) {
     return start * (1.0 - desired) + end * desired;
+  }
+
+  private getTotalCostForSolarSystem(
+      modulePricePerW: number,
+      moduleLaborCost: number,
+      moduleMarkupRate: number,
+      storagePrice: number,
+      storageLaborPerHour: number,
+      storageBaseCost: number,
+      storageMarkupRate: number,
+      systemSizeW: number,
+      batteryCount: number
+  ) {
+    const solarBaseCost = systemSizeW * modulePricePerW;
+    const solarLaborCost = systemSizeW * moduleLaborCost;
+    const storageBatteryCost = storagePrice * batteryCount;
+    const storageLaborCost = storageLaborPerHour * 0; // TODO: If we ever need to support storage labor, it is _per hour_
+    const storageBaseActual = batteryCount > 0 ? storageBaseCost : 0;
+    const solarSubtotal = solarBaseCost + solarLaborCost;
+    const storageSubtotal = storageBatteryCost + storageLaborCost + storageBaseActual;
+    const solarMarkup = solarSubtotal * moduleMarkupRate;
+    const storageMarkup = storageSubtotal * storageMarkupRate;
+
+    return solarSubtotal + solarMarkup + storageSubtotal + storageMarkup;
   }
 }
