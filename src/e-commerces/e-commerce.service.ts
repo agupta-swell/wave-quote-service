@@ -116,31 +116,6 @@ export class ECommerceService {
         panelCountAdjust <= panelVariance - 1;
         panelCountAdjust += 1
       ) {
-        // Note: These lines of code are commented due to the usage of async-await inside for ... i loop which
-        // is regarded as an anti pattern in most cases. You can uncomment this and remove my code if you
-        // don't care about the warning from eslint
-
-        // // panelCountAdjust represents the number of panels to add/remove from the "default" system
-        // // systemIndex is panelCountAdjust, shifted to 0...(panelVarience * 2)
-        // const systemIndex = panelCountAdjust + panelVariance;
-        // const variantSystem = await this.generateSolarSystem(zip, typicalUsage, panelCountAdjust);
-        // // Interpolate the net generation between the low and high end systems, based on the systemIndex / upper bound of systems [count - 1]
-        // const approximateNetGeneration = this.lerp(lowEndNet, highEndNet, systemIndex / (numberOfSystemsToGenerate - 1));
-        // const systemProductivity = approximateNetGeneration / variantSystem.capacityKW;
-        // const isOptimalSystem = panelCountAdjust === 0;
-        // const quote = await this.getSolarStorageQuoteDto(
-        //   zip,
-        //   variantSystem,
-        //   systemProductivity,
-        //   isOptimalSystem,
-        //   deposit,
-        // );
-
-        // // If we have invalid amounts, drop it from the response (like if Lease Solver wasn't found)
-        // if (isValidQuote(quote)) {
-        //   systems.push(quote);
-        // }
-
         panelCounts.push(panelCountAdjust);
       }
 
@@ -189,12 +164,6 @@ export class ECommerceService {
   public async getStorageOnlyQuote(req: GetEcomStorageOnlyQuoteReq) {
     const { zip } = req.addressDataDetail;
     const deposit = req.depositAmount;
-    // const quotes: StorageQuoteDto[] = [];
-    // for (let storageCount = 1; storageCount <= 3; storageCount++) {
-    //   const totalCost = await this.getCostBreakdown(zip, 0, storageCount);
-    //   const quote = await this.getStorageQuoteDto(zip, deposit, 0, storageCount, 0, 0);
-    //   quotes.push(quote);
-    // }
 
     // Generate the variants for storage count
     const quotes = await Promise.all(
