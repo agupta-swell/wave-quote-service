@@ -527,7 +527,7 @@ export class ECommerceService {
   private getNetGeneration(lat: number, long: number, systemCapacityKW: number) {
     const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
     const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
-    const losses = 5.5; // "Assuming a loss factor of 5.5"
+    const losses = 14.08; // "Assuming a loss factor of 14.08" -- PVWatts default
 
     return this.systemProductService.pvWatCalculation({
       lat,
