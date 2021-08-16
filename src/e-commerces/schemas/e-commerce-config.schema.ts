@@ -19,15 +19,18 @@ export interface ECommerceConfig extends Document {
   regionId: Types.ObjectId;
   designFactor: number;
   modulePricePerWatt: number;
+  moduleLaborPerWatt: number;
+  moduleMarkup: number;
   storagePrice: number;
-  laborCostPerWatt: number;
+  storageBaseCost: number;
+  storageLaborPerHour: number;
+  storageMarkup: number;
   loanInterestRate: number;
   loanTermsInMonths: number; 
   loanDealerFee: number;
   esaRateEscalator: number;
   esaContractTermInYears: number;
   esaUtilityProgramName: string;
-  esMarkup: number;
   retrofitStoragePrices: IRetrofitStoragePriceSchema[];
   
   createdBy: string;
@@ -40,8 +43,12 @@ export const ECommerceConfigSchema = new Schema<ECommerceConfig>({
   region_id: Schema.Types.ObjectId,
   design_factor: Number,
   module_price_per_watt: Number,
+  module_labor_per_watt: Number,
+  module_markup: Number,
   storage_price: Number,
-  labor_cost_perWatt: Number,
+  storage_base_cost: Number,
+  storage_labor_per_hour: Number,
+  storage_markup: Number,
   loan_interest_rate: Number,
   loan_terms_in_months: Number,
   loan_dealer_fee: Number,

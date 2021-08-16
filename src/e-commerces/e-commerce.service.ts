@@ -16,7 +16,6 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
-import { CostBreakdown } from './models/cost-breakdown';
 import { GeneratedSolarSystem } from './models/generated-solar-system';
 import { TypicalUsage } from './models/typical-usage';
 import { GetEcomSystemDesignAndQuoteReq } from './req/get-ecom-system-design-and-quote.dto';
@@ -488,24 +487,35 @@ export class ECommerceService {
     return cachedResult;
   }
 
-  private async getCostBreakdown(zipCode: number, numberOfPanelsToInstall = 0, numberOfBatteries = 0) {
+  private async getTotalCost(zipCode: number, numberOfPanelsToInstall = 0, numberOfBatteries = 0) {
     const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
-    const result = new CostBreakdown();
-    result.solarCost = 0;
-    result.laborCost = 0;
-
+    
     if (numberOfPanelsToInstall > 0) {
       const solarProduct = await this.getPanelProduct();
-      const { modulePricePerWatt, laborCostPerWatt } = foundECommerceConfig;
+      const { 
+        modulePricePerWatt,
+        moduleLaborPerWatt,
+        moduleMarkup,
+        storagePrice,
+        storageBaseCost,
+        storageLaborPerHour,
+        storageMarkup
+      } = foundECommerceConfig;
 
       const wattsBeingInstalled = solarProduct.sizeW * numberOfPanelsToInstall;
-      result.storageCost = numberOfBatteries * foundECommerceConfig.storagePrice;
-      result.laborCost = laborCostPerWatt * wattsBeingInstalled;
-      result.solarCost = modulePricePerWatt * wattsBeingInstalled;
+      const totalCost = this.getTotalCostForSolarSystem(
+        modulePricePerWatt,
+        moduleLaborPerWatt || 0,
+        moduleMarkup,
+        storagePrice,
+        storageLaborPerHour,
+        storageBaseCost,
+        storageMarkup,
+        wattsBeingInstalled,
+        numberOfBatteries
+      );
 
-      if (numberOfBatteries > 0) {
-        result.markupRate = foundECommerceConfig.esMarkup;
-      }
+      return totalCost;
     } else {
       const retrofitLookup = foundECommerceConfig.retrofitStoragePrices?.find(
         p => p.batteryCount === numberOfBatteries,
@@ -518,10 +528,8 @@ export class ECommerceService {
         throw ApplicationException.EntityNotFound('E Commerce Config');
       }
 
-      result.storageCost = retrofitLookup.cost;
+      return retrofitLookup.cost;
     }
-
-    return result;
   }
 
   private getNetGeneration(lat: number, long: number, systemCapacityKW: number) {
@@ -598,8 +606,8 @@ export class ECommerceService {
     systemCapacityKW = 0,
     systemProductivity = 0,
   ): Promise<StorageQuoteDto> {
-    const [costBreakdown, batteryProduct] = await Promise.all([
-      this.getCostBreakdown(zipCode, numberOfPanelsToInstall, numberOfBatteries),
+    const [totalCost, batteryProduct] = await Promise.all([
+      this.getTotalCost(zipCode, numberOfPanelsToInstall, numberOfBatteries),
       this.getBatteryProduct(),
     ]);
 
@@ -609,7 +617,7 @@ export class ECommerceService {
     if (numberOfPanelsToInstall > 0) {
       const leaseDetails = await this.getLeaseDetails(
         zipCode,
-        costBreakdown.totalCost,
+        totalCost,
         numberOfBatteries,
         systemCapacityKW,
         systemProductivity,
@@ -617,13 +625,13 @@ export class ECommerceService {
       costDetailsData.push(leaseDetails.costDetail);
       paymentOptionData.push(leaseDetails.paymentOption);
 
-      const cashDetails = await this.getCashPaymentOptionDetails(costBreakdown.totalCost, deposit);
+      const cashDetails = await this.getCashPaymentOptionDetails(totalCost, deposit);
       paymentOptionData.push(cashDetails);
     }
 
     const loanDetails = await this.getLoanPaymentOptionDetails(
       zipCode,
-      costBreakdown.totalCost,
+      totalCost,
       deposit,
       systemCapacityKW,
     );
@@ -651,5 +659,29 @@ export class ECommerceService {
 
   private lerp(start: number, end: number, desired: number) {
     return start * (1.0 - desired) + end * desired;
+  }
+
+  private getTotalCostForSolarSystem(
+      modulePricePerW: number,
+      moduleLaborCost: number,
+      moduleMarkupRate: number,
+      storagePrice: number,
+      storageLaborPerHour: number,
+      storageBaseCost: number,
+      storageMarkupRate: number,
+      systemSizeW: number,
+      batteryCount: number
+  ) {
+    const solarBaseCost = systemSizeW * modulePricePerW;
+    const solarLaborCost = systemSizeW * moduleLaborCost;
+    const storageBatteryCost = storagePrice * batteryCount;
+    const storageLaborCost = storageLaborPerHour * 0; // TODO: If we ever need to support storage labor, it is _per hour_
+    const storageBaseActual = batteryCount > 0 ? storageBaseCost : 0;
+    const solarSubtotal = solarBaseCost + solarLaborCost;
+    const storageSubtotal = storageBatteryCost + storageLaborCost + storageBaseActual;
+    const solarMarkup = solarSubtotal * moduleMarkupRate;
+    const storageMarkup = storageSubtotal * storageMarkupRate;
+
+    return solarSubtotal + solarMarkup + storageSubtotal + storageMarkup;
   }
 }
