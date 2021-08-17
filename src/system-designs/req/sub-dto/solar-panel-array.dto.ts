@@ -103,7 +103,7 @@ export class SolarPanelArrayDto1 {
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
-  @Min(0)
+  @Min(-5)
   @Max(99)
   losses: number;
 }
