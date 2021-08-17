@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { Quote } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
+import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { ApplicationException } from '../app/app.exception';
@@ -33,6 +34,7 @@ export class ProposalTemplateService {
       ...proposalTemplateDto,
       sections: proposalSections,
     });
+
     await model.save();
     return OperationResult.ok(strictPlainToClass(ProposalTemplateDto, model.toJSON()));
   }
@@ -48,22 +50,21 @@ export class ProposalTemplateService {
 
     const proposalSections = proposalTemplateDto.sections
       ? await this.proposalSectionMasterService.getProposalSectionMastersByIds(proposalTemplateDto.sections)
-      : [];
+      : null;
 
-    const updatedModel = await this.proposalTemplate
-      .findByIdAndUpdate(
-        id,
-        {
-          name: proposalTemplateDto.name || foundProposalSectionMaster.name,
-          sections: <any>proposalSections || <any>foundProposalSectionMaster.sections,
-          proposalSectionMaster:
-            <any>proposalTemplateDto.proposalSectionMaster || <any>foundProposalSectionMaster.proposalSectionMaster,
-        },
-        { new: true },
-      )
-      .lean();
+    const { name, proposalSectionMaster, description } = proposalTemplateDto;
 
-    return OperationResult.ok(strictPlainToClass(ProposalTemplateDto, updatedModel));
+    if (name) foundProposalSectionMaster.name = name;
+
+    if (proposalSectionMaster) (<any>foundProposalSectionMaster).proposalSectionMaster = proposalSectionMaster;
+
+    if (proposalSections) (<any>foundProposalSectionMaster).sections = proposalSections;
+
+    if (description) foundProposalSectionMaster.description = description;
+
+    await foundProposalSectionMaster.save();
+
+    return OperationResult.ok(strictPlainToClass(ProposalTemplateDto, foundProposalSectionMaster.toJSON()));
   }
 
   async getList(

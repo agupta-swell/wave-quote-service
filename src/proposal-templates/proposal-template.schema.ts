@@ -39,6 +39,7 @@ const ProposalSectionMaster = new Schema<Document<IProposalSectionMaster>>({
 
 export interface ProposalTemplate extends Document {
   name: string;
+  description: string;
   sections: ISectionSchema[];
   proposalSectionMaster: IProposalSectionMaster;
 }
@@ -46,6 +47,7 @@ export interface ProposalTemplate extends Document {
 export const ProposalTemplateSchema = new Schema<ProposalTemplate>({
   name: String,
   sections: [SectionSchema],
+  description: String,
   proposal_section_master: ProposalSectionMaster,
   created_at: { type: Date, default: Date.now },
   created_by: String,

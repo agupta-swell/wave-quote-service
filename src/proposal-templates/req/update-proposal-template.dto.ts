@@ -16,4 +16,7 @@ export class UpdateProposalTemplateDto {
   @ApiProperty({ type: ProposalSectionMasterDto })
   @ValidateNested()
   proposalSectionMaster: ProposalSectionMasterDto;
+
+  @ApiProperty()
+  description: string;
 }
