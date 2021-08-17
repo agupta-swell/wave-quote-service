@@ -424,9 +424,10 @@ export class SystemDesignService {
           const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
           systemDesign.setPanelModelDataSnapshot(data, index, systemDesign.designMode);
 
-          const relatedInverterIndex = systemDesign.capacityProductionDesignData.inverters.findIndex(
-            inverter => inverter.arrayId === item.arrayId,
-          );
+          const relatedInverterIndex =
+            systemDesign.capacityProductionDesignData.inverters?.findIndex(
+              inverter => inverter.arrayId === item.arrayId,
+            ) || -1;
           if (relatedInverterIndex !== -1) {
             systemDesign.capacityProductionDesignData.inverters[relatedInverterIndex].arrayId = newObjectId;
           }

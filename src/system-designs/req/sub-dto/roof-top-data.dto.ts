@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsOptional, ValidateNested } from 'class-validator';
+import { LatLng } from 'src/system-designs/res/sub-dto';
 import { AdderDto } from './adder.dto';
 import { AncillaryEquipmentDto } from './ancillary-equipment.dto';
 import { BalanceOfSystemDto } from './balance-of-system.dto';
@@ -17,6 +18,23 @@ export class RoofTopDataReqDto {
   @ValidateNested({ each: true })
   @Type(() => SolarPanelArrayDto1)
   panelArray: SolarPanelArrayDto1[];
+
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          lat: { type: 'number' },
+          lng: { type: 'number' },
+        },
+      },
+    },
+  })
+  @ValidateNested({ each: true })
+  @Type(() => LatLng)
+  keepouts: LatLng[][];
 
   @ApiProperty({
     type: InverterDto,

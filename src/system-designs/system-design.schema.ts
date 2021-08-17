@@ -137,7 +137,6 @@ export interface ISolarPanelArraySchema {
   panels: ILatLngSchema[][];
   setbacks: Map<string, string>;
   setbacksPolygon: ILatLngSchema[];
-  keepouts: ILatLngSchema[][];
   pitch: number;
   azimuth: number;
   rowSpacing: number;
@@ -163,7 +162,6 @@ const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
     panels: [[LatLngSchema]],
     setbacks: Object,
     setbacks_polygon: [LatLngSchema],
-    keepouts: [[LatLngSchema]],
     pitch: Number,
     azimuth: Number,
     row_spacing: Number,
@@ -364,6 +362,7 @@ export const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentS
 
 export interface IRoofTopSchema {
   panelArray: ISolarPanelArraySchema[];
+  keepouts: ILatLngSchema[][];
   inverters: IInverterSchema[];
   storage: IStorageSchema[];
   adders: IAdderSchema[];
@@ -383,6 +382,7 @@ export interface ICapacityProductionSchema {
 export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
   {
     panel_array: [SolarPanelArraySchema],
+    keepouts: [[LatLngSchema]],
     inverters: [InverterSchema],
     storage: [StorageSchema],
     adders: [AdderSchema],
@@ -517,9 +517,10 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments } = data;
+    const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments, keepouts } = data;
     return {
       panelArray: panelArray || [],
+      keepouts,
       inverters,
       storage,
       adders,

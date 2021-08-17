@@ -30,6 +30,9 @@ export class ProposalTemplateDto {
   @ExposeProp()
   name: string;
 
+  @ExposeProp()
+  description: string;
+
   @ExposeProp({ type: SectionDto, isArray: true })
   sections: SectionDto[];
 

@@ -15,6 +15,11 @@ export class CreateProposalTemplateDto {
   @IsNotEmpty()
   name: string;
 
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
   @ApiProperty({ isArray: true })
   @IsArray()
   @IsMongoId({ each: true })
