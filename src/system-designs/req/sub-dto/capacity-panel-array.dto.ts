@@ -4,6 +4,11 @@ import { IsNotEmpty, IsNumber, IsPositive, IsString, Max, Min } from 'class-vali
 export class CapacityPanelArrayReqDto {
   @ApiProperty()
   @IsNotEmpty()
+  @IsString()
+  arrayId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
   @IsNumber()
   @IsPositive()
   capacity: number;
