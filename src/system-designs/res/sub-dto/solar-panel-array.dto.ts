@@ -51,25 +51,6 @@ export class SolarPanelArrayDto {
   @ExposeProp({ isArray: true, type: LatLng, required: false })
   setbacksPolygon: LatLng[];
 
-  @ExposeAndMap(
-    {
-      type: 'array',
-      items: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            lat: { type: 'number' },
-            lng: { type: 'number' },
-          },
-        },
-      },
-      skipTransform: true,
-    },
-    ({ obj }) => obj.keepouts,
-  )
-  keepouts: LatLng[][];
-
   @ExposeProp()
   pitch: number;
 

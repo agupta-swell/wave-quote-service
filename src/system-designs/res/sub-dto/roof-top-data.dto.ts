@@ -1,9 +1,9 @@
-import { ExposeProp } from 'src/shared/decorators';
+import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { AdderDto } from './adder.dto';
 import { AncillaryEquipmentDto } from './ancillary-equipment.dto';
 import { BalanceOfSystemDto } from './balance-of-system.dto';
 import { InverterDto } from './inverter.dto';
-import { SolarPanelArrayDto } from './solar-panel-array.dto';
+import { LatLng, SolarPanelArrayDto } from './solar-panel-array.dto';
 import { StorageDto } from './storage.dto';
 
 export class RoofTopDataDto {
@@ -12,6 +12,25 @@ export class RoofTopDataDto {
     isArray: true,
   })
   panelArray: SolarPanelArrayDto[];
+
+  @ExposeAndMap(
+    {
+      type: 'array',
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            lat: { type: 'number' },
+            lng: { type: 'number' },
+          },
+        },
+      },
+      skipTransform: true,
+    },
+    ({ obj }) => obj.keepouts,
+  )
+  keepouts: LatLng[][];
 
   @ExposeProp({
     type: InverterDto,

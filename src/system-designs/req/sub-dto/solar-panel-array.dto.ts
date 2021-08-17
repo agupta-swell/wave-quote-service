@@ -57,23 +57,6 @@ export class SolarPanelArrayDto1 {
   @Type(() => LatLng)
   setbacksPolygon: LatLng[];
 
-  @ApiProperty({
-    type: 'array',
-    items: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          lat: { type: 'number' },
-          lng: { type: 'number' },
-        },
-      },
-    },
-  })
-  @ValidateNested({ each: true })
-  @Type(() => LatLng)
-  keepouts: LatLng[][];
-
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
