@@ -439,7 +439,7 @@ export class SystemDesignService {
             const relatedInverterIndex =
               systemDesign.capacityProductionDesignData.inverters?.findIndex(
                 inverter => inverter.arrayId === item.arrayId,
-              ) || -1;
+              ) ?? -1;
             if (relatedInverterIndex !== -1) {
               systemDesign.capacityProductionDesignData.inverters[relatedInverterIndex].arrayId = newObjectId;
             }
