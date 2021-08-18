@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { plainToClass } from 'class-transformer';
 import { LeanDocument, Model, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ITemplateDetailSchema } from 'src/contracts/contract.schema';
-import { TEMPLATE_STATUS } from 'src/docusign-templates-master/constants';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { UtilityService } from 'src/utilities/utility.service';
@@ -238,7 +236,7 @@ export class DocusignTemplateMasterService {
         );
 
         return {
-          ...TEMPLATE_STATUS,
+          ...template,
           id: template._id,
           recipientRoles,
         };
@@ -248,8 +246,10 @@ export class DocusignTemplateMasterService {
     return OperationResult.ok(
       strictPlainToClass(SaveContractCompositeTemplateDto, {
         responseStatus: 'SUCCESS',
-        templateDetails: docusignTemplates,
-        compositeTemplateData: model,
+        newUpdatedCompositeTemplate: {
+          templateDetails: docusignTemplates,
+          compositeTemplateData: model,
+        },
       }),
     );
   }
