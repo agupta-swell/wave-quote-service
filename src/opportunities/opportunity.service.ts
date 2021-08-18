@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, UpdateQuery } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -186,5 +186,15 @@ export class OpportunityService {
     const quoteDetail = await this.quoteService.getOneById(contract.associatedQuoteId);
 
     return OperationResult.ok(new QuoteDetailResDto(quoteDetail));
+  }
+
+  async getPartnerId(oppId: string): Promise<string> {
+    const found = await this.opportunityModel.findOne({ _id: oppId }).lean();
+
+    if (!found) {
+      throw new NotFoundException(`No opportunity found with id ${oppId}`);
+    }
+
+    return found.accountId;
   }
 }

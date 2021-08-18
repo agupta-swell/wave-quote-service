@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
@@ -6,7 +6,7 @@ import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { QuoteService } from './quote.service';
-import { CalculateQuoteDetailDto, CreateQuoteDto, LeaseQuoteValidationDto, UpdateQuoteDto } from './req';
+import { CalculateQuoteDetailDto, CreateQuoteDto, LeaseQuoteValidationDto, ReQuoteDto, UpdateQuoteDto } from './req';
 import { UpdateLatestQuoteDto } from './req/update-latest-quote.dto';
 import { DiscountListRes, DiscountsDto, QuoteDto, QuoteListRes, QuoteRes, TaxCreditDto, TaxCreditListRes } from './res';
 
@@ -117,12 +117,15 @@ export class QuoteController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Post('/clone/:quoteId')
-  @ApiOperation({ summary: 'Clone quote' })
+  @Post('/requote/:quoteId')
+  @ApiOperation({ summary: 'Re-quote' })
   @ApiOkResponse({ type: QuoteRes })
   @CheckOpportunity()
-  async cloneQuote(@Param('quoteId', ParseObjectIdPipe) quoteId: ObjectId): Promise<ServiceResponse<QuoteDto>> {
-    const res = await this.quoteService.cloneQuote(quoteId);
+  async reQuote(
+    @Param('quoteId', ParseObjectIdPipe) quoteId: ObjectId,
+    @Body() req: ReQuoteDto,
+  ): Promise<ServiceResponse<QuoteDto>> {
+    const res = await this.quoteService.reQuote(quoteId, req.systemDesignId);
     return ServiceResponse.fromResult(res);
   }
 
