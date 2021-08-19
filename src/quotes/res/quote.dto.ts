@@ -77,7 +77,7 @@ class TaxCreditDto {
   @ExposeProp()
   taxCreditConfigDataSnapshotDate: Date;
 
-  @ExposeProp()
+  @ExposeAndMap({}, ({ obj }) => obj.taxCreditConfigDataId)
   taxCreditConfigDataId: string;
 }
 

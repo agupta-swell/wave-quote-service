@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { FinancialProduct, FinancialProductSchema } from 'src/financial-products/financial-product.schema';
 import { GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
@@ -18,7 +19,6 @@ import {
   StorageProductSchema,
   SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
-import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { ELaborCostType, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
@@ -742,7 +742,7 @@ export class QuoteModel {
       taxCreditSelectedForReinvestment,
       utilityProgramSelectedForReinvestment,
       taxCreditData: (taxCreditData || []).map(item => ({
-        taxCreditConfigDataId: item.id,
+        taxCreditConfigDataId: item._id,
         name: item.name,
         percentage: item.percentage,
         taxCreditConfigDataSnapshot: {
