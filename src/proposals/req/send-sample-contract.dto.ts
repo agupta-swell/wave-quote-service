@@ -31,7 +31,7 @@ export class SignerDetailDto {
   email: string;
 
   @ApiProperty({ enum: SIGN_STATUS })
-  @IsEnum(SIGN_STATUS)
+  // @IsEnum(SIGN_STATUS)
   signStatus: SIGN_STATUS;
 
   @ApiProperty()
