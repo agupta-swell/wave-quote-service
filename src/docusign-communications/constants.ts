@@ -23,6 +23,8 @@ export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplate
     GRID_SERVICES_AGT: 'd1814a3c-4ecc-43c5-b548-0a198569f2ef',
     HOME_ENERGY_SUB_AGT_ESA: 'ec44e32a-403e-41de-b542-0a89e27a631b',
     PAYMENT_SCHEDULE_X10: 'd7758c3f-82bc-4d7d-93f2-2c939c661f18',
+    DUMMY_CHANGE_ORDER: 'f880c5fa-28eb-4b63-b974-3e5290792ef9',
+    DUMMY_PRIMARY_CONTRACT: '67aa9e1d-aaef-46db-8f70-e23f392a10b2',
   },
   live: {
     CA_CONSUMER_GUIDE: '0',
@@ -46,5 +48,7 @@ export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplate
     GRID_SERVICES_AGT: '1',
     HOME_ENERGY_SUB_AGT_ESA: '1',
     PAYMENT_SCHEDULE_X10: '1',
+    DUMMY_CHANGE_ORDER: '1',
+    DUMMY_PRIMARY_CONTRACT: '1',
   },
 };

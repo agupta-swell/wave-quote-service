@@ -41,5 +41,7 @@ export const templateBuilderMap: TemplateBuilderMap = {
   [TEMPLATE_IDS.SOLAR_ENERGY_SYSTEM_ESTIMATED_X7]: getSolarEnergySystemEstimatedX7,
   [TEMPLATE_IDS.GRID_SERVICES_AGT]: getGridServicesAgt,
   [TEMPLATE_IDS.HOME_ENERGY_SUB_AGT_ESA]: getHomeEnergySubAgtESA,
-  [TEMPLATE_IDS.PAYMENT_SCHEDULE_X10]: getPaymentScheduleX10
+  [TEMPLATE_IDS.PAYMENT_SCHEDULE_X10]: getPaymentScheduleX10,
+  [TEMPLATE_IDS.DUMMY_CHANGE_ORDER]: empty,
+  [TEMPLATE_IDS.DUMMY_PRIMARY_CONTRACT]: empty,
 };

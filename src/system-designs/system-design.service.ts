@@ -187,9 +187,10 @@ export class SystemDesignService {
             const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
             systemDesign.setPanelModelDataSnapshot(data, index, systemDesign.designMode);
 
-            const relatedInverterIndex = systemDesign.capacityProductionDesignData.inverters.findIndex(
-              inverter => inverter.arrayId === item.arrayId,
-            );
+            const relatedInverterIndex =
+              systemDesign.capacityProductionDesignData.inverters?.findIndex(
+                inverter => inverter.arrayId === item.arrayId,
+              ) ?? -1;
             if (relatedInverterIndex !== -1) {
               systemDesign.capacityProductionDesignData.inverters[relatedInverterIndex].arrayId = newObjectId;
             }
@@ -289,14 +290,23 @@ export class SystemDesignService {
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, createdSystemDesign.toJSON()));
   }
 
-  async calculateSystemDesign<AuxCalculateResult>(
-    systemDesign: SystemDesignModel,
-    systemDesignDto: UpdateSystemDesignDto,
-    preCalculate?: () => Promise<void>,
-    extendCalculate?: () => Promise<AuxCalculateResult>,
-    postExtendCalculate?: (result: [AuxCalculateResult, ...unknown[]]) => void,
-    dispatch?: (systemDesign: SystemDesignModel) => Promise<void>,
-  ): Promise<Partial<SystemDesignModel>> {
+  async calculateSystemDesign<AuxCalculateResult>({
+    systemDesign,
+    systemDesignDto,
+    preCalculate,
+    extendCalculate,
+    postExtendCalculate,
+    dispatch,
+    remainArrayId,
+  }: {
+    systemDesign: SystemDesignModel;
+    systemDesignDto: UpdateSystemDesignDto;
+    preCalculate?: () => Promise<void>;
+    extendCalculate?: () => Promise<AuxCalculateResult>;
+    postExtendCalculate?: (result: [AuxCalculateResult, ...unknown[]]) => void;
+    dispatch?: (systemDesign: SystemDesignModel) => Promise<void>;
+    remainArrayId?: boolean;
+  }): Promise<Partial<SystemDesignModel>> {
     if (preCalculate) await preCalculate();
 
     const [utilityAndUsage, systemProductionArray] = await Promise.all([
@@ -417,21 +427,24 @@ export class SystemDesignService {
       const handlers = [
         systemDesign.capacityProductionDesignData.panelArray.map(async (item, index) => {
           const { panelModelId, capacity, production, pitch, azimuth, losses } = item;
-          const newObjectId = Types.ObjectId();
           let generation = 0;
 
           const panelModelData = await this.productService.getDetailById(panelModelId);
           const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
           systemDesign.setPanelModelDataSnapshot(data, index, systemDesign.designMode);
 
-          const relatedInverterIndex =
-            systemDesign.capacityProductionDesignData.inverters?.findIndex(
-              inverter => inverter.arrayId === item.arrayId,
-            ) || -1;
-          if (relatedInverterIndex !== -1) {
-            systemDesign.capacityProductionDesignData.inverters[relatedInverterIndex].arrayId = newObjectId;
+          if (!remainArrayId) {
+            const newObjectId = Types.ObjectId();
+
+            const relatedInverterIndex =
+              systemDesign.capacityProductionDesignData.inverters?.findIndex(
+                inverter => inverter.arrayId === item.arrayId,
+              ) ?? -1;
+            if (relatedInverterIndex !== -1) {
+              systemDesign.capacityProductionDesignData.inverters[relatedInverterIndex].arrayId = newObjectId;
+            }
+            item.arrayId = newObjectId;
           }
-          item.arrayId = newObjectId;
 
           if (production > 0) {
             generation = production;
@@ -598,17 +611,25 @@ export class SystemDesignService {
       systemDesign.setIsRetrofit(systemDesignDto.isRetrofit);
     }
 
-    const removedUndefined = await this.calculateSystemDesign(systemDesign, systemDesignDto, async () => {
-      if (systemDesignDto.thumbnail) {
-        const [thumbnail] = await Promise.all([
-          this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
-          this.s3Service.deleteObject(
-            this.SYSTEM_DESIGN_S3_BUCKET,
-            this.s3Service.getLocationFromUrl(foundSystemDesign.thumbnail).keyName,
-          ),
-        ]);
-        systemDesign.setThumbnail(thumbnail);
-      }
+    const removedUndefined = await this.calculateSystemDesign({
+      systemDesign,
+      systemDesignDto,
+      preCalculate: async () => {
+        if (systemDesignDto.thumbnail) {
+          const [thumbnail] = await Promise.all([
+            this.s3Service.putBase64Image(
+              this.SYSTEM_DESIGN_S3_BUCKET,
+              systemDesignDto.thumbnail,
+              'public-read',
+            ) as any,
+            this.s3Service.deleteObject(
+              this.SYSTEM_DESIGN_S3_BUCKET,
+              this.s3Service.getLocationFromUrl(foundSystemDesign.thumbnail).keyName,
+            ),
+          ]);
+          systemDesign.setThumbnail(thumbnail);
+        }
+      },
     });
 
     delete removedUndefined?._id;
@@ -642,14 +663,14 @@ export class SystemDesignService {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
 
+    const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
+
     if (id) {
       const foundSystemDesign = await this.systemDesignModel.findOne({ _id: id });
 
       if (!foundSystemDesign) throw ApplicationException.NotFoundStatus('System Design', id.toString());
 
-      const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
-
-      const result = await this.calculateSystemDesign(systemDesign, systemDesignDto);
+      const result = await this.calculateSystemDesign({ systemDesign, systemDesignDto, remainArrayId: true });
 
       return OperationResult.ok(
         strictPlainToClass(SystemDesignDto, {
@@ -659,9 +680,7 @@ export class SystemDesignService {
       );
     }
 
-    const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
-
-    const result = await this.calculateSystemDesign(systemDesign, systemDesignDto);
+    const result = await this.calculateSystemDesign({ systemDesign, systemDesignDto, remainArrayId: true });
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, result!));
   }

@@ -177,6 +177,8 @@ export interface IDocusignTemplateMapping {
   GRID_SERVICES_AGT: string;
   HOME_ENERGY_SUB_AGT_ESA: string;
   PAYMENT_SCHEDULE_X10: string;
+  DUMMY_PRIMARY_CONTRACT: string;
+  DUMMY_CHANGE_ORDER: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;
