@@ -64,12 +64,12 @@ export const ProductSchema = new Schema<Product>({
   panel_output_mode: String,
   watt_class_stcdc: Number,
   // for inverter
-  inverter_type: String,
+  inverterType: String,
   // for storage
   battery_type: String,
   // for BOS
-  related_component: String,
-  related_component_category: String,
+  relatedComponent: String,
+  relatedComponentCategory: String,
   insertion_rule: String,
   unit: String,
   created_at: { type: Date, default: Date.now },

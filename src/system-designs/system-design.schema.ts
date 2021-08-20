@@ -78,7 +78,7 @@ export const InverterProductSchema = new Schema<Document<IInverterProductSchema>
     model_name: String,
     approved_for_gsa: Boolean,
     approved_for_esa: Boolean,
-    inverter_type: String,
+    inverterType: String,
   },
   { _id: false },
 );
@@ -294,9 +294,9 @@ export const BalanceOfSystemProductSchema = new Schema<Document<IBalanceOfSystem
     approved_for_gsa: Boolean,
     approved_for_esa: Boolean,
     unit: String,
-    related_component_category: String,
-    inverter_type: String,
-    related_component: String,
+    relatedComponentCategory: String,
+    inverterType: String,
+    relatedComponent: String,
   },
   { _id: false },
 );
