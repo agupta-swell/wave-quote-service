@@ -41,7 +41,7 @@ export class DefaultFinancierPipe implements PipeTransform<SaveContractReqDto, P
           role: 'Financier',
           firstName: 'Shawn',
           lastName: 'Jacobson',
-          email: ' wavequotetool@yopmail.com',
+          email: 'wavequotetool@yopmail.com',
         });
         return value;
       }
