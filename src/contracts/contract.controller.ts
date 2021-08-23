@@ -5,6 +5,7 @@ import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { ContractService } from './contract.service';
+import { UseDefaultFinancier } from './pipes';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
   GetContractTemplatesDto,
@@ -64,6 +65,7 @@ export class ContractController {
   }
 
   @Post()
+  @UseDefaultFinancier()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveContractRes })
   async saveContract(@Body() contractReq: SaveContractReqDto): Promise<ServiceResponse<SaveContractDto>> {

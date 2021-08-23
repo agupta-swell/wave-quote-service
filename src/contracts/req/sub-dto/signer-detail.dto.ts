@@ -30,5 +30,5 @@ export class SignerDetailDto {
   @ApiProperty()
   @IsOptional()
   @IsString()
-  phoneNumber: string;
+  phoneNumber?: string;
 }

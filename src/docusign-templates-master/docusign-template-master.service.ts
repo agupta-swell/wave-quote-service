@@ -315,5 +315,14 @@ export class DocusignTemplateMasterService {
     };
   }
 
+  public async getSignerRoleMasterByRoleName(roleName: string): Promise<LeanDocument<SignerRoleMaster> | null> {
+    const found = await this.signerRoleMasterModel
+      .findOne({
+        roleName,
+      })
+      .lean();
+
+    return found;
+  }
   // ===================== INTERNAL =====================
 }
