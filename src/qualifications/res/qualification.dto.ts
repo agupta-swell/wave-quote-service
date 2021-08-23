@@ -1,6 +1,6 @@
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
+import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, QUALIFICATION_TYPE, VENDOR_ID } from '../constants';
 
 class CustomerNotificationDto {
   @ExposeProp()
@@ -21,9 +21,15 @@ class EventDto {
   detail: string;
 }
 
-class QualificationDetailDto {
+export class QualificationDetailDto {
+  @ExposeMongoId()
+  qualificationId: string;
+
   @ExposeProp()
   opportunityId: string;
+
+  @ExposeProp()
+  type: QUALIFICATION_TYPE;
 
   @ExposeProp()
   startedOn: Date;
@@ -77,10 +83,10 @@ export class QualificationListRes implements ServiceResponse<QualificationPagina
   data: QualificationPaginationRes;
 }
 
-export class QualificationRes implements ServiceResponse<QualificationDto> {
+export class QualificationRes implements ServiceResponse<QualificationDetailDto> {
   @ExposeProp()
   status: string;
 
-  @ExposeProp({ type: QualificationDto })
-  data: QualificationDto;
+  @ExposeProp({ type: QualificationDetailDto })
+  data: QualificationDetailDto;
 }

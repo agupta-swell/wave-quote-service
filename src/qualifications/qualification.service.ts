@@ -2,7 +2,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import * as Handlebars from 'handlebars';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -10,7 +9,15 @@ import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, ROLE, TOKEN_STATUS, VENDOR_ID } from './constants';
+import {
+  APPROVAL_MODE,
+  PROCESS_STATUS,
+  QUALIFICATION_STATUS,
+  QUALIFICATION_TYPE,
+  ROLE,
+  TOKEN_STATUS,
+  VENDOR_ID,
+} from './constants';
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
   ApplyCreditQualificationReqDto,
@@ -23,7 +30,7 @@ import {
   GetApplicationDetailDto,
   GetQualificationDetailDto,
   ManualApprovalDto,
-  QualificationDto,
+  QualificationDetailDto,
   SendMailDto,
 } from './res';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
@@ -43,8 +50,13 @@ export class QualificationService {
     private readonly fniEngineService: FniEngineService,
   ) {}
 
-  async createQualification(qualificationDto: CreateQualificationReqDto): Promise<OperationResult<QualificationDto>> {
-    const found = await this.qualificationCreditModel.findOne({ opportunityId: qualificationDto.opportunityId }).lean();
+  async createQualification(
+    qualificationDto: CreateQualificationReqDto,
+  ): Promise<OperationResult<QualificationDetailDto>> {
+    // TODO: This might have many qualifications
+    const found = await this.qualificationCreditModel
+      .findOne({ opportunityId: qualificationDto.opportunityId, type: qualificationDto.type })
+      .lean();
     if (found) {
       throw ApplicationException.ExistedEntity('opportunityId', qualificationDto.opportunityId);
     }
@@ -52,6 +64,7 @@ export class QualificationService {
     const now = new Date();
     const model = new this.qualificationCreditModel({
       opportunityId: qualificationDto.opportunityId,
+      type: qualificationDto.type,
       startedOn: now,
       processStatus: PROCESS_STATUS.INITIATED,
       eventHistories: [
@@ -65,30 +78,50 @@ export class QualificationService {
     });
     await model.save();
 
-    return OperationResult.ok(strictPlainToClass(QualificationDto, model.toJSON()));
+    return OperationResult.ok(strictPlainToClass(QualificationDetailDto, model.toJSON()));
   }
 
   async getQualificationDetail(opportunityId: string): Promise<OperationResult<GetQualificationDetailDto>> {
-    const qualificationCredit = await this.qualificationCreditModel.findOne({ opportunityId }).lean();
-    if (!qualificationCredit) {
-      return OperationResult.ok({
-        qualificationCreditData: null,
-        qualificationCreditId: '',
-        fniCommunicationData: [],
-        opportunityId,
-      } as any);
-    }
+    const data = await Promise.all(
+      [QUALIFICATION_TYPE.SOFT, QUALIFICATION_TYPE.HARD].map(async type => {
+        const qualificationCredit = await this.qualificationCreditModel
+          .findOne(
+            { opportunityId, type },
+            {},
+            {
+              sort: {
+                createdAt: -1,
+              },
+            },
+          )
+          .lean();
 
-    const fniCommunications = await this.fniCommunicationModel
-      .find({
-        qualificationCreditId: qualificationCredit._id,
-      })
-      .lean();
+        if (!qualificationCredit) {
+          return {
+            type,
+            qualificationCreditData: null,
+            fniCommunicationData: [],
+          };
+        }
+
+        const fniCommunications = await this.fniCommunicationModel
+          .find({
+            qualificationCreditId: qualificationCredit._id,
+          })
+          .lean();
+
+        return {
+          type,
+          qualificationCreditData: qualificationCredit,
+          fniCommunicationData: fniCommunications,
+        };
+      }),
+    );
 
     return OperationResult.ok(
       strictPlainToClass(GetQualificationDetailDto, {
-        qualificationCredit,
-        fniCommunications,
+        opportunityId,
+        qualificationData: data,
       }),
     );
   }

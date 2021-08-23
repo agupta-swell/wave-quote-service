@@ -1,6 +1,6 @@
-import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { Pagination, ServiceResponse } from '../../app/common';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
+import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, QUALIFICATION_TYPE, VENDOR_ID } from '../constants';
 import { FniCommunicationDto } from './sub-dto/fni-communication.dto';
 
 class CustomerNotificationDto {
@@ -23,8 +23,14 @@ class EventDto {
 }
 
 class QualificationDetailDto {
+  @ExposeMongoId()
+  qualificationId: string;
+
   @ExposeProp()
   opportunityId: string;
+
+  @ExposeProp()
+  type: QUALIFICATION_TYPE;
 
   @ExposeProp()
   startedOn: Date;
@@ -50,19 +56,23 @@ class QualificationDetailDto {
   @ExposeProp()
   qualificationStatus: QUALIFICATION_STATUS;
 }
+class QualificationDataDto {
+  @ExposeProp()
+  type: QUALIFICATION_TYPE;
 
-export class GetQualificationDetailDto {
-  @ExposeAndMap({ root: 'qualificationCredit' })
-  opportunityId: string;
-
-  @ExposeAndMap({}, ({ obj }) => obj.qualificationCredit?._id)
-  qualificationCreditId: string;
-
-  @ExposeAndMap({ type: QualificationDetailDto }, ({ obj }) => obj.qualificationCredit)
+  @ExposeProp({ type: QualificationDetailDto })
   qualificationCreditData: QualificationDetailDto;
 
-  @ExposeAndMap({ type: FniCommunicationDto, isArray: true }, ({ obj }) => obj.fniCommunications)
+  @ExposeProp({ type: FniCommunicationDto, isArray: true })
   fniCommunicationData: FniCommunicationDto[];
+}
+
+export class GetQualificationDetailDto {
+  @ExposeProp()
+  opportunityId: string;
+
+  @ExposeProp({ type: QualificationDataDto, isArray: true })
+  qualificationData: QualificationDataDto[];
 }
 
 class GetQualificationPaginationRes implements Pagination<GetQualificationDetailDto> {

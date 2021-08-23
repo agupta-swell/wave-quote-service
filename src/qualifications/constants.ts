@@ -44,3 +44,8 @@ export enum TOKEN_STATUS {
   INVALID,
   VALID,
 }
+
+export enum QUALIFICATION_TYPE {
+  SOFT = 'SOFT',
+  HARD = 'HARD',
+}
