@@ -141,8 +141,8 @@ export class DocusignTemplateMasterService {
     );
   }
 
-  async getContractCompositeTemplates(): Promise<OperationResult<GetContractCompositeTemplateDto>> {
-    const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find().lean();
+  async getContractCompositeTemplates(isChangeOrder: boolean): Promise<OperationResult<GetContractCompositeTemplateDto>> {
+    const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find({ isApplicableForChangeOrders: isChangeOrder }).lean();
 
     const compositeTemplates = (await Promise.all(
       compositeTemplate.map(async item => {
