@@ -26,6 +26,9 @@ export interface FinancialProduct extends Document {
   termMonths: number;
   dealerFee: number;
   financierId: string;
+  countersignerName: string;
+  countersignerTitle: string;
+  countersignerEmail: string;
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({
@@ -56,4 +59,7 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
     type: Schema.Types.ObjectId,
     // required: true,
   },
+  countersigner_name: String,
+  countersigner_title: String,
+  countersigner_email: String,
 });

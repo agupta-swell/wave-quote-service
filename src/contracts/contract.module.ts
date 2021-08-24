@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { USER, UserSchema } from 'src/users/user.schema';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
+import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { ContractController } from './contract.controller';
 import { CONTRACT, ContractSchema } from './contract.schema';
 import { ContractService } from './contract.service';
@@ -22,7 +23,8 @@ import { ContractService } from './contract.service';
         collection: 'users',
       },
     ]),
-    GsProgramsModule
+    GsProgramsModule,
+    FinancialProductsModule,
   ],
   controllers: [ContractController],
   providers: [ContractService],
