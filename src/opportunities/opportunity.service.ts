@@ -15,7 +15,6 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
-import { HasQuoteDto } from './res/has-quote.dto';
 import { QuoteDetailResDto } from './res/quote-detail.dto';
 import { UpdateOpportunityRebateProgramDto as UpdateOpportunityRebateProgramDtoRes } from './res/update-opportunity-rebate-program.dto';
 import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } from './res/update-opportunity-utility-program.dto';
@@ -187,11 +186,5 @@ export class OpportunityService {
     const quoteDetail = await this.quoteService.getOneById(contract.associatedQuoteId);
 
     return OperationResult.ok(new QuoteDetailResDto(quoteDetail));
-  }
-
-  async hasQuote(opportunityId: string): Promise<OperationResult<HasQuoteDto>> {
-    const totalQuote = await this.quoteService.countByOpportunityId(opportunityId);
-
-    return OperationResult.ok({ hasQuote: totalQuote > 0 });
   }
 }

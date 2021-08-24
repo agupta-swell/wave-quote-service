@@ -8,7 +8,6 @@ import { UpdateOpportunityRebateProgramDto } from './req/update-opportunity-reba
 import { UpdateOpportunityUtilityProgramDto } from './req/update-opportunity-utility-program.dto';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto, GetRelatedInformationRes } from './res/get-related-information.dto';
-import { HasQuoteDto } from './res/has-quote.dto';
 import { QuoteDetailResDto } from './res/quote-detail.dto';
 
 @ApiTags('Opportunity')
@@ -76,14 +75,6 @@ export class OpportunityController {
   @ApiOkResponse({ type: QuoteDetailResDto })
   async getQuote(@Param('opportunityId') oppId: string): Promise<ServiceResponse<QuoteDetailResDto>> {
     const res = await this.opportunityService.getQuoteDetail(oppId);
-    return ServiceResponse.fromResult(res);
-  }
-
-  @Get('/:opportunityId/has-quote')
-  @ApiOperation({ summary: 'Check opportunity has any exited quotes' })
-  @ApiOkResponse({ type: HasQuoteDto })
-  async hasExistedQuote(@Param('opportunityId') opportunityId: string): Promise<ServiceResponse<HasQuoteDto>> {
-    const res = await this.opportunityService.hasQuote(opportunityId);
     return ServiceResponse.fromResult(res);
   }
 }
