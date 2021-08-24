@@ -409,13 +409,11 @@ export class QuoteService {
 
     const originQuoteName = foundQuote.detailedQuote.quoteName.replace(/\s\([0-9]*(\)$)/, '');
 
-    const totalSameNameQuotes = await this.quoteModel
-      .find({
-        opportunity_id: foundQuote.opportunityId,
-        system_design_id: foundQuote.systemDesignId,
-        'detailed_quote.quote_name': { $regex: originQuoteName },
-      })
-      .count();
+    const totalSameNameQuotes = await this.quoteModel.countDocuments({
+      opportunity_id: foundQuote.opportunityId,
+      system_design_id: systemDesignId,
+      'detailed_quote.quote_name': { $regex: originQuoteName },
+    });
 
     const laborCost: ILaborCost = {
       cost: 0,
@@ -438,7 +436,9 @@ export class QuoteService {
       },
     };
 
-    model.detailedQuote.quoteName = `${originQuoteName} (${totalSameNameQuotes + 1})`;
+    model.detailedQuote.quoteName = `${originQuoteName} ${
+      totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
+    }`.trim();
     model.detailedQuote.quoteCostBuildup = this.calculateQuoteCostBuildup(foundSystemDesign, markupConfigs, laborCost);
     model.systemDesignId = systemDesignId;
 
