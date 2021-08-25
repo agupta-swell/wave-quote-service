@@ -121,11 +121,7 @@ export class DocusignCommunicationService {
 
       if (!signerDetailData) return;
 
-      const signerName =
-        (signerDetailData.firstName &&
-          signerDetailData.lastName &&
-          `${signerDetailData.firstName} ${signerDetailData.lastName}`) ||
-        'Signer name';
+      const signerName = `${signerDetailData.firstName} ${signerDetailData.lastName}`.trim() || signerDetailData.role;
 
       signerDataPayload.email = signerDetailData.email;
       signerDataPayload.name = signerName;
