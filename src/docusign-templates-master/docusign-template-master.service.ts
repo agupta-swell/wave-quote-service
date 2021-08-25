@@ -141,8 +141,9 @@ export class DocusignTemplateMasterService {
     );
   }
 
-  async getContractCompositeTemplates(isChangeOrder: boolean): Promise<OperationResult<GetContractCompositeTemplateDto>> {
-    const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find({ isApplicableForChangeOrders: isChangeOrder }).lean();
+  async getContractCompositeTemplates(isChangeOrder?: boolean): Promise<OperationResult<GetContractCompositeTemplateDto>> {
+    const query = isChangeOrder === undefined ? {} : { isApplicableForChangeOrders: isChangeOrder };
+    const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find(query).lean();
 
     const compositeTemplates = (await Promise.all(
       compositeTemplate.map(async item => {

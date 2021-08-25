@@ -49,7 +49,7 @@ export class DocusignTemplateMasterController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Get Contract Composite Templates' })
   @ApiOkResponse({ type: GetContractCompositeTemplateRes })
-  async getContractCompositeTemplates(@Query('isChangeOrder') isChangeOrder: boolean): Promise<ServiceResponse<GetContractCompositeTemplateDto>> {
+  async getContractCompositeTemplates(@Query('isChangeOrder') isChangeOrder?: boolean): Promise<ServiceResponse<GetContractCompositeTemplateDto>> {
     const res = await this.docusignTemplateMasterService.getContractCompositeTemplates(isChangeOrder);
     return ServiceResponse.fromResult(res);
   }
