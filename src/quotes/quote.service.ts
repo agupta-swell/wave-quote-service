@@ -19,6 +19,7 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { ContractService } from 'src/contracts/contract.service';
+import { assignToModel } from 'src/shared/transform/assignToModel';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -389,8 +390,6 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound(quoteId.toString());
     }
 
-    const { financeProduct, financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct;
-
     const foundSystemDesign = await this.systemDesignService.getOneById(systemDesignId);
 
     if (!foundSystemDesign || foundSystemDesign.opportunityId !== foundQuote.opportunityId) {
@@ -415,6 +414,32 @@ export class QuoteService {
       'detailed_quote.quote_name': { $regex: originQuoteName },
     });
 
+    model.systemDesignId = systemDesignId;
+    model.detailedQuote.quoteName = `${originQuoteName} ${
+      totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
+    }`.trim();
+    model.detailedQuote.systemProduction = foundSystemDesign.systemProductionData;
+
+    const { selectedQuoteMode, quotePricePerWatt, quotePriceOverride } = foundQuote.detailedQuote;
+
+    model.detailedQuote.selectedQuoteMode = selectedQuoteMode;
+
+    if (quotePricePerWatt) {
+      model.detailedQuote.quotePricePerWatt = {
+        pricePerWatt: foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt,
+        grossPrice:
+          foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt *
+          foundSystemDesign.systemProductionData.capacityKW *
+          1000,
+      };
+    }
+
+    if (quotePriceOverride) {
+      model.detailedQuote.quotePriceOverride = {
+        grossPrice: quotePriceOverride.grossPrice,
+      };
+    }
+
     const laborCost: ILaborCost = {
       cost: 0,
       laborCostType: '',
@@ -436,15 +461,35 @@ export class QuoteService {
       },
     };
 
-    model.detailedQuote.quoteName = `${originQuoteName} ${
-      totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
-    }`.trim();
-    model.detailedQuote.quoteCostBuildup = this.calculateQuoteCostBuildup(foundSystemDesign, markupConfigs, laborCost);
-    model.systemDesignId = systemDesignId;
+    const quoteCostBuildup = this.calculateQuoteCostBuildup(foundSystemDesign, markupConfigs, laborCost);
+
+    const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
+    quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
+    quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
+
+    model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
+
+    const { financeProduct, financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct;
+
+    let currentGrossPrice;
+
+    switch (selectedQuoteMode) {
+      case QUOTE_MODE_TYPE.COST_BUILD_UP:
+        currentGrossPrice = model.detailedQuote.quoteCostBuildup.grossPrice;
+        break;
+      case QUOTE_MODE_TYPE.PRICE_PER_WATT:
+        currentGrossPrice = model.detailedQuote.quotePricePerWatt.grossPrice;
+        break;
+      case QUOTE_MODE_TYPE.PRICE_OVERRIDE:
+        currentGrossPrice = model.detailedQuote.quotePriceOverride.grossPrice;
+        break;
+      default:
+        currentGrossPrice = 0;
+    }
 
     let productAttribute = await this.createProductAttribute(
       financeProduct.productType,
-      model.detailedQuote.quoteCostBuildup.grossPrice,
+      currentGrossPrice,
       financialProductSnapshot?.defaultDownPayment || 0,
     );
 
@@ -478,6 +523,43 @@ export class QuoteService {
     }
 
     model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
+
+    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
+
+    const rebateDetails = await this.createRebateDetails(
+      foundQuote.opportunityId,
+      quoteCostBuildup.grossPrice,
+      fundingSource?.rebateAssignment || '',
+    );
+
+    model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
+
+    const { quoteFinanceProduct } = model.detailedQuote;
+
+    assignToModel(
+      model.detailedQuote.quoteFinanceProduct,
+      <any>this.handleUpdateQuoteFinanceProduct(
+        {
+          financeProduct: quoteFinanceProduct.financeProduct,
+          incentiveDetails: quoteFinanceProduct.incentiveDetails,
+          netAmount: quoteFinanceProduct.netAmount,
+          projectDiscountDetails: quoteFinanceProduct.projectDiscountDetails,
+          rebateDetails: quoteFinanceProduct.rebateDetails,
+        } as any,
+        model.detailedQuote.quoteCostBuildup as any,
+        currentGrossPrice,
+      ),
+    );
+
+    assignToModel(
+      model.detailedQuote.quoteFinanceProduct.rebateDetails,
+      (await this.createRebateDetails(
+        foundQuote.opportunityId,
+        grossPriceData.grossPrice ?? 0,
+        fundingSource?.rebateAssignment || '',
+        foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
+      )) as any,
+    );
 
     await model.save();
 
@@ -1167,7 +1249,10 @@ export class QuoteService {
   handleUpdateQuoteFinanceProduct(
     quoteFinanceProduct: QuoteFinanceProductDto,
     quoteCostBuildup: QuoteCostBuildupDto,
+    projectGrossPrice?: number,
   ): QuoteFinanceProductDto {
+    const grossPrice = projectGrossPrice ?? quoteCostBuildup.grossPrice;
+
     const { incentiveDetails, projectDiscountDetails, rebateDetails } = quoteFinanceProduct;
 
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
@@ -1177,11 +1262,11 @@ export class QuoteService {
 
     const projectDiscountAmount = projectDiscountDetails.reduce((accu, item) => {
       if (item.type === PROJECT_DISCOUNT_UNITS.AMOUNT) return (accu += item.amount);
-      return (accu += roundNumber((item.amount * quoteCostBuildup.grossPrice) / 100, 2));
+      return (accu += roundNumber((item.amount * grossPrice) / 100, 2));
     }, 0);
 
     newQuoteFinanceProduct.netAmount = roundNumber(
-      quoteCostBuildup.grossPrice - incentiveAmount - rebateAmount - projectDiscountAmount,
+      grossPrice - incentiveAmount - rebateAmount - projectDiscountAmount,
       2,
     );
     newQuoteFinanceProduct.financeProduct.productAttribute = this.handleUpdateProductAttribute(newQuoteFinanceProduct);
