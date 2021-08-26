@@ -36,6 +36,7 @@ export interface Product extends Document, IPanelProduct, IInverterProduct, IBat
     length: number;
     width: number;
   };
+  minimumReservePercent: number;
   createdAt: Date;
   updatedAt: Date;
   // add new fields
@@ -58,6 +59,7 @@ export const ProductSchema = new Schema<Product>({
     length: Number,
     width: Number,
   },
+  minimumReservePercent: Number,
   partNumber: [String],
   // for panel
   pv_watt_module_type: String,
