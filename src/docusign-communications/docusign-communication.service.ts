@@ -23,6 +23,7 @@ import {
   ITabData,
   REQUEST_TYPE,
 } from './typing';
+import { TResendEnvelopeStatus } from 'src/external-services/typing';
 
 @Injectable()
 export class DocusignCommunicationService {
@@ -197,5 +198,9 @@ export class DocusignCommunicationService {
 
   downloadContract(envelopeId: string): Promise<IncomingMessage> {
     return this.docusignAPIService.getEnvelopeDocumentById(envelopeId);
+  }
+
+  resendContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
+    return this.docusignAPIService.resendEnvelop(envelopeId);
   }
 }

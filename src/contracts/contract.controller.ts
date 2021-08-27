@@ -103,4 +103,14 @@ export class ContractController {
       .type('application/pdf')
       .send(contract);
   }
+
+  @Post('/:contractId/resend')
+  @ApiOperation({ summary: 'Resend Contract' })
+  @ApiOkResponse({ type: SendContractRes })
+  async resendContract(
+    @Param('contractId', ParseObjectIdPipe) contractId: ObjectId,
+  ): Promise<ServiceResponse<{ success: boolean }>> {
+    const res = await this.contractService.resendContract(contractId);
+    return ServiceResponse.fromResult(res);
+  }
 }

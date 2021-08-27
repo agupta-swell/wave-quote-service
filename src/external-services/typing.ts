@@ -53,5 +53,16 @@ export interface IPvWattV6Responses {
 }
 
 export interface ILoginAccountWithMeta extends LoginAccount {
-  headers: Record<string, string>
+  headers: Record<string, string>;
 }
+
+export interface IResendEnvelopeSuccess {
+  status: true;
+}
+
+export interface IResendEnvelopeFail {
+  status: false;
+  message: string;
+}
+
+export type TResendEnvelopeStatus = IResendEnvelopeFail | IResendEnvelopeSuccess;

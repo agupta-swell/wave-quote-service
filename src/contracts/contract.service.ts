@@ -540,4 +540,27 @@ export class ContractService {
       doc => `is being used in the quote named ${doc.quoteName} (id: ${doc._id.toString()})`,
     );
   }
+
+  public async resendContract(contractId: ObjectId): Promise<OperationResult<{ success: boolean }>> {
+    const foundContract = await this.getOneByContractId(contractId);
+
+    if (foundContract.contractingSystem !== 'DOCUSIGN' || !foundContract.contractingSystemReferenceId) {
+      throw new BadRequestException('This contract is not allowed to be resent');
+    }
+
+    const res = await this.docusignCommunicationService.resendContract(foundContract.contractingSystemReferenceId);
+
+    if (!res.status) {
+      console.error(
+        'Contract',
+        contractId,
+        'envelope',
+        foundContract.contractingSystemReferenceId,
+        'resend error',
+        res.message,
+      );
+    }
+
+    return OperationResult.ok({ success: res.status });
+  }
 }
