@@ -155,7 +155,7 @@ export interface IContractSignerDetails {
   statusesData: ISignerDetailFromContractingSystemData[];
 }
 
-export type DocuSignEnv = 'demo' | 'live';
+export type DocuSignEnv = 'dev' | 'demo' | 'live';
 
 export interface IDocusignTemplateMapping {
   CA_CONSUMER_GUIDE: string;

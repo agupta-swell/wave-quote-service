@@ -140,7 +140,7 @@ export class DocusignAPIService {
 
       return { status: true };
     } catch (error) {
-      console.log("🚀 ~ file: docusign-api.service.ts ~ line 143 ~ DocusignAPIService ~ resendEnvelop ~ error", error)
+      console.log('🚀 ~ file: docusign-api.service.ts ~ line 143 ~ DocusignAPIService ~ resendEnvelop ~ error', error);
       throw new InternalServerErrorException('Something went wrong');
     }
   }
