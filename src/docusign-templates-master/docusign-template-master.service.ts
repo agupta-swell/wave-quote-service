@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -285,34 +285,50 @@ export class DocusignTemplateMasterService {
 
   async getCompositeTemplateById(
     compositeTemplateId: string,
-  ): Promise<{ templateDetails: any; compositeTemplateData: any }> {
+  ): Promise<{
+    templateDetails: (Omit<LeanDocument<DocusignTemplateMaster>, 'recipientRoles'> & {
+      recipientRoles: LeanDocument<SignerRoleMaster>[];
+    })[];
+    compositeTemplateData: LeanDocument<DocusignCompositeTemplateMaster> | null;
+  }> {
     const compositeTemplate = await this.docusignCompositeTemplateMasterModel.findById(compositeTemplateId);
 
-    const docusignTemplates =
-      compositeTemplate &&
-      (await Promise.all(
-        compositeTemplate.docusignTemplateIds?.map(async templateId => {
-          const template = await this.docusignTemplateMasterModel.findById(templateId);
-          if (!template) {
-            return [];
-          }
-          const roles = await Promise.all(
-            template.recipientRoles.map(roleId => this.signerRoleMasterModel.findById(roleId)),
-          );
+    if (!compositeTemplate) {
+      throw new HttpException('Composite Template not found', HttpStatus.NOT_FOUND);
+    }
 
-          const templateObj = template.toJSON();
+    const docusignTemplates = await Promise.all(
+      compositeTemplate.docusignTemplateIds?.map(async templateId => {
+        const template = await this.docusignTemplateMasterModel.findById(templateId);
+        if (!template) {
+          console.error('Can not find templateId', templateId);
+          throw new HttpException('Some Individual Templates are missing', HttpStatus.NOT_FOUND);
+        }
 
-          return {
-            ...templateObj,
-            id: template._id.toString(),
-            recipientRoles: roles?.map(role => role?.toJSON({ versionKey: false })),
-          };
-        }),
-      ));
+        const roles = await Promise.all(
+          template.recipientRoles.map(async roleId => {
+            const role = await this.signerRoleMasterModel.findById(roleId);
+            if (!role) {
+              console.error('Can not find roleId', roleId);
+              throw new HttpException('Some roles are missing', HttpStatus.NOT_FOUND);
+            }
+            return role;
+          }),
+        );
+
+        const templateObj = template.toJSON();
+
+        return {
+          ...templateObj,
+          id: template._id.toString(),
+          recipientRoles: roles.map(role => role.toJSON({ versionKey: false })),
+        };
+      }),
+    );
 
     return {
       templateDetails: docusignTemplates,
-      compositeTemplateData: compositeTemplate?.toJSON({ versionKey: false }),
+      compositeTemplateData: compositeTemplate?.toJSON({ versionKey: false }) || null,
     };
   }
 

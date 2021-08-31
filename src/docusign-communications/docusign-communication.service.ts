@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
 import { ContractService } from 'src/contracts/contract.service';
@@ -24,6 +24,10 @@ import {
   REQUEST_TYPE,
 } from './typing';
 import { TResendEnvelopeStatus } from 'src/external-services/typing';
+import { DocusignTemplateMaster } from 'src/docusign-templates-master/docusign-template-master.schema';
+import { SignerRoleMaster } from 'src/docusign-templates-master/schemas';
+import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
+import { compareIds } from 'src/utils/common';
 
 @Injectable()
 export class DocusignCommunicationService {
@@ -54,6 +58,7 @@ export class DocusignCommunicationService {
     };
 
     const docusignSecret = await this.docusignAPIService.getDocusignSecret();
+
     templateDetails.map(template => {
       const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(
         template,
@@ -202,5 +207,31 @@ export class DocusignCommunicationService {
 
   resendContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
     return this.docusignAPIService.resendEnvelop(envelopeId);
+  }
+
+  validateSignerDetails(
+    templateDetails: (Omit<LeanDocument<DocusignTemplateMaster>, 'recipientRoles'> & {
+      recipientRoles: LeanDocument<SignerRoleMaster>[];
+    })[],
+    signerDetails: SignerDetailDto[],
+  ): void {
+    const missingInfoSigner = signerDetails.find(
+      signer => !signer.email || !signer.roleId || (!signer.firstName && !signer.lastName),
+    );
+    if (missingInfoSigner) {
+      console.error('Some signers information is missing, signerDetail:', missingInfoSigner);
+      throw new NotFoundException(`${missingInfoSigner.role}'s information is missing.`);
+    }
+
+    // Missing signer role(s) from templateDetails
+    const templateWithMissingRole = templateDetails.find(template =>
+      template.recipientRoles.some(role => !signerDetails.find(signer => compareIds(signer.roleId, role._id))),
+    );
+
+    if (templateWithMissingRole) {
+      console.error('Some signer roles are missing, signerDetails', signerDetails);
+      console.error('templateWithMissingRole', templateWithMissingRole);
+      throw new NotFoundException('Some signer roles are missing');
+    }
   }
 }

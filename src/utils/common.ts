@@ -18,13 +18,19 @@ export const transformToValidId = (str: string) => {
   }
 };
 
-export const compareIds = (id1: string | ObjectId, id2: string | ObjectId) => {
-  if (typeof id1 === 'string' && typeof id2 === 'string') {
-    return id1 === id2;
-  }
-
-  return id1.toString() === id2.toString();
-};
+/**
+ *
+ * Compare 2 ids of type string or ObjectId
+ *
+ * @param id1 string | ObjectId
+ * @param id2 string | ObjectId
+ * @returns
+ *
+ * Ex: compareIds(ObjectId("5fd1b93f8214d6f11bbad08b"), 5fd1b93f8214d6f11bbad08b) return true.
+ *
+ */
+export const compareIds = (id1: string | Types.ObjectId, id2: string | Types.ObjectId) =>
+  id1.toString() === id2.toString();
 
 export function getBooleanString(str: string): boolean {
   if (str === 'true' || str === '1') return true;

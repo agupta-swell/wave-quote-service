@@ -157,7 +157,12 @@ export class ContractService {
         contractDetail.contractTemplateId,
       );
 
-      const { chnageOrderDescription: _, ...details } = contractDetail;
+      this.docusignCommunicationService.validateSignerDetails(
+        contractTemplateDetail.templateDetails,
+        contractDetail.signerDetails,
+      );
+
+      const { changeOrderDescription: _, ...details } = contractDetail;
 
       const newlyUpdatedContract = new this.contractModel({
         ...details,
@@ -365,7 +370,7 @@ export class ContractService {
         contractDetail.contractTemplateId,
       );
 
-      const { chnageOrderDescription: _, ...details } = contractDetail;
+      const { changeOrderDescription: _, ...details } = contractDetail;
 
       const model = new this.contractModel({
         ...details,
