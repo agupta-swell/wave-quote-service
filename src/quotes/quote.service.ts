@@ -1185,8 +1185,12 @@ export class QuoteService {
     );
   }
 
-  async setOutdatedData(opportunityId: string, outdatedMessage: string): Promise<void> {
-    const quotes = await this.quoteModel.find({ opportunityId });
+  async setOutdatedData(opportunityId: string, outdatedMessage: string, systemDesignId?: string): Promise<void> {
+    const query: Record<string, unknown> = { opportunityId };
+
+    if (systemDesignId) query.systemDesignId = systemDesignId;
+
+    const quotes = await this.quoteModel.find({ opportunityId, systemDesignId });
 
     await Promise.all(
       quotes.map(item => {

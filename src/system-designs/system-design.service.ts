@@ -637,10 +637,13 @@ export class SystemDesignService {
     assignToModel(foundSystemDesign, removedUndefined);
 
     await Promise.all([
-      // this.systemDesignModel.updateOne({_id: foundSystemDesign._id}, {$set: {...removedUndefined} as any});
       foundSystemDesign.save(),
-      // foundSystemDesign.updateOne(removedUndefined as any),
-      systemDesignDto.designMode && this.quoteService.setOutdatedData(systemDesignDto.opportunityId, 'System Design'),
+      systemDesignDto.designMode &&
+        this.quoteService.setOutdatedData(
+          systemDesignDto.opportunityId,
+          'System Design',
+          foundSystemDesign._id.toString(),
+        ),
     ]);
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign.toJSON()));
