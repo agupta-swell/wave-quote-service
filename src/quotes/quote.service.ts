@@ -39,6 +39,8 @@ import {
   QUOTE,
   QuoteModel,
   IQuoteCostCommonSchema,
+  ITaxCreditDataSchema,
+  ILoanProductAttributes,
 } from './quote.schema';
 import {
   CalculateQuoteDetailDto,
@@ -475,13 +477,13 @@ export class QuoteService {
 
     switch (selectedQuoteMode) {
       case QUOTE_MODE_TYPE.COST_BUILD_UP:
-        currentGrossPrice = model.detailedQuote.quoteCostBuildup.grossPrice;
+        currentGrossPrice = model.detailedQuote.quoteCostBuildup?.grossPrice || 0;
         break;
       case QUOTE_MODE_TYPE.PRICE_PER_WATT:
-        currentGrossPrice = model.detailedQuote.quotePricePerWatt.grossPrice;
+        currentGrossPrice = model.detailedQuote.quotePricePerWatt?.grossPrice || 0;
         break;
       case QUOTE_MODE_TYPE.PRICE_OVERRIDE:
-        currentGrossPrice = model.detailedQuote.quotePriceOverride.grossPrice;
+        currentGrossPrice = model.detailedQuote.quotePriceOverride?.grossPrice || 0;
         break;
       default:
         currentGrossPrice = 0;
@@ -530,11 +532,27 @@ export class QuoteService {
       foundQuote.opportunityId,
       quoteCostBuildup.grossPrice,
       fundingSource?.rebateAssignment || '',
+      foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
     );
 
-    model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
-
     const { quoteFinanceProduct } = model.detailedQuote;
+
+    quoteFinanceProduct.rebateDetails.forEach(e => {
+      const { type } = e;
+
+      const foundIdx = rebateDetails.findIndex(e => e.type === type);
+
+      if (foundIdx === -1) {
+        rebateDetails.push(e);
+        return;
+      }
+
+      if (!rebateDetails[foundIdx].amount) {
+        rebateDetails[foundIdx] = e;
+      }
+    });
+
+    model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
 
     assignToModel(
       model.detailedQuote.quoteFinanceProduct,
@@ -551,15 +569,19 @@ export class QuoteService {
       ),
     );
 
-    assignToModel(
-      model.detailedQuote.quoteFinanceProduct.rebateDetails,
-      (await this.createRebateDetails(
-        foundQuote.opportunityId,
-        grossPriceData.grossPrice ?? 0,
-        fundingSource?.rebateAssignment || '',
-        foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
-      )) as any,
-    );
+    if ('reinvestment' in foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute) {
+      (<ILoanProductAttributes>model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute).reinvestment = [
+        this.calculateMaxReinvestmentAmount(
+          model.detailedQuote.taxCreditSelectedForReinvestment,
+          model.detailedQuote.taxCreditData,
+          model.detailedQuote.utilityProgramSelectedForReinvestment,
+          rebateDetails.find(e => e.type === REBATE_TYPE.SGIP),
+          model.detailedQuote.quoteFinanceProduct.netAmount,
+          foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.reinvestment[0]
+            ?.reinvestmentAmount,
+        ),
+      ];
+    }
 
     await model.save();
 
@@ -1599,5 +1621,32 @@ export class QuoteService {
     quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
 
     return (quoteCostBuildup as unknown) as IQuoteCostBuildupSchema;
+  }
+
+  private calculateMaxReinvestmentAmount(
+    taxCreditSelectedForReinvestment: boolean,
+    taxCreditData: ITaxCreditDataSchema[],
+    utilityProgramSelectedForReinvestment: boolean,
+    selectedRebateProgram: IRebateDetailsSchema | undefined,
+    projectNetAmount: number,
+    currentReinvestmentAmount = 0,
+  ) {
+    const taxCreditAmount =
+      (taxCreditSelectedForReinvestment &&
+        taxCreditData?.reduce(
+          (acc, item) => (acc += roundNumber((item.percentage / 100 || 1) * projectNetAmount, 2)),
+          0,
+        )) ||
+      0;
+
+    const utilityRebateAmount = (utilityProgramSelectedForReinvestment && selectedRebateProgram?.amount) || 0;
+
+    const newReinvestmentAmount = Math.min(currentReinvestmentAmount, taxCreditAmount + utilityRebateAmount);
+
+    return {
+      reinvestmentAmount: newReinvestmentAmount,
+      reinvestmentMonth: 18,
+      description: 'description',
+    };
   }
 }
