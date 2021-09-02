@@ -1,5 +1,5 @@
 import * as https from 'https';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import * as docusign from 'docusign-esign';
 import { EnvelopeSummary } from 'docusign-esign';
@@ -8,7 +8,7 @@ import { ApplicationException } from 'src/app/app.exception';
 import { IncomingMessage } from 'http';
 import { CredentialService } from 'src/shared/aws/services/credential.service';
 import { IDocusignCompositeContract, IDocusignSecretManager } from '../../docusign-communications/typing';
-import { ILoginAccountWithMeta } from '../typing';
+import { ILoginAccountWithMeta, TResendEnvelopeStatus } from '../typing';
 
 @Injectable()
 export class DocusignAPIService {
@@ -119,5 +119,29 @@ export class DocusignAPIService {
         );
       });
     });
+  }
+
+  async resendEnvelop(envelopedId: string): Promise<TResendEnvelopeStatus> {
+    const account = (await this.createConnection()) as docusign.LoginAccount;
+
+    const envelopesApi = new docusign.EnvelopesApi(this.apiClient);
+
+    try {
+      const res = await envelopesApi.update(account.accountId || '', envelopedId, {
+        resendEnvelope: true,
+      });
+
+      if (res.errorDetails) {
+        return {
+          status: false,
+          message: res.errorDetails.message!,
+        };
+      }
+
+      return { status: true };
+    } catch (error) {
+      console.log('🚀 ~ file: docusign-api.service.ts ~ line 143 ~ DocusignAPIService ~ resendEnvelop ~ error', error);
+      throw new InternalServerErrorException('Something went wrong');
+    }
   }
 }

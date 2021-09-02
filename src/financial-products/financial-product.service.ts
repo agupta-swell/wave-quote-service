@@ -94,4 +94,85 @@ export class FinancialProductsService {
       return e;
     });
   }
+
+  async getOneByQuoteId(quoteId: ObjectId): Promise<LeanDocument<FinancialProduct> | undefined> {
+    const [found] = await this.financialProduct.aggregate([
+      {
+        $lookup: {
+          from: 'v2_quotes',
+          let: {
+            fundingSourceId: '$funding_source_id',
+          },
+          pipeline: [
+            {
+              $match: {
+                $and: [
+                  {
+                    _id: quoteId,
+                    'detailed_quote.quote_finance_product.finance_product.funding_source_id': {
+                      $exists: true,
+                    },
+                  },
+                  {
+                    $expr: {
+                      $eq: [
+                        '$detailed_quote.quote_finance_product.finance_product.funding_source_id',
+                        '$$fundingSourceId',
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+              },
+            },
+          ],
+          as: 'quotes',
+        },
+      },
+      {
+        $match: {
+          'quotes.0': {
+            $exists: true,
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          fundingSourceId: '$funding_source_id',
+          isActive: '$is_active',
+          name: 1,
+          fundId: '$fund_id',
+          allowDownPayment: '$allow_down_payment',
+          minDownPayment: '$min_down_payment',
+          defaultDownPayment: '$default_down_payment',
+          maxDownPayment: '$max_down_payment',
+          annualDegradation: '$annual_degradation',
+          guaranteedProduction: '$guaranteed_production',
+          minMargin: '$min_margin',
+          maxMargin: '$max_margin',
+          minSystemKw: '$min_system_kw',
+          maxSystemKw: '$max_system_kw',
+          minBatteryKwh: '$min_battery_kwh',
+          maxBatteryKwh: '$max_battery_kwh',
+          minProductivity: '$min_productivity',
+          maxProductivity: '$max_productivity',
+          allowedStates: '$allowed_states',
+          interestRate: '$interest_rate',
+          termMonths: '$term_months',
+          dealerFee: '$dealer_fee',
+          financierId: 1,
+          countersignerName: '$countersigner_name',
+          countersignerTitle: '$countersigner_title',
+          countersignerEmail: '$countersigner_email',
+        },
+      },
+    ]);
+
+    return found;
+  }
 }

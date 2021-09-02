@@ -2,10 +2,11 @@ import { LeanDocument } from 'mongoose';
 import { Contact } from 'src/contacts/contact.schema';
 import { ISignerDetailDataSchema } from 'src/contracts/contract.schema';
 import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
+import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
-import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
+import { IDetailedQuoteSchema, IFinancialProductDetails } from 'src/quotes/quote.schema';
 import { IRoofTopSchema } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
 import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
@@ -67,6 +68,7 @@ export interface IGenericObject {
   gsProgram: LeanDocument<GsPrograms> | null;
   utilityProgramMaster: LeanDocument<UtilityProgramMaster> | null;
   leaseSolverConfig: LeaseSolverConfig | null;
+  financialProduct?: LeanDocument<FinancialProduct>;
 }
 
 export interface IDefaultContractor {
@@ -153,7 +155,7 @@ export interface IContractSignerDetails {
   statusesData: ISignerDetailFromContractingSystemData[];
 }
 
-export type DocuSignEnv = 'demo' | 'live';
+export type DocuSignEnv = 'dev' | 'demo' | 'live';
 
 export interface IDocusignTemplateMapping {
   CA_CONSUMER_GUIDE: string;

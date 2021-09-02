@@ -42,7 +42,7 @@ class ContractReqDto {
   primaryContractId: string;
 
   @ApiPropertyOptional()
-  chnageOrderDescription: string;
+  changeOrderDescription: string;
 }
 
 export class SaveContractReqDto {

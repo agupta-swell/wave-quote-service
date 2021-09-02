@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
+import { OpportunityModule } from 'src/opportunities/opportunity.module';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
@@ -17,7 +18,7 @@ import {
   DISCOUNTS,
   DiscountsSchema,
 } from './schemas';
-import { CalculationService } from './sub-services';
+import { CalculationService, QuoteMarkupConfigService } from './sub-services';
 
 @Global()
 @Module({
@@ -41,10 +42,10 @@ import { CalculationService } from './sub-services';
       },
     ]),
 
-    FinancialProductsModule
+    FinancialProductsModule,
   ],
   controllers: [QuoteController],
-  providers: [QuoteService, CalculationService],
-  exports: [QuoteService, CalculationService]
+  providers: [QuoteService, CalculationService, QuoteMarkupConfigService],
+  exports: [QuoteService, CalculationService],
 })
 export class QuoteModule {}

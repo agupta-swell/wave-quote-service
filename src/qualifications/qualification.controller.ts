@@ -23,7 +23,7 @@ import {
   GetQualificationDetailRes,
   ManualApprovalDto,
   ManualApprovalRes,
-  QualificationDto,
+  QualificationDetailDto,
   QualificationRes,
   SendMailDto,
   SendMailRes,
@@ -42,7 +42,7 @@ export class QualificationController {
   @CheckOpportunity()
   async createQualification(
     @Body() qualificationDto: CreateQualificationReqDto,
-  ): Promise<ServiceResponse<QualificationDto>> {
+  ): Promise<ServiceResponse<QualificationDetailDto>> {
     const res = await this.qualificationService.createQualification(qualificationDto);
     return ServiceResponse.fromResult(res);
   }

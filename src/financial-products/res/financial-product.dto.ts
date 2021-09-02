@@ -73,6 +73,36 @@ export class FinancialProductDto {
 
   @ExposeProp()
   financierId?: string;
+
+  @ExposeProp()
+  minBatteryReserve: number;
+
+  @ExposeProp()
+  maxBatteryReserve: number;
+
+  @ExposeProp()
+  minClippingRatio: number;
+
+  @ExposeProp()
+  maxClippingRatio: number;
+
+  @ExposeProp()
+  minMarkup: number;
+
+  @ExposeProp()
+  maxMarkup: number;
+
+  @ExposeProp()
+  requiresHardCreditApproval: boolean;
+
+  @ExposeProp()
+  countersignerName: string;
+
+  @ExposeProp()
+  countersignerTitle: string;
+
+  @ExposeProp()
+  countersignerEmail: string;
 }
 
 class FinancialProductPaginationDto implements Pagination<FinancialProductDto> {

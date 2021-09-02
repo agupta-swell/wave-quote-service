@@ -1,13 +1,14 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { sumBy } from 'lodash';
-import { ObjectId, Model } from 'mongoose';
+import { ObjectId, Model, Types } from 'mongoose';
 import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
+import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
@@ -54,6 +55,7 @@ export class ContractService {
     private readonly systemDesignService: SystemDesignService,
     private readonly gsProgramsService: GsProgramsService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
+    private readonly financialProductService: FinancialProductsService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -155,7 +157,12 @@ export class ContractService {
         contractDetail.contractTemplateId,
       );
 
-      const { chnageOrderDescription: _, ...details } = contractDetail;
+      this.docusignCommunicationService.validateSignerDetails(
+        contractTemplateDetail.templateDetails,
+        contractDetail.signerDetails,
+      );
+
+      const { changeOrderDescription: _, ...details } = contractDetail;
 
       const newlyUpdatedContract = new this.contractModel({
         ...details,
@@ -245,6 +252,10 @@ export class ContractService {
 
     const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
 
+    const financialProduct = await this.financialProductService.getOneByQuoteId(
+      <any>new Types.ObjectId(contract.associatedQuoteId),
+    );
+
     const genericObject: IGenericObject = {
       signerDetails: contract.signerDetails,
       opportunity,
@@ -259,6 +270,7 @@ export class ContractService {
       gsProgram,
       utilityProgramMaster,
       leaseSolverConfig,
+      financialProduct,
     };
 
     const sentOn = new Date();
@@ -358,7 +370,7 @@ export class ContractService {
         contractDetail.contractTemplateId,
       );
 
-      const { chnageOrderDescription: _, ...details } = contractDetail;
+      const { changeOrderDescription: _, ...details } = contractDetail;
 
       const model = new this.contractModel({
         ...details,
@@ -532,5 +544,28 @@ export class ContractService {
       ],
       doc => `is being used in the quote named ${doc.quoteName} (id: ${doc._id.toString()})`,
     );
+  }
+
+  public async resendContract(contractId: ObjectId): Promise<OperationResult<{ success: boolean }>> {
+    const foundContract = await this.getOneByContractId(contractId);
+
+    if (foundContract.contractingSystem !== 'DOCUSIGN' || !foundContract.contractingSystemReferenceId) {
+      throw new BadRequestException('This contract is not allowed to be resent');
+    }
+
+    const res = await this.docusignCommunicationService.resendContract(foundContract.contractingSystemReferenceId);
+
+    if (!res.status) {
+      console.error(
+        'Contract',
+        contractId,
+        'envelope',
+        foundContract.contractingSystemReferenceId,
+        'resend error',
+        res.message,
+      );
+    }
+
+    return OperationResult.ok({ success: res.status });
   }
 }

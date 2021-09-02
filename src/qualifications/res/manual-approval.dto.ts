@@ -1,6 +1,6 @@
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { ServiceResponse } from '../../app/common';
-import { QualificationDto } from './qualification.dto';
+import { QualificationDetailDto } from './qualification.dto';
 
 export class ManualApprovalDto {
   @ExposeProp()
@@ -9,8 +9,8 @@ export class ManualApprovalDto {
   @ExposeProp()
   statusDetail: string;
 
-  @ExposeAndMap({ type: QualificationDto }, ({ obj }) => obj.qualificationCredit)
-  qualificationCreditData?: QualificationDto;
+  @ExposeAndMap({ type: QualificationDetailDto }, ({ obj }) => obj.qualificationCredit)
+  qualificationCreditData?: QualificationDetailDto;
 }
 
 export class ManualApprovalRes implements ServiceResponse<ManualApprovalDto> {

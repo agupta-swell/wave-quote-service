@@ -35,6 +35,9 @@ export class ProductDto {
     width: number;
   };
 
+  @ExposeProp()
+  minimumReservePercent: number;
+
   // @ExposeProp()
   // modelName: string;
 

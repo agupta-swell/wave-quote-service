@@ -5,13 +5,14 @@ import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
 import { identity, pickBy, sumBy } from 'lodash';
-import { ObjectId, LeanDocument, Model } from 'mongoose';
+import { ObjectId, LeanDocument, Model, Types } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
 import { ContractService } from 'src/contracts/contract.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { IGenericObject } from 'src/docusign-communications/typing';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
+import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
@@ -72,6 +73,8 @@ export class ProposalService {
     private readonly s3Service: S3Service,
     @Inject(forwardRef(() => DocusignTemplateMasterService))
     private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
+    @Inject(forwardRef(() => FinancialProductsService))
+    private readonly financialProductService: FinancialProductsService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -483,6 +486,11 @@ export class ProposalService {
       firstName: 'Sample',
       lastName: 'Contract',
     };
+
+    const financialProduct = await this.financialProductService.getOneByQuoteId(
+      <any>new Types.ObjectId(proposal.quoteId),
+    );
+
     const genericObject: IGenericObject = {
       signerDetails: [],
       opportunity,
@@ -497,6 +505,7 @@ export class ProposalService {
       gsProgram,
       utilityProgramMaster,
       leaseSolverConfig,
+      financialProduct,
     };
 
     const templateDetailsData = await Promise.all(
@@ -544,7 +553,9 @@ export class ProposalService {
 
     if (doc.length) {
       return name =>
-        `${name} is being used in the proposal named ${doc[0].detailedProposal.proposalName} (id: ${doc[0]._id.toString()})`;
+        `${name} is being used in the proposal named ${
+          doc[0].detailedProposal.proposalName
+        } (id: ${doc[0]._id.toString()})`;
     }
     return false;
   }
@@ -556,7 +567,9 @@ export class ProposalService {
 
     if (doc.length) {
       return name =>
-        `${name} is being used in the proposal named ${doc[0].detailedProposal.proposalName} (id: ${doc[0]._id.toString()})`;
+        `${name} is being used in the proposal named ${
+          doc[0].detailedProposal.proposalName
+        } (id: ${doc[0]._id.toString()})`;
     }
     return false;
   }

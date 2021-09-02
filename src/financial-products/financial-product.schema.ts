@@ -26,6 +26,16 @@ export interface FinancialProduct extends Document {
   termMonths: number;
   dealerFee: number;
   financierId: string;
+  minBatteryReserve: number;
+  maxBatteryReserve: number;
+  minClippingRatio: number;
+  maxClippingRatio: number;
+  minMarkup: number;
+  maxMarkup: number;
+  requiresHardCreditApproval: boolean;
+  countersignerName: string;
+  countersignerTitle: string;
+  countersignerEmail: string;
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({
@@ -48,6 +58,12 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   max_battery_kwh: Number,
   min_productivity: Number,
   max_productivity: Number,
+  min_battery_reserve: Number,
+  max_battery_reserve: Number,
+  min_clipping_ratio: Number,
+  max_clipping_ratio: Number,
+  min_markup: Number,
+  max_markup: Number,
   allowed_states: [String],
   interest_rate: Number,
   term_months: Number,
@@ -56,4 +72,8 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
     type: Schema.Types.ObjectId,
     // required: true,
   },
+  countersigner_name: String,
+  countersigner_title: String,
+  countersigner_email: String,
+  requires_hard_credit_approval: Boolean,
 });

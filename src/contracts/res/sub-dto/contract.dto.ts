@@ -53,7 +53,7 @@ export class ContractResDto {
   contractStatus: PROCESS_STATUS;
 
   @ExposeProp()
-  chnageOrderDescription: string;
+  changeOrderDescription: string;
 
   @ExposeProp()
   completionDate: string;

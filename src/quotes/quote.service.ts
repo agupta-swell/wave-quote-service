@@ -19,6 +19,7 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { ContractService } from 'src/contracts/contract.service';
+import { assignToModel } from 'src/shared/transform/assignToModel';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -30,7 +31,17 @@ import {
   QUOTE_MODE_TYPE,
   REBATE_TYPE,
 } from './constants';
-import { IDetailedQuoteSchema, IRebateDetailsSchema, Quote, QUOTE, QuoteModel } from './quote.schema';
+import {
+  IDetailedQuoteSchema,
+  IQuoteCostBuildupSchema,
+  IRebateDetailsSchema,
+  Quote,
+  QUOTE,
+  QuoteModel,
+  IQuoteCostCommonSchema,
+  ITaxCreditDataSchema,
+  ILoanProductAttributes,
+} from './quote.schema';
 import {
   CalculateQuoteDetailDto,
   CashProductAttributesDto,
@@ -55,6 +66,8 @@ import {
 } from './schemas';
 import { Discounts } from './schemas/discounts.schema';
 import { CalculationService } from './sub-services/calculation.service';
+import { QuoteMarkupConfigService } from './sub-services';
+import { ILaborCost } from './typing';
 
 @Injectable()
 export class QuoteService {
@@ -79,6 +92,7 @@ export class QuoteService {
     private readonly proposalService: ProposalService,
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
+    private readonly quoteMarkupConfigService: QuoteMarkupConfigService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -372,33 +386,206 @@ export class QuoteService {
     return OperationResult.ok(strictPlainToClass(QuoteDto, obj.toJSON()));
   }
 
-  async cloneQuote(quoteId: ObjectId): Promise<OperationResult<QuoteDto>> {
+  async reQuote(quoteId: ObjectId, systemDesignId: string) {
     const foundQuote = await this.quoteModel.findById(quoteId).lean();
     if (!foundQuote) {
       throw ApplicationException.EntityNotFound(quoteId.toString());
     }
 
+    const foundSystemDesign = await this.systemDesignService.getOneById(systemDesignId);
+
+    if (!foundSystemDesign || foundSystemDesign.opportunityId !== foundQuote.opportunityId) {
+      throw new NotFoundException('System design not found');
+    }
+
+    const markupConfigs = await this.quoteMarkupConfigService.getAllByOppId(foundQuote.opportunityId);
+
+    if (!markupConfigs.length) {
+      throw new NotFoundException('No markup config found');
+    }
+
+    const newDoc = omit(foundQuote, ['_id', 'createdAt', 'updatedAt']);
+
+    const model = new this.quoteModel(newDoc);
+
     const originQuoteName = foundQuote.detailedQuote.quoteName.replace(/\s\([0-9]*(\)$)/, '');
-    const totalSameNameQuotes = await this.quoteModel
-      .find({
-        opportunity_id: foundQuote.opportunityId,
-        system_design_id: foundQuote.systemDesignId,
-        'detailed_quote.quote_name': { $regex: originQuoteName },
-      })
-      .count();
 
-    const obj = new this.quoteModel({
-      ...omit(foundQuote, ['_id', 'createdAt', 'updatedAt']),
-      detailedQuote: {
-        ...foundQuote.detailedQuote,
-        quoteName: `${originQuoteName} (${totalSameNameQuotes + 1})`,
-      },
-      isSync: true,
-      isSyncMessages: [],
+    const totalSameNameQuotes = await this.quoteModel.countDocuments({
+      opportunity_id: foundQuote.opportunityId,
+      system_design_id: systemDesignId,
+      'detailed_quote.quote_name': { $regex: originQuoteName },
     });
-    await obj.save();
 
-    return OperationResult.ok(strictPlainToClass(QuoteDto, obj.toJSON()));
+    model.systemDesignId = systemDesignId;
+    model.detailedQuote.quoteName = `${originQuoteName} ${
+      totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
+    }`.trim();
+    model.detailedQuote.systemProduction = foundSystemDesign.systemProductionData;
+
+    const { selectedQuoteMode, quotePricePerWatt, quotePriceOverride } = foundQuote.detailedQuote;
+
+    model.detailedQuote.selectedQuoteMode = selectedQuoteMode;
+
+    if (quotePricePerWatt) {
+      model.detailedQuote.quotePricePerWatt = {
+        pricePerWatt: foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt,
+        grossPrice:
+          foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt *
+          foundSystemDesign.systemProductionData.capacityKW *
+          1000,
+      };
+    }
+
+    if (quotePriceOverride) {
+      model.detailedQuote.quotePriceOverride = {
+        grossPrice: quotePriceOverride.grossPrice,
+      };
+    }
+
+    const laborCost: ILaborCost = {
+      cost: 0,
+      laborCostType: '',
+      laborCostSnapshotDate: new Date(),
+      netCost: 0,
+      subcontractorMarkup: 0,
+      laborCostDataSnapshot: {
+        id: foundQuote.detailedQuote.quoteCostBuildup.laborCost.laborCostDataSnapshot.id,
+        solarOnlyLaborFeePerWatt:
+          foundQuote.detailedQuote.quoteCostBuildup.laborCost.laborCostDataSnapshot.solarOnlyLaborFeePerWatt,
+        storageRetrofitLaborFeePerProject:
+          foundQuote.detailedQuote.quoteCostBuildup.laborCost.laborCostDataSnapshot.storageRetrofitLaborFeePerProject,
+        solarWithACStorageLaborFeePerProject:
+          foundQuote.detailedQuote.quoteCostBuildup.laborCost.laborCostDataSnapshot
+            .solarWithACStorageLaborFeePerProject,
+        solarWithDCStorageLaborFeePerProject:
+          foundQuote.detailedQuote.quoteCostBuildup.laborCost.laborCostDataSnapshot
+            .solarWithDCStorageLaborFeePerProject,
+      },
+    };
+
+    const quoteCostBuildup = this.calculateQuoteCostBuildup(foundSystemDesign, markupConfigs, laborCost);
+
+    const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
+    quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
+    quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
+
+    model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
+
+    const { financeProduct, financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct;
+
+    let currentGrossPrice;
+
+    switch (selectedQuoteMode) {
+      case QUOTE_MODE_TYPE.COST_BUILD_UP:
+        currentGrossPrice = model.detailedQuote.quoteCostBuildup?.grossPrice || 0;
+        break;
+      case QUOTE_MODE_TYPE.PRICE_PER_WATT:
+        currentGrossPrice = model.detailedQuote.quotePricePerWatt?.grossPrice || 0;
+        break;
+      case QUOTE_MODE_TYPE.PRICE_OVERRIDE:
+        currentGrossPrice = model.detailedQuote.quotePriceOverride?.grossPrice || 0;
+        break;
+      default:
+        currentGrossPrice = 0;
+    }
+
+    let productAttribute = await this.createProductAttribute(
+      financeProduct.productType,
+      currentGrossPrice,
+      financialProductSnapshot?.defaultDownPayment || 0,
+    );
+
+    const { productAttribute: product_attribute } = financeProduct as any;
+    switch (financeProduct.productType) {
+      case FINANCE_PRODUCT_TYPE.LEASE: {
+        productAttribute = {
+          ...productAttribute,
+          rateEscalator: product_attribute.rateEscalator,
+          leaseTerm: product_attribute.leaseTerm,
+        } as LeaseProductAttributesDto;
+        break;
+      }
+      case FINANCE_PRODUCT_TYPE.LOAN: {
+        productAttribute = {
+          ...productAttribute,
+          upfrontPayment: product_attribute.upfrontPayment,
+          interestRate: product_attribute.interestRate,
+          loanTerm: product_attribute.loanTerm,
+        } as LoanProductAttributesDto;
+        break;
+      }
+
+      default: {
+        productAttribute = {
+          ...productAttribute,
+          upfrontPayment: product_attribute.upfrontPayment,
+        } as CashProductAttributesDto;
+        break;
+      }
+    }
+
+    model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
+
+    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
+
+    const rebateDetails = await this.createRebateDetails(
+      foundQuote.opportunityId,
+      quoteCostBuildup.grossPrice,
+      fundingSource?.rebateAssignment || '',
+      foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
+    );
+
+    const { quoteFinanceProduct } = model.detailedQuote;
+
+    quoteFinanceProduct.rebateDetails.forEach(e => {
+      const { type } = e;
+
+      const foundIdx = rebateDetails.findIndex(e => e.type === type);
+
+      if (foundIdx === -1) {
+        rebateDetails.push(e);
+        return;
+      }
+
+      if (!rebateDetails[foundIdx].amount) {
+        rebateDetails[foundIdx] = e;
+      }
+    });
+
+    model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
+
+    assignToModel(
+      model.detailedQuote.quoteFinanceProduct,
+      <any>this.handleUpdateQuoteFinanceProduct(
+        {
+          financeProduct: quoteFinanceProduct.financeProduct,
+          incentiveDetails: quoteFinanceProduct.incentiveDetails,
+          netAmount: quoteFinanceProduct.netAmount,
+          projectDiscountDetails: quoteFinanceProduct.projectDiscountDetails,
+          rebateDetails: quoteFinanceProduct.rebateDetails,
+        } as any,
+        model.detailedQuote.quoteCostBuildup as any,
+        currentGrossPrice,
+      ),
+    );
+
+    if ('reinvestment' in foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute) {
+      (<ILoanProductAttributes>model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute).reinvestment = [
+        this.calculateMaxReinvestmentAmount(
+          model.detailedQuote.taxCreditSelectedForReinvestment,
+          model.detailedQuote.taxCreditData,
+          model.detailedQuote.utilityProgramSelectedForReinvestment,
+          rebateDetails.find(e => e.type === REBATE_TYPE.SGIP),
+          model.detailedQuote.quoteFinanceProduct.netAmount,
+          foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.reinvestment[0]
+            ?.reinvestmentAmount,
+        ),
+      ];
+    }
+
+    await model.save();
+
+    return OperationResult.ok(strictPlainToClass(QuoteDto, model.toJSON()));
   }
 
   async createProductAttribute(productType: string, netAmount: number, defaultDownPayment: number): Promise<any> {
@@ -1084,7 +1271,10 @@ export class QuoteService {
   handleUpdateQuoteFinanceProduct(
     quoteFinanceProduct: QuoteFinanceProductDto,
     quoteCostBuildup: QuoteCostBuildupDto,
+    projectGrossPrice?: number,
   ): QuoteFinanceProductDto {
+    const grossPrice = projectGrossPrice ?? quoteCostBuildup.grossPrice;
+
     const { incentiveDetails, projectDiscountDetails, rebateDetails } = quoteFinanceProduct;
 
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
@@ -1094,11 +1284,11 @@ export class QuoteService {
 
     const projectDiscountAmount = projectDiscountDetails.reduce((accu, item) => {
       if (item.type === PROJECT_DISCOUNT_UNITS.AMOUNT) return (accu += item.amount);
-      return (accu += roundNumber((item.amount * quoteCostBuildup.grossPrice) / 100, 2));
+      return (accu += roundNumber((item.amount * grossPrice) / 100, 2));
     }, 0);
 
     newQuoteFinanceProduct.netAmount = roundNumber(
-      quoteCostBuildup.grossPrice - incentiveAmount - rebateAmount - projectDiscountAmount,
+      grossPrice - incentiveAmount - rebateAmount - projectDiscountAmount,
       2,
     );
     newQuoteFinanceProduct.financeProduct.productAttribute = this.handleUpdateProductAttribute(newQuoteFinanceProduct);
@@ -1275,5 +1465,188 @@ export class QuoteService {
     }
 
     return false;
+  }
+
+  private calculateQuoteCostBuildup(
+    systemDesign: LeanDocument<SystemDesign> | SystemDesign,
+    markupConfigs: LeanDocument<QuoteMarkupConfig>[],
+    laborCost: ILaborCost,
+    swellStandardMarkup = 0,
+  ): IQuoteCostBuildupSchema {
+    const quoteCostBuildup = {
+      panelQuoteDetails: this.groupData(
+        systemDesign.roofTopDesignData.panelArray.map(item => {
+          const cost = item.numberOfPanels * item.panelModelDataSnapshot.price;
+          const subcontractorMarkup = this.getSubcontractorMarkup(
+            COMPONENT_TYPE.SOLAR,
+            PRODUCT_CATEGORY_TYPE.BASE,
+            markupConfigs,
+          );
+          const netCost = cost * (1 + subcontractorMarkup / 100);
+
+          return {
+            panelModelId: item.panelModelId,
+            panelModelDataSnapshot: item.panelModelDataSnapshot,
+            panelModelSnapshotDate: new Date(),
+            quantity: item.numberOfPanels,
+            cost,
+            subcontractorMarkup,
+            netCost,
+          };
+        }),
+        'panelModelId',
+      ),
+      inverterQuoteDetails: this.groupData(
+        systemDesign.roofTopDesignData.inverters.map(item => {
+          const cost = item.quantity * item.inverterModelDataSnapshot.price;
+          const subcontractorMarkup = this.getSubcontractorMarkup(
+            COMPONENT_TYPE.INVERTER,
+            PRODUCT_CATEGORY_TYPE.BASE,
+            markupConfigs,
+          );
+          const netCost = cost * (1 + subcontractorMarkup / 100);
+
+          return {
+            inverterModelId: item.inverterModelId,
+            inverterModelDataSnapshot: item.inverterModelDataSnapshot,
+            inverterModelSnapshotDate: new Date(),
+            cost,
+            subcontractorMarkup,
+            netCost,
+            quantity: item.quantity,
+          };
+        }),
+        'inverterModelId',
+      ),
+      storageQuoteDetails: this.groupData(
+        systemDesign.roofTopDesignData.storage.map(item => {
+          const cost = item.quantity * item.storageModelDataSnapshot.price;
+          const subcontractorMarkup = this.getSubcontractorMarkup(
+            COMPONENT_TYPE.STORAGE,
+            PRODUCT_CATEGORY_TYPE.BASE,
+            markupConfigs,
+          );
+          const netCost = cost * (1 + subcontractorMarkup / 100);
+
+          return {
+            storageModelId: item.storageModelId,
+            storageModelDataSnapshot: item.storageModelDataSnapshot,
+            storageModelSnapshotDate: new Date(),
+            cost,
+            subcontractorMarkup,
+            netCost,
+            quantity: item.quantity,
+          };
+        }),
+        'storageModelId',
+      ),
+      adderQuoteDetails: this.groupData(
+        systemDesign.roofTopDesignData.adders.map(item => {
+          const cost = item.quantity * item.adderModelDataSnapshot.price;
+          const subcontractorMarkup = 0;
+          const netCost = cost * (1 + subcontractorMarkup / 100);
+
+          return {
+            adderModelId: item.adderId,
+            adderModelDataSnapshot: item.adderModelDataSnapshot,
+            adderModelSnapshotDate: new Date(),
+            quantity: item.quantity,
+            unit: item.unit,
+            cost,
+            subcontractorMarkup,
+            netCost,
+          };
+        }),
+        'adderModelId',
+      ),
+      balanceOfSystemDetails: this.groupData(
+        systemDesign.roofTopDesignData.balanceOfSystems?.map(item => {
+          const cost = item.balanceOfSystemModelDataSnapshot.price;
+          const subcontractorMarkup = this.getSubcontractorMarkup(
+            item.balanceOfSystemModelDataSnapshot.relatedComponent,
+            PRODUCT_CATEGORY_TYPE.BOS,
+            markupConfigs,
+          );
+          const netCost = cost * (1 + subcontractorMarkup / 100);
+
+          return {
+            balanceOfSystemModelId: item.balanceOfSystemId,
+            balanceOfSystemModelDataSnapshot: item.balanceOfSystemModelDataSnapshot,
+            balanceOfSystemModelDataSnapshotDate: new Date(),
+            unit: item.unit,
+            cost,
+            subcontractorMarkup,
+            netCost,
+          };
+        }),
+        'balanceOfSystemModelId',
+      ),
+      ancillaryEquipmentDetails: this.groupData(
+        systemDesign.roofTopDesignData.ancillaryEquipments?.map(item => {
+          const cost = item.quantity * item.ancillaryEquipmentModelDataSnapshot.averageWholeSalePrice;
+          const subcontractorMarkup = this.getSubcontractorMarkup(
+            item.ancillaryEquipmentModelDataSnapshot.relatedComponent,
+            PRODUCT_CATEGORY_TYPE.ANCILLARY,
+            markupConfigs,
+          );
+          const netCost = cost * (1 + subcontractorMarkup / 100);
+
+          return {
+            ancillaryEquipmentId: item.ancillaryId,
+            ancillaryEquipmentModelDataSnapshot: item.ancillaryEquipmentModelDataSnapshot,
+            ancillaryEquipmentSnapshotDate: new Date(),
+            quantity: item.quantity,
+            cost,
+            subcontractorMarkup,
+            netCost,
+          };
+        }),
+        'ancillaryEquipmentId',
+      ),
+      swellStandardMarkup,
+      laborCost,
+      grossPrice: 0,
+      totalNetCost: 0,
+    };
+
+    const laborCostData = this.calculateLaborCost(
+      systemDesign,
+      quoteCostBuildup.laborCost.laborCostDataSnapshot as any,
+    );
+    quoteCostBuildup.laborCost.laborCostType = laborCostData.laborCostType;
+    quoteCostBuildup.laborCost.cost = laborCostData.cost;
+
+    const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
+    quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
+    quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
+
+    return (quoteCostBuildup as unknown) as IQuoteCostBuildupSchema;
+  }
+
+  private calculateMaxReinvestmentAmount(
+    taxCreditSelectedForReinvestment: boolean,
+    taxCreditData: ITaxCreditDataSchema[],
+    utilityProgramSelectedForReinvestment: boolean,
+    selectedRebateProgram: IRebateDetailsSchema | undefined,
+    projectNetAmount: number,
+    currentReinvestmentAmount = 0,
+  ) {
+    const taxCreditAmount =
+      (taxCreditSelectedForReinvestment &&
+        taxCreditData?.reduce(
+          (acc, item) => (acc += roundNumber((item.percentage / 100 || 1) * projectNetAmount, 2)),
+          0,
+        )) ||
+      0;
+
+    const utilityRebateAmount = (utilityProgramSelectedForReinvestment && selectedRebateProgram?.amount) || 0;
+
+    const newReinvestmentAmount = Math.min(currentReinvestmentAmount, taxCreditAmount + utilityRebateAmount);
+
+    return {
+      reinvestmentAmount: newReinvestmentAmount,
+      reinvestmentMonth: 18,
+      description: 'description',
+    };
   }
 }

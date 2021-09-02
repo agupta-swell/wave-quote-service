@@ -1,3 +1,6 @@
+import { ELaborCostType } from './constants';
+import { ILaborCostSchema } from './quote.schema';
+
 export interface IGetPaymentAmount {
   loanAmount: number;
   annualInterestRate: number;
@@ -29,4 +32,8 @@ export interface IPayPeriodData {
   unpaidInterest: number;
   unpaidInterestCumulative: number;
   adjustedMonthlyPayment: number;
+}
+
+export interface ILaborCost extends Omit<ILaborCostSchema, 'laborCostType'> {
+  laborCostType: string | ELaborCostType
 }

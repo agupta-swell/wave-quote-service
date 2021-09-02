@@ -1,5 +1,7 @@
 import { PipeTransform, Injectable, ArgumentMetadata } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
+import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { REQUEST_MODE } from '../constants';
 import { SaveContractReqDto } from '../req';
 
@@ -7,7 +9,10 @@ import { SaveContractReqDto } from '../req';
 export class DefaultFinancierPipe implements PipeTransform<SaveContractReqDto, Promise<SaveContractReqDto>> {
   private _financierRoleId: string | undefined;
 
-  constructor(private readonly docusignTemplateMasterService: DocusignTemplateMasterService) {}
+  constructor(
+    private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
+    private readonly financialProductsService: FinancialProductsService,
+  ) {}
 
   async cacheFinancierRoleId(): Promise<string> {
     const found = await this.docusignTemplateMasterService.getSignerRoleMasterByRoleName('Financier');
@@ -32,40 +37,36 @@ export class DefaultFinancierPipe implements PipeTransform<SaveContractReqDto, P
 
     const financierId = this._financierRoleId || (await this.cacheFinancierRoleId());
 
+    const countersigner = await this.financialProductsService.getOneByQuoteId(
+      new Types.ObjectId(value.contractDetail.associatedQuoteId) as any,
+    );
+
+    if (!countersigner) {
+      return value;
+    }
+
+    const signer = {
+      roleId: financierId,
+      role: 'Financier',
+      firstName: '',
+      lastName: countersigner.countersignerName,
+      email: countersigner.countersignerEmail,
+    };
+
     if (Array.isArray(value.contractDetail.signerDetails)) {
       const foundIdx = value.contractDetail.signerDetails.findIndex(e => e.roleId === financierId);
 
       if (foundIdx === -1) {
-        value.contractDetail.signerDetails.push({
-          roleId: financierId,
-          role: 'Financier',
-          firstName: 'Shawn',
-          lastName: 'Jacobson',
-          email: 'wavequotetool@yopmail.com',
-        });
+        value.contractDetail.signerDetails.push(signer);
         return value;
       }
 
-      value.contractDetail.signerDetails[foundIdx] = {
-        roleId: financierId,
-        role: 'Financier',
-        firstName: 'Shawn',
-        lastName: 'Jacobson',
-        email: ' wavequotetool@yopmail.com',
-      };
+      value.contractDetail.signerDetails[foundIdx] = signer;
 
       return value;
     }
 
-    value.contractDetail.signerDetails = [
-      {
-        roleId: financierId,
-        role: 'Financier',
-        firstName: 'Shawn',
-        lastName: 'Jacobson',
-        email: ' wavequotetool@yopmail.com',
-      },
-    ];
+    value.contractDetail.signerDetails = [signer];
 
     return value;
   }

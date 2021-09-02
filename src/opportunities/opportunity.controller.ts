@@ -4,8 +4,8 @@ import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ContractResDto } from 'src/contracts/res/sub-dto';
 import { OpportunityService } from './opportunity.service';
+import { UpdateOpportunityRebateProgramDto } from './req/update-opportunity-rebate-program.dto';
 import { UpdateOpportunityUtilityProgramDto } from './req/update-opportunity-utility-program.dto';
-import { UpdateOpportunityRebateProgramDto } from './req/update-opportunity-rebate-program.dto'
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto, GetRelatedInformationRes } from './res/get-related-information.dto';
 import { QuoteDetailResDto } from './res/quote-detail.dto';

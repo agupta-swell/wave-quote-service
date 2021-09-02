@@ -87,7 +87,7 @@ export interface Contract extends Document {
   contractingSystem: string;
   primaryContractId: string;
   contractStatus: PROCESS_STATUS;
-  chnageOrderDescription: string;
+  changeOrderDescription: string;
   completionDate: string;
   contractingSystemReferenceId: string;
   createdBy: string;
