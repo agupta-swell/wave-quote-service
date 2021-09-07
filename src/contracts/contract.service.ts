@@ -1,8 +1,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { sumBy } from 'lodash';
-import { LeanDocument } from 'mongoose';
-import { ObjectId, Model, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
@@ -27,6 +26,7 @@ import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } fro
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
+import { ContractReqDto } from './req/contract-req.dto';
 import {
   GetContractTemplatesDto,
   GetCurrentContractDto,
@@ -61,15 +61,10 @@ export class ContractService {
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
-    const primaryContractRecords = await this.contractModel
-      .find({
-        opportunityId,
-        contractType: CONTRACT_TYPE.PRIMARY_CONTRACT,
-      })
-      .lean();
+    const contractRecords = await this.contractModel.find({ opportunityId }).lean();
 
     const contracts = await Promise.all(
-      primaryContractRecords?.map(async contract => {
+      contractRecords?.map(async contract => {
         const changeOrders = await this.contractModel
           .find({
             opportunityId,
@@ -155,6 +150,13 @@ export class ContractService {
     }
 
     if (mode === REQUEST_MODE.ADD) {
+      if (contractDetail.contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
+        const isValid = await this.validateNewGridServiceContract(contractDetail);
+        if (!isValid) {
+          throw new BadRequestException({ message: 'Not qualified for new GS Contract' });
+        }
+      }
+
       const contractTemplateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
         contractDetail.contractTemplateId,
       );
@@ -169,7 +171,6 @@ export class ContractService {
       const newlyUpdatedContract = new this.contractModel({
         ...details,
         contractTemplateDetail,
-        contractType: CONTRACT_TYPE.PRIMARY_CONTRACT,
         contractingSystem: 'DOCUSIGN',
         contractStatus: PROCESS_STATUS.INITIATED,
       });
@@ -635,5 +636,35 @@ export class ContractService {
   public async countContractsByPrimaryContractId(primaryContractId: string): Promise<number> {
     const count = await this.contractModel.countDocuments({ primaryContractId });
     return count;
+  }
+  async validateNewGridServiceContract(contractDetail: ContractReqDto): Promise<Boolean> {
+    const [relatedOpportunity, primaryContract] = await Promise.all([
+      this.opportunityService.getDetailById(contractDetail.opportunityId),
+      this.contractModel
+        .findOne(
+          {
+            opportunityId: contractDetail.opportunityId,
+            contractType: CONTRACT_TYPE.PRIMARY_CONTRACT,
+          },
+          {},
+          { sort: { createdAt: -1 } },
+        )
+        .lean(),
+    ]);
+
+    if (
+      !relatedOpportunity ||
+      (!relatedOpportunity.utilityProgramId && !relatedOpportunity.rebateProgramId) ||
+      !primaryContract
+    ) {
+      return false;
+    }
+
+    const associatedQuote = await this.quoteService.getOneById(primaryContract.associatedQuoteId);
+    if (!associatedQuote || !associatedQuote.quoteCostBuildup?.storageQuoteDetails?.length) {
+      return false;
+    }
+
+    return true;
   }
 }
