@@ -315,7 +315,7 @@ export class QuoteService {
             quoteCostBuildup.grossPrice,
             financialProduct?.defaultDownPayment || 0,
           ),
-          financialProductSnapshot: strictPlainToClass(FinancialProductDto, financialProduct),
+          financialProductSnapshot: financialProduct,
         },
         netAmount: 0,
         incentiveDetails: [
