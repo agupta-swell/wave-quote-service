@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { SYSTEM_TYPE } from '../constants';
 
 export const DOCUSIGN_COMPOSITE_TEMPLATE_MASTER = Symbol('DOCUSIGN_COMPOSITE_TEMPLATE_MASTER').toString();
@@ -7,7 +8,9 @@ export interface DocusignCompositeTemplateMaster extends Document {
   name: string;
   description: string;
   docusignTemplateIds: string[];
-  isApplicableForChangeOrders: boolean;
+  type: CONTRACT_TYPE;
+  filenameForDownloads: string;
+  applicableRebatePrograms: string[];
   applicableFundingSources: string[];
   applicableUtilityPrograms: string[];
   applicableUtilities: string[];
@@ -25,7 +28,9 @@ export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<Docusig
     name: String,
     description: String,
     docusign_template_ids: [String],
-    is_applicable_for_change_orders: Boolean,
+    type: String,
+    filename_for_downloads: String,
+    applicable_rebate_programs: [String],
     applicable_funding_sources: [String],
     applicable_utility_programs: [String],
     applicable_utilities: [String],
@@ -47,7 +52,9 @@ export const DocusignCompositeTemplateMasterSchema = new Schema<DocusignComposit
   name: String,
   description: String,
   docusign_template_ids: [String],
-  is_applicable_for_change_orders: Boolean,
+  type: String,
+  filename_for_downloads: String,
+  applicable_rebate_programs: [String],
   applicable_funding_sources: [String],
   applicable_utility_programs: [String],
   applicable_utilities: [String],

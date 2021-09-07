@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
+import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { ITemplateDetailSchema } from 'src/contracts/contract.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -141,10 +142,8 @@ export class DocusignTemplateMasterService {
     );
   }
 
-  async getContractCompositeTemplates(
-    isChangeOrder?: boolean,
-  ): Promise<OperationResult<GetContractCompositeTemplateDto>> {
-    const query = isChangeOrder === undefined ? {} : { isApplicableForChangeOrders: isChangeOrder };
+  async getContractCompositeTemplates(type?: CONTRACT_TYPE): Promise<OperationResult<GetContractCompositeTemplateDto>> {
+    const query = type === undefined ? {} : { type: type };
     const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find(query).lean();
 
     const compositeTemplates = (await Promise.all(
@@ -238,7 +237,9 @@ export class DocusignTemplateMasterService {
           name: req.compositeTemplateData.name,
           description: req.compositeTemplateData.description,
           docusignTemplateIds: req.compositeTemplateData.docusignTemplateIds,
-          isApplicableForChangeOrders: req.compositeTemplateData.isApplicableForChangeOrders,
+          type: req.compositeTemplateData.type,
+          filenameForDownloads: req.compositeTemplateData.filenameForDownloads,
+          applicableRebatePrograms: req.compositeTemplateData.applicableRebatePrograms,
           applicableFundingSources: req.compositeTemplateData.applicableFundingSources,
           applicableUtilityPrograms: req.compositeTemplateData.applicableUtilityPrograms,
           applicableUtilities: req.compositeTemplateData.applicableUtilities,

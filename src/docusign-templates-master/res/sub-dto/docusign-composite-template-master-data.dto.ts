@@ -1,3 +1,4 @@
+import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
@@ -14,8 +15,14 @@ export class DocusignCompositeTemplateMasterDataResDto {
   @ExposeProp({ type: String, isArray: true })
   docusignTemplateIds: string[];
 
-  @ExposeProp()
-  isApplicableForChangeOrders: boolean;
+  @ExposeProp({ enum: CONTRACT_TYPE, type: String })
+  type: CONTRACT_TYPE;
+
+  @ExposeProp({ required: false })
+  filenameForDownloads: string;
+
+  @ExposeProp({ type: String, isArray: true })
+  applicableRebatePrograms: string[];
 
   @ExposeProp({ type: String, isArray: true })
   applicableFundingSources: string[];
