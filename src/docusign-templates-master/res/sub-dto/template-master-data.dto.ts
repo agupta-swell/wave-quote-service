@@ -26,4 +26,7 @@ export class TemplateMasterDataResDto {
 
   @ExposeProp()
   modifiedAt: Date;
+
+  @ExposeProp()
+  compositeTemplateId: string;
 }

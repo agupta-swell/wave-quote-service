@@ -141,7 +141,9 @@ export class DocusignTemplateMasterService {
     );
   }
 
-  async getContractCompositeTemplates(isChangeOrder?: boolean): Promise<OperationResult<GetContractCompositeTemplateDto>> {
+  async getContractCompositeTemplates(
+    isChangeOrder?: boolean,
+  ): Promise<OperationResult<GetContractCompositeTemplateDto>> {
     const query = isChangeOrder === undefined ? {} : { isApplicableForChangeOrders: isChangeOrder };
     const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find(query).lean();
 
@@ -160,6 +162,7 @@ export class DocusignTemplateMasterService {
 
             return {
               ...template,
+              compositeTemplateId: item._id.toString(),
               recipientRoles: roles,
             };
           }),
@@ -173,6 +176,28 @@ export class DocusignTemplateMasterService {
     )) as ICompositeTemplateResDto[];
 
     return OperationResult.ok(strictPlainToClass(GetContractCompositeTemplateDto, { compositeTemplates }));
+  }
+
+  async getTemplateIdsInCompositeTemplate(
+    compositeTemplateId: string,
+  ): Promise<{
+    id: string;
+    filenameForDownloads?: string;
+    templates: string[];
+  }> {
+    const found = await this.docusignCompositeTemplateMasterModel.findById(compositeTemplateId).lean();
+
+    if (!found)
+      return {
+        id: compositeTemplateId,
+        templates: [],
+      };
+
+    return {
+      id: compositeTemplateId,
+      filenameForDownloads: found.filenameForDownloads,
+      templates: found.docusignTemplateIds || [],
+    };
   }
 
   async getContractApplicabilityData(): Promise<OperationResult<GetContractApplicabilityDataDto>> {

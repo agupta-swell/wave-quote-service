@@ -15,8 +15,6 @@ class ContractReqDto {
   opportunityId: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   name: string;
 
   @ApiProperty()

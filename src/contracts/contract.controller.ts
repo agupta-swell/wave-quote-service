@@ -4,7 +4,9 @@ import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
+import { CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
+import { UseDefaultContractName } from './interceptors';
 import { UseDefaultFinancier } from './pipes';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
@@ -66,6 +68,7 @@ export class ContractController {
 
   @Post()
   @UseDefaultFinancier()
+  @UseDefaultContractName(CONTRACT_TYPE.PRIMARY_CONTRACT)
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveContractRes })
   async saveContract(@Body() contractReq: SaveContractReqDto): Promise<ServiceResponse<SaveContractDto>> {
@@ -83,6 +86,7 @@ export class ContractController {
   }
 
   @Post('/change-orders')
+  @UseDefaultContractName(CONTRACT_TYPE.CHANGE_ORDER)
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveChangeOrderRes })
   async saveChangeOrder(@Body() contractReq: SaveChangeOrderReqDto): Promise<ServiceResponse<SaveChangeOrderDto>> {

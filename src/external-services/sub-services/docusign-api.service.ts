@@ -68,7 +68,8 @@ export class DocusignAPIService {
       results = await envelopesApi.createEnvelope(account.accountId || '', { envelopeDefinition: templateData });
       return results;
     } catch (error) {
-      this.logger.error(error);
+      console.log('🚀 ~ file: docusign-api.service.ts ~ line 72 ~ DocusignAPIService ~ sendTemplate ~ error', error);
+      // this.logger.error(error);
       return null;
     }
   }

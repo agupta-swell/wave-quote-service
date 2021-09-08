@@ -1,13 +1,19 @@
-import { forwardRef, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
-import { identity, pickBy, sumBy } from 'lodash';
+import { identity, pickBy, sumBy, uniq } from 'lodash';
 import { ObjectId, LeanDocument, Model, Types } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
-import { ContractService } from 'src/contracts/contract.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { IGenericObject } from 'src/docusign-communications/typing';
@@ -508,8 +514,23 @@ export class ProposalService {
       financialProduct,
     };
 
+    const compositeTemplateIds = uniq(templateDetails.map(e => e.compositeTemplateId));
+
+    const compositeTemplates = await Promise.all(
+      compositeTemplateIds.map(async e => {
+        return this.docusignTemplateMasterService.getTemplateIdsInCompositeTemplate(e);
+      }),
+    );
+
     const templateDetailsData = await Promise.all(
-      templateDetails.map(({ id }) => this.docusignTemplateMasterService.getTemplateMasterById(id)),
+      templateDetails.map(async ({ id, compositeTemplateId }) => {
+        const found = await this.docusignTemplateMasterService.getTemplateMasterById(id);
+
+        if (found && compositeTemplates.find(e => e.id === compositeTemplateId && e.templates.includes(id))) {
+          return found;
+        }
+        throw new NotFoundException(`No template found with id ${id} in composite template ${compositeTemplateId}`);
+      }),
     );
 
     const docusignResponse = await this.docusignCommunicationService.sendContractToDocusign(
@@ -525,17 +546,18 @@ export class ProposalService {
       await proposal.save();
     }
 
-    // return OperationResult.ok(new SendContractDto(status, statusDescription, updatedContract));
     const document = await this.docusignCommunicationService.downloadContract(
       docusignResponse.contractingSystemReferenceId as string,
     );
 
-    const timestamp = Date.now();
-    const fileName = `${docusignResponse.contractingSystemReferenceId as string}_${timestamp}.pdf`;
+    const fileName = `${contact?.lastName || ''}, ${contact?.firstName || ''} - Sample ${
+      compositeTemplates.find(e => e.templates.includes(templateDetailsData[0].id.toString()))?.filenameForDownloads ||
+      ''
+    } - Not Executable.pdf`;
 
     try {
       const s3UploadResult = await this.saveToStorage(document, fileName);
-      // await proposal.
+
       proposal.detailedProposal.sampleContractUrl = s3UploadResult.Location;
       await proposal.save();
       return OperationResult.ok({

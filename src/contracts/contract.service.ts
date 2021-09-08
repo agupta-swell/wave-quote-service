@@ -1,6 +1,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { sumBy } from 'lodash';
+import { LeanDocument } from 'mongoose';
 import { ObjectId, Model, Types } from 'mongoose';
 import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
@@ -13,6 +14,7 @@ import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -62,7 +64,7 @@ export class ContractService {
     const primaryContractRecords = await this.contractModel
       .find({
         opportunityId,
-        contractType: CONTRACT_TYPE.PRIMARY,
+        contractType: CONTRACT_TYPE.PRIMARY_CONTRACT,
       })
       .lean();
 
@@ -167,7 +169,7 @@ export class ContractService {
       const newlyUpdatedContract = new this.contractModel({
         ...details,
         contractTemplateDetail,
-        contractType: CONTRACT_TYPE.PRIMARY,
+        contractType: CONTRACT_TYPE.PRIMARY_CONTRACT,
         contractingSystem: 'DOCUSIGN',
         contractStatus: PROCESS_STATUS.INITIATED,
       });
@@ -461,16 +463,23 @@ export class ContractService {
 
     const foundOpp = await this.opportunityService.getRelatedInformation(foundContract.opportunityId);
 
-    const { name } = foundContract.contractTemplateDetail?.compositeTemplateData;
-    const { firstName, lastName } = foundOpp.data as any;
+    let fileName: string;
+    switch (foundContract.contractType) {
+      case CONTRACT_TYPE.CHANGE_ORDER:
+        fileName = this.getChangeOrderDownloadName(foundContract, foundOpp);
+        break;
+      case CONTRACT_TYPE.NO_COST_CHANGE_ORDER:
+        fileName = this.getNoCostChangeOrderDownloadName(foundContract, foundOpp);
+        break;
+      default:
+        fileName = this.getPrimaryContractDownloadName(foundContract, foundOpp);
+    }
 
     const contract = await this.downloadDocusignContract(foundContract.contractingSystemReferenceId);
 
     if (!contract) {
       throw ApplicationException.NotFoundStatus('Contract Envelope', `${id.toString()}`);
     }
-
-    const fileName = `${lastName}-${firstName}-${name}.pdf`;
 
     return [fileName, contract];
   }
@@ -480,7 +489,7 @@ export class ContractService {
       .findOne(
         {
           opportunity_id: opportunityId,
-          contract_type: CONTRACT_TYPE.PRIMARY,
+          contract_type: CONTRACT_TYPE.PRIMARY_CONTRACT,
         },
         {},
         {
@@ -567,5 +576,64 @@ export class ContractService {
     }
 
     return OperationResult.ok({ success: res.status });
+  }
+
+  private getPrimaryContractDownloadName(
+    contract: Contract | LeanDocument<Contract>,
+    oppData: OperationResult<GetRelatedInformationDto>,
+  ): string {
+    let fileName: string;
+
+    const { firstName, lastName } = oppData.data!;
+    switch (contract.contractStatus) {
+      case PROCESS_STATUS.COMPLETED:
+        fileName = `${lastName}, ${firstName} - ${contract.name} - Signed.pdf`;
+        break;
+      default:
+        fileName = `${lastName}, ${firstName} - ${contract.name}.pdf`;
+    }
+
+    return fileName;
+  }
+
+  private getChangeOrderDownloadName(
+    contract: Contract | LeanDocument<Contract>,
+    oppData: OperationResult<GetRelatedInformationDto>,
+  ): string {
+    let fileName: string;
+
+    const { firstName, lastName } = oppData.data!;
+    switch (contract.contractStatus) {
+      case PROCESS_STATUS.COMPLETED:
+        fileName = `${lastName}, ${firstName} - ${contract.name} - Signed.pdf`;
+        break;
+      default:
+        fileName = `${lastName}, ${firstName} - ${contract.name}.pdf`;
+    }
+
+    return fileName;
+  }
+
+  private getNoCostChangeOrderDownloadName(
+    contract: Contract | LeanDocument<Contract>,
+    oppData: OperationResult<GetRelatedInformationDto>,
+  ): string {
+    let fileName: string;
+
+    const { firstName, lastName } = oppData.data!;
+    switch (contract.contractStatus) {
+      case PROCESS_STATUS.COMPLETED:
+        fileName = `${lastName}, ${firstName} - ${contract.name} - No Cost - Signed.pdf`;
+        break;
+      default:
+        fileName = `${lastName}, ${firstName} - ${contract.name} - No Cost.pdf`;
+    }
+
+    return fileName;
+  }
+
+  public async countContractsByPrimaryContractId(primaryContractId: string): Promise<number> {
+    const count = await this.contractModel.countDocuments({ primaryContractId });
+    return count;
   }
 }

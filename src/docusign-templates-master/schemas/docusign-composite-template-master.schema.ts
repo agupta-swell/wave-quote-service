@@ -17,6 +17,7 @@ export interface DocusignCompositeTemplateMaster extends Document {
   createdAt: Date;
   updatedBy: string;
   updatedAt: Date;
+  filenameForDownloads?: string;
 }
 
 export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<DocusignCompositeTemplateMaster>(
@@ -34,6 +35,10 @@ export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<Docusig
     created_by: String,
     updated_at: { type: Date, default: Date.now },
     updated_by: String,
+    filename_for_downloads: {
+      type: String,
+      required: false
+    },
   },
   { _id: false },
 );
