@@ -9,7 +9,6 @@ export interface DocusignCompositeTemplateMaster extends Document {
   description: string;
   docusignTemplateIds: string[];
   type: CONTRACT_TYPE;
-  filenameForDownloads: string;
   applicableRebatePrograms: string[];
   applicableFundingSources: string[];
   applicableUtilityPrograms: string[];
@@ -29,7 +28,6 @@ export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<Docusig
     description: String,
     docusign_template_ids: [String],
     type: String,
-    filename_for_downloads: String,
     applicable_rebate_programs: [String],
     applicable_funding_sources: [String],
     applicable_utility_programs: [String],
