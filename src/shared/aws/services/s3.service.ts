@@ -5,6 +5,7 @@ import * as mime from 'mime';
 import { ApplicationException } from 'src/app/app.exception';
 import { CredentialService } from './credential.service';
 import { IS3GetLocationFromUrlResult, IS3GetUrlOptions, IS3RootDir } from '../interfaces';
+import { Readable } from 'node:stream';
 
 @Injectable()
 export class S3Service {
@@ -75,20 +76,40 @@ export class S3Service {
     mime: string,
     acl: string,
     cb: (err: Error, data: AWS.S3.ManagedUpload.SendData) => void,
-  ): PassThrough {
+  ): PassThrough;
+  /**
+   * Use absolute fileName for object key
+   * @param fileName
+   * @param bucketName
+   * @param mime
+   * @param acl
+   * @param noDirWrapper
+   * @param cb
+   */
+  public putStream(
+    fileName: string,
+    bucketName: string,
+    mime: string,
+    acl: string,
+    noDirWrapper: boolean,
+    cb: (err: Error, data: AWS.S3.ManagedUpload.SendData) => void,
+  ): PassThrough;
+  public putStream(...args: unknown[]): PassThrough {
     const passthrough = new Stream.PassThrough();
+
+    const [fileName, bucketName, mime, acl] = args as any[];
 
     const [name] = fileName.split('.');
 
     const params: AWS.S3.PutObjectRequest = {
       Bucket: bucketName,
       Body: passthrough,
-      Key: `${name}/${fileName}`,
+      Key: args.length === 6 && args[5] ? fileName : `${name}/${fileName}`,
       ContentType: mime,
       ACL: acl,
     };
 
-    this.S3.upload(params, cb);
+    this.S3.upload(params, args[args.length - 1] as any);
     return passthrough;
   }
 
@@ -197,7 +218,7 @@ export class S3Service {
     });
   }
 
-  private hasFile(bucket: string, filePath: string): Promise<boolean> {
+  public hasFile(bucket: string, filePath: string): Promise<boolean> {
     return new Promise((resolve, _) => {
       this.S3.headObject(
         {
@@ -223,5 +244,12 @@ export class S3Service {
     const encodedKey = `${fileName}/${fileNameWithExt}`;
 
     return decodeURIComponent(encodedKey);
+  }
+
+  public getObjectAsReadable(bucket: string, fileName: string): Readable {
+    return this.S3.getObject({
+      Bucket: bucket,
+      Key: fileName,
+    }).createReadStream();
   }
 }

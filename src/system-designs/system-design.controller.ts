@@ -6,6 +6,7 @@ import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import {
+  CalculateSunroofDto,
   CreateSystemDesignDto,
   GetInverterClippingDetailDto,
   UpdateAncillaryMasterDtoReq,
@@ -21,6 +22,7 @@ import {
   SystemDesignListRes,
   SystemDesignRes,
 } from './res';
+import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { SystemDesignService } from './system-design.service';
 
 @ApiTags('System Design')
@@ -133,6 +135,13 @@ export class SystemDesignController {
   @ApiOkResponse({ type: SystemDesignRes })
   async getDetails(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<SystemDesignDto>> {
     const result = await this.systemDesignService.getDetails(id);
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Post('/calculate-sunroof')
+  async calculateSunroof(@Body() req: CalculateSunroofDto): Promise<ServiceResponse<CalculateSunroofResDto>> {
+    const result = await this.systemDesignService.calculateSunroofData(req);
+
     return ServiceResponse.fromResult(result);
   }
 }

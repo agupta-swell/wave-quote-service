@@ -145,6 +145,10 @@ export interface ISolarPanelArraySchema {
   panelModelDataSnapshot: IPanelProductSchema;
   panelModelSnapshotDate: Date;
   losses: number;
+  useSunroof: boolean;
+  sunroofPrimaryOrientationSide?: number;
+  sunroofPitch?: number;
+  sunroofAzimuth?: number;
 }
 
 export interface ICapacityPanelArraySchema extends ISolarPanelArraySchema {
@@ -170,6 +174,13 @@ const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
     panel_model_data_snapshot: PanelProductSchema,
     panel_model_snapshot_date: Date,
     losses: Number,
+    sunroof_primary_orientation_side: Number,
+    sunroof_pitch: Number,
+    sunroof_azimuth: Number,
+    use_sunroof: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: false },
 );
@@ -517,9 +528,9 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray, adders, balanceOfSystems, ancillaryEquipments, keepouts } = data;
+    const { inverters, storage, panelArray = [], adders, balanceOfSystems, ancillaryEquipments, keepouts } = data;
     return {
-      panelArray: panelArray || [],
+      panelArray: panelArray,
       keepouts,
       inverters,
       storage,
