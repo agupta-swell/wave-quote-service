@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { PreAuthenticate } from '../app/securities';
 import { DocusignTemplateMasterService } from './docusign-template-master.service';
 import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
@@ -49,8 +50,8 @@ export class DocusignTemplateMasterController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Get Contract Composite Templates' })
   @ApiOkResponse({ type: GetContractCompositeTemplateRes })
-  async getContractCompositeTemplates(@Query('isChangeOrder') isChangeOrder?: boolean): Promise<ServiceResponse<GetContractCompositeTemplateDto>> {
-    const res = await this.docusignTemplateMasterService.getContractCompositeTemplates(isChangeOrder);
+  async getContractCompositeTemplates(@Query('type') type?: CONTRACT_TYPE): Promise<ServiceResponse<GetContractCompositeTemplateDto>> {
+    const res = await this.docusignTemplateMasterService.getContractCompositeTemplates(type);
     return ServiceResponse.fromResult(res);
   }
 

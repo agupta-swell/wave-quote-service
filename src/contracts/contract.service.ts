@@ -1,7 +1,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { sumBy } from 'lodash';
-import { ObjectId, Model, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
@@ -13,6 +13,7 @@ import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -25,6 +26,7 @@ import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } fro
 import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
+import { ContractReqDto } from './req/contract-req.dto';
 import {
   GetContractTemplatesDto,
   GetCurrentContractDto,
@@ -59,15 +61,10 @@ export class ContractService {
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
-    const primaryContractRecords = await this.contractModel
-      .find({
-        opportunityId,
-        contractType: CONTRACT_TYPE.PRIMARY,
-      })
-      .lean();
+    const contractRecords = await this.contractModel.find({ opportunityId }).lean();
 
     const contracts = await Promise.all(
-      primaryContractRecords?.map(async contract => {
+      contractRecords?.map(async contract => {
         const changeOrders = await this.contractModel
           .find({
             opportunityId,
@@ -153,6 +150,13 @@ export class ContractService {
     }
 
     if (mode === REQUEST_MODE.ADD) {
+      if (contractDetail.contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
+        const isValid = await this.validateNewGridServiceContract(contractDetail);
+        if (!isValid) {
+          throw new BadRequestException({ message: 'Not qualified for new GS Contract' });
+        }
+      }
+
       const contractTemplateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
         contractDetail.contractTemplateId,
       );
@@ -167,7 +171,6 @@ export class ContractService {
       const newlyUpdatedContract = new this.contractModel({
         ...details,
         contractTemplateDetail,
-        contractType: CONTRACT_TYPE.PRIMARY,
         contractingSystem: 'DOCUSIGN',
         contractStatus: PROCESS_STATUS.INITIATED,
       });
@@ -461,16 +464,23 @@ export class ContractService {
 
     const foundOpp = await this.opportunityService.getRelatedInformation(foundContract.opportunityId);
 
-    const { name } = foundContract.contractTemplateDetail?.compositeTemplateData;
-    const { firstName, lastName } = foundOpp.data as any;
+    let fileName: string;
+    switch (foundContract.contractType) {
+      case CONTRACT_TYPE.CHANGE_ORDER:
+        fileName = this.getChangeOrderDownloadName(foundContract, foundOpp);
+        break;
+      case CONTRACT_TYPE.NO_COST_CHANGE_ORDER:
+        fileName = this.getNoCostChangeOrderDownloadName(foundContract, foundOpp);
+        break;
+      default:
+        fileName = this.getPrimaryContractDownloadName(foundContract, foundOpp);
+    }
 
     const contract = await this.downloadDocusignContract(foundContract.contractingSystemReferenceId);
 
     if (!contract) {
       throw ApplicationException.NotFoundStatus('Contract Envelope', `${id.toString()}`);
     }
-
-    const fileName = `${lastName}-${firstName}-${name}.pdf`;
 
     return [fileName, contract];
   }
@@ -480,7 +490,7 @@ export class ContractService {
       .findOne(
         {
           opportunity_id: opportunityId,
-          contract_type: CONTRACT_TYPE.PRIMARY,
+          contract_type: CONTRACT_TYPE.PRIMARY_CONTRACT,
         },
         {},
         {
@@ -567,5 +577,94 @@ export class ContractService {
     }
 
     return OperationResult.ok({ success: res.status });
+  }
+
+  private getPrimaryContractDownloadName(
+    contract: Contract | LeanDocument<Contract>,
+    oppData: OperationResult<GetRelatedInformationDto>,
+  ): string {
+    let fileName: string;
+
+    const { firstName, lastName } = oppData.data!;
+    switch (contract.contractStatus) {
+      case PROCESS_STATUS.COMPLETED:
+        fileName = `${lastName}, ${firstName} - ${contract.name} - Signed.pdf`;
+        break;
+      default:
+        fileName = `${lastName}, ${firstName} - ${contract.name}.pdf`;
+    }
+
+    return fileName;
+  }
+
+  private getChangeOrderDownloadName(
+    contract: Contract | LeanDocument<Contract>,
+    oppData: OperationResult<GetRelatedInformationDto>,
+  ): string {
+    let fileName: string;
+
+    const { firstName, lastName } = oppData.data!;
+    switch (contract.contractStatus) {
+      case PROCESS_STATUS.COMPLETED:
+        fileName = `${lastName}, ${firstName} - ${contract.name} - Signed.pdf`;
+        break;
+      default:
+        fileName = `${lastName}, ${firstName} - ${contract.name}.pdf`;
+    }
+
+    return fileName;
+  }
+
+  private getNoCostChangeOrderDownloadName(
+    contract: Contract | LeanDocument<Contract>,
+    oppData: OperationResult<GetRelatedInformationDto>,
+  ): string {
+    let fileName: string;
+
+    const { firstName, lastName } = oppData.data!;
+    switch (contract.contractStatus) {
+      case PROCESS_STATUS.COMPLETED:
+        fileName = `${lastName}, ${firstName} - ${contract.name} - No Cost - Signed.pdf`;
+        break;
+      default:
+        fileName = `${lastName}, ${firstName} - ${contract.name} - No Cost.pdf`;
+    }
+
+    return fileName;
+  }
+
+  public async countContractsByPrimaryContractId(primaryContractId: string): Promise<number> {
+    const count = await this.contractModel.countDocuments({ primaryContractId });
+    return count;
+  }
+  async validateNewGridServiceContract(contractDetail: ContractReqDto): Promise<Boolean> {
+    const [relatedOpportunity, primaryContract] = await Promise.all([
+      this.opportunityService.getDetailById(contractDetail.opportunityId),
+      this.contractModel
+        .findOne(
+          {
+            opportunityId: contractDetail.opportunityId,
+            contractType: CONTRACT_TYPE.PRIMARY_CONTRACT,
+          },
+          {},
+          { sort: { createdAt: -1 } },
+        )
+        .lean(),
+    ]);
+
+    if (
+      !relatedOpportunity ||
+      (!relatedOpportunity.utilityProgramId && !relatedOpportunity.rebateProgramId) ||
+      !primaryContract
+    ) {
+      return false;
+    }
+
+    const associatedQuote = await this.quoteService.getOneById(primaryContract.associatedQuoteId);
+    if (!associatedQuote || !associatedQuote.quoteCostBuildup?.storageQuoteDetails?.length) {
+      return false;
+    }
+
+    return true;
   }
 }

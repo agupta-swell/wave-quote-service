@@ -101,7 +101,7 @@ export class FinancialProductsService {
         $lookup: {
           from: 'v2_quotes',
           let: {
-            fundingSourceId: '$funding_source_id',
+            financialProductId: '$_id',
           },
           pipeline: [
             {
@@ -109,15 +109,15 @@ export class FinancialProductsService {
                 $and: [
                   {
                     _id: quoteId,
-                    'detailed_quote.quote_finance_product.finance_product.funding_source_id': {
+                    'detailed_quote.quote_finance_product.finance_product.financial_product_snapshot._id': {
                       $exists: true,
                     },
                   },
                   {
                     $expr: {
                       $eq: [
-                        '$detailed_quote.quote_finance_product.finance_product.funding_source_id',
-                        '$$fundingSourceId',
+                        '$detailed_quote.quote_finance_product.finance_product.financial_product_snapshot._id',
+                        '$$financialProductId',
                       ],
                     },
                   },

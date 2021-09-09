@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { SYSTEM_TYPE } from '../constants';
 
 export const DOCUSIGN_COMPOSITE_TEMPLATE_MASTER = Symbol('DOCUSIGN_COMPOSITE_TEMPLATE_MASTER').toString();
@@ -7,7 +8,8 @@ export interface DocusignCompositeTemplateMaster extends Document {
   name: string;
   description: string;
   docusignTemplateIds: string[];
-  isApplicableForChangeOrders: boolean;
+  type: CONTRACT_TYPE;
+  applicableRebatePrograms: string[];
   applicableFundingSources: string[];
   applicableUtilityPrograms: string[];
   applicableUtilities: string[];
@@ -17,6 +19,7 @@ export interface DocusignCompositeTemplateMaster extends Document {
   createdAt: Date;
   updatedBy: string;
   updatedAt: Date;
+  filenameForDownloads?: string;
 }
 
 export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<DocusignCompositeTemplateMaster>(
@@ -24,7 +27,8 @@ export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<Docusig
     name: String,
     description: String,
     docusign_template_ids: [String],
-    is_applicable_for_change_orders: Boolean,
+    type: String,
+    applicable_rebate_programs: [String],
     applicable_funding_sources: [String],
     applicable_utility_programs: [String],
     applicable_utilities: [String],
@@ -34,6 +38,10 @@ export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<Docusig
     created_by: String,
     updated_at: { type: Date, default: Date.now },
     updated_by: String,
+    filename_for_downloads: {
+      type: String,
+      required: false
+    },
   },
   { _id: false },
 );
@@ -42,7 +50,9 @@ export const DocusignCompositeTemplateMasterSchema = new Schema<DocusignComposit
   name: String,
   description: String,
   docusign_template_ids: [String],
-  is_applicable_for_change_orders: Boolean,
+  type: String,
+  filename_for_downloads: String,
+  applicable_rebate_programs: [String],
   applicable_funding_sources: [String],
   applicable_utility_programs: [String],
   applicable_utilities: [String],

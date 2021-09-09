@@ -1,6 +1,8 @@
 export enum CONTRACT_TYPE {
-  PRIMARY = 'PRIMARY',
+  PRIMARY_CONTRACT = 'PRIMARY_CONTRACT',
+  GRID_SERVICES_AGREEMENT = 'GRID_SERVICES_AGREEMENT',
   CHANGE_ORDER = 'CHANGE_ORDER',
+  NO_COST_CHANGE_ORDER = 'NO_COST_CHANGE_ORDER',
 }
 
 export enum SIGN_STATUS {
@@ -19,3 +21,7 @@ export enum REQUEST_MODE {
   ADD = 'ADD',
   UPDATE = 'UPDATE',
 }
+
+export const KEYS = {
+  CONTRACT_TYPE: Symbol.for('contractType'),
+};

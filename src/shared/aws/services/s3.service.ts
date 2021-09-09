@@ -15,7 +15,7 @@ export class S3Service {
   }
 
   public async getUrl(bucketName: string, fileName: string, opts: IS3GetUrlOptions = {}): Promise<string> {
-    const { downloadable, expires, extName, responseContentType, rootDir } = opts;
+    const { downloadable, expires, extName, responseContentType, rootDir, alias } = opts;
     const fileNameWithExt = extName ? `${fileName}.${extName}` : fileName;
 
     let extractedExt = extName;
@@ -48,9 +48,15 @@ export class S3Service {
 
     if (expires) params.Expires = expires;
 
-    if (attachment) params.ResponseContentDisposition = attachment;
-
     if (contentType) params.ResponseContentType = contentType;
+
+    if (alias) {
+      if (attachment) {
+        params.ResponseContentDisposition = `attachment; fileName="${alias}"`;
+      } else params.ResponseContentDisposition = `inline; fileName="${alias}"`;
+    } else {
+      if (attachment) params.ResponseContentDisposition = attachment;
+    }
 
     return this.S3.getSignedUrlPromise('getObject', params);
   }
@@ -210,10 +216,12 @@ export class S3Service {
   }
 
   private buildObjectKey(fileName: string, fileNameWithExt: string, rootDir?: string | boolean): string {
-    if (!rootDir) return fileNameWithExt;
+    if (!rootDir) return decodeURIComponent(fileNameWithExt);
 
-    if (typeof rootDir === 'string') return `${rootDir}/${fileNameWithExt}`;
+    if (typeof rootDir === 'string') return decodeURIComponent(`${rootDir}/${fileNameWithExt}`);
 
-    return `${fileName}/${fileNameWithExt}`;
+    const encodedKey = `${fileName}/${fileNameWithExt}`;
+
+    return decodeURIComponent(encodedKey);
   }
 }

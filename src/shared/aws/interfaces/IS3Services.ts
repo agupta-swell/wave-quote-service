@@ -32,6 +32,8 @@ export interface IS3GetUrlOptions extends IS3RootDir {
    * `false` do nothing
    */
   responseContentType?: boolean | string;
+
+  alias?: string;
 }
 
 export interface IS3GetLocationFromUrlResult {

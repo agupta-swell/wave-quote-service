@@ -1,12 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { SIGN_STATUS } from 'src/contracts/constants';
-import { IsDateString, IsEmail, IsEnum, IsMongoId, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsMongoId,
+  IsOptional,
+  IsString,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 
 export class TemplateDetailDto {
   @ApiProperty()
   @IsMongoId()
   id: string;
+
+  @ApiProperty()
+  @IsMongoId()
+  compositeTemplateId: string;
 }
 
 export class SignerDetailDto {
@@ -27,6 +40,7 @@ export class SignerDetailDto {
   lastName: string;
 
   @ApiProperty()
+  @ValidateIf((_, v) => v)
   @IsEmail()
   email: string;
 
