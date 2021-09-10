@@ -116,4 +116,34 @@ export class FinanceProductDetailDto {
   @IsNotEmpty()
   @IsNumber()
   dealerFee: number;
+
+  @ApiProperty()
+  minBatteryReserve: number;
+
+  @ApiProperty()
+  maxBatteryReserve: number;
+
+  @ApiProperty()
+  minClippingRatio: number;
+
+  @ApiProperty()
+  maxClippingRatio: number;
+
+  @ApiProperty()
+  minMarkup: number;
+
+  @ApiProperty()
+  maxMarkup: number;
+
+  @ApiProperty()
+  requiresHardCreditApproval: boolean;
+
+  @ApiProperty()
+  countersignerName: string;
+
+  @ApiProperty()
+  countersignerTitle: string;
+
+  @ApiProperty()
+  countersignerEmail: string;
 }
