@@ -25,7 +25,7 @@ export class FinancialProductsService {
     systemDesignId: ObjectId,
   ): Promise<OperationResult<Pagination<FinancialProductDto>>> {
     const [financialProducts, total] = await Promise.all([
-      this.financialProduct.find().limit(limit).skip(skip).lean(),
+      this.financialProduct.find({ isActive: true }).limit(limit).skip(skip).lean(),
       this.financialProduct.countDocuments().lean(),
     ]);
 
@@ -59,6 +59,7 @@ export class FinancialProductsService {
       _id: {
         $in: ids.map(Types.ObjectId),
       },
+      isActive: true
     });
 
     return res;
