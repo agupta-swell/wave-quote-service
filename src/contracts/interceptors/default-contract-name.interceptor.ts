@@ -31,7 +31,8 @@ export class DefaultContractNameInterceptor implements NestInterceptor {
 
     if (body.mode === REQUEST_MODE.UPDATE) return next.handle();
 
-    const contractType = this.reflector.get<CONTRACT_TYPE>(KEYS.CONTRACT_TYPE, context.getHandler());
+    const contractType =
+      this.reflector.get<CONTRACT_TYPE>(KEYS.CONTRACT_TYPE, context.getHandler()) ?? body.contractDetail.contractType;
 
     let name: string | undefined;
 

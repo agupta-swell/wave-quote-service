@@ -51,8 +51,9 @@ export class ContractController {
   async getContractTemplates(
     @Query('opportunity-id') opportunityId: string,
     @Query('funding-source-id') fundingSourceId: string,
+    @Query('rebate-program-id') rebateProgramId: string,
   ): Promise<ServiceResponse<GetContractTemplatesDto>> {
-    const res = await this.contractService.getContractTemplates(opportunityId, fundingSourceId);
+    const res = await this.contractService.getContractTemplates(opportunityId, fundingSourceId, rebateProgramId);
     return ServiceResponse.fromResult(res);
   }
 
@@ -69,7 +70,7 @@ export class ContractController {
   @Post()
   @UsePipes(ValidationPipe)
   @UseDefaultFinancier()
-  @UseDefaultContractName(CONTRACT_TYPE.PRIMARY_CONTRACT)
+  @UseDefaultContractName()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveContractRes })
   async saveContract(

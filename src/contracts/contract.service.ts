@@ -86,6 +86,7 @@ export class ContractService {
   async getContractTemplates(
     opportunityId: string,
     fundingSourceId: string,
+    rebateProgramId?: string,
   ): Promise<OperationResult<GetContractTemplatesDto>> {
     const opportunityData = await this.opportunityService.getDetailById(opportunityId);
 
@@ -105,11 +106,16 @@ export class ContractService {
     const utilityProgramId =
       (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || null;
 
-    const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
-      [fundingSourceId],
-      [utilityId],
-      [utilityProgramId],
-    );
+    const templateMasterRecords = rebateProgramId
+      ? await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
+          [utilityProgramId],
+          [rebateProgramId],
+        )
+      : await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
+          [fundingSourceId],
+          [utilityId],
+          [utilityProgramId],
+        );
 
     return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
   }

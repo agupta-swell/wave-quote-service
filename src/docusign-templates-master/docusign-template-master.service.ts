@@ -317,6 +317,20 @@ export class DocusignTemplateMasterService {
     return res;
   }
 
+  async getDocusignCompositeTemplateMasterForGSA(
+    utilityPrograms: string[],
+    rebatePrograms: string[],
+  ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
+    const res = await this.docusignCompositeTemplateMasterModel
+      .find({
+        applicableUtilityPrograms: { $in: utilityPrograms },
+        applicableRebatePrograms: { $in: rebatePrograms },
+      })
+      .lean();
+
+    return res;
+  }
+
   async getCompositeTemplateById(
     compositeTemplateId: string,
   ): Promise<{
@@ -375,5 +389,4 @@ export class DocusignTemplateMasterService {
 
     return found;
   }
-  // ===================== INTERNAL =====================
 }
