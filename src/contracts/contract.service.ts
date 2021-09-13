@@ -313,13 +313,46 @@ export class ContractService {
   async saveChangeOrder(req: SaveChangeOrderReqDto): Promise<OperationResult<SaveChangeOrderDto>> {
     const { mode, contractDetail } = req;
 
-    if (mode === REQUEST_MODE.ADD && contractDetail.id) {
-      return OperationResult.ok(
-        strictPlainToClass(SaveChangeOrderDto, {
-          status: false,
-          statusDescription: 'Add request cannot have an id value',
-        }),
-      );
+    if (mode === REQUEST_MODE.ADD) {
+      if (contractDetail.id) {
+        return OperationResult.ok(
+          strictPlainToClass(SaveChangeOrderDto, {
+            status: false,
+            statusDescription: 'Add request cannot have an id value',
+          }),
+        );
+      }
+
+      const [primaryContract, previousChangeOrderContracts] = await Promise.all([
+        this.contractModel
+          .findOne(
+            {
+              opportunityId: contractDetail.opportunityId,
+              contractType: CONTRACT_TYPE.PRIMARY_CONTRACT,
+            },
+            {},
+            { sort: { createdAt: -1 } },
+          )
+          .lean(),
+        this.contractModel
+          .find({
+            opportunityId: contractDetail.opportunityId,
+            contractType: CONTRACT_TYPE.CHANGE_ORDER,
+          })
+          .lean(),
+      ]);
+
+      if (
+        primaryContract?.contractStatus !== PROCESS_STATUS.COMPLETED ||
+        previousChangeOrderContracts.some(contract => contract.contractStatus !== PROCESS_STATUS.COMPLETED)
+      ) {
+        return OperationResult.ok(
+          strictPlainToClass(SaveChangeOrderDto, {
+            status: false,
+            statusDescription: 'Not qualified to create Change Order contract',
+          }),
+        );
+      }
     }
 
     if (mode === REQUEST_MODE.UPDATE && !contractDetail.id) {
