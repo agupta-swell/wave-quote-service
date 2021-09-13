@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
 import { CONTRACT_TYPE } from '../constants';
 import { SignerDetailDto } from './sub-dto/signer-detail.dto';
 
@@ -37,6 +37,9 @@ export class ContractReqDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @ValidateIf(
+    obj => obj.contractType === CONTRACT_TYPE.CHANGE_ORDER || obj.contractType === CONTRACT_TYPE.NO_COST_CHANGE_ORDER,
+  )
   primaryContractId: string;
 
   @ApiPropertyOptional()
@@ -44,6 +47,6 @@ export class ContractReqDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsString()
+  @IsEnum(CONTRACT_TYPE)
   contractType: CONTRACT_TYPE;
 }

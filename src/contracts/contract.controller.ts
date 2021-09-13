@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
@@ -7,7 +7,7 @@ import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
 import { UseDefaultContractName } from './interceptors';
-import { UseDefaultFinancier } from './pipes';
+import { SignerValidationPipe, UseDefaultFinancier } from './pipes';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
   GetContractTemplatesDto,
@@ -67,11 +67,15 @@ export class ContractController {
   }
 
   @Post()
+  @UsePipes(ValidationPipe)
   @UseDefaultFinancier()
   @UseDefaultContractName(CONTRACT_TYPE.PRIMARY_CONTRACT)
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveContractRes })
-  async saveContract(@Body() contractReq: SaveContractReqDto): Promise<ServiceResponse<SaveContractDto>> {
+  async saveContract(
+    @Body(SignerValidationPipe)
+    contractReq: SaveContractReqDto,
+  ): Promise<ServiceResponse<SaveContractDto>> {
     const res = await this.contractService.saveContract(contractReq);
     return ServiceResponse.fromResult(res);
   }
