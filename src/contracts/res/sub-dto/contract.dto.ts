@@ -63,4 +63,7 @@ export class ContractResDto {
 
   @ExposeProp()
   updatedAt: Date;
+
+  @ExposeProp()
+  systemDesignId: string;
 }
