@@ -85,8 +85,8 @@ export class ContractService {
 
   async getContractTemplates(
     opportunityId: string,
-    fundingSourceId: string,
-    rebateProgramId?: string,
+    fundingSourceId?: string,
+    contractType?: CONTRACT_TYPE,
   ): Promise<OperationResult<GetContractTemplatesDto>> {
     const opportunityData = await this.opportunityService.getDetailById(opportunityId);
 
@@ -101,21 +101,30 @@ export class ContractService {
       .split('-')
       .map(x => x.trim());
 
-    const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id?.toString() || '';
-
     const utilityProgramId =
       (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || null;
 
-    const templateMasterRecords = rebateProgramId
-      ? await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
-          [utilityProgramId],
-          [rebateProgramId],
-        )
-      : await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
-          [fundingSourceId],
-          [utilityId],
-          [utilityProgramId],
-        );
+    if (contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
+      const rebateProgramId = opportunityData.rebateProgramId || (null as any);
+      const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
+        [utilityProgramId, 'ALL'],
+        [rebateProgramId, 'ALL'],
+      );
+
+      return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
+    }
+
+    if (!fundingSourceId) {
+      throw ApplicationException.ValidationFailed('fundingSourceId is required');
+    }
+
+    const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id?.toString() || '';
+
+    const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
+      [fundingSourceId],
+      [utilityId],
+      [utilityProgramId],
+    );
 
     return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
   }
