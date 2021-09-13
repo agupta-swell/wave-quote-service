@@ -105,9 +105,8 @@ export class ContractController {
     const [fileName, contract] = await this.contractService.getContractDownloadData(id);
     res
       .code(200)
-      .header('Access-Control-Expose-Headers', 'Content-Disposition')
-      .header('Content-Disposition', `${fileName}`)
-      .header('Content-Length', `${contract.headers['content-length']}`)
+      .header('Access-Control-Expose-Headers', 'X-Wave-Download-Filename')
+      .header('X-Wave-Download-Filename', fileName)
       .type('application/pdf')
       .send(contract);
   }
