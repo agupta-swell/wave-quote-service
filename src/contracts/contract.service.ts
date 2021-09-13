@@ -401,10 +401,8 @@ export class ContractService {
         contractDetail.contractTemplateId,
       );
 
-      const { changeOrderDescription: _, ...details } = contractDetail;
-
       const model = new this.contractModel({
-        ...details,
+        ...contractDetail,
         contractType: CONTRACT_TYPE.CHANGE_ORDER,
         contractTemplateDetail: templateDetail,
         contractingSystem: 'DOCUSIGN',
