@@ -308,6 +308,7 @@ export class DocusignTemplateMasterService {
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({
+        type: { $ne: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT },
         applicableFundingSources: { $in: fundingSources },
         applicableUtilities: { $in: utilities },
         applicableUtilityPrograms: { $in: utilityPrograms },
@@ -323,6 +324,7 @@ export class DocusignTemplateMasterService {
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({
+        type: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
         applicableUtilityPrograms: { $in: utilityPrograms },
         applicableRebatePrograms: { $in: rebatePrograms },
       })
