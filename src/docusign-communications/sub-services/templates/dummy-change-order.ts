@@ -36,6 +36,6 @@ export const getDummyChangeOrder: TemplateDataBuilder = ({ financialProduct, con
     ProductSummary: ['Product Summary:', panelSummary, inverterSummary, storageSummary, ancillarySummary]
       .filter(item => !!item)
       .join('\n'),
-    ChangeOrderDescription: 'Change Order description:\n' + contract!.changeOrderDescription,
+    ChangeOrderDescription: 'Change Order description:\n' + (contract!.changeOrderDescription ?? ''),
   } as any;
 };
