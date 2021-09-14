@@ -284,6 +284,7 @@ export class ContractService {
       utilityProgramMaster,
       leaseSolverConfig,
       financialProduct,
+      contract,
     };
 
     const sentOn = new Date();
