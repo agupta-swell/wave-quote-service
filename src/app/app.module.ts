@@ -37,6 +37,7 @@ import { MongooseNamingStrategyLoader } from 'src/shared/plugins/mongoose/naming
 import { ENaming, MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
+import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 
 @Global()
 @Module({
@@ -57,6 +58,7 @@ import { SavingCalculationModule } from '../saving-calculations/saving-calculati
         .addCustomMapping('systemCapacityKW', 'system_capacity_kW'),
     ),
     AwsModule,
+    GoogleSunroofModule,
     AccountModule,
     AdderConfigModule,
     AuthencationModule,

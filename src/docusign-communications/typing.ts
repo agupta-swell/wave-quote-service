@@ -1,6 +1,6 @@
 import { LeanDocument } from 'mongoose';
 import { Contact } from 'src/contacts/contact.schema';
-import { ISignerDetailDataSchema } from 'src/contracts/contract.schema';
+import { Contract, ISignerDetailDataSchema } from 'src/contracts/contract.schema';
 import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
@@ -69,6 +69,7 @@ export interface IGenericObject {
   utilityProgramMaster: LeanDocument<UtilityProgramMaster> | null;
   leaseSolverConfig: LeaseSolverConfig | null;
   financialProduct?: LeanDocument<FinancialProduct>;
+  contract?: LeanDocument<Contract>;
 }
 
 export interface IDefaultContractor {
@@ -181,6 +182,10 @@ export interface IDocusignTemplateMapping {
   PAYMENT_SCHEDULE_X10: string;
   DUMMY_PRIMARY_CONTRACT: string;
   DUMMY_CHANGE_ORDER: string;
+  DUMMY_GSA: string;
+  DUMMY_ACES_PA: string;
+  DUMMY_PRP2_PA: string;
+  DUMMY_SGIP_PA: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;

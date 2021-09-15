@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
@@ -7,7 +7,7 @@ import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
 import { UseDefaultContractName } from './interceptors';
-import { UseDefaultFinancier } from './pipes';
+import { SignerValidationPipe, UseDefaultFinancier } from './pipes';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
   GetContractTemplatesDto,
@@ -51,8 +51,9 @@ export class ContractController {
   async getContractTemplates(
     @Query('opportunity-id') opportunityId: string,
     @Query('funding-source-id') fundingSourceId: string,
+    @Query('contract-type') contractType: CONTRACT_TYPE,
   ): Promise<ServiceResponse<GetContractTemplatesDto>> {
-    const res = await this.contractService.getContractTemplates(opportunityId, fundingSourceId);
+    const res = await this.contractService.getContractTemplates(opportunityId, fundingSourceId, contractType);
     return ServiceResponse.fromResult(res);
   }
 
@@ -67,11 +68,15 @@ export class ContractController {
   }
 
   @Post()
+  @UsePipes(ValidationPipe)
   @UseDefaultFinancier()
-  @UseDefaultContractName(CONTRACT_TYPE.PRIMARY_CONTRACT)
+  @UseDefaultContractName()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveContractRes })
-  async saveContract(@Body() contractReq: SaveContractReqDto): Promise<ServiceResponse<SaveContractDto>> {
+  async saveContract(
+    @Body(SignerValidationPipe)
+    contractReq: SaveContractReqDto,
+  ): Promise<ServiceResponse<SaveContractDto>> {
     const res = await this.contractService.saveContract(contractReq);
     return ServiceResponse.fromResult(res);
   }
@@ -101,9 +106,8 @@ export class ContractController {
     const [fileName, contract] = await this.contractService.getContractDownloadData(id);
     res
       .code(200)
-      .header('Access-Control-Expose-Headers', 'Content-Disposition')
-      .header('Content-Disposition', `${fileName}`)
-      .header('Content-Length', `${contract.headers['content-length']}`)
+      .header('Access-Control-Expose-Headers', 'X-Wave-Download-Filename')
+      .header('X-Wave-Download-Filename', fileName)
       .type('application/pdf')
       .send(contract);
   }

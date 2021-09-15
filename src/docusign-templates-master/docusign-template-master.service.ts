@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -230,6 +230,14 @@ export class DocusignTemplateMasterService {
       );
     }
 
+    if (
+      (req.compositeTemplateData.type === CONTRACT_TYPE.PRIMARY_CONTRACT ||
+        req.compositeTemplateData.type === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) &&
+      !req.compositeTemplateData.filenameForDownloads
+    ) {
+      throw new BadRequestException('Filename for Downloads is required');
+    }
+
     const model = await this.docusignCompositeTemplateMasterModel
       .findOneAndUpdate(
         { _id: req.compositeTemplateData.id || Types.ObjectId() },
@@ -300,9 +308,25 @@ export class DocusignTemplateMasterService {
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({
+        type: { $ne: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT },
         applicableFundingSources: { $in: fundingSources },
         applicableUtilities: { $in: utilities },
         applicableUtilityPrograms: { $in: utilityPrograms },
+      })
+      .lean();
+
+    return res;
+  }
+
+  async getDocusignCompositeTemplateMasterForGSA(
+    utilityPrograms: string[],
+    rebatePrograms: string[],
+  ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
+    const res = await this.docusignCompositeTemplateMasterModel
+      .find({
+        type: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
+        applicableUtilityPrograms: { $in: utilityPrograms },
+        applicableRebatePrograms: { $in: rebatePrograms },
       })
       .lean();
 
@@ -367,5 +391,4 @@ export class DocusignTemplateMasterService {
 
     return found;
   }
-  // ===================== INTERNAL =====================
 }

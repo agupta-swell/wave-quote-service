@@ -71,4 +71,16 @@ export class SolarPanelArrayDto {
 
   @ExposeProp()
   losses: number;
+
+  @ExposeProp()
+  useSunroof: boolean;
+
+  @ExposeProp()
+  sunroofPrimaryOrientationSide?: number;
+
+  @ExposeProp()
+  sunroofPitch?: number;
+
+  @ExposeProp()
+  sunroofAzimuth?: number;
 }

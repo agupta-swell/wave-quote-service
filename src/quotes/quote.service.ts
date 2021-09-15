@@ -6,7 +6,6 @@ import { differenceBy, groupBy, isNil, omit, omitBy, pickBy, sumBy, uniq } from 
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
-import { FinancialProductDto } from 'src/financial-products/res/financial-product.dto';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
@@ -1050,6 +1049,11 @@ export class QuoteService {
           .lean()
       : [];
 
+    if (data.quoteFinanceProduct.financeProduct.financialProductSnapshot.id) {
+      (<any>data.quoteFinanceProduct.financeProduct.financialProductSnapshot)._id = new Types.ObjectId(
+        data.quoteFinanceProduct.financeProduct.financialProductSnapshot.id,
+      );
+    }
     const detailedQuote = {
       ...data,
       systemProduction: systemDesign.systemProductionData,
@@ -1065,8 +1069,6 @@ export class QuoteService {
     model.setIsSync(data.isSync);
 
     const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
-
-    // removedUndefined.detailedQuote?.quoteFinanceProduct.incentiveDetails
 
     const savedQuote = await this.quoteModel
       .findByIdAndUpdate(

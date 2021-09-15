@@ -10,14 +10,18 @@ import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
+import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
+import { IGetBuildingResult } from 'src/shared/google-sunroof/interfaces';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
 import { AdderConfigService } from '../adder-config/adder-config.service';
 import { ProductService } from '../products/product.service';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { COST_UNIT_TYPE, DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
 import {
+  CalculateSunroofDto,
   CreateSystemDesignDto,
   ExistingSolarDataDto,
   GetInverterClippingDetailDto,
@@ -25,6 +29,7 @@ import {
   UpdateSystemDesignDto,
 } from './req';
 import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
+import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
@@ -54,6 +59,7 @@ export class SystemDesignService {
     private readonly proposalService: ProposalService,
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
+    private readonly googleSunroofService: GoogleSunroofService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -101,19 +107,20 @@ export class SystemDesignService {
         flatten([
           this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
           systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
-            item.arrayId = Types.ObjectId();
+            item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
             const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
             item.panelModelId = panelModelId;
             const panelModelData = await this.productService.getDetailById(panelModelId);
             const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
             systemDesign.setPanelModelDataSnapshot(data, index);
             const capacity = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
+            const { useSunroof, sunroofAzimuth, sunroofPitch, azimuth, pitch } = item;
             const acAnnual = await this.systemProductService.pvWatCalculation({
               lat: systemDesign.latitude,
               lon: systemDesign.longitude,
-              azimuth: item.azimuth,
+              azimuth: useSunroof && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
               systemCapacity: capacity,
-              tilt: item.pitch,
+              tilt: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
               losses: item.losses,
             });
             cumulativeGenerationKWh += acAnnual;
@@ -285,6 +292,7 @@ export class SystemDesignService {
     systemDesign.setCostPostInstallation(costPostInstallation);
 
     const createdSystemDesign = new this.systemDesignModel(systemDesign);
+
     await createdSystemDesign.save();
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, createdSystemDesign.toJSON()));
@@ -321,19 +329,20 @@ export class SystemDesignService {
 
       const handlers = [
         systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
-          item.arrayId = Types.ObjectId();
+          item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
           const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
           item.panelModelId = panelModelId;
           const panelModelData = await this.productService.getDetailById(panelModelId);
           const data = { ...panelModelData, part_number: panelModelData?.partNumber } as any;
           systemDesign.setPanelModelDataSnapshot(data, index);
           const capacity = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
+          const { azimuth, pitch, useSunroof, sunroofPitch, sunroofAzimuth } = item;
           const acAnnual = await this.systemProductService.pvWatCalculation({
             lat: systemDesign.latitude,
             lon: systemDesign.longitude,
-            azimuth: item.azimuth,
+            azimuth: useSunroof && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
             systemCapacity: capacity,
-            tilt: item.pitch,
+            tilt: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
             losses: item.losses,
           });
           cumulativeGenerationKWh += acAnnual;
@@ -919,5 +928,119 @@ export class SystemDesignService {
     }
 
     return false;
+  }
+
+  private async getSunRoofData(
+    lat: number,
+    lng: number,
+    opportunityId: string,
+  ): Promise<IGetBuildingResult | undefined> {
+    try {
+      const fileName = `${opportunityId}/closestBuilding.json`;
+
+      const existed = await this.googleSunroofService.hasS3File(fileName);
+
+      if (!existed) {
+        const data = await this.googleSunroofService.getBuilding(lat, lng, fileName);
+
+        return data.payload;
+      }
+
+      const found = await this.googleSunroofService.getS3File<IGetBuildingResult>(fileName);
+      return found;
+    } catch (_) {
+      return undefined;
+    }
+  }
+
+  private getSunroofPitchAndAzimuth(
+    buildingData: IGetBuildingResult,
+    centerLat: number,
+    centerLng: number,
+    sideAzimuths: number[],
+  ): {
+    sunroofPrimaryOrientationSide?: number;
+    sunroofPitch?: number;
+    sunroofAzimuth?: number;
+  } {
+    if (!Array.isArray(buildingData?.solarPotential?.roofSegmentStats)) {
+      return {};
+    }
+
+    const closestSegment = buildingData.solarPotential.roofSegmentStats
+      .map(e => {
+        const distance = calcCoordinatesDistance(
+          {
+            lat: centerLat,
+            lng: centerLng,
+          },
+          {
+            lat: e.center.latitude,
+            lng: e.center.longitude,
+          },
+        );
+
+        return {
+          ...e,
+          distance,
+        };
+      })
+      .sort((a, b) => a.distance - b.distance)[0];
+
+    if (!closestSegment.azimuthDegrees) {
+      return {};
+    }
+
+    const closestSide = sideAzimuths
+      .map((e, idx) => ({
+        side: idx + 1,
+        val: Math.abs(closestSegment.azimuthDegrees - e),
+      }))
+      .sort((a, b) => a.val - b.val)[0].side;
+
+    return {
+      sunroofPrimaryOrientationSide: closestSide,
+      sunroofPitch: closestSegment.pitchDegrees,
+      sunroofAzimuth: closestSegment.azimuthDegrees,
+    };
+  }
+
+  private async setSunroofData(
+    systemDesignModel: SystemDesign,
+    panelArrayReq: {
+      centerLat: number;
+      centerLng: number;
+      sideAzimuths: number[];
+    }[],
+  ): Promise<void> {
+    const sunroofData = await this.getSunRoofData(
+      systemDesignModel.latitude,
+      systemDesignModel.longitude,
+      systemDesignModel.opportunityId,
+    );
+
+    if (!sunroofData) return;
+
+    systemDesignModel.roofTopDesignData.panelArray.forEach((e, idx) => {
+      const { centerLat, centerLng, sideAzimuths } = panelArrayReq[idx];
+
+      const sunroofRes = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
+
+      assignToModel(systemDesignModel.roofTopDesignData.panelArray[idx], sunroofRes);
+    });
+  }
+
+  public async calculateSunroofData(req: CalculateSunroofDto): Promise<OperationResult<CalculateSunroofResDto>> {
+    const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths } = req;
+
+    const sunroofData = await this.getSunRoofData(latitude, longitude, opportunityId);
+
+    if (!sunroofData) {
+      return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));
+    }
+
+    const res = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
+
+    return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, res));
   }
 }

@@ -15,6 +15,13 @@ export class DocusignTemplateService {
       throw new Error(`No mapping for DocuSign template id: ${docusignTemplateId}`);
     }
     const tabs = templateBuilderMap[docusignTemplateId](genericObject, defaultContractor);
-    return { textTabs: [tabs] };
+
+    // https://developers.docusign.com/docs/esign-rest-api/reference/envelopes/enveloperecipienttabs/#tab-types
+    const textTabs = Object.keys(tabs).map(key => ({
+      tabLabel: `\\*${key}`,
+      value: tabs[key],
+    }));
+
+    return { textTabs };
   }
 }

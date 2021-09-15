@@ -107,7 +107,7 @@ export const ContractSchema = new Schema<Contract>({
   contracting_system: String,
   primary_contract_id: String,
   contract_status: String,
-  chnage_order_description: String,
+  change_order_description: String,
   completion_date: String,
   contracting_system_reference_id: String,
 

@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { AwsModule } from 'src/shared/aws/aws.module';
+import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import {
   PvWattSystemProductionSchema,
   PV_WATT_SYSTEM_PRODUCTION,
@@ -34,6 +35,7 @@ import { SystemDesignService } from './system-design.service';
       },
     ]),
     AwsModule,
+    GoogleSunroofModule,
   ],
   controllers: [SystemDesignController],
   providers: [SystemDesignService, SystemProductService, UploadImageService],

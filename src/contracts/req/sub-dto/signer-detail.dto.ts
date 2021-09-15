@@ -13,17 +13,17 @@ export class SignerDetailDto {
   role: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   firstName: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   lastName: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   email: string;
 

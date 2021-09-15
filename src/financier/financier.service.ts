@@ -18,6 +18,7 @@ export class FinancierService {
         _id: {
           $in: <any>ids.map(Types.ObjectId),
         },
+        isActive: true
       })
       .lean();
 

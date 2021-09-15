@@ -69,4 +69,34 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   dealerFee: number;
+
+  @ExposeProp()
+  minBatteryReserve: number;
+
+  @ExposeProp()
+  maxBatteryReserve: number;
+
+  @ExposeProp()
+  minClippingRatio: number;
+
+  @ExposeProp()
+  maxClippingRatio: number;
+
+  @ExposeProp()
+  minMarkup: number;
+
+  @ExposeProp()
+  maxMarkup: number;
+
+  @ExposeProp()
+  requiresHardCreditApproval: boolean;
+
+  @ExposeProp()
+  countersignerName: string;
+
+  @ExposeProp()
+  countersignerTitle: string;
+
+  @ExposeProp()
+  countersignerEmail: string;
 }

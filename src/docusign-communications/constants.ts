@@ -25,6 +25,10 @@ export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplate
     PAYMENT_SCHEDULE_X10: '0',
     DUMMY_CHANGE_ORDER: 'f880c5fa-28eb-4b63-b974-3e5290792ef9',
     DUMMY_PRIMARY_CONTRACT: '67aa9e1d-aaef-46db-8f70-e23f392a10b2',
+    DUMMY_GSA: '6ae2b971-373d-4db1-8c20-758dda9c77d9',
+    DUMMY_ACES_PA: 'ffaf103b-4957-47bb-835a-61035b0d0274',
+    DUMMY_PRP2_PA: '3d23bf08-36fc-48d1-a8be-81495e4da4a2',
+    DUMMY_SGIP_PA: '254881b3-9c75-43bb-a5a9-5206897d5c1a',
   },
   demo: {
     CA_CONSUMER_GUIDE: '50bf8fd6-cf25-4ee0-b63d-2720e66a4789',
@@ -50,6 +54,10 @@ export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplate
     PAYMENT_SCHEDULE_X10: 'd7758c3f-82bc-4d7d-93f2-2c939c661f18',
     DUMMY_CHANGE_ORDER: 'f880c5fa-28eb-4b63-b974-3e5290792ef9',
     DUMMY_PRIMARY_CONTRACT: '67aa9e1d-aaef-46db-8f70-e23f392a10b2',
+    DUMMY_GSA: '6ae2b971-373d-4db1-8c20-758dda9c77d9',
+    DUMMY_ACES_PA: 'ffaf103b-4957-47bb-835a-61035b0d0274',
+    DUMMY_PRP2_PA: '3d23bf08-36fc-48d1-a8be-81495e4da4a2',
+    DUMMY_SGIP_PA: '254881b3-9c75-43bb-a5a9-5206897d5c1a',
   },
   live: {
     CA_CONSUMER_GUIDE: '0',
@@ -75,5 +83,9 @@ export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplate
     PAYMENT_SCHEDULE_X10: '1',
     DUMMY_CHANGE_ORDER: '1',
     DUMMY_PRIMARY_CONTRACT: '1',
+    DUMMY_GSA: '0',
+    DUMMY_ACES_PA: '0',
+    DUMMY_PRP2_PA: '0',
+    DUMMY_SGIP_PA: '0',
   },
 };

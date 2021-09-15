@@ -1,7 +1,6 @@
-import { PipeTransform, Injectable, ArgumentMetadata } from '@nestjs/common';
-import { Types } from 'mongoose';
+import { PipeTransform, Injectable, ArgumentMetadata, NotFoundException } from '@nestjs/common';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
-import { FinancialProductsService } from 'src/financial-products/financial-product.service';
+import { QuoteService } from 'src/quotes/quote.service';
 import { REQUEST_MODE } from '../constants';
 import { SaveContractReqDto } from '../req';
 
@@ -11,7 +10,7 @@ export class DefaultFinancierPipe implements PipeTransform<SaveContractReqDto, P
 
   constructor(
     private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
-    private readonly financialProductsService: FinancialProductsService,
+    private readonly quoteService: QuoteService,
   ) {}
 
   async cacheFinancierRoleId(): Promise<string> {
@@ -37,9 +36,11 @@ export class DefaultFinancierPipe implements PipeTransform<SaveContractReqDto, P
 
     const financierId = this._financierRoleId || (await this.cacheFinancierRoleId());
 
-    const countersigner = await this.financialProductsService.getOneByQuoteId(
-      new Types.ObjectId(value.contractDetail.associatedQuoteId) as any,
-    );
+    const foundQuote = await this.quoteService.getOneById(value.contractDetail.associatedQuoteId);
+
+    if (!foundQuote) throw new NotFoundException(`No quote found with id ${value.contractDetail.associatedQuoteId}`);
+
+    const countersigner = foundQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
     if (!countersigner) {
       return value;

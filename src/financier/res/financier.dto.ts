@@ -6,4 +6,7 @@ export class FinancierDto {
 
   @ExposeProp()
   name: string;
+
+  @ExposeProp()
+  isActive: boolean
 }
