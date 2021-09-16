@@ -7,7 +7,7 @@ import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
 import { UseDefaultContractName } from './interceptors';
-import { SignerValidationPipe, UseDefaultFinancier } from './pipes';
+import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier } from './pipes';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
   GetContractTemplatesDto,
@@ -91,11 +91,14 @@ export class ContractController {
   }
 
   @Post('/change-orders')
-  @UseDefaultContractName(CONTRACT_TYPE.CHANGE_ORDER)
+  @UsePipes(ValidationPipe)
+  @UseDefaultContractName()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveChangeOrderRes })
-  async saveChangeOrder(@Body() contractReq: SaveChangeOrderReqDto): Promise<ServiceResponse<SaveChangeOrderDto>> {
-    const res = await this.contractService.saveChangeOrder(contractReq);
+  async saveChangeOrder(
+    @Body(ChangeOrderValidationPipe) contractReq: SaveChangeOrderReqDto,
+  ): Promise<ServiceResponse<SaveChangeOrderDto>> {
+    const res = await this.contractService.saveChangeOrder(contractReq as any);
     return ServiceResponse.fromResult(res);
   }
 

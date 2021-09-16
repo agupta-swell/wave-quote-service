@@ -63,23 +63,19 @@ export class ContractService {
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
     const contractRecords = await this.contractModel.find({ opportunityId }).lean();
 
-    const contracts = await Promise.all(
-      contractRecords?.map(async contract => {
-        const changeOrders = await this.contractModel
-          .find({
-            opportunityId,
-            contractType: CONTRACT_TYPE.CHANGE_ORDER,
-            primaryContractId: contract._id,
-          })
-          .lean();
-
-        return {
-          contractData: contract,
-          changeOrders,
-        };
-      }),
-    );
-
+    const contracts = contractRecords
+      .filter(
+        e =>
+          e.contractType === CONTRACT_TYPE.PRIMARY_CONTRACT || e.contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
+      )
+      .map(e => ({
+        contractData: e,
+        changeOrders: contractRecords.filter(
+          co =>
+            co.primaryContractId === e._id.toString() &&
+            (co.contractType === CONTRACT_TYPE.CHANGE_ORDER || co.contractType === CONTRACT_TYPE.NO_COST_CHANGE_ORDER),
+        ),
+      }));
     return OperationResult.ok(strictPlainToClass(GetCurrentContractDto, { contracts }));
   }
 
@@ -226,7 +222,9 @@ export class ContractService {
     const [customerPayment, utilityName, roofTopDesign, systemDesign] = await Promise.all([
       this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunityId),
       this.utilityService.getUtilityName(opportunity.utilityId),
-      this.systemDesignService.getRoofTopDesignById(quote.systemDesignId),
+      this.systemDesignService.getRoofTopDesignById(
+        contract.contractType === CONTRACT_TYPE.NO_COST_CHANGE_ORDER ? contract.systemDesignId : quote.systemDesignId,
+      ),
       this.systemDesignService.getOneById(quote.systemDesignId),
     ]);
 
@@ -321,81 +319,12 @@ export class ContractService {
     return OperationResult.ok(strictPlainToClass(SendContractDto, { status, statusDescription, newlyUpdatedContract }));
   }
 
-  async saveChangeOrder(req: SaveChangeOrderReqDto): Promise<OperationResult<SaveChangeOrderDto>> {
-    const { mode, contractDetail } = req;
-
-    if (mode === REQUEST_MODE.ADD) {
-      if (contractDetail.id) {
-        return OperationResult.ok(
-          strictPlainToClass(SaveChangeOrderDto, {
-            status: false,
-            statusDescription: 'Add request cannot have an id value',
-          }),
-        );
-      }
-
-      const [primaryContract, previousChangeOrderContracts] = await Promise.all([
-        this.contractModel
-          .findOne(
-            {
-              opportunityId: contractDetail.opportunityId,
-              contractType: CONTRACT_TYPE.PRIMARY_CONTRACT,
-            },
-            {},
-            { sort: { createdAt: -1 } },
-          )
-          .lean(),
-        this.contractModel
-          .find({
-            opportunityId: contractDetail.opportunityId,
-            contractType: CONTRACT_TYPE.CHANGE_ORDER,
-          })
-          .lean(),
-      ]);
-
-      if (
-        primaryContract?.contractStatus !== PROCESS_STATUS.COMPLETED ||
-        previousChangeOrderContracts.some(contract => contract.contractStatus !== PROCESS_STATUS.COMPLETED)
-      ) {
-        return OperationResult.ok(
-          strictPlainToClass(SaveChangeOrderDto, {
-            status: false,
-            statusDescription: 'Not qualified to create Change Order contract',
-          }),
-        );
-      }
-    }
-
-    if (mode === REQUEST_MODE.UPDATE && !contractDetail.id) {
-      return OperationResult.ok(
-        strictPlainToClass(SaveChangeOrderDto, {
-          status: false,
-          statusDescription: 'Update request should have an id value',
-        }),
-      );
-    }
+  async saveChangeOrder(
+    req: SaveChangeOrderReqDto & { contract: LeanDocument<Contract> },
+  ): Promise<OperationResult<SaveChangeOrderDto>> {
+    const { mode, contractDetail, contract } = req;
 
     if (mode === REQUEST_MODE.UPDATE) {
-      const contract = await this.contractModel.findById(contractDetail.id).lean();
-
-      if (!contract) {
-        return OperationResult.ok(
-          strictPlainToClass(SaveChangeOrderDto, {
-            status: false,
-            statusDescription: `No matching record to update for id ${contractDetail.id}`,
-          }),
-        );
-      }
-
-      if (contract.contractStatus !== PROCESS_STATUS.INITIATED) {
-        return OperationResult.ok(
-          strictPlainToClass(SaveChangeOrderDto, {
-            status: false,
-            statusDescription: 'Contract is already in progress or completed',
-          }),
-        );
-      }
-
       const newlyUpdatedContract = await this.contractModel
         .findByIdAndUpdate(
           contractDetail.id,
@@ -419,7 +348,6 @@ export class ContractService {
 
       const model = new this.contractModel({
         ...contractDetail,
-        contractType: CONTRACT_TYPE.CHANGE_ORDER,
         contractTemplateDetail: templateDetail,
         contractingSystem: 'DOCUSIGN',
         contractStatus: PROCESS_STATUS.INITIATED,
