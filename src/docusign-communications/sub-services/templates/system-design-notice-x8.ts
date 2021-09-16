@@ -2,18 +2,25 @@ import { sumBy } from 'lodash';
 import { IAdderQuoteDetailsSchema } from 'src/quotes/quote.schema';
 import { TemplateDataBuilder } from '../../typing';
 
-export const getSystemDesignNoticeX8Data: TemplateDataBuilder = (genericObject) => {
-  const { quote: { quoteCostBuildup } } = genericObject;
+export const getSystemDesignNoticeX8Data: TemplateDataBuilder = genericObject => {
+  const {
+    quote: { quoteCostBuildup },
+  } = genericObject;
 
   const obj = {} as any;
-  obj.ES_KWH = sumBy(quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh);
-  obj.ES_KW = sumBy(quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizeW) / 1000;
+  obj.ES_KWH = sumBy(
+    quoteCostBuildup.storageQuoteDetails,
+    item => item.storageModelDataSnapshot.sizekWh * item.quantity,
+  );
+  obj.ES_KW =
+    sumBy(quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizeW * item.quantity) / 1000;
   obj.ES_QUANTITY = sumBy(quoteCostBuildup.storageQuoteDetails, item => item.quantity);
   obj.ES_PRODUCT = quoteCostBuildup.storageQuoteDetails.reduce(
     (acc, item, index) => acc.concat(`${index === 0 ? '' : ','}${item.storageModelDataSnapshot.name}`),
     '',
   );
-  obj.PV_KW = sumBy(quoteCostBuildup.panelQuoteDetails, item => item.panelModelDataSnapshot.sizeW) / 1000;
+  obj.PV_KW =
+    sumBy(quoteCostBuildup.panelQuoteDetails, item => item.panelModelDataSnapshot.sizeW * item.quantity) / 1000;
   obj.PV_QUANTITY = sumBy(quoteCostBuildup.panelQuoteDetails, item => item.quantity);
   obj.PV_PRODUCT = quoteCostBuildup.panelQuoteDetails.reduce(
     (acc, item, index) => acc.concat(`${index === 0 ? '' : ','}${item.panelModelDataSnapshot.name}`),

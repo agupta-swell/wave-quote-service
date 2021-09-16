@@ -27,10 +27,15 @@ export const getDummyChangeOrder: TemplateDataBuilder = ({ financialProduct, con
     .join('\n');
 
   return {
-    PV_KW: `System Size:` + sumBy(quoteCostBuildup.panelQuoteDetails, item => item.panelModelDataSnapshot.sizeW) / 1000,
-    ES_KWH: `Battery kWh:` + sumBy(quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
+    PV_KW:
+      `System Size:` +
+      sumBy(quoteCostBuildup.panelQuoteDetails, item => item.panelModelDataSnapshot.sizeW * item.quantity) / 1000,
+    ES_KWH:
+      `Battery kWh:` +
+      sumBy(quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh * item.quantity),
     ES_KW:
-      `Battery kW:` + sumBy(quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizeW) / 1000,
+      `Battery kW:` +
+      sumBy(quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizeW * item.quantity) / 1000,
     FinancierName: financialProduct.countersignerName,
     FinancierTitle: financialProduct.countersignerTitle,
     ProductSummary: ['Product Summary:', panelSummary, inverterSummary, storageSummary, ancillarySummary]
