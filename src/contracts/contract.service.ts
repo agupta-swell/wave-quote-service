@@ -345,10 +345,9 @@ export class ContractService {
       const templateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
         contractDetail.contractTemplateId,
       );
-      
+
       const model = new this.contractModel({
         ...contractDetail,
-        signerDetails: contract.signerDetails,
         contractTemplateDetail: templateDetail,
         contractingSystem: 'DOCUSIGN',
         contractStatus: PROCESS_STATUS.INITIATED,
