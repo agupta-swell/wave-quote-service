@@ -604,7 +604,10 @@ export class ContractService {
   }
 
   public async countContractsByPrimaryContractId(primaryContractId: string): Promise<number> {
-    const count = await this.contractModel.countDocuments({ primaryContractId });
+    const count = await this.contractModel.countDocuments({
+      primaryContractId,
+      contractType: { $in: [CONTRACT_TYPE.CHANGE_ORDER, CONTRACT_TYPE.NO_COST_CHANGE_ORDER] },
+    });
     return count;
   }
   async validateNewGridServiceContract(contractDetail: ContractReqDto): Promise<Boolean> {
