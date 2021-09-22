@@ -18,6 +18,19 @@ const RecipientSchema = new Schema<Document<IRecipientSchema>>(
   { _id: false },
 );
 
+export interface ISampleContractUrl {
+  sampleContractUrl: string;
+  compositeTemplateId: string;
+}
+
+const SampleContractUrlSchema = new Schema<Document<ISampleContractUrl>>(
+  {
+    sample_contract_url: String,
+    composite_template_id: String,
+  },
+  { _id: false },
+);
+
 export interface IDetailedProposalSchema {
   isSelected: boolean;
   quoteData: IDetailedQuoteSchema;
@@ -32,7 +45,7 @@ export interface IDetailedProposalSchema {
   pdfFileUrl: string;
   htmlFileUrl: string;
   envelopeId?: string;
-  sampleContractUrl?: string;
+  sampleContractUrl?: ISampleContractUrl[];
 }
 
 const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
@@ -50,7 +63,7 @@ const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
     pdf_file_url: String,
     html_file_url: String,
     envelope_id: String,
-    sample_contract_url: String,
+    sample_contract_url: [SampleContractUrlSchema],
   },
   { _id: false },
 );
