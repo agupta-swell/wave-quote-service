@@ -38,6 +38,7 @@ import { ENaming, MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
+import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 
 @Global()
 @Module({
@@ -82,6 +83,7 @@ import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.mo
     ProposalSectionMasterModule,
     ProposalTemplateModule,
     QualificationModule,
+    SavingsCalculatorModule,
     QuoteModule,
     QuotePartnerConfigModule,
     RebateProgramModule,
