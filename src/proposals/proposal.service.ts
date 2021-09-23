@@ -22,6 +22,7 @@ import { FinancialProductsService } from 'src/financial-products/financial-produ
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
+import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
@@ -81,6 +82,7 @@ export class ProposalService {
     private readonly docusignTemplateMasterService: DocusignTemplateMasterService,
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
+    private readonly manufacturerService: ManufacturerService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -473,13 +475,20 @@ export class ProposalService {
 
     // Get lease solver config
     const leaseProductAttribute = quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes;
+
+    const oppData = await this.opportunityService.getOppAccountData(opportunity._id);
+
+    const manufacturerName = await this.manufacturerService.getOneById(
+      quote.quoteCostBuildup.storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId,
+    );
+
     const query: IGetDetail = {
-      tier: 'DTC',
+      tier: oppData?.swellESAPricingTier!,
       isSolar: systemDesign!.isSolar,
       utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utilityProgramName : '',
       contractTerm: leaseProductAttribute.leaseTerm,
       storageSize: sumBy(quote.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
-      storageManufacturer: 'Tesla',
+      storageManufacturer: manufacturerName.name,
       rateEscalator: leaseProductAttribute.rateEscalator,
       capacityKW: systemDesign!.systemProductionData.capacityKW,
       productivity: systemDesign!.systemProductionData.productivity,

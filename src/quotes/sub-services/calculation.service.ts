@@ -1,5 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { groupBy, sumBy } from 'lodash';
+import { Account } from 'src/accounts/account.schema';
 import { ApplicationException } from 'src/app/app.exception';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
@@ -24,14 +25,18 @@ export class CalculationService {
   async calculateLeaseQuote(
     detailedQuote: CalculateQuoteDetailDto,
     monthlyUtilityPayment: number,
+    manufacturerName: string,
+    tier?: Account.Tier,
   ): Promise<CalculateQuoteDetailDto> {
     const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
       .productAttribute as LeaseProductAttributesDto;
     productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossPrice;
 
+    // const quote = await this.
+
     // TODO: Tier/StorageManufacturer update
     const query: IGetDetail = {
-      tier: 'DTC',
+      tier: tier ?? 'DTC',
       isSolar: detailedQuote.isSolar,
       utilityProgramName: detailedQuote.utilityProgram.utilityProgramName || 'PRP2',
       contractTerm: productAttribute.leaseTerm,
@@ -39,7 +44,7 @@ export class CalculationService {
         detailedQuote.quoteCostBuildup.storageQuoteDetails,
         item => item.storageModelDataSnapshot.sizekWh,
       ),
-      storageManufacturer: 'Tesla',
+      storageManufacturer: manufacturerName,
       rateEscalator: productAttribute.rateEscalator,
       capacityKW: detailedQuote.systemProduction.capacityKW,
       productivity: detailedQuote.systemProduction.productivity,
@@ -561,5 +566,4 @@ export class CalculationService {
       endingBalance: adjustedAmount - roundedMonthlyPayment,
     };
   }
-  
 }

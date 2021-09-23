@@ -1,6 +1,7 @@
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, UpdateQuery } from 'mongoose';
+import { Account } from 'src/accounts/account.schema';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
@@ -148,6 +149,38 @@ export class OpportunityService {
         financiers,
       }),
     );
+  }
+
+  async getOppAccountData(opportunityId: string): Promise<LeanDocument<Account> | null> {
+    const res = await this.opportunityModel.aggregate([
+      {
+        $match: {
+          _id: opportunityId,
+        },
+      },
+      {
+        $lookup: {
+          from: 'accounts',
+          localField: 'accountId',
+          foreignField: '_id',
+          as: 'account',
+        },
+      },
+      {
+        $project: {
+          account: {
+            $arrayElemAt: ['$account', 0],
+          },
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: '$account',
+        },
+      },
+    ]);
+
+    return res[0] || null;
   }
 
   // =====================> INTERNAL <=====================

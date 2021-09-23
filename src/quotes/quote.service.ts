@@ -69,6 +69,7 @@ import { ILaborCost } from './typing';
 import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 
 @Injectable()
 export class QuoteService {
@@ -99,6 +100,7 @@ export class QuoteService {
     private readonly utilityService: UtilityService,
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
+    private readonly manufacturerService: ManufacturerService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -1127,13 +1129,22 @@ export class QuoteService {
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
     const cost = systemDesign?.costPostInstallation?.cost || [];
 
+    const oppData = await this.opportunityService.getOppAccountData(data.opportunityId);
+    const manufacturer = await this.manufacturerService.getOneById(
+      data.quoteCostBuildup.storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId,
+    );
     // I think this below variable show average money that customer have to pay monthly
     const monthlyUtilityPayment = cost.reduce((acc, item) => (acc += item.v), 0) / cost.length;
 
     let res: CalculateQuoteDetailDto = {} as any;
     switch (data.quoteFinanceProduct.financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE:
-        res = await this.calculationService.calculateLeaseQuote(data, monthlyUtilityPayment);
+        res = await this.calculationService.calculateLeaseQuote(
+          data,
+          monthlyUtilityPayment,
+          manufacturer.name,
+          oppData?.swellESAPricingTier,
+        );
         break;
       case FINANCE_PRODUCT_TYPE.LOAN:
         res = await this.calculationService.calculateLoanSolver(data, monthlyUtilityPayment);
@@ -1156,19 +1167,27 @@ export class QuoteService {
 
     const utilityProgramName = data.utilityProgram?.utilityProgramName || 'None';
     const storageSize = sumBy(data.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh);
-    const storageManufacturer = 'Enphase';
+
+    const [oppData, manufacturer] = await Promise.all([
+      this.opportunityService.getOppAccountData(data.opportunityId),
+      this.manufacturerService.getOneById(
+        data.quoteCostBuildup.storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId,
+      ),
+    ]);
+
+    const storageManufacturer = manufacturer.name;
 
     // TODO: Tier/StorageManufacturer support
     const query: IGetDetail = {
-      tier: 'DTC',
       isSolar,
       utilityProgramName,
       contractTerm: productAttribute.leaseTerm,
       storageSize,
       storageManufacturer,
-      rateEscalator: productAttribute.rateEscalator,
+      tier: oppData?.swellESAPricingTier!,
       capacityKW,
       productivity,
+      rateEscalator: productAttribute.rateEscalator,
     };
 
     const foundLeaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);

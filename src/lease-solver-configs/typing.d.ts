@@ -1,9 +1,11 @@
+import { Account } from 'src/accounts/account.schema';
+
 export interface IGetDetail {
-  tier: 'DTC' | 'TIER_1' | 'TIER_2' | 'TIER_3';
+  tier: Account.Tier;
   isSolar: boolean;
   utilityProgramName: string;
   contractTerm: number;
-  storageManufacturer: 'None' | 'Tesla' | 'Enphase';
+  storageManufacturer: string;
   storageSize: number;
   rateEscalator: number;
   capacityKW: number;

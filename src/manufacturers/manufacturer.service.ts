@@ -1,5 +1,6 @@
+import { NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { Manufacturer, MANUFACTURER } from './manufacturer.schema';
@@ -20,5 +21,15 @@ export class ManufacturerService {
         total,
       }),
     );
+  }
+
+  async getOneById(id: string): Promise<LeanDocument<Manufacturer>> {
+    const found = await this.manufacturers.findOne({ _id: new Types.ObjectId(id) }).lean();
+
+    if (!found) {
+      throw new NotFoundException(`No manufacturer found with id ${id}`);
+    }
+
+    return found;
   }
 }
