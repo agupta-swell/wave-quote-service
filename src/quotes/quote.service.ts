@@ -1149,18 +1149,26 @@ export class QuoteService {
 
   async getValidationForLease(data: LeaseQuoteValidationDto): Promise<OperationResult<string>> {
     const productAttribute = data.quoteFinanceProduct.financeProduct.productAttribute as LeaseProductAttributesDto;
+    const {
+      isSolar,
+      systemProduction: { capacityKW, productivity },
+    } = data;
+
+    const utilityProgramName = data.utilityProgram?.utilityProgramName || 'None';
+    const storageSize = sumBy(data.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh);
+    const storageManufacturer = 'Enphase';
 
     // TODO: Tier/StorageManufacturer support
     const query: IGetDetail = {
       tier: 'DTC',
-      isSolar: data.isSolar,
-      utilityProgramName: data.utilityProgram.utilityProgramName || 'PRP2',
+      isSolar,
+      utilityProgramName,
       contractTerm: productAttribute.leaseTerm,
-      storageSize: sumBy(data.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
-      storageManufacturer: 'Tesla',
+      storageSize,
+      storageManufacturer,
       rateEscalator: productAttribute.rateEscalator,
-      capacityKW: data.systemProduction.capacityKW,
-      productivity: data.systemProduction.productivity,
+      capacityKW,
+      productivity,
     };
 
     const foundLeaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
@@ -1173,14 +1181,35 @@ export class QuoteService {
       solarSizeMaximumArr,
       productivityMinArr,
       productivityMaxArr,
-    } = await this.leaseSolverConfigService.getMinMaxLeaseSolver(
-      data.isSolar,
-      data.utilityProgram.utilityProgramName || 'PRP2',
-    );
+      storageSizeArr,
+      contractTermArr,
+    } = await this.leaseSolverConfigService.getMinMaxLeaseSolver(isSolar, utilityProgramName);
 
-    throw ApplicationException.UnprocessableEntity(
-      `System capacity should be between ${solarSizeMinimumArr} and ${solarSizeMaximumArr} and productivity should be between ${productivityMinArr} and ${productivityMaxArr}`,
-    );
+    if (capacityKW < solarSizeMinimumArr || capacityKW >= solarSizeMaximumArr) {
+      throw ApplicationException.UnprocessableEntity(
+        `System capacity should be between ${solarSizeMinimumArr} and ${solarSizeMaximumArr}`,
+      );
+    }
+
+    if (productivity < productivityMinArr || productivity >= productivityMaxArr) {
+      throw ApplicationException.UnprocessableEntity(
+        `System productivity should be between ${solarSizeMinimumArr} and ${solarSizeMaximumArr}`,
+      );
+    }
+
+    if (!storageSizeArr.includes(storageSize)) {
+      throw ApplicationException.UnprocessableEntity(
+        `Storage size (sizekWh) should be one of the following values: ${storageSizeArr.join(', ')}`,
+      );
+    }
+
+    if (!contractTermArr.includes(productAttribute.leaseTerm)) {
+      throw ApplicationException.UnprocessableEntity(
+        `Contract Term should be one of the following values: ${contractTermArr.join(', ')}`,
+      );
+    }
+
+    throw ApplicationException.UnprocessableEntity(`System Design data does not match any Lease data`);
   }
 
   public async deleteQuote(quoteId: ObjectId): Promise<void> {
