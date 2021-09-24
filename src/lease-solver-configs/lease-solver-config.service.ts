@@ -111,6 +111,9 @@ export class LeaseSolverConfigService {
     solarSizeMaximumArr: number;
     productivityMinArr: number;
     productivityMaxArr: number;
+    storageSizeArr: number[];
+    contractTermArr: number[];
+    storageManufacturerArr: string[];
   }> {
     const found = await this.leaseSolverConfig.aggregate([
       {
@@ -136,6 +139,15 @@ export class LeaseSolverConfigService {
           },
           productivityMaxArr: {
             $max: '$productivity_max',
+          },
+          storageSizeArr: {
+            $addToSet: '$storage_size',
+          },
+          contractTermArr: {
+            $addToSet: '$contract_term',
+          },
+          storageManufacturerArr: {
+            $addToSet: '$storage_manufacturer',
           },
         },
       },

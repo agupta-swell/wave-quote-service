@@ -2,7 +2,7 @@
 /* eslint-disable no-return-assign */
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { differenceBy, groupBy, isNil, omit, omitBy, pickBy, sumBy, uniq } from 'lodash';
+import { differenceBy, groupBy, isNil, omit, omitBy, pickBy, sum, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
@@ -37,7 +37,6 @@ import {
   Quote,
   QUOTE,
   QuoteModel,
-  IQuoteCostCommonSchema,
   ITaxCreditDataSchema,
   ILoanProductAttributes,
 } from './quote.schema';
@@ -67,6 +66,9 @@ import { Discounts } from './schemas/discounts.schema';
 import { CalculationService } from './sub-services/calculation.service';
 import { QuoteMarkupConfigService } from './sub-services';
 import { ILaborCost } from './typing';
+import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
+import { UtilityService } from 'src/utilities/utility.service';
+import { OpportunityService } from 'src/opportunities/opportunity.service';
 
 @Injectable()
 export class QuoteService {
@@ -92,6 +94,11 @@ export class QuoteService {
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
     private readonly quoteMarkupConfigService: QuoteMarkupConfigService,
+    private readonly savingCalculatorService: SavingsCalculatorService,
+    @Inject(forwardRef(() => UtilityService))
+    private readonly utilityService: UtilityService,
+    @Inject(forwardRef(() => OpportunityService))
+    private readonly opportunityService: OpportunityService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -495,12 +502,16 @@ export class QuoteService {
     );
 
     const { productAttribute: product_attribute } = financeProduct as any;
+
+    const avgMonthlySavings = await this.calculateAvgMonthlySavings(foundSystemDesign.opportunityId, foundSystemDesign);
+
     switch (financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE: {
         productAttribute = {
           ...productAttribute,
           rateEscalator: product_attribute.rateEscalator,
           leaseTerm: product_attribute.leaseTerm,
+          monthlyUtilityPayment: productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings,
         } as LeaseProductAttributesDto;
         break;
       }
@@ -510,6 +521,7 @@ export class QuoteService {
           upfrontPayment: product_attribute.upfrontPayment,
           interestRate: product_attribute.interestRate,
           loanTerm: product_attribute.loanTerm,
+          monthlyUtilityPayment: productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings,
         } as LoanProductAttributesDto;
         break;
       }
@@ -518,6 +530,7 @@ export class QuoteService {
         productAttribute = {
           ...productAttribute,
           upfrontPayment: product_attribute.upfrontPayment,
+          newAverageMonthlyBill: productAttribute.currentAverageMonthlyBill - avgMonthlySavings,
         } as CashProductAttributesDto;
         break;
       }
@@ -850,6 +863,9 @@ export class QuoteService {
     const grossPriceData = this.calculateGrossPrice(quoteCostBuildup);
     quoteCostBuildup.grossPrice = grossPriceData.grossPrice;
     quoteCostBuildup.totalNetCost = grossPriceData.totalNetCost;
+
+    const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
+
     let productAttribute = await this.createProductAttribute(
       financeProduct.productType,
       quoteCostBuildup.grossPrice,
@@ -862,6 +878,7 @@ export class QuoteService {
           ...productAttribute,
           rateEscalator: product_attribute.rateEscalator,
           leaseTerm: product_attribute.leaseTerm,
+          monthlyUtilityPayment: productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings,
         } as LeaseProductAttributesDto;
         break;
       }
@@ -871,6 +888,7 @@ export class QuoteService {
           upfrontPayment: product_attribute.upfrontPayment,
           interestRate: product_attribute.interestRate,
           loanTerm: product_attribute.loanTerm,
+          monthlyUtilityPayment: productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings,
         } as LoanProductAttributesDto;
         break;
       }
@@ -879,6 +897,7 @@ export class QuoteService {
         productAttribute = {
           ...productAttribute,
           upfrontPayment: product_attribute.upfrontPayment,
+          newAverageMonthlyBill: productAttribute.currentAverageMonthlyBill - avgMonthlySavings,
         } as CashProductAttributesDto;
         break;
       }
@@ -1064,6 +1083,26 @@ export class QuoteService {
       taxCreditData: taxCreditData as unknown,
     };
 
+    const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
+
+    switch (detailedQuote.quoteFinanceProduct.financeProduct.productType) {
+      case FINANCE_PRODUCT_TYPE.LEASE:
+      case FINANCE_PRODUCT_TYPE.LOAN: {
+        (detailedQuote.quoteFinanceProduct.financeProduct
+          .productAttribute as LoanProductAttributesDto).monthlyUtilityPayment =
+          (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as LoanProductAttributesDto)
+            .currentMonthlyAverageUtilityPayment - avgMonthlySavings;
+        break;
+      }
+
+      default: {
+        (detailedQuote.quoteFinanceProduct.financeProduct
+          .productAttribute as CashProductAttributesDto).newAverageMonthlyBill =
+          (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as CashProductAttributesDto)
+            .currentAverageMonthlyBill - avgMonthlySavings;
+      }
+    }
+
     const model = new QuoteModel(data, detailedQuote);
 
     model.setIsSync(data.isSync);
@@ -1110,18 +1149,26 @@ export class QuoteService {
 
   async getValidationForLease(data: LeaseQuoteValidationDto): Promise<OperationResult<string>> {
     const productAttribute = data.quoteFinanceProduct.financeProduct.productAttribute as LeaseProductAttributesDto;
+    const {
+      isSolar,
+      systemProduction: { capacityKW, productivity },
+    } = data;
+
+    const utilityProgramName = data.utilityProgram?.utilityProgramName || 'None';
+    const storageSize = sumBy(data.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh);
+    const storageManufacturer = 'Enphase';
 
     // TODO: Tier/StorageManufacturer support
     const query: IGetDetail = {
       tier: 'DTC',
-      isSolar: data.isSolar,
-      utilityProgramName: data.utilityProgram.utilityProgramName || 'PRP2',
+      isSolar,
+      utilityProgramName,
       contractTerm: productAttribute.leaseTerm,
-      storageSize: sumBy(data.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
-      storageManufacturer: 'Tesla',
+      storageSize,
+      storageManufacturer,
       rateEscalator: productAttribute.rateEscalator,
-      capacityKW: data.systemProduction.capacityKW,
-      productivity: data.systemProduction.productivity,
+      capacityKW,
+      productivity,
     };
 
     const foundLeaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
@@ -1134,14 +1181,35 @@ export class QuoteService {
       solarSizeMaximumArr,
       productivityMinArr,
       productivityMaxArr,
-    } = await this.leaseSolverConfigService.getMinMaxLeaseSolver(
-      data.isSolar,
-      data.utilityProgram.utilityProgramName || 'PRP2',
-    );
+      storageSizeArr,
+      contractTermArr,
+    } = await this.leaseSolverConfigService.getMinMaxLeaseSolver(isSolar, utilityProgramName);
 
-    throw ApplicationException.UnprocessableEntity(
-      `System capacity should be between ${solarSizeMinimumArr} and ${solarSizeMaximumArr} and productivity should be between ${productivityMinArr} and ${productivityMaxArr}`,
-    );
+    if (capacityKW < solarSizeMinimumArr || capacityKW >= solarSizeMaximumArr) {
+      throw ApplicationException.UnprocessableEntity(
+        `System capacity should be between ${solarSizeMinimumArr} and ${solarSizeMaximumArr}`,
+      );
+    }
+
+    if (productivity < productivityMinArr || productivity >= productivityMaxArr) {
+      throw ApplicationException.UnprocessableEntity(
+        `System productivity should be between ${solarSizeMinimumArr} and ${solarSizeMaximumArr}`,
+      );
+    }
+
+    if (!storageSizeArr.includes(storageSize)) {
+      throw ApplicationException.UnprocessableEntity(
+        `Storage size (sizekWh) should be one of the following values: ${storageSizeArr.join(', ')}`,
+      );
+    }
+
+    if (!contractTermArr.includes(productAttribute.leaseTerm)) {
+      throw ApplicationException.UnprocessableEntity(
+        `Contract Term should be one of the following values: ${contractTermArr.join(', ')}`,
+      );
+    }
+
+    throw ApplicationException.UnprocessableEntity(`System Design data does not match any Lease data`);
   }
 
   public async deleteQuote(quoteId: ObjectId): Promise<void> {
@@ -1654,5 +1722,39 @@ export class QuoteService {
       reinvestmentMonth: 18,
       description: 'description',
     };
+  }
+
+  private async calculateAvgMonthlySavings(
+    opportunityId: string,
+    systemDesign: SystemDesign | LeanDocument<SystemDesign>,
+  ): Promise<number> {
+    const utilityUsage = await this.utilityService.getUtilityUsageDetail(opportunityId);
+
+    const productionByHour = await this.systemDesignService.calculateSystemProductionByHour(systemDesign as any);
+
+    const oppData = await this.opportunityService.getRelatedInformation(opportunityId);
+
+    const savings = await this.savingCalculatorService.getSavings({
+      historicalUsageByHour: utilityUsage.data?.utilityData.actualUsage.hourlyUsage.map(e => e.v),
+      historicalBillsByMonth: utilityUsage.data?.costData.actualUsageCost?.cost.map(e => e.v),
+      historicalProductionByHour: productionByHour.hourly, //
+      existingBatteryKwh: undefined, // TODO
+      additionalBatteryKwh: undefined, // TODO
+      preInstallTariff: utilityUsage.data?.costData.masterTariffId,
+      postInstallTariff: utilityUsage.data?.costData.postInstallMasterTariffId,
+      batteryReservePercentage: undefined, // TODO,
+      usageProfile: undefined, // TODO
+      version: 0, // TODO add env to lambda,
+      address: {
+        city: oppData.data?.city,
+        latitude: +(oppData.data?.latitude || 0),
+        longitude: +(oppData.data?.longitude || 0),
+        line1: oppData.data?.address,
+        state: oppData.data?.state,
+        zip: oppData.data?.zipCode,
+      },
+    });
+
+    return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
   }
 }

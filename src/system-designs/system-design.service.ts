@@ -31,7 +31,7 @@ import {
 import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
-import { SystemProductService, UploadImageService } from './sub-services';
+import { ISystemProduction, SystemProductService, UploadImageService } from './sub-services';
 import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
 @Injectable()
@@ -1042,5 +1042,9 @@ export class SystemDesignService {
     const res = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
 
     return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, res));
+  }
+
+  public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
+    return this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
   }
 }

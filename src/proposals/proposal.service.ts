@@ -512,6 +512,7 @@ export class ProposalService {
       utilityProgramMaster,
       leaseSolverConfig,
       financialProduct,
+      contract: {} as any,
     };
 
     const compositeTemplateIds = uniq(templateDetails.map(e => e.compositeTemplateId));
@@ -557,8 +558,20 @@ export class ProposalService {
 
     try {
       const s3UploadResult = await this.saveToStorage(document, fileName);
+      const currentSampleContractUrl =
+        proposal.detailedProposal.sampleContractUrl &&
+        proposal.detailedProposal.sampleContractUrl.length > 0 &&
+        proposal.detailedProposal.sampleContractUrl[0].sampleContractUrl !== undefined
+          ? proposal.detailedProposal.sampleContractUrl
+          : [];
+      if (!currentSampleContractUrl.find(item => item.compositeTemplateId === compositeTemplateIds[0])) {
+        currentSampleContractUrl.push({
+          sampleContractUrl: s3UploadResult.Location,
+          compositeTemplateId: compositeTemplateIds[0],
+        });
+      }
 
-      proposal.detailedProposal.sampleContractUrl = s3UploadResult.Location;
+      proposal.detailedProposal.sampleContractUrl = currentSampleContractUrl;
       await proposal.save();
       return OperationResult.ok({
         url: s3UploadResult.Location,

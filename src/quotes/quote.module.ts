@@ -3,8 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
-import { FinancialProductsService } from 'src/financial-products/financial-product.service';
-import { OpportunityModule } from 'src/opportunities/opportunity.module';
+import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
@@ -41,8 +40,8 @@ import { CalculationService, QuoteMarkupConfigService } from './sub-services';
         collection: 'v2_discounts',
       },
     ]),
-
     FinancialProductsModule,
+    SavingsCalculatorModule,
   ],
   controllers: [QuoteController],
   providers: [QuoteService, CalculationService, QuoteMarkupConfigService],
