@@ -28,6 +28,8 @@ import { DocusignTemplateMaster } from 'src/docusign-templates-master/docusign-t
 import { SignerRoleMaster } from 'src/docusign-templates-master/schemas';
 import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
 import { compareIds } from 'src/utils/common';
+import { DocusignException } from './filters/docusign.exception';
+import { EmailService } from 'src/emails/email.service';
 
 @Injectable()
 export class DocusignCommunicationService {
@@ -37,6 +39,7 @@ export class DocusignCommunicationService {
     private readonly docusignAPIService: DocusignAPIService,
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
+    private readonly emailService: EmailService,
   ) {}
 
   // =====================> INTERNAL <=====================
@@ -121,6 +124,8 @@ export class DocusignCommunicationService {
     };
     inlineTemplateDataPayload.sequence = runningCounter;
 
+    const exceptions: DocusignException[] = [];
+
     template.recipientRoles.map((role, index) => {
       const signerDataPayload: ISignerData = {} as any;
       const signerDetailData = signerDetails.find(signer => signer.roleId === `${role._id}`);
@@ -129,21 +134,46 @@ export class DocusignCommunicationService {
 
       const signerName = `${signerDetailData.firstName} ${signerDetailData.lastName}`.trim() || signerDetailData.role;
 
-      signerDataPayload.email = signerDetailData.email;
-      signerDataPayload.name = signerName;
-      signerDataPayload.recipientId = (index + 1).toString();
-      signerDataPayload.roleName = signerDetailData.role;
-      signerDataPayload.routingOrder = (index + 1).toString();
-      signerDataPayload.tabs = this.docusignTemplateService.buildTemplateData(
+      const tab = this.docusignTemplateService.buildTemplateData(
         template.docusignTemplateId,
         genericObject,
         defaultContractor,
-      ) as ITabData;
+      );
 
-      if (signerDataPayload.email) {
+      if (tab instanceof DocusignException) {
+        exceptions.push(tab);
+        return;
+      }
+
+      signerDataPayload.email = signerDetailData.email;
+      signerDataPayload.name = signerName;
+      signerDataPayload.recipientId = (index + 1 - exceptions.length).toString();
+      signerDataPayload.roleName = signerDetailData.role;
+      signerDataPayload.routingOrder = (index + 1 - exceptions.length).toString();
+      signerDataPayload.tabs = tab;
+
+      if (signerDataPayload.tabs && signerDataPayload.email) {
         inlineTemplateDataPayload.recipients.signers.push(signerDataPayload);
       }
     });
+
+    if (exceptions.length) {
+      this.emailService
+        .sendMail(
+          process.env.SUPPORT_MAIL!,
+          exceptions
+            .map(
+              e => `
+      Stack: <pre>${e.rawError?.stack}</pre>
+      `,
+            )
+            .join('\n'),
+          `Cannot build docusign template ${new Date().toISOString()}`,
+        )
+        .catch(error => {
+          console.log('Cannot send email', error);
+        });
+    }
 
     compositeTemplateDataPayload.inlineTemplates.push(inlineTemplateDataPayload);
 

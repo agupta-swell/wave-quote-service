@@ -9,6 +9,7 @@ import { IncomingMessage } from 'http';
 import { CredentialService } from 'src/shared/aws/services/credential.service';
 import { IDocusignCompositeContract, IDocusignSecretManager } from '../../docusign-communications/typing';
 import { ILoginAccountWithMeta, TResendEnvelopeStatus } from '../typing';
+import { DocusignException } from 'src/docusign-communications/filters/docusign.exception';
 
 @Injectable()
 export class DocusignAPIService {
@@ -68,9 +69,8 @@ export class DocusignAPIService {
       results = await envelopesApi.createEnvelope(account.accountId || '', { envelopeDefinition: templateData });
       return results;
     } catch (error) {
-      console.log('🚀 ~ file: docusign-api.service.ts ~ line 72 ~ DocusignAPIService ~ sendTemplate ~ error', error);
-      // this.logger.error(error);
-      return null;
+      console.log("🚀 ~ file: docusign-api.service.ts ~ line 71 ~ DocusignAPIService ~ sendTemplate ~ error", error)
+      throw new DocusignException(error, error.response?.text);
     }
   }
 
@@ -142,7 +142,7 @@ export class DocusignAPIService {
       return { status: true };
     } catch (error) {
       console.log('🚀 ~ file: docusign-api.service.ts ~ line 143 ~ DocusignAPIService ~ resendEnvelop ~ error', error);
-      throw new InternalServerErrorException('Something went wrong');
+      throw new DocusignException(error, error.response?.text);
     }
   }
 }

@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
+import { CatchDocusignException } from 'src/docusign-communications/filters';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
@@ -29,6 +30,7 @@ import {
 @ApiBearerAuth()
 @Controller('/contracts')
 @PreAuthenticate()
+@CatchDocusignException()
 export class ContractController {
   constructor(private contractService: ContractService) {}
 
