@@ -156,7 +156,7 @@ export interface IContractSignerDetails {
   statusesData: ISignerDetailFromContractingSystemData[];
 }
 
-export type DocuSignEnv = 'dev' | 'demo' | 'live';
+export type DocuSignEnv = 'demo' | 'live';
 
 export interface IDocusignTemplateMapping {
   CA_CONSUMER_GUIDE: string;
@@ -174,7 +174,6 @@ export interface IDocusignTemplateMapping {
   INSURANCE_X9: string;
   AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN: string;
   PARTICIPATION_PRP2_ACES_CASH: string;
-  CA_CONSUMER_PROTECTION: string;
   PARTICIPATION_PRP2_ACES_ESA: string;
   SOLAR_ENERGY_SYSTEM_ESTIMATED_X7: string;
   GRID_SERVICES_AGT: string;
