@@ -4,6 +4,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
+import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
+import { ManufacturerSchema } from 'src/manufacturers/manufacturer.schema';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
@@ -31,6 +33,7 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
     GsProgramsModule,
     AwsModule,
     FinancialProductsModule,
+    ManufacturerModule,
   ],
   controllers: [ProposalController],
   providers: [ProposalService],

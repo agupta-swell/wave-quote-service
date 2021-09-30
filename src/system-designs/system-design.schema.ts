@@ -41,7 +41,7 @@ export interface IStorageProductSchema extends IProductCommonSchema, IBatteryPro
 
 export const StorageProductSchema = new Schema<Document<IStorageProductSchema>>(
   {
-    manufacturerId: String,
+    manufacturer_id: String,
     name: String,
     type: String,
     price: Number,

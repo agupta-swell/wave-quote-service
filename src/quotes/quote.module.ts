@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
+import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
@@ -42,6 +43,7 @@ import { CalculationService, QuoteMarkupConfigService } from './sub-services';
     ]),
     FinancialProductsModule,
     SavingsCalculatorModule,
+    ManufacturerModule,
   ],
   controllers: [QuoteController],
   providers: [QuoteService, CalculationService, QuoteMarkupConfigService],

@@ -33,11 +33,7 @@ export class SignerDetailDto {
 
   @ApiProperty()
   @IsString()
-  firstName: string;
-
-  @ApiProperty()
-  @IsString()
-  lastName: string;
+  fullName: string;
 
   @ApiProperty()
   @ValidateIf((_, v) => v)

@@ -3,7 +3,6 @@ import { DocuSignEnv, TemplateBuilderMap } from '../../typing';
 import { getAdditionalTermEsaData } from './additional-term-esa';
 import { getAutoMaticPaymentAuthorizationFormFin } from './automatic-payment-authorization-form-fin';
 import { getCaConsumerGuideData } from './ca-consumer-guide';
-import { getCAConsumerProtection } from './ca-consumer-protection';
 import { getContractOneData } from './contract-one';
 import { getDisclosureEsaData } from './disclosure-esa';
 import { empty } from './empty';
@@ -39,7 +38,6 @@ export const templateBuilderMap: TemplateBuilderMap = {
   [TEMPLATE_IDS.AUTOMATIC_PAYMENT_AUTHORIZATION_FORM_FIN]: getAutoMaticPaymentAuthorizationFormFin,
   [TEMPLATE_IDS.DISCLOSURES_ESA]: getDisclosureEsaData,
   [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_CASH]: getParticipationPRP2ACESCash,
-  [TEMPLATE_IDS.CA_CONSUMER_PROTECTION]: getCAConsumerProtection,
   [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_ESA]: getParticipationPRP2ACESEsa,
   [TEMPLATE_IDS.SOLAR_ENERGY_SYSTEM_ESTIMATED_X7]: getSolarEnergySystemEstimatedX7,
   [TEMPLATE_IDS.GRID_SERVICES_AGT]: getGridServicesAgt,

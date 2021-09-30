@@ -23,9 +23,11 @@ import { ProposalSendSampleContractRes } from './res/proposal-send-sample-contra
 import { CreateProposalLinkDto } from './req/create-proposal-link.dto';
 import { GetPresignedUrlDto } from './req/get-presigned-url.dto';
 import { GetPresignedUrlSqtDto } from './req/get-presigned-url-sqt.dto';
+import { CatchDocusignException } from 'src/docusign-communications/filters';
 
 @ApiTags('Proposal')
 @Controller('/proposals')
+@CatchDocusignException()
 export class ProposalController {
   constructor(private readonly proposalService: ProposalService) {}
 

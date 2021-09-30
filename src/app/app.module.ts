@@ -39,6 +39,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
 import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
+import { ProductModuleV2 } from 'src/products-v2/product.module';
 
 @Global()
 @Module({
@@ -94,6 +95,7 @@ import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculato
     GsProgramsModule,
     FinancialProductsModule,
     SavingCalculationModule,
+    ProductModuleV2,
   ],
 })
 export class AppModule {}

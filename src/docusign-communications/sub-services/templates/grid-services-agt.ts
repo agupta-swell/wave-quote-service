@@ -7,7 +7,7 @@ export const getGridServicesAgt: TemplateDataBuilder = genericObj => {
   const result: Record<string, string> = {};
 
   result.contact_1_full_name = `${contact.firstName} ${contact.lastName}`;
-  result.contact_2_full_name = coOwner ? `${coOwner.firstName} ${coOwner.lastName}` : '';
+  result.contact_2_full_name = coOwner ? coOwner.fullName : '';
   result.site_address_line_1 = contact.address1;
   result.site_address_last_line = `${contact.city}, ${contact.state}, ${contact.zip}`;
   result.contact_1_email = contact.email;

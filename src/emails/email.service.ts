@@ -42,11 +42,7 @@ export class EmailService {
     templatePayload: Record<string, unknown>,
   ): Promise<mailgun.messages.SendResponse> {
     const html = this.getTemplate(templateName)(templatePayload);
-    return this.sendMail(
-      recipient,
-      html,
-      subject,
-    );
+    return this.sendMail(recipient, html, subject);
   }
 
   async sendMail(recipient: string, message: string, subject: string): Promise<mailgun.messages.SendResponse> {

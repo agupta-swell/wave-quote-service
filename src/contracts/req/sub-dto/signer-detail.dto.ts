@@ -15,12 +15,7 @@ export class SignerDetailDto {
   @ApiProperty()
   @IsOptional()
   @IsString()
-  firstName: string;
-
-  @ApiProperty()
-  @IsOptional()
-  @IsString()
-  lastName: string;
+  fullName: string;
 
   @ApiProperty()
   @IsOptional()

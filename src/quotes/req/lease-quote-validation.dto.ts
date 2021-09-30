@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiOperation, ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsMongoId, IsNumber, IsOptional, ValidateNested } from 'class-validator';
+import { IsBoolean, IsMongoId, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 class IUtilityProgramDto {
   @ApiProperty()
@@ -41,6 +41,10 @@ class IStorageQuoteDetailSnapshotDto {
   @ApiProperty()
   @IsNumber()
   sizekWh: number;
+
+  @ApiProperty()
+  @IsMongoId()
+  manufacturerId: string;
 }
 class IStorageQuoteDetailsDto {
   @ApiProperty({ type: IStorageQuoteDetailSnapshotDto })
@@ -94,4 +98,8 @@ export class LeaseQuoteValidationDto {
   @ValidateNested()
   @Type(() => IQuoteCostBuildUpDto)
   quoteCostBuildup: IQuoteCostBuildUpDto;
+
+  @ApiProperty()
+  @IsString()
+  opportunityId: string
 }

@@ -9,10 +9,7 @@ export class SignerDetailResDto {
   role: string;
 
   @ExposeProp()
-  firstName: string;
-
-  @ExposeProp()
-  lastName: string;
+  fullName: string;
 
   @ExposeProp()
   email: string;

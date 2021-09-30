@@ -10,8 +10,7 @@ export const CONTRACT = Symbol('CONTRACT').toString();
 export interface ISignerDetailDataSchema {
   roleId: string;
   role: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   signStatus: SIGN_STATUS;
   sentOn: Date;
@@ -23,8 +22,7 @@ const SignerDetailDataSchema = new Schema<Document<any>>(
   {
     role_id: String,
     role: String,
-    first_name: String,
-    last_name: String,
+    full_name: String,
     email: String,
     sign_status: String,
     sent_on: Date,

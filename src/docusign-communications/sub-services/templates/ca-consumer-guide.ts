@@ -1,9 +1,7 @@
 import { TemplateDataBuilder } from '../../typing';
 
-export const getCaConsumerGuideData: TemplateDataBuilder = ({ contact, opportunity }) => ({
-  'Text Owner Name 1 - 2': contact.firstName,
-  'Text Owner Name 2 - 2': contact.lastName,
-  'Text Contractor\'s Company Name 1 - 2': opportunity.contractorCompanyName,
-  'Text Name Signer 1 - 3': opportunity.contractorSigner,
-  'Text Contractor\'s Title': 'CEO'
+export const getCaConsumerGuideData: TemplateDataBuilder = ({ assignedMember, signerDetails }) => ({
+  his_number: assignedMember?.hisNumber ?? '',
+  primary_owner_full_name: signerDetails.find(e => e.role === 'Primary Owner')?.fullName ?? '',
+  co_owner_full_name: signerDetails.find(e => e.role === 'Co Owner')?.fullName ?? '',
 });

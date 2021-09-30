@@ -2,6 +2,7 @@ import { Document, Schema } from 'mongoose';
 import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { FinancialProduct, FinancialProductSchema } from 'src/financial-products/financial-product.schema';
 import { GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
+import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import {
   AdderModelSchema,
@@ -157,6 +158,7 @@ export interface ILeaseProductAttributes {
   newPricePerKWh: number;
   yearlyLeasePaymentDetails: IYearlyLeasePaymentDetails[];
   ratePerKWh: number;
+  leaseSolverConfigSnapshot?: LeaseSolverConfig
 }
 
 export interface IMilestonePayment {
