@@ -49,8 +49,7 @@ export class DefaultFinancierPipe implements PipeTransform<SaveContractReqDto, P
     const signer = {
       roleId: financierId,
       role: 'Financier',
-      firstName: '',
-      lastName: countersigner.countersignerName,
+      fullName: countersigner.countersignerName,
       email: countersigner.countersignerEmail,
     };
 

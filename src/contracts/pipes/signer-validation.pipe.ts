@@ -7,7 +7,7 @@ export class SignerValidationPipe implements PipeTransform<SaveContractReqDto, S
   transform(value: SaveContractReqDto, _: ArgumentMetadata) {
     value.contractDetail.signerDetails.forEach(e => {
       if (e.role === 'Co Owner') {
-        if ((e.email || e.firstName || e.lastName) && !this.validateSigner(e)) {
+        if ((e.email || e.fullName) && !this.validateSigner(e)) {
           throw new BadRequestException('Co Owner missing information');
         }
         return;
@@ -24,6 +24,6 @@ export class SignerValidationPipe implements PipeTransform<SaveContractReqDto, S
   }
 
   private validateSigner(signer: SignerDetailDto): boolean {
-    return !!(signer.email && signer.roleId && (signer.firstName || signer.lastName));
+    return !!(signer.email && signer.roleId && signer.fullName);
   }
 }

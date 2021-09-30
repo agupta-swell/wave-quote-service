@@ -18,7 +18,7 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
   result['Solar X'] = `${sumBy(quote.quoteCostBuildup.panelQuoteDetails, e => e.netCost)}`;
 
   result['FIRST_1 MI_1 LAST_1'] = `${contact.firstName} ${contact.lastName}`;
-  result['FIRST_2 MI_2 LAST_2'] = coOwner ? `${coOwner.firstName} ${coOwner.lastName}` : '';
+  result['FIRST_2 MI_2 LAST_2'] = coOwner ? `${coOwner.fullName}` : '';
   result.HOME_ADDRESS_1 = contact.address1;
   result.HOME_ADDRESS_2 = contact.address2;
   result['CITY, STATE'] = `${contact.city}, ${contact.state}`;
@@ -52,9 +52,7 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
     .join(', ');
 
   // Value in KW
-  result.PV_KW = `${
-    sumBy(quote.quoteCostBuildup.panelQuoteDetails, e => e.panelModelDataSnapshot.sizeW) / 1000
-  }`;
+  result.PV_KW = `${sumBy(quote.quoteCostBuildup.panelQuoteDetails, e => e.panelModelDataSnapshot.sizeW) / 1000}`;
 
   result.INV_QUANTITY = quote.quoteCostBuildup.inverterQuoteDetails
     .map(({ quantity, inverterModelDataSnapshot }) => `${quantity},${inverterModelDataSnapshot.name}`)
@@ -76,8 +74,7 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
   result['GrantedRights_Yes'] = opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
   result['GrantedRights_No'] = !opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
 
-  const leaseProductAttribute = quote.quoteFinanceProduct.financeProduct
-    .productAttribute as ILeaseProductAttributes;
+  const leaseProductAttribute = quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes;
 
   result.ESA_YRS = `${leaseProductAttribute.leaseTerm}`;
   result.ESA_MOS = `${leaseProductAttribute.leaseTerm * 12}`;

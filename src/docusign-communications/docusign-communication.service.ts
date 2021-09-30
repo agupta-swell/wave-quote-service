@@ -132,7 +132,7 @@ export class DocusignCommunicationService {
 
       if (!signerDetailData) return;
 
-      const signerName = `${signerDetailData.firstName} ${signerDetailData.lastName}`.trim() || signerDetailData.role;
+      const signerName = signerDetailData.fullName || signerDetailData.role;
 
       const tab = this.docusignTemplateService.buildTemplateData(
         template.docusignTemplateId,
@@ -245,9 +245,7 @@ export class DocusignCommunicationService {
     })[],
     signerDetails: SignerDetailDto[],
   ): void {
-    const missingInfoSigner = signerDetails.find(
-      signer => !signer.email || !signer.roleId || (!signer.firstName && !signer.lastName),
-    );
+    const missingInfoSigner = signerDetails.find(signer => !signer.email || !signer.roleId || signer.fullName);
     if (missingInfoSigner) {
       console.error('Some signers information is missing, signerDetail:', missingInfoSigner);
       throw new NotFoundException(`${missingInfoSigner.role}'s information is missing.`);
