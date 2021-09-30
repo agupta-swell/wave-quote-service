@@ -473,28 +473,10 @@ export class ProposalService {
       ? await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId)
       : null;
 
-    // Get lease solver config
-    const leaseProductAttribute = quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes;
 
-    const oppData = await this.opportunityService.getOppAccountData(opportunity._id);
-
-    const manufacturerName = await this.manufacturerService.getOneById(
-      quote.quoteCostBuildup.storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId,
-    );
-
-    const query: IGetDetail = {
-      tier: oppData?.swellESAPricingTier!,
-      isSolar: systemDesign!.isSolar,
-      utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utilityProgramName : '',
-      contractTerm: leaseProductAttribute.leaseTerm,
-      storageSize: sumBy(quote.quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizekWh),
-      storageManufacturer: manufacturerName.name,
-      rateEscalator: leaseProductAttribute.rateEscalator,
-      capacityKW: systemDesign!.systemProductionData.capacityKW,
-      productivity: systemDesign!.systemProductionData.productivity,
-    };
-
-    const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
+    const leaseSolverConfig =
+      (quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
+        .leaseSolverConfigSnapshot || null;
 
     const sampleContact = {
       ...contact,

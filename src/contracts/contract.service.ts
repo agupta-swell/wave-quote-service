@@ -11,7 +11,6 @@ import { DocusignTemplateMasterService } from 'src/docusign-templates-master/doc
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
-import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
@@ -242,26 +241,9 @@ export class ContractService {
       ? await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId)
       : null;
 
-    // Get lease solver config
-    const leaseProductAttribute = quote.detailedQuote.quoteFinanceProduct.financeProduct
-      .productAttribute as ILeaseProductAttributes;
-    // TODO: Tier/StorageManufacturer support
-    const query: IGetDetail = {
-      tier: 'DTC',
-      isSolar: systemDesign!.isSolar,
-      utilityProgramName: utilityProgramMaster ? utilityProgramMaster.utilityProgramName : '',
-      contractTerm: leaseProductAttribute.leaseTerm,
-      storageSize: sumBy(
-        quote.detailedQuote.quoteCostBuildup.storageQuoteDetails,
-        item => item.storageModelDataSnapshot.sizekWh,
-      ),
-      storageManufacturer: 'Tesla',
-      rateEscalator: leaseProductAttribute.rateEscalator,
-      capacityKW: systemDesign!.systemProductionData.capacityKW,
-      productivity: systemDesign!.systemProductionData.productivity,
-    };
-
-    const leaseSolverConfig = await this.leaseSolverConfigService.getDetailByConditions(query);
+    const leaseSolverConfig =
+      (quote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
+        .leaseSolverConfigSnapshot || null;
 
     const financialProduct = await this.financialProductService.getOneByQuoteId(
       <any>new Types.ObjectId(contract.associatedQuoteId),

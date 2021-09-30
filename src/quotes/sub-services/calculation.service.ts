@@ -32,9 +32,6 @@ export class CalculationService {
       .productAttribute as LeaseProductAttributesDto;
     productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossPrice;
 
-    // const quote = await this.
-
-    // TODO: Tier/StorageManufacturer update
     const query: IGetDetail = {
       tier: tier ?? 'DTC',
       isSolar: detailedQuote.isSolar,
@@ -57,6 +54,8 @@ export class CalculationService {
     if (!leaseSolverConfig) {
       throw ApplicationException.NullEntityFound('Lease Config');
     }
+
+    productAttribute.leaseSolverConfigSnapshot = leaseSolverConfig;
 
     // IMPORTANT NOTE: THIS BELOW LOGIC IS DUPLICATED IN THE calculateLeaseQuoteForECom() METHOD, WHEN CHANGING BELOW LOGIC, PLESE CHECK IF THE CHNAGE WILL HAVE TO BE MADE
     //    IN calculateLeaseQuoteForECom() ALSO.

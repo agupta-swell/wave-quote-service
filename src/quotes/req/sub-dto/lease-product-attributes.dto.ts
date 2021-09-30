@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber } from 'class-validator';
+import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 
 export class LeaseProductAttributesDto {
   @ApiProperty()
@@ -64,4 +65,7 @@ export class LeaseProductAttributesDto {
 
   @ApiProperty()
   yearlyLoanPaymentDetails: any;
+  
+  @ApiProperty()
+  leaseSolverConfigSnapshot?: LeaseSolverConfig;
 }
