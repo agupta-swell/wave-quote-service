@@ -42,6 +42,11 @@ export class CreateQuoteDto {
   utilityProgramId: string;
 
   @ApiProperty()
+  @IsOptional()
+  @IsString()
+  rebateProgramId: string;
+
+  @ApiProperty()
   @IsString()
   quoteName: string;
 

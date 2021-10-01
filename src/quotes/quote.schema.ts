@@ -158,7 +158,7 @@ export interface ILeaseProductAttributes {
   newPricePerKWh: number;
   yearlyLeasePaymentDetails: IYearlyLeasePaymentDetails[];
   ratePerKWh: number;
-  leaseSolverConfigSnapshot?: LeaseSolverConfig
+  leaseSolverConfigSnapshot?: LeaseSolverConfig;
 }
 
 export interface IMilestonePayment {
@@ -303,6 +303,19 @@ const UtilityProgramSchema = new Schema<Document<IUtilityProgramSchema>>(
     rebate_amount: Number,
     utility_program_data_snapshot: UtilityProgramDataSnapshot,
     utility_program_data_snapshot_date: Date,
+  },
+  { _id: false },
+);
+
+export interface IRebateProgramSchema {
+  _id: string;
+  name: string;
+}
+
+const RebateProgramSchema = new Schema<Document<IRebateProgramSchema>>(
+  {
+    _id: String,
+    name: String,
   },
   { _id: false },
 );
@@ -591,6 +604,7 @@ export interface INote {
 export interface IDetailedQuoteSchema {
   systemProduction: ISystemProductionSchema;
   utilityProgram: IUtilityProgramSchema;
+  rebateProgram?: IRebateProgramSchema;
   quoteFinanceProduct: IQuoteFinanceProductSchema;
   savingsDetails: ISavingsDetailsSchema[];
   quoteCostBuildup: IQuoteCostBuildupSchema;
@@ -625,6 +639,7 @@ export const NoteSchema = new Schema<Document<INote>>(
 export const DetailedQuoteSchema = new Schema<Document<IDetailedQuoteSchema>>(
   {
     system_production: SystemProductionSchema,
+    rebate_program: RebateProgramSchema,
     utility_program: UtilityProgramSchema,
     quote_finance_product: QuoteFinanceProductSchema,
     savings_details: [SavingsDetailsSchema],
@@ -695,6 +710,7 @@ export class QuoteModel {
     const {
       systemProduction,
       utilityProgram,
+      rebateProgram,
       quoteFinanceProduct: {
         netAmount,
         incentiveDetails,
@@ -725,6 +741,7 @@ export class QuoteModel {
       isSolar,
       isRetrofit,
       utilityProgram,
+      rebateProgram,
       quoteFinanceProduct: {
         incentiveDetails: incentiveDetails.map(e => ({
           ...e,

@@ -30,6 +30,14 @@ class UtilityProgramDto {
   utilityProgramName: string;
 }
 
+class RebateProgramDto {
+  @ExposeProp()
+  _id: string;
+
+  @ExposeProp()
+  name: string;
+}
+
 class SavingsDetailDto {
   @ExposeProp()
   year: number;
@@ -124,6 +132,9 @@ export class QuoteDto {
 
   @ExposeAndMap({ type: UtilityProgramDto, root: 'detailedQuote', checkParent: true })
   utilityProgram: UtilityProgramDto;
+  
+  @ExposeAndMap({ type: RebateProgramDto, root: 'detailedQuote', checkParent: true })
+  rebateProgram: RebateProgramDto;
 
   @ExposeAndMap({ type: QuoteFinanceProductDto, root: 'detailedQuote', checkParent: true })
   quoteFinanceProduct: QuoteFinanceProductDto;

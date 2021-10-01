@@ -27,6 +27,11 @@ export class UpdateLatestQuoteDto {
   @IsMongoId()
   @IsOptional()
   utilityProgramId: string;
+  
+  @ApiProperty()
+  @IsMongoId()
+  @IsOptional()
+  rebateProgramId: string;
 
   @ApiProperty()
   @IsString()
