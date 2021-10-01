@@ -473,7 +473,6 @@ export class ProposalService {
       ? await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId)
       : null;
 
-
     const leaseSolverConfig =
       (quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
         .leaseSolverConfigSnapshot || null;
@@ -504,6 +503,7 @@ export class ProposalService {
       leaseSolverConfig,
       financialProduct,
       contract: {} as any,
+      systemDesign: systemDesign!,
     };
 
     const compositeTemplateIds = uniq(templateDetails.map(e => e.compositeTemplateId));

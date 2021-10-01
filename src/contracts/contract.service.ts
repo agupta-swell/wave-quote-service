@@ -265,6 +265,7 @@ export class ContractService {
       leaseSolverConfig,
       financialProduct,
       contract,
+      systemDesign: systemDesign!,
     };
 
     const sentOn = new Date();
