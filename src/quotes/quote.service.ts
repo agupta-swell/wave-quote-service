@@ -289,6 +289,10 @@ export class QuoteService {
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
       : null;
 
+    const rebateProgram = data.rebateProgramId
+      ? await this.rebateProgramService.getOneById(data.rebateProgramId)
+      : null;
+
     const financialProduct = await this.financialProductService.getDetailByFinancialProductId(data.financialProductId);
     if (!financialProduct) {
       throw ApplicationException.EntityNotFound('financial Source');
@@ -302,6 +306,7 @@ export class QuoteService {
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
       quoteCostBuildup,
+      rebateProgram,
       utilityProgram: utilityProgram && {
         utilityProgramId: utilityProgram.id,
         utilityProgramName: utilityProgram.utilityProgramName,
@@ -910,6 +915,10 @@ export class QuoteService {
         ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
         : null;
 
+    const rebateProgramDetail = data.rebateProgramId
+      ? await this.rebateProgramService.getOneById(data.rebateProgramId)
+      : null;
+
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('funding Source');
@@ -918,6 +927,7 @@ export class QuoteService {
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
       quoteCostBuildup,
+      rebateProgramDetail,
       utilityProgram: utilityProgramDetail
         ? {
             utilityProgramId: utilityProgramDetail.id,

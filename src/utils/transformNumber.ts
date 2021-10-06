@@ -28,9 +28,9 @@ export const toWord = (value: number): string => {
     'sixteen',
     'seventeen',
     'eighteen',
-    'ninteen',
+    'nineteen',
   ];
-  const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'senventy', 'eighty', 'ninety'];
+  const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
 
   if (value < 20) return ones[value];
 

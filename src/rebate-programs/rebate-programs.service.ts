@@ -37,4 +37,12 @@ export class RebateProgramService {
     // return LeanDocument<RebateProgram>[] for future implementation of multiple rebase programs per opp
     return this.rebateProgram.find({ _id: opportunity.rebateProgramId }).lean();
   }
+
+  async getOneById(id: string): Promise<LeanDocument<RebateProgram>> {
+    const rebateProgram = await this.rebateProgram.findById(id).lean();
+
+    if (!rebateProgram) throw ApplicationException.EntityNotFound(`Rebate program id: ${id}`);
+
+    return rebateProgram;
+  }
 }

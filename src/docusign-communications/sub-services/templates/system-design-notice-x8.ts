@@ -1,46 +1,58 @@
-import { sumBy } from 'lodash';
-import { IAdderQuoteDetailsSchema } from 'src/quotes/quote.schema';
+import { sum, sumBy } from 'lodash';
+import { LeanDocument } from 'mongoose';
+import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { TemplateDataBuilder } from '../../typing';
 
-export const getSystemDesignNoticeX8Data: TemplateDataBuilder = genericObject => {
-  const {
-    quote: { quoteCostBuildup },
-  } = genericObject;
+interface ISystemDesignNoticeX8RequiredFields {
+  systemDesignBatteries: LeanDocument<SystemDesign>['roofTopDesignData']['storage'];
+  systemDesignModules: LeanDocument<SystemDesign>['roofTopDesignData']['panelArray'];
+  systemDesignInverters: LeanDocument<SystemDesign>['roofTopDesignData']['inverters'];
+  systemDesignAdders: LeanDocument<SystemDesign>['roofTopDesignData']['adders'];
+}
+export const getSystemDesignNoticeX8Data: TemplateDataBuilder = ({ systemDesign }) => {
+  const { designMode } = systemDesign;
+
+  let fields: ISystemDesignNoticeX8RequiredFields;
+
+  switch (designMode) {
+    case 'capacityProduction':
+      fields = {
+        systemDesignAdders: systemDesign.capacityProductionDesignData.adders,
+        systemDesignBatteries: systemDesign.capacityProductionDesignData.storage,
+        systemDesignInverters: systemDesign.capacityProductionDesignData.inverters,
+        systemDesignModules: systemDesign.capacityProductionDesignData.panelArray,
+      };
+      break;
+    case 'roofTop':
+      fields = {
+        systemDesignAdders: systemDesign.roofTopDesignData.adders,
+        systemDesignBatteries: systemDesign.roofTopDesignData.storage,
+        systemDesignInverters: systemDesign.roofTopDesignData.inverters,
+        systemDesignModules: systemDesign.roofTopDesignData.panelArray,
+      };
+      break;
+    default:
+      throw new Error(`Invalid system design type (got ${designMode})`);
+  }
 
   const obj = {} as any;
-  obj.ES_KWH = sumBy(
-    quoteCostBuildup.storageQuoteDetails,
-    item => item.storageModelDataSnapshot.sizekWh * item.quantity,
-  );
-  obj.ES_KW =
-    sumBy(quoteCostBuildup.storageQuoteDetails, item => item.storageModelDataSnapshot.sizeW * item.quantity) / 1000;
-  obj.ES_QUANTITY = sumBy(quoteCostBuildup.storageQuoteDetails, item => item.quantity);
-  obj.ES_PRODUCT = quoteCostBuildup.storageQuoteDetails.reduce(
-    (acc, item, index) => acc.concat(`${index === 0 ? '' : ','}${item.storageModelDataSnapshot.name}`),
-    '',
-  );
-  obj.PV_KW =
-    sumBy(quoteCostBuildup.panelQuoteDetails, item => item.panelModelDataSnapshot.sizeW * item.quantity) / 1000;
-  obj.PV_QUANTITY = sumBy(quoteCostBuildup.panelQuoteDetails, item => item.quantity);
-  obj.PV_PRODUCT = quoteCostBuildup.panelQuoteDetails.reduce(
-    (acc, item, index) => acc.concat(`${index === 0 ? '' : ','}${item.panelModelDataSnapshot.name}`),
-    '',
-  );
-  obj.INV_QUANTITY = sumBy(quoteCostBuildup.inverterQuoteDetails, item => item.quantity);
-  obj.INV_PRODUCT = quoteCostBuildup.inverterQuoteDetails.reduce(
-    (acc, item, index) => acc.concat(`${index === 0 ? '' : ','}${item.inverterModelDataSnapshot.name}`),
-    '',
-  );
+  obj.es_kwh = `${sumBy(fields.systemDesignBatteries, e => e.storageModelDataSnapshot.sizekWh)}`;
+  obj.es_kw = `${sumBy(fields.systemDesignBatteries, e => e.storageModelDataSnapshot.sizeW) / 1000}`;
+  obj.battery_summary = fields.systemDesignBatteries
+    .map(e => `${e.quantity} x ${e.storageModelDataSnapshot.name}`)
+    .join(',');
 
-  const adders = quoteCostBuildup.adderQuoteDetails.map((adderModelDataSnapshot: IAdderQuoteDetailsSchema) => ({
-    name: adderModelDataSnapshot.adderModelDataSnapshot.adder,
-    quantity: adderModelDataSnapshot.quantity,
-  }));
-  // eslint-disable-next-line no-plusplus
-  for (let i = 0; i < 5; i++) {
-    obj[`ADDER_QUANTITY_${i + 1}`] = adders[i] ? adders[i].quantity : '';
-    obj[`ADDER_NAME_${i + 1}`] = adders[i] ? adders[i].name : '';
-  }
+  obj.pv_kw = `${systemDesign.systemProductionData.capacityKW}`;
+
+  obj.module_summary = fields.systemDesignModules
+    .map(e => `${e.numberOfPanels} x ${e.panelModelDataSnapshot.name}`)
+    .join(',');
+
+  obj.inverter_summary = fields.systemDesignInverters
+    .map(e => `${e.quantity} x ${e.inverterModelDataSnapshot.name}`)
+    .join('.');
+
+  obj.adder_summary = fields.systemDesignAdders.map(e => `${e.quantity} x ${e.adderDescription}`).join(',');
 
   return obj;
 };

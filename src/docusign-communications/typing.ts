@@ -7,7 +7,7 @@ import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
 import { IDetailedQuoteSchema, IFinancialProductDetails } from 'src/quotes/quote.schema';
-import { IRoofTopSchema } from 'src/system-designs/system-design.schema';
+import { IRoofTopSchema, SystemDesign } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
 import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
 
@@ -70,6 +70,7 @@ export interface IGenericObject {
   leaseSolverConfig: LeaseSolverConfig | null;
   financialProduct?: LeanDocument<FinancialProduct>;
   contract?: LeanDocument<Contract>;
+  systemDesign: LeanDocument<SystemDesign> | SystemDesign;
 }
 
 export interface IDefaultContractor {
