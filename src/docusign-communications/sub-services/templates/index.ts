@@ -6,7 +6,7 @@ import { getCaConsumerGuideData } from './ca-consumer-guide';
 import { getContractOneData } from './contract-one';
 import { getDisclosureEsaData } from './disclosure-esa';
 import { empty } from './empty';
-import { getGridServicesAgt } from './grid-services-agt';
+import { getGridServicesAgreement } from './grid-services-agreement';
 import { getHomeEnergySubAgtESA } from './home-energy-sub-agt-esa';
 import { getParticipationPRP2ACESCash } from './participation-prp2-aces-cash';
 import { getParticipationPRP2ACESEsa } from './participation-prp2-aces-esa';
@@ -40,7 +40,7 @@ export const templateBuilderMap: TemplateBuilderMap = {
   [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_CASH]: getParticipationPRP2ACESCash,
   [TEMPLATE_IDS.PARTICIPATION_PRP2_ACES_ESA]: getParticipationPRP2ACESEsa,
   [TEMPLATE_IDS.SOLAR_ENERGY_SYSTEM_ESTIMATED_X7]: getSolarEnergySystemEstimatedX7,
-  [TEMPLATE_IDS.GRID_SERVICES_AGT]: getGridServicesAgt,
+  [TEMPLATE_IDS.GRID_SERVICES_AGREEMENT]: getGridServicesAgreement,
   [TEMPLATE_IDS.HOME_ENERGY_SUB_AGT_ESA]: getHomeEnergySubAgtESA,
   [TEMPLATE_IDS.PAYMENT_SCHEDULE_X10]: getPaymentScheduleX10,
   [TEMPLATE_IDS.DUMMY_CHANGE_ORDER]: getDummyChangeOrder,
