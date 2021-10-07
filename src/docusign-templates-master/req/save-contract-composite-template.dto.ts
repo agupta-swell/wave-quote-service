@@ -1,17 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, ValidateNested } from 'class-validator';
+import { IsEnum, IsNotEmpty, ValidateNested } from 'class-validator';
 import { SAVE_TEMPLATE_MODE } from '../constants';
-import { DocusignCompositeTemplateMasterDataResDto } from '../res/sub-dto';
+import { DocusignCompositeTemplateMasterDataReqDto } from './docusign-composite-template-master-req.dto';
 
 export class SaveContractCompositeTemplateReqDto {
   @ApiProperty({ enum: SAVE_TEMPLATE_MODE })
+  @IsEnum(SAVE_TEMPLATE_MODE)
   @IsNotEmpty()
   mode: SAVE_TEMPLATE_MODE;
 
-  @ApiProperty({ type: DocusignCompositeTemplateMasterDataResDto })
-  @Type(() => DocusignCompositeTemplateMasterDataResDto)
+  @ApiProperty({ type: DocusignCompositeTemplateMasterDataReqDto })
+  @Type(() => DocusignCompositeTemplateMasterDataReqDto)
   @ValidateNested()
   @IsNotEmpty()
-  compositeTemplateData: DocusignCompositeTemplateMasterDataResDto;
+  compositeTemplateData: DocusignCompositeTemplateMasterDataReqDto;
 }

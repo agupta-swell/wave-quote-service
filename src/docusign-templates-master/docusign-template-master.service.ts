@@ -220,13 +220,13 @@ export class DocusignTemplateMasterService {
   ): Promise<OperationResult<SaveContractCompositeTemplateDto>> {
     if (req.mode === SAVE_TEMPLATE_MODE.NEW && req.compositeTemplateData.id != null) {
       return OperationResult.ok(
-        strictPlainToClass(SaveContractCompositeTemplateDto, { responseStatus: 'INVALID_MODE_PARAMETER' }),
+        strictPlainToClass(SaveContractCompositeTemplateDto, { responseStatus: 'Create Contract Composite Template does not accept id' }),
       );
     }
 
     if (req.mode === SAVE_TEMPLATE_MODE.UPDATE && req.compositeTemplateData.id == null) {
       return OperationResult.ok(
-        strictPlainToClass(SaveContractCompositeTemplateDto, { responseStatus: 'INVALID_MODE_PARAMETER' }),
+        strictPlainToClass(SaveContractCompositeTemplateDto, { responseStatus: 'Update Contract Composite Template requires an id' }),
       );
     }
 
