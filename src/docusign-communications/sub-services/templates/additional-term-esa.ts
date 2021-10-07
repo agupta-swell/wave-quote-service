@@ -7,7 +7,7 @@ export const getAdditionalTermEsaData: TemplateDataBuilder = ({ quote, leaseSolv
     rate_escalator: `${
       (<ILeaseProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).rateEscalator
     }`,
-    storage_payment: `${
+    monthly_storage_payment: `${
       (<ILeaseProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).leaseSolverConfigSnapshot
         ?.storagePayment
     }`,
