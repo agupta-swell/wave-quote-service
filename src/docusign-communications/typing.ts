@@ -177,15 +177,16 @@ export interface IDocusignTemplateMapping {
   PARTICIPATION_PRP2_ACES_CASH: string;
   PARTICIPATION_PRP2_ACES_ESA: string;
   SOLAR_ENERGY_SYSTEM_ESTIMATED_X7: string;
-  GRID_SERVICES_AGT: string;
+  GRID_SERVICES_AGREEMENT: string;
   HOME_ENERGY_SUB_AGT_ESA: string;
   PAYMENT_SCHEDULE_X10: string;
   DUMMY_PRIMARY_CONTRACT: string;
-  DUMMY_CHANGE_ORDER: string;
   DUMMY_GSA: string;
   DUMMY_ACES_PA: string;
   DUMMY_PRP2_PA: string;
   DUMMY_SGIP_PA: string;
+  DUMMY_CHANGE_ORDER: string;
+  DUMMY_NO_COST_CHANGE_ORDER: string;
 }
 export interface IDisclosureEsaMapping {
   salesPersonFirstLast: string;
