@@ -15,9 +15,10 @@ import { getSolarEnergySystemEstimatedX7 } from './solar-energy-system-estimated
 import { getSwellServiceEsaX1Data } from './swell-service-esa-x1';
 import { getSystemDesignNoticeX8Data } from './system-design-notice-x8';
 import { getPaymentScheduleX10 } from './payment-schedule-x10';
-import { getDummyChangeOrder } from './dummy-change-order';
 import { getDummyPrimaryContract } from './dummy-primary-contract';
 import { getDummyGSA } from './dummy-gsa';
+import { getDummyChangeOrder } from './dummy-change-order';
+import { getDummyNoCostChangeOrder } from './dummy-no-cost-change-order';
 
 const DOCUSIGN_ENV = (process.env.DOCUSIGN_ENV as DocuSignEnv) ?? 'demo';
 const TEMPLATE_IDS = DOCUSIGN_TEMPLATE_IDS_BY_ENV[DOCUSIGN_ENV];
@@ -43,10 +44,11 @@ export const templateBuilderMap: TemplateBuilderMap = {
   [TEMPLATE_IDS.GRID_SERVICES_AGREEMENT]: getGridServicesAgreement,
   [TEMPLATE_IDS.HOME_ENERGY_SUB_AGT_ESA]: getHomeEnergySubAgtESA,
   [TEMPLATE_IDS.PAYMENT_SCHEDULE_X10]: getPaymentScheduleX10,
-  [TEMPLATE_IDS.DUMMY_CHANGE_ORDER]: getDummyChangeOrder,
   [TEMPLATE_IDS.DUMMY_PRIMARY_CONTRACT]: getDummyPrimaryContract,
   [TEMPLATE_IDS.DUMMY_GSA]: getDummyGSA,
-  [TEMPLATE_IDS.DUMMY_ACES_PA]: () => ({}),
-  [TEMPLATE_IDS.DUMMY_PRP2_PA]: () => ({}),
-  [TEMPLATE_IDS.DUMMY_SGIP_PA]: () => ({}),
+  [TEMPLATE_IDS.DUMMY_ACES_PA]: empty,
+  [TEMPLATE_IDS.DUMMY_PRP2_PA]: empty,
+  [TEMPLATE_IDS.DUMMY_SGIP_PA]: empty,
+  [TEMPLATE_IDS.DUMMY_CHANGE_ORDER]: getDummyChangeOrder,
+  [TEMPLATE_IDS.DUMMY_NO_COST_CHANGE_ORDER]: getDummyNoCostChangeOrder,
 };
