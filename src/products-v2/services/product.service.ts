@@ -1,14 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, LeanDocument, Model, ObjectId, Types, UpdateQuery } from 'mongoose';
 import { isObjectId, transformToValidId } from 'src/utils/common';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult, Pagination } from '../../app/common';
-import { UpdateProductDtoReq } from '../req/update-product.dto';
+import { SaveInsertionRuleReq } from '../req/save-insertion-rule.dto';
 import { ProductResDto } from '../res/product.dto';
 import { IProduct, IProductDocument, IUnknownProduct } from '../interfaces';
 import { PRODUCT_MODEL_NAME, PRODUCT_TYPE } from '../constants';
 import { GetAllProductsQueryDto } from '../req';
+import { ObjectId } from 'mongoose';
+import { PRODUCT } from 'src/products/product.schema';
 
 @Injectable()
 export class ProductService {
@@ -33,12 +35,33 @@ export class ProductService {
     return OperationResult.ok(new Pagination({ data: strictPlainToClass(ProductResDto, panels), total }));
   }
 
-  async updateProduct(id: string, req: UpdateProductDtoReq): Promise<OperationResult<ProductResDto>> {
+  async saveInsertionRule(id: ObjectId, req: SaveInsertionRuleReq): Promise<OperationResult<ProductDto>> {
     const updatedProduct = await this.productModel
       .findByIdAndUpdate(id, { insertionRule: req.insertionRule! }, { new: true })
       .lean();
 
-    return OperationResult.ok(strictPlainToClass(ProductResDto, updatedProduct));
+    const foundProduct = await this.productModel.findOne({ _id: id });
+
+    if (!foundProduct) {
+      throw new NotFoundException(`No product found with id ${id.toString()}`);
+    }
+
+    if (
+      foundProduct.type !== PRODUCT_TYPE.ANCILLARY_EQUIPMENT &&
+      foundProduct.type !== PRODUCT_TYPE.BALANCE_OF_SYSTEM
+    ) {
+      throw new BadRequestException('Only ancillary equipment or balance of system product is allowed');
+    }
+
+    const mappedProduct = this.extractType<PRODUCT_TYPE.ANCILLARY_EQUIPMENT | PRODUCT_TYPE.BALANCE_OF_SYSTEM>(
+      foundProduct,
+    );
+
+    mappedProduct.insertionRule = req.insertionRule;
+
+    await mappedProduct.save();
+
+    return OperationResult.ok(strictPlainToClass(ProductDto, mappedProduct.toJSON()));
   }
 
   async getDetailById(id: string): Promise<LeanDocument<IUnknownProduct> | null> {
@@ -69,6 +92,8 @@ export class ProductService {
   ): Promise<IProductDocument<T> | null> {
     const res = await this.productModel.findOne(condition as any);
 
+    if (!res) return null;
+
     return this.extractType<T>(res);
   }
 
@@ -84,6 +109,8 @@ export class ProductService {
     condition: FilterQuery<IProduct<T>>,
   ): Promise<LeanDocument<IProductDocument<T>> | null> {
     const res = await this.productModel.findOne(condition as any).lean();
+
+    if (!res) return null;
 
     return this.extractLeanType<T>(res);
   }
@@ -126,8 +153,8 @@ export class ProductService {
   }
 
   private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct[]): IProductDocument<T>[];
-  private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct | null): IProductDocument<T> | null;
-  private extractType(product: any): any {
+  private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct): IProductDocument<T>;
+  private extractType<T extends PRODUCT_TYPE>(product: any): any {
     return product;
   }
 
@@ -135,9 +162,9 @@ export class ProductService {
     product: LeanDocument<IUnknownProduct>[],
   ): LeanDocument<IProductDocument<T>>[];
   private extractLeanType<T extends PRODUCT_TYPE>(
-    product: LeanDocument<IUnknownProduct> | null,
-  ): LeanDocument<IProductDocument<T>> | null;
-  private extractLeanType(product: any): any {
+    product: LeanDocument<IUnknownProduct>,
+  ): LeanDocument<IProductDocument<T>>;
+  private extractLeanType<T extends PRODUCT_TYPE>(product: any): any {
     return product;
   }
 }
