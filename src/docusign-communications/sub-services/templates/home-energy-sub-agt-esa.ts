@@ -40,7 +40,7 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
 
   // Value in KW
   result['ES_KWH | ES_KW'] = `${
-    sumBy(quote.quoteCostBuildup.storageQuoteDetails, e => e.storageModelDataSnapshot.sizeW) / 1000
+    sumBy(quote.quoteCostBuildup.storageQuoteDetails, e => e.storageModelDataSnapshot.ratings.kilowatts)
   }`;
 
   result.PV_QUANTITY = quote.quoteCostBuildup.panelQuoteDetails
@@ -52,7 +52,9 @@ export const getHomeEnergySubAgtESA: TemplateDataBuilder = genericObject => {
     .join(', ');
 
   // Value in KW
-  result.PV_KW = `${sumBy(quote.quoteCostBuildup.panelQuoteDetails, e => e.panelModelDataSnapshot.sizeW) / 1000}`;
+  result.PV_KW = `${
+    sumBy(quote.quoteCostBuildup.panelQuoteDetails, e => e.panelModelDataSnapshot.ratings.watts) / 1000
+  }`;
 
   result.INV_QUANTITY = quote.quoteCostBuildup.inverterQuoteDetails
     .map(({ quantity, inverterModelDataSnapshot }) => `${quantity},${inverterModelDataSnapshot.name}`)

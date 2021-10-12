@@ -1,19 +1,7 @@
 import { Schema, Types } from 'mongoose';
-import { IUnknownProduct } from './interfaces';
-
-const DimensionSchema = new Schema(
-  {
-    length: Number,
-    width: Number,
-  },
-  { _id: false },
-);
-
-const RatingSchema = new Schema({
-  kilowatts: Number,
-  kilowatt_hours: Number,
-  watts: Number,
-});
+import { IUnknownProduct } from '../interfaces';
+import { DimensionSchema } from './dimension.schema';
+import { RatingSchema } from './rating.schema';
 
 export const ProductSchema = new Schema<IUnknownProduct>({
   name: String,

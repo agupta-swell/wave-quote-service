@@ -4,7 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { PRODUCT_COLL, PRODUCT_MODEL_NAME } from './constants';
 import { ProductControllerV2 } from './product.controller';
-import { ProductSchema } from './product.schema';
+import { ProductSchema } from './schemas';
 import { ProductService } from './services';
 
 @Module({

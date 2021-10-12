@@ -46,11 +46,6 @@ export class UpdateSystemDesignDto {
   @Type(() => CapacityProductionDataDto)
   capacityProductionDesignData: CapacityProductionDataDto;
 
-  // @ApiPropertyOptional()
-  // @IsOptional()
-  // @IsBoolean()
-  // isSelected: boolean;
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

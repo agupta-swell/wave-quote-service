@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ExternalService } from '../../external-services/external-service.service';
-import { ProductService } from '../../products/product.service';
+import { ProductService } from 'src/products-v2/services';
 import { UpdateSystemDesignDto } from '../req';
 import { PvWattSystemProduction, PV_WATT_SYSTEM_PRODUCTION } from '../schemas/pv-watt-system-production.schema';
 import { INetUsagePostInstallationSchema } from '../system-design.schema';
@@ -132,7 +132,7 @@ export class SystemProductService {
         systemDesignDto.roofTopDesignData.panelArray.map(async item => {
           const { azimuth, losses, pitch } = item;
           const panelModelData = await this.productService.getDetailById(item.panelModelId);
-          const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
+          const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.ratings?.watts ?? 0)) / 1000;
           return this.calculatePVProduction({ latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses });
         }),
       );

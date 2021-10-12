@@ -1,4 +1,4 @@
-import { Document, Model } from 'mongoose';
+import { Document } from 'mongoose';
 import { PRODUCT_TYPE } from '../constants';
 import { IMappedProductTypes } from './mapped-products.interface';
 import { IBaseRating, IRating } from './rating.interface';
@@ -8,6 +8,12 @@ export interface IBaseProduct {
   name: string;
   type: PRODUCT_TYPE;
   partNumbers?: string[];
+  createdAt: Date;
+  createdBy: String;
+  updatedAt?: Date;
+  updatedBy?: String;
+
+  price: number // TOTO WAV-903 missing price field
 }
 
 export type IProduct<T = unknown> = T extends PRODUCT_TYPE
@@ -26,3 +32,6 @@ export interface IUnknownProduct
     Partial<IMappedProductTypes[PRODUCT_TYPE.MODULE]>,
     Partial<IRating>,
     Partial<IRating<IBaseRating>> {}
+
+export type ISnapshotProductDocument<T> = Omit<IProductDocument<T>, '_id'>;
+export type ISnapshotProduct<T> = Omit<IProduct<T>, '_id'>;

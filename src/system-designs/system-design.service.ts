@@ -1,4 +1,4 @@
-import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { flatten, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
@@ -6,6 +6,8 @@ import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { ContractService } from 'src/contracts/contract.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { ProductService } from 'src/products-v2/services';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
@@ -16,7 +18,6 @@ import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
 import { AdderConfigService } from '../adder-config/adder-config.service';
-import { ProductService } from '../products/product.service';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { COST_UNIT_TYPE, DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
@@ -41,14 +42,9 @@ export class SystemDesignService {
   constructor(
     // @ts-ignore
     @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
-    @InjectModel(SYSTEM_DESIGN_ANCILLARY_MASTER)
-    private readonly ancillaryMasterModel: Model<SystemDesignAncillaryMaster>,
-    private readonly productService: ProductService,
     private readonly systemProductService: SystemProductService,
-    private readonly uploadImageService: UploadImageService,
     @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
-    private readonly adderConfigService: AdderConfigService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
@@ -60,6 +56,7 @@ export class SystemDesignService {
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
     private readonly googleSunroofService: GoogleSunroofService,
+    private readonly productService: ProductService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -74,7 +71,7 @@ export class SystemDesignService {
         !systemDesignDto.roofTopDesignData.inverters.length) ||
       (systemDesignDto.capacityProductionDesignData &&
         !systemDesignDto.capacityProductionDesignData.panelArray.length &&
-        !systemDesignDto.capacityProductionDesignData.inverters.length)
+      !systemDesignDto.capacityProductionDesignData.inverters.length)
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -108,13 +105,19 @@ export class SystemDesignService {
           this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
           systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
             item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
+
             const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
+
             item.panelModelId = panelModelId;
-            const panelModelData = await this.productService.getDetailById(panelModelId);
-            const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
-            systemDesign.setPanelModelDataSnapshot(data, index);
-            const capacity = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
+
+            const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
+
+            systemDesign.setPanelModelDataSnapshot(panelModelData, index);
+
+            const capacity = (item.numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
+
             const { useSunroof, sunroofAzimuth, sunroofPitch, azimuth, pitch } = item;
+
             const acAnnual = await this.systemProductService.pvWatCalculation({
               lat: systemDesign.latitude,
               lon: systemDesign.longitude,
@@ -123,45 +126,56 @@ export class SystemDesignService {
               tilt: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
               losses: item.losses,
             });
+
             cumulativeGenerationKWh += acAnnual;
             cumulativeCapacityKW += capacity;
           }),
+
           systemDesign.roofTopDesignData.adders.map(async (item, index) => {
-            const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
-            systemDesign.setAdder(
-              { ...adder, modifiedAt: adder?.modifiedAt } as any,
-              this.convertIncrementAdder((adder as any)?.increment as string),
-              index,
-            );
+            const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
+
+            systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
           }),
+
           systemDesign.roofTopDesignData.inverters.map(async (inverter, index) => {
-            const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
-            const data = { ...inverterModelData, partNumber: inverterModelData?.partNumber } as any;
-            systemDesign.setInverter(data, index);
+            const inverterModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.INVERTER,
+              inverter.inverterModelId,
+            );
+
+            systemDesign.setInverter(inverterModelData, index);
           }),
+
           systemDesign.roofTopDesignData.storage.map(async (storage, index) => {
-            const storageModelData = await this.productService.getDetailById(storage.storageModelId);
-            const data = { ...storageModelData, partNumber: storageModelData?.partNumber } as any;
-            systemDesign.setStorage(data, index);
+            const storageModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.BATTERY,
+              storage.storageModelId,
+            );
+
+            systemDesign.setStorage(storageModelData, index);
           }),
+
           systemDesign.roofTopDesignData.balanceOfSystems.map(async (balanceOfSystem, index) => {
-            const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
-            const data = {
-              ...balanceOfSystemModelData,
-              partNumber: balanceOfSystemModelData?.partNumber,
-            } as any;
-            systemDesign.setBalanceOfSystem(data, index);
+            const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.BALANCE_OF_SYSTEM,
+              balanceOfSystem.balanceOfSystemId,
+            );
+
+            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
           }),
+
           systemDesign.roofTopDesignData.ancillaryEquipments.map(async (ancillary, index) => {
-            const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
-            const data = { ...ancillaryModelData, ancillaryId: ancillary.ancillaryId } as any;
-            systemDesign.setAncillaryEquipment(data, index);
+            const ancillaryModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.ANCILLARY_EQUIPMENT,
+              ancillary.ancillaryId,
+            );
+
+            systemDesign.setAncillaryEquipment(ancillaryModelData, index);
           }),
         ]),
       );
 
       systemDesign.setThumbnail(thumbnail);
-      // systemDesign.setIsSelected(systemDesignDto.isSelected);
 
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
@@ -190,17 +204,19 @@ export class SystemDesignService {
             const newObjectId = Types.ObjectId();
             let generation = 0;
 
-            const panelModelData = await this.productService.getDetailById(panelModelId);
-            const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
-            systemDesign.setPanelModelDataSnapshot(data, index, systemDesign.designMode);
+            const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
+
+            systemDesign.setPanelModelDataSnapshot(panelModelData, index);
 
             const relatedInverterIndex =
               systemDesign.capacityProductionDesignData.inverters?.findIndex(
                 inverter => inverter.arrayId === item.arrayId,
               ) ?? -1;
+
             if (relatedInverterIndex !== -1) {
               systemDesign.capacityProductionDesignData.inverters[relatedInverterIndex].arrayId = newObjectId;
             }
+
             item.arrayId = newObjectId;
 
             if (production > 0) {
@@ -215,6 +231,7 @@ export class SystemDesignService {
                 losses,
               });
             }
+
             cumulativeCapacityKW += capacity;
             cumulativeGenerationKWh += generation;
 
@@ -231,36 +248,41 @@ export class SystemDesignService {
             );
           }),
           inverters.map(async (inverter, index) => {
-            const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
-            const data = { ...inverterModelData, partNumber: inverterModelData?.partNumber } as any;
-            systemDesign.setInverter(data, index, systemDesign.designMode);
+            const inverterModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.INVERTER,
+              inverter.inverterModelId,
+            );
+
+            systemDesign.setInverter(inverterModelData, index);
           }),
           storage.map(async (storage, index) => {
-            const storageModelData = await this.productService.getDetailById(storage.storageModelId);
-            const data = { ...storageModelData, partNumber: storageModelData?.partNumber } as any;
-            systemDesign.setStorage(data, index, systemDesign.designMode);
+            const storageModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.BATTERY,
+              storage.storageModelId,
+            );
+
+            systemDesign.setStorage(storageModelData, index);
           }),
           adders.map(async (item, index) => {
-            const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
-            systemDesign.setAdder(
-              { ...adder, modifiedAt: adder?.modifiedAt } as any,
-              this.convertIncrementAdder((adder as any)?.increment as string),
-              index,
-              systemDesign.designMode,
-            );
+            const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
+
+            systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
           }),
           balanceOfSystems.map(async (balanceOfSystem, index) => {
-            const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
-            const data = {
-              ...balanceOfSystemModelData,
-              partNumber: balanceOfSystemModelData?.partNumber,
-            } as any;
-            systemDesign.setBalanceOfSystem(data, index, systemDesign.designMode);
+            const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.BALANCE_OF_SYSTEM,
+              balanceOfSystem.balanceOfSystemId,
+            );
+
+            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
           }),
           ancillaryEquipments.map(async (ancillary, index) => {
-            const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
-            const data = { ...ancillaryModelData, ancillaryId: ancillary.ancillaryId } as any;
-            systemDesign.setAncillaryEquipment(data, index, systemDesign.designMode);
+            const ancillaryModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.ANCILLARY_EQUIPMENT,
+              ancillary.ancillaryId,
+            );
+
+            systemDesign.setAncillaryEquipment(ancillaryModelData, index);
           }),
         ]),
       );
@@ -330,12 +352,17 @@ export class SystemDesignService {
       const handlers = [
         systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
           item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
+
           const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
+
           item.panelModelId = panelModelId;
-          const panelModelData = await this.productService.getDetailById(panelModelId);
-          const data = { ...panelModelData, part_number: panelModelData?.partNumber } as any;
-          systemDesign.setPanelModelDataSnapshot(data, index);
-          const capacity = (item.numberOfPanels * (panelModelData?.sizeW ?? 0)) / 1000;
+
+          const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
+
+          systemDesign.setPanelModelDataSnapshot(panelModelData, index);
+
+          const capacity = (item.numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
+
           const { azimuth, pitch, useSunroof, sunroofPitch, sunroofAzimuth } = item;
           const acAnnual = await this.systemProductService.pvWatCalculation({
             lat: systemDesign.latitude,
@@ -345,38 +372,46 @@ export class SystemDesignService {
             tilt: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
             losses: item.losses,
           });
+
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
         }),
         systemDesign.roofTopDesignData.adders?.map(async (item, index) => {
-          const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
-          systemDesign.setAdder(
-            { ...adder, modified_at: adder?.modifiedAt } as any,
-            this.convertIncrementAdder((adder as any)?.increment as string),
-            index,
-          );
+          const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
+
+          systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
         }),
         systemDesign.roofTopDesignData.inverters?.map(async (inverter, index) => {
-          const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
-          const data = { ...inverterModelData, part_number: inverterModelData?.partNumber } as any;
-          systemDesign.setInverter(data, index);
+          const inverterModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.INVERTER,
+            inverter.inverterModelId,
+          );
+
+          systemDesign.setInverter(inverterModelData, index);
         }),
         systemDesign.roofTopDesignData.storage?.map(async (storage, index) => {
-          const storageModelData = await this.productService.getDetailById(storage.storageModelId);
-          const data = { ...storageModelData, part_number: storageModelData?.partNumber } as any;
-          systemDesign.setStorage(data, index);
+          const storageModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.BATTERY,
+            storage.storageModelId,
+          );
+
+          systemDesign.setStorage(storageModelData, index);
         }),
         systemDesign.roofTopDesignData.balanceOfSystems?.map(async (balanceOfSystem, index) => {
-          const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
-          const data = {
-            ...balanceOfSystemModelData,
-            partNumber: balanceOfSystemModelData?.partNumber,
-          } as any;
-          systemDesign.setBalanceOfSystem(data, index);
+          const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.BALANCE_OF_SYSTEM,
+            balanceOfSystem.balanceOfSystemId,
+          );
+
+          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
         }),
         systemDesign.roofTopDesignData.ancillaryEquipments?.map(async (ancillary, index) => {
-          const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
-          systemDesign.setAncillaryEquipment(ancillaryModelData as any, index);
+          const ancillaryModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.ANCILLARY_EQUIPMENT,
+            ancillary.ancillaryId,
+          );
+
+          systemDesign.setAncillaryEquipment(ancillaryModelData, index);
         }),
       ];
 
@@ -438,9 +473,9 @@ export class SystemDesignService {
           const { panelModelId, capacity, production, pitch, azimuth, losses } = item;
           let generation = 0;
 
-          const panelModelData = await this.productService.getDetailById(panelModelId);
-          const data = { ...panelModelData, partNumber: panelModelData?.partNumber } as any;
-          systemDesign.setPanelModelDataSnapshot(data, index, systemDesign.designMode);
+          const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
+
+          systemDesign.setPanelModelDataSnapshot(panelModelData, index);
 
           if (!remainArrayId) {
             const newObjectId = Types.ObjectId();
@@ -483,35 +518,41 @@ export class SystemDesignService {
           );
         }),
         adders?.map(async (item, index) => {
-          const adder = await this.adderConfigService.getAdderConfigDetail(item.adderId);
-          systemDesign.setAdder(
-            { ...adder, modified_at: adder?.modifiedAt } as any,
-            this.convertIncrementAdder((adder as any)?.increment as string),
-            index,
-            systemDesign.designMode,
-          );
+          const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
+
+          systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
         }),
         inverters?.map(async (inverter, index) => {
-          const inverterModelData = await this.productService.getDetailById(inverter.inverterModelId);
-          const data = { ...inverterModelData, part_number: inverterModelData?.partNumber } as any;
-          systemDesign.setInverter(data, index, systemDesign.designMode);
+          const inverterModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.INVERTER,
+            inverter.inverterModelId,
+          );
+
+          systemDesign.setInverter(inverterModelData, index);
         }),
         storage?.map(async (storage, index) => {
-          const storageModelData = await this.productService.getDetailById(storage.storageModelId);
-          const data = { ...storageModelData, part_number: storageModelData?.partNumber } as any;
-          systemDesign.setStorage(data, index, systemDesign.designMode);
+          const storageModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.BATTERY,
+            storage.storageModelId,
+          );
+
+          systemDesign.setStorage(storageModelData, index);
         }),
         balanceOfSystems?.map(async (balanceOfSystem, index) => {
-          const balanceOfSystemModelData = await this.productService.getDetailById(balanceOfSystem.balanceOfSystemId);
-          const data = {
-            ...balanceOfSystemModelData,
-            partNumber: balanceOfSystemModelData?.partNumber,
-          } as any;
-          systemDesign.setBalanceOfSystem(data, index, systemDesign.designMode);
+          const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.BALANCE_OF_SYSTEM,
+            balanceOfSystem.balanceOfSystemId,
+          );
+
+          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
         }),
         ancillaryEquipments?.map(async (ancillary, index) => {
-          const ancillaryModelData = await this.ancillaryMasterModel.findById(ancillary.ancillaryId).lean();
-          systemDesign.setAncillaryEquipment(ancillaryModelData as any, index, systemDesign.designMode);
+          const ancillaryModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.ANCILLARY_EQUIPMENT,
+            ancillary.ancillaryId,
+          );
+
+          systemDesign.setAncillaryEquipment(ancillaryModelData, index);
         }),
       ];
 
@@ -816,7 +857,10 @@ export class SystemDesignService {
   }
 
   async getAncillaryList(): Promise<OperationResult<Pagination<SystemDesignAncillaryMasterDto>>> {
-    const res = await this.ancillaryMasterModel.find().lean();
+    const res = await this.productService.getLeanManyByQuery<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>({
+      type: PRODUCT_TYPE.ANCILLARY_EQUIPMENT,
+    });
+
     return OperationResult.ok(
       new Pagination({ data: strictPlainToClass(SystemDesignAncillaryMasterDto, res), total: res.length }),
     );
@@ -826,11 +870,15 @@ export class SystemDesignService {
     id: ObjectId,
     req: UpdateAncillaryMasterDtoReq,
   ): Promise<OperationResult<SystemDesignAncillaryMasterDto>> {
-    const updatedModel = await this.ancillaryMasterModel
-      .findByIdAndUpdate(id, { insertionRule: req.insertionRule }, { new: true })
-      .lean();
+    const updatedModel = await this.productService.findByIdAndTypeAndUpdate(PRODUCT_TYPE.ANCILLARY_EQUIPMENT, id, {
+      insertionRule: req.insertionRule!,
+    });
 
-    return OperationResult.ok(strictPlainToClass(SystemDesignAncillaryMasterDto, updatedModel));
+    if (!updatedModel) {
+      throw new NotFoundException(`No ancillary product found with id ${id.toString()}`);
+    }
+
+    return OperationResult.ok(strictPlainToClass(SystemDesignAncillaryMasterDto, updatedModel as any));
   }
 
   //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-

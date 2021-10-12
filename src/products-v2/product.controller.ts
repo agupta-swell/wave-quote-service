@@ -5,7 +5,7 @@ import { PreAuthenticate } from 'src/app/securities';
 import { getBooleanString } from 'src/utils/common';
 import { ProductService } from './services';
 import { UpdateProductDtoReq } from './req/update-product.dto';
-import { ProductDto, ProductResponse } from './res/product.dto';
+import { ProductResDto, ProductResponse } from './res/product.dto';
 import { GetAllProductsQueryDto } from './req';
 
 @ApiTags('Products')
@@ -22,7 +22,7 @@ export class ProductControllerV2 {
   @ApiQuery({ name: 'has-rule' })
   @ApiOperation({ summary: 'Get all products by type' })
   @ApiOkResponse({ type: ProductResponse })
-  async getAllProductsByType(@Query() query: GetAllProductsQueryDto): Promise<ServiceResponse<Pagination<ProductDto>>> {
+  async getAllProductsByType(@Query() query: GetAllProductsQueryDto): Promise<ServiceResponse<Pagination<ProductResDto>>> {
     const result = await this.productService.getAllProductsByType(query);
     return ServiceResponse.fromResult(result);
   }

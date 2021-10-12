@@ -3,20 +3,22 @@ import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { FinancialProduct, FinancialProductSchema } from 'src/financial-products/financial-product.schema';
 import { GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
+import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { ISnapshotProduct } from 'src/products-v2/interfaces';
+import {
+  AdderSnapshotSchema,
+  AncillaryEquipmentSnapshotSchema,
+  BalanceOfSystemSnapshotSchema,
+  BatterySnapshotSchema,
+  InverterSnapshotSchema,
+  ModuleSnapshotSchema,
+} from 'src/products-v2/schemas';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import {
-  AdderModelSchema,
-  AncillaryEquipment,
-  BalanceOfSystemProductSchema,
-  IAdderModel,
-  IAncillaryEquipment,
-  IBalanceOfSystemProductSchema,
   IInverterProductSchema,
   InverterProductSchema,
-  IPanelProductSchema,
   IStorageProductSchema,
   ISystemProductionSchema,
-  PanelProductSchema,
   StorageProductSchema,
   SystemProductionSchema,
 } from 'src/system-designs/system-design.schema';
@@ -384,7 +386,7 @@ const LaborCostSchema = new Schema<Document<ILaborCostSchema>>(
 
 export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
   panelModelId: string;
-  panelModelDataSnapshot: IPanelProductSchema;
+  panelModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.MODULE>;
   panelModelSnapshotDate: Date;
   quantity: number;
 }
@@ -392,7 +394,7 @@ export interface IPanelQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const PanelQuoteDetailsSchema = new Schema<Document<IPanelQuoteDetailsSchema>>(
   {
     panel_model_id: String,
-    panel_model_data_snapshot: PanelProductSchema,
+    panel_model_data_snapshot: ModuleSnapshotSchema,
     panel_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
@@ -404,7 +406,7 @@ const PanelQuoteDetailsSchema = new Schema<Document<IPanelQuoteDetailsSchema>>(
 
 export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
   inverterModelId: string;
-  inverterModelDataSnapshot: IInverterProductSchema;
+  inverterModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.INVERTER>;
   inverterModelSnapshotDate: Date;
   quantity: number;
 }
@@ -412,7 +414,7 @@ export interface IInverterQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const InverterQuoteDetailsSchema = new Schema<Document<IInverterQuoteDetailsSchema>>(
   {
     inverter_model_id: String,
-    inverter_model_data_snapshot: InverterProductSchema,
+    inverter_model_data_snapshot: InverterSnapshotSchema,
     inverter_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
@@ -424,7 +426,7 @@ const InverterQuoteDetailsSchema = new Schema<Document<IInverterQuoteDetailsSche
 
 export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
   storageModelId: string;
-  storageModelDataSnapshot: IStorageProductSchema;
+  storageModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BATTERY>;
   storageModelSnapshotDate: Date;
   quantity: number;
 }
@@ -432,7 +434,7 @@ export interface IStorageQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const StorageQuoteDetailsSchema = new Schema<Document<IStorageQuoteDetailsSchema>>(
   {
     storage_model_id: String,
-    storage_model_data_snapshot: StorageProductSchema,
+    storage_model_data_snapshot: BatterySnapshotSchema,
     storage_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
@@ -444,7 +446,7 @@ const StorageQuoteDetailsSchema = new Schema<Document<IStorageQuoteDetailsSchema
 
 export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
   adderModelId: string;
-  adderModelDataSnapshot: IAdderModel;
+  adderModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ADDER>;
   adderModelSnapshotDate: Date;
   quantity: number;
   unit: COST_UNIT_TYPE;
@@ -453,7 +455,7 @@ export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const AdderQuoteDetailsSchema = new Schema<Document<IAdderQuoteDetailsSchema>>(
   {
     adder_model_id: String,
-    adder_model_data_snapshot: AdderModelSchema,
+    adder_model_data_snapshot: AdderSnapshotSchema,
     adder_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,
@@ -466,7 +468,7 @@ const AdderQuoteDetailsSchema = new Schema<Document<IAdderQuoteDetailsSchema>>(
 
 export interface IBalanceOfSystemDetailsSchema extends IQuoteCostCommonSchema {
   balanceOfSystemModelId: string;
-  balanceOfSystemModelDataSnapshot: IBalanceOfSystemProductSchema;
+  balanceOfSystemModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BALANCE_OF_SYSTEM>;
   balanceOfSystemModelDataSnapshotDate: Date;
   unit: COST_UNIT_TYPE;
 }
@@ -474,7 +476,7 @@ export interface IBalanceOfSystemDetailsSchema extends IQuoteCostCommonSchema {
 const BalanceOfSystemDetailsSchema = new Schema<Document<IBalanceOfSystemDetailsSchema>>(
   {
     balance_of_system_model_id: String,
-    balance_of_system_model_data_snapshot: BalanceOfSystemProductSchema,
+    balance_of_system_model_data_snapshot: BalanceOfSystemSnapshotSchema,
     balance_of_system_model_data_snapshot_date: Date,
     unit: String,
     cost: Number,
@@ -486,7 +488,7 @@ const BalanceOfSystemDetailsSchema = new Schema<Document<IBalanceOfSystemDetails
 
 export interface IAncillaryEquipmentSchema extends IQuoteCostCommonSchema {
   ancillaryEquipmentId: string;
-  ancillaryEquipmentModelDataSnapshot: IAncillaryEquipment;
+  ancillaryEquipmentModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>;
   ancillaryEquipmentModelDataSnapshotDate: Date;
   quantity: number;
 }
@@ -494,7 +496,7 @@ export interface IAncillaryEquipmentSchema extends IQuoteCostCommonSchema {
 const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>(
   {
     ancillary_equipment_id: String,
-    ancillary_equipment_model_data_snapshot: AncillaryEquipment,
+    ancillary_equipment_model_data_snapshot: AncillaryEquipmentSnapshotSchema,
     ancillary_equipment_model_data_snapshot_date: Date,
     quantity: Number,
     cost: Number,

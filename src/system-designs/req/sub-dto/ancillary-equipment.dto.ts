@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 export class AncillaryEquipmentDto {
   @ApiProperty()
-  @IsString()
+  @IsMongoId()
   @IsOptional()
   @IsNotEmpty()
   ancillaryId: string;
