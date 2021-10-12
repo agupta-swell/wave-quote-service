@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, CurrentUserType, PreAuthenticate } from 'src/app/securities';
+import { CurrentUser, ILoggedInUser, PreAuthenticate } from 'src/app/securities';
 import { AuthenticationService } from './authentication.service';
 import { LoginDto } from './req';
 import { AuthenticationDto } from './res/authentication.dto';
@@ -18,7 +18,7 @@ export class AuthenticationController {
   @Get()
   @ApiBearerAuth()
   @PreAuthenticate()
-  getCurrentUser(@CurrentUser() user: CurrentUserType) {
+  getCurrentUser(@CurrentUser() user: ILoggedInUser) {
     return user;
   }
 }

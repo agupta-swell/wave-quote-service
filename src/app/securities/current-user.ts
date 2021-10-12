@@ -1,10 +1,10 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
-export type CurrentUserType = {
+export interface ILoggedInUser {
   userId: string;
   userName: string;
-  role: string;
-};
+  userRoles: string[];
+}
 
 export const CurrentUser = createParamDecorator((data: string, ctx: ExecutionContext) => {
   const request = ctx.switchToHttp().getRequest();

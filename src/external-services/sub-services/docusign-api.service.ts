@@ -65,11 +65,17 @@ export class DocusignAPIService {
     const envelopesApi = new docusign.EnvelopesApi(this.apiClient);
     let results: EnvelopeSummary;
 
+    const payload: Record<string, unknown> = { envelopeDefinition: templateData };
+
+    if (templateData.status === 'created') {
+      payload.mergeRolesOnDraft = true;
+    }
+
     try {
-      results = await envelopesApi.createEnvelope(account.accountId || '', { envelopeDefinition: templateData });
+      results = await envelopesApi.createEnvelope(account.accountId || '', payload);
       return results;
     } catch (error) {
-      console.log("🚀 ~ file: docusign-api.service.ts ~ line 71 ~ DocusignAPIService ~ sendTemplate ~ error", error)
+      console.log('🚀 ~ file: docusign-api.service.ts ~ line 71 ~ DocusignAPIService ~ sendTemplate ~ error', error);
       throw new DocusignException(error, error.response?.text);
     }
   }
@@ -118,6 +124,52 @@ export class DocusignAPIService {
             return resolve(res);
           },
         );
+      });
+    });
+  }
+
+  sendDraftEnvelop(envelopeId: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.createConnection().then(account => {
+        if (!account) return reject(ApplicationException.NoPermission());
+
+        const { headers, baseUrl } = account;
+
+        const url = new URL(baseUrl as string);
+        const req = https.request(
+          {
+            hostname: url.host,
+            path: `${url.pathname}/envelopes/${envelopeId}`,
+            headers,
+            method: 'put',
+          },
+          res => {
+            const chunks: Buffer[] = [];
+
+            res
+              .on('data', chunk => {
+                chunks.push(chunk);
+              })
+              .on('end', () => {
+                const payload = Buffer.concat(chunks).toString('utf-8');
+
+                if (res.statusCode! >= 300) {
+                  reject(new DocusignException(new Error(payload), 'Send contract from draft error'));
+                  return;
+                }
+
+                resolve(JSON.parse(Buffer.concat(chunks).toString('utf-8')));
+              });
+          },
+        );
+
+        req.write(
+          JSON.stringify({
+            status: 'sent',
+          }),
+        );
+
+        req.end();
       });
     });
   }

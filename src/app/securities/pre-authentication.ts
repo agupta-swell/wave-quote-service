@@ -13,6 +13,12 @@ export class JwtAuthGuard implements CanActivate {
   constructor(private jwtService: JwtService, private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext) {
+    const resourceSecret = this.getResourceScoped(context);
+
+    if (resourceSecret) {
+      return this.validateResource(context, resourceSecret);
+    }
+
     const key = this.reflector.get<string>(CUSTOM_JWT_SECRET_KEY, context.getHandler());
 
     let secretKey = '';
@@ -65,6 +71,34 @@ export class JwtAuthGuard implements CanActivate {
 
   private isSystemRole(role: string): boolean {
     return this._systemAllowedRoles.includes(role);
+  }
+
+  private async validateResource(ctx: ExecutionContext, secret: string): Promise<boolean> {
+    const request = ctx.switchToHttp().getRequest();
+    const { query } = request;
+
+    if (!query?.key) {
+      return false;
+    }
+
+    const { key: token } = query;
+
+    try {
+      const { iat: _, exp: __, ...p } = await this.jwtService.verifyAsync(token, {
+        secret: `${secret}_${JwtConfigService.appSecret}`,
+      });
+
+      request.user = p;
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  private getResourceScoped(ctx: ExecutionContext): string | undefined {
+    const secret = this.reflector.getAllAndOverride<string>(KEYS.RESOURCE_SCOPED, [ctx.getClass(), ctx.getHandler()]);
+
+    return secret;
   }
 }
 

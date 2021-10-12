@@ -14,7 +14,7 @@ import { plainToClass } from 'class-transformer';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { ObjectId } from 'mongoose';
 import { CurrentUser, CustomJWTSecretKey, PreAuthenticate } from '../app/securities';
-import { CurrentUserType } from '../app/securities/current-user';
+import { ILoggedInUser } from '../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto, SaveProposalAnalyticDto, UpdateProposalDto, ValidateProposalDto } from './req';
 import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
@@ -101,7 +101,7 @@ export class ProposalController {
   @ApiOkResponse({ type: Boolean })
   async sendRecipients(
     @Param('proposalId', ParseObjectIdPipe) proposalId: ObjectId,
-    @CurrentUser() user: CurrentUserType,
+    @CurrentUser() user: ILoggedInUser,
   ): Promise<ServiceResponse<boolean>> {
     const res = await this.proposalService.sendRecipients(proposalId);
     return ServiceResponse.fromResult(res);

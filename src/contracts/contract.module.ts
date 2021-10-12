@@ -9,6 +9,7 @@ import { ContractController } from './contract.controller';
 import { CONTRACT, ContractSchema } from './contract.schema';
 import { ContractService } from './contract.service';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
+import { AwsModule } from 'src/shared/aws/aws.module';
 
 @Global()
 @Module({
@@ -24,6 +25,7 @@ import { InstalledProductModule } from 'src/installed-products/installed-product
         collection: 'users',
       },
     ]),
+    AwsModule,
     GsProgramsModule,
     FinancialProductsModule,
     InstalledProductModule,
