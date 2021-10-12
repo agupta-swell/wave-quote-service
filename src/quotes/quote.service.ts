@@ -386,7 +386,8 @@ export class QuoteService {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_OVERRIDE);
       }
 
-      detailedQuote.selectedQuoteMode = '';
+      detailedQuote.selectedQuoteMode =
+        detailedQuote.allowedQuoteModes.length === 1 ? detailedQuote.allowedQuoteModes[0] : '';
     }
 
     const model = new QuoteModel(data, detailedQuote);
