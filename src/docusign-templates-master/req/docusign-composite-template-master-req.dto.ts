@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString, IsEnum, IsMongoId, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
+import { IsStringOrNull } from 'src/shared/validations';
 
 export class DocusignCompositeTemplateMasterDataReqDto {
   @ApiProperty()
@@ -30,7 +31,7 @@ export class DocusignCompositeTemplateMasterDataReqDto {
   filenameForDownloads: string;
 
   @ApiProperty()
-  @IsString({ each: true })
+  @IsStringOrNull({ each: true })
   applicableRebatePrograms: string[];
 
   @ApiProperty()
