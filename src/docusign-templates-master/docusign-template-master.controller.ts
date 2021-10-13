@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { DocusignTemplateMasterService } from './docusign-template-master.service';
 import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
@@ -50,7 +52,9 @@ export class DocusignTemplateMasterController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Get Contract Composite Templates' })
   @ApiOkResponse({ type: GetContractCompositeTemplateRes })
-  async getContractCompositeTemplates(@Query('type') type?: CONTRACT_TYPE): Promise<ServiceResponse<GetContractCompositeTemplateDto>> {
+  async getContractCompositeTemplates(
+    @Query('type') type?: CONTRACT_TYPE,
+  ): Promise<ServiceResponse<GetContractCompositeTemplateDto>> {
     const res = await this.docusignTemplateMasterService.getContractCompositeTemplates(type);
     return ServiceResponse.fromResult(res);
   }
@@ -87,12 +91,19 @@ export class DocusignTemplateMasterController {
     return ServiceResponse.fromResult(res);
   }
 
-  // @Post('/mock-data')
-  // @ApiBearerAuth()
-  // @PreAuthenticate()
-  // @ApiOperation({ summary: 'Create mock data for utilities master and utility programs master' })
-  // async createUtilitiesMasterData(): Promise<ServiceResponse<boolean>> {
-  //   const res = await this.docusignTemplateMasterService.createUtilitiesMasterData();
-  //   return ServiceResponse.fromResult(res);
-  // }
+  @Delete('/composite-templates/:id')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Delete one composite template' })
+  deleteCompositeTemplate(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<void> {
+    return this.docusignTemplateMasterService.deleteCompositeTemplateById(id);
+  }
+
+  @Delete('/:id')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Delete one docusign template' })
+  deleteTemplate(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<void> {
+    return this.docusignTemplateMasterService.deleteTemplateById(id);
+  }
 }
