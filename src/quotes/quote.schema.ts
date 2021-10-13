@@ -519,18 +519,21 @@ export interface IQuoteCostBuildupSchema {
   totalNetCost: number;
 }
 
-const QuoteCostBuildupSchema = new Schema<Document<IQuoteCostBuildupSchema>>({
-  panel_quote_details: [PanelQuoteDetailsSchema],
-  inverter_quote_details: [InverterQuoteDetailsSchema],
-  storage_quote_details: [StorageQuoteDetailsSchema],
-  adder_quote_details: [AdderQuoteDetailsSchema],
-  balance_of_system_details: [BalanceOfSystemDetailsSchema],
-  ancillary_equipment_details: [AncillaryEquipmentSchema],
-  swell_standard_markup: Number,
-  labor_cost: LaborCostSchema,
-  gross_price: Number,
-  total_net_cost: Number,
-});
+const QuoteCostBuildupSchema = new Schema<Document<IQuoteCostBuildupSchema>>(
+  {
+    panel_quote_details: [PanelQuoteDetailsSchema],
+    inverter_quote_details: [InverterQuoteDetailsSchema],
+    storage_quote_details: [StorageQuoteDetailsSchema],
+    adder_quote_details: [AdderQuoteDetailsSchema],
+    balance_of_system_details: [BalanceOfSystemDetailsSchema],
+    ancillary_equipment_details: [AncillaryEquipmentSchema],
+    swell_standard_markup: Number,
+    labor_cost: LaborCostSchema,
+    gross_price: Number,
+    total_net_cost: Number,
+  },
+  { _id: false },
+);
 
 export interface ITaxCreditConfigDataSnapshotSchema {
   name: string;

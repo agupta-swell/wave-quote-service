@@ -1,4 +1,4 @@
-import { ProductDto } from 'src/products/res/product.dto';
+import { ProductResDto } from 'src/products-v2/res/product.dto';
 import { ELaborCostType } from 'src/quotes/constants';
 import { LaborCostDetails } from 'src/quotes/req/sub-dto/quote-cost-buildup.dto';
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
@@ -19,8 +19,8 @@ class QuoteCostBuildupCommon {
 }
 
 class PanelQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ExposeProp({ type: ProductDto })
-  panelModelDataSnapshot: ProductDto;
+  @ExposeProp({ type: ProductResDto })
+  panelModelDataSnapshot: ProductResDto;
 
   @ExposeProp()
   panelModelSnapshotDate: Date;
@@ -36,8 +36,8 @@ class PanelQuoteDetailsDto extends QuoteCostBuildupCommon {
 }
 
 class InverterQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ExposeProp({ type: ProductDto })
-  inverterModelDataSnapshot: ProductDto;
+  @ExposeProp({ type: ProductResDto })
+  inverterModelDataSnapshot: ProductResDto;
 
   @ExposeProp()
   inverterModelSnapshotDate: Date;
@@ -53,8 +53,8 @@ class InverterQuoteDetailsDto extends QuoteCostBuildupCommon {
 }
 
 class StorageQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ExposeProp({ type: ProductDto })
-  storageModelDataSnapshot: ProductDto;
+  @ExposeProp({ type: ProductResDto })
+  storageModelDataSnapshot: ProductResDto;
 
   @ExposeProp()
   storageModelSnapshotDate: Date;
@@ -70,8 +70,8 @@ class StorageQuoteDetailsDto extends QuoteCostBuildupCommon {
 }
 
 class AdderQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ExposeProp({ type: ProductDto, skipTransform: true })
-  adderModelDataSnapshot: ProductDto;
+  @ExposeProp({ type: ProductResDto, skipTransform: true })
+  adderModelDataSnapshot: ProductResDto;
 
   @ExposeProp()
   adderModelSnapshotDate: Date;
@@ -90,8 +90,8 @@ class AdderQuoteDetailsDto extends QuoteCostBuildupCommon {
 }
 
 class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon {
-  @ExposeProp({ type: ProductDto })
-  balanceOfSystemModelDataSnapshot: ProductDto;
+  @ExposeProp({ type: ProductResDto })
+  balanceOfSystemModelDataSnapshot: ProductResDto;
 
   @ExposeProp()
   balanceOfSystemModelDataSnapshotDate: Date;
