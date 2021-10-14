@@ -2,7 +2,6 @@ import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
-import { getBooleanString } from 'src/utils/common';
 import { ProductService } from './services';
 import { SaveInsertionRuleReq } from './req/save-insertion-rule.dto';
 import { ProductResDto, ProductResponse } from './res/product.dto';
@@ -24,7 +23,9 @@ export class ProductControllerV2 {
   @ApiQuery({ name: 'has-rule' })
   @ApiOperation({ summary: 'Get all products by type' })
   @ApiOkResponse({ type: ProductResponse })
-  async getAllProductsByType(@Query() query: GetAllProductsQueryDto): Promise<ServiceResponse<Pagination<ProductResDto>>> {
+  async getAllProductsByType(
+    @Query() query: GetAllProductsQueryDto,
+  ): Promise<ServiceResponse<Pagination<ProductResDto>>> {
     const result = await this.productService.getAllProductsByType(query);
     return ServiceResponse.fromResult(result);
   }
@@ -33,7 +34,7 @@ export class ProductControllerV2 {
   async saveInsertionRule(
     @Param('id', ParseObjectIdPipe) id: ObjectId,
     @Body() req: SaveInsertionRuleReq,
-  ): Promise<ServiceResponse<Pagination<ProductDto>>> {
+  ): Promise<ServiceResponse<Pagination<ProductResDto>>> {
     const res = await this.productService.saveInsertionRule(id, req);
     return ServiceResponse.fromResult(res);
   }

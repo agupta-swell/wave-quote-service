@@ -9,8 +9,6 @@ import { ProductResDto } from '../res/product.dto';
 import { IProduct, IProductDocument, IUnknownProduct } from '../interfaces';
 import { PRODUCT_MODEL_NAME, PRODUCT_TYPE } from '../constants';
 import { GetAllProductsQueryDto } from '../req';
-import { ObjectId } from 'mongoose';
-import { PRODUCT } from 'src/products/product.schema';
 
 @Injectable()
 export class ProductService {
@@ -35,7 +33,7 @@ export class ProductService {
     return OperationResult.ok(new Pagination({ data: strictPlainToClass(ProductResDto, panels), total }));
   }
 
-  async saveInsertionRule(id: ObjectId, req: SaveInsertionRuleReq): Promise<OperationResult<ProductDto>> {
+  async saveInsertionRule(id: ObjectId, req: SaveInsertionRuleReq): Promise<OperationResult<ProductResDto>> {
     const updatedProduct = await this.productModel
       .findByIdAndUpdate(id, { insertionRule: req.insertionRule! }, { new: true })
       .lean();
@@ -61,7 +59,7 @@ export class ProductService {
 
     await mappedProduct.save();
 
-    return OperationResult.ok(strictPlainToClass(ProductDto, mappedProduct.toJSON()));
+    return OperationResult.ok(strictPlainToClass(ProductResDto, mappedProduct.toJSON()));
   }
 
   async getDetailById(id: string): Promise<LeanDocument<IUnknownProduct> | null> {
@@ -126,11 +124,11 @@ export class ProductService {
       })
       .lean();
 
-    const mappedProduct = this.extractLeanType<TProductType>(found);
-
-    if (!mappedProduct) {
+    if (!found) {
       throw new NotFoundException(`No product found with type ${type}, id ${id}`);
     }
+
+    const mappedProduct = this.extractLeanType<TProductType>(found);
 
     return mappedProduct;
   }
@@ -148,6 +146,10 @@ export class ProductService {
       update as any,
       { new: true },
     );
+
+    if (!model) {
+      throw new NotFoundException(`No product found with type ${type}, id ${id}`);
+    }
 
     return this.extractType<TProductType>(model);
   }
