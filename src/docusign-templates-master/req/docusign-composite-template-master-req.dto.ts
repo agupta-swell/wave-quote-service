@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsMongoId, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsMongoId, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 import { IsStringOrNull } from 'src/shared/validations';
@@ -23,11 +23,16 @@ export class DocusignCompositeTemplateMasterDataReqDto {
   docusignTemplateIds: string[];
 
   @ApiProperty({ enum: CONTRACT_TYPE })
-  @IsString()
+  @IsEnum(CONTRACT_TYPE)
   type: CONTRACT_TYPE;
 
   @ApiProperty()
   @IsString()
+  @ValidateIf(
+    obj =>
+      obj?.compositeTemplateData.type === CONTRACT_TYPE.PRIMARY_CONTRACT ||
+      obj?.compositeTemplateData.type === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
+  )
   filenameForDownloads: string;
 
   @ApiProperty()
@@ -39,16 +44,19 @@ export class DocusignCompositeTemplateMasterDataReqDto {
   applicableFundingSources: string[];
 
   @ApiProperty()
+  @IsStringOrNull({ each: true })
   applicableUtilityPrograms: string[];
 
   @ApiProperty()
+  @IsStringOrNull({ each: true })
   applicableUtilities: string[];
 
   @ApiProperty()
+  @IsStringOrNull({ each: true })
   applicableStates: string[];
 
   @ApiProperty({ enum: SYSTEM_TYPE, isArray: true })
-  @IsString({ each: true })
+  @IsEnum(SYSTEM_TYPE, { each: true })
   applicableSystemTypes: SYSTEM_TYPE[];
 
   @ApiProperty()
