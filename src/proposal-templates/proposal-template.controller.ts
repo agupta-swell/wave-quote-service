@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { isValidObjectId, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
-import { PreAuthenticate } from '../app/securities';
+import { PreAuthenticate, Role } from '../app/securities';
 import { ProposalTemplateService } from './proposal-template.service';
 import { CreateProposalTemplateDto } from './req/create-proposal-template.dto';
 import { UpdateProposalTemplateDto } from './req/update-proposal-template.dto';
@@ -57,5 +57,12 @@ export class ProposalTemplateController {
     const skip = Number(query.skip || 0);
     const res = await this.proposalTemplateService.getList(limit, skip, query.quoteId);
     return ServiceResponse.fromResult(res);
+  }
+
+  @Delete('/:id')
+  @Role('sales_admin')
+  @ApiParam({ name: 'id', type: String })
+  delete(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<void> {
+    return this.proposalTemplateService.deleteProposal(id);
   }
 }

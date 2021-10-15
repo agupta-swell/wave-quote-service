@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import {
@@ -28,14 +29,10 @@ import { SystemDesignService } from './system-design.service';
         schema: PvWattSystemProductionSchema,
         collection: 'v2_pv_watt_system_productions',
       },
-      {
-        name: SYSTEM_DESIGN_ANCILLARY_MASTER,
-        schema: SystemDesignAncillaryMasterSchema,
-        collection: 'v2_system_design_ancillaries_master',
-      },
     ]),
     AwsModule,
     GoogleSunroofModule,
+    ProductModuleV2,
   ],
   controllers: [SystemDesignController],
   providers: [SystemDesignService, SystemProductService, UploadImageService],

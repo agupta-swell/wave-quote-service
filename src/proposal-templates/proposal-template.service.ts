@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { Quote } from 'src/quotes/quote.schema';
@@ -117,6 +117,16 @@ export class ProposalTemplateService {
         total,
       }),
     );
+  }
+
+  public async deleteProposal(id: ObjectId): Promise<void> {
+    const found = await this.proposalTemplate.findOne({ _id: id }).lean();
+
+    if (!found) {
+      throw new NotFoundException(`No proposal template found with id ${id.toString()}`);
+    }
+
+    await this.proposalTemplate.deleteOne({ _id: id });
   }
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-

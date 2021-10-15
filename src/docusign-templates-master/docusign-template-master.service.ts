@@ -1,6 +1,6 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
@@ -220,13 +220,17 @@ export class DocusignTemplateMasterService {
   ): Promise<OperationResult<SaveContractCompositeTemplateDto>> {
     if (req.mode === SAVE_TEMPLATE_MODE.NEW && req.compositeTemplateData.id != null) {
       return OperationResult.ok(
-        strictPlainToClass(SaveContractCompositeTemplateDto, { responseStatus: 'Create Contract Composite Template does not accept id' }),
+        strictPlainToClass(SaveContractCompositeTemplateDto, {
+          responseStatus: 'Create Contract Composite Template does not accept id',
+        }),
       );
     }
 
     if (req.mode === SAVE_TEMPLATE_MODE.UPDATE && req.compositeTemplateData.id == null) {
       return OperationResult.ok(
-        strictPlainToClass(SaveContractCompositeTemplateDto, { responseStatus: 'Update Contract Composite Template requires an id' }),
+        strictPlainToClass(SaveContractCompositeTemplateDto, {
+          responseStatus: 'Update Contract Composite Template requires an id',
+        }),
       );
     }
 
@@ -390,5 +394,25 @@ export class DocusignTemplateMasterService {
       .lean();
 
     return found;
+  }
+
+  public async deleteTemplateById(id: ObjectId): Promise<void> {
+    const found = await this.docusignTemplateMasterModel.findOne({ _id: id });
+
+    if (!found) {
+      throw new NotFoundException(`No template found with id ${id.toString()}`);
+    }
+
+    await found.delete();
+  }
+
+  public async deleteCompositeTemplateById(id: ObjectId): Promise<void> {
+    const found = await this.docusignCompositeTemplateMasterModel.findOne({ _id: id });
+
+    if (!found) {
+      throw new NotFoundException(`No template found with id ${id.toString()}`);
+    }
+
+    await found.delete();
   }
 }

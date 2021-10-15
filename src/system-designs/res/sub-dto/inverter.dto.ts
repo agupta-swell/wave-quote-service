@@ -1,6 +1,6 @@
+import { ProductResDto } from 'src/products-v2/res/product.dto';
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { INVERTER_TYPE } from '../../constants';
-import { ProductDto } from './product.dto';
 
 export class InverterDto {
   @ExposeMongoId()
@@ -12,8 +12,8 @@ export class InverterDto {
   @ExposeProp()
   inverterModelId: string;
 
-  @ExposeProp({ type: ProductDto })
-  inverterModelDataSnapshot: ProductDto;
+  @ExposeProp({ type: ProductResDto })
+  inverterModelDataSnapshot: ProductResDto;
 
   @ExposeProp()
   inverterModelSnapshotDate: Date;

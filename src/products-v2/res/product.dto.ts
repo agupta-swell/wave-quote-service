@@ -6,7 +6,7 @@ import { IUnknownProduct } from '../interfaces';
 import { DimensionResDto } from './dimension-res.dto';
 import { BaseRatingResDto, BatteryRatingResDto } from './rating-res.dto';
 
-export class ProductDto {
+export class ProductResDto {
   @ExposeMongoId()
   id: string;
 
@@ -72,12 +72,12 @@ export class ProductDto {
   ratings?: BaseRatingResDto | BatteryRatingResDto;
 }
 
-class ProductPaginationRes implements Pagination<ProductDto> {
+class ProductPaginationRes implements Pagination<ProductResDto> {
   @ExposeProp({
-    type: ProductDto,
+    type: ProductResDto,
     isArray: true,
   })
-  data: ProductDto[];
+  data: ProductResDto[];
 
   @ExposeProp()
   total: number;

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsMongoId,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -85,6 +86,7 @@ export class SolarPanelArrayDto1 {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsMongoId()
   panelModelId: string;
 
   @ApiProperty()

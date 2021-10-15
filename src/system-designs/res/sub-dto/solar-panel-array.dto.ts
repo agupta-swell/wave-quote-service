@@ -1,6 +1,6 @@
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { ORIENTATION } from '../../constants';
-import { ProductDto } from './product.dto';
+import { ProductResDto } from '../../../products-v2/res/product.dto';
 
 export class LatLng {
   @ExposeProp()
@@ -60,8 +60,8 @@ export class SolarPanelArrayDto {
   @ExposeProp({ required: false })
   rowSpacing: number;
 
-  @ExposeProp({ type: ProductDto })
-  panelModelDataSnapshot: ProductDto;
+  @ExposeProp({ type: ProductResDto })
+  panelModelDataSnapshot: ProductResDto;
 
   @ExposeProp()
   panelModelSnapshotDate: Date;

@@ -36,8 +36,8 @@ export const getSystemDesignNoticeX8Data: TemplateDataBuilder = ({ systemDesign 
   }
 
   const obj = {} as any;
-  obj.es_kwh = `${sumBy(fields.systemDesignBatteries, e => e.storageModelDataSnapshot.sizekWh)}`;
-  obj.es_kw = `${sumBy(fields.systemDesignBatteries, e => e.storageModelDataSnapshot.sizeW) / 1000}`;
+  obj.es_kwh = `${sumBy(fields.systemDesignBatteries, e => e.storageModelDataSnapshot.ratings.kilowattHours)}`;
+  obj.es_kw = `${sumBy(fields.systemDesignBatteries, e => e.storageModelDataSnapshot.ratings.kilowatts) / 1000}`;
   obj.battery_summary = fields.systemDesignBatteries
     .map(e => `${e.quantity} x ${e.storageModelDataSnapshot.name}`)
     .join(',');

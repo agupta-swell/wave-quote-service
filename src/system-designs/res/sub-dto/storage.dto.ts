@@ -1,6 +1,6 @@
+import { ProductResDto } from 'src/products-v2/res/product.dto';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { BATTERY_PURPOSE } from '../../constants';
-import { ProductDto } from './product.dto';
 
 export class StorageDto {
   @ExposeMongoId()
@@ -21,8 +21,8 @@ export class StorageDto {
   @ExposeProp()
   quantity: number;
 
-  @ExposeProp({ type: ProductDto })
-  storageModelDataSnapshot: ProductDto;
+  @ExposeProp({ type: ProductResDto })
+  storageModelDataSnapshot: ProductResDto;
 
   @ExposeProp()
   storageModelSnapshotDate: Date;
@@ -31,5 +31,5 @@ export class StorageDto {
   type: string;
 
   @ExposeProp()
-  reserve: number;
+  minimumReservePercentage: number;
 }

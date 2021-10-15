@@ -1,27 +1,5 @@
+import { ProductResDto } from 'src/products-v2/res/product.dto';
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
-
-export class AncillaryEquipmentModelDataSnapshotDto {
-  @ExposeProp()
-  manufacturerId: string;
-
-  @ExposeProp()
-  modelName: string;
-
-  @ExposeProp()
-  relatedComponent: string;
-
-  @ExposeProp()
-  description: string;
-
-  @ExposeProp()
-  averageWholeSalePrice: number;
-
-  @ExposeProp()
-  quantity: number;
-
-  @ExposeProp()
-  applicableProductManufacturerId: string;
-}
 
 export class AncillaryEquipmentDto {
   @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
@@ -48,6 +26,6 @@ export class AncillaryEquipmentDto {
   @ExposeProp()
   quantity: number;
 
-  @ExposeProp({ type: AncillaryEquipmentModelDataSnapshotDto })
-  ancillaryEquipmentModelDataSnapshot: AncillaryEquipmentModelDataSnapshotDto;
+  @ExposeProp({ type: ProductResDto })
+  ancillaryEquipmentModelDataSnapshot: ProductResDto;
 }

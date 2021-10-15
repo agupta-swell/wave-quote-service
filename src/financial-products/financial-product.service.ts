@@ -59,7 +59,7 @@ export class FinancialProductsService {
       _id: {
         $in: ids.map(Types.ObjectId),
       },
-      isActive: true
+      isActive: true,
     });
 
     return res;
@@ -77,7 +77,7 @@ export class FinancialProductsService {
 
         const systemKW = systemDesign.systemProductionData.capacityKW;
         const batteryKwh = systemDesign.roofTopDesignData.storage.reduce(
-          (acc, cv) => (acc += cv.quantity * cv.storageModelDataSnapshot.sizekWh),
+          (acc, cv) => (acc += cv.quantity * cv.storageModelDataSnapshot.ratings.kilowattHours),
           0,
         );
         const systemProductivity = systemDesign.systemProductionData.productivity;

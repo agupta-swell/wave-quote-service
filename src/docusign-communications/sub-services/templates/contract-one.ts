@@ -98,8 +98,8 @@ export const getContractOneData: TemplateDataBuilder = (
   obj['Text Prg Incentives - 1'] = accounting.formatMoney(customerPayment.programIncentiveDiscount);
   obj['Text Utility Program - 1'] = utilityName;
   obj['Text Adders - 1'] = roofTopDesign.adders.reduce((acc, item, index) => {
-    if (index === 0) return item.adderModelDataSnapshot.adder;
-    return `${acc}, ${item.adderModelDataSnapshot.adder}`;
+    if (index === 0) return item.adderModelDataSnapshot.name;
+    return `${acc}, ${item.adderModelDataSnapshot.name}`;
   }, '');
   obj['Text Amount Due Approved - 1'] = isCash
     ? ''
@@ -132,13 +132,15 @@ export const getContractOneData: TemplateDataBuilder = (
   obj['Text Payment 2 Timing 1 - 1'] = isCash ? 'Due upon building department inspection approval' : '';
   obj['Text Payment 2 Timing 1 - 7'] = isCash ? 'Due upon building department inspection approval' : '';
   obj['Text Project Adders - 1'] = roofTopDesign.adders.length > 0 ? 'Project Adders:' : '';
-  obj['Text ES kW rollup - 1'] =
-    sumBy(roofTopDesign.storage, item => item.quantity * item.storageModelDataSnapshot.sizeW) / 1000;
+  obj['Text ES kW rollup - 1'] = sumBy(
+    roofTopDesign.storage,
+    item => item.quantity * item.storageModelDataSnapshot.ratings.kilowatts,
+  );
   obj['Text kW rollup - 1'] =
-    sumBy(roofTopDesign.panelArray, item => item.numberOfPanels * item.panelModelDataSnapshot.sizeW) / 1000;
+    sumBy(roofTopDesign.panelArray, item => item.numberOfPanels * item.panelModelDataSnapshot.ratings.watts) / 1000;
   obj['Text ES kWh rollup - 1'] = sumBy(
     roofTopDesign.storage,
-    item => item.quantity * item.storageModelDataSnapshot.sizekWh,
+    item => item.quantity * item.storageModelDataSnapshot.ratings.kilowattHours,
   );
   obj['Text PV Inverter Product - 1'] = roofTopDesign.inverters
     .map(item => item.inverterModelDataSnapshot.name)

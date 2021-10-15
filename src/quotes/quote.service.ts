@@ -130,7 +130,7 @@ export class QuoteService {
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.panelArray.map(item => {
-          const cost = item.numberOfPanels * item.panelModelDataSnapshot.price;
+          const cost = item.numberOfPanels * (item.panelModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.SOLAR,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -152,7 +152,7 @@ export class QuoteService {
       ),
       inverterQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.inverters.map(item => {
-          const cost = item.quantity * item.inverterModelDataSnapshot.price;
+          const cost = item.quantity * (item.inverterModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.INVERTER,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -174,7 +174,7 @@ export class QuoteService {
       ),
       storageQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.storage.map(item => {
-          const cost = item.quantity * item.storageModelDataSnapshot.price;
+          const cost = item.quantity * (item.storageModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.STORAGE,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -196,7 +196,7 @@ export class QuoteService {
       ),
       adderQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.adders.map(item => {
-          const cost = item.quantity * item.adderModelDataSnapshot.price;
+          const cost = item.quantity * (item.adderModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = 0;
           const netCost = cost * (1 + subcontractorMarkup / 100);
 
@@ -215,7 +215,7 @@ export class QuoteService {
       ),
       balanceOfSystemDetails: this.groupData(
         systemDesign.roofTopDesignData.balanceOfSystems?.map(item => {
-          const cost = item.balanceOfSystemModelDataSnapshot.price;
+          const cost = item.balanceOfSystemModelDataSnapshot.price ?? 100; // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.balanceOfSystemModelDataSnapshot.relatedComponent,
             PRODUCT_CATEGORY_TYPE.BOS,
@@ -237,7 +237,7 @@ export class QuoteService {
       ),
       ancillaryEquipmentDetails: this.groupData(
         systemDesign.roofTopDesignData.ancillaryEquipments?.map(item => {
-          const cost = item.quantity * item.ancillaryEquipmentModelDataSnapshot.averageWholeSalePrice;
+          const cost = item.quantity * (item.ancillaryEquipmentModelDataSnapshot.averageWholeSalePrice ?? 100); // TODO WAV-903 Missing  averageWholeSalePrice
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.ancillaryEquipmentModelDataSnapshot.relatedComponent,
             PRODUCT_CATEGORY_TYPE.ANCILLARY,
@@ -386,7 +386,8 @@ export class QuoteService {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_OVERRIDE);
       }
 
-      detailedQuote.selectedQuoteMode = '';
+      detailedQuote.selectedQuoteMode =
+        detailedQuote.allowedQuoteModes.length === 1 ? detailedQuote.allowedQuoteModes[0] : '';
     }
 
     const model = new QuoteModel(data, detailedQuote);
@@ -712,7 +713,7 @@ export class QuoteService {
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.panelArray.map(item => {
-          const cost = item.numberOfPanels * item.panelModelDataSnapshot.price;
+          const cost = item.numberOfPanels * (item.panelModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.SOLAR,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -734,7 +735,7 @@ export class QuoteService {
       ),
       inverterQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.inverters.map(item => {
-          const cost = item.quantity * item.inverterModelDataSnapshot.price;
+          const cost = item.quantity * (item.inverterModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.INVERTER,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -755,7 +756,7 @@ export class QuoteService {
       ),
       storageQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.storage.map(item => {
-          const cost = item.quantity * item.storageModelDataSnapshot.price;
+          const cost = item.quantity * (item.storageModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.STORAGE,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -776,7 +777,7 @@ export class QuoteService {
       ),
       adderQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.adders.map(item => {
-          const cost = item.quantity * item.adderModelDataSnapshot.price;
+          const cost = item.quantity * (item.adderModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = 0;
           const netCost = cost * (1 + subcontractorMarkup / 100);
 
@@ -795,7 +796,7 @@ export class QuoteService {
       ),
       balanceOfSystemDetails: this.groupData(
         systemDesign.roofTopDesignData.balanceOfSystems?.map(item => {
-          const cost = item.balanceOfSystemModelDataSnapshot.price;
+          const cost = item.balanceOfSystemModelDataSnapshot.price ?? 100; // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.balanceOfSystemModelDataSnapshot.relatedComponent,
             PRODUCT_CATEGORY_TYPE.BOS,
@@ -817,7 +818,7 @@ export class QuoteService {
       ),
       ancillaryEquipmentDetails: this.groupData(
         systemDesign.roofTopDesignData.ancillaryEquipments.map(item => {
-          const cost = item.quantity * item.ancillaryEquipmentModelDataSnapshot.averageWholeSalePrice;
+          const cost = item.quantity * (item.ancillaryEquipmentModelDataSnapshot.averageWholeSalePrice ?? 100); // TODO WAV-903 Missing  averageWholeSalePrice
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.ancillaryEquipmentModelDataSnapshot.relatedComponent,
             PRODUCT_CATEGORY_TYPE.ANCILLARY,
@@ -1579,7 +1580,7 @@ export class QuoteService {
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.panelArray.map(item => {
-          const cost = item.numberOfPanels * item.panelModelDataSnapshot.price;
+          const cost = item.numberOfPanels * (item.panelModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.SOLAR,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -1601,7 +1602,7 @@ export class QuoteService {
       ),
       inverterQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.inverters.map(item => {
-          const cost = item.quantity * item.inverterModelDataSnapshot.price;
+          const cost = item.quantity * (item.inverterModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.INVERTER,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -1623,7 +1624,7 @@ export class QuoteService {
       ),
       storageQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.storage.map(item => {
-          const cost = item.quantity * item.storageModelDataSnapshot.price;
+          const cost = item.quantity * (item.storageModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             COMPONENT_TYPE.STORAGE,
             PRODUCT_CATEGORY_TYPE.BASE,
@@ -1645,7 +1646,7 @@ export class QuoteService {
       ),
       adderQuoteDetails: this.groupData(
         systemDesign.roofTopDesignData.adders.map(item => {
-          const cost = item.quantity * item.adderModelDataSnapshot.price;
+          const cost = item.quantity * (item.adderModelDataSnapshot.price ?? 100); // TODO WAV-903 Missing  price
           const subcontractorMarkup = 0;
           const netCost = cost * (1 + subcontractorMarkup / 100);
 
@@ -1664,7 +1665,7 @@ export class QuoteService {
       ),
       balanceOfSystemDetails: this.groupData(
         systemDesign.roofTopDesignData.balanceOfSystems?.map(item => {
-          const cost = item.balanceOfSystemModelDataSnapshot.price;
+          const cost = item.balanceOfSystemModelDataSnapshot.price ?? 100; // TODO WAV-903 Missing  price
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.balanceOfSystemModelDataSnapshot.relatedComponent,
             PRODUCT_CATEGORY_TYPE.BOS,
@@ -1686,7 +1687,7 @@ export class QuoteService {
       ),
       ancillaryEquipmentDetails: this.groupData(
         systemDesign.roofTopDesignData.ancillaryEquipments?.map(item => {
-          const cost = item.quantity * item.ancillaryEquipmentModelDataSnapshot.averageWholeSalePrice;
+          const cost = item.quantity * (item.ancillaryEquipmentModelDataSnapshot.averageWholeSalePrice ?? 100); // TODO WAV-903 Missing  averageWholeSalePrice
           const subcontractorMarkup = this.getSubcontractorMarkup(
             item.ancillaryEquipmentModelDataSnapshot.relatedComponent,
             PRODUCT_CATEGORY_TYPE.ANCILLARY,

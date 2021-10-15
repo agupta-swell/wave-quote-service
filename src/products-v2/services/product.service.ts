@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, LeanDocument, Model, Types } from 'mongoose';
+import { FilterQuery, LeanDocument, Model, ObjectId, Types, UpdateQuery } from 'mongoose';
 import { isObjectId, transformToValidId } from 'src/utils/common';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult, Pagination } from '../../app/common';
-import { UpdateProductDtoReq } from '../req/update-product.dto';
-import { ProductDto } from '../res/product.dto';
+import { SaveInsertionRuleReq } from '../req/save-insertion-rule.dto';
+import { ProductResDto } from '../res/product.dto';
 import { IProduct, IProductDocument, IUnknownProduct } from '../interfaces';
 import { PRODUCT_MODEL_NAME, PRODUCT_TYPE } from '../constants';
 import { GetAllProductsQueryDto } from '../req';
@@ -14,7 +14,7 @@ import { GetAllProductsQueryDto } from '../req';
 export class ProductService {
   constructor(@InjectModel(PRODUCT_MODEL_NAME) private productModel: Model<IUnknownProduct>) {}
 
-  async getAllProductsByType(query: GetAllProductsQueryDto): Promise<OperationResult<Pagination<ProductDto>>> {
+  async getAllProductsByType(query: GetAllProductsQueryDto): Promise<OperationResult<Pagination<ProductResDto>>> {
     const { limit, skip, types, hasRule } = query;
 
     const condition: Record<string, unknown> = {
@@ -30,15 +30,36 @@ export class ProductService {
       this.productModel.countDocuments(condition),
     ]);
 
-    return OperationResult.ok(new Pagination({ data: strictPlainToClass(ProductDto, panels), total }));
+    return OperationResult.ok(new Pagination({ data: strictPlainToClass(ProductResDto, panels), total }));
   }
 
-  async updateProduct(id: string, req: UpdateProductDtoReq): Promise<OperationResult<ProductDto>> {
+  async saveInsertionRule(id: ObjectId, req: SaveInsertionRuleReq): Promise<OperationResult<ProductResDto>> {
     const updatedProduct = await this.productModel
       .findByIdAndUpdate(id, { insertionRule: req.insertionRule! }, { new: true })
       .lean();
 
-    return OperationResult.ok(strictPlainToClass(ProductDto, updatedProduct));
+    const foundProduct = await this.productModel.findOne({ _id: id });
+
+    if (!foundProduct) {
+      throw new NotFoundException(`No product found with id ${id.toString()}`);
+    }
+
+    if (
+      foundProduct.type !== PRODUCT_TYPE.ANCILLARY_EQUIPMENT &&
+      foundProduct.type !== PRODUCT_TYPE.BALANCE_OF_SYSTEM
+    ) {
+      throw new BadRequestException('Only ancillary equipment or balance of system product is allowed');
+    }
+
+    const mappedProduct = this.extractType<PRODUCT_TYPE.ANCILLARY_EQUIPMENT | PRODUCT_TYPE.BALANCE_OF_SYSTEM>(
+      foundProduct,
+    );
+
+    mappedProduct.insertionRule = req.insertionRule;
+
+    await mappedProduct.save();
+
+    return OperationResult.ok(strictPlainToClass(ProductResDto, mappedProduct.toJSON()));
   }
 
   async getDetailById(id: string): Promise<LeanDocument<IUnknownProduct> | null> {
@@ -69,12 +90,14 @@ export class ProductService {
   ): Promise<IProductDocument<T> | null> {
     const res = await this.productModel.findOne(condition as any);
 
+    if (!res) return null;
+
     return this.extractType<T>(res);
   }
 
   public async getLeanManyByQuery<T extends PRODUCT_TYPE>(
     condition: FilterQuery<IProduct<T>>,
-  ): Promise<LeanDocument<IProductDocument<T>[]> | null> {
+  ): Promise<LeanDocument<IProductDocument<T>>[]> {
     const res = await this.productModel.find(condition as any).lean();
 
     return this.extractLeanType<T>(res);
@@ -85,21 +108,64 @@ export class ProductService {
   ): Promise<LeanDocument<IProductDocument<T>> | null> {
     const res = await this.productModel.findOne(condition as any).lean();
 
+    if (!res) return null;
+
     return this.extractLeanType<T>(res);
   }
 
+  public async getDetailByIdAndType<TProductType extends PRODUCT_TYPE>(
+    type: TProductType,
+    id: string,
+  ): Promise<LeanDocument<IProductDocument<TProductType>>> {
+    const found = await this.productModel
+      .findOne({
+        type,
+        _id: new Types.ObjectId(id),
+      })
+      .lean();
+
+    if (!found) {
+      throw new NotFoundException(`No product found with type ${type}, id ${id}`);
+    }
+
+    const mappedProduct = this.extractLeanType<TProductType>(found);
+
+    return mappedProduct;
+  }
+
+  public async findByIdAndTypeAndUpdate<TProductType extends PRODUCT_TYPE>(
+    type: TProductType,
+    id: string | ObjectId,
+    update: UpdateQuery<IProductDocument<TProductType>>,
+  ): Promise<IProductDocument<TProductType> | null> {
+    const model = await this.productModel.findOneAndUpdate(
+      {
+        _id: typeof id === 'string' ? new Types.ObjectId(id) : id,
+        type: type,
+      },
+      update as any,
+      { new: true },
+    );
+
+    if (!model) {
+      throw new NotFoundException(`No product found with type ${type}, id ${id}`);
+    }
+
+    return this.extractType<TProductType>(model);
+  }
+
   private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct[]): IProductDocument<T>[];
-  private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct | null): IProductDocument<T> | null;
+  private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct): IProductDocument<T>;
   private extractType<T extends PRODUCT_TYPE>(product: any): any {
     return product;
   }
 
   private extractLeanType<T extends PRODUCT_TYPE>(
-    product: LeanDocument<IUnknownProduct[]>,
-  ): LeanDocument<IProductDocument<T>[]>;
+    product: LeanDocument<IUnknownProduct>[],
+  ): LeanDocument<IProductDocument<T>>[];
   private extractLeanType<T extends PRODUCT_TYPE>(
-    product: LeanDocument<IUnknownProduct> | null,
-  ): LeanDocument<IProductDocument<T>> | null;
+    product: LeanDocument<IUnknownProduct>,
+  ): LeanDocument<IProductDocument<T>>;
   private extractLeanType<T extends PRODUCT_TYPE>(product: any): any {
     return product;
   }

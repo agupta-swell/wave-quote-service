@@ -1,4 +1,14 @@
 import { Document, Schema, Types } from 'mongoose';
+import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { IBatteryRating, IProduct, IRating, ISnapshotProduct } from 'src/products-v2/interfaces';
+import {
+  AdderSnapshotSchema,
+  AncillaryEquipmentSnapshotSchema,
+  BalanceOfSystemSnapshotSchema,
+  BatterySnapshotSchema,
+  InverterSnapshotSchema,
+  ModuleSnapshotSchema,
+} from 'src/products-v2/schemas';
 import { BATTERY_TYPE } from 'src/products/constants';
 import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
@@ -83,31 +93,6 @@ export const InverterProductSchema = new Schema<Document<IInverterProductSchema>
   { _id: false },
 );
 
-export interface IPanelProductSchema extends IProductCommonSchema, IPanelProduct {}
-
-export const PanelProductSchema = new Schema<Document<IPanelProductSchema>>(
-  {
-    manufacturerId: String,
-    name: String,
-    type: String,
-    price: Number,
-    sizeW: Number,
-    sizekWh: Number,
-    part_number: [String],
-    dimension: {
-      length: Number,
-      width: Number,
-    },
-    model_name: String,
-    approved_for_gsa: Boolean,
-    approved_for_esa: Boolean,
-    pv_watt_module_type: String,
-    panel_output_mode: String,
-    watt_class_stcdc: Number,
-  },
-  { _id: false },
-);
-
 export interface ISystemProductionSchema {
   capacityKW: number;
   generationKWh: number;
@@ -142,7 +127,7 @@ export interface ISolarPanelArraySchema {
   rowSpacing: number;
   panelModelId: string;
   numberOfPanels: number;
-  panelModelDataSnapshot: IPanelProductSchema;
+  panelModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.MODULE>;
   panelModelSnapshotDate: Date;
   losses: number;
   useSunroof: boolean;
@@ -171,7 +156,7 @@ const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
     row_spacing: Number,
     panel_model_id: String,
     number_of_panels: Number,
-    panel_model_data_snapshot: PanelProductSchema,
+    panel_model_data_snapshot: ModuleSnapshotSchema,
     panel_model_snapshot_date: Date,
     losses: Number,
     sunroof_primary_orientation_side: Number,
@@ -194,7 +179,7 @@ const CapacityPanelArraySchema = new Schema<Document<ICapacityPanelArraySchema>>
     azimuth: Number,
     panel_model_id: String,
     number_of_panels: Number,
-    panel_model_data_snapshot: PanelProductSchema,
+    panel_model_data_snapshot: ModuleSnapshotSchema,
     panel_model_snapshot_date: Date,
     losses: Number,
     system_production_data: SystemProductionSchema,
@@ -205,7 +190,7 @@ const CapacityPanelArraySchema = new Schema<Document<ICapacityPanelArraySchema>>
 export interface IInverterSchema {
   type: string;
   inverterModelId: string;
-  inverterModelDataSnapshot: IInverterProductSchema;
+  inverterModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.INVERTER>;
   inverterModelSnapshotDate: Date;
   quantity: number;
   arrayId: Types.ObjectId;
@@ -215,7 +200,7 @@ const InverterSchema = new Schema<Document<IInverterSchema>>(
   {
     type: String,
     inverter_model_id: String,
-    inverter_model_data_snapshot: InverterProductSchema,
+    inverter_model_data_snapshot: InverterSnapshotSchema,
     inverter_model_snapshot_date: Date,
     quantity: Number,
     array_id: Schema.Types.ObjectId,
@@ -227,9 +212,10 @@ export interface IStorageSchema {
   type: string;
   quantity: number;
   storageModelId: string;
-  storageModelDataSnapshot: IStorageProductSchema;
+  storageModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BATTERY>;
   storageModelSnapshotDate: Date;
-  reserve: number;
+  minimumReservePercentage: number;
+  roundTripEfficiency: number;
   purpose: string;
   batteryType: BATTERY_TYPE;
 }
@@ -239,28 +225,12 @@ const StorageSchema = new Schema<Document<IStorageSchema>>(
     type: String,
     quantity: Number,
     storage_model_id: String,
-    storage_model_data_snapshot: StorageProductSchema,
+    storage_model_data_snapshot: BatterySnapshotSchema,
     storage_model_snapshot_date: Date,
-    reserve: Number,
+    minimum_reserve_percentage: Number,
+    round_trip_efficiency: Number,
     purpose: String,
     battery_type: String,
-  },
-  { _id: false },
-);
-
-export interface IAdderModel {
-  adder: string;
-  price: number;
-  increment: string | any;
-  modifiedAt: Date;
-}
-
-export const AdderModelSchema = new Schema<Document<IAdderModel>>(
-  {
-    adder: String,
-    price: Number,
-    increment: String,
-    modified_at: Date,
   },
   { _id: false },
 );
@@ -270,7 +240,7 @@ export interface IAdderSchema {
   quantity: number;
   unit: COST_UNIT_TYPE;
   adderId: string;
-  adderModelDataSnapshot: IAdderModel;
+  adderModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ADDER>;
   adderModelSnapshotDate: Date;
 }
 
@@ -280,41 +250,15 @@ const AdderSchema = new Schema<Document<IAdderSchema>>(
     quantity: Number,
     adder_id: String,
     unit: String,
-    adder_model_data_snapshot: AdderModelSchema,
+    adder_model_data_snapshot: AdderSnapshotSchema,
     adder_model_snapshot_date: Date,
-  },
-  { _id: false },
-);
-
-export interface IBalanceOfSystemProductSchema extends IProductCommonSchema, IBalanceOfSystemProduct {}
-
-export const BalanceOfSystemProductSchema = new Schema<Document<IBalanceOfSystemProductSchema>>(
-  {
-    name: String,
-    type: String,
-    price: Number,
-    sizeW: Number,
-    sizekWh: Number,
-    part_number: [String],
-    dimension: {
-      length: Number,
-      width: Number,
-    },
-    manufacturerId: String,
-    model_name: String,
-    approved_for_gsa: Boolean,
-    approved_for_esa: Boolean,
-    unit: String,
-    relatedComponentCategory: String,
-    inverterType: String,
-    relatedComponent: String,
   },
   { _id: false },
 );
 
 export interface IBalanceOfSystemSchema {
   balanceOfSystemId: string;
-  balanceOfSystemModelDataSnapshot: IBalanceOfSystemProductSchema;
+  balanceOfSystemModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BALANCE_OF_SYSTEM>;
   balanceOfSystemSnapshotDate: Date;
   unit: COST_UNIT_TYPE;
 }
@@ -322,49 +266,23 @@ export interface IBalanceOfSystemSchema {
 export const BalanceOfSystemSchema = new Schema<Document<IBalanceOfSystemSchema>>(
   {
     balance_of_system_id: String,
-    balance_of_system_model_data_snapshot: BalanceOfSystemProductSchema,
+    balance_of_system_model_data_snapshot: BalanceOfSystemSnapshotSchema,
     balance_of_system_snapshot_date: Date,
     unit: String,
   },
   { _id: false },
 );
-
-export interface IAncillaryEquipment {
-  ancillaryId: string;
-  manufacturerId: string;
-  modelName: string;
-  relatedComponent: COMPONENT_TYPE;
-  description: string;
-  averageWholeSalePrice: number;
-  applicableProductManufacturerId: string;
-  quantity: number;
-}
-
-export const AncillaryEquipment = new Schema<Document<IAncillaryEquipment>>(
-  {
-    ancillary_id: String,
-    manufacturer_id: String,
-    model_name: String,
-    related_component: String,
-    description: String,
-    average_whole_sale_price: Number,
-    applicable_product_manufacturer_id: String,
-    quantity: Number,
-  },
-  { _id: false },
-);
-
 export interface IAncillaryEquipmentSchema {
   ancillaryId: string;
-  ancillaryEquipmentModelDataSnapshot: IAncillaryEquipment;
+  ancillaryEquipmentModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>;
   ancillaryEquipmentModelDataSnapshotDate: Date;
   quantity: number;
 }
 
-export const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>(
+const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>(
   {
     ancillary_id: String,
-    ancillary_equipment_model_data_snapshot: AncillaryEquipment,
+    ancillary_equipment_model_data_snapshot: AncillaryEquipmentSnapshotSchema,
     ancillary_equipment_model_data_snapshot_date: Date,
     quantity: Number,
   },
@@ -553,7 +471,7 @@ export class SystemDesignModel {
   };
 
   setPanelModelDataSnapshot(
-    panelModelData: IPanelProductSchema,
+    panelModelData: ISnapshotProduct<PRODUCT_TYPE.MODULE>,
     index: number,
     designMode: string = DESIGN_MODE.ROOF_TOP,
   ) {
@@ -566,7 +484,12 @@ export class SystemDesignModel {
     }
   }
 
-  setAdder(adder: IAdderModel, unit: COST_UNIT_TYPE, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
+  setAdder(
+    adder: ISnapshotProduct<PRODUCT_TYPE.ADDER>,
+    unit: COST_UNIT_TYPE,
+    index: number,
+    designMode: string = DESIGN_MODE.ROOF_TOP,
+  ) {
     if (designMode === DESIGN_MODE.ROOF_TOP) {
       this.roofTopDesignData.adders[index].adderModelDataSnapshot = adder;
       this.roofTopDesignData.adders[index].unit = unit;
@@ -578,7 +501,11 @@ export class SystemDesignModel {
     }
   }
 
-  setInverter(inverter: IInverterProductSchema, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
+  setInverter(
+    inverter: ISnapshotProduct<PRODUCT_TYPE.INVERTER>,
+    index: number,
+    designMode: string = DESIGN_MODE.ROOF_TOP,
+  ) {
     if (designMode === DESIGN_MODE.ROOF_TOP) {
       this.roofTopDesignData.inverters[index].inverterModelDataSnapshot = inverter;
       this.roofTopDesignData.inverters[index].inverterModelSnapshotDate = new Date();
@@ -588,7 +515,11 @@ export class SystemDesignModel {
     }
   }
 
-  setStorage(storage: IStorageProductSchema, index: number, designMode: string = DESIGN_MODE.ROOF_TOP) {
+  setStorage(
+    storage: ISnapshotProduct<PRODUCT_TYPE.BATTERY>,
+    index: number,
+    designMode: string = DESIGN_MODE.ROOF_TOP,
+  ) {
     if (designMode === DESIGN_MODE.ROOF_TOP) {
       this.roofTopDesignData.storage[index].storageModelDataSnapshot = storage;
       this.roofTopDesignData.storage[index].storageModelSnapshotDate = new Date();
@@ -599,7 +530,7 @@ export class SystemDesignModel {
   }
 
   setBalanceOfSystem(
-    balanceOfSystems: IBalanceOfSystemProductSchema,
+    balanceOfSystems: ISnapshotProduct<PRODUCT_TYPE.BALANCE_OF_SYSTEM>,
     index: number,
     designMode: string = DESIGN_MODE.ROOF_TOP,
   ) {
@@ -613,7 +544,7 @@ export class SystemDesignModel {
   }
 
   setAncillaryEquipment(
-    ancillaryEquipment: IAncillaryEquipment,
+    ancillaryEquipment: ISnapshotProduct<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>,
     index: number,
     designMode: string = DESIGN_MODE.ROOF_TOP,
   ) {
@@ -631,10 +562,6 @@ export class SystemDesignModel {
   setThumbnail(link: string) {
     this.thumbnail = link;
   }
-
-  // setIsSelected(isSelected: boolean) {
-  //   this.is_selected = isSelected;
-  // }
 
   setIsSolar(isSolar: boolean) {
     this.isSelected = isSolar;
