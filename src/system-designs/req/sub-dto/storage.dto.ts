@@ -14,7 +14,7 @@ export class StorageDto {
   storageModelId: string;
 
   @ApiProperty()
-  minimumReservePercentage: number;
+  reservePercentage: number;
 
   @ApiProperty({
     enum: [
