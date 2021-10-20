@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ProposalSectionMasterController } from './proposal-section-master.controller';
-import { ProposalSectionMasterSchema, PROPOSAL_SECTION_MASTER } from './proposal-section-master.schema';
+import { ProposalSectionMasterSchema, PROPOSAL_SECTIONS_MASTER_COLL } from './proposal-section-master.schema';
 import { ProposalSectionMasterService } from './proposal-section-master.service';
 
 @Global()
@@ -14,9 +14,9 @@ import { ProposalSectionMasterService } from './proposal-section-master.service'
     }),
     MongooseModule.forFeature([
       {
-        name: PROPOSAL_SECTION_MASTER,
+        name: PROPOSAL_SECTIONS_MASTER_COLL,
         schema: ProposalSectionMasterSchema,
-        collection: 'v2_proposal_section_masters',
+        collection: PROPOSAL_SECTIONS_MASTER_COLL,
       },
     ]),
   ],

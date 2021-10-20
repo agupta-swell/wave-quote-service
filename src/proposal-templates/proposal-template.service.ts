@@ -74,10 +74,10 @@ export class ProposalTemplateService {
   ): Promise<OperationResult<Pagination<ProposalTemplateDto>>> {
     let foundQuote: LeanDocument<Quote> | null;
     const query = {
-      'proposal_section_master.applicable_financial_product': {
+      'proposal_section_master.applicable_funding_sources': {
         $in: [] as string[],
       },
-      'proposal_section_master.applicable_products': {
+      'proposal_section_master.applicable_quote_types': {
         $in: [] as string[],
       },
     };
@@ -86,7 +86,7 @@ export class ProposalTemplateService {
       foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
       const foundSystemDesign = await this.systemDesignService.getOneById(foundQuote!!.systemDesignId);
 
-      query['proposal_section_master.applicable_financial_product'].$in = [
+      query['proposal_section_master.applicable_funding_sources'].$in = [
         foundQuote!!.detailedQuote.quoteFinanceProduct.financeProduct.fundingSourceId,
       ];
 
@@ -94,11 +94,11 @@ export class ProposalTemplateService {
         foundSystemDesign?.roofTopDesignData.panelArray?.length &&
         foundSystemDesign?.roofTopDesignData.storage?.length
       ) {
-        query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.PV_AND_STORAGE];
+        query['proposal_section_master.applicable_quote_types'].$in = [EApplicableProducts.PV_AND_STORAGE];
       } else if (foundSystemDesign?.roofTopDesignData.panelArray?.length) {
-        query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.PV];
+        query['proposal_section_master.applicable_quote_types'].$in = [EApplicableProducts.PV];
       } else if (foundSystemDesign?.roofTopDesignData.storage?.length) {
-        query['proposal_section_master.applicable_products'].$in = [EApplicableProducts.STORAGE];
+        query['proposal_section_master.applicable_quote_types'].$in = [EApplicableProducts.STORAGE];
       }
     }
 

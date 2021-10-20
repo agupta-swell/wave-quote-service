@@ -9,10 +9,10 @@ export class ProposalSectionMasterDto {
   name: string;
 
   @ExposeProp()
-  applicableFinancialProducts: string[];
+  applicableFundingSources: string[];
 
   @ExposeProp()
-  applicableProducts: string[];
+  applicableQuoteTypes: string[];
 
   @ExposeProp()
   componentName: string;

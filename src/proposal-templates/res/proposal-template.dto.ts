@@ -17,10 +17,10 @@ class ProposalSectionMasterDto {
   id: string;
 
   @ExposeProp({ type: String, isArray: true })
-  applicableFinancialProduct: string[];
+  applicableFundingSources: string[];
 
   @ExposeProp({ type: String, isArray: true })
-  applicableProducts: string[];
+  applicableQuoteTypes: string[];
 }
 
 export class ProposalTemplateDto {

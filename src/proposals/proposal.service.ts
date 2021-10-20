@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
@@ -21,7 +14,6 @@ import { DocusignTemplateMasterService } from 'src/docusign-templates-master/doc
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
-import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
@@ -86,9 +78,10 @@ export class ProposalService {
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
-    const [systemDesign, detailedQuote] = await Promise.all([
+    const [systemDesign, detailedQuote, proposalTemplate] = await Promise.all([
       this.systemDesignService.getOneById(proposalDto.systemDesignId),
       this.quoteService.getOneById(proposalDto.quoteId),
+      this.proposalTemplateService.getOneById(proposalDto.detailedProposal.templateId),
     ]);
 
     const thumbnail = systemDesign?.thumbnail;
@@ -117,8 +110,13 @@ export class ProposalService {
         status: PROPOSAL_STATUS.CREATED,
         quoteData: detailedQuote,
         systemDesignData: systemDesign,
+
       },
     });
+
+    if (proposalTemplate) {
+      model.detailedProposal.proposalTemplateSnapshot = proposalTemplate
+    }
 
     model.detailedProposal.systemDesignData.thumbnail = this.s3Service.buildUrlFromKey(bucketName, newKeyName);
 

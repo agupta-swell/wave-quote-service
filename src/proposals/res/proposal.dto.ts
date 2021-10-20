@@ -1,5 +1,5 @@
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { ProposalTemplateDto } from 'src/proposal-templates/res/proposal-template.dto';
+import { ProposalTemplateDto, ProposalTemplateRes } from 'src/proposal-templates/res/proposal-template.dto';
 import { QuoteDto } from 'src/quotes/res/quote.dto';
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { SystemDesignDto } from 'src/system-designs/res/system-design.dto';
@@ -80,6 +80,9 @@ export class ProposalDto {
 
   @ExposeAndMap({ root: 'detailedProposal' })
   sampleContractUrl?: string;
+
+  @ExposeAndMap({ root: 'detailedProposal', type: ProposalTemplateDto })
+  proposalTemplateSnapshot?: ProposalTemplateDto;
 
   @ExposeProp()
   quoteId: string;
