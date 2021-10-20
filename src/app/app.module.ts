@@ -40,6 +40,7 @@ import { SavingCalculationModule } from '../saving-calculations/saving-calculati
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
+import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 
 @Global()
 @Module({
@@ -96,6 +97,7 @@ import { ProductModuleV2 } from 'src/products-v2/product.module';
     FinancialProductsModule,
     SavingCalculationModule,
     ProductModuleV2,
+    InstalledProductModule,
   ],
 })
 export class AppModule {}

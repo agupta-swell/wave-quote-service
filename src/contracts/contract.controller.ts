@@ -4,6 +4,7 @@ import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { CatchDocusignException } from 'src/docusign-communications/filters';
+import { ReplaceInstalledProductAfterSuccess } from 'src/installed-products/interceptors';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
@@ -74,6 +75,7 @@ export class ContractController {
   @UseDefaultFinancier()
   @UseDefaultContractName()
   @ApiOperation({ summary: 'Save Contract' })
+  @ReplaceInstalledProductAfterSuccess()
   @ApiOkResponse({ type: SaveContractRes })
   async saveContract(
     @Body(SignerValidationPipe)
@@ -95,6 +97,7 @@ export class ContractController {
   @Post('/change-orders')
   @UsePipes(ValidationPipe)
   @UseDefaultContractName()
+  @ReplaceInstalledProductAfterSuccess()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveChangeOrderRes })
   async saveChangeOrder(

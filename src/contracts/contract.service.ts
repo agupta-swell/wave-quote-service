@@ -55,7 +55,6 @@ export class ContractService {
     private readonly customerPaymentService: CustomerPaymentService,
     private readonly systemDesignService: SystemDesignService,
     private readonly gsProgramsService: GsProgramsService,
-    private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly financialProductService: FinancialProductsService,
   ) {}
 
