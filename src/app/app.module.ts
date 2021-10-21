@@ -33,6 +33,7 @@ import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
 import { RebateProgramModule } from 'src/rebate-programs/rebate-programs.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
+import { HealthcheckModule } from 'src/health-checks/health-check.module';
 import { MongooseNamingStrategyLoader } from 'src/shared/plugins/mongoose/naming-strategy.plugin';
 import { ENaming, MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { MyLoggerModule } from './my-logger/my-logger.module';
@@ -98,6 +99,7 @@ import { InstalledProductModule } from 'src/installed-products/installed-product
     SavingCalculationModule,
     ProductModuleV2,
     InstalledProductModule,
+    HealthcheckModule,
   ],
 })
 export class AppModule {}
