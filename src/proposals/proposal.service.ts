@@ -467,9 +467,7 @@ export class ProposalService {
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 
     // Get utilityProgramMaster
-    const utilityProgramMaster = gsProgram
-      ? await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId)
-      : null;
+    const utilityProgramMaster = await this.utilityProgramMasterService.getLeanById(quote.utilityProgram.utilityProgramId);
 
     const leaseSolverConfig =
       (quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)

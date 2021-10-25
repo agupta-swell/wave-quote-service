@@ -261,9 +261,9 @@ export class ContractService {
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 
     // Get utilityProgramMaster
-    const utilityProgramMaster = gsProgram
-      ? await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId)
-      : null;
+    const utilityProgramMaster = await this.utilityProgramMasterService.getLeanById(
+      quote.detailedQuote.utilityProgram.utilityProgramId,
+    );
 
     const leaseSolverConfig =
       (quote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
