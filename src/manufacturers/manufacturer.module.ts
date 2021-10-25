@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ManufacturerController } from './manufacturer.controller';
-import { MANUFACTURER, ManufacturerSchema } from './manufacturer.schema';
+import { ManufacturerSchema, V2_MANUFACTURERS_COLL } from './manufacturer.schema';
 import { ManufacturerService } from './manufacturer.service';
 
 @Module({
@@ -13,9 +13,9 @@ import { ManufacturerService } from './manufacturer.service';
     }),
     MongooseModule.forFeature([
       {
-        name: MANUFACTURER,
+        name: V2_MANUFACTURERS_COLL,
         schema: ManufacturerSchema,
-        collection: 'v2_manufacturers',
+        collection: V2_MANUFACTURERS_COLL,
       },
     ]),
   ],

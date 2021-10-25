@@ -2,14 +2,31 @@ import { NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
+import { PRODUCT_COLL, PRODUCT_TYPE } from 'src/products-v2/constants';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { Manufacturer, MANUFACTURER } from './manufacturer.schema';
+import { Manufacturer, V2_MANUFACTURERS_COLL } from './manufacturer.schema';
 import { ManufacturerDto } from './res/manufacturer.dto';
 
-export class ManufacturerService {
-  constructor(@InjectModel(MANUFACTURER) private manufacturers: Model<Manufacturer>) {}
+interface IGetManufacturersByTypeResult {
+  meta: { total: number };
+  data: LeanDocument<Manufacturer>[];
+}
 
-  async getList(limit: number, skip: number): Promise<OperationResult<Pagination<ManufacturerDto>>> {
+export class ManufacturerService {
+  constructor(@InjectModel(V2_MANUFACTURERS_COLL) private manufacturers: Model<Manufacturer>) {}
+
+  async getList(limit: number, skip: number, by?: PRODUCT_TYPE): Promise<OperationResult<Pagination<ManufacturerDto>>> {
+    if (by) {
+      const res = await this.getManufacturersByType(skip, limit, by);
+
+      return OperationResult.ok(
+        new Pagination({
+          data: strictPlainToClass(ManufacturerDto, res.data),
+          total: res.meta.total,
+        }),
+      );
+    }
+
     const [manufacturers, total] = await Promise.all([
       this.manufacturers.find().limit(limit).skip(skip).lean(),
       this.manufacturers.countDocuments(),
@@ -31,5 +48,64 @@ export class ManufacturerService {
     }
 
     return found;
+  }
+
+  async getManufacturersByType(
+    skip: number,
+    limit: number,
+    type: PRODUCT_TYPE,
+  ): Promise<IGetManufacturersByTypeResult> {
+    const res = await this.manufacturers.db
+      .collection(PRODUCT_COLL)
+      .aggregate<IGetManufacturersByTypeResult>([
+        {
+          $match: {
+            type,
+          },
+        },
+        {
+          $group: {
+            _id: '$manufacturer_id',
+            sum: {
+              $sum: 1,
+            },
+          },
+        },
+        {
+          $facet: {
+            meta: [
+              {
+                $count: 'total',
+              },
+            ],
+            data: [
+              {
+                $skip: skip,
+              },
+              {
+                $limit: limit,
+              },
+              {
+                $lookup: {
+                  from: 'v2_manufacturers',
+                  localField: '_id',
+                  foreignField: '_id',
+                  as: 'manufacturers',
+                },
+              },
+              {
+                $replaceRoot: {
+                  newRoot: {
+                    $arrayElemAt: ['$manufacturers', 0],
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ])
+      .toArray();
+
+    return res[0];
   }
 }
