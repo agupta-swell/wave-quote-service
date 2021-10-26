@@ -110,12 +110,11 @@ export class ProposalService {
         status: PROPOSAL_STATUS.CREATED,
         quoteData: detailedQuote,
         systemDesignData: systemDesign,
-
       },
     });
 
     if (proposalTemplate) {
-      model.detailedProposal.proposalTemplateSnapshot = proposalTemplate
+      model.detailedProposal.proposalTemplateSnapshot = proposalTemplate;
     }
 
     model.detailedProposal.systemDesignData.thumbnail = this.s3Service.buildUrlFromKey(bucketName, newKeyName);
@@ -467,7 +466,9 @@ export class ProposalService {
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 
     // Get utilityProgramMaster
-    const utilityProgramMaster = await this.utilityProgramMasterService.getLeanById(quote.utilityProgram.utilityProgramId);
+    const utilityProgramMaster = quote.utilityProgram?.utilityProgramId
+      ? await this.utilityProgramMasterService.getLeanById(quote.utilityProgram.utilityProgramId)
+      : null;
 
     const leaseSolverConfig =
       (quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
