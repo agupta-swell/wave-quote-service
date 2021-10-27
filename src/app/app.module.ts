@@ -33,6 +33,7 @@ import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
 import { RebateProgramModule } from 'src/rebate-programs/rebate-programs.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
+import { HealthcheckModule } from 'src/health-checks/health-check.module';
 import { MongooseNamingStrategyLoader } from 'src/shared/plugins/mongoose/naming-strategy.plugin';
 import { ENaming, MongooseNamingStrategy } from 'mongoose-schema-mapper';
 import { MyLoggerModule } from './my-logger/my-logger.module';
@@ -40,6 +41,7 @@ import { SavingCalculationModule } from '../saving-calculations/saving-calculati
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
+import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 
 @Global()
 @Module({
@@ -96,6 +98,8 @@ import { ProductModuleV2 } from 'src/products-v2/product.module';
     FinancialProductsModule,
     SavingCalculationModule,
     ProductModuleV2,
+    InstalledProductModule,
+    HealthcheckModule,
   ],
 })
 export class AppModule {}

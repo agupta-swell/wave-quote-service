@@ -5,14 +5,17 @@ import { LeanDocument, Model, Types, ObjectId } from 'mongoose';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
-import { ProposalSectionMaster, PROPOSAL_SECTION_MASTER } from './proposal-section-master.schema';
+import { ProposalSectionMaster, PROPOSAL_SECTIONS_MASTER_COLL } from './proposal-section-master.schema';
+import { GetAllProposalSectionsMasterQuery } from './req';
 import { CreateProposalSectionMasterDto } from './req/create-proposal-section-master.dto';
 import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-master.dto';
 import { ProposalSectionMasterDto } from './res/proposal-section-master.dto';
 
 @Injectable()
 export class ProposalSectionMasterService {
-  constructor(@InjectModel(PROPOSAL_SECTION_MASTER) private proposalSectionMaster: Model<ProposalSectionMaster>) {}
+  constructor(
+    @InjectModel(PROPOSAL_SECTIONS_MASTER_COLL) private proposalSectionMaster: Model<ProposalSectionMaster>,
+  ) {}
 
   async create(
     proposalSectionMasterDto: CreateProposalSectionMasterDto,
@@ -45,15 +48,14 @@ export class ProposalSectionMasterService {
   }
 
   async getList(
-    limit: number,
-    skip: number,
-    products: string[],
-    financialProducts: string[],
+    req: GetAllProposalSectionsMasterQuery,
   ): Promise<OperationResult<Pagination<ProposalSectionMasterDto>>> {
+    const { fundingSources, limit, quoteTypes, skip } = req;
+
     const condition = pickBy(
       {
-        applicableProducts: { $in: ['all', ...(products || [])] },
-        applicableFinancialProducts: { $in: ['all', ...(financialProducts || [])] },
+        applicableQuoteTypes: { $in: ['all', ...(quoteTypes || [])] },
+        applicableFundingSources: { $in: ['all', ...(fundingSources || [])] },
       },
       identity,
     );

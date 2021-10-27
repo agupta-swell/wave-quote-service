@@ -750,6 +750,7 @@ export class QuoteService {
             cost,
             subcontractorMarkup,
             netCost,
+            quantity: item.quantity,
           };
         }),
         'inverterModelId',
@@ -771,6 +772,7 @@ export class QuoteService {
             cost,
             subcontractorMarkup,
             netCost,
+            quantity: item.quantity,
           };
         }),
         'storageModelId',

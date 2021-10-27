@@ -15,6 +15,7 @@ export enum PROCESS_STATUS {
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
+  DRAFT = 'DRAFT',
 }
 
 export enum REQUEST_MODE {
@@ -25,3 +26,5 @@ export enum REQUEST_MODE {
 export const KEYS = {
   CONTRACT_TYPE: Symbol.for('contractType'),
 };
+
+export const CONTRACT_SECRET_PREFIX = 'contract';

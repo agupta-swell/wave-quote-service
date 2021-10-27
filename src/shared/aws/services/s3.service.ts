@@ -101,10 +101,12 @@ export class S3Service {
 
     const [name] = fileName.split('.');
 
+    const key = args.length === 6 && args[5] ? fileName : `${name}/${fileName}`;
+
     const params: AWS.S3.PutObjectRequest = {
       Bucket: bucketName,
       Body: passthrough,
-      Key: args.length === 6 && args[5] ? fileName : `${name}/${fileName}`,
+      Key: this.buildObjectKey('', key),
       ContentType: mime,
       ACL: acl,
     };

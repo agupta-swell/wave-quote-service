@@ -1,16 +1,20 @@
-import { Body, Controller, Get, Param, Post, Query, Res, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Head, Param, Post, Query, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
-import { PreAuthenticate } from 'src/app/securities';
+import { CurrentUser, ILoggedInUser, PreAuthenticate } from 'src/app/securities';
+import { ResourceGuard } from 'src/app/securities/resource-guard.decorator';
 import { CatchDocusignException } from 'src/docusign-communications/filters';
+import { ReplaceInstalledProductAfterSuccess } from 'src/installed-products/interceptors';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
-import { CONTRACT_TYPE } from './constants';
+import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
 import { UseDefaultContractName } from './interceptors';
 import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier } from './pipes';
+import { DownloadContractPipe, IContractDownloadReqPayload } from './pipes/download-contract.validation.pipe';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
+  GetContractDownloadTokenDto,
   GetContractTemplatesDto,
   GetContractTemplatesRes,
   GetCurrentContractDto,
@@ -69,11 +73,22 @@ export class ContractController {
     return ServiceResponse.fromResult(res);
   }
 
+  @Post(':contractId/preview')
+  @ApiOperation({ summary: 'Create draft contract' })
+  @ApiOkResponse({ type: SendContractRes })
+  async generatePreviewContract(
+    @Param('contractId', ParseObjectIdPipe) id: ObjectId,
+  ): Promise<ServiceResponse<SendContractDto>> {
+    const res = await this.contractService.sendContract(id.toString(), true);
+    return ServiceResponse.fromResult(res);
+  }
+
   @Post()
   @UsePipes(ValidationPipe)
   @UseDefaultFinancier()
   @UseDefaultContractName()
   @ApiOperation({ summary: 'Save Contract' })
+  @ReplaceInstalledProductAfterSuccess()
   @ApiOkResponse({ type: SaveContractRes })
   async saveContract(
     @Body(SignerValidationPipe)
@@ -95,6 +110,7 @@ export class ContractController {
   @Post('/change-orders')
   @UsePipes(ValidationPipe)
   @UseDefaultContractName()
+  @ReplaceInstalledProductAfterSuccess()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveChangeOrderRes })
   async saveChangeOrder(
@@ -104,17 +120,42 @@ export class ContractController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Get('/:contractId/envelope')
+  @ResourceGuard(CONTRACT_SECRET_PREFIX)
+  @Get('/download/:name')
   @ApiParam({ name: 'contractId' })
   @ApiOperation({ summary: 'Download Contract envelope' })
-  async downloadContract(@Param('contractId', ParseObjectIdPipe) id: ObjectId, @Res() res: any) {
-    const [fileName, contract] = await this.contractService.getContractDownloadData(id);
+  async downloadContract(
+    @CurrentUser(DownloadContractPipe) contractReq: IContractDownloadReqPayload,
+    @Query('viewOnly') viewOnly: string | undefined,
+    @Res() res: any,
+  ) {
+    const contract = await this.contractService.downloadDocusignContract(contractReq.envelopeId);
+
+    if (viewOnly) {
+      res.header('Content-Disposition', `inline; filename="${contractReq.filename}"`);
+    } else {
+      res.header('Content-Disposition', `attachment; filename="${contractReq.filename}"`);
+    }
+
+    res.code(200).header('Content-Type', contractReq.contentType).type('application/pdf').send(contract);
+  }
+
+  @Head('/:contractId/envelope')
+  @ApiParam({ name: 'contractId' })
+  @ApiOperation({ summary: 'Head Contract envelope download data' })
+  async streamContract(
+    @Param('contractId', ParseObjectIdPipe) id: ObjectId,
+    @CurrentUser() user: ILoggedInUser,
+    @Res() res: any,
+  ) {
+    const [filename, token] = await this.contractService.getContractDownloadData(id, user);
     res
       .code(200)
-      .header('Access-Control-Expose-Headers', 'X-Wave-Download-Filename')
-      .header('X-Wave-Download-Filename', fileName)
+      .header('Access-Control-Expose-Headers', ['X-Wave-Download-Token', 'X-Wave-Download-Filename'])
+      .header('X-Wave-Download-Filename', filename)
+      .header('X-Wave-Download-Token', token)
       .type('application/pdf')
-      .send(contract);
+      .send();
   }
 
   @Post('/:contractId/resend')

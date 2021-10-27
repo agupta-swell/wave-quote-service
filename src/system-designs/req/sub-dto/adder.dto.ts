@@ -1,12 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsMongoId, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsNumber } from 'class-validator';
 
 export class AdderDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  adderDescription: string;
-
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()

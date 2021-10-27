@@ -1,4 +1,9 @@
 import { Document, Schema } from 'mongoose';
+import {
+  IProposalSectionMaster,
+  ProposalSectionMaster,
+  ProposalSectionMasterSchema,
+} from 'src/proposal-section-masters/proposal-section-master.schema';
 
 export const PROPOSAL_TEMPLATE = Symbol('PROPOSAL_TEMPLATE').toString();
 
@@ -27,28 +32,32 @@ SectionSchema.virtual('_id').set(function (value) {
   this.id = value;
 });
 
-export interface IProposalSectionMaster {
-  applicableFinancialProduct: string[];
-  applicableProducts: string[];
-}
+const ProposalSectionMasterSnapshotSchema = new Schema(
+  {
+    applicable_funding_sources: [String],
+    applicable_quote_types: [String],
+  },
+  { _id: false },
+);
 
-const ProposalSectionMaster = new Schema<Document<IProposalSectionMaster>>({
-  applicable_financial_product: [String],
-  applicable_products: [String],
-});
-
-export interface ProposalTemplate extends Document {
+export interface IProposalTemplate {
   name: string;
   description: string;
   sections: ISectionSchema[];
   proposalSectionMaster: IProposalSectionMaster;
+  createdAt: Date;
+  createdBy: String;
+  updatedAt: Date;
+  updatedBy: String;
 }
+
+export interface ProposalTemplate extends IProposalTemplate, Document {}
 
 export const ProposalTemplateSchema = new Schema<ProposalTemplate>({
   name: String,
   sections: [SectionSchema],
   description: String,
-  proposal_section_master: ProposalSectionMaster,
+  proposal_section_master: ProposalSectionMasterSnapshotSchema,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

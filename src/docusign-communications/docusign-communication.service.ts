@@ -239,6 +239,10 @@ export class DocusignCommunicationService {
     return this.docusignAPIService.resendEnvelop(envelopeId);
   }
 
+  sendDraftContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
+    return this.docusignAPIService.sendDraftEnvelop(envelopeId);
+  }
+
   validateSignerDetails(
     templateDetails: (Omit<LeanDocument<DocusignTemplateMaster>, 'recipientRoles'> & {
       recipientRoles: LeanDocument<SignerRoleMaster>[];

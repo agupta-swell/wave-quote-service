@@ -5,6 +5,7 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ProposalSectionMasterService } from './proposal-section-master.service';
+import { GetAllProposalSectionsMasterQuery } from './req';
 import { CreateProposalSectionMasterDto } from './req/create-proposal-section-master.dto';
 import { UpdateProposalSectionMasterDto } from './req/update-proposal-section-master.dto';
 import {
@@ -44,19 +45,12 @@ export class ProposalSectionMasterController {
 
   @Get()
   @ApiOperation({ summary: 'Get List' })
-  @ApiQuery({ name: 'limit' })
-  @ApiQuery({ name: 'skip' })
-  @ApiQuery({ name: 'products' })
-  @ApiQuery({ name: 'financial-products' })
+  @ApiQuery({ type: GetAllProposalSectionsMasterQuery })
   @ApiOkResponse({ type: ProposalSectionMasterListRes })
   async getList(
-    @Query() query: { limit: string; skip: string; products: string; 'financial-products': string },
+    @Query() query: GetAllProposalSectionsMasterQuery,
   ): Promise<ServiceResponse<Pagination<ProposalSectionMasterDto>>> {
-    const limit = Number(query.limit || 100);
-    const skip = Number(query.skip || 0);
-    const products = query.products?.split(',');
-    const financialProducts = query['financial-products']?.split(',');
-    const res = await this.proposalSectionMasterService.getList(limit, skip, products, financialProducts);
+    const res = await this.proposalSectionMasterService.getList(query);
     return ServiceResponse.fromResult(res);
   }
 }

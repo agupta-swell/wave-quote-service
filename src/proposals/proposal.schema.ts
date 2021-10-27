@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { IProposalTemplate, ProposalTemplateSchema } from 'src/proposal-templates/proposal-template.schema';
 import { DetailedQuoteSchema, IDetailedQuoteSchema } from '../quotes/quote.schema';
 import { SystemDesign, SystemDesignSchema } from '../system-designs/system-design.schema';
 import { PROPOSAL_STATUS } from './constants';
@@ -46,7 +47,10 @@ export interface IDetailedProposalSchema {
   htmlFileUrl: string;
   envelopeId?: string;
   sampleContractUrl?: ISampleContractUrl[];
+  proposalTemplateSnapshot: IProposalTemplate;
 }
+
+const ProposalTemplateSnapshot = new Schema(ProposalTemplateSchema.obj, { _id: false });
 
 const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
   {
@@ -64,6 +68,7 @@ const DetailedProposalSchema = new Schema<Document<IDetailedProposalSchema>>(
     html_file_url: String,
     envelope_id: String,
     sample_contract_url: [SampleContractUrlSchema],
+    proposal_template_snapshot: ProposalTemplateSnapshot,
   },
   { _id: false },
 );

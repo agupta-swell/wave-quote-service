@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ManufacturerService } from './manufacturer.service';
+import { GetAllManufacturersQueryDto } from './req';
 import { ManufacturerDto, ManufacturerPaginationRes } from './res/manufacturer.dto';
 
 @ApiTags('Manufacturer')
@@ -14,15 +15,12 @@ export class ManufacturerController {
 
   @Get()
   @ApiOperation({ summary: 'Get All Manufacturers' })
-  @ApiQuery({ name: 'limit' })
-  @ApiQuery({ name: 'skip' })
+  @ApiQuery({ type: GetAllManufacturersQueryDto })
   @ApiOkResponse({ type: ManufacturerPaginationRes })
   async getManufacturers(
-    @Query() query: { limit: string; skip: string },
+    @Query() query: GetAllManufacturersQueryDto,
   ): Promise<ServiceResponse<Pagination<ManufacturerDto>>> {
-    const limit = Number(query.limit || 100);
-    const skip = Number(query.skip || 0);
-    const manufacturers = await this.manufacturerService.getList(limit, skip);
+    const manufacturers = await this.manufacturerService.getList(query.limit, query.skip, query.by);
 
     return ServiceResponse.fromResult(manufacturers);
   }

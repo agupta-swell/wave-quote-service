@@ -214,7 +214,7 @@ export interface IStorageSchema {
   storageModelId: string;
   storageModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BATTERY>;
   storageModelSnapshotDate: Date;
-  minimumReservePercentage: number;
+  reservePercentage: number;
   roundTripEfficiency: number;
   purpose: string;
   batteryType: BATTERY_TYPE;
@@ -227,7 +227,7 @@ const StorageSchema = new Schema<Document<IStorageSchema>>(
     storage_model_id: String,
     storage_model_data_snapshot: BatterySnapshotSchema,
     storage_model_snapshot_date: Date,
-    minimum_reserve_percentage: Number,
+    reserve_percentage: Number,
     round_trip_efficiency: Number,
     purpose: String,
     battery_type: String,

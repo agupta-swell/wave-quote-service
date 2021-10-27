@@ -1,10 +1,14 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import { ManagedUpload } from 'aws-sdk/clients/s3';
 import { sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
+import { CurrentUser, ILoggedInUser, DOWNLOADABLE_RESOURCE, IDownloadResourcePayload } from 'src/app/securities';
+import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ContactService } from 'src/contacts/contact.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
@@ -15,6 +19,7 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
+import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { UserService } from 'src/users/user.service';
@@ -22,11 +27,12 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
-import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
+import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import { ContractReqDto } from './req/contract-req.dto';
 import {
+  GetContractDownloadTokenDto,
   GetContractTemplatesDto,
   GetCurrentContractDto,
   SaveChangeOrderDto,
@@ -55,8 +61,9 @@ export class ContractService {
     private readonly customerPaymentService: CustomerPaymentService,
     private readonly systemDesignService: SystemDesignService,
     private readonly gsProgramsService: GsProgramsService,
-    private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly financialProductService: FinancialProductsService,
+    private readonly s3Service: S3Service,
+    private readonly jwtService: JwtService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -190,11 +197,28 @@ export class ContractService {
     );
   }
 
-  async sendContract(contractId: string): Promise<OperationResult<SendContractDto>> {
-    const contract = await this.contractModel.findById(contractId).lean();
+  async sendContract(contractId: string, isDraft = false): Promise<OperationResult<SendContractDto>> {
+    const contract = await this.contractModel.findById(contractId);
 
     if (!contract) {
       throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
+    }
+
+    if (contract.contractStatus === PROCESS_STATUS.DRAFT) {
+      if (isDraft) throw new BadRequestException('This contract preview has already been generated');
+
+      // send from draft document
+      await this.docusignCommunicationService.sendDraftContract(contract.contractingSystemReferenceId);
+
+      contract.signerDetails[0].sentOn = new Date();
+      contract.signerDetails[0].signStatus = SIGN_STATUS.SENT;
+      contract.contractStatus = PROCESS_STATUS.IN_PROGRESS;
+
+      await contract.save();
+
+      return OperationResult.ok(
+        strictPlainToClass(SendContractDto, { status: 'SUCCESS', newlyUpdatedContract: contract.toJSON() }),
+      );
     }
 
     const opportunity = await this.opportunityService.getDetailById(contract.opportunityId);
@@ -237,8 +261,8 @@ export class ContractService {
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 
     // Get utilityProgramMaster
-    const utilityProgramMaster = gsProgram
-      ? await this.utilityProgramMasterService.getLeanById(gsProgram.utilityProgramId)
+    const utilityProgramMaster = quote.detailedQuote.utilityProgram?.utilityProgramId
+      ? await this.utilityProgramMasterService.getLeanById(quote.detailedQuote.utilityProgram.utilityProgramId)
       : null;
 
     const leaseSolverConfig =
@@ -275,7 +299,26 @@ export class ContractService {
       contract.contractTemplateDetail.templateDetails,
       contract.signerDetails,
       genericObject,
+      isDraft,
     );
+
+    if (isDraft) {
+      if (docusignResponse.status === 'SUCCESS' && docusignResponse.contractingSystemReferenceId) {
+        status = 'SUCCESS';
+        contract.contractStatus = PROCESS_STATUS.DRAFT;
+        contract.contractingSystemReferenceId = docusignResponse.contractingSystemReferenceId;
+      } else {
+        status = 'ERROR';
+        statusDescription = 'ERROR';
+        contract.contractStatus = PROCESS_STATUS.ERROR;
+      }
+
+      await contract.save();
+
+      return OperationResult.ok(
+        strictPlainToClass(SendContractDto, { status, statusDescription, newlyUpdatedContract: contract.toJSON() }),
+      );
+    }
 
     if (docusignResponse.status === 'SUCCESS') {
       status = 'SUCCESS';
@@ -289,17 +332,11 @@ export class ContractService {
       contract.contractStatus = PROCESS_STATUS.ERROR;
     }
 
-    const newlyUpdatedContract = await this.contractModel
-      .findOneAndUpdate(
-        {
-          _id: contract._id,
-        },
-        contract,
-        { new: true },
-      )
-      .lean();
+    await contract.save();
 
-    return OperationResult.ok(strictPlainToClass(SendContractDto, { status, statusDescription, newlyUpdatedContract }));
+    return OperationResult.ok(
+      strictPlainToClass(SendContractDto, { status, statusDescription, newlyUpdatedContract: contract.toJSON() }),
+    );
   }
 
   async saveChangeOrder(
@@ -405,12 +442,12 @@ export class ContractService {
     return foundContract;
   }
 
-  async downloadDocusignContract(id: string): Promise<IncomingMessage | undefined> {
+  async downloadDocusignContract(envelopeId: string): Promise<IncomingMessage | undefined> {
     // eslint-disable-next-line consistent-return
-    return this.docusignCommunicationService.downloadContract(id);
+    return this.docusignCommunicationService.downloadContract(envelopeId);
   }
 
-  async getContractDownloadData(id: ObjectId): Promise<[string, IncomingMessage]> {
+  async getContractDownloadData(id: ObjectId, user: ILoggedInUser): Promise<[string, string]> {
     const foundContract = await this.getOneByContractId(id);
     if (foundContract.contractingSystem !== 'DOCUSIGN' || !foundContract.contractingSystemReferenceId)
       throw ApplicationException.InvalidContract();
@@ -429,13 +466,27 @@ export class ContractService {
         fileName = this.getPrimaryContractDownloadName(foundContract, foundOpp);
     }
 
-    const contract = await this.downloadDocusignContract(foundContract.contractingSystemReferenceId);
+    const token = await this.generateDownloadToken(id, fileName, user);
 
-    if (!contract) {
-      throw ApplicationException.NotFoundStatus('Contract Envelope', `${id.toString()}`);
-    }
+    return [fileName, token];
+  }
 
-    return [fileName, contract];
+  async generateDownloadToken(id: ObjectId, filename: string, currentUser: ILoggedInUser): Promise<string> {
+    const payload: IDownloadResourcePayload = {
+      ...currentUser,
+      userRoles: ['download_resource'],
+      contentType: 'application/pdf',
+      filename,
+      resourceId: id.toString(),
+      type: DOWNLOADABLE_RESOURCE.CONTRACT,
+    };
+
+    const token = await this.jwtService.signAsync(payload, {
+      secret: `${CONTRACT_SECRET_PREFIX}_${JwtConfigService.appSecret}`,
+      expiresIn: '24h',
+    });
+
+    return token;
   }
 
   async getLatestPrimaryContractByOpportunity(opportunityId: string): Promise<ContractResDto> {

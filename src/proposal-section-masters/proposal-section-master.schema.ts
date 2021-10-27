@@ -1,18 +1,23 @@
 import { Document, Schema } from 'mongoose';
 
-export const PROPOSAL_SECTION_MASTER = Symbol('PROPOSAL_SECTION_MASTER').toString();
+export const PROPOSAL_SECTIONS_MASTER_COLL = 'v2_proposal_sections_master';
 
-export interface ProposalSectionMaster extends Document {
+export interface IProposalSectionMaster {
   name: string;
-  applicableFinancialProducts: string[];
-  applicableProducts: string[];
+  applicableFundingSources: string[];
+  applicableQuoteTypes: string[];
   componentName: string;
+  createdAt: Date;
+  createdBy: String;
+  updatedAt: Date;
+  updatedBy: String;
 }
+export interface ProposalSectionMaster extends Document, IProposalSectionMaster {}
 
 export const ProposalSectionMasterSchema = new Schema<ProposalSectionMaster>({
   name: String,
-  applicable_financial_products: [String],
-  applicable_products: [String],
+  applicable_funding_sources: [String],
+  applicable_quote_types: [String],
   component_name: String,
   created_at: { type: Date, default: Date.now },
   created_by: String,

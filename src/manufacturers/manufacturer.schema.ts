@@ -1,7 +1,6 @@
 import { Document, Schema } from 'mongoose';
 
-export const MANUFACTURER = Symbol('MANUFACTURER').toString();
-
+export const V2_MANUFACTURERS_COLL = 'v2_manufacturers';
 export interface Manufacturer extends Document {
   name: string;
 }

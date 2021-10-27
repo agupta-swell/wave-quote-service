@@ -31,5 +31,5 @@ export class StorageDto {
   type: string;
 
   @ExposeProp()
-  minimumReservePercentage: number;
+  reservePercentage: number;
 }
