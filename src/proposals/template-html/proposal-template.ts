@@ -1,7 +1,7 @@
 import { EmailService } from 'src/emails/email.service';
 
 const header = (title: string) => `<div style="width: 100%; background: #005f9f">
-      <img src="https://s3-us-west-2.amazonaws.com/swell-docs/logos/logo-text-white.png" style="width: 150px; margin-top: 0px; margin-bottom: 0px; margin-right: auto; margin-left: auto; display: block; padding-top: 40px" />
+      <img src="https://s3-us-west-2.amazonaws.com/swell-general/logos/logo-text-white.png" style="width: 150px; margin-top: 0px; margin-bottom: 0px; margin-right: auto; margin-left: auto; display: block; padding-top: 40px" />
       <img src="https://s3.amazonaws.com/switchboard-docs/images/New_task.png" style="width: 150px; display: block; margin-top: 0px; margin-bottom: 0px; margin-right: auto; margin-left: auto; padding-top: 30px; padding-right: 32px" />
       <h1 style="font-weight: 600; text-transform: uppercase; font-size: 18px; color: #ffffff; letter-spacing: 5px; text-align: center; padding-top: 15px; padding-bottom: 30px" >${title}</h1>
     </div>`;
@@ -52,8 +52,8 @@ const proposalTemplate = `
             <p style="font-weight: 700" >
               Regards,
             </p>
-            <img src="https://s3-us-west-2.amazonaws.com/swell-docs/logos/logo-icon-fade.png" style="width: 200px; float: right; margin-top: 17px" />
-            <img src="https://s3-us-west-2.amazonaws.com/swell-docs/logos/logo-text-color.png" alt="" style="width: 260px; margin-bottom: 15px; display: block" />
+            <img src="https://s3-us-west-2.amazonaws.com/swell-general/logos/logo-icon-fade.png" style="width: 200px; float: right; margin-top: 17px" />
+            <img src="https://s3-us-west-2.amazonaws.com/swell-general/logos/logo-text-color.png" alt="" style="width: 260px; margin-bottom: 15px; display: block" />
           </div>
         </div>
         ${footer()}
