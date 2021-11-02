@@ -1,20 +1,30 @@
 import * as dayjs from 'dayjs';
-import { TemplateDataBuilder } from 'src/docusign-communications/typing';
+import { IGenericObject } from 'src/docusign-communications/typing';
 import { toWord } from 'src/utils/transformNumber';
+import {
+  DocusignTemplate,
+  DefaultTabTransformation,
+  DefaultTabType,
+  DOCUSIGN_TAB_TYPE,
+  TabValue,
+} from 'src/shared/docusign';
 
-export const getParticipationPRP2ACESEsa: TemplateDataBuilder = genericObj => {
-  const { quote, gsProgram, utilityProgramMaster, leaseSolverConfig } = genericObj;
-  const result: Record<string, string> = {};
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
+@DefaultTabTransformation('snake_case')
+@DocusignTemplate('demo', 'c69d696b-5a47-4528-a921-6f84416fcf94')
+export class ParticipationPRP2ACESEsaTemplate {
+  @TabValue<IGenericObject>(({ quote }) => quote.utilityProgram.utilityProgramName)
+  utilityProgramName: string;
 
-  result.utility_program_name = quote.utilityProgram.utilityProgramName;
+  @TabValue<IGenericObject>(({ gsProgram }) => toWord(+(gsProgram?.termYears ?? 0)))
+  residualLeaseTermWord: string;
 
-  result.monthly_incentive_amount = leaseSolverConfig?.gridServicesDiscount + '';
+  @TabValue<IGenericObject>(({ gsProgram }) => +(gsProgram?.termYears ?? 0) * 12)
+  residualLeaseTermNumber: number;
 
-  result.residual_lease_term_word = toWord(+(gsProgram?.termYears ?? 0));
+  @TabValue<IGenericObject>(({ leaseSolverConfig }) => leaseSolverConfig?.gridServicesDiscount)
+  monthlyIncentiveAmount: number;
 
-  result.residual_lease_term_number = (+(gsProgram?.termYears ?? 0) * 12).toString();
-
-  result.program_end_date = dayjs(utilityProgramMaster?.endDate).format('MM/DD/YYYY');
-
-  return result;
-};
+  @TabValue<IGenericObject>(({ utilityProgramMaster }) => dayjs(utilityProgramMaster?.endDate).format('MM/DD/YYYY'))
+  programEndDate: string;
+}

@@ -2,17 +2,13 @@ import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
 import { ContractService } from 'src/contracts/contract.service';
-import { DocusignAPIService } from 'src/external-services/sub-services/docusign-api.service';
 import { IncomingMessage } from 'http';
 import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
 import { DocusignCommunication, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
-import { DocusignTemplateService } from './sub-services/docusign-template.service';
 import {
   CONTRACTING_SYSTEM_STATUS,
   ICompositeTemplate,
   IContractSignerDetails,
-  IDefaultContractor,
-  IDocusignCompositeContract,
   IDocusignPayload,
   IGenericObject,
   IInlineTemplate,
@@ -20,26 +16,21 @@ import {
   IServerTemplate,
   ISignerData,
   ISignerDetailFromContractingSystemData,
-  ITabData,
   REQUEST_TYPE,
 } from './typing';
-import { TResendEnvelopeStatus } from 'src/external-services/typing';
 import { DocusignTemplateMaster } from 'src/docusign-templates-master/docusign-template-master.schema';
 import { SignerRoleMaster } from 'src/docusign-templates-master/schemas';
 import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
 import { compareIds } from 'src/utils/common';
-import { DocusignException } from './filters/docusign.exception';
-import { EmailService } from 'src/emails/email.service';
+import { DocusignApiService, TResendEnvelopeStatus } from 'src/shared/docusign';
 
 @Injectable()
 export class DocusignCommunicationService {
   constructor(
     @InjectModel(DOCUSIGN_COMMUNICATION) private readonly docusignCommunicationModel: Model<DocusignCommunication>,
-    private readonly docusignTemplateService: DocusignTemplateService,
-    private readonly docusignAPIService: DocusignAPIService,
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
-    private readonly emailService: EmailService,
+    private readonly docusignApiService: DocusignApiService<IGenericObject>,
   ) {}
 
   // =====================> INTERNAL <=====================
@@ -50,9 +41,7 @@ export class DocusignCommunicationService {
     genericObject: IGenericObject,
     isDraft = false,
   ): Promise<ISendDocusignToContractResponse> {
-    // see: https://developers.docusign.com/docs/esign-rest-api/reference/envelopes/envelopes/create/
-    const docusignPayload: IDocusignCompositeContract = {
-      status: isDraft ? 'created' : 'sent',
+    const docusignPayload: any = {
       emailSubject: `${
         genericObject.quote.quoteFinanceProduct?.financeProduct?.financialProductSnapshot?.name || 'Contract'
       } - Agreement for ${genericObject.opportunity.name}`,
@@ -60,25 +49,18 @@ export class DocusignCommunicationService {
       compositeTemplates: [],
     };
 
-    const docusignSecret = await this.docusignAPIService.getDocusignSecret();
-
     templateDetails.map(template => {
-      const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(
-        template,
-        signerDetails,
-        genericObject,
-        docusignSecret.docusign.defaultContractor,
-      );
+      const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(template, signerDetails);
       docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
     });
 
-    const resDocusign = await this.docusignAPIService.sendTemplate(docusignPayload);
+    const resDocusign = await this.docusignApiService.useContext(genericObject).sendContract(docusignPayload, isDraft);
 
     const model = new this.docusignCommunicationModel({
       dateTime: new Date(),
       contractId: isDraft ? undefined : contractId,
       requestType: REQUEST_TYPE.OUTBOUND,
-      docusignAccountDetail: { accountName: 'docusign', accountReferenceId: docusignSecret.docusign.email },
+      docusignAccountDetail: { accountName: 'docusign', accountReferenceId: this.docusignApiService.email },
       payloadFromDocusign: JSON.stringify(resDocusign),
       envelopId: resDocusign?.envelopeId,
       proposalId: isDraft ? contractId : undefined,
@@ -96,8 +78,6 @@ export class DocusignCommunicationService {
   getCompositeTemplatePayloadData(
     template: ITemplateDetailSchema,
     signerDetails: ISignerDetailDataSchema[],
-    genericObject: IGenericObject,
-    defaultContractor: IDefaultContractor,
   ): ICompositeTemplate {
     let runningCounter = 0;
     const compositeTemplateDataPayload: ICompositeTemplate = {
@@ -124,8 +104,6 @@ export class DocusignCommunicationService {
     };
     inlineTemplateDataPayload.sequence = runningCounter;
 
-    const exceptions: DocusignException[] = [];
-
     template.recipientRoles.map((role, index) => {
       const signerDataPayload: ISignerData = {} as any;
       const signerDetailData = signerDetails.find(signer => signer.roleId === `${role._id}`);
@@ -134,46 +112,17 @@ export class DocusignCommunicationService {
 
       const signerName = signerDetailData.fullName || signerDetailData.role;
 
-      const tab = this.docusignTemplateService.buildTemplateData(
-        template.docusignTemplateId,
-        genericObject,
-        defaultContractor,
-      );
-
-      if (tab instanceof DocusignException) {
-        exceptions.push(tab);
-        return;
-      }
-
       signerDataPayload.email = signerDetailData.email;
       signerDataPayload.name = signerName;
-      signerDataPayload.recipientId = (index + 1 - exceptions.length).toString();
+      signerDataPayload.recipientId = (index + 1).toString();
       signerDataPayload.roleName = signerDetailData.role;
-      signerDataPayload.routingOrder = (index + 1 - exceptions.length).toString();
-      signerDataPayload.tabs = tab;
+      signerDataPayload.routingOrder = (index + 1).toString();
+      signerDataPayload.templateId = template.docusignTemplateId;
 
-      if (signerDataPayload.tabs && signerDataPayload.email) {
+      if (signerDataPayload.email) {
         inlineTemplateDataPayload.recipients.signers.push(signerDataPayload);
       }
     });
-
-    if (exceptions.length) {
-      this.emailService
-        .sendMail(
-          process.env.SUPPORT_MAIL!,
-          exceptions
-            .map(
-              e => `
-      Stack: <pre>${e.rawError?.stack}</pre>
-      `,
-            )
-            .join('\n'),
-          `Cannot build docusign template ${new Date().toISOString()}`,
-        )
-        .catch(error => {
-          console.log('Cannot send email', error);
-        });
-    }
 
     compositeTemplateDataPayload.inlineTemplates.push(inlineTemplateDataPayload);
 
@@ -231,16 +180,16 @@ export class DocusignCommunicationService {
     return res;
   }
 
-  downloadContract(envelopeId: string): Promise<IncomingMessage> {
-    return this.docusignAPIService.getEnvelopeDocumentById(envelopeId);
+  downloadContract(envelopeId: string, showChanges: boolean): Promise<IncomingMessage> {
+    return this.docusignApiService.getEnvelopeDocumentById(envelopeId, showChanges);
   }
 
   resendContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
-    return this.docusignAPIService.resendEnvelop(envelopeId);
+    return this.docusignApiService.resendEnvelop(envelopeId);
   }
 
   sendDraftContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
-    return this.docusignAPIService.sendDraftEnvelop(envelopeId);
+    return this.docusignApiService.sendDraftEnvelop(envelopeId);
   }
 
   validateSignerDetails(

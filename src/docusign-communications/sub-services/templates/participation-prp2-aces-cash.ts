@@ -1,20 +1,30 @@
 import * as dayjs from 'dayjs';
-import { TemplateDataBuilder } from 'src/docusign-communications/typing';
+import { IGenericObject } from 'src/docusign-communications/typing';
 import { numberWithCommas, toWord } from 'src/utils/transformNumber';
+import {
+  DocusignTemplate,
+  DefaultTabTransformation,
+  DefaultTabType,
+  DOCUSIGN_TAB_TYPE,
+  TabValue,
+} from 'src/shared/docusign';
 
-export const getParticipationPRP2ACESCash: TemplateDataBuilder = genericObj => {
-  const { gsProgram, utilityProgramMaster } = genericObj;
-  const result: Record<string, string> = {};
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
+@DefaultTabTransformation('snake_case')
+@DocusignTemplate('demo', 'fecadd5d-2ffe-4266-8e4a-775586a09220')
+export class ParticipationPRP2ACESCashTemplate {
+  @TabValue<IGenericObject>(({ utilityProgramMaster }) => utilityProgramMaster?.gsaDisplayName)
+  utilityProgramName: string;
 
-  result.utility_program_name = utilityProgramMaster?.gsaDisplayName ?? '';
+  @TabValue<IGenericObject>(({ gsProgram }) => numberWithCommas(gsProgram?.upfrontIncentives ?? 0, 2))
+  upfrontIncentiveAmount: string;
 
-  result.upfront_incentive_amount = `${numberWithCommas(gsProgram?.upfrontIncentives ?? 0, 2)}`;
+  @TabValue<IGenericObject>(({ gsProgram }) => numberWithCommas(gsProgram?.annualIncentives ?? 0, 2))
+  annualIncentiveAmount: string;
 
-  result.annual_incentive_amount = `${numberWithCommas(gsProgram?.annualIncentives ?? 0, 2)}`;
+  @TabValue<IGenericObject>(({ gsProgram }) => `${gsProgram?.termYears ?? 0} ${toWord(+(gsProgram?.termYears ?? 0))}`)
+  initialTermYears: string;
 
-  result.initial_term_years = `${gsProgram?.termYears ?? 0} ${toWord(+(gsProgram?.termYears ?? 0))}`;
-
-  result.program_end_date = dayjs(utilityProgramMaster?.endDate).format('MM/DD/YYYY');
-
-  return result;
-};
+  @TabValue<IGenericObject>(({ utilityProgramMaster }) => dayjs(utilityProgramMaster?.endDate).format('MM/DD/YYYY'))
+  programEndDate: string;
+}

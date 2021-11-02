@@ -10,6 +10,7 @@ import { CONTRACT, ContractSchema } from './contract.schema';
 import { ContractService } from './contract.service';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
+import { DocusignApiModule } from 'src/shared/docusign';
 
 @Global()
 @Module({
@@ -29,6 +30,7 @@ import { AwsModule } from 'src/shared/aws/aws.module';
     GsProgramsModule,
     FinancialProductsModule,
     InstalledProductModule,
+    DocusignApiModule,
   ],
   controllers: [ContractController],
   providers: [ContractService],

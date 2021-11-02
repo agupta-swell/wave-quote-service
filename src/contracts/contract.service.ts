@@ -438,9 +438,9 @@ export class ContractService {
     return foundContract;
   }
 
-  async downloadDocusignContract(envelopeId: string): Promise<IncomingMessage | undefined> {
+  async downloadDocusignContract(envelopeId: string, showChanges: boolean): Promise<IncomingMessage | undefined> {
     // eslint-disable-next-line consistent-return
-    return this.docusignCommunicationService.downloadContract(envelopeId);
+    return this.docusignCommunicationService.downloadContract(envelopeId, showChanges);
   }
 
   async getContractDownloadData(id: ObjectId, user: ILoggedInUser): Promise<[string, string]> {

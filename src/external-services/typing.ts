@@ -1,5 +1,3 @@
-import { EnvelopeSummary, LoginAccount } from 'docusign-esign';
-
 export interface ICalculateSystemProduction {
   lat: number;
   lon: number;
@@ -51,18 +49,3 @@ export interface IPvWattV6Responses {
   tcell: number[];
   wspd: number[];
 }
-
-export interface ILoginAccountWithMeta extends LoginAccount {
-  headers: Record<string, string>;
-}
-
-export interface IResendEnvelopeSuccess {
-  status: true;
-}
-
-export interface IResendEnvelopeFail {
-  status: false;
-  message: string;
-}
-
-export type TResendEnvelopeStatus = IResendEnvelopeFail | IResendEnvelopeSuccess;

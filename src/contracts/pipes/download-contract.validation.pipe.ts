@@ -1,12 +1,14 @@
 import { PipeTransform, Injectable, ArgumentMetadata, NotFoundException } from '@nestjs/common';
 import { ObjectId, Types } from 'mongoose';
 import { DOWNLOADABLE_RESOURCE, IDownloadResourcePayload } from 'src/app/securities';
+import { PROCESS_STATUS } from '../constants';
 import { ContractService } from '../contract.service';
 
 export interface IContractDownloadReqPayload {
   filename: string;
   contentType: string;
   envelopeId: string;
+  showChanges: boolean;
 }
 
 @Injectable()
@@ -33,6 +35,7 @@ export class DownloadContractPipe
       contentType,
       filename,
       envelopeId: contract.contractingSystemReferenceId,
+      showChanges: contract.contractStatus !== PROCESS_STATUS.COMPLETED,
     };
   }
 }

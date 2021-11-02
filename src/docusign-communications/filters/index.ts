@@ -1,5 +1,3 @@
-export * from './docusign.exception';
-
 import { UseFilters } from '@nestjs/common';
 import { DocusignExceptionsFilter } from './docusign-exception.filter';
 

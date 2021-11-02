@@ -129,7 +129,10 @@ export class ContractController {
     @Query('viewOnly') viewOnly: string | undefined,
     @Res() res: any,
   ) {
-    const contract = await this.contractService.downloadDocusignContract(contractReq.envelopeId);
+    const contract = await this.contractService.downloadDocusignContract(
+      contractReq.envelopeId,
+      contractReq.showChanges,
+    );
 
     if (viewOnly) {
       res.header('Content-Disposition', `inline; filename="${contractReq.filename}"`);

@@ -6,7 +6,7 @@ import { FinancialProduct } from 'src/financial-products/financial-product.schem
 import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
-import { IDetailedQuoteSchema, IFinancialProductDetails } from 'src/quotes/quote.schema';
+import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { IRoofTopSchema, SystemDesign } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
 import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
@@ -26,6 +26,7 @@ export interface ISignerData {
   roleName: string;
   routingOrder: string;
   tabs: ITabData;
+  templateId: string;
 }
 
 export interface IRecipientData {
@@ -71,33 +72,6 @@ export interface IGenericObject {
   financialProduct?: LeanDocument<FinancialProduct>;
   contract?: LeanDocument<Contract>;
   systemDesign: LeanDocument<SystemDesign> | SystemDesign;
-}
-
-export interface IDefaultContractor {
-  license: string;
-  address2: string;
-  address1: string;
-  companyName: string;
-  email: string;
-  signer: string;
-}
-
-export interface IDocusignSecretManager {
-  docusignPartnerD2C: {
-    baseUrl: string;
-    password: string;
-    integratorKey: string;
-    accountName: string;
-    email: string;
-  };
-  docusign: {
-    baseUrl: string;
-    password: string;
-    integratorKey: string;
-    templateId: string;
-    email: string;
-    defaultContractor: IDefaultContractor;
-  };
 }
 
 // ==================== DOCUSIGN PAYLOAD ====================
@@ -197,14 +171,3 @@ export enum REQUEST_TYPE {
   OUTBOUND = 'OUTBOUND',
   INBOUND = 'INBOUND',
 }
-
-export type TemplateDataBuilder = (
-  genericObject: IGenericObject,
-  defaultContractor: IDefaultContractor,
-) => {
-  [key: string]: string;
-};
-
-export type TemplateBuilderMap = {
-  [key: string]: TemplateDataBuilder;
-};

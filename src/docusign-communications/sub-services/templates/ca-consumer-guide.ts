@@ -1,7 +1,22 @@
-import { TemplateDataBuilder } from '../../typing';
+import {
+  DefaultTabTransformation,
+  DefaultTabType,
+  DocusignTemplate,
+  DOCUSIGN_TAB_TYPE,
+  TabValue,
+} from 'src/shared/docusign';
+import { IGenericObject } from '../../typing';
 
-export const getCaConsumerGuideData: TemplateDataBuilder = ({ assignedMember, signerDetails }) => ({
-  his_number: assignedMember?.hisNumber ?? '',
-  primary_owner_full_name: signerDetails.find(e => e.role === 'Primary Owner')?.fullName ?? '',
-  co_owner_full_name: signerDetails.find(e => e.role === 'Co Owner')?.fullName ?? '',
-});
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
+@DefaultTabTransformation('snake_case')
+@DocusignTemplate('demo', 'f3e2597c-af8e-4718-8d7b-44cf63f19ea5')
+export class CaConsumerGuideTemplate {
+  @TabValue<IGenericObject>(({ assignedMember }) => assignedMember?.hisNumber)
+  hisNumber: number;
+
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.fullName)
+  primaryOwnerFullName: string;
+
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
+  coOwnerFullName: string;
+}
