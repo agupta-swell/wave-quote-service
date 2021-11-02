@@ -303,12 +303,21 @@ export class ECommerceService {
       0,
     );
 
+    // Fix: for loans calculated in November or December, we only have at most 2 months in the Year 0
+    const loanProductAttributesOut = calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute as any;
+    const monthsInYear0 = loanProductAttributesOut.yearlyLoanPaymentDetails[0].monthlyPaymentDetails.length;
+    let monthlyPaymentAmount = 0;
+
+    if (monthsInYear0 < 3) {
+      monthlyPaymentAmount = loanProductAttributesOut.yearlyLoanPaymentDetails[1].monthlyPaymentDetails[2 - monthsInYear0].monthlyPayment || 0;
+    } else {
+      monthlyPaymentAmount = loanProductAttributesOut.yearlyLoanPaymentDetails[0].monthlyPaymentDetails[2].monthlyPayment || 0;
+    }
+
     return {
       paymentType: PAYMENT_TYPE.LOAN,
       paymentDetail: {
-        monthlyPaymentAmount:
-          (calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute as any)
-            .yearlyLoanPaymentDetails[0].monthlyPaymentDetails[2].monthlyPayment || 0,
+        monthlyPaymentAmount,
         savingsFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
         savingTwentyFiveYear: -1, // NOTE: TODO - PENDING JON'S SAVING DATA
         deposit: depositAmount,
