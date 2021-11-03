@@ -19,6 +19,9 @@ export class ProductResDto {
   @ExposeProp()
   partNumbers: number[];
 
+  @ExposeProp()
+  cost: number;
+
   @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.ADDER || obj.type === PRODUCT_TYPE.BALANCE_OF_SYSTEM)
   pricingUnit?: string;
 
