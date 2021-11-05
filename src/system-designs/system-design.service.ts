@@ -159,7 +159,7 @@ export class SystemDesignService {
               balanceOfSystem.balanceOfSystemId,
             );
 
-            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
+            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
           }),
 
           systemDesign.roofTopDesignData.ancillaryEquipments.map(async (ancillary, index) => {
@@ -168,7 +168,7 @@ export class SystemDesignService {
               ancillary.ancillaryId,
             );
 
-            systemDesign.setAncillaryEquipment(ancillaryModelData, index);
+            systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
           }),
         ]),
       );
@@ -204,7 +204,7 @@ export class SystemDesignService {
 
             const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
 
-            systemDesign.setPanelModelDataSnapshot(panelModelData, index);
+            systemDesign.setPanelModelDataSnapshot(panelModelData, index, systemDesign.designMode);
 
             const relatedInverterIndex =
               systemDesign.capacityProductionDesignData.inverters?.findIndex(
@@ -251,7 +251,7 @@ export class SystemDesignService {
               inverter.inverterModelId,
             );
 
-            systemDesign.setInverter(inverterModelData, index);
+            systemDesign.setInverter(inverterModelData, index, systemDesign.designMode);
           }),
           storage.map(async (storage, index) => {
             const storageModelData = await this.productService.getDetailByIdAndType(
@@ -259,12 +259,12 @@ export class SystemDesignService {
               storage.storageModelId,
             );
 
-            systemDesign.setStorage(storageModelData, index);
+            systemDesign.setStorage(storageModelData, index, systemDesign.designMode);
           }),
           adders.map(async (item, index) => {
             const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
 
-            systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
+            systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index, systemDesign.designMode);
           }),
           balanceOfSystems.map(async (balanceOfSystem, index) => {
             const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
@@ -272,7 +272,7 @@ export class SystemDesignService {
               balanceOfSystem.balanceOfSystemId,
             );
 
-            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
+            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
           }),
           ancillaryEquipments.map(async (ancillary, index) => {
             const ancillaryModelData = await this.productService.getDetailByIdAndType(
@@ -280,7 +280,7 @@ export class SystemDesignService {
               ancillary.ancillaryId,
             );
 
-            systemDesign.setAncillaryEquipment(ancillaryModelData, index);
+            systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
           }),
         ]),
       );
@@ -401,7 +401,7 @@ export class SystemDesignService {
             balanceOfSystem.balanceOfSystemId,
           );
 
-          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
+          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
         }),
         systemDesign.roofTopDesignData.ancillaryEquipments?.map(async (ancillary, index) => {
           const ancillaryModelData = await this.productService.getDetailByIdAndType(
@@ -473,7 +473,7 @@ export class SystemDesignService {
 
           const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
 
-          systemDesign.setPanelModelDataSnapshot(panelModelData, index);
+          systemDesign.setPanelModelDataSnapshot(panelModelData, index, systemDesign.designMode);
 
           if (!remainArrayId) {
             const newObjectId = Types.ObjectId();
@@ -518,7 +518,7 @@ export class SystemDesignService {
         adders?.map(async (item, index) => {
           const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
 
-          systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
+          systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index, systemDesign.designMode);
         }),
         inverters?.map(async (inverter, index) => {
           const inverterModelData = await this.productService.getDetailByIdAndType(
@@ -526,7 +526,7 @@ export class SystemDesignService {
             inverter.inverterModelId,
           );
 
-          systemDesign.setInverter(inverterModelData, index);
+          systemDesign.setInverter(inverterModelData, index, systemDesign.designMode);
         }),
         storage?.map(async (storage, index) => {
           const storageModelData = await this.productService.getDetailByIdAndType(
@@ -534,7 +534,7 @@ export class SystemDesignService {
             storage.storageModelId,
           );
 
-          systemDesign.setStorage(storageModelData, index);
+          systemDesign.setStorage(storageModelData, index, systemDesign.designMode);
         }),
         balanceOfSystems?.map(async (balanceOfSystem, index) => {
           const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
@@ -542,7 +542,7 @@ export class SystemDesignService {
             balanceOfSystem.balanceOfSystemId,
           );
 
-          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
+          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
         }),
         ancillaryEquipments?.map(async (ancillary, index) => {
           const ancillaryModelData = await this.productService.getDetailByIdAndType(
@@ -550,7 +550,7 @@ export class SystemDesignService {
             ancillary.ancillaryId,
           );
 
-          systemDesign.setAncillaryEquipment(ancillaryModelData, index);
+          systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
         }),
       ];
 
