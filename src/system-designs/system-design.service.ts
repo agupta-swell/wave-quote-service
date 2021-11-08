@@ -17,7 +17,6 @@ import { IGetBuildingResult } from 'src/shared/google-sunroof/interfaces';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
-import { AdderConfigService } from '../adder-config/adder-config.service';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { COST_UNIT_TYPE, DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
@@ -31,8 +30,7 @@ import {
 } from './req';
 import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
-import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
-import { ISystemProduction, SystemProductService, UploadImageService } from './sub-services';
+import { ISystemProduction, SystemProductService } from './sub-services';
 import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
 @Injectable()
