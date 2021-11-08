@@ -11,14 +11,12 @@ import { QuoteService } from './quote.service';
 import {
   ITCSchema,
   I_T_C,
-  QuoteMarkupConfigSchema,
-  QUOTE_MARKUP_CONFIG,
   TaxCreditConfigSchema,
   TAX_CREDIT_CONFIG,
   DISCOUNTS,
   DiscountsSchema,
 } from './schemas';
-import { CalculationService, QuoteMarkupConfigService } from './sub-services';
+import { CalculationService } from './sub-services';
 
 @Global()
 @Module({
@@ -28,7 +26,6 @@ import { CalculationService, QuoteMarkupConfigService } from './sub-services';
     }),
     MongooseModule.forFeature([
       { name: QUOTE, schema: QuoteSchema, collection: 'v2_quotes' },
-      { name: QUOTE_MARKUP_CONFIG, schema: QuoteMarkupConfigSchema, collection: 'v2_quote_markup_config' },
       {
         name: TAX_CREDIT_CONFIG,
         schema: TaxCreditConfigSchema,
@@ -46,7 +43,7 @@ import { CalculationService, QuoteMarkupConfigService } from './sub-services';
     ManufacturerModule,
   ],
   controllers: [QuoteController],
-  providers: [QuoteService, CalculationService, QuoteMarkupConfigService],
+  providers: [QuoteService, CalculationService],
   exports: [QuoteService, CalculationService],
 })
-export class QuoteModule {}
+export class QuoteModule { }

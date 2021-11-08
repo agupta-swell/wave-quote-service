@@ -17,6 +17,7 @@ export class QuotePartnerConfigDto {
   @ExposeProp()
   enablePriceOverride: boolean;
 
+  //! will remove start
   @ExposeProp()
   enableModuleDCClipping: boolean;
 
@@ -43,9 +44,40 @@ export class QuotePartnerConfigDto {
 
   @ExposeProp()
   swellStandardMarkup: number;
+  //! will remove end
+
+  @ExposeProp()
+  generalMarkup: number;
 
   @ExposeProp({ default: [] })
   enabledFinancialProducts: string[];
+
+  @ExposeProp()
+  solarMarkup: number;
+
+  @ExposeProp()
+  storageMarkup: number;
+
+  @ExposeProp()
+  inverterMarkup: number;
+
+  @ExposeProp()
+  ancillaryEquipmentMarkup: number;
+
+  @ExposeProp()
+  softCostMarkup: number;
+
+  @ExposeProp()
+  bosMarkup: number;
+
+  @ExposeProp()
+  laborMarkup: number;
+
+  @ExposeProp()
+  salesOriginationManagerFee: number;
+
+  @ExposeProp()
+  salesOriginationSalesFee: number;
 }
 
 export class QuotePartnerConfigResponse implements ServiceResponse<QuotePartnerConfigDto> {
