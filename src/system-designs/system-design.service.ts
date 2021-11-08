@@ -55,7 +55,7 @@ export class SystemDesignService {
     private readonly contractService: ContractService,
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly productService: ProductService,
-  ) {}
+  ) { }
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
@@ -69,7 +69,7 @@ export class SystemDesignService {
         !systemDesignDto.roofTopDesignData.inverters.length) ||
       (systemDesignDto.capacityProductionDesignData &&
         !systemDesignDto.capacityProductionDesignData.panelArray.length &&
-      !systemDesignDto.capacityProductionDesignData.inverters.length)
+        !systemDesignDto.capacityProductionDesignData.inverters.length)
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -687,11 +687,11 @@ export class SystemDesignService {
     await Promise.all([
       foundSystemDesign.save(),
       systemDesignDto.designMode &&
-        this.quoteService.setOutdatedData(
-          systemDesignDto.opportunityId,
-          'System Design',
-          foundSystemDesign._id.toString(),
-        ),
+      this.quoteService.setOutdatedData(
+        systemDesignDto.opportunityId,
+        'System Design',
+        foundSystemDesign._id.toString(),
+      ),
     ]);
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign.toJSON()));
@@ -734,65 +734,6 @@ export class SystemDesignService {
     const result = await this.calculateSystemDesign({ systemDesign, systemDesignDto, remainArrayId: true });
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, result!));
-  }
-
-  async getInverterClippingDetails(
-    req: GetInverterClippingDetailDto,
-  ): Promise<OperationResult<GetInverterClippingDetailResDto>> {
-    const partnerConfigData = await this.quotePartnerConfigService.getDetailByPartnerId(req.partnerId);
-    if (!partnerConfigData) {
-      return OperationResult.ok();
-    }
-
-    const { invertersDetail, panelsDetail } = req.panelAndInverterDetail;
-    const totalPvSTCRating = sumBy(panelsDetail, panel => panel.numberOfPanels * panel.panelSTCRating);
-    const totalInverterRating = sumBy(
-      invertersDetail,
-      inverter => inverter.numberOfInverters * inverter.inverterRating,
-    );
-
-    const response = strictPlainToClass(GetInverterClippingDetailResDto, {
-      panelAndInverterDetail: req.panelAndInverterDetail,
-      clippingDetails: {
-        totalSTCProductionInWatt: totalPvSTCRating,
-        totalInverterCapacityInWatt: totalInverterRating,
-        recommendationDetail: {} as any,
-      },
-    });
-
-    if (partnerConfigData.defaultDCClipping === null || !partnerConfigData.enableModuleDCClipping) {
-      response.clippingDetails.isDCClippingRestrictionEnabled = false;
-      // eslint-disable-next-line consistent-return
-      return OperationResult.ok(response);
-    }
-    response.clippingDetails.isDCClippingRestrictionEnabled = true;
-
-    response.clippingDetails.defaultClippingRatio = partnerConfigData.defaultDCClipping;
-    response.clippingDetails.maximumAllowedClippingRatio = partnerConfigData.maxModuleDCClipping;
-    response.clippingDetails.currentClippingRatio = totalPvSTCRating / totalInverterRating;
-
-    if (response.clippingDetails.currentClippingRatio <= partnerConfigData.maxModuleDCClipping) {
-      response.clippingDetails.isDcToAcRatioWithinAllowedLimit = true;
-    } else {
-      response.clippingDetails.isDcToAcRatioWithinAllowedLimit = false;
-    }
-
-    response.clippingDetails.recommendationDetail.requiredInverterCapacityForDefaultRatio =
-      totalPvSTCRating / partnerConfigData.defaultDCClipping;
-    response.clippingDetails.recommendationDetail.maxClippedWattForDefaultRatio =
-      totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForDefaultRatio;
-
-    response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio =
-      totalPvSTCRating / partnerConfigData.maxModuleDCClipping;
-    response.clippingDetails.recommendationDetail.maxClippedWattForMaxRatio =
-      totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio;
-
-    const inverterRatingInWattUsedForRecommendation = req.panelAndInverterDetail.invertersDetail[0].inverterRating;
-    response.clippingDetails.recommendationDetail.recommendedInverterCountForDefaultRatioBasedOnRating = inverterRatingInWattUsedForRecommendation;
-    response.clippingDetails.recommendationDetail.recommendedInverterCountForDefaultRatio =
-      totalPvSTCRating / (partnerConfigData.defaultDCClipping * inverterRatingInWattUsedForRecommendation);
-
-    return OperationResult.ok(response);
   }
 
   async delete(id: ObjectId, opportunityId: string): Promise<OperationResult<string>> {

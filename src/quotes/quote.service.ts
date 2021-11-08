@@ -242,14 +242,14 @@ export class QuoteService {
         }),
         'ancillaryEquipmentId',
       ),
-      swellStandardMarkup: quoteConfigData.swellStandardMarkup || 0,
+      generalMarkup: quoteConfigData.generalMarkup || 0,
       laborCost: {
         laborCostDataSnapshot: {
           id: quoteConfigData._id.toString() || '',
-          solarOnlyLaborFeePerWatt: quoteConfigData.solarOnlyLaborFeePerWatt || 0,
-          storageRetrofitLaborFeePerProject: quoteConfigData.storageRetrofitLaborFeePerProject || 0,
-          solarWithACStorageLaborFeePerProject: quoteConfigData.solarWithACStorageLaborFeePerProject || 0,
-          solarWithDCStorageLaborFeePerProject: quoteConfigData.solarWithDCStorageLaborFeePerProject || 0,
+          solarOnlyLaborFeePerWatt: 0,
+          storageRetrofitLaborFeePerProject: 0,
+          solarWithACStorageLaborFeePerProject: 0,
+          solarWithDCStorageLaborFeePerProject: 0,
         },
         laborCostSnapshotDate: new Date(),
         laborCostType: '',
@@ -808,7 +808,7 @@ export class QuoteService {
         }),
         'ancillaryEquipmentId',
       ),
-      swellStandardMarkup: foundQuote.detailedQuote.quoteCostBuildup.swellStandardMarkup || 0,
+      generalMarkup: foundQuote.detailedQuote.quoteCostBuildup.generalMarkup || 0,
       laborCost: {
         laborCostDataSnapshot: {
           id: foundQuote.detailedQuote.quoteCostBuildup.laborCost.laborCostDataSnapshot.id,
@@ -1339,7 +1339,7 @@ export class QuoteService {
       adderNetCost + storageNetCost + inverterNetCost + panelNetCost + bosNetCost + ancillaryNetCost + laborCost;
     return {
       totalNetCost,
-      grossPrice: totalNetCost * (1 + data.swellStandardMarkup / 100 || 0),
+      grossPrice: totalNetCost * (1 + data.generalMarkup / 100 || 0),
     };
   }
 
@@ -1545,7 +1545,7 @@ export class QuoteService {
   private calculateQuoteCostBuildup(
     systemDesign: LeanDocument<SystemDesign> | SystemDesign,
     laborCost: ILaborCost,
-    swellStandardMarkup = 0,
+    generalMarkup = 0,
   ): IQuoteCostBuildupSchema {
     const quoteCostBuildup = {
       panelQuoteDetails: this.groupData(
@@ -1672,7 +1672,7 @@ export class QuoteService {
         }),
         'ancillaryEquipmentId',
       ),
-      swellStandardMarkup,
+      generalMarkup,
       laborCost,
       grossPrice: 0,
       totalNetCost: 0,

@@ -17,35 +17,6 @@ export class QuotePartnerConfigDto {
   @ExposeProp()
   enablePriceOverride: boolean;
 
-  //! will remove start
-  @ExposeProp()
-  enableModuleDCClipping: boolean;
-
-  @ExposeProp()
-  pricePerWatt: number;
-
-  @ExposeProp()
-  defaultDCClipping: number;
-
-  @ExposeProp()
-  maxModuleDCClipping: number;
-
-  @ExposeProp()
-  solarOnlyLaborFeePerWatt: number;
-
-  @ExposeProp()
-  storageRetrofitLaborFeePerProject: number;
-
-  @ExposeProp()
-  solarWithACStorageLaborFeePerProject: number;
-
-  @ExposeProp()
-  solarWithDCStorageLaborFeePerProject: number;
-
-  @ExposeProp()
-  swellStandardMarkup: number;
-  //! will remove end
-
   @ExposeProp()
   generalMarkup: number;
 
