@@ -1,20 +1,17 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import { ManagedUpload } from 'aws-sdk/clients/s3';
-import { sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { IncomingMessage } from 'node:http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
-import { CurrentUser, ILoggedInUser, DOWNLOADABLE_RESOURCE, IDownloadResourcePayload } from 'src/app/securities';
+import { ILoggedInUser, DOWNLOADABLE_RESOURCE, IDownloadResourcePayload } from 'src/app/securities';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ContactService } from 'src/contacts/contact.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
-import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
@@ -32,7 +29,6 @@ import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import { ContractReqDto } from './req/contract-req.dto';
 import {
-  GetContractDownloadTokenDto,
   GetContractTemplatesDto,
   GetCurrentContractDto,
   SaveChangeOrderDto,
@@ -519,6 +515,14 @@ export class ContractService {
   }
 
   public async existBySystemDesignId(systemDesignId: string): Promise<false | { (name: string): string }> {
+    const foundNcco = await this.contractModel
+      .find({ contractType: CONTRACT_TYPE.NO_COST_CHANGE_ORDER, systemDesignId })
+      .select('_id');
+
+    if (foundNcco.length) {
+      return name => `${name} is being used in these ncco contracts ${foundNcco.map(e => e._id.toString()).join(';')} `;
+    }
+
     return this.quoteService.existBySystemDesignIdAndSubQuery<{
       _id: ObjectId;
       quoteName: string;
@@ -644,7 +648,8 @@ export class ContractService {
     });
     return count;
   }
-  async validateNewGridServiceContract(contractDetail: ContractReqDto): Promise<Boolean> {
+
+  async validateNewGridServiceContract(contractDetail: ContractReqDto): Promise<boolean> {
     const [relatedOpportunity, primaryContract] = await Promise.all([
       this.opportunityService.getDetailById(contractDetail.opportunityId),
       this.contractModel

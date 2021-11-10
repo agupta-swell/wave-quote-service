@@ -513,7 +513,7 @@ export interface IQuoteCostBuildupSchema {
   adderQuoteDetails: IAdderQuoteDetailsSchema[];
   balanceOfSystemDetails: IBalanceOfSystemDetailsSchema[];
   ancillaryEquipmentDetails: IAncillaryEquipmentSchema[];
-  swellStandardMarkup: number;
+  generalMarkup: number;
   laborCost: ILaborCostSchema;
   grossPrice: number;
   totalNetCost: number;

@@ -123,18 +123,6 @@ export class LaborCostDetailsDto {
 
   @ExposeProp()
   unit: number;
-
-  @ExposeProp()
-  solarOnlyLaborFeePerWatt: number;
-
-  @ExposeProp()
-  storageRetrofitLaborFeePerProject: number;
-
-  @ExposeProp()
-  solarWithACStorageLaborFeePerProject: number;
-
-  @ExposeProp()
-  solarWithDCStorageLaborFeePerProject: number;
 }
 export class LaborCostDto {
   @ExposeProp({ type: LaborCostDetailsDto })
@@ -179,7 +167,7 @@ export class QuoteCostBuildupDto {
   ancillaryEquipmentDetails: AncillaryDetailsDto[];
 
   @ExposeProp()
-  swellStandardMarkup: number;
+  generalMarkup: number;
 
   @ExposeProp({ type: LaborCostDto })
   laborCost: LaborCostDto;

@@ -8,14 +8,11 @@ import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import {
   CalculateSunroofDto,
   CreateSystemDesignDto,
-  GetInverterClippingDetailDto,
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
 import {
   AnciallaryMasterRes,
-  GetInverterClippingDetailRes,
-  GetInverterClippingDetailResDto,
   SystemDesignAncillaryMasterDto,
   SystemDesignAncillaryMasterListRes,
   SystemDesignDto,
@@ -30,7 +27,7 @@ import { SystemDesignService } from './system-design.service';
 @Controller('/system-designs')
 @PreAuthenticate()
 export class SystemDesignController {
-  constructor(private systemDesignService: SystemDesignService) {}
+  constructor(private systemDesignService: SystemDesignService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create system design' })
@@ -38,16 +35,6 @@ export class SystemDesignController {
   @CheckOpportunity()
   async create(@Body() systemDesign: CreateSystemDesignDto): Promise<ServiceResponse<SystemDesignDto>> {
     const result = await this.systemDesignService.create(systemDesign);
-    return ServiceResponse.fromResult(result);
-  }
-
-  @Post('/inverter-clipping-details')
-  @ApiOperation({ summary: 'Get Inverter Clipping Detail' })
-  @ApiOkResponse({ type: GetInverterClippingDetailRes })
-  async getInverterClippingDetails(
-    @Body() inverterClippingDetailDto: GetInverterClippingDetailDto,
-  ): Promise<ServiceResponse<GetInverterClippingDetailResDto>> {
-    const result = await this.systemDesignService.getInverterClippingDetails(inverterClippingDetailDto);
     return ServiceResponse.fromResult(result);
   }
 

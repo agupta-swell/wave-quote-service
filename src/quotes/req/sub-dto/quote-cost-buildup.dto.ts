@@ -122,7 +122,7 @@ export class QuoteCostBuildupDto {
   ancillaryEquipmentDetails: AncillaryDetailsDto[];
 
   @ApiProperty()
-  swellStandardMarkup: number;
+  generalMarkup: number;
 
   @ApiProperty()
   totalWithStandardMarkup: number;

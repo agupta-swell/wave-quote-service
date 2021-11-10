@@ -8,6 +8,7 @@ export const ProductSchema = new Schema<IUnknownProduct>({
   type: String,
   part_numbers: [String],
   pricing_unit: String,
+  cost: Number,
 
   related_component: String,
   insertion_rule: String,

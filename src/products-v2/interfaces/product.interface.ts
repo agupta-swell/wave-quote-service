@@ -12,8 +12,7 @@ export interface IBaseProduct {
   createdBy: String;
   updatedAt?: Date;
   updatedBy?: String;
-
-  price: number // TOTO WAV-903 missing price field
+  cost: number;
 }
 
 export type IProduct<T = unknown> = T extends PRODUCT_TYPE

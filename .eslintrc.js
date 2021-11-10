@@ -6,10 +6,15 @@ module.exports = {
     node: true,
   },
   parser: '@typescript-eslint/parser',
-  parserOptions: {
-    project: 'tsconfig.json',
-    sourceType: 'module',
-  },
+  overrides: [
+    {
+      files: ['*.ts'],
+      parserOptions: {
+        project: ['./tsconfig.json'],
+        sourceType: 'module',
+      },
+    },
+  ],
   plugins: ['eslint-plugin-import', '@typescript-eslint', '@typescript-eslint/tslint'],
   rules: {
     'import/no-unresolved': 0,
@@ -29,6 +34,6 @@ module.exports = {
     'no-param-reassign': 0,
     '@typescript-eslint/explicit-module-boundary-types': 0,
     '@typescript-eslint/ban-ts-comment': 0,
-    'no-console': { allow: ['warn', 'error'] },
+    'no-console': [2, { allow: ['warn', 'error'] }],
   },
 };

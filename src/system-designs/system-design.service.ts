@@ -17,7 +17,6 @@ import { IGetBuildingResult } from 'src/shared/google-sunroof/interfaces';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
-import { AdderConfigService } from '../adder-config/adder-config.service';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { COST_UNIT_TYPE, DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
@@ -31,8 +30,7 @@ import {
 } from './req';
 import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
-import { SystemDesignAncillaryMaster, SYSTEM_DESIGN_ANCILLARY_MASTER } from './schemas';
-import { ISystemProduction, SystemProductService, UploadImageService } from './sub-services';
+import { ISystemProduction, SystemProductService } from './sub-services';
 import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
 
 @Injectable()
@@ -57,7 +55,7 @@ export class SystemDesignService {
     private readonly contractService: ContractService,
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly productService: ProductService,
-  ) {}
+  ) { }
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
@@ -71,7 +69,7 @@ export class SystemDesignService {
         !systemDesignDto.roofTopDesignData.inverters.length) ||
       (systemDesignDto.capacityProductionDesignData &&
         !systemDesignDto.capacityProductionDesignData.panelArray.length &&
-      !systemDesignDto.capacityProductionDesignData.inverters.length)
+        !systemDesignDto.capacityProductionDesignData.inverters.length)
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -161,7 +159,7 @@ export class SystemDesignService {
               balanceOfSystem.balanceOfSystemId,
             );
 
-            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
+            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
           }),
 
           systemDesign.roofTopDesignData.ancillaryEquipments.map(async (ancillary, index) => {
@@ -170,7 +168,7 @@ export class SystemDesignService {
               ancillary.ancillaryId,
             );
 
-            systemDesign.setAncillaryEquipment(ancillaryModelData, index);
+            systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
           }),
         ]),
       );
@@ -206,7 +204,7 @@ export class SystemDesignService {
 
             const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
 
-            systemDesign.setPanelModelDataSnapshot(panelModelData, index);
+            systemDesign.setPanelModelDataSnapshot(panelModelData, index, systemDesign.designMode);
 
             const relatedInverterIndex =
               systemDesign.capacityProductionDesignData.inverters?.findIndex(
@@ -253,7 +251,7 @@ export class SystemDesignService {
               inverter.inverterModelId,
             );
 
-            systemDesign.setInverter(inverterModelData, index);
+            systemDesign.setInverter(inverterModelData, index, systemDesign.designMode);
           }),
           storage.map(async (storage, index) => {
             const storageModelData = await this.productService.getDetailByIdAndType(
@@ -261,12 +259,12 @@ export class SystemDesignService {
               storage.storageModelId,
             );
 
-            systemDesign.setStorage(storageModelData, index);
+            systemDesign.setStorage(storageModelData, index, systemDesign.designMode);
           }),
           adders.map(async (item, index) => {
             const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
 
-            systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
+            systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index, systemDesign.designMode);
           }),
           balanceOfSystems.map(async (balanceOfSystem, index) => {
             const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
@@ -274,7 +272,7 @@ export class SystemDesignService {
               balanceOfSystem.balanceOfSystemId,
             );
 
-            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
+            systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
           }),
           ancillaryEquipments.map(async (ancillary, index) => {
             const ancillaryModelData = await this.productService.getDetailByIdAndType(
@@ -282,7 +280,7 @@ export class SystemDesignService {
               ancillary.ancillaryId,
             );
 
-            systemDesign.setAncillaryEquipment(ancillaryModelData, index);
+            systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
           }),
         ]),
       );
@@ -403,7 +401,7 @@ export class SystemDesignService {
             balanceOfSystem.balanceOfSystemId,
           );
 
-          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
+          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
         }),
         systemDesign.roofTopDesignData.ancillaryEquipments?.map(async (ancillary, index) => {
           const ancillaryModelData = await this.productService.getDetailByIdAndType(
@@ -475,7 +473,7 @@ export class SystemDesignService {
 
           const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
 
-          systemDesign.setPanelModelDataSnapshot(panelModelData, index);
+          systemDesign.setPanelModelDataSnapshot(panelModelData, index, systemDesign.designMode);
 
           if (!remainArrayId) {
             const newObjectId = Types.ObjectId();
@@ -520,7 +518,7 @@ export class SystemDesignService {
         adders?.map(async (item, index) => {
           const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
 
-          systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
+          systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index, systemDesign.designMode);
         }),
         inverters?.map(async (inverter, index) => {
           const inverterModelData = await this.productService.getDetailByIdAndType(
@@ -528,7 +526,7 @@ export class SystemDesignService {
             inverter.inverterModelId,
           );
 
-          systemDesign.setInverter(inverterModelData, index);
+          systemDesign.setInverter(inverterModelData, index, systemDesign.designMode);
         }),
         storage?.map(async (storage, index) => {
           const storageModelData = await this.productService.getDetailByIdAndType(
@@ -536,7 +534,7 @@ export class SystemDesignService {
             storage.storageModelId,
           );
 
-          systemDesign.setStorage(storageModelData, index);
+          systemDesign.setStorage(storageModelData, index, systemDesign.designMode);
         }),
         balanceOfSystems?.map(async (balanceOfSystem, index) => {
           const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
@@ -544,7 +542,7 @@ export class SystemDesignService {
             balanceOfSystem.balanceOfSystemId,
           );
 
-          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index);
+          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
         }),
         ancillaryEquipments?.map(async (ancillary, index) => {
           const ancillaryModelData = await this.productService.getDetailByIdAndType(
@@ -552,7 +550,7 @@ export class SystemDesignService {
             ancillary.ancillaryId,
           );
 
-          systemDesign.setAncillaryEquipment(ancillaryModelData, index);
+          systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
         }),
       ];
 
@@ -689,11 +687,11 @@ export class SystemDesignService {
     await Promise.all([
       foundSystemDesign.save(),
       systemDesignDto.designMode &&
-        this.quoteService.setOutdatedData(
-          systemDesignDto.opportunityId,
-          'System Design',
-          foundSystemDesign._id.toString(),
-        ),
+      this.quoteService.setOutdatedData(
+        systemDesignDto.opportunityId,
+        'System Design',
+        foundSystemDesign._id.toString(),
+      ),
     ]);
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign.toJSON()));
@@ -736,65 +734,6 @@ export class SystemDesignService {
     const result = await this.calculateSystemDesign({ systemDesign, systemDesignDto, remainArrayId: true });
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, result!));
-  }
-
-  async getInverterClippingDetails(
-    req: GetInverterClippingDetailDto,
-  ): Promise<OperationResult<GetInverterClippingDetailResDto>> {
-    const partnerConfigData = await this.quotePartnerConfigService.getDetailByPartnerId(req.partnerId);
-    if (!partnerConfigData) {
-      return OperationResult.ok();
-    }
-
-    const { invertersDetail, panelsDetail } = req.panelAndInverterDetail;
-    const totalPvSTCRating = sumBy(panelsDetail, panel => panel.numberOfPanels * panel.panelSTCRating);
-    const totalInverterRating = sumBy(
-      invertersDetail,
-      inverter => inverter.numberOfInverters * inverter.inverterRating,
-    );
-
-    const response = strictPlainToClass(GetInverterClippingDetailResDto, {
-      panelAndInverterDetail: req.panelAndInverterDetail,
-      clippingDetails: {
-        totalSTCProductionInWatt: totalPvSTCRating,
-        totalInverterCapacityInWatt: totalInverterRating,
-        recommendationDetail: {} as any,
-      },
-    });
-
-    if (partnerConfigData.defaultDCClipping === null || !partnerConfigData.enableModuleDCClipping) {
-      response.clippingDetails.isDCClippingRestrictionEnabled = false;
-      // eslint-disable-next-line consistent-return
-      return OperationResult.ok(response);
-    }
-    response.clippingDetails.isDCClippingRestrictionEnabled = true;
-
-    response.clippingDetails.defaultClippingRatio = partnerConfigData.defaultDCClipping;
-    response.clippingDetails.maximumAllowedClippingRatio = partnerConfigData.maxModuleDCClipping;
-    response.clippingDetails.currentClippingRatio = totalPvSTCRating / totalInverterRating;
-
-    if (response.clippingDetails.currentClippingRatio <= partnerConfigData.maxModuleDCClipping) {
-      response.clippingDetails.isDcToAcRatioWithinAllowedLimit = true;
-    } else {
-      response.clippingDetails.isDcToAcRatioWithinAllowedLimit = false;
-    }
-
-    response.clippingDetails.recommendationDetail.requiredInverterCapacityForDefaultRatio =
-      totalPvSTCRating / partnerConfigData.defaultDCClipping;
-    response.clippingDetails.recommendationDetail.maxClippedWattForDefaultRatio =
-      totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForDefaultRatio;
-
-    response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio =
-      totalPvSTCRating / partnerConfigData.maxModuleDCClipping;
-    response.clippingDetails.recommendationDetail.maxClippedWattForMaxRatio =
-      totalPvSTCRating - response.clippingDetails.recommendationDetail.requiredInverterCapacityForMaxDefaultRatio;
-
-    const inverterRatingInWattUsedForRecommendation = req.panelAndInverterDetail.invertersDetail[0].inverterRating;
-    response.clippingDetails.recommendationDetail.recommendedInverterCountForDefaultRatioBasedOnRating = inverterRatingInWattUsedForRecommendation;
-    response.clippingDetails.recommendationDetail.recommendedInverterCountForDefaultRatio =
-      totalPvSTCRating / (partnerConfigData.defaultDCClipping * inverterRatingInWattUsedForRecommendation);
-
-    return OperationResult.ok(response);
   }
 
   async delete(id: ObjectId, opportunityId: string): Promise<OperationResult<string>> {
