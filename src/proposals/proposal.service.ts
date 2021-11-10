@@ -396,7 +396,7 @@ export class ProposalService {
       extName: fileType,
       downloadable: isGetDownloadLink,
       expires: 300,
-      rootDir: fileName,
+      rootDir: false,
       responseContentType: !isGetDownloadLink,
     });
     return OperationResult.ok(url);
@@ -545,7 +545,7 @@ export class ProposalService {
     } - Not Executable.pdf`;
 
     try {
-      const s3UploadResult = await this.saveToStorage(document, fileName);
+      const s3UploadResult = await this.saveToStorage(document, fileName, proposal._id.toString());
       const currentSampleContractUrl =
         proposal.detailedProposal.sampleContractUrl &&
         proposal.detailedProposal.sampleContractUrl.length > 0 &&
@@ -597,10 +597,14 @@ export class ProposalService {
     return false;
   }
 
-  private saveToStorage(doc: IncomingMessage, fileName: string): Promise<ManagedUpload.SendData> {
+  private saveToStorage(
+    doc: IncomingMessage,
+    fileName: string,
+    rootDir: boolean | string = true,
+  ): Promise<ManagedUpload.SendData> {
     return new Promise((resolve, reject) => {
       doc.pipe(
-        this.s3Service.putStream(fileName, this.BUCKET_NAME, 'application/pdf', 'public-read', (err, data) => {
+        this.s3Service.putStream(fileName, this.BUCKET_NAME, 'application/pdf', 'public-read', rootDir, (err, data) => {
           if (err) {
             return reject(err);
           }
