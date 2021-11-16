@@ -1,11 +1,10 @@
-import { Stream, PassThrough } from 'stream';
+import { Stream, PassThrough, Readable } from 'stream';
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import * as mime from 'mime';
 import { ApplicationException } from 'src/app/app.exception';
 import { CredentialService } from './credential.service';
 import { IS3GetLocationFromUrlResult, IS3GetUrlOptions, IS3RootDir } from '../interfaces';
-import { Readable } from 'node:stream';
 
 @Injectable()
 export class S3Service {
@@ -25,12 +24,15 @@ export class S3Service {
 
       if (parts.length > 1) extractedExt = parts[fileName.length - 1];
     }
-    const filePath = this.buildObjectKey(fileName, fileNameWithExt, rootDir);
 
-    const fileExisted = await this.hasFile(bucketName, filePath);
+    const filePath = this.buildObjectKey(fileNameWithExt, rootDir);
+
+    const objectKey = this.decodeObjectKey(filePath);
+
+    const fileExisted = await this.hasFile(bucketName, objectKey);
 
     if (!fileExisted) {
-      throw ApplicationException.NotFoundStatus('File', filePath);
+      throw ApplicationException.NotFoundStatus('File', objectKey);
     }
 
     const attachment = downloadable ? `attachment; filename="${fileNameWithExt}"` : undefined;
@@ -44,7 +46,7 @@ export class S3Service {
 
     const params: Record<string, string | number> = {
       Bucket: bucketName,
-      Key: filePath,
+      Key: objectKey,
     };
 
     if (expires) params.Expires = expires;
@@ -55,9 +57,7 @@ export class S3Service {
       if (attachment) {
         params.ResponseContentDisposition = `attachment; fileName="${alias}"`;
       } else params.ResponseContentDisposition = `inline; fileName="${alias}"`;
-    } else {
-      if (attachment) params.ResponseContentDisposition = attachment;
-    }
+    } else if (attachment) params.ResponseContentDisposition = attachment;
 
     return this.S3.getSignedUrlPromise('getObject', params);
   }
@@ -77,13 +77,14 @@ export class S3Service {
     acl: string,
     cb: (err: Error, data: AWS.S3.ManagedUpload.SendData) => void,
   ): PassThrough;
+
   /**
    * Use absolute fileName for object key
    * @param fileName
    * @param bucketName
    * @param mime
    * @param acl
-   * @param noDirWrapper
+   * @param dir
    * @param cb
    */
   public putStream(
@@ -91,22 +92,21 @@ export class S3Service {
     bucketName: string,
     mime: string,
     acl: string,
-    noDirWrapper: boolean,
+    dir: boolean | string,
     cb: (err: Error, data: AWS.S3.ManagedUpload.SendData) => void,
   ): PassThrough;
+
   public putStream(...args: unknown[]): PassThrough {
     const passthrough = new Stream.PassThrough();
 
     const [fileName, bucketName, mime, acl] = args as any[];
 
-    const [name] = fileName.split('.');
-
-    const key = args.length === 6 && args[5] ? fileName : `${name}/${fileName}`;
+    const dir = args.length === 6 ? <boolean | string>args[4] : undefined;
 
     const params: AWS.S3.PutObjectRequest = {
       Bucket: bucketName,
       Body: passthrough,
-      Key: this.buildObjectKey('', key),
+      Key: this.buildObjectKey(fileName, dir),
       ContentType: mime,
       ACL: acl,
     };
@@ -133,7 +133,7 @@ export class S3Service {
 
       const params = {
         Bucket: bucketName,
-        Key: this.buildObjectKey(fileName, fileNameWithExt, rootDir),
+        Key: this.buildObjectKey(fileNameWithExt, rootDir),
         Body: buf,
         ACL: acl,
         ContentEncoding: 'base64',
@@ -238,14 +238,14 @@ export class S3Service {
     });
   }
 
-  private buildObjectKey(fileName: string, fileNameWithExt: string, rootDir?: string | boolean): string {
-    if (!rootDir) return decodeURIComponent(fileNameWithExt);
+  private buildObjectKey(fileNameWithExt: string, rootDir?: string | boolean): string {
+    if (!rootDir) return fileNameWithExt;
 
-    if (typeof rootDir === 'string') return decodeURIComponent(`${rootDir}/${fileNameWithExt}`);
+    if (typeof rootDir === 'string') {
+      return `${rootDir}/${fileNameWithExt}`;
+    }
 
-    const encodedKey = `${fileName}/${fileNameWithExt}`;
-
-    return decodeURIComponent(encodedKey);
+    return `${fileNameWithExt.split('.')[0]}/${fileNameWithExt}`;
   }
 
   public getObjectAsReadable(bucket: string, fileName: string): Readable {
@@ -253,5 +253,9 @@ export class S3Service {
       Bucket: bucket,
       Key: fileName,
     }).createReadStream();
+  }
+
+  private decodeObjectKey(key: string): string {
+    return decodeURIComponent(key.replace(/\+/g, ' '));
   }
 }
