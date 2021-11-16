@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Head, Param, Post, Query, Res, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, Head, Param, Post, Put, Query, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
@@ -9,12 +9,11 @@ import { ReplaceInstalledProductAfterSuccess } from 'src/installed-products/inte
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
-import { UseDefaultContractName } from './interceptors';
+import { UseDefaultContractName, UseWetSignContract } from './interceptors';
 import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier } from './pipes';
 import { DownloadContractPipe, IContractDownloadReqPayload } from './pipes/download-contract.validation.pipe';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
-  GetContractDownloadTokenDto,
   GetContractTemplatesDto,
   GetContractTemplatesRes,
   GetCurrentContractDto,
@@ -29,6 +28,8 @@ import {
   SendContractReq,
   SendContractRes,
 } from './res';
+import { FastifyFile } from '../shared/fastify';
+import { IContractWithDetailedQuote } from './interceptors/wet-sign-contract.interceptor';
 
 @ApiTags('Contract')
 @ApiBearerAuth()
@@ -168,6 +169,17 @@ export class ContractController {
     @Param('contractId', ParseObjectIdPipe) contractId: ObjectId,
   ): Promise<ServiceResponse<{ success: boolean }>> {
     const res = await this.contractService.resendContract(contractId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put('/:contractId/wet-sign')
+  @ApiOperation({ summary: 'Upload wet signed contract' })
+  @UseWetSignContract('contractId')
+  async updateWetSignedContract(
+    @Param('contractId') contract: IContractWithDetailedQuote,
+    @Body() file: FastifyFile,
+  ): Promise<ServiceResponse<SendContractDto>> {
+    const res = await this.contractService.sendContractByWetSigned(contract.contract, contract.quote, file);
     return ServiceResponse.fromResult(res);
   }
 }

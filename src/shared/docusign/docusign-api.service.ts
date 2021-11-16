@@ -3,18 +3,20 @@ import { IncomingMessage } from 'http';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as docusign from 'docusign-esign';
 import { IDocusignCompositeContract } from 'src/docusign-communications/typing';
+import { ApplicationException } from 'src/app/app.exception';
+import { randomBytes } from 'crypto';
+import {  EnvelopeSummary } from 'docusign-esign';
 import { SecretManagerService } from '../aws/services/secret-manager.service';
 import { InjectDocusignContext } from './decorators/inject-docusign-context';
 import { docusignMetaStorage } from './decorators/meta-storage';
 import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
-import { IDocusignContextStore } from './interfaces/IDocusignContextStore';
+import { IDocusignContextStore, IRecipient, TResendEnvelopeStatus } from './interfaces';
 import { ILoginAccountWithMeta } from './interfaces/ILoginAccountWithMeta';
-import { TResendEnvelopeStatus } from './interfaces/IResendEnvelopeStatus';
+
 import { DocusignException } from './docusign.exception';
-import { ApplicationException } from 'src/app/app.exception';
 import { IDefaultContractor } from './interfaces/IDefaultContractor';
 import { IDocusignAwsSecretPayload } from './interfaces/IDocusignAwsSecretPayload';
-import { inspect } from 'util';
+import { MultipartStreamBuilder } from '../multipart-builder';
 
 @Injectable()
 export class DocusignApiService<Context> implements OnModuleInit {
@@ -26,7 +28,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
   private accountId: string;
 
-  private secretName: string;
+  private readonly secretName: string;
 
   private _creds: string;
 
@@ -85,7 +87,10 @@ export class DocusignApiService<Context> implements OnModuleInit {
     await this.initAuth();
   }
 
-  public async sendContract(createContractPayload: IDocusignCompositeContract, isDraft = false) {
+  public async sendContract(
+    createContractPayload: IDocusignCompositeContract,
+    isDraft = false,
+  ): Promise<EnvelopeSummary> {
     const status = isDraft ? 'created' : 'sent';
 
     const context = this.contextStore.get<Context>();
@@ -142,7 +147,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
         },
         res => {
           if (res.statusCode !== 200) {
-            console.log(`No document found with envelopeId=${envelopeId}`);
+            console.error(`No document found with envelopeId=${envelopeId}`);
             return reject(ApplicationException.ServiceError());
           }
           return resolve(res);
@@ -203,9 +208,90 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       return { status: true };
     } catch (error) {
-      console.log('🚀 ~ file: docusign-api.service.ts ~ line 143 ~ DocusignAPIService ~ resendEnvelop ~ error', error);
+      console.error(
+        '🚀 ~ file: docusign-api.service.ts ~ line 143 ~ DocusignAPIService ~ resendEnvelop ~ error',
+        error,
+      );
       throw new DocusignException(error, error.response?.text);
     }
+  }
+
+  public sendWetSignedContract(
+    document: NodeJS.ReadableStream,
+    originFilename: string,
+    ext: string,
+    mime: string,
+    emailSubject: string,
+    recipient: IRecipient,
+    carbonCopyRecipients?: IRecipient[],
+  ): Promise<EnvelopeSummary> {
+    return new Promise((resolve, reject) => {
+      const filename = `${encodeURIComponent(originFilename)}_${+Date.now()}_${randomBytes(4).toString('hex')}`;
+      const payload = {
+        emailSubject,
+        documents: [
+          {
+            name: filename,
+            fileExtension: ext,
+            documentId: '1',
+          },
+        ],
+        recipients: {
+          signers: [
+            {
+              ...recipient,
+              routingOrder: "1",
+              recipientId: "1",
+            },
+          ],
+          carbonCopies: carbonCopyRecipients?.map((r, idx) => ({
+            ...r,
+            routingOrder: `${2 + idx}`,
+            recipientId: `${2 + idx}`,
+          })),
+        },
+        status: 'sent',
+        emailBlurb: 'Please review and sign the contract for your energy project!',
+      };
+
+      const multipartStream = new MultipartStreamBuilder<any>(document, payload, {
+        mime,
+        filename,
+        documentid: '1',
+      });
+
+      const req = https.request(
+        {
+          hostname: this._baseUrl.host,
+          path: `${this._baseUrl.pathname}/envelopes`,
+          headers: {
+            ...this._headers,
+            'Content-Type': multipartStream.getType(),
+          },
+          method: 'post',
+        },
+        res => {
+          const chunks: Buffer[] = [];
+
+          res
+            .on('data', chunk => {
+              chunks.push(chunk);
+            })
+            .on('end', () => {
+              const payload = Buffer.concat(chunks).toString('utf-8');
+
+              if (res.statusCode! >= 300) {
+                reject(new DocusignException(new Error(payload), 'Send Contract from Wet Sign Document failed'));
+                return;
+              }
+
+              resolve(JSON.parse(payload));
+            });
+        },
+      );
+
+      multipartStream.pipe(req);
+    });
   }
 
   private async updatePrefillTabs(envelopeId: string): Promise<void> {
@@ -239,7 +325,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
   private buildTextTab(templateId: string): ICompiledTemplate.TextTab[] {
     const ctx = this.contextStore.get<Context>();
 
-    ctx.buildTime = ctx.buildTime + 1;
+    ctx.buildTime += 1;
 
     const textTabs = ctx.compiledTemplates[templateId]?.textTabs;
 
@@ -281,7 +367,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
           const chunks: Buffer[] = [];
 
           if (res.statusCode !== 200) {
-            reject('error');
+            reject(new Error('error'));
             res.destroy();
             return;
           }

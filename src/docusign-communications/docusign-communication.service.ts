@@ -3,8 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
 import { ContractService } from 'src/contracts/contract.service';
 import { IncomingMessage } from 'http';
-import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
-import { DocusignCommunication, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
+import { DocusignTemplateMaster } from 'src/docusign-templates-master/docusign-template-master.schema';
+import { SignerRoleMaster } from 'src/docusign-templates-master/schemas';
+import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
+import { compareIds } from 'src/utils/common';
+import { DocusignApiService, TResendEnvelopeStatus } from 'src/shared/docusign';
+import { EnvelopeSummary } from 'docusign-esign';
 import {
   CONTRACTING_SYSTEM_STATUS,
   ICompositeTemplate,
@@ -18,11 +22,9 @@ import {
   ISignerDetailFromContractingSystemData,
   REQUEST_TYPE,
 } from './typing';
-import { DocusignTemplateMaster } from 'src/docusign-templates-master/docusign-template-master.schema';
-import { SignerRoleMaster } from 'src/docusign-templates-master/schemas';
-import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
-import { compareIds } from 'src/utils/common';
-import { DocusignApiService, TResendEnvelopeStatus } from 'src/shared/docusign';
+import { DocusignCommunication, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
+import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
+import { FastifyFile } from '../shared/fastify';
 
 @Injectable()
 export class DocusignCommunicationService {
@@ -214,5 +216,26 @@ export class DocusignCommunicationService {
       console.error('templateWithMissingRole', templateWithMissingRole);
       throw new NotFoundException('Some signer roles are missing');
     }
+  }
+
+  sendWetSingedContract(
+    financier: ISignerDetailDataSchema,
+    carbonCopyRecipients: ISignerDetailDataSchema[],
+    contractFile: FastifyFile,
+    opportunityName: string,
+    financialName: string,
+  ): Promise<EnvelopeSummary> {
+    return this.docusignApiService.sendWetSignedContract(
+      contractFile.file,
+      contractFile.filename,
+      'pdf',
+      'application/pdf',
+      `${financialName} - Agreement for ${opportunityName}`,
+      {
+        name: financier.fullName,
+        email: financier.email,
+      },
+      carbonCopyRecipients.map(e => ({ email: e.email, name: e.fullName })),
+    );
   }
 }

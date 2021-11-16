@@ -1,8 +1,11 @@
 import { Document, LeanDocument, Schema } from 'mongoose';
 import { TEMPLATE_STATUS } from 'src/docusign-templates-master/constants';
 import { DocusignCompositeTemplateMaster, SignerRoleMaster } from 'src/docusign-templates-master/schemas';
-import { DocusignCompositeTemplateMasterSchemaWithoutId } from '../docusign-templates-master/schemas/docusign-composite-template-master.schema';
-import { SignerRoleMasterSchema } from '../docusign-templates-master/schemas/signer-role-master.schema';
+import {
+  DocusignCompositeTemplateMasterSchemaWithoutId,
+  SignerRoleMasterSchema,
+} from '../docusign-templates-master/schemas';
+
 import { CONTRACT_TYPE, PROCESS_STATUS, SIGN_STATUS } from './constants';
 
 export const CONTRACT = Symbol('CONTRACT').toString();

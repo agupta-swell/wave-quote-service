@@ -10,7 +10,12 @@ import { KEYS } from './shared/docusign/constants';
 async function bootstrap() {
   const fAdapt = new FastifyAdapter();
   // eslint-disable-next-line
-  fAdapt.register(require('fastify-multipart'));
+  fAdapt.register(require('fastify-multipart'), {
+    limits: {
+      fileSize: 1024 * 1024 * 15,
+    },
+  });
+
   fAdapt.enableCors({ origin: '*', methods: ['GET', 'PUT', 'POST', 'DELETE'] });
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, fAdapt);

@@ -99,4 +99,7 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   countersignerEmail: string;
+
+  @ExposeProp()
+  allowsWetSignedContracts: boolean;
 }

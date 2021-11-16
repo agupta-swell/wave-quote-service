@@ -3,6 +3,7 @@ import { EmailService } from 'src/emails/email.service';
 import { IDocusignContextStore } from 'src/shared/docusign';
 import { InjectDocusignContext } from 'src/shared/docusign/decorators/inject-docusign-context';
 import { DocusignException } from 'src/shared/docusign/docusign.exception';
+import { error } from 'winston';
 import { IGenericObject } from '../typing';
 
 @Catch(DocusignException)
@@ -14,6 +15,12 @@ export class DocusignExceptionsFilter implements ExceptionFilter {
   ) {}
 
   catch(exception: DocusignException, host: ArgumentsHost) {
+    console.error(exception.message);
+
+    if (exception.rawError) {
+      console.error(exception.rawError);
+    }
+
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
     const request = ctx.getRequest();
@@ -28,7 +35,6 @@ export class DocusignExceptionsFilter implements ExceptionFilter {
 
     const message = `
       Cannot generated contact at ${request.url} <br />
-      Request body: ${JSON.stringify(request.body || {})} <br />
       Message: ${exception.message}; ${exception.rawError?.message} <br />
       Stack: <pre>${exception.rawError?.stack}</pre>
     `;
@@ -39,7 +45,7 @@ export class DocusignExceptionsFilter implements ExceptionFilter {
     });
 
     this.emailService.sendMail(process.env.SUPPORT_MAIL!, message, subject).catch(err => {
-      console.log(`Send mail error`, err);
+      console.error(`Send mail error`, err);
     });
   }
 }

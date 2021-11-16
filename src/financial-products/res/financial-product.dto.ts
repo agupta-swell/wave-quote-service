@@ -103,6 +103,9 @@ export class FinancialProductDto {
 
   @ExposeProp()
   countersignerEmail: string;
+
+  @ExposeProp()
+  allowsWetSignedContracts: boolean;
 }
 
 class FinancialProductPaginationDto implements Pagination<FinancialProductDto> {
