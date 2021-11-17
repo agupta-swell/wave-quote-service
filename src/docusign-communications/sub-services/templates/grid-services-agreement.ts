@@ -7,7 +7,7 @@ import {
   TabValue,
 } from 'src/shared/docusign';
 
-@DocusignTemplate('demo', 'd1814a3c-4ecc-43c5-b548-0a198569f2ef')
+@DocusignTemplate('demo', '5cb8e3ad-9c80-4b7a-80d6-a8b920741a1a')
 @DefaultTabTransformation('snake_case')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class GridServiceAgreementTemplate {
