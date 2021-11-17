@@ -8,6 +8,7 @@ export enum CONTRACT_TYPE {
 export enum SIGN_STATUS {
   SENT = 'SENT',
   SIGNED = 'SIGNED',
+  WET_SIGNED = 'WET_SIGNED'
 }
 
 export enum PROCESS_STATUS {
@@ -25,6 +26,7 @@ export enum REQUEST_MODE {
 
 export const KEYS = {
   CONTRACT_TYPE: Symbol.for('contractType'),
+  CONTRACT_ID_PATH: Symbol.for('contractIdProp'),
 };
 
 export const CONTRACT_SECRET_PREFIX = 'contract';

@@ -7,6 +7,7 @@ import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { ManufacturerSchema } from 'src/manufacturers/manufacturer.schema';
 import { AwsModule } from 'src/shared/aws/aws.module';
+import { DocusignApiModule } from 'src/shared/docusign';
 import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
 import { ProposalService } from './proposal.service';
@@ -15,6 +16,7 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
 @Global()
 @Module({
   imports: [
+    DocusignApiModule,
     JwtModule.registerAsync({
       useClass: JwtConfigService,
     }),

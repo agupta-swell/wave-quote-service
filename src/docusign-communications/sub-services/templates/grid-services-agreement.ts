@@ -1,18 +1,30 @@
-import { TemplateDataBuilder } from 'src/docusign-communications/typing';
+import { IGenericObject } from 'src/docusign-communications/typing';
+import {
+  DefaultTabTransformation,
+  DefaultTabType,
+  DocusignTemplate,
+  DOCUSIGN_TAB_TYPE,
+  TabValue,
+} from 'src/shared/docusign';
 
-export const getGridServicesAgreement: TemplateDataBuilder = genericObj => {
-  const { contact, signerDetails } = genericObj;
-  const coOwner = signerDetails.find(e => e.role === 'Co Owner');
-  const primOwner = signerDetails.find(e => e.role === 'Primary Owner');
+@DefaultTabTransformation('snake_case')
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
+@DocusignTemplate('demo', 'd1814a3c-4ecc-43c5-b548-0a198569f2ef')
+export class GridServiceAgreementTemplate {
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.fullName)
+  primaryOwnerFullName: string;
 
-  const result: Record<string, string> = {};
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.email)
+  primaryOwnerEmail: string;
 
-  result.primary_owner_full_name = primOwner?.fullName ?? '';
-  result.primary_owner_email = primOwner?.email ?? '';
-  result.co_owner_full_name = coOwner?.fullName ?? '';
-  result.equipment_address = `${contact.address1}${contact.address2 ? ', ' + contact.address2 : ''}, ${contact.city}, ${
-    contact.state
-  } ${contact.zip}`;
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
+  coOwnerFullName: string;
 
-  return result;
-};
+  @TabValue<IGenericObject>(
+    ({ contact }) =>
+      `${contact.address1}${contact.address2 ? ', ' + contact.address2 : ''}, ${contact.city}, ${contact.state} ${
+        contact.zip
+      }`,
+  )
+  equipmentAddress: string;
+}

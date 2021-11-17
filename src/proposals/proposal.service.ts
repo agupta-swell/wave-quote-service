@@ -537,6 +537,7 @@ export class ProposalService {
 
     const document = await this.docusignCommunicationService.downloadContract(
       docusignResponse.contractingSystemReferenceId as string,
+      true,
     );
 
     const fileName = `${contact?.lastName || ''}, ${contact?.firstName || ''} - Sample ${

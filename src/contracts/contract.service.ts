@@ -2,10 +2,10 @@ import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/com
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
-import { IncomingMessage } from 'node:http';
+import { IncomingMessage } from 'http';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
-import { ILoggedInUser, DOWNLOADABLE_RESOURCE, IDownloadResourcePayload } from 'src/app/securities';
+import { DOWNLOADABLE_RESOURCE, IDownloadResourcePayload, ILoggedInUser } from 'src/app/securities';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ContactService } from 'src/contacts/contact.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
@@ -14,7 +14,7 @@ import { FinancialProductsService } from 'src/financial-products/financial-produ
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
-import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
+import { IDetailedQuoteSchema, ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -34,9 +34,11 @@ import {
   SaveChangeOrderDto,
   SaveContractDto,
   SendContractDto,
+  GetDocusignCommunicationDetailsDto,
 } from './res';
-import { GetDocusignCommunicationDetailsDto } from './res/get-docusign-communication-details.dto';
+
 import { ContractResDto } from './res/sub-dto';
+import { FastifyFile } from '../shared/fastify';
 
 @Injectable()
 export class ContractService {
@@ -438,9 +440,9 @@ export class ContractService {
     return foundContract;
   }
 
-  async downloadDocusignContract(envelopeId: string): Promise<IncomingMessage | undefined> {
+  async downloadDocusignContract(envelopeId: string, showChanges: boolean): Promise<IncomingMessage | undefined> {
     // eslint-disable-next-line consistent-return
-    return this.docusignCommunicationService.downloadContract(envelopeId);
+    return this.docusignCommunicationService.downloadContract(envelopeId, showChanges);
   }
 
   async getContractDownloadData(id: ObjectId, user: ILoggedInUser): Promise<[string, string]> {
@@ -678,5 +680,53 @@ export class ContractService {
     }
 
     return true;
+  }
+
+  public async sendContractByWetSigned(contract: Contract, detailedQuote: IDetailedQuoteSchema, file: FastifyFile) {
+    const now = new Date();
+    const financier = contract.signerDetails.find(e => e.role === 'Financier');
+
+    const opportunity = await this.opportunityService.getDetailById(contract.opportunityId);
+
+    if (!financier) {
+      throw new BadRequestException('Financier is missing');
+    }
+
+    const carbonCopiesRecipient = contract.signerDetails.filter(e => e.role !== 'Financier');
+
+    const envelope = await this.docusignCommunicationService.sendWetSingedContract(
+      financier,
+      carbonCopiesRecipient,
+      file,
+      opportunity?.name ?? '',
+      detailedQuote.quoteFinanceProduct.financialProductSnapshot?.name ?? 'Contract',
+    );
+
+    if (envelope.status !== 'sent' || !envelope.envelopeId) {
+      console.error(envelope);
+      throw new BadRequestException('Can not send this contract');
+    }
+
+    financier.signStatus = SIGN_STATUS.SENT;
+    financier.sentOn = now;
+
+    contract.contractStatus = PROCESS_STATUS.IN_PROGRESS;
+    contract.contractingSystemReferenceId = envelope.envelopeId;
+
+    contract.signerDetails.forEach(e => {
+      if (e.role === 'Financier') return;
+
+      e.signStatus = SIGN_STATUS.WET_SIGNED;
+      e.signedOn = now;
+    });
+
+    await contract.save();
+
+    return OperationResult.ok(
+      strictPlainToClass(SendContractDto, {
+        status: 'SUCCESS',
+        newlyUpdatedContract: contract.toJSON(),
+      }),
+    );
   }
 }

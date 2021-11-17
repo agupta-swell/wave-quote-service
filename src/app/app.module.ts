@@ -42,6 +42,7 @@ import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.mo
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
+import { DocusignApiModule } from 'src/shared/docusign';
 
 @Global()
 @Module({
@@ -100,6 +101,7 @@ import { InstalledProductModule } from 'src/installed-products/installed-product
     ProductModuleV2,
     InstalledProductModule,
     HealthcheckModule,
+    DocusignApiModule,
   ],
 })
 export class AppModule {}
