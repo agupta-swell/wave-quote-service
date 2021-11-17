@@ -3,8 +3,8 @@ import { generateEPVAndGPVTable } from 'src/docusign-communications/utils';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { DefaultTabType, DocusignTemplate, DOCUSIGN_TAB_TYPE, TabDynamic } from 'src/shared/docusign';
 
-@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DocusignTemplate('demo', '907c8e4d-8f4c-4494-a443-93c34c533beb')
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class SolarEnergySystemEstimatedX7Template {
   @TabDynamic<IGenericObject>(genericObj => {
     const { quote, leaseSolverConfig } = genericObj;

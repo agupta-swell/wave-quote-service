@@ -7,9 +7,9 @@ import {
   TabValue,
 } from 'src/shared/docusign';
 
+@DocusignTemplate('demo', 'd1814a3c-4ecc-43c5-b548-0a198569f2ef')
 @DefaultTabTransformation('snake_case')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
-@DocusignTemplate('demo', 'd1814a3c-4ecc-43c5-b548-0a198569f2ef')
 export class GridServiceAgreementTemplate {
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.fullName)
   primaryOwnerFullName: string;

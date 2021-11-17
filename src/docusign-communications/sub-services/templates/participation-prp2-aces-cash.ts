@@ -9,9 +9,9 @@ import {
   TabValue,
 } from 'src/shared/docusign';
 
+@DocusignTemplate('demo', 'fecadd5d-2ffe-4266-8e4a-775586a09220')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
-@DocusignTemplate('demo', 'fecadd5d-2ffe-4266-8e4a-775586a09220')
 export class ParticipationPRP2ACESCashTemplate {
   @TabValue<IGenericObject>(({ utilityProgramMaster }) => utilityProgramMaster?.gsaDisplayName)
   utilityProgramName: string;

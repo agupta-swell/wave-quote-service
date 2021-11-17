@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as morgan from 'morgan';
 import { AppModule } from './app/app.module';
 import { ValidationPipe } from './app/validation.pipe';
-import { IDocusignContextStore } from './shared/docusign';
+import { IDocusignContextRouteMapper, IDocusignContextStore } from './shared/docusign';
 import { KEYS } from './shared/docusign/constants';
 
 async function bootstrap() {
@@ -20,18 +20,17 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, fAdapt);
 
-  const docusignContextStore = app.get<IDocusignContextStore>(KEYS.CONTEXT);
+  const docusignContextStore = app.get<IDocusignContextRouteMapper & IDocusignContextStore>(KEYS.CONTEXT);
+
+  docusignContextStore.initRoutesMapper();
 
   fAdapt.getInstance().addHook('preHandler', (req, _rep, done) => {
-    // refactor this
-    if (
-      (req.routerPath === '/contracts/:contractId/preview' && req.routerMethod === 'POST') ||
-      (req.routerPath === '/contracts/send-contract' && req.routerMethod === 'POST') ||
-      (req.routerPath === '/proposals/:proposalId/sample-contracts' && req.routerMethod === 'POST')
-    ) {
-      return docusignContextStore.run(() => {
+    if (docusignContextStore.checkRoute(req.routerMethod, req.routerPath)) {
+      docusignContextStore.run(() => {
         done();
       });
+
+      return;
     }
 
     done();

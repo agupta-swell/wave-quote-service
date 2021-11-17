@@ -90,7 +90,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
     this._rawTabs = props
       .map(e => ({ prop: e, symbols: Reflect.getMetadataKeys(this._ctor, e) }))
       .map(({ prop, symbols }) => {
-        let o: IRawTab<Context> = {
+        const o: IRawTab<Context> = {
           prop,
           tabLabel: this._defaultTransform ? this._defaultTransform(prop) : prop,
           tabValue: '',
@@ -194,7 +194,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
         if (!rawTab) return;
 
-        return {
+        const value = {
           tabId,
           value:
             (typeof rawTab.tabValue === 'function'
@@ -202,6 +202,9 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
               : rawTab.tabValue
             )?.toString() ?? '',
         } as docusign.Text;
+
+        // eslint-disable-next-line consistent-return
+        return value;
       })
       .filter(e => e) as docusign.Text[];
 
@@ -232,6 +235,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
         });
       });
 
+    // eslint-disable-next-line consistent-return
     return {
       prefillTabs: {
         textTabs: tabs,

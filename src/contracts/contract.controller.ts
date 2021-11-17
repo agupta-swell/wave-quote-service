@@ -7,6 +7,7 @@ import { ResourceGuard } from 'src/app/securities/resource-guard.decorator';
 import { CatchDocusignException } from 'src/docusign-communications/filters';
 import { ReplaceInstalledProductAfterSuccess } from 'src/installed-products/interceptors';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
+import { UseDocusignContext } from 'src/shared/docusign';
 import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
 import { UseDefaultContractName, UseWetSignContract } from './interceptors';
@@ -75,6 +76,7 @@ export class ContractController {
   }
 
   @Post(':contractId/preview')
+  @UseDocusignContext()
   @ApiOperation({ summary: 'Create draft contract' })
   @ApiOkResponse({ type: SendContractRes })
   async generatePreviewContract(
@@ -100,6 +102,7 @@ export class ContractController {
   }
 
   @Post('/send-contract')
+  @UseDocusignContext()
   @ApiOperation({ summary: 'Send Contract' })
   @ApiOkResponse({ type: SendContractRes })
   async sendContract(@Body() sendContractReq: SendContractReq): Promise<ServiceResponse<SendContractDto>> {

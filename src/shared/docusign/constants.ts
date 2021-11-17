@@ -19,6 +19,6 @@ export const KEYS = {
   PROP: Symbol.for('kDocusign/template/prop'),
   META: Symbol.for('KDocusign/template/meta'),
   CONTEXT: Symbol.for('kDocusign/di-context'),
-  DEFAULT_TAB_TYPE: Symbol.for('kDocusign/template/tabType'),
+  DEFAULT_TAB_TYPE: Symbol.for('kDocusign/template/defaultTabType'),
   DEFAULT_TAB_STRATEGY: Symbol.for('kDocusign/template/tabStrategy'),
 };

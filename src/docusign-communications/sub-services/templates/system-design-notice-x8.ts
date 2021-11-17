@@ -11,8 +11,8 @@ interface ISystemDesignNoticeX8RequiredFields {
   systemDesignAdders: LeanDocument<SystemDesign>['roofTopDesignData']['adders'];
 }
 
-@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DocusignTemplate('demo', '734c08f1-c7c1-44d9-9247-641fd0e547a8')
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class GetSystemDesignNoticeX8Template {
   @TabDynamic<IGenericObject>(({ systemDesign }) => {
     const { designMode } = systemDesign;

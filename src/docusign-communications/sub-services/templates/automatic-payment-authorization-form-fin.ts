@@ -7,9 +7,9 @@ import {
 } from 'src/shared/docusign';
 import { IGenericObject } from '../../typing';
 
+@DocusignTemplate('demo', '31bfa343-a279-43a4-aa54-f2d2d31b33ef')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
-@DocusignTemplate('demo', '31bfa343-a279-43a4-aa54-f2d2d31b33ef')
 export class AutomaticPaymentAuthorizationFormFinTemplate {
   @TabValue<IGenericObject>(({ opportunity }) => opportunity._id)
   opportunityId: string;

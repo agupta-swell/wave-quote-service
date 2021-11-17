@@ -4,8 +4,8 @@ import { sumBy } from 'lodash';
 import { IGenericObject } from 'src/docusign-communications/typing';
 import { DefaultTabType, DocusignTemplate, DOCUSIGN_TAB_TYPE, TabDynamic } from 'src/shared/docusign';
 
-@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DocusignTemplate('demo', '864dead0-03df-4a5a-b83c-ffb0d0c5f588')
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class ContractOneTemplate {
   @TabDynamic<IGenericObject>(
     ({ opportunity, customerPayment, contact, recordOwner, utilityName, roofTopDesign, isCash }, defaultContractor) => {

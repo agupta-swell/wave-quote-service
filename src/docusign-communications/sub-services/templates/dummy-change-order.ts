@@ -4,16 +4,14 @@ import {
   DefaultTabType,
   DocusignTemplate,
   DOCUSIGN_TAB_TYPE,
-  IDynamicRawTab,
-  TabDynamic,
   TabLabel,
   TabValue,
 } from 'src/shared/docusign';
 import { IGenericObject } from '../../typing';
 
+@DocusignTemplate('demo', 'f880c5fa-28eb-4b63-b974-3e5290792ef9')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('pascal_case')
-@DocusignTemplate('demo', 'f880c5fa-28eb-4b63-b974-3e5290792ef9')
 export class DummyChangeOrderTemplate {
   @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)
   financierName: string;

@@ -718,6 +718,7 @@ export class ContractService {
 
       e.signStatus = SIGN_STATUS.WET_SIGNED;
       e.signedOn = now;
+      e.sentOn = now;
     });
 
     await contract.save();

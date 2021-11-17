@@ -3,8 +3,8 @@ import { IGenericObject } from 'src/docusign-communications/typing';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { DefaultTabType, DocusignTemplate, DOCUSIGN_TAB_TYPE, TabDynamic } from 'src/shared/docusign';
 
-@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DocusignTemplate('demo', 'd7758c3f-82bc-4d7d-93f2-2c939c661f18')
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class PaymentScheduleX10Template {
   @TabDynamic<IGenericObject>(genericObject => {
     const { quote, leaseSolverConfig } = genericObject;

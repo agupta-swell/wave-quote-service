@@ -13,6 +13,8 @@ import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { plainToClass } from 'class-transformer';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { ObjectId } from 'mongoose';
+import { UseDocusignContext } from 'src/shared/docusign';
+import { CatchDocusignException } from 'src/docusign-communications/filters';
 import { CurrentUser, CustomJWTSecretKey, PreAuthenticate } from '../app/securities';
 import { ILoggedInUser } from '../app/securities/current-user';
 import { ProposalService } from './proposal.service';
@@ -23,7 +25,6 @@ import { ProposalSendSampleContractRes } from './res/proposal-send-sample-contra
 import { CreateProposalLinkDto } from './req/create-proposal-link.dto';
 import { GetPresignedUrlDto } from './req/get-presigned-url.dto';
 import { GetPresignedUrlSqtDto } from './req/get-presigned-url-sqt.dto';
-import { CatchDocusignException } from 'src/docusign-communications/filters';
 
 @ApiTags('Proposal')
 @Controller('/proposals')
@@ -153,6 +154,7 @@ export class ProposalController {
   }
 
   @Post(':proposalId/sample-contracts')
+  @UseDocusignContext()
   @PreAuthenticate()
   @ApiBearerAuth()
   @ApiParam({ name: 'proposalId', type: String })

@@ -9,9 +9,9 @@ import {
 } from 'src/shared/docusign';
 import { IGenericObject } from '../../typing';
 
+@DocusignTemplate('demo', '7b6946ac-81bc-498e-8259-afbf2cec6f09')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('pascal_case')
-@DocusignTemplate('demo', '7b6946ac-81bc-498e-8259-afbf2cec6f09')
 export class DummyNoCostChangeOrderTemplate {
   @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)
   financierName: string;

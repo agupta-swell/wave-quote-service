@@ -3,8 +3,8 @@ import { DefaultTabType, DocusignTemplate, DOCUSIGN_TAB_TYPE, TabDynamic } from 
 import { numberWithCommas } from 'src/utils/transformNumber';
 import { IGenericObject } from '../../typing';
 
-@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DocusignTemplate('demo', '5a055d9b-e744-4f94-a5b1-ef6b5ae4108c')
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class SolarEnergyDisclosureEsaDataTemplate {
   @TabDynamic<IGenericObject>(genericObject => {
     const leaseProduct = genericObject?.quote?.quoteFinanceProduct?.financeProduct

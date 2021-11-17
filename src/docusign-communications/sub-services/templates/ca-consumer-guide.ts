@@ -7,9 +7,9 @@ import {
 } from 'src/shared/docusign';
 import { IGenericObject } from '../../typing';
 
+@DocusignTemplate('demo', 'f3e2597c-af8e-4718-8d7b-44cf63f19ea5')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
-@DocusignTemplate('demo', 'f3e2597c-af8e-4718-8d7b-44cf63f19ea5')
 export class CaConsumerGuideTemplate {
   @TabValue<IGenericObject>(({ assignedMember }) => assignedMember?.hisNumber)
   hisNumber: number;
