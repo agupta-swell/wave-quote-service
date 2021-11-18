@@ -240,13 +240,14 @@ export class ContractService {
 
     const fundingSourceType = quote.detailedQuote.quoteFinanceProduct.financeProduct.productType;
 
-    const [customerPayment, utilityName, roofTopDesign, systemDesign] = await Promise.all([
+    const [customerPayment, utilityName, roofTopDesign, systemDesign, utilityUsageDetails] = await Promise.all([
       this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunityId),
       this.utilityService.getUtilityName(opportunity.utilityId),
       this.systemDesignService.getRoofTopDesignById(
         contract.contractType === CONTRACT_TYPE.NO_COST_CHANGE_ORDER ? contract.systemDesignId : quote.systemDesignId,
       ),
       this.systemDesignService.getOneById(quote.systemDesignId),
+      this.utilityService.getUtilityByOpportunityId(opportunity._id),
     ]);
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
@@ -288,6 +289,7 @@ export class ContractService {
       financialProduct,
       contract,
       systemDesign: systemDesign!,
+      utilityUsageDetails: utilityUsageDetails!,
     };
 
     const sentOn = new Date();

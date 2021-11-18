@@ -17,3 +17,4 @@ import './dummy-gsa';
 import './dummy-change-order';
 import './dummy-no-cost-change-order';
 import './exhibit-b-change-order-form-hic';
+import './participation-sgip-hic';
