@@ -2,11 +2,11 @@ import { sumBy } from 'lodash';
 import { IGenericObject } from 'src/docusign-communications/typing';
 import { generateEPVAndGPVTable } from 'src/docusign-communications/utils';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
-import { DefaultTabType, DocusignTemplate, DOCUSIGN_TAB_TYPE, TabDynamic, TabValue } from 'src/shared/docusign';
+import { DefaultTabType, DocusignTemplate, DOCUSIGN_TAB_TYPE, TabDynamic } from 'src/shared/docusign';
 import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
-@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DocusignTemplate('demo', 'ec44e32a-403e-41de-b542-0a89e27a631b')
+@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class HomeEnergySubAgtESATemplate {
   @TabDynamic<IGenericObject>(genericObject => {
     const { opportunity, quote, contact, signerDetails } = genericObject;

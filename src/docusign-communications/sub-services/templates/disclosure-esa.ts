@@ -6,9 +6,9 @@ import {
   TabDynamic,
 } from 'src/shared/docusign';
 
+@DocusignTemplate('demo', '5a055d9b-e744-4f94-a5b1-ef6b5ae4108c')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
-@DocusignTemplate('demo', '5a055d9b-e744-4f94-a5b1-ef6b5ae4108c')
 export class DisclosureEsaTemplate {
   @TabDynamic(({ assignedMember, signerDetails, financialProduct }) => {
     if (!assignedMember) {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 import * as docusign from 'docusign-esign';
 import { IDefaultContractor } from './IDefaultContractor';
 

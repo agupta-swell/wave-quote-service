@@ -5,7 +5,7 @@ import * as docusign from 'docusign-esign';
 import { IDocusignCompositeContract } from 'src/docusign-communications/typing';
 import { ApplicationException } from 'src/app/app.exception';
 import { randomBytes } from 'crypto';
-import {  EnvelopeSummary } from 'docusign-esign';
+import { EnvelopeSummary } from 'docusign-esign';
 import { SecretManagerService } from '../aws/services/secret-manager.service';
 import { InjectDocusignContext } from './decorators/inject-docusign-context';
 import { docusignMetaStorage } from './decorators/meta-storage';
@@ -240,8 +240,8 @@ export class DocusignApiService<Context> implements OnModuleInit {
           signers: [
             {
               ...recipient,
-              routingOrder: "1",
-              recipientId: "1",
+              routingOrder: '1',
+              recipientId: '1',
             },
           ],
           carbonCopies: carbonCopyRecipients?.map((r, idx) => ({
@@ -303,10 +303,18 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
     const { docWithPrefillTabIds, templateIds } = context;
 
-    const handlers = docWithPrefillTabIds.map(async (docId, idx) => {
+    /**
+     * Must run in for-loop due to docusign lock mechanism
+     */
+    // eslint-disable-next-line no-plusplus
+    for (let idx = 0; idx < docWithPrefillTabIds.length; idx++) {
+      const docId = docWithPrefillTabIds[idx];
+      const templateId = templateIds[idx];
+
+      // eslint-disable-next-line no-await-in-loop
       const docusignTabs = await this.getDocumentTabs(envelopeId, `${docId}`);
 
-      const foundTemplate = docusignMetaStorage.find(e => e.id === templateIds[idx]);
+      const foundTemplate = docusignMetaStorage.find(e => e.id === templateId);
 
       if (!foundTemplate) {
         throw new DocusignException(undefined, `No template found with id ${templateIds[idx]}`);
@@ -316,17 +324,13 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       if (!prefillTabs) return;
 
+      // eslint-disable-next-line no-await-in-loop
       await this.updateDocTabs(envelopeId, `${docId}`, prefillTabs);
-    });
-
-    await Promise.all(handlers);
+    }
   }
 
   private buildTextTab(templateId: string): ICompiledTemplate.TextTab[] {
     const ctx = this.contextStore.get<Context>();
-
-    ctx.buildTime += 1;
-
     const textTabs = ctx.compiledTemplates[templateId]?.textTabs;
 
     if (textTabs) return textTabs;
@@ -336,6 +340,8 @@ export class DocusignApiService<Context> implements OnModuleInit {
     if (!foundTemplate) {
       throw new DocusignException(undefined, `No template found with id ${templateId}`);
     }
+
+    ctx.buildTime += 1;
 
     if (foundTemplate.hasPrefillTab) {
       ctx.docWithPrefillTabIds.push(ctx.buildTime);
