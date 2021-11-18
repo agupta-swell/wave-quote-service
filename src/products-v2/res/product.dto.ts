@@ -22,8 +22,14 @@ export class ProductResDto {
   @ExposeProp()
   cost: number;
 
-  @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.ADDER || obj.type === PRODUCT_TYPE.BALANCE_OF_SYSTEM)
+  @ExposeIf<IUnknownProduct>(
+    obj =>
+      obj.type === PRODUCT_TYPE.ADDER || obj.type === PRODUCT_TYPE.BALANCE_OF_SYSTEM || obj.type === PRODUCT_TYPE.LABOR,
+  )
   pricingUnit?: string;
+
+  @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.SOFT_COST)
+  description?: string;
 
   @ExposeIf<IUnknownProduct>(
     obj => obj.type === PRODUCT_TYPE.ANCILLARY_EQUIPMENT || obj.type === PRODUCT_TYPE.BALANCE_OF_SYSTEM,

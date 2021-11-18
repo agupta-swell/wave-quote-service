@@ -29,6 +29,8 @@ export interface IUnknownProduct
     Partial<IMappedProductTypes[PRODUCT_TYPE.BALANCE_OF_SYSTEM]>,
     Partial<IMappedProductTypes[PRODUCT_TYPE.INVERTER]>,
     Partial<IMappedProductTypes[PRODUCT_TYPE.MODULE]>,
+    Partial<IMappedProductTypes[PRODUCT_TYPE.SOFT_COST]>,
+    Partial<IMappedProductTypes[PRODUCT_TYPE.LABOR]>,
     Partial<IRating>,
     Partial<IRating<IBaseRating>> {}
 

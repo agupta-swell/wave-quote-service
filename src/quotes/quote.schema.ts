@@ -12,6 +12,8 @@ import {
   BatterySnapshotSchema,
   InverterSnapshotSchema,
   ModuleSnapshotSchema,
+  LaborSnapshotSchema,
+  SoftCostSnapshotSchema
 } from 'src/products-v2/schemas';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
 import {
@@ -444,6 +446,50 @@ const StorageQuoteDetailsSchema = new Schema<Document<IStorageQuoteDetailsSchema
   { _id: false },
 );
 
+export interface ILaborQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  laborModelId: string;
+  laborModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
+  laborModelSnapshotDate: Date;
+  quantity: number;
+  unit: COST_UNIT_TYPE;
+}
+
+const LaborQuoteDetailsSchema = new Schema<Document<ILaborQuoteDetailsSchema>>(
+  {
+    labor_model_id: String,
+    labor_model_data_snapshot: LaborSnapshotSchema,
+    labor_model_snapshot_date: Date,
+    quantity: Number,
+    cost: Number,
+    net_cost: Number,
+    subcontractor_markup: Number,
+    unit: String,
+  },
+  { _id: false },
+);
+
+export interface ISoftCostQuoteDetailsSchema extends IQuoteCostCommonSchema {
+  softCostModelId: string;
+  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
+  softCostModelSnapshotDate: Date;
+  quantity: number;
+  description: string;
+}
+
+const SoftCostQuoteDetailsSchema = new Schema<Document<ISoftCostQuoteDetailsSchema>>(
+  {
+    soft_cost_model_id: String,
+    soft_cost_model_data_snapshot: SoftCostSnapshotSchema,
+    soft_cost_model_snapshot_date: Date,
+    quantity: Number,
+    cost: Number,
+    net_cost: Number,
+    subcontractor_markup: Number,
+    description: String
+  },
+  { _id: false },
+);
+
 export interface IAdderQuoteDetailsSchema extends IQuoteCostCommonSchema {
   adderModelId: string;
   adderModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ADDER>;
@@ -513,6 +559,8 @@ export interface IQuoteCostBuildupSchema {
   adderQuoteDetails: IAdderQuoteDetailsSchema[];
   balanceOfSystemDetails: IBalanceOfSystemDetailsSchema[];
   ancillaryEquipmentDetails: IAncillaryEquipmentSchema[];
+  laborQuoteDetails: ILaborQuoteDetailsSchema[];
+  softCostQuoteDetails: ISoftCostQuoteDetailsSchema[];
   generalMarkup: number;
   laborCost: ILaborCostSchema;
   grossPrice: number;
@@ -527,6 +575,8 @@ const QuoteCostBuildupSchema = new Schema<Document<IQuoteCostBuildupSchema>>(
     adder_quote_details: [AdderQuoteDetailsSchema],
     balance_of_system_details: [BalanceOfSystemDetailsSchema],
     ancillary_equipment_details: [AncillaryEquipmentSchema],
+    labor_quote_details: [LaborQuoteDetailsSchema],
+    soft_cost_quote_details: [SoftCostQuoteDetailsSchema],
     swell_standard_markup: Number,
     labor_cost: LaborCostSchema,
     gross_price: Number,

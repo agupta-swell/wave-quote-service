@@ -6,6 +6,7 @@ import { IManufacturer } from './manufacturer.interface';
 import { IModule } from './module.interface';
 import { IPricing } from './pricing.interface';
 import { IRating } from './rating.interface';
+import { ISoftCost } from './soft-cost.interface';
 
 type IBaseMappedProductTypes = {
   [K in PRODUCT_TYPE]: object;
@@ -20,4 +21,6 @@ export interface IMappedProductTypes extends IBaseMappedProductTypes {
   [PRODUCT_TYPE.BATTERY]: IBattery & IManufacturer & IRating<IBatteryRating>;
   [PRODUCT_TYPE.INVERTER]: IInverter & IManufacturer & IRating;
   [PRODUCT_TYPE.MODULE]: IModule & IManufacturer & IRating;
+  [PRODUCT_TYPE.SOFT_COST]: ISoftCost;
+  [PRODUCT_TYPE.LABOR]: IPricing;
 }

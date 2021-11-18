@@ -8,6 +8,8 @@ export enum PRODUCT_TYPE {
   BATTERY = 'BATTERY',
   INVERTER = 'INVERTER',
   MODULE = 'MODULE',
+  SOFT_COST = 'SOFT_COST',
+  LABOR = 'LABOR',
 }
 
 export enum PRICING_UNIT {

@@ -10,6 +10,8 @@ export const ProductSchema = new Schema<IUnknownProduct>({
   pricing_unit: String,
   cost: Number,
 
+  description: String,
+
   related_component: String,
   insertion_rule: String,
 
