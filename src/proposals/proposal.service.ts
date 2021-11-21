@@ -605,7 +605,7 @@ export class ProposalService {
   ): Promise<ManagedUpload.SendData> {
     return new Promise((resolve, reject) => {
       doc.pipe(
-        this.s3Service.putStream(fileName, this.BUCKET_NAME, 'application/pdf', 'public-read', rootDir, (err, data) => {
+        this.s3Service.putStream(fileName, this.BUCKET_NAME, 'application/pdf', '', rootDir, (err, data) => {
           if (err) {
             return reject(err);
           }
