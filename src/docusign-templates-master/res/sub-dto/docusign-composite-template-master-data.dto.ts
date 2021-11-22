@@ -39,6 +39,9 @@ export class DocusignCompositeTemplateMasterDataResDto {
   @ExposeProp({ enum: SYSTEM_TYPE, type: String, isArray: true })
   applicableSystemTypes: SYSTEM_TYPE[];
 
+  @ExposeProp({ type: String })
+  beginPageNumberingTemplateId: string;
+
   @ExposeProp()
   createdAt: Date;
 

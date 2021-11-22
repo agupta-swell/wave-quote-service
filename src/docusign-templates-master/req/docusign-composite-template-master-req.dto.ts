@@ -60,6 +60,10 @@ export class DocusignCompositeTemplateMasterDataReqDto {
   applicableSystemTypes: SYSTEM_TYPE[];
 
   @ApiProperty()
+  @IsString()
+  beginPageNumberingTemplateId: string;
+
+  @ApiProperty()
   @IsDateString()
   @IsOptional()
   createdAt: Date;

@@ -257,6 +257,7 @@ export class DocusignTemplateMasterService {
           applicableUtilities: req.compositeTemplateData.applicableUtilities,
           applicableStates: req.compositeTemplateData.applicableStates,
           applicableSystemTypes: req.compositeTemplateData.applicableSystemTypes,
+          beginPageNumberingTemplateId: req.compositeTemplateData.beginPageNumberingTemplateId,
           createdAt: new Date(),
         },
         { new: true, upsert: true },
