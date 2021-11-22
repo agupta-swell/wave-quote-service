@@ -4,6 +4,7 @@ import {
   DefaultTabType,
   DocusignTemplate,
   DOCUSIGN_TAB_TYPE,
+  TabLabel,
   TabValue,
 } from 'src/shared/docusign';
 
@@ -14,12 +15,20 @@ export class GridServiceAgreementTemplate {
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.fullName)
   primaryOwnerFullName: string;
 
+  @TabLabel('Email_1')
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.email)
-  primaryOwnerEmail: string;
+  email: string;
 
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
   coOwnerFullName: string;
 
+  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.name)
+  financierFullName: string;
+
+  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerTitle)
+  financierTitle: string;
+
+  @TabLabel('Home_Address_1&2_City_State_ZIP')
   @TabValue<IGenericObject>(
     ({ contact }) =>
       `${contact.address1}${contact.address2 ? ', ' + contact.address2 : ''}, ${contact.city}, ${contact.state} ${

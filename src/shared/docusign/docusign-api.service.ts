@@ -91,8 +91,6 @@ export class DocusignApiService<Context> implements OnModuleInit {
     createContractPayload: IDocusignCompositeContract,
     isDraft = false,
   ): Promise<EnvelopeSummary> {
-    const status = isDraft ? 'created' : 'sent';
-
     const context = this.contextStore.get<Context>();
 
     createContractPayload.compositeTemplates.forEach(template => {
@@ -108,19 +106,21 @@ export class DocusignApiService<Context> implements OnModuleInit {
     const envelope: Record<string, any> = {
       envelopeDefinition: {
         ...createContractPayload,
-        status,
+        status: 'created',
       },
     };
 
-    if (isDraft) {
-      envelope.mergeRolesOnDraft = true;
-    }
+    envelope.mergeRolesOnDraft = true;
 
     try {
       const result = await this.envelopeApi.createEnvelope(this.accountId, envelope);
 
       if (result.envelopeId && context.docWithPrefillTabIds.length) {
         await this.updatePrefillTabs(result.envelopeId);
+
+        if (!isDraft) {
+          this.sendDraftEnvelop(result.envelopeId);
+        }
       }
 
       return result;
@@ -181,7 +181,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
                   return;
                 }
 
-                resolve(JSON.parse(Buffer.concat(chunks).toString('utf-8')));
+                resolve(JSON.parse(payload));
               });
           },
         )
