@@ -10,8 +10,8 @@ import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { UseDocusignContext } from 'src/shared/docusign';
 import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
-import { UseDefaultContractName, UseWetSignContract } from './interceptors';
-import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier } from './pipes';
+import { UseDefaultContractName, UseWetSignContract, VoidRelatedContracts } from './interceptors';
+import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier, VoidPrimaryContractPipe } from './pipes';
 import { DownloadContractPipe, IContractDownloadReqPayload } from './pipes/download-contract.validation.pipe';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
@@ -31,7 +31,9 @@ import {
 } from './res';
 import { FastifyFile } from '../shared/fastify';
 import { IContractWithDetailedQuote } from './interceptors/wet-sign-contract.interceptor';
+import { Contract } from './contract.schema';
 
+// @ts-ignore
 @ApiTags('Contract')
 @ApiBearerAuth()
 @Controller('/contracts')
@@ -184,5 +186,16 @@ export class ContractController {
   ): Promise<ServiceResponse<SendContractDto>> {
     const res = await this.contractService.sendContractByWetSigned(contract.contract, contract.quote, file);
     return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/:contractId/void')
+  @VoidRelatedContracts()
+  @ApiOperation({ summary: 'Resend Contract' })
+  @ApiOkResponse({ type: SaveContractRes })
+  async voidContact(
+    @Param('contractId', ParseObjectIdPipe, VoidPrimaryContractPipe) contract: Contract,
+  ): Promise<Contract> {
+    await this.contractService.voidContract(contract);
+    return contract;
   }
 }

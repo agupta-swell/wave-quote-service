@@ -1,10 +1,14 @@
-import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
+import { PipeTransform, Injectable } from '@nestjs/common';
 import { Types, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 
 @Injectable()
 export class ParseObjectIdPipe implements PipeTransform<any, any> {
   transform(value: unknown): ObjectId | null {
+    return ParseObjectIdPipe.validate(value);
+  }
+
+  static validate(value: unknown): ObjectId | null {
     if (value === '-1') {
       return null;
     }

@@ -174,40 +174,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
   }
 
   public sendDraftEnvelop(envelopeId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      https
-        .request(
-          {
-            hostname: this._baseUrl.host,
-            path: `${this._baseUrl.pathname}/envelopes/${envelopeId}`,
-            headers: this._headers,
-            method: 'put',
-          },
-          res => {
-            const chunks: Buffer[] = [];
-
-            res
-              .on('data', chunk => {
-                chunks.push(chunk);
-              })
-              .on('end', () => {
-                const payload = Buffer.concat(chunks).toString('utf-8');
-
-                if (res.statusCode! >= 300) {
-                  reject(new DocusignException(new Error(payload), 'Send contract from draft error'));
-                  return;
-                }
-
-                resolve(JSON.parse(payload));
-              });
-          },
-        )
-        .end(
-          JSON.stringify({
-            status: 'sent',
-          }),
-        );
-    });
+    return this.updateEnvelope(envelopeId, { status: 'sent' }, 'Send contract from draft');
   }
 
   public async resendEnvelop(envelopedId: string): Promise<TResendEnvelopeStatus> {
@@ -415,6 +382,15 @@ export class DocusignApiService<Context> implements OnModuleInit {
     });
   }
 
+  public async voidEnvelope(envelopeId: string): Promise<docusign.EnvelopeUpdateSummary> {
+    const result = await this.updateEnvelope(
+      envelopeId,
+      { status: 'voided', voidedReason: 'Agent cancelled' },
+      'Void contract',
+    );
+    return result;
+  }
+
   private populatePrefillTabs(
     envelopeId: string,
     docId: string,
@@ -612,6 +588,39 @@ export class DocusignApiService<Context> implements OnModuleInit {
             });
         },
       );
+    });
+  }
+
+  private updateEnvelope(envelopeId: string, payload: Record<string, unknown>, errorTitle: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      https
+        .request(
+          {
+            hostname: this._baseUrl.host,
+            path: `${this._baseUrl.pathname}/envelopes/${envelopeId}`,
+            headers: this._headers,
+            method: 'put',
+          },
+          res => {
+            const chunks: Buffer[] = [];
+
+            res
+              .on('data', chunk => {
+                chunks.push(chunk);
+              })
+              .on('end', () => {
+                const payload = Buffer.concat(chunks).toString('utf-8');
+
+                if (res.statusCode! >= 300) {
+                  reject(new DocusignException(new Error(payload), `${errorTitle} error`));
+                  return;
+                }
+
+                resolve(JSON.parse(Buffer.concat(chunks).toString('utf-8')));
+              });
+          },
+        )
+        .end(JSON.stringify(payload));
     });
   }
 }
