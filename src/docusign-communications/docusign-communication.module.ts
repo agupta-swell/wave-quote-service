@@ -14,7 +14,14 @@ import './sub-services/templates';
     JwtModule.registerAsync({
       useClass: JwtConfigService,
     }),
-    DocusignApiModule,
+    DocusignApiModule.forRoot({
+      value: (page, totalPage) => `Page ${page} of ${totalPage}`,
+      xPosition: '277',
+      yPosition: '757',
+      font: 'timesnewroman',
+      fontColor: 'black',
+      fontSize: 'size10',
+    }),
     MongooseModule.forFeature([
       {
         name: DOCUSIGN_COMMUNICATION,

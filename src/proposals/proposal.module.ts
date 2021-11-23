@@ -5,7 +5,6 @@ import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
-import { ManufacturerSchema } from 'src/manufacturers/manufacturer.schema';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { DocusignApiModule } from 'src/shared/docusign';
 import { ProposalController } from './proposal.controller';
@@ -36,6 +35,7 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
     AwsModule,
     FinancialProductsModule,
     ManufacturerModule,
+    DocusignApiModule.forContext(),
   ],
   controllers: [ProposalController],
   providers: [ProposalService],

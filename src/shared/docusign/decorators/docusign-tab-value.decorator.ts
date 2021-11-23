@@ -7,5 +7,5 @@ export function TabValue<T>(
 ): PropertyDecorator;
 export function TabValue(tabValue: unknown): PropertyDecorator;
 export function TabValue(tabValue: any): PropertyDecorator {
-  return (target, prop: string) => registerTab(DOCUSIGN_TAB_META.TAB_VALUE, tabValue, prop, target);
+  return (target, prop: string) => registerTab(DOCUSIGN_TAB_META.TAB_VALUE, tabValue, prop, target as any);
 }

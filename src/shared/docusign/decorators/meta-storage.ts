@@ -1,12 +1,13 @@
 import * as crypto from 'crypto';
 import { DOCUSIGN_TAB_META, KEYS } from '../constants';
+import { IClass } from '../interfaces/IClass';
 import { ICompiledTemplate } from '../interfaces/ICompiledTemplate';
 import { IMetaTemplate } from '../interfaces/IMetaTemplate';
 import { TemplateCompiler } from '../TemplateCompiler';
 
 export const docusignMetaStorage: Array<ICompiledTemplate<unknown, unknown>> = [];
 
-export const registerTemplate = (target: Function, env: string, id: string) => {
+export const registerTemplate = (target: IClass<any>, env: string, id: string) => {
   const meta: IMetaTemplate[] | undefined = Reflect.getMetadata(KEYS.META, target);
 
   if (!meta) {
@@ -16,7 +17,7 @@ export const registerTemplate = (target: Function, env: string, id: string) => {
 
     Reflect.defineMetadata(KEYS.META, [{ env, id }], target);
 
-    docusignMetaStorage.push(new TemplateCompiler(target as any));
+    docusignMetaStorage.push(new TemplateCompiler(target));
 
     return;
   }
@@ -35,8 +36,8 @@ export const registerTemplate = (target: Function, env: string, id: string) => {
   }
 };
 
-export const registerTab = (type: DOCUSIGN_TAB_META, value: any, prop: string, target: Object) => {
-  let metaKey: Symbol;
+export const registerTab = (type: DOCUSIGN_TAB_META, value: any, prop: string, target: Record<string, unknown>) => {
+  let metaKey: symbol;
 
   switch (type) {
     case DOCUSIGN_TAB_META.TAB_DYNAMIC:

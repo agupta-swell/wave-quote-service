@@ -41,6 +41,7 @@ export class DocusignCommunicationService {
     templateDetails: ITemplateDetailSchema[],
     signerDetails: ISignerDetailDataSchema[],
     genericObject: IGenericObject,
+    pageFrom: string,
     isDraft = false,
   ): Promise<ISendDocusignToContractResponse> {
     const docusignPayload: any = {
@@ -56,7 +57,9 @@ export class DocusignCommunicationService {
       docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
     });
 
-    const resDocusign = await this.docusignApiService.useContext(genericObject).sendContract(docusignPayload, isDraft);
+    const resDocusign = await this.docusignApiService
+      .useContext(genericObject)
+      .sendContract(docusignPayload, pageFrom, isDraft);
 
     const model = new this.docusignCommunicationModel({
       dateTime: new Date(),

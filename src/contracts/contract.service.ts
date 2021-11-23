@@ -299,6 +299,7 @@ export class ContractService {
       contract.contractTemplateDetail.templateDetails,
       contract.signerDetails,
       genericObject,
+      contract.contractTemplateDetail.compositeTemplateData.beginPageNumberingTemplateId,
       isDraft,
     );
 

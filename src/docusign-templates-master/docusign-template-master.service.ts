@@ -133,7 +133,6 @@ export class DocusignTemplateMasterService {
       )
       .lean();
 
-    const payload = { ...model, recipientRoles };
     return OperationResult.ok(
       strictPlainToClass(SaveTemplateDto, {
         responseStatus: 'SUCCESS',
@@ -143,7 +142,7 @@ export class DocusignTemplateMasterService {
   }
 
   async getContractCompositeTemplates(type?: CONTRACT_TYPE): Promise<OperationResult<GetContractCompositeTemplateDto>> {
-    const query = type === undefined ? {} : { type: type };
+    const query = type === undefined ? {} : { type };
     const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find(query).lean();
 
     const compositeTemplates = (await Promise.all(
@@ -183,6 +182,7 @@ export class DocusignTemplateMasterService {
     id: string;
     filenameForDownloads?: string;
     templates: string[];
+    beginPageNumberingTemplateId: string;
   }> {
     const found = await this.docusignCompositeTemplateMasterModel.findById(compositeTemplateId).lean();
 
@@ -190,12 +190,14 @@ export class DocusignTemplateMasterService {
       return {
         id: compositeTemplateId,
         templates: [],
+        beginPageNumberingTemplateId: '',
       };
 
     return {
       id: compositeTemplateId,
       filenameForDownloads: found.filenameForDownloads,
       templates: found.docusignTemplateIds || [],
+      beginPageNumberingTemplateId: found.beginPageNumberingTemplateId,
     };
   }
 
