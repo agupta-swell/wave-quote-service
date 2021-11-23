@@ -136,7 +136,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
         await this.updatePrefillTabs(result.envelopeId);
 
         if (!isDraft) {
-          this.sendDraftEnvelop(result.envelopeId);
+          await this.sendDraftEnvelop(result.envelopeId);
         }
       }
 
