@@ -134,10 +134,10 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       if (context.docWithPrefillTabIds.length) {
         await this.updatePrefillTabs(result.envelopeId);
+      }
 
-        if (!isDraft) {
-          await this.sendDraftEnvelop(result.envelopeId);
-        }
+      if (!isDraft) {
+        await this.sendDraftEnvelop(result.envelopeId);
       }
 
       return result;
@@ -332,14 +332,14 @@ export class DocusignApiService<Context> implements OnModuleInit {
       const docusignTabs = await this.getDocumentTabs(envelopeId, `${docId}`);
 
       const foundTemplate = docusignMetaStorage.find(e => e.id === templateId);
-
       if (!foundTemplate) {
         throw new DocusignException(undefined, `No template found with id ${templateIds[idx]}`);
       }
 
       const prefillTabs = foundTemplate.toPrefillTabs(context.genericObject, this._defaultContractor, docusignTabs);
 
-      if (!prefillTabs) return;
+      // eslint-disable-next-line no-continue
+      if (!prefillTabs || !prefillTabs.prefillTabs.textTabs.length) continue;
 
       // eslint-disable-next-line no-await-in-loop
       await this.populatePrefillTabs(envelopeId, `${docId}`, prefillTabs);

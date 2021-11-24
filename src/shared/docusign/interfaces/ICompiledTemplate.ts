@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-namespace */
 import * as docusign from 'docusign-esign';
 import { IContext } from '.';
+import { IClass } from './IClass';
 import { IDefaultContractor } from './IDefaultContractor';
 import { IPageNumberFormatter } from './IPageNumberFormatter';
 
@@ -29,6 +30,7 @@ export interface ICompiledTemplate<T, Context> {
   readonly hasPrefillTab: boolean;
   readonly refId: string;
   readonly requirePageNumber: boolean;
+  readonly ctor: IClass<T>;
 
   totalPage: number;
 

@@ -96,6 +96,11 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
   private parseRawTabs(): void {
     const props: string[] = Reflect.getMetadata(KEYS.PROP, this._ctor);
 
+    if (!props) {
+      this._rawTabs = [];
+      return;
+    }
+
     this._rawTabs = props
       .map(e => ({ prop: e, symbols: Reflect.getMetadataKeys(this._ctor, e) }))
       .map(({ prop, symbols }) => {
@@ -322,5 +327,9 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
     if (this._noPageNumber) return false;
 
     return this._totalPage === 0;
+  }
+
+  get ctor(): IClass<T> {
+    return this._ctor;
   }
 }
