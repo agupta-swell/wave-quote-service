@@ -41,7 +41,7 @@ export class DocusignCommunicationService {
     templateDetails: ITemplateDetailSchema[],
     signerDetails: ISignerDetailDataSchema[],
     genericObject: IGenericObject,
-    pageFrom: string,
+    pageFromTemplateId: string,
     isDraft = false,
   ): Promise<ISendDocusignToContractResponse> {
     const docusignPayload: any = {
@@ -59,7 +59,7 @@ export class DocusignCommunicationService {
 
     const resDocusign = await this.docusignApiService
       .useContext(genericObject)
-      .sendContract(docusignPayload, pageFrom, isDraft);
+      .sendContract(docusignPayload, templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '', isDraft);
 
     const model = new this.docusignCommunicationModel({
       dateTime: new Date(),
