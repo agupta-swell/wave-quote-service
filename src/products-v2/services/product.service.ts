@@ -34,10 +34,6 @@ export class ProductService {
   }
 
   async saveInsertionRule(id: ObjectId, req: SaveInsertionRuleReq): Promise<OperationResult<ProductResDto>> {
-    const updatedProduct = await this.productModel
-      .findByIdAndUpdate(id, { insertionRule: req.insertionRule! }, { new: true })
-      .lean();
-
     const foundProduct = await this.productModel.findOne({ _id: id });
 
     if (!foundProduct) {
@@ -45,15 +41,16 @@ export class ProductService {
     }
 
     if (
-      foundProduct.type !== PRODUCT_TYPE.ANCILLARY_EQUIPMENT &&
-      foundProduct.type !== PRODUCT_TYPE.BALANCE_OF_SYSTEM
+      ![PRODUCT_TYPE.ANCILLARY_EQUIPMENT, PRODUCT_TYPE.BALANCE_OF_SYSTEM, PRODUCT_TYPE.SOFT_COST].includes(
+        foundProduct.type,
+      )
     ) {
-      throw new BadRequestException('Only ancillary equipment or balance of system product is allowed');
+      throw new BadRequestException('Only ancillary equipment/balance of system/soft cost product is allowed');
     }
 
-    const mappedProduct = this.extractType<PRODUCT_TYPE.ANCILLARY_EQUIPMENT | PRODUCT_TYPE.BALANCE_OF_SYSTEM>(
-      foundProduct,
-    );
+    const mappedProduct = this.extractType<
+      PRODUCT_TYPE.ANCILLARY_EQUIPMENT | PRODUCT_TYPE.BALANCE_OF_SYSTEM | PRODUCT_TYPE.SOFT_COST
+    >(foundProduct);
 
     mappedProduct.insertionRule = req.insertionRule;
 

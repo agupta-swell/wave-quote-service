@@ -8,6 +8,7 @@ import {
   BatterySnapshotSchema,
   InverterSnapshotSchema,
   ModuleSnapshotSchema,
+  SoftCostSnapshotSchema
 } from 'src/products-v2/schemas';
 import { BATTERY_TYPE } from 'src/products/constants';
 import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
@@ -289,6 +290,25 @@ const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>
   { _id: false },
 );
 
+export interface ISofCostSchema {
+  softCostId: string;
+  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
+  softCostModelDataSnapshotDate: Date;
+  quantity: number;
+  description: string;
+}
+
+const SoftCostSchema = new Schema<Document<ISofCostSchema>>(
+  {
+    soft_cost_id: String,
+    soft_cost_model_data_snapshot: SoftCostSnapshotSchema,
+    soft_cost_model_data_snapshot_date: Date,
+    quantity: Number,
+    description: String,
+  },
+  { _id: false },
+);
+
 export interface IRoofTopSchema {
   panelArray: ISolarPanelArraySchema[];
   keepouts: ILatLngSchema[][];
@@ -297,6 +317,7 @@ export interface IRoofTopSchema {
   adders: IAdderSchema[];
   balanceOfSystems: IBalanceOfSystemSchema[];
   ancillaryEquipments: IAncillaryEquipmentSchema[];
+  softCosts: ISofCostSchema[];
 }
 
 export interface ICapacityProductionSchema {
@@ -306,6 +327,7 @@ export interface ICapacityProductionSchema {
   adders: IAdderSchema[];
   balanceOfSystems: IBalanceOfSystemSchema[];
   ancillaryEquipments: IAncillaryEquipmentSchema[];
+  softCosts: ISofCostSchema[];
 }
 
 export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
@@ -317,6 +339,7 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
     adders: [AdderSchema],
     balance_of_systems: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
+    soft_costs: [SoftCostSchema]
   },
   { _id: false },
 );
@@ -329,6 +352,7 @@ export const CapacityProductionSchema = new Schema<Document<ICapacityProductionS
     adders: [AdderSchema],
     balance_of_systems: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
+    soft_costs: [SoftCostSchema]
   },
   { _id: false },
 );
@@ -446,20 +470,21 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray = [], adders, balanceOfSystems, ancillaryEquipments, keepouts } = data;
+    const { inverters, storage, panelArray = [], adders, balanceOfSystems, ancillaryEquipments, keepouts, softCosts } = data;
     return {
-      panelArray: panelArray,
+      panelArray,
       keepouts,
       inverters,
       storage,
       adders,
       balanceOfSystems,
       ancillaryEquipments,
+      softCosts,
     } as any;
   };
 
   transformCapacityProductionData = (data: CapacityProductionDataDto): ICapacityProductionSchema => {
-    const { panelArray, inverters, storage, adders, balanceOfSystems, ancillaryEquipments } = data;
+    const { panelArray, inverters, storage, adders, balanceOfSystems, ancillaryEquipments, softCosts } = data;
     return {
       panelArray: panelArray || [],
       inverters,
@@ -467,6 +492,7 @@ export class SystemDesignModel {
       adders,
       balanceOfSystems,
       ancillaryEquipments,
+      softCosts,
     } as any;
   };
 
@@ -556,6 +582,22 @@ export class SystemDesignModel {
         index
       ].ancillaryEquipmentModelDataSnapshot = ancillaryEquipment;
       this.capacityProductionDesignData.ancillaryEquipments[index].ancillaryEquipmentModelDataSnapshotDate = new Date();
+    }
+  }
+
+  setSoftCost(
+    softCost: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>,
+    index: number,
+    designMode: string = DESIGN_MODE.ROOF_TOP,
+  ) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.softCosts[index].softCostModelDataSnapshot = softCost;
+      this.roofTopDesignData.softCosts[index].softCostModelDataSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.softCosts[
+        index
+      ].softCostModelDataSnapshot = softCost;
+      this.capacityProductionDesignData.softCosts[index].softCostModelDataSnapshotDate = new Date();
     }
   }
 

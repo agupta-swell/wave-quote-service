@@ -170,6 +170,15 @@ export class SystemDesignService {
 
             systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
           }),
+
+          systemDesign.roofTopDesignData.softCosts.map(async (softCost, index) => {
+            const softCostModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.SOFT_COST,
+              softCost.softCostId,
+            );
+
+            systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
+          }),
         ]),
       );
 
@@ -190,6 +199,7 @@ export class SystemDesignService {
         adders,
         balanceOfSystems,
         ancillaryEquipments,
+        softCosts,
       } = systemDesign.capacityProductionDesignData;
 
       let cumulativeGenerationKWh = 0;
@@ -281,6 +291,14 @@ export class SystemDesignService {
             );
 
             systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
+          }),
+          softCosts.map(async (softCost, index) => {
+            const softCostModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.SOFT_COST,
+              softCost.softCostId,
+            );
+
+            systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
           }),
         ]),
       );
@@ -411,6 +429,14 @@ export class SystemDesignService {
 
           systemDesign.setAncillaryEquipment(ancillaryModelData, index);
         }),
+        systemDesign.roofTopDesignData.softCosts?.map(async (softCost, index) => {
+          const softCostModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.SOFT_COST,
+            softCost.softCostId,
+          );
+
+          systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
+        }),
       ];
 
       if (extendCalculate) {
@@ -462,6 +488,7 @@ export class SystemDesignService {
         storage,
         balanceOfSystems,
         ancillaryEquipments,
+        softCosts,
       } = systemDesignDto.capacityProductionDesignData;
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -551,6 +578,15 @@ export class SystemDesignService {
           );
 
           systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
+        }),
+
+        softCosts?.map(async (softCost, index) => {
+          const softCostModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.SOFT_COST,
+            softCost.softCostId,
+          );
+
+          systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
         }),
       ];
 

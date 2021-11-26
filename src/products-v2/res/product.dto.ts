@@ -37,7 +37,7 @@ export class ProductResDto {
   relatedComponent?: string;
 
   @ExposeIf<IUnknownProduct>(
-    obj => obj.type === PRODUCT_TYPE.ANCILLARY_EQUIPMENT || obj.type === PRODUCT_TYPE.BALANCE_OF_SYSTEM,
+    obj => obj.type === PRODUCT_TYPE.ANCILLARY_EQUIPMENT || obj.type === PRODUCT_TYPE.BALANCE_OF_SYSTEM || obj.type === PRODUCT_TYPE.SOFT_COST,
   )
   insertionRule?: string;
 
