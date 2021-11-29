@@ -171,7 +171,7 @@ export class SystemDesignService {
             systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
           }),
 
-          systemDesign.roofTopDesignData.softCosts.map(async (softCost, index) => {
+          systemDesign.roofTopDesignData.softCosts?.map(async (softCost, index) => {
             const softCostModelData = await this.productService.getDetailByIdAndType(
               PRODUCT_TYPE.SOFT_COST,
               softCost.softCostId,
@@ -292,7 +292,7 @@ export class SystemDesignService {
 
             systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
           }),
-          softCosts.map(async (softCost, index) => {
+          softCosts?.map(async (softCost, index) => {
             const softCostModelData = await this.productService.getDetailByIdAndType(
               PRODUCT_TYPE.SOFT_COST,
               softCost.softCostId,
