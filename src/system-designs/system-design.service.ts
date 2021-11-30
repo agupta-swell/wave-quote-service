@@ -179,6 +179,15 @@ export class SystemDesignService {
 
             systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
           }),
+
+          systemDesign.roofTopDesignData.laborCosts.map(async (laborCost, index) => {
+            const laborCostModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.LABOR,
+              laborCost.laborCostId,
+            );
+
+            systemDesign.setLaborCost(laborCostModelData, index, systemDesign.designMode);
+          }),
         ]),
       );
 
@@ -200,6 +209,7 @@ export class SystemDesignService {
         balanceOfSystems,
         ancillaryEquipments,
         softCosts,
+        laborCosts,
       } = systemDesign.capacityProductionDesignData;
 
       let cumulativeGenerationKWh = 0;
@@ -299,6 +309,15 @@ export class SystemDesignService {
             );
 
             systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
+          }),
+
+          laborCosts.map(async (laborCost, index) => {
+            const laborCostModelData = await this.productService.getDetailByIdAndType(
+              PRODUCT_TYPE.LABOR,
+              laborCost.laborCostId,
+            );
+
+            systemDesign.setLaborCost(laborCostModelData, index, systemDesign.designMode);
           }),
         ]),
       );
@@ -437,6 +456,15 @@ export class SystemDesignService {
 
           systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
         }),
+
+        systemDesign.roofTopDesignData.laborCosts?.map(async (laborCost, index) => {
+          const laborCostModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.LABOR,
+            laborCost.laborCostId,
+          );
+
+          systemDesign.setLaborCost(laborCostModelData, index, systemDesign.designMode);
+        }),
       ];
 
       if (extendCalculate) {
@@ -489,6 +517,7 @@ export class SystemDesignService {
         balanceOfSystems,
         ancillaryEquipments,
         softCosts,
+        laborCosts,
       } = systemDesignDto.capacityProductionDesignData;
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -587,6 +616,15 @@ export class SystemDesignService {
           );
 
           systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
+        }),
+
+        laborCosts?.map(async (laborCost, index) => {
+          const laborCostModelData = await this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.LABOR,
+            laborCost.laborCostId,
+          );
+
+          systemDesign.setLaborCost(laborCostModelData, index, systemDesign.designMode);
         }),
       ];
 

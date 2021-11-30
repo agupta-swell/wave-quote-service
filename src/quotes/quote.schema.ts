@@ -12,7 +12,7 @@ import {
   BatterySnapshotSchema,
   InverterSnapshotSchema,
   ModuleSnapshotSchema,
-  LaborSnapshotSchema,
+  LaborCostSnapshotSchema,
   SoftCostSnapshotSchema
 } from 'src/products-v2/schemas';
 import { COST_UNIT_TYPE } from 'src/system-designs/constants';
@@ -457,7 +457,7 @@ export interface ILaborQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const LaborQuoteDetailsSchema = new Schema<Document<ILaborQuoteDetailsSchema>>(
   {
     labor_model_id: String,
-    labor_model_data_snapshot: LaborSnapshotSchema,
+    labor_model_data_snapshot: LaborCostSnapshotSchema,
     labor_model_snapshot_date: Date,
     quantity: Number,
     cost: Number,

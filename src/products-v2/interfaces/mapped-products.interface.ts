@@ -1,6 +1,7 @@
 import { PRODUCT_TYPE } from '../constants';
 import { IBattery, IBatteryRating } from './battery.interface';
 import { IComponent } from './component.interface';
+import { IInsertionRule } from './insertion-rule.interface';
 import { IInverter } from './inverter.interface';
 import { IManufacturer } from './manufacturer.interface';
 import { IModule } from './module.interface';
@@ -22,5 +23,5 @@ export interface IMappedProductTypes extends IBaseMappedProductTypes {
   [PRODUCT_TYPE.INVERTER]: IInverter & IManufacturer & IRating;
   [PRODUCT_TYPE.MODULE]: IModule & IManufacturer & IRating;
   [PRODUCT_TYPE.SOFT_COST]: ISoftCost;
-  [PRODUCT_TYPE.LABOR]: IPricing;
+  [PRODUCT_TYPE.LABOR]: IPricing & IInsertionRule;
 }

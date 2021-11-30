@@ -8,6 +8,7 @@ import { CapacityPanelArrayReqDto } from './capacity-panel-array.dto';
 import { InverterDto } from './inverter.dto';
 import { StorageDto } from './storage.dto';
 import { SoftCostDto } from './soft-cost.dto';
+import { LaborCostDto } from './labor-cost.dto';
 
 export class CapacityProductionDataDto {
   @ApiPropertyOptional({
@@ -69,4 +70,12 @@ export class CapacityProductionDataDto {
   @ValidateNested({ each: true })
   @Type(() => SoftCostDto)
   softCosts: SoftCostDto[];
+
+  @ApiPropertyOptional({
+    type: LaborCostDto,
+    isArray: true,
+  })
+  @ValidateNested({ each: true })
+  @Type(() => LaborCostDto)
+  laborCosts: LaborCostDto[];
 }

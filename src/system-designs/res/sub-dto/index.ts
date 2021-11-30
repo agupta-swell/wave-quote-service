@@ -10,3 +10,4 @@ export * from './roof-top-data.dto';
 export * from './solar-panel-array.dto';
 export * from './storage.dto';
 export * from './soft-cost.dto';
+export * from './labor-cost.dto';

@@ -8,7 +8,8 @@ import {
   BatterySnapshotSchema,
   InverterSnapshotSchema,
   ModuleSnapshotSchema,
-  SoftCostSnapshotSchema
+  SoftCostSnapshotSchema,
+  LaborCostSnapshotSchema
 } from 'src/products-v2/schemas';
 import { BATTERY_TYPE } from 'src/products/constants';
 import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
@@ -290,7 +291,7 @@ const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>
   { _id: false },
 );
 
-export interface ISofCostSchema {
+export interface ISoftCostSchema {
   softCostId: string;
   softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
   softCostModelDataSnapshotDate: Date;
@@ -298,13 +299,32 @@ export interface ISofCostSchema {
   description: string;
 }
 
-const SoftCostSchema = new Schema<Document<ISofCostSchema>>(
+const SoftCostSchema = new Schema<Document<ISoftCostSchema>>(
   {
     soft_cost_id: String,
     soft_cost_model_data_snapshot: SoftCostSnapshotSchema,
     soft_cost_model_data_snapshot_date: Date,
     quantity: Number,
     description: String,
+  },
+  { _id: false },
+);
+
+export interface ILaborCostSchema {
+  laborCostId: string;
+  laborCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
+  laborCostModelDataSnapshotDate: Date;
+  unit: COST_UNIT_TYPE;
+  quantity: number;
+}
+
+const LaborCostSchema = new Schema<Document<ILaborCostSchema>>(
+  {
+    labor_cost_id: String,
+    labor_cost_model_data_snapshot: LaborCostSnapshotSchema,
+    labor_cost_model_data_snapshot_date: Date,
+    unit: String,
+    quantity: Number,
   },
   { _id: false },
 );
@@ -317,7 +337,8 @@ export interface IRoofTopSchema {
   adders: IAdderSchema[];
   balanceOfSystems: IBalanceOfSystemSchema[];
   ancillaryEquipments: IAncillaryEquipmentSchema[];
-  softCosts: ISofCostSchema[];
+  softCosts: ISoftCostSchema[];
+  laborCosts: ILaborCostSchema[];
 }
 
 export interface ICapacityProductionSchema {
@@ -327,7 +348,8 @@ export interface ICapacityProductionSchema {
   adders: IAdderSchema[];
   balanceOfSystems: IBalanceOfSystemSchema[];
   ancillaryEquipments: IAncillaryEquipmentSchema[];
-  softCosts: ISofCostSchema[];
+  softCosts: ISoftCostSchema[];
+  laborCosts: ILaborCostSchema[];
 }
 
 export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
@@ -339,7 +361,8 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
     adders: [AdderSchema],
     balance_of_systems: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
-    soft_costs: [SoftCostSchema]
+    soft_costs: [SoftCostSchema],
+    labor_costs: [LaborCostSchema]
   },
   { _id: false },
 );
@@ -352,7 +375,8 @@ export const CapacityProductionSchema = new Schema<Document<ICapacityProductionS
     adders: [AdderSchema],
     balance_of_systems: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
-    soft_costs: [SoftCostSchema]
+    soft_costs: [SoftCostSchema],
+    labor_costs: [LaborCostSchema],
   },
   { _id: false },
 );
@@ -470,7 +494,7 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray = [], adders, balanceOfSystems, ancillaryEquipments, keepouts, softCosts } = data;
+    const { inverters, storage, panelArray = [], adders, balanceOfSystems, ancillaryEquipments, keepouts, softCosts, laborCosts } = data;
     return {
       panelArray,
       keepouts,
@@ -480,11 +504,12 @@ export class SystemDesignModel {
       balanceOfSystems,
       ancillaryEquipments,
       softCosts,
+      laborCosts,
     } as any;
   };
 
   transformCapacityProductionData = (data: CapacityProductionDataDto): ICapacityProductionSchema => {
-    const { panelArray, inverters, storage, adders, balanceOfSystems, ancillaryEquipments, softCosts } = data;
+    const { panelArray, inverters, storage, adders, balanceOfSystems, ancillaryEquipments, softCosts, laborCosts } = data;
     return {
       panelArray: panelArray || [],
       inverters,
@@ -493,6 +518,7 @@ export class SystemDesignModel {
       balanceOfSystems,
       ancillaryEquipments,
       softCosts,
+      laborCosts,
     } as any;
   };
 
@@ -598,6 +624,22 @@ export class SystemDesignModel {
         index
       ].softCostModelDataSnapshot = softCost;
       this.capacityProductionDesignData.softCosts[index].softCostModelDataSnapshotDate = new Date();
+    }
+  }
+
+  setLaborCost(
+    laborCost: ISnapshotProduct<PRODUCT_TYPE.LABOR>,
+    index: number,
+    designMode: string = DESIGN_MODE.ROOF_TOP,
+  ) {
+    if (designMode === DESIGN_MODE.ROOF_TOP) {
+      this.roofTopDesignData.laborCosts[index].laborCostModelDataSnapshot = laborCost;
+      this.roofTopDesignData.laborCosts[index].laborCostModelDataSnapshotDate = new Date();
+    } else {
+      this.capacityProductionDesignData.laborCosts[
+        index
+      ].laborCostModelDataSnapshot = laborCost;
+      this.capacityProductionDesignData.laborCosts[index].laborCostModelDataSnapshotDate = new Date();
     }
   }
 

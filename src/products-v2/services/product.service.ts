@@ -41,15 +41,15 @@ export class ProductService {
     }
 
     if (
-      ![PRODUCT_TYPE.ANCILLARY_EQUIPMENT, PRODUCT_TYPE.BALANCE_OF_SYSTEM, PRODUCT_TYPE.SOFT_COST].includes(
+      ![PRODUCT_TYPE.ANCILLARY_EQUIPMENT, PRODUCT_TYPE.BALANCE_OF_SYSTEM, PRODUCT_TYPE.SOFT_COST, PRODUCT_TYPE.LABOR].includes(
         foundProduct.type,
       )
     ) {
-      throw new BadRequestException('Only ancillary equipment/balance of system/soft cost product is allowed');
+      throw new BadRequestException('Only ancillary equipment/balance of system/soft cost/labor product is allowed');
     }
 
     const mappedProduct = this.extractType<
-      PRODUCT_TYPE.ANCILLARY_EQUIPMENT | PRODUCT_TYPE.BALANCE_OF_SYSTEM | PRODUCT_TYPE.SOFT_COST
+      PRODUCT_TYPE.ANCILLARY_EQUIPMENT | PRODUCT_TYPE.BALANCE_OF_SYSTEM | PRODUCT_TYPE.SOFT_COST | PRODUCT_TYPE.LABOR
     >(foundProduct);
 
     mappedProduct.insertionRule = req.insertionRule;
