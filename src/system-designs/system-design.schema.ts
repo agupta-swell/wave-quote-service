@@ -293,8 +293,8 @@ const AncillaryEquipmentSchema = new Schema<Document<IAncillaryEquipmentSchema>>
 
 export interface ISoftCostSchema {
   softCostId: string;
-  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
-  softCostModelDataSnapshotDate: Date;
+  softCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
+  softCostSnapshotDate: Date;
   quantity: number;
   description: string;
 }
@@ -302,8 +302,8 @@ export interface ISoftCostSchema {
 const SoftCostSchema = new Schema<Document<ISoftCostSchema>>(
   {
     soft_cost_id: String,
-    soft_cost_model_data_snapshot: SoftCostSnapshotSchema,
-    soft_cost_model_data_snapshot_date: Date,
+    soft_cost_data_snapshot: SoftCostSnapshotSchema,
+    soft_cost_snapshot_date: Date,
     quantity: Number,
     description: String,
   },
@@ -312,8 +312,8 @@ const SoftCostSchema = new Schema<Document<ISoftCostSchema>>(
 
 export interface ILaborCostSchema {
   laborCostId: string;
-  laborCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
-  laborCostModelDataSnapshotDate: Date;
+  laborCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
+  laborCostSnapshotDate: Date;
   unit: COST_UNIT_TYPE;
   quantity: number;
 }
@@ -321,8 +321,8 @@ export interface ILaborCostSchema {
 const LaborCostSchema = new Schema<Document<ILaborCostSchema>>(
   {
     labor_cost_id: String,
-    labor_cost_model_data_snapshot: LaborCostSnapshotSchema,
-    labor_cost_model_data_snapshot_date: Date,
+    labor_cost_data_snapshot: LaborCostSnapshotSchema,
+    labor_cost_snapshot_date: Date,
     unit: String,
     quantity: Number,
   },
@@ -617,13 +617,13 @@ export class SystemDesignModel {
     designMode: string = DESIGN_MODE.ROOF_TOP,
   ) {
     if (designMode === DESIGN_MODE.ROOF_TOP) {
-      this.roofTopDesignData.softCosts[index].softCostModelDataSnapshot = softCost;
-      this.roofTopDesignData.softCosts[index].softCostModelDataSnapshotDate = new Date();
+      this.roofTopDesignData.softCosts[index].softCostDataSnapshot = softCost;
+      this.roofTopDesignData.softCosts[index].softCostSnapshotDate = new Date();
     } else {
       this.capacityProductionDesignData.softCosts[
         index
-      ].softCostModelDataSnapshot = softCost;
-      this.capacityProductionDesignData.softCosts[index].softCostModelDataSnapshotDate = new Date();
+      ].softCostDataSnapshot = softCost;
+      this.capacityProductionDesignData.softCosts[index].softCostSnapshotDate = new Date();
     }
   }
 
@@ -633,13 +633,13 @@ export class SystemDesignModel {
     designMode: string = DESIGN_MODE.ROOF_TOP,
   ) {
     if (designMode === DESIGN_MODE.ROOF_TOP) {
-      this.roofTopDesignData.laborCosts[index].laborCostModelDataSnapshot = laborCost;
-      this.roofTopDesignData.laborCosts[index].laborCostModelDataSnapshotDate = new Date();
+      this.roofTopDesignData.laborCosts[index].laborCostDataSnapshot = laborCost;
+      this.roofTopDesignData.laborCosts[index].laborCostSnapshotDate = new Date();
     } else {
       this.capacityProductionDesignData.laborCosts[
         index
-      ].laborCostModelDataSnapshot = laborCost;
-      this.capacityProductionDesignData.laborCosts[index].laborCostModelDataSnapshotDate = new Date();
+      ].laborCostDataSnapshot = laborCost;
+      this.capacityProductionDesignData.laborCosts[index].laborCostSnapshotDate = new Date();
     }
   }
 

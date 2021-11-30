@@ -470,8 +470,8 @@ const LaborQuoteDetailsSchema = new Schema<Document<ILaborQuoteDetailsSchema>>(
 
 export interface ISoftCostQuoteDetailsSchema extends IQuoteCostCommonSchema {
   softCostModelId: string;
-  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
-  softCostModelSnapshotDate: Date;
+  softCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
+  softCostSnapshotDate: Date;
   quantity: number;
   description: string;
 }
@@ -479,8 +479,8 @@ export interface ISoftCostQuoteDetailsSchema extends IQuoteCostCommonSchema {
 const SoftCostQuoteDetailsSchema = new Schema<Document<ISoftCostQuoteDetailsSchema>>(
   {
     soft_cost_model_id: String,
-    soft_cost_model_data_snapshot: SoftCostSnapshotSchema,
-    soft_cost_model_snapshot_date: Date,
+    soft_cost_data_snapshot: SoftCostSnapshotSchema,
+    soft_cost_snapshot_date: Date,
     quantity: Number,
     cost: Number,
     net_cost: Number,

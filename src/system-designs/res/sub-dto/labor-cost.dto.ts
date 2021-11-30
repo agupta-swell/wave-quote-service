@@ -12,5 +12,5 @@ export class LaborCostDto {
   laborCostSnapshotDate: Date;
 
   @ExposeProp({ type: ProductResDto })
-  laborCostModelDataSnapshot: ProductResDto;
+  laborCostDataSnapshot: ProductResDto;
 }

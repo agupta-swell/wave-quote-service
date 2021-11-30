@@ -15,5 +15,5 @@ export class SoftCostDto {
   softCostSnapshotDate: Date;
 
   @ExposeProp({ type: ProductResDto })
-  softCostModelDataSnapshot: ProductResDto;
+  softCostDataSnapshot: ProductResDto;
 }
