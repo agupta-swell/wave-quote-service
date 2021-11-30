@@ -1,6 +1,6 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { flatten, pickBy, sumBy } from 'lodash';
+import { flatten, pickBy } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
@@ -19,16 +19,15 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
-import { COST_UNIT_TYPE, DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
+import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
 import {
   CalculateSunroofDto,
   CreateSystemDesignDto,
   ExistingSolarDataDto,
-  GetInverterClippingDetailDto,
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
-import { GetInverterClippingDetailResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
+import { SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { ISystemProduction, SystemProductService } from './sub-services';
 import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
@@ -55,7 +54,7 @@ export class SystemDesignService {
     private readonly contractService: ContractService,
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly productService: ProductService,
-  ) { }
+  ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
@@ -132,7 +131,7 @@ export class SystemDesignService {
           systemDesign.roofTopDesignData.adders.map(async (item, index) => {
             const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
 
-            systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
+            systemDesign.setAdder(adder, adder.pricingUnit, index);
           }),
 
           systemDesign.roofTopDesignData.inverters.map(async (inverter, index) => {
@@ -284,7 +283,7 @@ export class SystemDesignService {
           adders.map(async (item, index) => {
             const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
 
-            systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index, systemDesign.designMode);
+            systemDesign.setAdder(adder, adder.pricingUnit, index, systemDesign.designMode);
           }),
           balanceOfSystems.map(async (balanceOfSystem, index) => {
             const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
@@ -414,7 +413,7 @@ export class SystemDesignService {
         systemDesign.roofTopDesignData.adders?.map(async (item, index) => {
           const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
 
-          systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index);
+          systemDesign.setAdder(adder, adder.pricingUnit, index);
         }),
         systemDesign.roofTopDesignData.inverters?.map(async (inverter, index) => {
           const inverterModelData = await this.productService.getDetailByIdAndType(
@@ -574,7 +573,7 @@ export class SystemDesignService {
         adders?.map(async (item, index) => {
           const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
 
-          systemDesign.setAdder(adder, this.convertIncrementAdder(adder.pricingUnit), index, systemDesign.designMode);
+          systemDesign.setAdder(adder, adder.pricingUnit, index, systemDesign.designMode);
         }),
         inverters?.map(async (inverter, index) => {
           const inverterModelData = await this.productService.getDetailByIdAndType(
@@ -761,11 +760,11 @@ export class SystemDesignService {
     await Promise.all([
       foundSystemDesign.save(),
       systemDesignDto.designMode &&
-      this.quoteService.setOutdatedData(
-        systemDesignDto.opportunityId,
-        'System Design',
-        foundSystemDesign._id.toString(),
-      ),
+        this.quoteService.setOutdatedData(
+          systemDesignDto.opportunityId,
+          'System Design',
+          foundSystemDesign._id.toString(),
+        ),
     ]);
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign.toJSON()));
@@ -930,18 +929,18 @@ export class SystemDesignService {
     return counter;
   }
 
-  convertIncrementAdder(increment: string): COST_UNIT_TYPE {
-    switch (increment) {
-      case 'watt':
-        return COST_UNIT_TYPE.PER_WATT;
-      case 'foot':
-        return COST_UNIT_TYPE.PER_FEET;
-      case 'each':
-        return COST_UNIT_TYPE.PER_EACH;
-      default:
-        return '' as any;
-    }
-  }
+  // convertIncrementAdder(increment: string): PRICING_UNIT {
+  //   switch (increment) {
+  //     case 'watt':
+  //       return PRICING_UNIT.PER_WATT;
+  //     case 'foot':
+  //       return COST_UNIT_TYPE.PER_FEET;
+  //     case 'each':
+  //       return COST_UNIT_TYPE.PER_EACH;
+  //     default:
+  //       return '' as any;
+  //   }
+  // }
 
   async handleUpdateExistingSolar(opportunityId: string, isRetrofit: boolean, existingSolarData: ExistingSolarDataDto) {
     if (typeof isRetrofit !== 'boolean') return;

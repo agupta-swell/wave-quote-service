@@ -39,7 +39,7 @@ export class CalculationService {
       contractTerm: productAttribute.leaseTerm,
       storageSize: sumBy(
         detailedQuote.quoteCostBuildup.storageQuoteDetails,
-        item => item.storageModelDataSnapshot.sizekWh,
+        item => item.storageModelDataSnapshot.ratings.kilowattHours,
       ),
       storageManufacturer: manufacturerName,
       rateEscalator: productAttribute.rateEscalator,

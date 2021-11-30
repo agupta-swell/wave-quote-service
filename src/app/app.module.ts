@@ -19,7 +19,6 @@ import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { LeaseSolverConfigModule } from 'src/lease-solver-configs/lease-solver-config.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { OpportunityModule } from 'src/opportunities/opportunity.module';
-import { ProductModule } from 'src/products/product.module';
 import { ProgressModule } from 'src/progresses/progress.module';
 import { ProposalSectionMasterModule } from 'src/proposal-section-masters/proposal-section-master.module';
 import { ProposalTemplateModule } from 'src/proposal-templates/proposal-template.module';
@@ -36,13 +35,13 @@ import { AwsModule } from 'src/shared/aws/aws.module';
 import { HealthcheckModule } from 'src/health-checks/health-check.module';
 import { MongooseNamingStrategyLoader } from 'src/shared/plugins/mongoose/naming-strategy.plugin';
 import { ENaming, MongooseNamingStrategy } from 'mongoose-schema-mapper';
-import { MyLoggerModule } from './my-logger/my-logger.module';
-import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 import { DocusignApiModule } from 'src/shared/docusign';
+import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
+import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()
 @Module({
@@ -81,7 +80,6 @@ import { DocusignApiModule } from 'src/shared/docusign';
     ManufacturerModule,
     MyLoggerModule,
     OpportunityModule,
-    ProductModule,
     ProgressModule,
     ProposalModule,
     ProposalSectionMasterModule,

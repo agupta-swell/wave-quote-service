@@ -1,138 +1,152 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ProductDto } from 'src/products/res/product.dto';
-import { ELaborCostType } from 'src/quotes/constants';
+import { IsNumber } from 'class-validator';
+import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { ISnapshotProduct } from 'src/products-v2/interfaces';
+import { IQuoteCost, IQuoteCostBuildup } from 'src/quotes/interfaces';
+import { IBaseQuoteCost } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteCost';
 import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
 
-class QuoteCostBuildupCommon {
+class QuoteCostBuildupCommon implements IBaseQuoteCost {
   @ApiProperty()
-  quantity: number;
+  @IsNumber()
+  markupPercentage: number;
 
   @ApiProperty()
+  @IsNumber()
+  markupAmount: number;
+
+  @ApiProperty()
+  @IsNumber()
   cost: number;
 
   @ApiProperty()
-  subcontractorMarkup: number;
-
-  @ApiProperty()
+  @IsNumber()
   netCost: number;
 }
 
-class PanelQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ApiProperty({ type: ProductDto })
-  panelModelDataSnapshot: ProductDto;
+class PanelQuoteDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.MODULE> {
+  @ApiProperty()
+  panelModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.MODULE>;
 
   @ApiProperty()
   panelModelSnapshotDate: Date;
+
+  @ApiProperty()
+  @IsNumber()
+  quantity: number;
 }
 
-class InverterQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ApiProperty({ type: ProductDto })
-  inverterModelDataSnapshot: ProductDto;
+class InverterQuoteDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.INVERTER> {
+  @ApiProperty()
+  inverterModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.INVERTER>;
 
   @ApiProperty()
   inverterModelSnapshotDate: Date;
+
+  @ApiProperty()
+  @IsNumber()
+  quantity: number;
 }
 
-export class StorageQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ApiProperty({ type: ProductDto })
-  storageModelDataSnapshot: ProductDto;
+export class StorageQuoteDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.BATTERY> {
+  @ApiProperty()
+  storageModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BATTERY>;
 
   @ApiProperty()
   storageModelSnapshotDate: Date;
+
+  @ApiProperty()
+  @IsNumber()
+  quantity: number;
 }
 
-class AdderQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ApiProperty({ type: ProductDto })
-  adderModelDataSnapshot: ProductDto;
+class AdderQuoteDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.ADDER> {
+  @ApiProperty()
+  adderModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ADDER>;
 
   @ApiProperty()
   adderModelSnapshotDate: Date;
 
   @ApiProperty()
-  unit: string;
+  @IsNumber()
+  quantity: number;
 }
 
-class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon {
-  @ApiProperty({ type: ProductDto })
-  balanceOfSystemModelDataSnapshot: ProductDto;
+class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.BALANCE_OF_SYSTEM> {
+  @ApiProperty()
+  balanceOfSystemModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BALANCE_OF_SYSTEM>;
 
   @ApiProperty()
-  balanceOfSystemModelDataSnapshotDate: Date;
-
-  @ApiProperty()
-  unit: string;
+  balanceOfSystemModelSnapshotDate: Date;
 }
 
-class AncillaryDetailsDto extends QuoteCostBuildupCommon {
+class AncillaryDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.ANCILLARY_EQUIPMENT> {
   @ApiProperty({ type: AncillaryEquipmentDto })
-  ancillaryEquipmentModelDataSnapshot: AncillaryEquipmentDto;
+  ancillaryEquipmentModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>;
 
   @ApiProperty()
-  ancillaryEquipmentSnapshotDate: Date;
+  ancillaryEquipmentModelSnapshotDate: Date;
+
+  @ApiProperty()
+  @IsNumber()
+  quantity: number;
 }
 
-export class LaborCostDetails {
+export class LaborCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.LABOR> {
   @ApiProperty()
-  id: string;
+  laborCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
 
   @ApiProperty()
-  solarOnlyLaborFeePerWatt: number;
+  laborCostModelSnapshotDate: Date;
 
   @ApiProperty()
-  storageRetrofitLaborFeePerProject: number;
-
-  @ApiProperty()
-  solarWithACStorageLaborFeePerProject: number;
-
-  @ApiProperty()
-  solarWithDCStorageLaborFeePerProject: number;
+  @IsNumber()
+  quantity: number;
 }
 
-export class LaborCostDto {
-  @ApiProperty({ type: LaborCostDetails })
-  laborCostDataSnapshot: LaborCostDetails;
+export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.SOFT_COST> {
+  @ApiProperty({ type: '' })
+  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
 
   @ApiProperty()
-  laborCostSnapshotDate: Date;
+  softCostModelSnapshotDate: Date;
 
   @ApiProperty()
-  laborCostType: ELaborCostType;
-
-  @ApiProperty()
-  cost: number;
+  @IsNumber()
+  quantity: number;
 }
 
-export class QuoteCostBuildupDto {
-  @ApiProperty({ type: () => PanelQuoteDetailsDto, isArray: true })
+export class QuoteCostBuildupDto implements IQuoteCostBuildup {
+  @ApiProperty({ type: PanelQuoteDetailsDto, isArray: true })
   panelQuoteDetails: PanelQuoteDetailsDto[];
 
-  @ApiProperty({ type: () => InverterQuoteDetailsDto, isArray: true })
+  @ApiProperty({ type: InverterQuoteDetailsDto, isArray: true })
   inverterQuoteDetails: InverterQuoteDetailsDto[];
 
-  @ApiProperty({ type: () => StorageQuoteDetailsDto, isArray: true })
+  @ApiProperty({ type: StorageQuoteDetailsDto, isArray: true })
   storageQuoteDetails: StorageQuoteDetailsDto[];
 
-  @ApiProperty({ type: () => AdderQuoteDetailsDto, isArray: true })
+  @ApiProperty({ type: AdderQuoteDetailsDto, isArray: true })
   adderQuoteDetails: AdderQuoteDetailsDto[];
 
-  @ApiProperty({ type: () => BalanceOfSystemDetailsDto, isArray: true })
+  @ApiProperty({ type: BalanceOfSystemDetailsDto, isArray: true })
   balanceOfSystemDetails: BalanceOfSystemDetailsDto[];
 
-  @ApiProperty({ type: () => AncillaryDetailsDto, isArray: true })
+  @ApiProperty({ type: AncillaryDetailsDto, isArray: true })
   ancillaryEquipmentDetails: AncillaryDetailsDto[];
 
-  @ApiProperty()
-  generalMarkup: number;
+  @ApiProperty({ type: LaborCostDetailsDto, isArray: true })
+  laborCostQuoteDetails: LaborCostDetailsDto[];
+
+  @ApiProperty({ type: SoftCostDetailsDto, isArray: true })
+  softCostQuoteDetails: SoftCostDetailsDto[];
 
   @ApiProperty()
-  totalWithStandardMarkup: number;
-
-  // @ApiProperty()
-  // totalProductCost: number;
-
-  @ApiProperty({ type: LaborCostDto })
-  laborCost: LaborCostDto;
+  swellStandardMarkup: number;
 
   @ApiProperty()
   grossPrice: number;
+
+  @ApiProperty()
+  totalProductCost: number;
 }

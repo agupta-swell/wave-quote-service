@@ -138,7 +138,7 @@ export class ProductService {
     const model = await this.productModel.findOneAndUpdate(
       {
         _id: typeof id === 'string' ? new Types.ObjectId(id) : id,
-        type: type,
+        type,
       },
       update as any,
       { new: true },
@@ -152,18 +152,22 @@ export class ProductService {
   }
 
   private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct[]): IProductDocument<T>[];
+
   private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct): IProductDocument<T>;
-  private extractType<T extends PRODUCT_TYPE>(product: any): any {
+
+  private extractType(product: any): any {
     return product;
   }
 
   private extractLeanType<T extends PRODUCT_TYPE>(
     product: LeanDocument<IUnknownProduct>[],
   ): LeanDocument<IProductDocument<T>>[];
+
   private extractLeanType<T extends PRODUCT_TYPE>(
     product: LeanDocument<IUnknownProduct>,
   ): LeanDocument<IProductDocument<T>>;
-  private extractLeanType<T extends PRODUCT_TYPE>(product: any): any {
+
+  private extractLeanType(product: any): any {
     return product;
   }
 }

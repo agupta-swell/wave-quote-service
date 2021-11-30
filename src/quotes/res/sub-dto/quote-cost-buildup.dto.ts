@@ -1,153 +1,110 @@
+import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { ProductResDto } from 'src/products-v2/res/product.dto';
-import { ELaborCostType } from 'src/quotes/constants';
-import { LaborCostDetails } from 'src/quotes/req/sub-dto/quote-cost-buildup.dto';
-import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
-import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
+import { ExposeProp } from 'src/shared/decorators';
+import { IBaseQuoteCost, IQuoteCost, IQuoteCostBuildup } from '../../interfaces';
 
-class QuoteCostBuildupCommon {
-  @ExposeProp()
-  quantity: number;
-
+class QuoteCostBuildupCommon implements IBaseQuoteCost {
   @ExposeProp()
   cost: number;
 
   @ExposeProp()
-  subcontractorMarkup: number;
+  markupAmount: number;
+
+  @ExposeProp()
+  markupPercentage: number;
 
   @ExposeProp()
   netCost: number;
 }
 
-class PanelQuoteDetailsDto extends QuoteCostBuildupCommon {
+class PanelQuoteDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.MODULE> {
   @ExposeProp({ type: ProductResDto })
-  panelModelDataSnapshot: ProductResDto;
+  panelModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.MODULE>;
 
   @ExposeProp()
   panelModelSnapshotDate: Date;
 
   @ExposeProp()
-  discountDetails: { amount: number; description: string }[];
-
-  @ExposeProp()
-  panelModelId: string;
-
-  @ExposeProp()
-  markup: number;
+  quantity: number;
 }
 
-class InverterQuoteDetailsDto extends QuoteCostBuildupCommon {
+class InverterQuoteDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.INVERTER> {
   @ExposeProp({ type: ProductResDto })
-  inverterModelDataSnapshot: ProductResDto;
+  inverterModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.INVERTER>;
 
   @ExposeProp()
   inverterModelSnapshotDate: Date;
 
   @ExposeProp()
-  discountDetails: { amount: number; description: string }[];
-
-  @ExposeProp()
-  inverterModelId: string;
-
-  @ExposeProp()
-  markup: number;
+  quantity: number;
 }
 
-class StorageQuoteDetailsDto extends QuoteCostBuildupCommon {
+class StorageQuoteDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.BATTERY> {
   @ExposeProp({ type: ProductResDto })
-  storageModelDataSnapshot: ProductResDto;
+  storageModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BATTERY>;
 
   @ExposeProp()
   storageModelSnapshotDate: Date;
 
   @ExposeProp()
-  discountDetails: { amount: number; description: string }[];
-
-  @ExposeProp()
-  markup: number;
-
-  @ExposeProp()
-  storageModelId: string;
+  quantity: number;
 }
 
-class AdderQuoteDetailsDto extends QuoteCostBuildupCommon {
-  @ExposeProp({ type: ProductResDto, skipTransform: true })
-  adderModelDataSnapshot: ProductResDto;
+class AdderQuoteDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.ADDER> {
+  @ExposeProp({ type: ProductResDto })
+  adderModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ADDER>;
 
   @ExposeProp()
   adderModelSnapshotDate: Date;
 
   @ExposeProp()
-  adderModelId: string;
-
-  @ExposeProp()
-  discountDetails: { amount: number; description: string }[];
-
-  @ExposeProp()
-  markup: number;
-
-  @ExposeProp()
-  unit: string;
+  quantity: number;
 }
 
-class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon {
+class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.BALANCE_OF_SYSTEM> {
   @ExposeProp({ type: ProductResDto })
-  balanceOfSystemModelDataSnapshot: ProductResDto;
+  balanceOfSystemModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BALANCE_OF_SYSTEM>;
 
   @ExposeProp()
-  balanceOfSystemModelDataSnapshotDate: Date;
-
-  @ExposeProp()
-  unit: string;
+  balanceOfSystemModelSnapshotDate: Date;
 }
 
-class AncillaryDetailsDto extends QuoteCostBuildupCommon {
-  @ExposeProp({ type: AncillaryEquipmentDto })
-  ancillaryEquipmentModelDataSnapshot: AncillaryEquipmentDto;
+class AncillaryDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.ANCILLARY_EQUIPMENT> {
+  @ExposeProp({ type: ProductResDto })
+  ancillaryEquipmentModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>;
 
   @ExposeProp()
-  ancillaryEquipmentSnapshotDate: Date;
+  ancillaryEquipmentModelSnapshotDate: Date;
+
+  @ExposeProp()
+  quantity: number;
 }
 
-export class LaborCostDetailsDto {
-  @ExposeMongoId({ eitherId: true })
-  _id: string;
-
-  @ExposeMongoId({ eitherId: true })
-  id: string;
+// TODO WAV-1374
+export class LaborCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.LABOR> {
+  @ExposeProp({ type: ProductResDto })
+  laborCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
 
   @ExposeProp()
-  calculationType: string;
-
-  @ExposeAndMap({}, ({ obj }) => obj.calculationType)
-  calculation_type: string;
+  laborCostModelSnapshotDate: Date;
 
   @ExposeProp()
-  unit: number;
-}
-export class LaborCostDto {
-  @ExposeProp({ type: LaborCostDetailsDto })
-  laborCostDataSnapshot: LaborCostDetailsDto;
-
-  @ExposeProp()
-  laborCostSnapshotDate: Date;
-
-  @ExposeProp()
-  cost: number;
-
-  @ExposeProp()
-  markup: number;
-
-  @ExposeProp()
-  netCost: number;
-
-  @ExposeProp()
-  discountDetails: { amount: number; description: string }[];
-
-  @ExposeProp()
-  laborCostType: ELaborCostType;
+  quantity: number;
 }
 
-export class QuoteCostBuildupDto {
+export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.SOFT_COST> {
+  @ExposeProp({ type: ProductResDto })
+  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
+
+  @ExposeProp()
+  softCostModelSnapshotDate: Date;
+
+  @ExposeProp()
+  quantity: number;
+}
+
+export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ExposeProp({ type: PanelQuoteDetailsDto, isArray: true })
   panelQuoteDetails: PanelQuoteDetailsDto[];
 
@@ -166,15 +123,18 @@ export class QuoteCostBuildupDto {
   @ExposeProp({ type: AncillaryDetailsDto, isArray: true })
   ancillaryEquipmentDetails: AncillaryDetailsDto[];
 
-  @ExposeProp()
-  generalMarkup: number;
+  @ExposeProp({ type: LaborCostDetailsDto })
+  laborCostQuoteDetails: LaborCostDetailsDto[];
 
-  @ExposeProp({ type: LaborCostDto })
-  laborCost: LaborCostDto;
+  @ExposeProp({ type: SoftCostDetailsDto })
+  softCostQuoteDetails: SoftCostDetailsDto[];
 
   @ExposeProp()
   grossPrice: number;
 
   @ExposeProp()
-  totalNetCost: number;
+  swellStandardMarkup: number;
+
+  @ExposeProp()
+  totalProductCost: number;
 }

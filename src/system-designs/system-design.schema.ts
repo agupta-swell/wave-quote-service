@@ -1,6 +1,6 @@
 import { Document, Schema, Types } from 'mongoose';
-import { PRODUCT_TYPE } from 'src/products-v2/constants';
-import { IBatteryRating, IProduct, IRating, ISnapshotProduct } from 'src/products-v2/interfaces';
+import { PRICING_UNIT, PRODUCT_TYPE, BATTERY_TYPE } from 'src/products-v2/constants';
+import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import {
   AdderSnapshotSchema,
   AncillaryEquipmentSnapshotSchema,
@@ -9,12 +9,10 @@ import {
   InverterSnapshotSchema,
   ModuleSnapshotSchema,
   SoftCostSnapshotSchema,
-  LaborCostSnapshotSchema
+  LaborCostSnapshotSchema,
 } from 'src/products-v2/schemas';
-import { BATTERY_TYPE } from 'src/products/constants';
-import { IBalanceOfSystemProduct, IBatteryProduct, IInverterProduct, IPanelProduct } from 'src/products/product.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
-import { COMPONENT_TYPE, COST_UNIT_TYPE, DESIGN_MODE } from './constants';
+import { DESIGN_MODE } from './constants';
 import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
@@ -28,69 +26,6 @@ const LatLngSchema = new Schema<Document<ILatLngSchema>>(
   {
     lat: Number,
     lng: Number,
-  },
-  { _id: false },
-);
-
-interface IProductCommonSchema {
-  name: string;
-  type: string;
-  price: number;
-  sizeW: number;
-  sizekWh: number;
-  partNumber: string[];
-  dimension: {
-    length: number;
-    width: number;
-  };
-  manufacturerId: string;
-  modelName: string;
-  approvedForGsa: boolean;
-  approvedForEsa: boolean;
-}
-
-export interface IStorageProductSchema extends IProductCommonSchema, IBatteryProduct {}
-
-export const StorageProductSchema = new Schema<Document<IStorageProductSchema>>(
-  {
-    manufacturer_id: String,
-    name: String,
-    type: String,
-    price: Number,
-    sizeW: Number,
-    sizekWh: Number,
-    part_number: [String],
-    dimension: {
-      length: Number,
-      width: Number,
-    },
-    model_name: String,
-    approved_for_gsa: Boolean,
-    approved_for_esa: Boolean,
-    battery_type: String,
-  },
-  { _id: false },
-);
-
-export interface IInverterProductSchema extends IProductCommonSchema, IInverterProduct {}
-
-export const InverterProductSchema = new Schema<Document<IInverterProductSchema>>(
-  {
-    manufacturerId: String,
-    name: String,
-    type: String,
-    price: Number,
-    sizeW: Number,
-    sizekWh: Number,
-    part_number: [String],
-    dimension: {
-      length: Number,
-      width: Number,
-    },
-    model_name: String,
-    approved_for_gsa: Boolean,
-    approved_for_esa: Boolean,
-    inverterType: String,
   },
   { _id: false },
 );
@@ -240,7 +175,7 @@ const StorageSchema = new Schema<Document<IStorageSchema>>(
 export interface IAdderSchema {
   adderDescription: string;
   quantity: number;
-  unit: COST_UNIT_TYPE;
+  unit: PRICING_UNIT;
   adderId: string;
   adderModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ADDER>;
   adderModelSnapshotDate: Date;
@@ -262,7 +197,7 @@ export interface IBalanceOfSystemSchema {
   balanceOfSystemId: string;
   balanceOfSystemModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BALANCE_OF_SYSTEM>;
   balanceOfSystemSnapshotDate: Date;
-  unit: COST_UNIT_TYPE;
+  unit: PRICING_UNIT;
 }
 
 export const BalanceOfSystemSchema = new Schema<Document<IBalanceOfSystemSchema>>(
@@ -314,7 +249,7 @@ export interface ILaborCostSchema {
   laborCostId: string;
   laborCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
   laborCostSnapshotDate: Date;
-  unit: COST_UNIT_TYPE;
+  unit: PRICING_UNIT;
   quantity: number;
 }
 
@@ -362,7 +297,7 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
     balance_of_systems: [BalanceOfSystemSchema],
     ancillary_equipments: [AncillaryEquipmentSchema],
     soft_costs: [SoftCostSchema],
-    labor_costs: [LaborCostSchema]
+    labor_costs: [LaborCostSchema],
   },
   { _id: false },
 );
@@ -494,7 +429,17 @@ export class SystemDesignModel {
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
-    const { inverters, storage, panelArray = [], adders, balanceOfSystems, ancillaryEquipments, keepouts, softCosts, laborCosts } = data;
+    const {
+      inverters,
+      storage,
+      panelArray = [],
+      adders,
+      balanceOfSystems,
+      ancillaryEquipments,
+      keepouts,
+      softCosts,
+      laborCosts,
+    } = data;
     return {
       panelArray,
       keepouts,
@@ -509,7 +454,16 @@ export class SystemDesignModel {
   };
 
   transformCapacityProductionData = (data: CapacityProductionDataDto): ICapacityProductionSchema => {
-    const { panelArray, inverters, storage, adders, balanceOfSystems, ancillaryEquipments, softCosts, laborCosts } = data;
+    const {
+      panelArray,
+      inverters,
+      storage,
+      adders,
+      balanceOfSystems,
+      ancillaryEquipments,
+      softCosts,
+      laborCosts,
+    } = data;
     return {
       panelArray: panelArray || [],
       inverters,
@@ -538,7 +492,7 @@ export class SystemDesignModel {
 
   setAdder(
     adder: ISnapshotProduct<PRODUCT_TYPE.ADDER>,
-    unit: COST_UNIT_TYPE,
+    unit: PRICING_UNIT,
     index: number,
     designMode: string = DESIGN_MODE.ROOF_TOP,
   ) {
@@ -620,9 +574,7 @@ export class SystemDesignModel {
       this.roofTopDesignData.softCosts[index].softCostDataSnapshot = softCost;
       this.roofTopDesignData.softCosts[index].softCostSnapshotDate = new Date();
     } else {
-      this.capacityProductionDesignData.softCosts[
-        index
-      ].softCostDataSnapshot = softCost;
+      this.capacityProductionDesignData.softCosts[index].softCostDataSnapshot = softCost;
       this.capacityProductionDesignData.softCosts[index].softCostSnapshotDate = new Date();
     }
   }
@@ -636,9 +588,7 @@ export class SystemDesignModel {
       this.roofTopDesignData.laborCosts[index].laborCostDataSnapshot = laborCost;
       this.roofTopDesignData.laborCosts[index].laborCostSnapshotDate = new Date();
     } else {
-      this.capacityProductionDesignData.laborCosts[
-        index
-      ].laborCostDataSnapshot = laborCost;
+      this.capacityProductionDesignData.laborCosts[index].laborCostDataSnapshot = laborCost;
       this.capacityProductionDesignData.laborCosts[index].laborCostSnapshotDate = new Date();
     }
   }

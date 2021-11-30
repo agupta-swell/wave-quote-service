@@ -9,9 +9,9 @@ export interface IBaseProduct {
   type: PRODUCT_TYPE;
   partNumbers?: string[];
   createdAt: Date;
-  createdBy: String;
+  createdBy: string;
   updatedAt?: Date;
-  updatedBy?: String;
+  updatedBy?: string;
   cost: number;
 }
 

@@ -1,5 +1,5 @@
 import { Pagination, ServiceResponse } from 'src/app/common';
-import { ProductDto } from 'src/products/res/product.dto';
+import { ProductResDto } from 'src/products-v2/res/product.dto';
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { UtilityProgramMasterDto } from 'src/utility-programs-master/res/utility-program-master.dto';
 import { compareIds } from 'src/utils/common';
@@ -23,10 +23,10 @@ export class GsProgramsDto {
   @ExposeProp({ type: UtilityProgramMasterDto })
   utilityProgram?: UtilityProgramMasterDto;
 
-  @ExposeAndMap({ type: ProductDto }, params =>
+  @ExposeAndMap({ type: ProductResDto }, params =>
     params.obj.battery?.find(({ _id }) => compareIds(_id, params.obj.batteryId)),
   )
-  battery?: ProductDto;
+  battery?: ProductResDto;
 
   @ExposeAndMap({}, ({ obj }) => obj.createdAt)
   created_at: string;

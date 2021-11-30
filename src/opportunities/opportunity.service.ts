@@ -10,6 +10,7 @@ import { ContractResDto } from 'src/contracts/res/sub-dto';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FinancierService } from 'src/financier/financier.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -229,5 +230,36 @@ export class OpportunityService {
     }
 
     return found.accountId;
+  }
+
+  async getPartnerConfigFromOppId(oppId: string): Promise<LeanDocument<QuotePartnerConfig>> {
+    const results = await this.opportunityModel.aggregate([
+      {
+        $match: {
+          _id: oppId,
+        },
+      },
+      {
+        $lookup: {
+          from: 'v2_quotePartnerConfig',
+          localField: 'accountId',
+          foreignField: 'partnerId',
+          as: 'partnerConfigs',
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $arrayElemAt: ['$partnerConfigs', 0],
+          },
+        },
+      },
+    ]);
+
+    if (!results.length) {
+      throw new NotFoundException(`No partner config found for opportunity ${oppId}`);
+    }
+
+    return results[0];
   }
 }
