@@ -521,11 +521,13 @@ export class DocusignApiService<Context> implements OnModuleInit {
     ctx.totalPage = templatesWithPageNumber.reduce((acc, cur) => acc + cur.totalPage, 0);
 
     for (let i = 0; i < templatesWithPageNumber.length; i++) {
+      const docId = ctx.serverTemplateIds.findIndex(e => e === templatesWithPageNumber[i].id) + 1;
+
       const template = templatesWithPageNumber[i];
-      const pageNumberTabs = template.toPageNumberTabs(ctx, `${i + 1}`, this.pageNumberFormatter);
+      const pageNumberTabs = template.toPageNumberTabs(ctx, `${docId}`, this.pageNumberFormatter);
 
       // eslint-disable-next-line no-await-in-loop
-      await this.populatePrefillTabs(ctx.envelopeId, `${i + 1}`, pageNumberTabs, 'create');
+      await this.populatePrefillTabs(ctx.envelopeId, `${docId}`, pageNumberTabs, 'create');
     }
   }
 
