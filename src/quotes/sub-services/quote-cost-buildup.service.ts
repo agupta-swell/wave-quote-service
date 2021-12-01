@@ -9,7 +9,7 @@ import { ICalculateCostResult, IQuoteCost, IQuoteCostBuildup, ICreateQuoteCostBu
 @Injectable()
 export class QuoteCostBuildUpService {
   private calculateCost(pricePerUnit: number, quantiy: number, markupPercentage: number): ICalculateCostResult {
-    const price = new BigNumber(pricePerUnit);
+    const price = new BigNumber(pricePerUnit ?? 0);
 
     const total = price.multipliedBy(quantiy);
 
@@ -225,39 +225,61 @@ export class QuoteCostBuildUpService {
   ): IQuoteCostBuildup {
     const adderQuoteDetails = this.calculateAddersQuoteCost(rooftopData.adders, partnerMarkup.adderMarkup);
 
-    const ancillaryEquipmentDetails = this.calculateAncillaryEquipmentsQuoteCost(rooftopData.ancillaryEquipments, 0);
+    const ancillaryEquipmentDetails = this.calculateAncillaryEquipmentsQuoteCost(
+      rooftopData.ancillaryEquipments,
+      partnerMarkup.ancillaryEquipmentMarkup,
+    );
 
-    const balanceOfSystemDetails = this.calculateBalanceOfSystemsQuoteCost(rooftopData.balanceOfSystems, 0);
+    const balanceOfSystemDetails = this.calculateBalanceOfSystemsQuoteCost(
+      rooftopData.balanceOfSystems,
+      partnerMarkup.bosMarkup,
+    );
 
-    const inverterQuoteDetails = this.calculateInvertersQuoteCost(rooftopData.inverters, 0);
+    const inverterQuoteDetails = this.calculateInvertersQuoteCost(rooftopData.inverters, partnerMarkup.inverterMarkup);
 
-    const panelQuoteDetails = this.calculatePanelsQuoteCost(rooftopData.panelArray, 0);
+    const panelQuoteDetails = this.calculatePanelsQuoteCost(rooftopData.panelArray, partnerMarkup.softCostMarkup);
 
-    const storageQuoteDetails = this.calculateStoragesQuoteCost(rooftopData.storage, 0);
+    const storageQuoteDetails = this.calculateStoragesQuoteCost(rooftopData.storage, partnerMarkup.storageMarkup);
 
     const softCostQuoteDetails = this.calculateSoftCosts(rooftopData.softCosts, partnerMarkup.softCostMarkup);
 
-    const laborCostQuoteDetails = this.calculateLaborsCost([], 0);
+    const laborCostQuoteDetails = this.calculateLaborsCost(rooftopData.laborCosts, partnerMarkup.laborMarkup);
 
     const swellStandardMarkup = partnerMarkup.swellStandardMarkup;
 
-    const totalProductCost = new BigNumber(0);
+    let totalProductCost = new BigNumber(0);
 
-    adderQuoteDetails.forEach(adder => totalProductCost.plus(adder.cost));
+    adderQuoteDetails.forEach(adder => {
+      totalProductCost = totalProductCost.plus(adder.cost);
+    });
 
-    ancillaryEquipmentDetails.forEach(ancillaryEquipment => totalProductCost.plus(ancillaryEquipment.cost));
+    ancillaryEquipmentDetails.forEach(ancillaryEquipment => {
+      totalProductCost = totalProductCost.plus(ancillaryEquipment.cost);
+    });
 
-    balanceOfSystemDetails.forEach(balanceOfSystem => totalProductCost.plus(balanceOfSystem.cost));
+    balanceOfSystemDetails.forEach(balanceOfSystem => {
+      totalProductCost = totalProductCost.plus(balanceOfSystem.cost);
+    });
 
-    inverterQuoteDetails.forEach(inverter => totalProductCost.plus(inverter.cost));
+    inverterQuoteDetails.forEach(inverter => {
+      totalProductCost = totalProductCost.plus(inverter.cost);
+    });
 
-    panelQuoteDetails.forEach(panel => totalProductCost.plus(panel.cost));
+    panelQuoteDetails.forEach(panel => {
+      totalProductCost = totalProductCost.plus(panel.cost);
+    });
 
-    storageQuoteDetails.forEach(storage => totalProductCost.plus(storage.cost));
+    storageQuoteDetails.forEach(storage => {
+      totalProductCost = totalProductCost.plus(storage.cost);
+    });
 
-    laborCostQuoteDetails.forEach(labor => totalProductCost.plus(labor.cost));
+    laborCostQuoteDetails.forEach(labor => {
+      totalProductCost = totalProductCost.plus(labor.cost);
+    });
 
-    softCostQuoteDetails.forEach(softCost => totalProductCost.plus(softCost.cost));
+    softCostQuoteDetails.forEach(softCost => {
+      totalProductCost = totalProductCost.plus(softCost.cost);
+    });
 
     const grossPrice = new BigNumber(swellStandardMarkup).plus(1).times(totalProductCost);
 
