@@ -51,6 +51,7 @@ import { Discounts } from './schemas/discounts.schema';
 import { CalculationService } from './sub-services/calculation.service';
 import { QuoteCostBuildUpService } from './sub-services';
 import { IQuoteCostBuildup } from './interfaces';
+import { SystemDesign } from 'src/system-designs/system-design.schema';
 
 @Injectable()
 export class QuoteService {
