@@ -1,6 +1,8 @@
 import { Document } from 'mongoose';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
-import { IQuoteCost } from '.';
+import { IBaseQuoteCost } from './IBaseQuoteCost';
+import { IQuoteCost } from './IQuoteCost';
+import { IProjectSubtotal4 } from './IProjectSubtotal4';
 
 export interface IQuoteCostBuildup {
   panelQuoteDetails: IQuoteCost<PRODUCT_TYPE.MODULE>[];
@@ -13,7 +15,11 @@ export interface IQuoteCostBuildup {
   softCostQuoteDetails: IQuoteCost<PRODUCT_TYPE.SOFT_COST>[];
   swellStandardMarkup: number;
   grossPrice: number;
-  totalProductCost: number;
+  equipmentSubtotal: IBaseQuoteCost;
+  equipmentAndLaborSubtotal: IBaseQuoteCost;
+  equipmentAndLaborAndAddersSubtotal: IBaseQuoteCost;
+  projectSubtotal3: IBaseQuoteCost;
+  projectSubtotal4: IProjectSubtotal4;
 }
 
 export type IQuoteCostBuildupDocument = Document &

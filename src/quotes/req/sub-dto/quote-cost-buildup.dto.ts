@@ -4,6 +4,7 @@ import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { IQuoteCost, IQuoteCostBuildup } from 'src/quotes/interfaces';
 import { IBaseQuoteCost } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteCost';
+import { IProjectSubtotal4 } from 'src/quotes/interfaces/quote-cost-buildup/IProjectSubtotal4';
 import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
@@ -116,6 +117,20 @@ export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuote
   quantity: number;
 }
 
+export class ProjectSubtotal4Dto implements IProjectSubtotal4 {
+  @ApiProperty()
+  cost: number;
+
+  @ApiProperty()
+  marginPercentage: number;
+
+  @ApiProperty()
+  netMargin: number;
+
+  @ApiProperty()
+  netCost: number;
+}
+
 export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ApiProperty({ type: PanelQuoteDetailsDto, isArray: true })
   panelQuoteDetails: PanelQuoteDetailsDto[];
@@ -147,6 +162,18 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ApiProperty()
   grossPrice: number;
 
-  @ApiProperty()
-  totalProductCost: number;
+  @ApiProperty({ type: QuoteCostBuildupCommon })
+  equipmentAndLaborAndAddersSubtotal: QuoteCostBuildupCommon;
+
+  @ApiProperty({ type: QuoteCostBuildupCommon })
+  equipmentAndLaborSubtotal: QuoteCostBuildupCommon;
+
+  @ApiProperty({ type: QuoteCostBuildupCommon })
+  equipmentSubtotal: QuoteCostBuildupCommon;
+
+  @ApiProperty({ type: QuoteCostBuildupCommon })
+  projectSubtotal3: QuoteCostBuildupCommon;
+
+  @ApiProperty({ type: ProjectSubtotal4Dto })
+  projectSubtotal4: ProjectSubtotal4Dto;
 }

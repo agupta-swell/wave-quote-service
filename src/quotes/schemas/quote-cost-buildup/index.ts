@@ -7,6 +7,8 @@ import { BalanceOfSystemQuoteDetailDataSchema } from './balance-of-system-detail
 import { AncillaryEquipmentQuoteDetailDataSchema } from './ancillary-equipment-quote-detail-data.schema';
 import { LaborCostQuoteDetailDataSchema } from './labor-cost-quote-detail-data.schema';
 import { SoftCostQuoteDetailDataSchema } from './soft-cost-quote-detail-data.schema';
+import { BaseQuoteCostDataSchema } from './base-quote-cost-buildup.schema';
+import { ProjectSubtotal4DataSchema } from './project-subtotal-4.schema';
 
 export const QuoteCostBuildupSchema = new Schema(
   {
@@ -19,8 +21,11 @@ export const QuoteCostBuildupSchema = new Schema(
     swell_standard_markup: Number,
     labor_cost_quote_details: [LaborCostQuoteDetailDataSchema],
     soft_cost_quote_details: [SoftCostQuoteDetailDataSchema],
-    gross_price: Number,
-    total_product_cost: Number,
+    equipment_subtotal: BaseQuoteCostDataSchema,
+    equipment_and_labor_subtotal: BaseQuoteCostDataSchema,
+    equipment_and_labor_and_adders_subtotal: BaseQuoteCostDataSchema,
+    project_subtotal3: BaseQuoteCostDataSchema,
+    project_subtotal4: ProjectSubtotal4DataSchema,
   },
   { _id: false },
 );

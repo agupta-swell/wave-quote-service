@@ -2,7 +2,7 @@ import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { ProductResDto } from 'src/products-v2/res/product.dto';
 import { ExposeProp } from 'src/shared/decorators';
-import { IBaseQuoteCost, IQuoteCost, IQuoteCostBuildup } from '../../interfaces';
+import { IBaseQuoteCost, IQuoteCost, IQuoteCostBuildup, IProjectSubtotal4 } from '../../interfaces';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
   @ExposeProp()
@@ -81,7 +81,6 @@ class AncillaryDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<P
   quantity: number;
 }
 
-// TODO WAV-1374
 export class LaborCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.LABOR> {
   @ExposeProp({ type: ProductResDto })
   laborCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
@@ -102,6 +101,20 @@ export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuote
 
   @ExposeProp()
   quantity: number;
+}
+
+export class ProjectSubtotal4Dto implements IProjectSubtotal4 {
+  @ExposeProp()
+  cost: number;
+
+  @ExposeProp()
+  marginPercentage: number;
+
+  @ExposeProp()
+  netMargin: number;
+
+  @ExposeProp()
+  netCost: number;
 }
 
 export class QuoteCostBuildupDto implements IQuoteCostBuildup {
@@ -135,6 +148,18 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ExposeProp()
   swellStandardMarkup: number;
 
-  @ExposeProp()
-  totalProductCost: number;
+  @ExposeProp({ type: QuoteCostBuildupCommon })
+  equipmentAndLaborAndAddersSubtotal: QuoteCostBuildupCommon;
+
+  @ExposeProp({ type: QuoteCostBuildupCommon })
+  equipmentAndLaborSubtotal: QuoteCostBuildupCommon;
+
+  @ExposeProp({ type: QuoteCostBuildupCommon })
+  equipmentSubtotal: QuoteCostBuildupCommon;
+
+  @ExposeProp({ type: QuoteCostBuildupCommon })
+  projectSubtotal3: QuoteCostBuildupCommon;
+
+  @ExposeProp({ type: ProjectSubtotal4Dto })
+  projectSubtotal4: ProjectSubtotal4Dto;
 }

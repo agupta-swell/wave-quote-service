@@ -4,7 +4,14 @@ import { BigNumber } from 'bignumber.js';
 import { LeanDocument } from 'mongoose';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
-import { ICalculateCostResult, IQuoteCost, IQuoteCostBuildup, ICreateQuoteCostBuildUpArg } from '../interfaces';
+import {
+  ICalculateCostResult,
+  IQuoteCost,
+  IQuoteCostBuildup,
+  ICreateQuoteCostBuildUpArg,
+  IProjectSubtotal4,
+} from '../interfaces';
+import { IQuoteFinanceProductSchema } from '../quote.schema';
 
 @Injectable()
 export class QuoteCostBuildUpService {
@@ -13,7 +20,7 @@ export class QuoteCostBuildUpService {
 
     const total = price.multipliedBy(quantiy);
 
-    const markup = new BigNumber(markupPercentage);
+    const markup = new BigNumber(markupPercentage ?? 0);
 
     const markupAmount = total.multipliedBy(markup.dividedBy(100));
 
@@ -40,6 +47,42 @@ export class QuoteCostBuildUpService {
     });
 
     return results;
+  }
+
+  private sumQuoteCosts(...quoteCostsArr: IQuoteCost<unknown>[][]): IQuoteCost<unknown> {
+    let totalCost = new BigNumber(0);
+    let totalMarkupAmount = new BigNumber(0);
+
+    quoteCostsArr.forEach(quoteCosts =>
+      quoteCosts.forEach(quoteCost => {
+        totalCost = totalCost.plus(quoteCost.cost);
+        totalMarkupAmount = totalMarkupAmount.plus(quoteCost.markupAmount);
+      }),
+    );
+
+    const markupPercentage = totalCost.eq(0) ? new BigNumber(0) : totalMarkupAmount.dividedBy(totalCost);
+
+    const netCost = totalCost.plus(totalMarkupAmount);
+
+    return {
+      cost: totalCost.toNumber(),
+      netCost: netCost.toNumber(),
+      markupAmount: totalMarkupAmount.toNumber(),
+      markupPercentage: markupPercentage.toNumber(),
+    };
+  }
+
+  // TODO WAV-1374 - calculate discount
+  private calculateProjectSubtotal4(
+    projectSubtotal3: IQuoteCost<unknown>,
+    financeProducts?: IQuoteFinanceProductSchema,
+  ): IProjectSubtotal4 {
+    return {
+      cost: 0,
+      marginPercentage: 0,
+      netCost: 0,
+      netMargin: 0,
+    };
   }
 
   public calculatePanelsQuoteCost(
@@ -283,6 +326,33 @@ export class QuoteCostBuildUpService {
 
     const grossPrice = new BigNumber(swellStandardMarkup).plus(1).times(totalProductCost);
 
+    const equipmentSubtotal = this.sumQuoteCosts(
+      ancillaryEquipmentDetails,
+      balanceOfSystemDetails,
+      inverterQuoteDetails,
+      panelQuoteDetails,
+      storageQuoteDetails,
+    );
+
+    const equipmentAndLaborSubtotal = this.sumQuoteCosts([equipmentSubtotal], laborCostQuoteDetails);
+
+    const equipmentAndLaborAndAddersSubtotal = this.sumQuoteCosts([equipmentAndLaborSubtotal], adderQuoteDetails);
+
+    const projectSubtotal3 = this.sumQuoteCosts([
+      equipmentAndLaborAndAddersSubtotal,
+      {
+        cost: 0,
+        markupPercentage: 0,
+        netCost: 0,
+        markupAmount: new BigNumber(swellStandardMarkup ?? 0)
+          .times(equipmentAndLaborAndAddersSubtotal.netCost)
+          .plus(equipmentAndLaborAndAddersSubtotal.markupAmount)
+          .toNumber(),
+      },
+    ]);
+
+    const projectSubtotal4 = this.calculateProjectSubtotal4(projectSubtotal3);
+
     return {
       adderQuoteDetails,
       ancillaryEquipmentDetails,
@@ -294,7 +364,11 @@ export class QuoteCostBuildUpService {
       storageQuoteDetails,
       swellStandardMarkup,
       grossPrice: grossPrice.toNumber(),
-      totalProductCost: totalProductCost.toNumber(),
+      equipmentSubtotal,
+      equipmentAndLaborSubtotal,
+      equipmentAndLaborAndAddersSubtotal,
+      projectSubtotal3,
+      projectSubtotal4,
     };
   }
 }

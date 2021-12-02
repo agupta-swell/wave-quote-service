@@ -25,7 +25,9 @@ interface IMappedProductQuoteCost extends MappedProductQuoteCost {
   [PRODUCT_TYPE.LABOR]: ILaborQuoteDetail;
 }
 
-export type IQuoteCost<T extends PRODUCT_TYPE> = T extends PRODUCT_TYPE ? IMappedProductQuoteCost[T] : IBaseQuoteCost;
+export type IQuoteCost<T extends PRODUCT_TYPE | unknown> = T extends PRODUCT_TYPE
+  ? IMappedProductQuoteCost[T]
+  : IBaseQuoteCost;
 
 export type IQuoteCostDocument<T extends PRODUCT_TYPE> = T extends PRODUCT_TYPE
   ? Document & IQuoteCost<T>

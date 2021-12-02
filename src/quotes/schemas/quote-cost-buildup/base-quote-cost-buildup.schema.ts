@@ -1,6 +1,6 @@
-import { Schema } from 'mongoose';
+import { Document, Schema } from 'mongoose';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
-import { IQuoteCostDocument } from 'src/quotes/interfaces';
+import { IBaseQuoteCost, IQuoteCostDocument } from 'src/quotes/interfaces';
 
 const baseQuoteCostBuildupSchemaDefinition = {
   cost: Number,
@@ -8,6 +8,8 @@ const baseQuoteCostBuildupSchemaDefinition = {
   markup_amount: Number,
   net_cost: Number,
 };
+
+export const BaseQuoteCostDataSchema = new Schema<Document & IBaseQuoteCost>(baseQuoteCostBuildupSchemaDefinition);
 
 export const createQuoteCostBuildupSchema = <T extends PRODUCT_TYPE>(
   schema: Record<string, any>,
