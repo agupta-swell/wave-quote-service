@@ -3,7 +3,7 @@ import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
 
 export interface ISoftCostQuoteDetail extends IBaseQuoteCost {
-  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
-  softCostModelSnapshotDate: Date;
+  softCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
+  softCostSnapshotDate: Date;
   quantity: number;
 }

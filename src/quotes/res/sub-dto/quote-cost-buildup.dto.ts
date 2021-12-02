@@ -84,10 +84,10 @@ class AncillaryDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<P
 // TODO WAV-1374
 export class LaborCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.LABOR> {
   @ExposeProp({ type: ProductResDto })
-  laborCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
+  laborCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
 
   @ExposeProp()
-  laborCostModelSnapshotDate: Date;
+  laborCostSnapshotDate: Date;
 
   @ExposeProp()
   quantity: number;
@@ -95,10 +95,10 @@ export class LaborCostDetailsDto extends QuoteCostBuildupCommon implements IQuot
 
 export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.SOFT_COST> {
   @ExposeProp({ type: ProductResDto })
-  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
+  softCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
 
   @ExposeProp()
-  softCostModelSnapshotDate: Date;
+  softCostSnapshotDate: Date;
 
   @ExposeProp()
   quantity: number;

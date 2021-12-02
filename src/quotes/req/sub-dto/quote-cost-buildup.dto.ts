@@ -94,10 +94,10 @@ class AncillaryDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<P
 
 export class LaborCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.LABOR> {
   @ApiProperty()
-  laborCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
+  laborCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.LABOR>;
 
   @ApiProperty()
-  laborCostModelSnapshotDate: Date;
+  laborCostSnapshotDate: Date;
 
   @ApiProperty()
   @IsNumber()
@@ -106,10 +106,10 @@ export class LaborCostDetailsDto extends QuoteCostBuildupCommon implements IQuot
 
 export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.SOFT_COST> {
   @ApiProperty({ type: '' })
-  softCostModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
+  softCostDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.SOFT_COST>;
 
   @ApiProperty()
-  softCostModelSnapshotDate: Date;
+  softCostSnapshotDate: Date;
 
   @ApiProperty()
   @IsNumber()

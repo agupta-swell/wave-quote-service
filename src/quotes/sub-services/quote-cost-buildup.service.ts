@@ -191,8 +191,8 @@ export class QuoteCostBuildUpService {
       return {
         quantity: softCost.quantity,
         markupPercentage,
-        softCostModelDataSnapshot: softCost.softCostDataSnapshot,
-        softCostModelSnapshotDate: softCost.softCostSnapshotDate,
+        softCostDataSnapshot: softCost.softCostDataSnapshot,
+        softCostSnapshotDate: softCost.softCostSnapshotDate,
         cost: cost.total,
         netCost: cost.totalWithMarkup,
         markupAmount: cost.markupAmount,
@@ -213,8 +213,8 @@ export class QuoteCostBuildUpService {
         cost: cost.total,
         netCost: cost.totalWithMarkup,
         markupAmount: cost.markupAmount,
-        laborCostModelDataSnapshot: labor.laborCostDataSnapshot,
-        laborCostModelSnapshotDate: labor.laborCostSnapshotDate,
+        laborCostDataSnapshot: labor.laborCostDataSnapshot,
+        laborCostSnapshotDate: labor.laborCostSnapshotDate,
       };
     });
   }
