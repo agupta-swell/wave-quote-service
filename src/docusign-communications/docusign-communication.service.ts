@@ -8,7 +8,7 @@ import { SignerRoleMaster } from 'src/docusign-templates-master/schemas';
 import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
 import { compareIds } from 'src/utils/common';
 import { DocusignApiService, TResendEnvelopeStatus } from 'src/shared/docusign';
-import { EnvelopeSummary } from 'docusign-esign';
+import { EnvelopeSummary, EnvelopeUpdateSummary } from 'docusign-esign';
 import {
   CONTRACTING_SYSTEM_STATUS,
   ICompositeTemplate,
@@ -41,6 +41,7 @@ export class DocusignCommunicationService {
     templateDetails: ITemplateDetailSchema[],
     signerDetails: ISignerDetailDataSchema[],
     genericObject: IGenericObject,
+    pageFromTemplateId: string,
     isDraft = false,
   ): Promise<ISendDocusignToContractResponse> {
     const docusignPayload: any = {
@@ -56,7 +57,9 @@ export class DocusignCommunicationService {
       docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
     });
 
-    const resDocusign = await this.docusignApiService.useContext(genericObject).sendContract(docusignPayload, isDraft);
+    const resDocusign = await this.docusignApiService
+      .useContext(genericObject)
+      .sendContract(docusignPayload, templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '', isDraft);
 
     const model = new this.docusignCommunicationModel({
       dateTime: new Date(),
@@ -237,5 +240,9 @@ export class DocusignCommunicationService {
       },
       carbonCopyRecipients.map(e => ({ email: e.email, name: e.fullName })),
     );
+  }
+
+  voidEnvelope(envelopeId: string): Promise<EnvelopeUpdateSummary> {
+    return this.docusignApiService.voidEnvelope(envelopeId);
   }
 }

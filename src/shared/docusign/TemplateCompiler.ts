@@ -1,10 +1,11 @@
 import * as docusign from 'docusign-esign';
-import { inspect } from 'util';
+import { IContext } from './interfaces/IContext';
 import { DOCUSIGN_TAB_TYPE, KEYS } from './constants';
 import { IClass } from './interfaces/IClass';
 import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
 import { IDefaultContractor } from './interfaces/IDefaultContractor';
 import { IMetaTemplate } from './interfaces/IMetaTemplate';
+import { IPageNumberFormatter } from './interfaces/IPageNumberFormatter';
 import { IRawTab } from './interfaces/IRawTab';
 import { toPascalCase, toSnakeCase, toUpperSnakeCase } from './utils';
 
@@ -23,7 +24,15 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
   private _defaultTransform?: (prop: string) => string;
 
+  private _noPageNumber: boolean;
+
+  private _totalPage: number;
+
   constructor(ctor: IClass<T>) {
+    this._noPageNumber = false;
+
+    this._totalPage = 0;
+
     this._ctor = ctor;
 
     this.extractId();
@@ -86,6 +95,11 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
   private parseRawTabs(): void {
     const props: string[] = Reflect.getMetadata(KEYS.PROP, this._ctor);
+
+    if (!props) {
+      this._rawTabs = [];
+      return;
+    }
 
     this._rawTabs = props
       .map(e => ({ prop: e, symbols: Reflect.getMetadataKeys(this._ctor, e) }))
@@ -243,6 +257,38 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
     };
   }
 
+  toPageNumberTabs(
+    ctx: IContext<Context>,
+    documentId: string,
+    tabFormatter: IPageNumberFormatter,
+  ): ICompiledTemplate.PrefillTabs | undefined {
+    const { value, ...p } = tabFormatter;
+
+    if (!this._totalPage) return;
+
+    const textTabs: docusign.Text[] = [];
+
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < this._totalPage; i++) {
+      // eslint-disable-next-line no-plusplus
+      ctx.currentPage++;
+
+      textTabs.push({
+        ...p,
+        documentId,
+        value: value(ctx.currentPage, ctx.totalPage),
+        pageNumber: `${i + 1}`,
+      });
+    }
+
+    // eslint-disable-next-line consistent-return
+    return {
+      prefillTabs: {
+        textTabs,
+      },
+    };
+  }
+
   get hasPrefillTab(): boolean {
     if (this._hasPrefillTab === undefined) {
       if (this._defaultTabType === DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS) {
@@ -260,7 +306,30 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
     return this._hasPrefillTab;
   }
 
-  fromTabs(tabs: any): ICompiledTemplate.ExtractedTabValue<T> {
+  fromTabs(_tabs: any): ICompiledTemplate.ExtractedTabValue<T> {
     throw new Error('Not implemented');
+  }
+
+  get totalPage(): number {
+    return this._totalPage;
+  }
+
+  set totalPage(count: number) {
+    if (this._noPageNumber) {
+      this._totalPage = 0;
+      return;
+    }
+
+    this._totalPage = count ?? 0;
+  }
+
+  get requirePageNumber(): boolean {
+    if (this._noPageNumber) return false;
+
+    return this._totalPage === 0;
+  }
+
+  get ctor(): IClass<T> {
+    return this._ctor;
   }
 }

@@ -5,6 +5,8 @@ import { BalanceOfSystemDto } from './balance-of-system.dto';
 import { CapacityPanelArrayResDto } from './capacity-panel-array.dto';
 import { InverterDto } from './inverter.dto';
 import { StorageDto } from './storage.dto';
+import { SoftCostDto } from './soft-cost.dto';
+import { LaborCostDto } from './labor-cost.dto';
 
 export class CapacityProductionDataDto {
   @ExposeProp({
@@ -42,4 +44,16 @@ export class CapacityProductionDataDto {
     isArray: true,
   })
   ancillaryEquipments: AncillaryEquipmentDto[];
+
+  @ExposeProp({
+    type: SoftCostDto,
+    isArray: true,
+  })
+  softCosts: SoftCostDto[];
+
+  @ExposeProp({
+    type: LaborCostDto,
+    isArray: true,
+  })
+  laborCosts: LaborCostDto[];
 }

@@ -1,10 +1,10 @@
 import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException, NotFoundException } from '@nestjs/common';
-import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE } from '../constants';
-import { SaveChangeOrderReqDto } from '../req';
-import { Contract, CONTRACT } from '../contract.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
+import { CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE } from '../constants';
+import { SaveChangeOrderReqDto } from '../req';
+import { Contract, CONTRACT } from '../contract.schema';
 
 @Injectable()
 export class ChangeOrderValidationPipe implements PipeTransform<SaveChangeOrderReqDto, Promise<SaveChangeOrderReqDto>> {
@@ -47,7 +47,10 @@ export class ChangeOrderValidationPipe implements PipeTransform<SaveChangeOrderR
 
     if (
       primaryContract?.contractStatus !== PROCESS_STATUS.COMPLETED ||
-      previousChangeOrderContracts.some(contract => contract.contractStatus !== PROCESS_STATUS.COMPLETED)
+      previousChangeOrderContracts.some(
+        contract =>
+          contract.contractStatus !== PROCESS_STATUS.COMPLETED && contract.contractStatus !== PROCESS_STATUS.VOIDED,
+      )
     ) {
       throw new BadRequestException('Not qualified to create Change Order contract');
     }

@@ -8,8 +8,8 @@ interface IGenerateEPVAndGPVTableParams {
 
 export const generateEPVAndGPVTable = ({ systemProduction, quote }: IGenerateEPVAndGPVTableParams) => {
   const { generationKWh } = systemProduction;
-  const { annualDegradation, guaranteedProduction } = quote.quoteFinanceProduct.financialProductSnapshot;
-  const { leaseTerm, yearlyLeasePaymentDetails } = quote.quoteFinanceProduct.financeProduct
+  const { annualDegradation = 0, guaranteedProduction = 0 } = quote.quoteFinanceProduct.financialProductSnapshot ?? {};
+  const { leaseTerm, yearlyLeasePaymentDetails = [] } = quote.quoteFinanceProduct.financeProduct
     .productAttribute as ILeaseProductAttributes;
 
   const EPV_YLD: number[] = [generationKWh];
@@ -17,7 +17,7 @@ export const generateEPVAndGPVTable = ({ systemProduction, quote }: IGenerateEPV
 
   const GPV_YLD: number[] = [(generationKWh * guaranteedProduction) / 100];
   const GUARANTEED_PV_PRICE_PER_KWH: number[] = [
-    (yearlyLeasePaymentDetails[0].monthlyPaymentDetails[0].paymentAmount * 12) / generationKWh,
+    (yearlyLeasePaymentDetails[0]?.monthlyPaymentDetails[0]?.paymentAmount * 12) / generationKWh,
   ];
 
   for (let index = 1; index < leaseTerm; index++) {
@@ -25,7 +25,7 @@ export const generateEPVAndGPVTable = ({ systemProduction, quote }: IGenerateEPV
     EPV_YLD_CUM[index] = EPV_YLD_CUM[index - 1] + EPV_YLD[index];
     GPV_YLD[index] = (EPV_YLD[index] * guaranteedProduction) / 100;
     GUARANTEED_PV_PRICE_PER_KWH[index] =
-      (yearlyLeasePaymentDetails[index].monthlyPaymentDetails[0].paymentAmount * 12) / EPV_YLD[index];
+      (yearlyLeasePaymentDetails[index]?.monthlyPaymentDetails[0]?.paymentAmount * 12) / EPV_YLD[index];
   }
 
   return {

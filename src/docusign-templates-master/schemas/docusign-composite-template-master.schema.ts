@@ -20,6 +20,7 @@ export interface DocusignCompositeTemplateMaster extends Document {
   updatedBy: string;
   updatedAt: Date;
   filenameForDownloads?: string;
+  beginPageNumberingTemplateId: string;
 }
 
 export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<DocusignCompositeTemplateMaster>(
@@ -34,6 +35,7 @@ export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<Docusig
     applicable_utilities: [String],
     applicable_states: [String],
     applicable_system_types: [String],
+    begin_page_numbering_template_id: String,
     created_at: { type: Date, default: Date.now },
     created_by: String,
     updated_at: { type: Date, default: Date.now },
@@ -58,6 +60,7 @@ export const DocusignCompositeTemplateMasterSchema = new Schema<DocusignComposit
   applicable_utilities: [String],
   applicable_states: [String],
   applicable_system_types: [String],
+  begin_page_numbering_template_id: String,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

@@ -8,15 +8,8 @@ import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculato
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
-import {
-  ITCSchema,
-  I_T_C,
-  TaxCreditConfigSchema,
-  TAX_CREDIT_CONFIG,
-  DISCOUNTS,
-  DiscountsSchema,
-} from './schemas';
-import { CalculationService } from './sub-services';
+import { ITCSchema, I_T_C, TaxCreditConfigSchema, TAX_CREDIT_CONFIG, DISCOUNTS, DiscountsSchema } from './schemas';
+import { CalculationService, QuoteCostBuildUpService } from './sub-services';
 
 @Global()
 @Module({
@@ -43,7 +36,7 @@ import { CalculationService } from './sub-services';
     ManufacturerModule,
   ],
   controllers: [QuoteController],
-  providers: [QuoteService, CalculationService],
+  providers: [QuoteService, CalculationService, QuoteCostBuildUpService],
   exports: [QuoteService, CalculationService],
 })
-export class QuoteModule { }
+export class QuoteModule {}

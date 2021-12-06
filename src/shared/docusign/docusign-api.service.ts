@@ -1,6 +1,7 @@
+/* eslint-disable no-plusplus */
 import * as https from 'https';
 import { IncomingMessage } from 'http';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import * as docusign from 'docusign-esign';
 import { IDocusignCompositeContract } from 'src/docusign-communications/typing';
 import { ApplicationException } from 'src/app/app.exception';
@@ -12,11 +13,12 @@ import { docusignMetaStorage } from './decorators/meta-storage';
 import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
 import { IDocusignContextStore, IRecipient, TResendEnvelopeStatus } from './interfaces';
 import { ILoginAccountWithMeta } from './interfaces/ILoginAccountWithMeta';
-
 import { DocusignException } from './docusign.exception';
 import { IDefaultContractor } from './interfaces/IDefaultContractor';
+import { IPageNumberFormatter } from './interfaces/IPageNumberFormatter';
 import { IDocusignAwsSecretPayload } from './interfaces/IDocusignAwsSecretPayload';
 import { MultipartStreamBuilder } from '../multipart-builder';
+import { KEYS } from './constants';
 
 @Injectable()
 export class DocusignApiService<Context> implements OnModuleInit {
@@ -44,6 +46,8 @@ export class DocusignApiService<Context> implements OnModuleInit {
     private readonly secretManagerService: SecretManagerService,
     @InjectDocusignContext()
     private readonly contextStore: IDocusignContextStore,
+    @Inject(KEYS.PAGE_NUMBER_FORMATTER)
+    private readonly pageNumberFormatter: IPageNumberFormatter,
   ) {
     if (!process.env.DOCUSIGN_SECRET_NAME) {
       throw new Error('Missing DOCUSIGN_SECRET_NAME');
@@ -89,11 +93,14 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
   public async sendContract(
     createContractPayload: IDocusignCompositeContract,
+    pageFrom: string,
     isDraft = false,
   ): Promise<EnvelopeSummary> {
-    const status = isDraft ? 'created' : 'sent';
-
     const context = this.contextStore.get<Context>();
+
+    createContractPayload.compositeTemplates.forEach(e => {
+      e.serverTemplates.forEach(e => context.serverTemplateIds.push(e.templateId));
+    });
 
     createContractPayload.compositeTemplates.forEach(template => {
       template.inlineTemplates.forEach(inline => {
@@ -108,19 +115,29 @@ export class DocusignApiService<Context> implements OnModuleInit {
     const envelope: Record<string, any> = {
       envelopeDefinition: {
         ...createContractPayload,
-        status,
+        status: 'created',
       },
     };
 
-    if (isDraft) {
-      envelope.mergeRolesOnDraft = true;
-    }
+    envelope.mergeRolesOnDraft = true;
 
     try {
       const result = await this.envelopeApi.createEnvelope(this.accountId, envelope);
 
-      if (result.envelopeId && context.docWithPrefillTabIds.length) {
+      if (!result.envelopeId) return result;
+
+      context.envelopeId = result.envelopeId;
+
+      if (pageFrom) {
+        await this.populatePageNumber(pageFrom);
+      }
+
+      if (context.docWithPrefillTabIds.length) {
         await this.updatePrefillTabs(result.envelopeId);
+      }
+
+      if (!isDraft) {
+        await this.sendDraftEnvelop(result.envelopeId);
       }
 
       return result;
@@ -157,40 +174,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
   }
 
   public sendDraftEnvelop(envelopeId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      https
-        .request(
-          {
-            hostname: this._baseUrl.host,
-            path: `${this._baseUrl.pathname}/envelopes/${envelopeId}`,
-            headers: this._headers,
-            method: 'put',
-          },
-          res => {
-            const chunks: Buffer[] = [];
-
-            res
-              .on('data', chunk => {
-                chunks.push(chunk);
-              })
-              .on('end', () => {
-                const payload = Buffer.concat(chunks).toString('utf-8');
-
-                if (res.statusCode! >= 300) {
-                  reject(new DocusignException(new Error(payload), 'Send contract from draft error'));
-                  return;
-                }
-
-                resolve(JSON.parse(Buffer.concat(chunks).toString('utf-8')));
-              });
-          },
-        )
-        .end(
-          JSON.stringify({
-            status: 'sent',
-          }),
-        );
-    });
+    return this.updateEnvelope(envelopeId, { status: 'sent' }, 'Send contract from draft');
   }
 
   public async resendEnvelop(envelopedId: string): Promise<TResendEnvelopeStatus> {
@@ -315,17 +299,17 @@ export class DocusignApiService<Context> implements OnModuleInit {
       const docusignTabs = await this.getDocumentTabs(envelopeId, `${docId}`);
 
       const foundTemplate = docusignMetaStorage.find(e => e.id === templateId);
-
       if (!foundTemplate) {
         throw new DocusignException(undefined, `No template found with id ${templateIds[idx]}`);
       }
 
       const prefillTabs = foundTemplate.toPrefillTabs(context.genericObject, this._defaultContractor, docusignTabs);
 
-      if (!prefillTabs) return;
+      // eslint-disable-next-line no-continue
+      if (!prefillTabs || !prefillTabs.prefillTabs.textTabs.length) continue;
 
       // eslint-disable-next-line no-await-in-loop
-      await this.updateDocTabs(envelopeId, `${docId}`, prefillTabs);
+      await this.populatePrefillTabs(envelopeId, `${docId}`, prefillTabs);
     }
   }
 
@@ -373,7 +357,12 @@ export class DocusignApiService<Context> implements OnModuleInit {
           const chunks: Buffer[] = [];
 
           if (res.statusCode !== 200) {
-            reject(new Error('error'));
+            reject(
+              new DocusignException(
+                undefined,
+                `Can not get document tabs fro envelopeId ${envelopeId}, docId ${docId}`,
+              ),
+            );
             res.destroy();
             return;
           }
@@ -393,7 +382,21 @@ export class DocusignApiService<Context> implements OnModuleInit {
     });
   }
 
-  private updateDocTabs(envelopeId: string, docId: string, value: any): Promise<void> {
+  public async voidEnvelope(envelopeId: string): Promise<docusign.EnvelopeUpdateSummary> {
+    const result = await this.updateEnvelope(
+      envelopeId,
+      { status: 'voided', voidedReason: 'Agent cancelled' },
+      'Void contract',
+    );
+    return result;
+  }
+
+  private populatePrefillTabs(
+    envelopeId: string,
+    docId: string,
+    value: any,
+    mode: 'update' | 'create' = 'update',
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       https
         .request(
@@ -401,33 +404,40 @@ export class DocusignApiService<Context> implements OnModuleInit {
             hostname: this._baseUrl.host,
             path: `${this._baseUrl.pathname}/envelopes/${envelopeId}/documents/${docId}/tabs`,
             headers: this._headers,
-            method: 'put',
+            method: mode === 'update' ? 'put' : 'post',
           },
           res => {
-            if (res.statusCode !== 200) {
-              const chunks: Buffer[] = [];
+            if (res.statusCode === 200 || res.statusCode === 201) {
+              resolve();
 
-              res
-                .on('data', c => {
-                  chunks.push(c);
-                })
-                .on('end', () => {
-                  const errorPayload = Buffer.concat(chunks).toString('utf-8');
-
-                  reject(
-                    new DocusignException(
-                      new Error(errorPayload),
-                      `Cannot update prefill tabs for envelope ${envelopeId} - document ${docId}`,
-                    ),
-                  );
-                })
-                .on('error', e => {
-                  reject(new DocusignException(e, 'Docusign update doc tab api error'));
-                });
+              res.destroy();
               return;
             }
 
-            resolve();
+            const chunks: Buffer[] = [];
+
+            res
+              .on('data', c => {
+                chunks.push(c);
+              })
+              .on('end', () => {
+                const errorPayload = Buffer.concat(chunks).toString('utf-8');
+                console.error(
+                  '🚀 ~ file: docusign-api.service.ts ~ line 340 ~ DocusignApiService<Context> ~ .on ~ errorPayload',
+                  mode,
+                  errorPayload,
+                );
+
+                reject(
+                  new DocusignException(
+                    new Error(errorPayload),
+                    `Cannot ${mode} prefill tabs for envelope ${envelopeId} - document ${docId}`,
+                  ),
+                );
+              })
+              .on('error', e => {
+                reject(new DocusignException(e, `Docusign ${mode} doc tab api error`));
+              });
           },
         )
         .end(JSON.stringify(value));
@@ -469,5 +479,150 @@ export class DocusignApiService<Context> implements OnModuleInit {
         headers: this._headers,
       }
     );
+  }
+
+  private async populatePageNumber(pageFrom: string): Promise<void> {
+    const ctx = this.contextStore.get<Context>();
+
+    if (!ctx.serverTemplateIds.length || !ctx.envelopeId) return;
+
+    const templatesWithPageNumber: ICompiledTemplate<unknown, Context>[] = [];
+
+    const startIdx = ctx.serverTemplateIds.findIndex(e => e === pageFrom);
+
+    if (startIdx === -1) return;
+
+    const templateIds = ctx.serverTemplateIds.slice(startIdx);
+
+    /**
+     * Must call create tabs one by one due to docusign envelope lock mechanism
+     */
+    for (let i = 0; i < templateIds.length; i++) {
+      const templateId = templateIds[i];
+      const template = docusignMetaStorage.find(e => e.id === templateId);
+
+      if (!template) {
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      if (template.requirePageNumber) {
+        // eslint-disable-next-line no-await-in-loop
+        const totalPage = await this.getTemplatePagesCount(templateId);
+
+        template.totalPage = totalPage;
+      }
+
+      if (template.totalPage) {
+        templatesWithPageNumber.push(template);
+      }
+    }
+
+    ctx.totalPage = templatesWithPageNumber.reduce((acc, cur) => acc + cur.totalPage, 0);
+
+    for (let i = 0; i < templatesWithPageNumber.length; i++) {
+      const docId = ctx.serverTemplateIds.findIndex(e => e === templatesWithPageNumber[i].id) + 1;
+
+      const template = templatesWithPageNumber[i];
+      const pageNumberTabs = template.toPageNumberTabs(ctx, `${docId}`, this.pageNumberFormatter);
+
+      // eslint-disable-next-line no-await-in-loop
+      await this.populatePrefillTabs(ctx.envelopeId, `${docId}`, pageNumberTabs, 'create');
+    }
+  }
+
+  private async getTemplatePagesCount(templateId: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const ctx = this.contextStore.get<Context>();
+
+      const { envelopeId } = ctx;
+
+      if (!envelopeId) {
+        reject(
+          new DocusignException(
+            new Error('Missing envelopeId'),
+            'Unexpected call get template documents in non-allowed context',
+          ),
+        );
+      }
+
+      const templateIdx = ctx.serverTemplateIds.findIndex(e => e === templateId);
+
+      const docId = `${templateIdx + 1}`;
+
+      if (ctx.templatePages) {
+        resolve(ctx.templatePages[templateIdx]);
+        return;
+      }
+
+      https.get(
+        {
+          hostname: this._baseUrl.host,
+          path: `${this._baseUrl.pathname}/envelopes/${envelopeId}/documents`,
+          headers: this._headers,
+        },
+        res => {
+          if (res.statusCode !== 200) {
+            res.destroy();
+
+            reject(new DocusignException(undefined, `No envelope found with id ${envelopeId}`));
+
+            return;
+          }
+
+          const chunks: Buffer[] = [];
+
+          res
+            .on('data', chunk => {
+              chunks.push(chunk);
+            })
+            .on('error', e => {
+              reject(new DocusignException(e));
+            })
+            .on('end', () => {
+              const payload = Buffer.concat(chunks).toString('utf-8');
+
+              const json = JSON.parse(payload);
+
+              ctx.templatePages = json?.envelopeDocuments?.map((e: any) => e.pages?.length ?? 0) ?? [];
+
+              resolve(json.envelopeDocuments.find((e: any) => e.documentId === docId).pages.length);
+            });
+        },
+      );
+    });
+  }
+
+  private updateEnvelope(envelopeId: string, payload: Record<string, unknown>, errorTitle: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      https
+        .request(
+          {
+            hostname: this._baseUrl.host,
+            path: `${this._baseUrl.pathname}/envelopes/${envelopeId}`,
+            headers: this._headers,
+            method: 'put',
+          },
+          res => {
+            const chunks: Buffer[] = [];
+
+            res
+              .on('data', chunk => {
+                chunks.push(chunk);
+              })
+              .on('end', () => {
+                const payload = Buffer.concat(chunks).toString('utf-8');
+
+                if (res.statusCode! >= 300) {
+                  reject(new DocusignException(new Error(payload), `${errorTitle} error`));
+                  return;
+                }
+
+                resolve(JSON.parse(Buffer.concat(chunks).toString('utf-8')));
+              });
+          },
+        )
+        .end(JSON.stringify(payload));
+    });
   }
 }

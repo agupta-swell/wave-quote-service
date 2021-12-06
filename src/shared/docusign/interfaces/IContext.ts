@@ -20,4 +20,14 @@ export interface IContext<T extends IIndexable> {
       prefillTabs?: ICompiledTemplate.PrefillTabs['prefillTabs'];
     }
   >;
+
+  serverTemplateIds: string[];
+
+  currentPage: number;
+
+  totalPage: number;
+
+  envelopeId?: string;
+
+  templatePages?: number[];
 }

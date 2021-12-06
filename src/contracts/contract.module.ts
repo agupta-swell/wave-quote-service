@@ -5,12 +5,12 @@ import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { USER, UserSchema } from 'src/users/user.schema';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
-import { ContractController } from './contract.controller';
-import { CONTRACT, ContractSchema } from './contract.schema';
-import { ContractService } from './contract.service';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { DocusignApiModule } from 'src/shared/docusign';
+import { ContractController } from './contract.controller';
+import { CONTRACT, ContractSchema } from './contract.schema';
+import { ContractService } from './contract.service';
 
 @Global()
 @Module({
@@ -30,7 +30,7 @@ import { DocusignApiModule } from 'src/shared/docusign';
     GsProgramsModule,
     FinancialProductsModule,
     InstalledProductModule,
-    DocusignApiModule,
+    DocusignApiModule.forContext()
   ],
   controllers: [ContractController],
   providers: [ContractService],

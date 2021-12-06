@@ -9,7 +9,7 @@ import {
   TabValue,
 } from 'src/shared/docusign';
 
-@DocusignTemplate('demo', 'c69d696b-5a47-4528-a921-6f84416fcf94')
+@DocusignTemplate('demo', '92120f0d-1839-471e-b3b6-f37afb8c721b')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
 export class ParticipationPRP2ACESEsaTemplate {

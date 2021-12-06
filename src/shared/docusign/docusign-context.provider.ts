@@ -17,7 +17,16 @@ export class DocusignContextProvider implements IDocusignContextStore, IDocusign
 
   run(cb: () => void) {
     this._als.run(
-      { genericObject: {}, compiledTemplates: {}, buildTime: 0, docWithPrefillTabIds: [], templateIds: [] },
+      {
+        genericObject: {},
+        compiledTemplates: {},
+        buildTime: 0,
+        docWithPrefillTabIds: [],
+        templateIds: [],
+        currentPage: 0,
+        totalPage: 0,
+        serverTemplateIds: [],
+      },
       cb,
     );
   }

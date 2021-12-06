@@ -8,3 +8,4 @@ export * from './module.interface';
 export * from './pricing.interface';
 export * from './product.interface';
 export * from './rating.interface';
+export * from './soft-cost.interface';

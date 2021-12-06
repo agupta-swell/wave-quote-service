@@ -20,6 +20,7 @@ export class DummyChangeOrderTemplate {
   financierTitle: string;
 
   @TabValue<IGenericObject>(({ contract }) => 'Change Order description:\n' + (contract!.changeOrderDescription ?? ''))
+  @TabLabel('ChangeOrderDescription')
   changeOrderDescription: string;
 
   @TabLabel('PV_KW')

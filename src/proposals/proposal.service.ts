@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
-import { identity, pickBy, sumBy, uniq } from 'lodash';
+import { identity, pickBy, uniq } from 'lodash';
 import { ObjectId, LeanDocument, Model, Types } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
@@ -506,9 +506,7 @@ export class ProposalService {
     const compositeTemplateIds = uniq(templateDetails.map(e => e.compositeTemplateId));
 
     const compositeTemplates = await Promise.all(
-      compositeTemplateIds.map(async e => {
-        return this.docusignTemplateMasterService.getTemplateIdsInCompositeTemplate(e);
-      }),
+      compositeTemplateIds.map(async e => this.docusignTemplateMasterService.getTemplateIdsInCompositeTemplate(e)),
     );
 
     const templateDetailsData = await Promise.all(
@@ -527,6 +525,8 @@ export class ProposalService {
       templateDetailsData,
       signerDetails,
       genericObject,
+      compositeTemplates.find(e => e.templates.includes(templateDetailsData[0].id.toString()))
+        ?.beginPageNumberingTemplateId ?? '',
       true,
     );
 
@@ -567,7 +567,7 @@ export class ProposalService {
       });
     } catch (err) {
       // TODO use Logger
-      console.log('s3 upload error', err);
+      console.error('s3 upload error', err);
       throw ApplicationException.ServiceError();
     }
   }
@@ -605,7 +605,7 @@ export class ProposalService {
   ): Promise<ManagedUpload.SendData> {
     return new Promise((resolve, reject) => {
       doc.pipe(
-        this.s3Service.putStream(fileName, this.BUCKET_NAME, 'application/pdf', 'public-read', rootDir, (err, data) => {
+        this.s3Service.putStream(fileName, this.BUCKET_NAME, 'application/pdf', '', rootDir, (err, data) => {
           if (err) {
             return reject(err);
           }

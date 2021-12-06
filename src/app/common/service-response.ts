@@ -23,7 +23,7 @@ export class ServiceResponse<T = any> {
     }
 
     return new ServiceResponse({
-      data: result.data,
+      data: result.data!,
       status: 'OK',
     });
   }

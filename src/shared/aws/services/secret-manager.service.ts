@@ -21,6 +21,6 @@ export class SecretManagerService {
       return Buffer.from(res.SecretBinary.toString(), 'base64').toString('ascii');
     }
 
-    throw('Invalid secret response')
+    throw new Error('Invalid secret response');
   }
 }

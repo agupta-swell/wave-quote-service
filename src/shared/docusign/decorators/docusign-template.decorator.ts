@@ -10,7 +10,7 @@ import { registerTemplate } from './meta-storage';
  * @returns
  */
 export const DocusignTemplate = (env: string, uuid: string): ClassDecorator => target =>
-  registerTemplate(target, env, uuid);
+  registerTemplate(target as any, env, uuid);
 
 /**
  * Set default tab type for all properties
@@ -34,5 +34,5 @@ export const DefaultTabType = (tabType: DOCUSIGN_TAB_TYPE): ClassDecorator => ta
  * @returns
  */
 export const DefaultTabTransformation = (
-  strategy: 'snake_case' | 'upper_case' | 'pascal_case' | ((prop: string) => string),
+  strategy: 'snake_case' | 'upper_snake_case' | 'pascal_case' | ((prop: string) => string),
 ): ClassDecorator => target => Reflect.defineMetadata(KEYS.DEFAULT_TAB_STRATEGY, strategy, target);

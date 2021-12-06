@@ -17,6 +17,7 @@ export enum PROCESS_STATUS {
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
   DRAFT = 'DRAFT',
+  VOIDED = 'VOIDED'
 }
 
 export enum REQUEST_MODE {

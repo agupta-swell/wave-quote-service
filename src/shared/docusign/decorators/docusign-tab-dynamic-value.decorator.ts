@@ -6,5 +6,5 @@ import { registerTab } from './meta-storage';
 export function TabDynamic<T>(
   tabValue: (ctx: T, defaultContractor: IDefaultContractor) => IDynamicRawTab[] | Record<string, unknown>,
 ): PropertyDecorator {
-  return (target, prop: string) => registerTab(DOCUSIGN_TAB_META.TAB_DYNAMIC, tabValue, prop, target);
+  return (target, prop: string) => registerTab(DOCUSIGN_TAB_META.TAB_DYNAMIC, tabValue, prop, target as any);
 }

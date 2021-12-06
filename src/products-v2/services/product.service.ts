@@ -34,10 +34,6 @@ export class ProductService {
   }
 
   async saveInsertionRule(id: ObjectId, req: SaveInsertionRuleReq): Promise<OperationResult<ProductResDto>> {
-    const updatedProduct = await this.productModel
-      .findByIdAndUpdate(id, { insertionRule: req.insertionRule! }, { new: true })
-      .lean();
-
     const foundProduct = await this.productModel.findOne({ _id: id });
 
     if (!foundProduct) {
@@ -45,15 +41,16 @@ export class ProductService {
     }
 
     if (
-      foundProduct.type !== PRODUCT_TYPE.ANCILLARY_EQUIPMENT &&
-      foundProduct.type !== PRODUCT_TYPE.BALANCE_OF_SYSTEM
+      ![PRODUCT_TYPE.ANCILLARY_EQUIPMENT, PRODUCT_TYPE.BALANCE_OF_SYSTEM, PRODUCT_TYPE.SOFT_COST, PRODUCT_TYPE.LABOR].includes(
+        foundProduct.type,
+      )
     ) {
-      throw new BadRequestException('Only ancillary equipment or balance of system product is allowed');
+      throw new BadRequestException('Only ancillary equipment/balance of system/soft cost/labor product is allowed');
     }
 
-    const mappedProduct = this.extractType<PRODUCT_TYPE.ANCILLARY_EQUIPMENT | PRODUCT_TYPE.BALANCE_OF_SYSTEM>(
-      foundProduct,
-    );
+    const mappedProduct = this.extractType<
+      PRODUCT_TYPE.ANCILLARY_EQUIPMENT | PRODUCT_TYPE.BALANCE_OF_SYSTEM | PRODUCT_TYPE.SOFT_COST | PRODUCT_TYPE.LABOR
+    >(foundProduct);
 
     mappedProduct.insertionRule = req.insertionRule;
 
@@ -141,7 +138,7 @@ export class ProductService {
     const model = await this.productModel.findOneAndUpdate(
       {
         _id: typeof id === 'string' ? new Types.ObjectId(id) : id,
-        type: type,
+        type,
       },
       update as any,
       { new: true },
@@ -155,18 +152,22 @@ export class ProductService {
   }
 
   private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct[]): IProductDocument<T>[];
+
   private extractType<T extends PRODUCT_TYPE>(product: IUnknownProduct): IProductDocument<T>;
-  private extractType<T extends PRODUCT_TYPE>(product: any): any {
+
+  private extractType(product: any): any {
     return product;
   }
 
   private extractLeanType<T extends PRODUCT_TYPE>(
     product: LeanDocument<IUnknownProduct>[],
   ): LeanDocument<IProductDocument<T>>[];
+
   private extractLeanType<T extends PRODUCT_TYPE>(
     product: LeanDocument<IUnknownProduct>,
   ): LeanDocument<IProductDocument<T>>;
-  private extractLeanType<T extends PRODUCT_TYPE>(product: any): any {
+
+  private extractLeanType(product: any): any {
     return product;
   }
 }

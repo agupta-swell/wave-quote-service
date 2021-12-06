@@ -202,6 +202,10 @@ export class ContractService {
       throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
     }
 
+    if (contract.contractStatus === PROCESS_STATUS.VOIDED) {
+      throw new BadRequestException('This contract has been voided');
+    }
+
     if (contract.contractStatus === PROCESS_STATUS.DRAFT) {
       if (isDraft) throw new BadRequestException('This contract preview has already been generated');
 
@@ -240,13 +244,14 @@ export class ContractService {
 
     const fundingSourceType = quote.detailedQuote.quoteFinanceProduct.financeProduct.productType;
 
-    const [customerPayment, utilityName, roofTopDesign, systemDesign] = await Promise.all([
+    const [customerPayment, utilityName, roofTopDesign, systemDesign, utilityUsageDetails] = await Promise.all([
       this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunityId),
       this.utilityService.getUtilityName(opportunity.utilityId),
       this.systemDesignService.getRoofTopDesignById(
         contract.contractType === CONTRACT_TYPE.NO_COST_CHANGE_ORDER ? contract.systemDesignId : quote.systemDesignId,
       ),
       this.systemDesignService.getOneById(quote.systemDesignId),
+      this.utilityService.getUtilityByOpportunityId(opportunity._id),
     ]);
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
@@ -288,6 +293,7 @@ export class ContractService {
       financialProduct,
       contract,
       systemDesign: systemDesign!,
+      utilityUsageDetails: utilityUsageDetails!,
     };
 
     const sentOn = new Date();
@@ -297,6 +303,7 @@ export class ContractService {
       contract.contractTemplateDetail.templateDetails,
       contract.signerDetails,
       genericObject,
+      contract.contractTemplateDetail.compositeTemplateData.beginPageNumberingTemplateId,
       isDraft,
     );
 
@@ -570,7 +577,11 @@ export class ContractService {
     const foundContract = await this.getOneByContractId(contractId);
 
     if (foundContract.contractingSystem !== 'DOCUSIGN' || !foundContract.contractingSystemReferenceId) {
-      throw new BadRequestException('This contract is not allowed to be resent');
+      throw new BadRequestException('This contract is not allowed to resend');
+    }
+
+    if (foundContract.contractStatus === PROCESS_STATUS.VOIDED) {
+      throw new BadRequestException('This contract is not allowed to resend');
     }
 
     const res = await this.docusignCommunicationService.resendContract(foundContract.contractingSystemReferenceId);
@@ -729,5 +740,34 @@ export class ContractService {
         newlyUpdatedContract: contract.toJSON(),
       }),
     );
+  }
+
+  public async voidContract(contract: Pick<Contract, '_id' | 'contractingSystemReferenceId'>): Promise<void> {
+    try {
+      if (contract?.contractingSystemReferenceId) {
+        await this.docusignCommunicationService.voidEnvelope(contract.contractingSystemReferenceId);
+      }
+    } catch (error) {
+      console.error(
+        'Failed to void contract',
+        contract._id.toString(),
+        'envelope id',
+        contract.contractingSystemReferenceId,
+        error,
+      );
+    }
+
+    await this.contractModel.updateOne({ _id: contract._id }, { $set: { contractStatus: PROCESS_STATUS.VOIDED } });
+  }
+
+  public async getCOContractsByPrimaryContractId(primaryContractId: string): Promise<LeanDocument<Contract>[]> {
+    const contracts = await this.contractModel.find({
+      primaryContractId,
+      contractType: {
+        $ne: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
+      },
+    });
+
+    return contracts;
   }
 }

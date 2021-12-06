@@ -1,42 +1,39 @@
 import * as crypto from 'crypto';
 import { DOCUSIGN_TAB_META, KEYS } from '../constants';
+import { IClass } from '../interfaces/IClass';
 import { ICompiledTemplate } from '../interfaces/ICompiledTemplate';
 import { IMetaTemplate } from '../interfaces/IMetaTemplate';
 import { TemplateCompiler } from '../TemplateCompiler';
 
 export const docusignMetaStorage: Array<ICompiledTemplate<unknown, unknown>> = [];
 
-export const registerTemplate = (target: Function, env: string, id: string) => {
+export const registerTemplate = (target: IClass<any>, env: string, id: string) => {
   const meta: IMetaTemplate[] | undefined = Reflect.getMetadata(KEYS.META, target);
 
-  if (!meta) {
-    const refId = crypto.randomBytes(4).toString('hex');
+  if (meta) {
+    const refId = Reflect.getMetadata('docusign:template:classRefId', target);
 
-    Reflect.defineMetadata('docusign:template:classRefId', refId, target);
+    const existTemplate = docusignMetaStorage.find(e => e.refId === refId);
 
-    Reflect.defineMetadata(KEYS.META, [{ env, id }], target);
+    if (!existTemplate) throw new Error(`No compiled template with classId ${refId}`);
 
-    docusignMetaStorage.push(new TemplateCompiler(target as any));
-
-    return;
+    if (existTemplate.ctor === target) {
+      meta.push({ env, id });
+      existTemplate.refresh();
+      return;
+    }
   }
+  const refId = crypto.randomBytes(4).toString('hex');
 
-  meta.push({
-    env,
-    id,
-  });
+  Reflect.defineMetadata('docusign:template:classRefId', refId, target);
 
-  const refId = Reflect.getMetadata('docusign:template:classRefId', target);
+  Reflect.defineMetadata(KEYS.META, [{ env, id }], target);
 
-  const existTemplate = docusignMetaStorage.find(e => e.refId === refId);
-
-  if (existTemplate) {
-    existTemplate.refresh();
-  }
+  docusignMetaStorage.push(new TemplateCompiler(target));
 };
 
-export const registerTab = (type: DOCUSIGN_TAB_META, value: any, prop: string, target: Object) => {
-  let metaKey: Symbol;
+export const registerTab = (type: DOCUSIGN_TAB_META, value: any, prop: string, target: Record<string, unknown>) => {
+  let metaKey: symbol;
 
   switch (type) {
     case DOCUSIGN_TAB_META.TAB_DYNAMIC:
