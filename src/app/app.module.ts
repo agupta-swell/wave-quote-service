@@ -40,6 +40,7 @@ import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculato
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 import { DocusignApiModule } from 'src/shared/docusign';
+import { DiscountModule } from 'src/discounts/discount.module';
 import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
@@ -100,6 +101,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     InstalledProductModule,
     HealthcheckModule,
     DocusignApiModule,
+    DiscountModule,
   ],
 })
 export class AppModule {}

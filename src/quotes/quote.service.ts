@@ -2,7 +2,7 @@
 /* eslint-disable no-return-assign */
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { differenceBy, groupBy, isNil, omit, omitBy, pickBy, sum, sumBy, uniq } from 'lodash';
+import { isNil, omit, omitBy, pickBy, sum, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
@@ -21,11 +21,12 @@ import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculat
 import { UtilityService } from 'src/utilities/utility.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
+import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { FINANCE_PRODUCT_TYPE, PROJECT_DISCOUNT_UNITS, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
+import { FINANCE_PRODUCT_TYPE, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import {
   IDetailedQuoteSchema,
   IRebateDetailsSchema,
@@ -44,20 +45,18 @@ import {
   LoanProductAttributesDto,
   QuoteFinanceProductDto,
   UpdateQuoteDto,
+  UpdateLatestQuoteDto,
 } from './req';
-import { DiscountsDto, QuoteDto, TaxCreditDto } from './res';
-import { DISCOUNTS, ITC, I_T_C, TaxCreditConfig, TAX_CREDIT_CONFIG } from './schemas';
-import { Discounts } from './schemas/discounts.schema';
-import { CalculationService } from './sub-services/calculation.service';
-import { QuoteCostBuildUpService } from './sub-services';
+import { QuoteDto, TaxCreditDto } from './res';
+import { ITC, I_T_C, TaxCreditConfig, TAX_CREDIT_CONFIG } from './schemas';
+import { QuoteCostBuildUpService, CalculationService, QuoteFinanceProductService } from './sub-services';
 import { IQuoteCostBuildup } from './interfaces';
-import { SystemDesign } from 'src/system-designs/system-design.schema';
+import { DiscountService } from 'src/discounts/discount.service';
 
 @Injectable()
 export class QuoteService {
   constructor(
     @InjectModel(QUOTE) private readonly quoteModel: Model<Quote>,
-    @InjectModel(DISCOUNTS) private readonly discountsModel: Model<Discounts>,
     @InjectModel(TAX_CREDIT_CONFIG) private readonly taxCreditConfigModel: Model<TaxCreditConfig>,
     @InjectModel(I_T_C) private readonly iTCModel: Model<ITC>,
     @Inject(forwardRef(() => SystemDesignService))
@@ -82,6 +81,7 @@ export class QuoteService {
     private readonly opportunityService: OpportunityService,
     private readonly manufacturerService: ManufacturerService,
     private readonly quoteCostBuildUpService: QuoteCostBuildUpService,
+    private readonly quoteFinanceProductService: QuoteFinanceProductService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -236,6 +236,12 @@ export class QuoteService {
 
     const newDoc = omit(foundQuote, ['_id', 'createdAt', 'updatedAt']);
 
+    const validDiscounts = newDoc.detailedQuote.quoteFinanceProduct.projectDiscountDetails.filter(
+      DiscountService.validate,
+    );
+
+    newDoc.detailedQuote.quoteFinanceProduct.projectDiscountDetails = validDiscounts;
+
     const model = new this.quoteModel(newDoc);
 
     const originQuoteName = foundQuote.detailedQuote.quoteName.replace(/\s\([0-9]*(\)$)/, '');
@@ -273,8 +279,6 @@ export class QuoteService {
     }
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create(foundSystemDesign.roofTopDesignData, markupConfig);
-
-    model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
 
     const { financeProduct, financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct;
 
@@ -364,6 +368,18 @@ export class QuoteService {
     });
 
     model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
+
+    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
+      model.detailedQuote.quoteFinanceProduct,
+    );
+
+    model.detailedQuote.quoteCostBuildup.projectSubtotal4 = this.quoteCostBuildUpService.calculateProjectSubtotal4(
+      model.detailedQuote.quoteCostBuildup.projectSubtotal3,
+      totalPercentageReduction,
+      totalAmountReduction,
+    );
+
+    model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
 
     assignToModel(
       model.detailedQuote.quoteFinanceProduct,
@@ -466,7 +482,7 @@ export class QuoteService {
     }
   }
 
-  async updateLatestQuote(data: CreateQuoteDto, quoteId: string): Promise<OperationResult<QuoteDto>> {
+  async updateLatestQuote(data: UpdateLatestQuoteDto, quoteId: string): Promise<OperationResult<QuoteDto>> {
     const isInUsed = await this.checkInUsed(quoteId);
 
     if (isInUsed) {
@@ -584,7 +600,7 @@ export class QuoteService {
         netAmount: quoteCostBuildup.grossPrice,
         incentiveDetails,
         rebateDetails,
-        projectDiscountDetails,
+        projectDiscountDetails: data.quoteFinanceProduct.projectDiscountDetails,
       },
       savingsDetails: [],
       quoteName: foundQuote.detailedQuote.quoteName,
@@ -705,6 +721,8 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
+    const quoteConfigData = await this.opportunityService.getPartnerConfigFromOppId(data.opportunityId);
+
     const taxCreditData = data.taxCreditData?.length
       ? await this.taxCreditConfigModel
           .find({
@@ -727,6 +745,28 @@ export class QuoteService {
       isRetrofit: systemDesign.isRetrofit,
       taxCreditData: taxCreditData as unknown,
     };
+
+    detailedQuote.quoteFinanceProduct.projectDiscountDetails = data.quoteFinanceProduct.projectDiscountDetails;
+
+    const quoteCostBuildUp = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quoteConfigData);
+
+    detailedQuote.quoteCostBuildup = quoteCostBuildUp;
+
+    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
+      detailedQuote.quoteFinanceProduct,
+    );
+
+    detailedQuote.quoteCostBuildup.projectSubtotal4 = this.quoteCostBuildUpService.calculateProjectSubtotal4(
+      quoteCostBuildUp.projectSubtotal3,
+      totalPercentageReduction,
+      totalAmountReduction,
+    );
+
+    detailedQuote.quoteFinanceProduct.netAmount = this.quoteFinanceProductService.calculateNetAmount(
+      quoteCostBuildUp.grossPrice,
+      totalPercentageReduction,
+      totalAmountReduction,
+    );
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
 
@@ -903,21 +943,6 @@ export class QuoteService {
     return quote;
   }
 
-  groupData(data: any[], field: string): any {
-    const groupByField = groupBy(data, item => item[field]);
-    return Object.keys(groupByField).reduce(
-      (acc, item) => [
-        ...acc,
-        {
-          ...groupByField[item]?.[0],
-          quantity: sumBy(groupByField[item], (i: any) => i.quantity),
-          cost: sumBy(groupByField[item], (i: any) => i.cost),
-        },
-      ],
-      [],
-    );
-  }
-
   async setOutdatedData(opportunityId: string, outdatedMessage: string, systemDesignId?: string): Promise<void> {
     const query: Record<string, unknown> = { opportunityId };
 
@@ -935,18 +960,6 @@ export class QuoteService {
     );
   }
 
-  // private getSubcontractorMarkup(
-  //   productType: COMPONENT_TYPE,
-  //   productCategory: PRODUCT_CATEGORY_TYPE,
-  //   // quoteMarkupConfigs: LeanDocument<QuoteMarkupConfig>[],
-  // ): number {
-  //   // const found = quoteMarkupConfigs.find(
-  //   //   item => item.productType === productType && item.productCategory === productCategory,
-  //   // );
-  //   // return found?.subcontractorMarkup ?? 0;
-  //   return 0;
-  // }
-
   handleUpdateQuoteFinanceProduct(
     quoteFinanceProduct: QuoteFinanceProductDto,
     quoteCostBuildup: IQuoteCostBuildup,
@@ -954,21 +967,16 @@ export class QuoteService {
   ): QuoteFinanceProductDto {
     const grossPrice = projectGrossPrice ?? quoteCostBuildup.grossPrice;
 
-    const { incentiveDetails, projectDiscountDetails, rebateDetails } = quoteFinanceProduct;
-
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
-    const incentiveAmount = incentiveDetails.reduce((acc, item) => (acc += item.amount), 0);
 
-    const rebateAmount = rebateDetails.reduce((accu, item) => (accu += item.amount), 0);
+    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
+      quoteFinanceProduct,
+    );
 
-    const projectDiscountAmount = projectDiscountDetails.reduce((accu, item) => {
-      if (item.type === PROJECT_DISCOUNT_UNITS.AMOUNT) return (accu += item.amount);
-      return (accu += roundNumber((item.amount * grossPrice) / 100, 2));
-    }, 0);
-
-    newQuoteFinanceProduct.netAmount = roundNumber(
-      grossPrice - incentiveAmount - rebateAmount - projectDiscountAmount,
-      2,
+    newQuoteFinanceProduct.netAmount = this.quoteFinanceProductService.calculateNetAmount(
+      grossPrice,
+      totalPercentageReduction,
+      totalAmountReduction,
     );
     newQuoteFinanceProduct.financeProduct.productAttribute = this.handleUpdateProductAttribute(newQuoteFinanceProduct);
 
@@ -1012,42 +1020,6 @@ export class QuoteService {
     return counter;
   }
 
-  async getDiscounts(): Promise<OperationResult<Pagination<DiscountsDto>>> {
-    const data = await this.discountsModel.find().lean();
-    if (!data.length) {
-      return OperationResult.ok(new Pagination({ total: 0, data: [] }));
-      // throw ApplicationException.EntityNotFound();
-    }
-    const toDay = new Date().getTime();
-    const activeDiscounts = data.filter(discount => {
-      const startDate = discount.startDate ? new Date(discount.startDate).getTime() : null;
-      const endDate = discount.endDate ? new Date(discount.endDate).getTime() : null;
-      if (!startDate && !endDate) {
-        // today
-        return true;
-      }
-      if (!startDate && endDate) {
-        // only month of End Date
-        return toDay <= endDate;
-      }
-      if (startDate && !endDate) {
-        return startDate <= toDay;
-      }
-      return (startDate as any) <= toDay && toDay <= (endDate as any);
-    });
-
-    const quote = await this.quoteModel.find({}, { 'detailedQuote.quoteFinanceProduct.projectDiscountDetails': 1 });
-    const usedDiscounts: any = quote.reduce((acc, cur): any => {
-      const { projectDiscountDetails } = cur.detailedQuote.quoteFinanceProduct;
-      acc = [...acc, ...projectDiscountDetails] as any;
-      return acc;
-    }, []);
-
-    const result = differenceBy(activeDiscounts, usedDiscounts, '_id');
-
-    return OperationResult.ok(new Pagination({ total: result.length, data: strictPlainToClass(DiscountsDto, result) }));
-  }
-
   async createRebateDetails(
     opportunityId: string,
     grossPrice: number,
@@ -1080,7 +1052,7 @@ export class QuoteService {
 
       rebateDetails.push({
         amount: 0,
-        type: rebateProgram.name,
+        type: <any>rebateProgram.name,
         description: '',
         isFloatRebate:
           !existingRebateDetails?.length && rebateProgram.name === REBATE_TYPE.SGIP ? false : isFloatRebate,

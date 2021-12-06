@@ -5,11 +5,12 @@ import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
+import { DiscountModule } from 'src/discounts/discount.module';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
-import { ITCSchema, I_T_C, TaxCreditConfigSchema, TAX_CREDIT_CONFIG, DISCOUNTS, DiscountsSchema } from './schemas';
-import { CalculationService, QuoteCostBuildUpService } from './sub-services';
+import { ITCSchema, I_T_C, TaxCreditConfigSchema, TAX_CREDIT_CONFIG } from './schemas';
+import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
 
 @Global()
 @Module({
@@ -25,18 +26,14 @@ import { CalculationService, QuoteCostBuildUpService } from './sub-services';
         collection: 'v2_tax_credit_configs',
       },
       { name: I_T_C, schema: ITCSchema, collection: 'v2_itc' },
-      {
-        name: DISCOUNTS,
-        schema: DiscountsSchema,
-        collection: 'v2_discounts',
-      },
     ]),
     FinancialProductsModule,
     SavingsCalculatorModule,
     ManufacturerModule,
+    DiscountModule,
   ],
   controllers: [QuoteController],
-  providers: [QuoteService, CalculationService, QuoteCostBuildUpService],
+  providers: [QuoteService, CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService],
   exports: [QuoteService, CalculationService],
 })
 export class QuoteModule {}

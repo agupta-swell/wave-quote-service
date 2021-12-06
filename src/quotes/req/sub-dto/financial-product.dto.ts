@@ -23,8 +23,6 @@ export class FinanceProductDetailDto {
   name: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   fundId: string;
 
   @ApiProperty()

@@ -2,6 +2,7 @@ import { ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { REBATE_TYPE } from 'src/quotes/constants';
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
+import { DiscountResDto } from 'src/discounts/dto';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FinanceProductDetailDto } from './financial-product.dto';
 
@@ -86,41 +87,6 @@ export class FinanceProductDto {
   financialProductSnapshot: FinanceProductDetailDto;
 }
 
-export class ProjectDiscountDetailDto {
-  @ExposeAndMap({}, ({ obj }) => obj.id || obj._id || obj.discountId)
-  id: string;
-
-  @ExposeProp()
-  discountId: string;
-
-  @ExposeProp()
-  name: string;
-
-  @ExposeProp()
-  amount: number;
-
-  @ExposeProp()
-  type: string;
-
-  @ExposeProp()
-  startDate: Date;
-
-  @ExposeProp()
-  endDate: Date;
-
-  @ExposeProp()
-  description: string;
-
-  @ExposeProp()
-  excludeAdders: boolean;
-
-  @ExposeProp()
-  unit: string;
-
-  @ExposeProp()
-  unitValue: number;
-}
-
 export class QuoteFinanceProductDto {
   @ExposeProp({ type: IncentiveDetailsDto, isArray: true })
   incentiveDetails: IncentiveDetailsDto[];
@@ -134,6 +100,6 @@ export class QuoteFinanceProductDto {
   @ExposeProp()
   netAmount: number;
 
-  @ExposeProp({ type: ProjectDiscountDetailDto, isArray: true })
-  projectDiscountDetails: ProjectDiscountDetailDto[];
+  @ExposeProp({ type: DiscountResDto, isArray: true })
+  projectDiscountDetails: DiscountResDto[];
 }

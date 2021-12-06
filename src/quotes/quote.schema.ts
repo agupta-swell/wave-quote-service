@@ -4,6 +4,8 @@ import { FinancialProduct, FinancialProductSchema } from 'src/financial-products
 import { GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
+import { DiscountSchema } from 'src/discounts/discount.schema';
+import { IDiscountDocument } from 'src/discounts/interfaces';
 import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
@@ -53,7 +55,7 @@ const IncentiveDetailsSchema = new Schema<Document<IIncentiveDetailsSchema>>(
 MongooseNamingStrategy.ExcludeOne(IncentiveDetailsSchema);
 export interface IRebateDetailsSchema {
   amount: number;
-  type: string;
+  type: REBATE_TYPE;
   description: string;
   isFloatRebate?: boolean;
 }
@@ -192,30 +194,6 @@ const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
   { _id: false },
 );
 
-export interface IProjectDiscountDetailSchema {
-  id: string;
-  discountId: string;
-  name: string;
-  amount: number;
-  type: string;
-  startDate: Date;
-  endDate: Date;
-}
-
-const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSchema>>(
-  {
-    discount_id: String,
-    name: String,
-    amount: Number,
-    type: String,
-    start_date: Date,
-    end_date: Date,
-  },
-  {
-    _id: false,
-  },
-);
-
 export interface IFinancialProductDetails {
   fundingSourceId: string;
   isActive: boolean;
@@ -246,9 +224,18 @@ export interface IQuoteFinanceProductSchema {
   netAmount: number;
   incentiveDetails: IIncentiveDetailsSchema[];
   rebateDetails: IRebateDetailsSchema[];
-  projectDiscountDetails: IProjectDiscountDetailSchema[];
+  projectDiscountDetails: IDiscountDocument[];
   financialProductSnapshot: IFinancialProductDetails;
 }
+
+const QuoteFinanceProjectDiscountSchema = new Schema<IDiscountDocument>({
+  _id: Schema.Types.Mixed,
+  amount: Number,
+  end_date: Date,
+  name: String,
+  start_date: Date,
+  type: String,
+});
 
 const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema>>(
   {
@@ -256,7 +243,7 @@ const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema
     incentive_details: [IncentiveDetailsSchema],
     rebate_details: [RebateDetailsSchema],
     net_amount: Number,
-    project_discount_details: [ProjectDiscountDetailSchema],
+    project_discount_details: [DiscountSchema],
   },
   { _id: false },
 );

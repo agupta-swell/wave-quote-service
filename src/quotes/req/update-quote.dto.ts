@@ -1,6 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { QUOTE_MODE_TYPE } from '../constants';
 import { QuotePriceOverride, QuotePricePerWatt } from './create-quote.dto';
 import { NotesDto, QuoteFinanceProductDto, SavingsDetailsDto, QuoteCostBuildupDto } from './sub-dto';
@@ -20,6 +29,10 @@ class TaxCreditDto {
 }
 
 export class UpdateQuoteDto {
+  @IsMongoId()
+  @IsOptional()
+  id?: string;
+
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -58,6 +71,7 @@ export class UpdateQuoteDto {
   @ApiPropertyOptional({ type: QuoteFinanceProductDto })
   @Type(() => QuoteFinanceProductDto)
   @IsOptional()
+  @ValidateNested()
   quoteFinanceProduct: QuoteFinanceProductDto;
 
   @ApiPropertyOptional({ type: SavingsDetailsDto, isArray: true })

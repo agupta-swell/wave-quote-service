@@ -1,6 +1,18 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
+import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FINANCE_PRODUCT_TYPE, REBATE_TYPE } from '../../constants';
@@ -43,11 +55,10 @@ export class RebateDetailsDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  type: string;
+  @IsEnum(REBATE_TYPE)
+  type: REBATE_TYPE;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   description: string;
 
   @ApiProperty()
@@ -99,24 +110,28 @@ export class ProjectDiscountDetailDto {
   id: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   name: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
+  @ValidateIf((o: ProjectDiscountDetailDto) => o.id === 'managerDiscount')
   amount: number;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  type: string;
+  @IsOptional()
+  @IsEnum(DISCOUNT_TYPE)
+  @ValidateIf((o: ProjectDiscountDetailDto) => o.id === 'managerDiscount')
+  type: DISCOUNT_TYPE;
 
   @ApiProperty()
+  @IsOptional()
   startDate: Date;
 
   @ApiProperty()
+  @IsOptional()
   endDate: Date;
 }
 
@@ -148,5 +163,6 @@ export class QuoteFinanceProductDto {
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => ProjectDiscountDetailDto)
+  @ArrayUnique<ProjectDiscountDetailDto>(discount => discount.id)
   projectDiscountDetails: ProjectDiscountDetailDto[];
 }

@@ -11,7 +11,6 @@ import {
   ICreateQuoteCostBuildUpArg,
   IProjectSubtotal4,
 } from '../interfaces';
-import { IQuoteFinanceProductSchema } from '../quote.schema';
 
 @Injectable()
 export class QuoteCostBuildUpService {
@@ -72,16 +71,25 @@ export class QuoteCostBuildUpService {
     };
   }
 
-  // TODO WAV-1374 - calculate discount
-  private calculateProjectSubtotal4(
+  public calculateProjectSubtotal4(
     projectSubtotal3: IQuoteCost<unknown>,
-    financeProducts?: IQuoteFinanceProductSchema,
+    totalReductionPercentage = 0,
+    totalReductionAmount = 0,
   ): IProjectSubtotal4 {
+    const netMargin = new BigNumber(projectSubtotal3.markupAmount)
+      .minus(totalReductionAmount)
+      .minus(new BigNumber(totalReductionPercentage).multipliedBy(projectSubtotal3.cost).dividedBy(100));
+
+    const marginPercentage =
+      projectSubtotal3.cost === 0 ? new BigNumber(0) : netMargin.dividedBy(projectSubtotal3.cost).multipliedBy(100);
+
+    const netCost = netMargin.plus(projectSubtotal3.cost);
+
     return {
-      cost: 0,
-      marginPercentage: 0,
-      netCost: 0,
-      netMargin: 0,
+      cost: projectSubtotal3.cost,
+      marginPercentage: marginPercentage.toNumber(),
+      netCost: netCost.toNumber(),
+      netMargin: netMargin.toNumber(),
     };
   }
 

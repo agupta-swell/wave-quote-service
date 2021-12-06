@@ -5,6 +5,8 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
+import { UseSaveQuoteIdToReq } from './interceptors';
+import { ValidateQuoteDiscountPipe } from './pipes';
 import { QuoteService } from './quote.service';
 import { CalculateQuoteDetailDto, CreateQuoteDto, LeaseQuoteValidationDto, ReQuoteDto, UpdateQuoteDto } from './req';
 import { UpdateLatestQuoteDto } from './req/update-latest-quote.dto';
@@ -82,8 +84,9 @@ export class QuoteController {
     type: String,
   })
   @CheckOpportunity()
+  @UseSaveQuoteIdToReq('quoteId', 'body')
   async updateQuote(
-    @Body() data: UpdateQuoteDto,
+    @Body(ValidateQuoteDiscountPipe) data: UpdateQuoteDto,
     @Param('quoteId', ParseObjectIdPipe) quoteId: ObjectId,
   ): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.updateQuote(quoteId, data);
@@ -93,8 +96,9 @@ export class QuoteController {
   @Put('/:quoteId/latest')
   @ApiOperation({ summary: 'Update Latest Quote' })
   @ApiOkResponse({ type: QuoteRes })
+  @UseSaveQuoteIdToReq('quoteId', 'body')
   async updateLatestQuote(
-    @Body() data: UpdateLatestQuoteDto,
+    @Body(ValidateQuoteDiscountPipe) data: UpdateLatestQuoteDto,
     @Param('quoteId') quoteId: string,
   ): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.updateLatestQuote(data, quoteId);
@@ -106,14 +110,6 @@ export class QuoteController {
   @ApiOkResponse({ type: QuoteRes })
   async calculateQuoteDetails(@Body() data: CalculateQuoteDetailDto): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.calculateQuoteDetail(data);
-    return ServiceResponse.fromResult(res);
-  }
-
-  @Get('/discounts')
-  @ApiOperation({ summary: 'Get Active Discounts' })
-  @ApiOkResponse({ type: DiscountListRes })
-  async getDiscounts(): Promise<ServiceResponse<Pagination<DiscountsDto>>> {
-    const res = await this.quoteService.getDiscounts();
     return ServiceResponse.fromResult(res);
   }
 
