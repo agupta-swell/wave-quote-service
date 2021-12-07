@@ -6,6 +6,8 @@ import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.
 import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { DiscountSchema } from 'src/discounts/discount.schema';
 import { IDiscountDocument } from 'src/discounts/interfaces';
+import { PromotionSchema } from 'src/promotions/promotion.schema';
+import { IPromotionDocument } from 'src/promotions/interfaces';
 import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
@@ -225,17 +227,9 @@ export interface IQuoteFinanceProductSchema {
   incentiveDetails: IIncentiveDetailsSchema[];
   rebateDetails: IRebateDetailsSchema[];
   projectDiscountDetails: IDiscountDocument[];
+  promotionDetails: IPromotionDocument[];
   financialProductSnapshot: IFinancialProductDetails;
 }
-
-const QuoteFinanceProjectDiscountSchema = new Schema<IDiscountDocument>({
-  _id: Schema.Types.Mixed,
-  amount: Number,
-  end_date: Date,
-  name: String,
-  start_date: Date,
-  type: String,
-});
 
 const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema>>(
   {
@@ -244,6 +238,7 @@ const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema
     rebate_details: [RebateDetailsSchema],
     net_amount: Number,
     project_discount_details: [DiscountSchema],
+    promotion_details: [PromotionSchema],
   },
   { _id: false },
 );
@@ -508,6 +503,7 @@ export class QuoteModel {
         projectDiscountDetails,
         financeProduct,
         financialProductSnapshot,
+        promotionDetails,
       },
       savingsDetails,
       quoteCostBuildup,
@@ -540,10 +536,8 @@ export class QuoteModel {
         rebateDetails,
         financeProduct,
         netAmount,
-        projectDiscountDetails: projectDiscountDetails.map(item => {
-          item.discountId = item.id;
-          return item;
-        }),
+        projectDiscountDetails,
+        promotionDetails,
         financialProductSnapshot,
       },
       savingsDetails,

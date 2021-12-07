@@ -3,6 +3,7 @@ import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { REBATE_TYPE } from 'src/quotes/constants';
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { DiscountResDto } from 'src/discounts/dto';
+import { PromotionResDto } from 'src/promotions/dto';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FinanceProductDetailDto } from './financial-product.dto';
 
@@ -102,4 +103,7 @@ export class QuoteFinanceProductDto {
 
   @ExposeProp({ type: DiscountResDto, isArray: true })
   projectDiscountDetails: DiscountResDto[];
+
+  @ExposeProp({ type: PromotionResDto, isArray: true })
+  promotionDetails: PromotionResDto[];
 }

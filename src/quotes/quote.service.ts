@@ -22,6 +22,8 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
+import { DiscountService } from 'src/discounts/discount.service';
+import { PromotionService } from 'src/promotions/promotion.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -51,7 +53,6 @@ import { QuoteDto, TaxCreditDto } from './res';
 import { ITC, I_T_C, TaxCreditConfig, TAX_CREDIT_CONFIG } from './schemas';
 import { QuoteCostBuildUpService, CalculationService, QuoteFinanceProductService } from './sub-services';
 import { IQuoteCostBuildup } from './interfaces';
-import { DiscountService } from 'src/discounts/discount.service';
 
 @Injectable()
 export class QuoteService {
@@ -177,6 +178,7 @@ export class QuoteService {
           fundingSource.rebateAssignment,
         ),
         projectDiscountDetails: [],
+        promotionDetails: [],
       },
       utilityProgramSelectedForReinvestment: false,
       taxCreditSelectedForReinvestment: false,
@@ -240,7 +242,11 @@ export class QuoteService {
       DiscountService.validate,
     );
 
+    const validPromotions = newDoc.detailedQuote.quoteFinanceProduct.promotionDetails.filter(PromotionService.validate);
+
     newDoc.detailedQuote.quoteFinanceProduct.projectDiscountDetails = validDiscounts;
+
+    newDoc.detailedQuote.quoteFinanceProduct.promotionDetails = validPromotions;
 
     const model = new this.quoteModel(newDoc);
 
@@ -390,6 +396,7 @@ export class QuoteService {
           netAmount: quoteFinanceProduct.netAmount,
           projectDiscountDetails: quoteFinanceProduct.projectDiscountDetails,
           rebateDetails: quoteFinanceProduct.rebateDetails,
+          promotionDetails: quoteFinanceProduct.promotionDetails,
         } as any,
         model.detailedQuote.quoteCostBuildup,
         currentGrossPrice,
@@ -510,10 +517,11 @@ export class QuoteService {
     const {
       quoteFinanceProduct: {
         incentiveDetails,
-        projectDiscountDetails,
         rebateDetails,
         financeProduct,
         financialProductSnapshot,
+        promotionDetails,
+        projectDiscountDetails,
       },
     } = foundQuote.detailedQuote;
 
@@ -602,6 +610,8 @@ export class QuoteService {
         rebateDetails,
         projectDiscountDetails:
           data.quoteFinanceProduct?.projectDiscountDetails ?? projectDiscountDetails.filter(DiscountService.validate),
+        promotionsDetails:
+          data.quoteFinanceProduct?.promotionDetails ?? promotionDetails.filter(PromotionService.validate),
       },
       savingsDetails: [],
       quoteName: foundQuote.detailedQuote.quoteName,
@@ -748,6 +758,8 @@ export class QuoteService {
     };
 
     detailedQuote.quoteFinanceProduct.projectDiscountDetails = data.quoteFinanceProduct.projectDiscountDetails;
+
+    detailedQuote.quoteFinanceProduct.promotionDetails = data.quoteFinanceProduct.promotionDetails;
 
     const quoteCostBuildUp = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quoteConfigData);
 

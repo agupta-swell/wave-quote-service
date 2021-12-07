@@ -6,6 +6,7 @@ import { FinancialProductsModule } from 'src/financial-products/financial-produc
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { DiscountModule } from 'src/discounts/discount.module';
+import { PromotionModule } from 'src/promotions/promotion.module';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
 import { QuoteService } from './quote.service';
@@ -31,6 +32,7 @@ import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService
     SavingsCalculatorModule,
     ManufacturerModule,
     DiscountModule,
+    PromotionModule,
   ],
   controllers: [QuoteController],
   providers: [QuoteService, CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService],

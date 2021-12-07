@@ -1,7 +1,7 @@
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
-import { Pagination, ServiceResponse } from '../../app/common';
+import { Pagination, ServiceResponse } from '../../../app/common';
 
-export class DiscountsDto {
+export class PromotionResDto {
   @ExposeMongoId()
   id: string;
 
@@ -21,18 +21,18 @@ export class DiscountsDto {
   endDate: Date;
 }
 
-class PaginationRes implements Pagination<DiscountsDto> {
+class PaginationRes implements Pagination<PromotionResDto> {
   @ExposeProp({
-    type: DiscountsDto,
+    type: PromotionResDto,
     isArray: true,
   })
-  data: DiscountsDto[];
+  data: PromotionResDto[];
 
   @ExposeProp()
   total: number;
 }
 
-export class DiscountListRes implements ServiceResponse<PaginationRes> {
+export class PromotionListRes implements ServiceResponse<PaginationRes> {
   @ExposeProp()
   status: string;
 
