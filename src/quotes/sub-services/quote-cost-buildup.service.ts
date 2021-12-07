@@ -59,7 +59,9 @@ export class QuoteCostBuildUpService {
       }),
     );
 
-    const markupPercentage = totalCost.eq(0) ? new BigNumber(0) : totalMarkupAmount.dividedBy(totalCost);
+    const markupPercentage = totalCost.eq(0)
+      ? new BigNumber(0)
+      : totalMarkupAmount.multipliedBy(100).dividedBy(totalCost);
 
     const netCost = totalCost.plus(totalMarkupAmount);
 
@@ -354,7 +356,6 @@ export class QuoteCostBuildUpService {
         netCost: 0,
         markupAmount: new BigNumber(swellStandardMarkup ?? 0)
           .times(equipmentAndLaborAndAddersSubtotal.netCost)
-          .plus(equipmentAndLaborAndAddersSubtotal.markupAmount)
           .toNumber(),
       },
     ]);
