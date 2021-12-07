@@ -768,7 +768,8 @@ export class QuoteService {
       totalAmountReduction,
     );
 
-    const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
+    // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
+    const avgMonthlySavings = 0 // Commented because we work on battery-only system design for this release.
 
     switch (detailedQuote.quoteFinanceProduct.financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE:
