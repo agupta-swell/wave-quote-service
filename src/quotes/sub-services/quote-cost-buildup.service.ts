@@ -337,11 +337,12 @@ export class QuoteCostBuildUpService {
     const grossPrice = new BigNumber(swellStandardMarkup).plus(1).times(totalProductCost);
 
     const equipmentSubtotal = this.sumQuoteCosts(
-      ancillaryEquipmentDetails,
-      balanceOfSystemDetails,
-      inverterQuoteDetails,
       panelQuoteDetails,
       storageQuoteDetails,
+      inverterQuoteDetails,
+      ancillaryEquipmentDetails,
+      balanceOfSystemDetails,
+      softCostQuoteDetails
     );
 
     const equipmentAndLaborSubtotal = this.sumQuoteCosts([equipmentSubtotal], laborCostQuoteDetails);
