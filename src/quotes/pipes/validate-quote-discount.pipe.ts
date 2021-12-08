@@ -9,7 +9,7 @@ export class ValidateQuoteDiscountPipe implements PipeTransform<UpdateQuoteDto, 
   constructor(private readonly discountService: DiscountService) {}
 
   async transform(value: UpdateQuoteDto): Promise<UpdateQuoteDto> {
-    if (!value.quoteFinanceProduct.projectDiscountDetails || !value.quoteFinanceProduct.projectDiscountDetails.length) {
+    if (!value.quoteFinanceProduct?.projectDiscountDetails || !value.quoteFinanceProduct.projectDiscountDetails.length) {
       return value as any;
     }
 

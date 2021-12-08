@@ -600,7 +600,8 @@ export class QuoteService {
         netAmount: quoteCostBuildup.grossPrice,
         incentiveDetails,
         rebateDetails,
-        projectDiscountDetails: data.quoteFinanceProduct.projectDiscountDetails,
+        projectDiscountDetails:
+          data.quoteFinanceProduct?.projectDiscountDetails ?? projectDiscountDetails.filter(DiscountService.validate),
       },
       savingsDetails: [],
       quoteName: foundQuote.detailedQuote.quoteName,
@@ -769,7 +770,7 @@ export class QuoteService {
     );
 
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
-    const avgMonthlySavings = 0 // Commented because we work on battery-only system design for this release.
+    const avgMonthlySavings = 0; // Commented because we work on battery-only system design for this release.
 
     switch (detailedQuote.quoteFinanceProduct.financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE:
