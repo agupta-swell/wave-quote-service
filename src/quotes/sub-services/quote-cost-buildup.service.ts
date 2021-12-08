@@ -290,7 +290,7 @@ export class QuoteCostBuildUpService {
 
     const inverterQuoteDetails = this.calculateInvertersQuoteCost(rooftopData.inverters, partnerMarkup.inverterMarkup);
 
-    const panelQuoteDetails = this.calculatePanelsQuoteCost(rooftopData.panelArray, partnerMarkup.softCostMarkup);
+    const panelQuoteDetails = this.calculatePanelsQuoteCost(rooftopData.panelArray, partnerMarkup.solarMarkup);
 
     const storageQuoteDetails = this.calculateStoragesQuoteCost(rooftopData.storage, partnerMarkup.storageMarkup);
 
