@@ -152,26 +152,7 @@ export class QuoteService {
           financialProductSnapshot: financialProduct,
         },
         netAmount: 0,
-        incentiveDetails: [
-          {
-            amount: 0,
-            type: REBATE_TYPE.SGIP,
-            detail: {
-              gsTermYears: '0',
-              gsProgramSnapshot: {
-                id: '',
-                annualIncentives: 0,
-                numberBatteries: '0',
-                termYears: '0',
-                upfrontIncentives: 0,
-                utilityProgram: {
-                  id: '',
-                  utilityProgramName: '',
-                },
-              },
-            },
-          },
-        ],
+        incentiveDetails: [],
         rebateDetails: await this.createRebateDetails(
           data.opportunityId,
           quoteCostBuildup.grossPrice ?? 0,
@@ -760,6 +741,8 @@ export class QuoteService {
     detailedQuote.quoteFinanceProduct.projectDiscountDetails = data.quoteFinanceProduct.projectDiscountDetails;
 
     detailedQuote.quoteFinanceProduct.promotionDetails = data.quoteFinanceProduct.promotionDetails;
+
+    detailedQuote.quoteFinanceProduct.incentiveDetails = data.quoteFinanceProduct.incentiveDetails;
 
     const quoteCostBuildUp = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quoteConfigData);
 

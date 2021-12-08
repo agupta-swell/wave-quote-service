@@ -67,7 +67,7 @@ export class ProductService {
   async getDetailByIdList(idList: string[]): Promise<LeanDocument<IUnknownProduct[]> | null> {
     const newIdList = idList.map(id => transformToValidId(id));
     const query = {
-      _id: { $in: newIdList },
+      manufacturer_id: { $in: newIdList },
     };
     const product = await this.productModel.find(query).lean();
 

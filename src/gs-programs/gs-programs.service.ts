@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, LeanDocument } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -6,6 +6,7 @@ import { OperationResult, Pagination } from 'src/app/common';
 import { ProductService } from 'src/products-v2/services';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
+import { QuoteService } from 'src/quotes/quote.service';
 import { GsPrograms, GS_PROGRAMS } from './gs-programs.schema';
 import { GsProgramsDto } from './res/gs-programs.dto';
 
@@ -15,6 +16,8 @@ export class GsProgramsService {
     @InjectModel(GS_PROGRAMS) private gsProgramsModel: Model<GsPrograms>,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly productService: ProductService,
+    @Inject(forwardRef(() => QuoteService))
+    private readonly quoteService: QuoteService,
   ) {}
 
   async getById(id: string): Promise<LeanDocument<GsPrograms> | null> {
@@ -27,10 +30,38 @@ export class GsProgramsService {
     limit: number,
     skip: number,
     utilityProgramMasterId: string,
+    quoteId: string,
   ): Promise<OperationResult<Pagination<GsProgramsDto>>> {
+    const quote = await this.quoteService.getOneById(quoteId);
+    if (!quote) {
+      throw ApplicationException.EntityNotFound(`Quote Id: ${quoteId}`);
+    }
+
+    const {
+      quoteCostBuildup: { storageQuoteDetails },
+    } = quote;
+
+    if (!storageQuoteDetails?.length) {
+      throw ApplicationException.EntityNotFound('There is no battery');
+    }
+
+    const { quantity, storageModelDataSnapshot } = storageQuoteDetails[0];
+    const storageSize = quantity * storageModelDataSnapshot.ratings.kilowattHours;
+    const manufacturerId = storageModelDataSnapshot.manufacturerId as any;
+
     const [gsPrograms, total] = await Promise.all([
-      this.gsProgramsModel.find({ utilityProgramId: utilityProgramMasterId }).limit(limit).skip(skip).lean(),
-      this.gsProgramsModel.countDocuments({ utilityProgramId: utilityProgramMasterId }).lean(),
+      this.gsProgramsModel
+        .find({ utilityProgramId: utilityProgramMasterId, kilowattHours: storageSize, manufacturerId })
+        .limit(limit)
+        .skip(skip)
+        .lean(),
+      this.gsProgramsModel
+        .countDocuments({
+          utilityProgramId: utilityProgramMasterId,
+          kilowattHours: storageSize,
+          manufacturerId,
+        })
+        .lean(),
     ]);
 
     const utilityProgram = await this.utilityProgramMasterService.getDetailById(utilityProgramMasterId);
@@ -40,8 +71,8 @@ export class GsProgramsService {
     }
 
     const batteryIdList = gsPrograms.reduce((a: any, c: any) => {
-      if (c.batteryId && !a.some(value => value === c.batteryId)) {
-        return [...a, c.batteryId];
+      if (c.manufacturerId && !a.some(value => value === c.manufacturerId)) {
+        return [...a, c.manufacturerId];
       }
       return a;
     }, []);

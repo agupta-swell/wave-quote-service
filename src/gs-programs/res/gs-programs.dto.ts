@@ -15,16 +15,19 @@ export class GsProgramsDto {
   termYears: string;
 
   @ExposeProp()
-  numberBatteries: string;
+  kilowattHours: number;
 
   @ExposeProp()
   upfrontIncentives: number;
+
+  @ExposeProp()
+  manufacturerId: string;
 
   @ExposeProp({ type: UtilityProgramMasterDto })
   utilityProgram?: UtilityProgramMasterDto;
 
   @ExposeAndMap({ type: ProductResDto }, params =>
-    params.obj.battery?.find(({ _id }) => compareIds(_id, params.obj.batteryId)),
+    params.obj.battery?.find(({ manufacturerId }) => compareIds(manufacturerId, params.obj.manufacturerId)),
   )
   battery?: ProductResDto;
 

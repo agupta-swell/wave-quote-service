@@ -20,8 +20,9 @@ export interface IGsProgramSnapshot {
   id: string;
   annualIncentives: number;
   termYears: string;
-  numberBatteries: string;
+  kilowattHours: number;
   upfrontIncentives: number;
+  manufacturerId: string;
 }
 
 export interface IGridServiceDetails {

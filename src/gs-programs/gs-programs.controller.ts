@@ -12,19 +12,21 @@ import { GsProgramsDto, GsProgramsPaginationRes } from './res/gs-programs.dto';
 export class GsProgramsController {
   constructor(private readonly gsProgramsService: GsProgramsService) {}
 
-  @Get('/utility-program-master')
+  @Get()
   @ApiQuery({ name: 'limit' })
   @ApiQuery({ name: 'skip' })
   @ApiQuery({ name: 'utility-program-master-id' })
-  @ApiOperation({ summary: 'Get GsPrograms By UtilityProgramMaster ID' })
+  @ApiQuery({ name: 'quote-id' })
+  @ApiOperation({ summary: 'Get List GsPrograms' })
   @ApiOkResponse({ type: GsProgramsPaginationRes })
   async getGsPrograms(
-    @Query() query: { limit: string; skip: string; 'utility-program-master-id': string },
+    @Query() query: { limit: string; skip: string; 'utility-program-master-id': string, 'quote-id': string },
   ): Promise<ServiceResponse<Pagination<GsProgramsDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
     const utilityProgramMasterId = query['utility-program-master-id'];
-    const gsPrograms = await this.gsProgramsService.getList(limit, skip, utilityProgramMasterId);
+    const quoteId = query['quote-id'];
+    const gsPrograms = await this.gsProgramsService.getList(limit, skip, utilityProgramMasterId, quoteId);
 
     return ServiceResponse.fromResult(gsPrograms);
   }
