@@ -16,7 +16,7 @@ import {
   UpdateQuoteDto,
   UpdateLatestQuoteDto,
 } from './req';
-import { QuoteDto, QuoteListRes, QuoteRes, TaxCreditDto, TaxCreditListRes } from './res';
+import { QuoteDto, QuoteListRes, QuoteRes } from './res';
 
 @ApiTags('Quote')
 @ApiBearerAuth()
@@ -31,14 +31,6 @@ export class QuoteController {
   @CheckOpportunity()
   async create(@Body() data: CreateQuoteDto): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.createQuote(data);
-    return ServiceResponse.fromResult(res);
-  }
-
-  @Get('/tax-credits')
-  @ApiOperation({ summary: 'Get All Tax Credits' })
-  @ApiOkResponse({ type: TaxCreditListRes })
-  async getListTaxCredits(): Promise<ServiceResponse<Pagination<TaxCreditDto>>> {
-    const res = await this.quoteService.getAllTaxCredits();
     return ServiceResponse.fromResult(res);
   }
 

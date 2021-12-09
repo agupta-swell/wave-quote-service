@@ -85,6 +85,7 @@ export class UpdateQuoteDto {
 
   @ApiProperty({ type: TaxCreditDto, isArray: true })
   @Type(() => TaxCreditDto)
+  @IsOptional()
   @IsNotEmpty()
   @IsArray()
   taxCreditData: TaxCreditDto[];

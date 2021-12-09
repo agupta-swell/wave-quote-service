@@ -24,6 +24,8 @@ import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { DiscountService } from 'src/discounts/discount.service';
 import { PromotionService } from 'src/promotions/promotion.service';
+import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
+import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -35,7 +37,6 @@ import {
   Quote,
   QUOTE,
   QuoteModel,
-  ITaxCreditDataSchema,
   ILoanProductAttributes,
 } from './quote.schema';
 import {
@@ -49,8 +50,8 @@ import {
   UpdateQuoteDto,
   UpdateLatestQuoteDto,
 } from './req';
-import { QuoteDto, TaxCreditDto } from './res';
-import { ITC, I_T_C, TaxCreditConfig, TAX_CREDIT_CONFIG } from './schemas';
+import { QuoteDto } from './res';
+import { ITC, I_T_C } from './schemas';
 import { QuoteCostBuildUpService, CalculationService, QuoteFinanceProductService } from './sub-services';
 import { IQuoteCostBuildup } from './interfaces';
 
@@ -58,7 +59,6 @@ import { IQuoteCostBuildup } from './interfaces';
 export class QuoteService {
   constructor(
     @InjectModel(QUOTE) private readonly quoteModel: Model<Quote>,
-    @InjectModel(TAX_CREDIT_CONFIG) private readonly taxCreditConfigModel: Model<TaxCreditConfig>,
     @InjectModel(I_T_C) private readonly iTCModel: Model<ITC>,
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
@@ -83,6 +83,7 @@ export class QuoteService {
     private readonly manufacturerService: ManufacturerService,
     private readonly quoteCostBuildUpService: QuoteCostBuildUpService,
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
+    private readonly taxCreditConfigService: TaxCreditConfigService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -215,7 +216,10 @@ export class QuoteService {
       throw new NotFoundException('System design not found');
     }
 
-    const markupConfig = await this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId);
+    const [markupConfig, taxCreditData] = await Promise.all([
+      this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
+      this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+    ]);
 
     const newDoc = omit(foundQuote, ['_id', 'createdAt', 'updatedAt']);
 
@@ -368,6 +372,10 @@ export class QuoteService {
 
     model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
 
+    model.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
+      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.grossPrice ?? 0),
+    );
+
     assignToModel(
       model.detailedQuote.quoteFinanceProduct,
       <any>this.handleUpdateQuoteFinanceProduct(
@@ -477,10 +485,11 @@ export class QuoteService {
       throw new BadRequestException(isInUsed);
     }
 
-    const [foundQuote, systemDesign, quotePartnerConfig] = await Promise.all([
+    const [foundQuote, systemDesign, quotePartnerConfig, taxCreditData] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
+      this.taxCreditConfigService.getActiveTaxCreditConfigs(),
     ]);
 
     if (!foundQuote) {
@@ -604,6 +613,9 @@ export class QuoteService {
       quotePricePerWatt: foundQuote.detailedQuote.quotePricePerWatt,
       quotePriceOverride: foundQuote.detailedQuote.quotePriceOverride,
       notes: foundQuote.detailedQuote.notes,
+      taxCreditData: taxCreditData.map(taxCredit =>
+        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.grossPrice ?? 0),
+      ),
     };
 
     detailedQuote.quoteFinanceProduct = this.handleUpdateQuoteFinanceProduct(
@@ -661,19 +673,6 @@ export class QuoteService {
     return OperationResult.ok(new Pagination(result));
   }
 
-  async getAllTaxCredits(): Promise<OperationResult<Pagination<TaxCreditDto>>> {
-    const [taxCredits, total] = await Promise.all([
-      this.taxCreditConfigModel.find().lean(),
-      this.taxCreditConfigModel.estimatedDocumentCount().lean(),
-    ]);
-    const data = strictPlainToClass(TaxCreditDto, taxCredits);
-    const result = {
-      data,
-      total,
-    };
-    return OperationResult.ok(new Pagination(result));
-  }
-
   async getDetailQuote(quoteId: string): Promise<OperationResult<QuoteDto>> {
     const quote = await this.quoteModel.findById(quoteId).lean();
     const itcRate = await this.iTCModel.findOne().lean();
@@ -713,15 +712,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
-    const quoteConfigData = await this.opportunityService.getPartnerConfigFromOppId(data.opportunityId);
-
-    const taxCreditData = data.taxCreditData?.length
-      ? await this.taxCreditConfigModel
-          .find({
-            _id: data.taxCreditData.map(({ taxCreditConfigDataId }) => Types.ObjectId(taxCreditConfigDataId)),
-          })
-          .lean()
-      : [];
+    const [quoteConfigData, taxCreditData] = await Promise.all([
+      this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
+      this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+    ]);
 
     if (data.quoteFinanceProduct.financeProduct.financialProductSnapshot.id) {
       (<any>data.quoteFinanceProduct.financeProduct.financialProductSnapshot)._id = new Types.ObjectId(
@@ -735,7 +729,6 @@ export class QuoteService {
       isSelected: typeof data.isSelected === 'boolean' ? data.isSelected : foundQuote.detailedQuote.isSelected,
       isSolar: systemDesign.isSolar,
       isRetrofit: systemDesign.isRetrofit,
-      taxCreditData: taxCreditData as unknown,
     };
 
     detailedQuote.quoteFinanceProduct.projectDiscountDetails = data.quoteFinanceProduct.projectDiscountDetails;
@@ -764,6 +757,10 @@ export class QuoteService {
       quoteCostBuildUp.grossPrice,
       totalPercentageReduction,
       totalAmountReduction,
+    );
+
+    detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
+      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.grossPrice ?? 0),
     );
 
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
@@ -1106,7 +1103,7 @@ export class QuoteService {
 
   private calculateMaxReinvestmentAmount(
     taxCreditSelectedForReinvestment: boolean,
-    taxCreditData: ITaxCreditDataSchema[],
+    taxCreditData: ITaxCreditConfigSnapshot[],
     utilityProgramSelectedForReinvestment: boolean,
     selectedRebateProgram: IRebateDetailsSchema | undefined,
     projectNetAmount: number,
