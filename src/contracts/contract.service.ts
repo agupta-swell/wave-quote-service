@@ -259,7 +259,7 @@ export class ContractService {
     // Get gsProgram
     const incentiveDetails = quote.detailedQuote.quoteFinanceProduct.incentiveDetails[0];
 
-    const gsProgramSnapshotId = incentiveDetails.detail.gsProgramSnapshot.id;
+    const gsProgramSnapshotId = incentiveDetails?.detail?.gsProgramSnapshot?.id;
 
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 

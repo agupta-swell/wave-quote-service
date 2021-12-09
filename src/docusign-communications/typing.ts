@@ -32,6 +32,7 @@ export interface ISignerData {
 
 export interface IRecipientData {
   signers: ISignerData[];
+  carbonCopies: Omit<ISignerData, 'tabs' | 'templateId' | 'roleName'>[];
 }
 
 export interface IInlineTemplate {
