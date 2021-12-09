@@ -744,6 +744,8 @@ export class QuoteService {
 
     detailedQuote.quoteFinanceProduct.incentiveDetails = data.quoteFinanceProduct.incentiveDetails;
 
+    detailedQuote.quoteFinanceProduct.rebateDetails = data.quoteFinanceProduct.rebateDetails;
+
     const quoteCostBuildUp = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quoteConfigData);
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
