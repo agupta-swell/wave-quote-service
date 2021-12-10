@@ -10,7 +10,7 @@ import { IGenericObject } from '../../typing';
 @DocusignTemplate('demo', '31bfa343-a279-43a4-aa54-f2d2d31b33ef')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
-export class AutomaticPaymentAuthorizationFormFinTemplate {
+export class Exhibit11AutomaticPaymentAuthorizationFormEsaTemplate {
   @TabValue<IGenericObject>(({ opportunity }) => opportunity._id)
   opportunityId: string;
 

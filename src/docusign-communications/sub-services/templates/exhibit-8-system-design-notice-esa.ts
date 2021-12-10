@@ -13,7 +13,7 @@ interface ISystemDesignNoticeX8RequiredFields {
 
 @DocusignTemplate('demo', '734c08f1-c7c1-44d9-9247-641fd0e547a8')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
-export class GetSystemDesignNoticeX8Template {
+export class Exhibit8SystemDesignNoticeEsaTemplate {
   @TabDynamic<IGenericObject>(({ systemDesign }) => {
     const { designMode } = systemDesign;
 

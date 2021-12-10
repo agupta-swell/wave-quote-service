@@ -5,7 +5,7 @@ import { DefaultTabType, DocusignTemplate, DOCUSIGN_TAB_TYPE, TabDynamic } from 
 
 @DocusignTemplate('demo', 'd7758c3f-82bc-4d7d-93f2-2c939c661f18')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
-export class PaymentScheduleX10Template {
+export class Exhibit10PaymentScheduleEsaTemplate {
   @TabDynamic<IGenericObject>(genericObject => {
     const { quote, leaseSolverConfig } = genericObject;
     const result: Record<string, string> = {};
