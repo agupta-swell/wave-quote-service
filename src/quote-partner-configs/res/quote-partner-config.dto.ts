@@ -49,6 +49,9 @@ export class QuotePartnerConfigDto {
 
   @ExposeProp()
   salesOriginationSalesFee: number;
+
+  @ExposeProp()
+  useFixedSalesOriginationSalesFee: boolean;
 }
 
 export class QuotePartnerConfigResponse implements ServiceResponse<QuotePartnerConfigDto> {
