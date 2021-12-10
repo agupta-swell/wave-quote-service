@@ -11,6 +11,9 @@ import {
   ICreateQuoteCostBuildUpArg,
   IProjectSubtotal4,
 } from '../interfaces';
+import { IBaseCostBuildupFee } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
+import { ITotalPromotionsDiscountsAndSwellGridrewards } from '../interfaces/quote-cost-buildup/ITotalPromotionsDiscountsGridrewards';
+import { QuoteCostBuildupUserInputDto } from '../res/sub-dto';
 
 @Injectable()
 export class QuoteCostBuildUpService {
@@ -73,14 +76,26 @@ export class QuoteCostBuildUpService {
     };
   }
 
+  public calculateTotalPromotionsDiscountsAndSwellGridrewards(
+    projectSubtotal3: IQuoteCost<unknown>,
+    totalAmountReduction = 0,
+    totalPercentageReduction = 0,
+  ): ITotalPromotionsDiscountsAndSwellGridrewards {
+    const total = new BigNumber(totalAmountReduction).plus(
+      new BigNumber(totalPercentageReduction).multipliedBy(projectSubtotal3.netCost).dividedBy(100),
+    );
+    return {
+      total: total.toNumber(),
+    };
+  }
+
   public calculateProjectSubtotal4(
     projectSubtotal3: IQuoteCost<unknown>,
-    totalReductionPercentage = 0,
-    totalReductionAmount = 0,
+    totalPromotionsDiscountsAndSwellGridrewards: ITotalPromotionsDiscountsAndSwellGridrewards,
   ): IProjectSubtotal4 {
-    const netMargin = new BigNumber(projectSubtotal3.markupAmount)
-      .minus(totalReductionAmount)
-      .minus(new BigNumber(totalReductionPercentage).multipliedBy(projectSubtotal3.cost).dividedBy(100));
+    const netMargin = new BigNumber(projectSubtotal3.markupAmount).minus(
+      totalPromotionsDiscountsAndSwellGridrewards.total,
+    );
 
     const marginPercentage =
       projectSubtotal3.cost === 0 ? new BigNumber(0) : netMargin.dividedBy(projectSubtotal3.cost).multipliedBy(100);
@@ -92,6 +107,15 @@ export class QuoteCostBuildUpService {
       marginPercentage: marginPercentage.toNumber(),
       netCost: netCost.toNumber(),
       netMargin: netMargin.toNumber(),
+    };
+  }
+
+  public calculateCostBuildupFee(previousSubTotal: number, unitPercentage = 0): IBaseCostBuildupFee {
+    const total = new BigNumber(previousSubTotal).multipliedBy(unitPercentage).dividedBy(100);
+
+    return {
+      unitPercentage,
+      total: total.toNumber(),
     };
   }
 
@@ -275,6 +299,7 @@ export class QuoteCostBuildUpService {
   public create(
     rooftopData: ICreateQuoteCostBuildUpArg,
     partnerMarkup: LeanDocument<QuotePartnerConfig>,
+    userInputs?: QuoteCostBuildupUserInputDto,
   ): IQuoteCostBuildup {
     const adderQuoteDetails = this.calculateAddersQuoteCost(rooftopData.adders, partnerMarkup.adderMarkup);
 
@@ -298,7 +323,7 @@ export class QuoteCostBuildUpService {
 
     const laborCostQuoteDetails = this.calculateLaborsCost(rooftopData.laborCosts, partnerMarkup.laborMarkup);
 
-    const swellStandardMarkup = partnerMarkup.swellStandardMarkup;
+    const generalMarkup = partnerMarkup.generalMarkup;
 
     let totalProductCost = new BigNumber(0);
 
@@ -334,7 +359,7 @@ export class QuoteCostBuildUpService {
       totalProductCost = totalProductCost.plus(softCost.cost);
     });
 
-    const grossPrice = new BigNumber(swellStandardMarkup).plus(1).times(totalProductCost);
+    const grossPrice = new BigNumber(generalMarkup).plus(1).times(totalProductCost);
 
     const equipmentSubtotal = this.sumQuoteCosts(
       panelQuoteDetails,
@@ -342,7 +367,7 @@ export class QuoteCostBuildUpService {
       inverterQuoteDetails,
       ancillaryEquipmentDetails,
       balanceOfSystemDetails,
-      softCostQuoteDetails
+      softCostQuoteDetails,
     );
 
     const equipmentAndLaborSubtotal = this.sumQuoteCosts([equipmentSubtotal], laborCostQuoteDetails);
@@ -355,13 +380,58 @@ export class QuoteCostBuildUpService {
         cost: 0,
         markupPercentage: 0,
         netCost: 0,
-        markupAmount: new BigNumber(swellStandardMarkup ?? 0)
+        markupAmount: new BigNumber(generalMarkup ?? 0)
+          .dividedBy(100)
           .times(equipmentAndLaborAndAddersSubtotal.netCost)
           .toNumber(),
       },
     ]);
 
-    const projectSubtotal4 = this.calculateProjectSubtotal4(projectSubtotal3);
+    const totalPromotionsDiscountsAndSwellGridrewards = this.calculateTotalPromotionsDiscountsAndSwellGridrewards(
+      projectSubtotal3,
+      userInputs?.totalAmountReduction,
+      userInputs?.totalPercentageReduction,
+    );
+
+    const projectSubtotal4 = this.calculateProjectSubtotal4(
+      projectSubtotal3,
+      totalPromotionsDiscountsAndSwellGridrewards,
+    );
+
+    const salesOriginationManagerFee = this.calculateCostBuildupFee(
+      projectSubtotal4.netCost,
+      partnerMarkup.salesOriginationManagerFee,
+    );
+
+    const subtotalWithSalesOriginationManagerFee = new BigNumber(projectSubtotal4.netCost)
+      .plus(salesOriginationManagerFee.total)
+      .toNumber();
+
+    const salesOriginationSalesFee = this.calculateCostBuildupFee(
+      subtotalWithSalesOriginationManagerFee,
+      partnerMarkup.useFixedSalesOriginationSalesFee
+        ? partnerMarkup.salesOriginationSalesFee
+        : userInputs?.salesOriginationSalesFeeUnitPercentage || 0,
+    );
+
+    const additionalFees = salesOriginationSalesFee; // TODO: additionalFees = salesOriginationSalesFee + 3rd party dealer fee
+
+    // TODO: waiting for COGS
+    const grandTotalNetCost = new BigNumber(additionalFees.total)
+      .plus(subtotalWithSalesOriginationManagerFee)
+      .toNumber();
+    const grandTotalNetMargin = new BigNumber(grandTotalNetCost).minus(projectSubtotal4.cost).toNumber();
+    const grandTotalMarginPercentage = new BigNumber(grandTotalNetMargin)
+      .dividedBy(projectSubtotal4.cost)
+      .multipliedBy(100)
+      .toNumber();
+
+    const projectGrandTotal = {
+      cost: projectSubtotal4.cost,
+      marginPercentage: grandTotalMarginPercentage,
+      netMargin: grandTotalNetMargin,
+      netCost: grandTotalNetCost,
+    };
 
     return {
       adderQuoteDetails,
@@ -372,13 +442,19 @@ export class QuoteCostBuildUpService {
       panelQuoteDetails,
       softCostQuoteDetails,
       storageQuoteDetails,
-      swellStandardMarkup,
+      generalMarkup,
       grossPrice: grossPrice.toNumber(),
       equipmentSubtotal,
       equipmentAndLaborSubtotal,
       equipmentAndLaborAndAddersSubtotal,
       projectSubtotal3,
+      totalPromotionsDiscountsAndSwellGridrewards,
       projectSubtotal4,
+      salesOriginationManagerFee,
+      subtotalWithSalesOriginationManagerFee,
+      salesOriginationSalesFee,
+      additionalFees,
+      projectGrandTotal,
     };
   }
 }

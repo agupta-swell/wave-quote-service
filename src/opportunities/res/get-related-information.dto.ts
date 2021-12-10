@@ -77,6 +77,9 @@ export class GetRelatedInformationDto {
 
   @ExposeProp()
   tpoFundingSource: string;
+  
+  @ExposeProp()
+  assignedMember: string;
 }
 
 export class GetRelatedInformationRes implements ServiceResponse<GetRelatedInformationDto> {

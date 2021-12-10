@@ -9,6 +9,9 @@ import { LaborCostQuoteDetailDataSchema } from './labor-cost-quote-detail-data.s
 import { SoftCostQuoteDetailDataSchema } from './soft-cost-quote-detail-data.schema';
 import { BaseQuoteCostDataSchema } from './base-quote-cost-buildup.schema';
 import { ProjectSubtotal4DataSchema } from './project-subtotal-4.schema';
+import { BaseCostBuildupFeeSchema } from './base-cost-buildup-fee.schema';
+import { AdditionalFeesSchema } from './quote-cost-buildup-additional-fee-data.schema';
+import { totalPromotionsDiscountsAndSwellGridrewardsSchema } from './total-promotions-discounts-gridrewards.schema';
 
 export const QuoteCostBuildupSchema = new Schema(
   {
@@ -18,14 +21,20 @@ export const QuoteCostBuildupSchema = new Schema(
     adder_quote_details: [AdderQuoteDetailDataSchema],
     balance_of_system_details: [BalanceOfSystemQuoteDetailDataSchema],
     ancillary_equipment_details: [AncillaryEquipmentQuoteDetailDataSchema],
-    swell_standard_markup: Number,
+    general_markup: Number,
     labor_cost_quote_details: [LaborCostQuoteDetailDataSchema],
     soft_cost_quote_details: [SoftCostQuoteDetailDataSchema],
     equipment_subtotal: BaseQuoteCostDataSchema,
     equipment_and_labor_subtotal: BaseQuoteCostDataSchema,
     equipment_and_labor_and_adders_subtotal: BaseQuoteCostDataSchema,
     project_subtotal3: BaseQuoteCostDataSchema,
+    total_promotions_discounts_and_swell_gridrewards: totalPromotionsDiscountsAndSwellGridrewardsSchema,
     project_subtotal4: ProjectSubtotal4DataSchema,
+    subtotal_with_sales_origination_manager_fee: Number,
+    sales_origination_sales_fee: BaseCostBuildupFeeSchema,
+    sales_origination_manager_fee: BaseCostBuildupFeeSchema,
+    additional_fees: AdditionalFeesSchema,
+    project_grand_total: ProjectSubtotal4DataSchema,
   },
   { _id: false },
 );

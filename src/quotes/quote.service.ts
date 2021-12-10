@@ -54,6 +54,7 @@ import { QuoteDto } from './res';
 import { ITC, I_T_C } from './schemas';
 import { QuoteCostBuildUpService, CalculationService, QuoteFinanceProductService } from './sub-services';
 import { IQuoteCostBuildup } from './interfaces';
+import { QuoteCostBuildupUserInputDto } from './res/sub-dto';
 
 @Injectable()
 export class QuoteService {
@@ -269,7 +270,20 @@ export class QuoteService {
       };
     }
 
-    const quoteCostBuildup = this.quoteCostBuildUpService.create(foundSystemDesign.roofTopDesignData, markupConfig);
+    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
+      model.detailedQuote.quoteFinanceProduct,
+    );
+
+    const userInputs: QuoteCostBuildupUserInputDto = {
+      totalPercentageReduction,
+      totalAmountReduction,
+    };
+
+    const quoteCostBuildup = this.quoteCostBuildUpService.create(
+      foundSystemDesign.roofTopDesignData,
+      markupConfig,
+      userInputs,
+    );
 
     const { financeProduct, financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct;
 
@@ -359,18 +373,6 @@ export class QuoteService {
     });
 
     model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
-
-    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
-      model.detailedQuote.quoteFinanceProduct,
-    );
-
-    model.detailedQuote.quoteCostBuildup.projectSubtotal4 = this.quoteCostBuildUpService.calculateProjectSubtotal4(
-      model.detailedQuote.quoteCostBuildup.projectSubtotal3,
-      totalPercentageReduction,
-      totalAmountReduction,
-    );
-
-    model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
 
     model.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
       TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.grossPrice ?? 0),
@@ -739,19 +741,23 @@ export class QuoteService {
 
     detailedQuote.quoteFinanceProduct.rebateDetails = data.quoteFinanceProduct.rebateDetails;
 
-    const quoteCostBuildUp = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quoteConfigData);
-
-    detailedQuote.quoteCostBuildup = quoteCostBuildUp;
-
     const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
       detailedQuote.quoteFinanceProduct,
     );
 
-    detailedQuote.quoteCostBuildup.projectSubtotal4 = this.quoteCostBuildUpService.calculateProjectSubtotal4(
-      quoteCostBuildUp.projectSubtotal3,
+    const userInputs: QuoteCostBuildupUserInputDto = {
       totalPercentageReduction,
       totalAmountReduction,
+      salesOriginationSalesFeeUnitPercentage: data.quoteCostBuildup.salesOriginationSalesFee.unitPercentage,
+    };
+
+    const quoteCostBuildUp = this.quoteCostBuildUpService.create(
+      systemDesign.roofTopDesignData,
+      quoteConfigData,
+      userInputs,
     );
+
+    detailedQuote.quoteCostBuildup = quoteCostBuildUp;
 
     detailedQuote.quoteFinanceProduct.netAmount = this.quoteFinanceProductService.calculateNetAmount(
       quoteCostBuildUp.grossPrice,

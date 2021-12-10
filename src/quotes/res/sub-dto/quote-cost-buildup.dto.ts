@@ -2,7 +2,15 @@ import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { ProductResDto } from 'src/products-v2/res/product.dto';
 import { ExposeProp } from 'src/shared/decorators';
-import { IBaseQuoteCost, IQuoteCost, IQuoteCostBuildup, IProjectSubtotal4 } from '../../interfaces';
+import {
+  IBaseQuoteCost,
+  IQuoteCost,
+  IQuoteCostBuildup,
+  IProjectSubtotal4,
+  IBaseCostBuildupFee,
+  IAdditionalFees,
+  ITotalPromotionsDiscountsAndSwellGridrewards,
+} from 'src/quotes/interfaces';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
   @ExposeProp()
@@ -117,6 +125,32 @@ export class ProjectSubtotal4Dto implements IProjectSubtotal4 {
   netCost: number;
 }
 
+export class TotalPromotionsDiscountsAndSwellGridrewardsDto implements ITotalPromotionsDiscountsAndSwellGridrewards {
+  @ExposeProp()
+  total: number;
+}
+
+export class BaseCostBuildupFeeDto implements IBaseCostBuildupFee {
+  @ExposeProp()
+  unitPercentage: number;
+
+  @ExposeProp()
+  total: number;
+}
+
+export class AdditionalFeesDto implements IAdditionalFees {
+  @ExposeProp()
+  total: number;
+}
+
+export class QuoteCostBuildupUserInputDto {
+  totalPercentageReduction?: number;
+
+  totalAmountReduction?: number;
+
+  salesOriginationSalesFeeUnitPercentage?: number;
+}
+
 export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ExposeProp({ type: PanelQuoteDetailsDto, isArray: true })
   panelQuoteDetails: PanelQuoteDetailsDto[];
@@ -146,7 +180,7 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   grossPrice: number;
 
   @ExposeProp()
-  swellStandardMarkup: number;
+  generalMarkup: number;
 
   @ExposeProp({ type: QuoteCostBuildupCommon })
   equipmentAndLaborAndAddersSubtotal: QuoteCostBuildupCommon;
@@ -162,4 +196,22 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
 
   @ExposeProp({ type: ProjectSubtotal4Dto })
   projectSubtotal4: ProjectSubtotal4Dto;
+
+  @ExposeProp({ type: ProjectSubtotal4Dto })
+  projectGrandTotal: ProjectSubtotal4Dto;
+
+  @ExposeProp({ type: TotalPromotionsDiscountsAndSwellGridrewardsDto })
+  totalPromotionsDiscountsAndSwellGridrewards: TotalPromotionsDiscountsAndSwellGridrewardsDto;
+
+  @ExposeProp({ type: BaseCostBuildupFeeDto })
+  salesOriginationManagerFee: BaseCostBuildupFeeDto;
+
+  @ExposeProp({ type: BaseCostBuildupFeeDto })
+  salesOriginationSalesFee: BaseCostBuildupFeeDto;
+
+  @ExposeProp()
+  subtotalWithSalesOriginationManagerFee: number;
+
+  @ExposeProp({ type: AdditionalFeesDto })
+  additionalFees: AdditionalFeesDto;
 }

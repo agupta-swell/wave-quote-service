@@ -22,10 +22,11 @@ export class QuoteFinanceProductService {
    * @return [totalPercentage, totalAmount]
    */
   public calculateReduction(financeProduct: ICalculateQuoteFinanceProductNetAmountArg): [number, number] {
+    // TODO: rebate?
     const {
       incentiveDetails = [],
       projectDiscountDetails = [],
-      rebateDetails = [],
+      // rebateDetails = [],
       promotionDetails = [],
     } = financeProduct;
 
@@ -36,7 +37,7 @@ export class QuoteFinanceProductService {
 
     const totalAmount = this.calculateTotalAmount(
       ...incentiveDetails,
-      ...rebateDetails,
+      // ...rebateDetails,
       ...projectDiscountDetails.filter(e => e.type === DISCOUNT_TYPE.AMOUNT),
       ...promotionDetails.filter(e => e.type === PROMOTION_TYPE.AMOUNT),
     );
