@@ -4,6 +4,13 @@ import { FinancialProduct, FinancialProductSchema } from 'src/financial-products
 import { GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
+import { DiscountSchema } from 'src/discounts/discount.schema';
+import { IDiscountDocument } from 'src/discounts/interfaces';
+import { PromotionSchema } from 'src/promotions/promotion.schema';
+import { IPromotionDocument } from 'src/promotions/interfaces';
+import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
+import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
+import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
 import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
@@ -16,8 +23,9 @@ export interface IGsProgramSnapshot {
   id: string;
   annualIncentives: number;
   termYears: string;
-  numberBatteries: string;
+  kilowattHours: number;
   upfrontIncentives: number;
+  manufacturerId: string;
 }
 
 export interface IGridServiceDetails {
@@ -53,7 +61,7 @@ const IncentiveDetailsSchema = new Schema<Document<IIncentiveDetailsSchema>>(
 MongooseNamingStrategy.ExcludeOne(IncentiveDetailsSchema);
 export interface IRebateDetailsSchema {
   amount: number;
-  type: string;
+  type: REBATE_TYPE;
   description: string;
   isFloatRebate?: boolean;
 }
@@ -192,30 +200,6 @@ const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
   { _id: false },
 );
 
-export interface IProjectDiscountDetailSchema {
-  id: string;
-  discountId: string;
-  name: string;
-  amount: number;
-  type: string;
-  startDate: Date;
-  endDate: Date;
-}
-
-const ProjectDiscountDetailSchema = new Schema<Document<IProjectDiscountDetailSchema>>(
-  {
-    discount_id: String,
-    name: String,
-    amount: Number,
-    type: String,
-    start_date: Date,
-    end_date: Date,
-  },
-  {
-    _id: false,
-  },
-);
-
 export interface IFinancialProductDetails {
   fundingSourceId: string;
   isActive: boolean;
@@ -246,7 +230,8 @@ export interface IQuoteFinanceProductSchema {
   netAmount: number;
   incentiveDetails: IIncentiveDetailsSchema[];
   rebateDetails: IRebateDetailsSchema[];
-  projectDiscountDetails: IProjectDiscountDetailSchema[];
+  projectDiscountDetails: IDiscountDocument[];
+  promotionDetails: IPromotionDocument[];
   financialProductSnapshot: IFinancialProductDetails;
 }
 
@@ -256,7 +241,8 @@ const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema
     incentive_details: [IncentiveDetailsSchema],
     rebate_details: [RebateDetailsSchema],
     net_amount: Number,
-    project_discount_details: [ProjectDiscountDetailSchema],
+    project_discount_details: [DiscountSchema],
+    promotion_details: [PromotionSchema],
   },
   { _id: false },
 );
@@ -333,42 +319,6 @@ export interface IQuoteCostCommonSchema {
   subcontractorMarkup: number;
 }
 
-export interface ITaxCreditConfigDataSnapshotSchema {
-  name: string;
-  taxCreditPercentage: number;
-  taxCreditStartDate: Date;
-  taxCreditEndDate: Date;
-}
-
-const TaxCreditConfigDataSnapshotSchema = new Schema<Document<ITaxCreditConfigDataSnapshotSchema>>(
-  {
-    name: String,
-    tax_credit_percentage: Number,
-    tax_credit_start_date: Date,
-    tax_credit_end_date: Date,
-  },
-  { _id: false },
-);
-
-export interface ITaxCreditDataSchema {
-  name: string;
-  percentage: number;
-  taxCreditConfigDataId: string;
-  taxCreditConfigDataSnapshot: ITaxCreditConfigDataSnapshotSchema;
-  taxCreditConfigDataSnapshotDate: Date;
-}
-
-const TaxCreditDataSchema = new Schema<Document<ITaxCreditDataSchema>>(
-  {
-    name: String,
-    percentage: Number,
-    tax_credit_config_data_id: String,
-    tax_credit_config_data_snapshot: TaxCreditConfigDataSnapshotSchema,
-    tax_credit_config_data_snapshot_date: Date,
-  },
-  { _id: false },
-);
-
 export interface IQuotePricePerWattSchema {
   pricePerWatt: number;
   grossPrice: number;
@@ -415,7 +365,7 @@ export interface IDetailedQuoteSchema {
   isSelected: boolean;
   isSolar: boolean;
   isRetrofit: boolean;
-  taxCreditData: ITaxCreditDataSchema[];
+  taxCreditData: ITaxCreditConfigSnapshot[];
   utilityProgramSelectedForReinvestment: boolean;
   taxCreditSelectedForReinvestment: boolean;
   allowedQuoteModes: QUOTE_MODE_TYPE[];
@@ -451,7 +401,7 @@ export const DetailedQuoteSchema = new Schema<Document<IDetailedQuoteSchema>>(
     is_selected: Boolean,
     is_solar: Boolean,
     is_retrofit: Boolean,
-    tax_credit_data: [TaxCreditDataSchema],
+    tax_credit_data: [TaxCreditConfigSnapshotSchema],
     utility_program_selected_for_reinvestment: Boolean,
     tax_credit_selected_for_reinvestment: Boolean,
     allowed_quote_modes: [String],
@@ -521,6 +471,7 @@ export class QuoteModel {
         projectDiscountDetails,
         financeProduct,
         financialProductSnapshot,
+        promotionDetails,
       },
       savingsDetails,
       quoteCostBuildup,
@@ -537,6 +488,7 @@ export class QuoteModel {
       quotePriceOverride,
       notes,
     } = data;
+
     return {
       systemProduction,
       quoteName,
@@ -553,28 +505,15 @@ export class QuoteModel {
         rebateDetails,
         financeProduct,
         netAmount,
-        projectDiscountDetails: projectDiscountDetails.map(item => {
-          item.discountId = item.id;
-          return item;
-        }),
+        projectDiscountDetails,
+        promotionDetails,
         financialProductSnapshot,
       },
       savingsDetails,
       quoteCostBuildup,
       taxCreditSelectedForReinvestment,
       utilityProgramSelectedForReinvestment,
-      taxCreditData: (taxCreditData || []).map(item => ({
-        taxCreditConfigDataId: item._id,
-        name: item.name,
-        percentage: item.percentage,
-        taxCreditConfigDataSnapshot: {
-          name: item.name,
-          percentage: item.percentage,
-          startDate: item.startDate,
-          endDate: item.endDate,
-        },
-        taxCreditConfigDataSnapshotDate: new Date(),
-      })),
+      taxCreditData,
       allowedQuoteModes,
       selectedQuoteMode,
       quotePricePerWatt,

@@ -7,10 +7,10 @@ export interface GsPrograms extends Document {
   id: string;
   annualIncentives: number;
   termYears: string;
-  numberBatteries: string;
+  kilowattHours: number;
   upfrontIncentives: number;
   utilityProgramId: string;
-  batteryId: string;
+  manufacturerId: string;
 
   created_at: Date;
   created_by: string;
@@ -24,10 +24,10 @@ export const GsProgramsSchema = new Schema<GsPrograms>({
   id: String,
   annualIncentives: Number,
   termYears: String,
-  numberBatteries: String,
+  kilowattHours: Number,
   upfrontIncentives: Number,
   utilityProgramId: String,
-  batteryId: String,
+  manufacturerId: String,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,

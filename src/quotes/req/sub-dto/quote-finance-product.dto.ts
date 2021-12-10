@@ -1,7 +1,20 @@
 import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
+import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
+import { PROMOTION_TYPE } from 'src/promotions/promotion.constant';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FINANCE_PRODUCT_TYPE, REBATE_TYPE } from '../../constants';
 import { FinanceProductDetailDto } from './financial-product.dto';
@@ -43,11 +56,10 @@ export class RebateDetailsDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  type: string;
+  @IsEnum(REBATE_TYPE)
+  type: REBATE_TYPE;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   description: string;
 
   @ApiProperty()
@@ -92,6 +104,28 @@ export class FinanceProductDto {
   financialProductSnapshot: FinanceProductDetailDto;
 }
 
+export class PromotionDiscountDetailDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  amount: number;
+
+  @ApiProperty()
+  type: PROMOTION_TYPE;
+
+  @ApiProperty()
+  startDate: Date;
+
+  @ApiProperty()
+  endDate: Date;
+}
+
 export class ProjectDiscountDetailDto {
   @ApiProperty()
   @IsNotEmpty()
@@ -99,24 +133,28 @@ export class ProjectDiscountDetailDto {
   id: string;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   name: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
+  @ValidateIf((o: ProjectDiscountDetailDto) => o.id === 'managerDiscount')
   amount: number;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  type: string;
+  @IsOptional()
+  @IsEnum(DISCOUNT_TYPE)
+  @ValidateIf((o: ProjectDiscountDetailDto) => o.id === 'managerDiscount')
+  type: DISCOUNT_TYPE;
 
   @ApiProperty()
+  @IsOptional()
   startDate: Date;
 
   @ApiProperty()
+  @IsOptional()
   endDate: Date;
 }
 
@@ -145,8 +183,16 @@ export class QuoteFinanceProductDto {
   netAmount: number;
 
   @ApiProperty({ type: ProjectDiscountDetailDto, isArray: true })
-  @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => ProjectDiscountDetailDto)
+  @ValidateIf((_, val: ProjectDiscountDetailDto | undefined) => !!val && Array.isArray(val) && val.length > 0)
+  @ArrayUnique<ProjectDiscountDetailDto>(discount => discount.id)
   projectDiscountDetails: ProjectDiscountDetailDto[];
+
+  @ApiProperty({ type: PromotionDiscountDetailDto, isArray: true })
+  @ValidateNested({ each: true })
+  @Type(() => PromotionDiscountDetailDto)
+  @ValidateIf((_, val: ProjectDiscountDetailDto | undefined) => !!val && Array.isArray(val) && val.length > 0)
+  @ArrayUnique<PromotionDiscountDetailDto>(promotion => promotion.id)
+  promotionDetails: PromotionDiscountDetailDto[];
 }

@@ -3,6 +3,8 @@ import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
 import { IQuoteCost } from './IQuoteCost';
 import { IProjectSubtotal4 } from './IProjectSubtotal4';
+import { IAdditionalFees, IBaseCostBuildupFee } from './ICostBuildupFee';
+import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
 
 export interface IQuoteCostBuildup {
   panelQuoteDetails: IQuoteCost<PRODUCT_TYPE.MODULE>[];
@@ -13,13 +15,19 @@ export interface IQuoteCostBuildup {
   ancillaryEquipmentDetails: IQuoteCost<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>[];
   laborCostQuoteDetails: IQuoteCost<PRODUCT_TYPE.LABOR>[];
   softCostQuoteDetails: IQuoteCost<PRODUCT_TYPE.SOFT_COST>[];
-  swellStandardMarkup: number;
+  generalMarkup: number;
   grossPrice: number;
   equipmentSubtotal: IBaseQuoteCost;
   equipmentAndLaborSubtotal: IBaseQuoteCost;
   equipmentAndLaborAndAddersSubtotal: IBaseQuoteCost;
   projectSubtotal3: IBaseQuoteCost;
   projectSubtotal4: IProjectSubtotal4;
+  totalPromotionsDiscountsAndSwellGridrewards: ITotalPromotionsDiscountsAndSwellGridrewards;
+  salesOriginationManagerFee: IBaseCostBuildupFee;
+  salesOriginationSalesFee: IBaseCostBuildupFee;
+  subtotalWithSalesOriginationManagerFee: number;
+  additionalFees: IAdditionalFees;
+  projectGrandTotal: IProjectSubtotal4;
 }
 
 export type IQuoteCostBuildupDocument = Document &

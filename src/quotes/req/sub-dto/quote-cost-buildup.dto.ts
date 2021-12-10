@@ -5,6 +5,12 @@ import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { IQuoteCost, IQuoteCostBuildup } from 'src/quotes/interfaces';
 import { IBaseQuoteCost } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteCost';
 import { IProjectSubtotal4 } from 'src/quotes/interfaces/quote-cost-buildup/IProjectSubtotal4';
+import {
+  TotalPromotionsDiscountsAndSwellGridrewardsDto,
+  BaseCostBuildupFeeDto,
+  AdditionalFeesDto,
+} from 'src/quotes/res/sub-dto';
+import { ExposeProp } from 'src/shared/decorators';
 import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
@@ -157,7 +163,7 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   softCostQuoteDetails: SoftCostDetailsDto[];
 
   @ApiProperty()
-  swellStandardMarkup: number;
+  generalMarkup: number;
 
   @ApiProperty()
   grossPrice: number;
@@ -176,4 +182,22 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
 
   @ApiProperty({ type: ProjectSubtotal4Dto })
   projectSubtotal4: ProjectSubtotal4Dto;
+
+  @ApiProperty({ type: ProjectSubtotal4Dto })
+  projectGrandTotal: ProjectSubtotal4Dto;
+
+  @ExposeProp({ type: TotalPromotionsDiscountsAndSwellGridrewardsDto })
+  totalPromotionsDiscountsAndSwellGridrewards: TotalPromotionsDiscountsAndSwellGridrewardsDto;
+
+  @ExposeProp({ type: BaseCostBuildupFeeDto })
+  salesOriginationManagerFee: BaseCostBuildupFeeDto;
+
+  @ExposeProp({ type: BaseCostBuildupFeeDto })
+  salesOriginationSalesFee: BaseCostBuildupFeeDto;
+
+  @ExposeProp()
+  subtotalWithSalesOriginationManagerFee: number;
+
+  @ExposeProp({ type: AdditionalFeesDto })
+  additionalFees: AdditionalFeesDto;
 }

@@ -239,7 +239,7 @@ export class S3Service {
   }
 
   private buildObjectKey(fileNameWithExt: string, rootDir?: string | boolean): string {
-    if (!rootDir) return fileNameWithExt;
+    if (rootDir === true) return fileNameWithExt;
 
     if (typeof rootDir === 'string') {
       return `${rootDir}/${fileNameWithExt}`;

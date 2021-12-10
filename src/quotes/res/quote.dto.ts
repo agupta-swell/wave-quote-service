@@ -1,5 +1,6 @@
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { SystemProductionDto } from 'src/system-designs/res/sub-dto/system-production.dto';
+import { TaxCreditConfigResDto } from 'src/tax-credit-configs/dto';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { NotesDto, QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
 
@@ -79,8 +80,11 @@ class TaxCreditDto {
   @ExposeProp()
   percentage: number;
 
-  @ExposeProp({ type: TaxCreditConfigSnapshot })
-  taxCreditConfigDataSnapshot: TaxCreditConfigSnapshot;
+  @ExposeProp()
+  value: number;
+
+  @ExposeProp({ type: TaxCreditConfigResDto })
+  taxCreditConfigDataSnapshot: TaxCreditConfigResDto;
 
   @ExposeProp()
   taxCreditConfigDataSnapshotDate: Date;
@@ -132,7 +136,7 @@ export class QuoteDto {
 
   @ExposeAndMap({ type: UtilityProgramDto, root: 'detailedQuote', checkParent: true })
   utilityProgram: UtilityProgramDto;
-  
+
   @ExposeAndMap({ type: RebateProgramDto, root: 'detailedQuote', checkParent: true })
   rebateProgram: RebateProgramDto;
 

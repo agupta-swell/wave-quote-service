@@ -17,14 +17,14 @@ export interface QuotePartnerConfig extends Document {
   solarWithACStorageLaborFeePerProject: number;
   solarWithDCStorageLaborFeePerProject: number;
   storageRetrofitLaborFeePerProject: number;
-  swellStandardMarkup: number;
   ancillaryEquipmentMarkup: number;
   bosMarkup: number;
   generalMarkup: number;
   inverterMarkup: number;
   laborMarkup: number;
   salesOriginationManagerFee: number;
-  salesOriginationSalesFee: number;
+  salesOriginationSalesFee?: number;
+  useFixedSalesOriginationSalesFee: boolean;
   softCostMarkup: number;
   solarMarkup: number;
   storageMarkup: number;
@@ -41,20 +41,20 @@ export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
   enabledFinancialProducts: [String],
   maxModuleDCClipping: Number,
   solarOnlyLaborFeePerWatt: Number,
-  solarWithACStorageLaborFeePerProject:Number,
-  solarWithDCStorageLaborFeePerProject:Number,
+  solarWithACStorageLaborFeePerProject: Number,
+  solarWithDCStorageLaborFeePerProject: Number,
   storageRetrofitLaborFeePerProject: Number,
-  swellStandardMarkup: Number,
+  generalMarkup: Number,
   ancillaryEquipmentMarkup: Number,
   bosMarkup: Number,
-  generalMarkup: Number,
   inverterMarkup: Number,
   laborMarkup: Number,
   salesOriginationManagerFee: Number,
+  useFixedSalesOriginationSalesFee: Boolean,
   salesOriginationSalesFee: Number,
   softCostMarkup: Number,
   solarMarkup: Number,
-  storageMarkup: Number
+  storageMarkup: Number,
 });
 
 MongooseNamingStrategy.ExcludeOne(QuotePartnerConfigSchema);
