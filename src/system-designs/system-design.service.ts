@@ -1,10 +1,11 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { flatten, pickBy } from 'lodash';
+import { flatten, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { ContractService } from 'src/contracts/contract.service';
+import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ProductService } from 'src/products-v2/services';
@@ -54,6 +55,7 @@ export class SystemDesignService {
     private readonly contractService: ContractService,
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly productService: ProductService,
+    private readonly manufacturerService: ManufacturerService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -895,8 +897,47 @@ export class SystemDesignService {
 
   //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-
 
-  async getOneById(id: string | ObjectId): Promise<LeanDocument<SystemDesign> | null> {
+  async getOneById(id: string | ObjectId, populateManufacturer = false): Promise<LeanDocument<SystemDesign> | null> {
     const systemDesign = await this.systemDesignModel.findById(id).lean();
+
+    if (!systemDesign) {
+      return null;
+    }
+
+    const products =
+      systemDesign.designMode === 'roofTop'
+        ? systemDesign.roofTopDesignData
+        : systemDesign.capacityProductionDesignData;
+
+    const { ancillaryEquipments, inverters, panelArray } = products;
+
+    const manufacturerIds = uniq([
+      ...ancillaryEquipments.map(item => item.ancillaryEquipmentModelDataSnapshot.manufacturerId),
+      ...inverters.map(item => item.inverterModelDataSnapshot.manufacturerId),
+      ...panelArray.map<any>(item => item.panelModelDataSnapshot?.manufacturerId),
+    ]);
+
+    const manufacturerNames = await this.manufacturerService.getManufacturersByIds(manufacturerIds);
+
+    ancillaryEquipments.forEach(item => {
+      item.ancillaryEquipmentModelDataSnapshot.manufacturer = manufacturerNames.find(
+        m => item.ancillaryEquipmentModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
+      )?.name;
+    });
+
+    inverters.forEach(item => {
+      item.inverterModelDataSnapshot.manufacturer = manufacturerNames.find(
+        m => item.inverterModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
+      )?.name;
+    });
+
+    panelArray.forEach(item => {
+      if (item.panelModelDataSnapshot)
+        item.panelModelDataSnapshot.manufacturer = manufacturerNames.find(
+          m => item.panelModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
+        )?.name;
+    });
+
     return systemDesign;
   }
 

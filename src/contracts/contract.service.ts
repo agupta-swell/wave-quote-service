@@ -1,4 +1,4 @@
-import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
@@ -244,13 +244,13 @@ export class ContractService {
 
     const fundingSourceType = quote.detailedQuote.quoteFinanceProduct.financeProduct.productType;
 
-    const [customerPayment, utilityName, roofTopDesign, systemDesign, utilityUsageDetails] = await Promise.all([
+    const [customerPayment, utilityName, systemDesign, utilityUsageDetails] = await Promise.all([
       this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunityId),
       this.utilityService.getUtilityName(opportunity.utilityId),
-      this.systemDesignService.getRoofTopDesignById(
+      this.systemDesignService.getOneById(
         contract.contractType === CONTRACT_TYPE.NO_COST_CHANGE_ORDER ? contract.systemDesignId : quote.systemDesignId,
+        true,
       ),
-      this.systemDesignService.getOneById(quote.systemDesignId),
       this.utilityService.getUtilityByOpportunityId(opportunity._id),
     ]);
 
@@ -284,7 +284,7 @@ export class ContractService {
       contact: contact || ({} as any),
       customerPayment: customerPayment || ({} as any),
       utilityName: utilityName?.split(' - ')[1] || 'none',
-      roofTopDesign: roofTopDesign || ({} as any),
+      roofTopDesign: systemDesign?.roofTopDesignData || ({} as any),
       isCash: fundingSourceType === 'cash',
       assignedMember,
       gsProgram,
@@ -295,6 +295,19 @@ export class ContractService {
       systemDesign: systemDesign!,
       utilityUsageDetails: utilityUsageDetails!,
     };
+
+    if (
+      contract.contractType !== CONTRACT_TYPE.PRIMARY_CONTRACT ||
+      contract.contractType !== CONTRACT_TYPE.PRIMARY_CONTRACT
+    ) {
+      const primaryContract = await this.contractModel.findById(contract.primaryContractId).lean();
+
+      if (!primaryContract) throw new NotFoundException('Primary contract not found');
+
+      const primaryContractQuote = await this.quoteService.getOneById(primaryContract?.associatedQuoteId);
+
+      genericObject.primaryContractQuote = primaryContractQuote;
+    }
 
     const sentOn = new Date();
 

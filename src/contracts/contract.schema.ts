@@ -96,6 +96,7 @@ export interface Contract extends Document {
   createdAt: Date;
   updatedBy: string;
   updatedAt: Date;
+  projectCompletionDate: Date;
 }
 
 export const ContractSchema = new Schema<Contract>({
