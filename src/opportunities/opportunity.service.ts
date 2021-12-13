@@ -111,7 +111,7 @@ export class OpportunityService {
       .findByIdAndUpdate(opportunityId, { rebateProgramId }, { new: true })
       .lean();
 
-    const updatedOpportunity = new UpdateOpportunityRebateProgramDtoRes(savedOpportunity as any);
+    const updatedOpportunity = strictPlainToClass(UpdateOpportunityRebateProgramDtoRes, savedOpportunity);
 
     await this.quoteService.setOutdatedData(opportunityId, 'Rebate Program');
 

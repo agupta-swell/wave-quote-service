@@ -37,4 +37,6 @@ export enum REBATE_TYPE {
   PROGRAM_REBATE = 'PROGRAM_REBATE',
   ITC = 'ITC',
   SGIP = 'SGIP',
+  ERT = 'ERT',
+  ER = 'ER'
 }

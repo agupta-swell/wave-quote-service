@@ -950,7 +950,7 @@ export class QuoteService {
 
     if (systemDesignId) query.systemDesignId = systemDesignId;
 
-    const quotes = await this.quoteModel.find({ opportunityId, systemDesignId });
+    const quotes = await this.quoteModel.find(query);
 
     await Promise.all(
       quotes.map(item => {
