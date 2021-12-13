@@ -148,7 +148,7 @@ export class QuoteCostBuildupUserInputDto {
 
   totalAmountReduction?: number;
 
-  salesOriginationSalesFeeUnitPercentage?: number;
+  salesOriginationSalesFee?: BaseCostBuildupFeeDto;
 }
 
 export class QuoteCostBuildupDto implements IQuoteCostBuildup {

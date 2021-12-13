@@ -749,7 +749,7 @@ export class QuoteService {
     const userInputs: QuoteCostBuildupUserInputDto = {
       totalPercentageReduction,
       totalAmountReduction,
-      salesOriginationSalesFeeUnitPercentage: data.quoteCostBuildup.salesOriginationSalesFee.unitPercentage,
+      salesOriginationSalesFee: data.quoteCostBuildup.salesOriginationSalesFee,
     };
 
     const quoteCostBuildUp = this.quoteCostBuildUpService.create(

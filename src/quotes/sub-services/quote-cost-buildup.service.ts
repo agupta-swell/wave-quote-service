@@ -407,12 +407,12 @@ export class QuoteCostBuildUpService {
       .plus(salesOriginationManagerFee.total)
       .toNumber();
 
-    const salesOriginationSalesFee = this.calculateCostBuildupFee(
-      subtotalWithSalesOriginationManagerFee,
-      partnerMarkup.useFixedSalesOriginationSalesFee
-        ? partnerMarkup.salesOriginationSalesFee
-        : userInputs?.salesOriginationSalesFeeUnitPercentage || 0,
-    );
+    const salesOriginationSalesFee = partnerMarkup.useFixedSalesOriginationSalesFee
+      ? this.calculateCostBuildupFee(subtotalWithSalesOriginationManagerFee, partnerMarkup.salesOriginationSalesFee)
+      : {
+          total: userInputs?.salesOriginationSalesFee?.total || 0,
+          unitPercentage: userInputs?.salesOriginationSalesFee?.unitPercentage || 0,
+        };
 
     const additionalFees = salesOriginationSalesFee; // TODO: additionalFees = salesOriginationSalesFee + 3rd party dealer fee
 
