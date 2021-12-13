@@ -487,8 +487,9 @@ export class QuoteService {
       throw new BadRequestException(isInUsed);
     }
 
-    const [foundQuote, systemDesign, quotePartnerConfig, taxCreditData] = await Promise.all([
+    const [foundQuote, foundOpportunity, systemDesign, quotePartnerConfig, taxCreditData] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
+      this.opportunityService.getDetailById(data.opportunityId),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
@@ -563,7 +564,7 @@ export class QuoteService {
         ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
         : null;
 
-    const rebateProgramDetail = data.rebateProgramId
+    const rebateProgramDetail = data.rebateProgramId && data.rebateProgramId !== 'None'
       ? await this.rebateProgramService.getOneById(data.rebateProgramId)
       : null;
 
@@ -598,7 +599,7 @@ export class QuoteService {
           financialProductSnapshot: financeProduct.financialProductSnapshot,
         },
         netAmount: quoteCostBuildup.grossPrice,
-        incentiveDetails,
+        incentiveDetails: data.utilityProgramId !== foundOpportunity?.utilityProgramId ? [] : incentiveDetails,
         rebateDetails,
         projectDiscountDetails:
           data.quoteFinanceProduct?.projectDiscountDetails ?? projectDiscountDetails.filter(DiscountService.validate),
