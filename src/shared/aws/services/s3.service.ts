@@ -118,11 +118,13 @@ export class S3Service {
   /**
    * Put Base64 image to S3
    * @param bucketName
-   * @param str
+   * @param base64Data
    * @param acl
+   * @param opts
    * @returns
    */
-  public putBase64Image(bucketName: string, base64Data: string, acl: string, opts: IS3RootDir = {}): Promise<string> {
+  public async putBase64Image(bucketName: string, base64Data: string, acl: string, opts: IS3RootDir = {}): Promise<string|undefined> {
+    if (!base64Data) return;
     return new Promise((resolve, reject) => {
       const { rootDir } = opts;
       const buf = Buffer.from(base64Data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
