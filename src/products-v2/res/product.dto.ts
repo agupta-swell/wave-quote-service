@@ -61,6 +61,9 @@ export class ProductResDto {
   @ExposeAndMap({}, ({ obj }) => obj.manufacturerId)
   manufacturerId?: string;
 
+  @ExposeProp()
+  manufacturer?: string;
+
   @ExposeAndMap({ skipTransform: true }, ({ obj, value }) => {
     let res: BaseRatingResDto | BatteryRatingResDto | undefined;
 

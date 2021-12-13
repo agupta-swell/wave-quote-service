@@ -41,7 +41,7 @@ export class ManufacturerService {
   }
 
   async getOneById(id: string | ObjectId): Promise<LeanDocument<Manufacturer>> {
-    const found = await this.manufacturers.findById({ _id: id }).lean();
+    const found = await this.manufacturers.findById(id).lean();
 
     if (!found) {
       throw new NotFoundException(`No manufacturer found with id ${id}`);

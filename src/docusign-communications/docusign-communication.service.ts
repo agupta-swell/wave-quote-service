@@ -59,7 +59,11 @@ export class DocusignCommunicationService {
 
     const resDocusign = await this.docusignApiService
       .useContext(genericObject)
-      .sendContract(docusignPayload, templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '', isDraft);
+      .sendContract(
+        docusignPayload,
+        templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '',
+        isDraft,
+      );
 
     const model = new this.docusignCommunicationModel({
       dateTime: new Date(),
@@ -105,6 +109,7 @@ export class DocusignCommunicationService {
       sequence: 0,
       recipients: {
         signers: [],
+        carbonCopies: [],
       },
     };
     inlineTemplateDataPayload.sequence = runningCounter;
@@ -128,6 +133,15 @@ export class DocusignCommunicationService {
         inlineTemplateDataPayload.recipients.signers.push(signerDataPayload);
       }
     });
+
+    inlineTemplateDataPayload.recipients.carbonCopies = signerDetails
+      .filter(signer => !template.recipientRoles.find(role => role._id.toString() === signer.roleId))
+      .map((signer, id) => ({
+        email: signer.email,
+        name: signer.fullName || signer.role,
+        recipientId: `${inlineTemplateDataPayload.recipients.signers.length + id + 1}`,
+        routingOrder: `${inlineTemplateDataPayload.recipients.signers.length + id + 1}`,
+      }));
 
     compositeTemplateDataPayload.inlineTemplates.push(inlineTemplateDataPayload);
 
