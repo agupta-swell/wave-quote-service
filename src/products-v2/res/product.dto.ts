@@ -61,7 +61,7 @@ export class ProductResDto {
   @ExposeAndMap({}, ({ obj }) => obj.manufacturerId)
   manufacturerId?: string;
 
-  @ExposeAndMap({}, ({ obj }) => obj.manufacturer)
+  @ExposeProp()
   manufacturer?: string;
 
   @ExposeAndMap({ skipTransform: true }, ({ obj, value }) => {

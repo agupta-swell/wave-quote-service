@@ -309,8 +309,7 @@ export class ProposalService {
     }
 
     const requiredData = await this.getProposalRequiredData(proposal);
-    const proposalDetail = strictPlainToClass(ProposalDto, { ...proposal, ...requiredData });
-    const storages = proposalDetail.systemDesignData.roofTopDesignData.storage;
+    const storages = proposal.detailedProposal.systemDesignData.roofTopDesignData.storage;
     let manufacturer: LeanDocument<Manufacturer> = {
       name: ''
     };
@@ -324,7 +323,7 @@ export class ProposalService {
 
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
-      proposalDetail: proposalDetail,
+      proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
     });
   }
 
