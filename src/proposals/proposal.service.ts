@@ -85,18 +85,6 @@ export class ProposalService {
       this.proposalTemplateService.getOneById(proposalDto.detailedProposal.templateId),
     ]);
 
-    const thumbnail = systemDesign?.thumbnail;
-
-    if (!thumbnail) {
-      throw ApplicationException.ServiceError();
-    }
-
-    const { keyName, bucketName } = this.s3Service.getLocationFromUrl(thumbnail);
-
-    const newKeyName = `proposal_${keyName}`;
-
-    await this.s3Service.copySource(bucketName, keyName, bucketName, newKeyName, 'public-read');
-
     const model = new this.proposalModel({
       opportunityId: proposalDto.opportunityId,
       systemDesignId: proposalDto.systemDesignId,
@@ -114,11 +102,21 @@ export class ProposalService {
       },
     });
 
+    const thumbnail = systemDesign?.thumbnail;
+
+    if (thumbnail) {
+      const { keyName, bucketName } = this.s3Service.getLocationFromUrl(thumbnail);
+
+      const newKeyName = `proposal_${keyName}`;
+
+      await this.s3Service.copySource(bucketName, keyName, bucketName, newKeyName, 'public-read');
+
+      model.detailedProposal.systemDesignData.thumbnail = this.s3Service.buildUrlFromKey(bucketName, newKeyName);
+    }
+
     if (proposalTemplate) {
       model.detailedProposal.proposalTemplateSnapshot = proposalTemplate;
     }
-
-    model.detailedProposal.systemDesignData.thumbnail = this.s3Service.buildUrlFromKey(bucketName, newKeyName);
 
     // Generate PDF and HTML file then get File Url
     const infoProposalAfterInsert = await model.save();
