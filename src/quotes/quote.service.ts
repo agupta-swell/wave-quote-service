@@ -487,9 +487,8 @@ export class QuoteService {
       throw new BadRequestException(isInUsed);
     }
 
-    const [foundQuote, foundOpportunity, systemDesign, quotePartnerConfig, taxCreditData] = await Promise.all([
+    const [foundQuote, systemDesign, quotePartnerConfig, taxCreditData] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
-      this.opportunityService.getDetailById(data.opportunityId),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
@@ -516,6 +515,7 @@ export class QuoteService {
         promotionDetails,
         projectDiscountDetails,
       },
+      utilityProgram
     } = foundQuote.detailedQuote;
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quotePartnerConfig);
@@ -599,7 +599,7 @@ export class QuoteService {
           financialProductSnapshot: financeProduct.financialProductSnapshot,
         },
         netAmount: quoteCostBuildup.grossPrice,
-        incentiveDetails: data.utilityProgramId !== foundOpportunity?.utilityProgramId ? [] : incentiveDetails,
+        incentiveDetails: data.utilityProgramId !== utilityProgram?.utilityProgramId ? [] : incentiveDetails,
         rebateDetails,
         projectDiscountDetails:
           data.quoteFinanceProduct?.projectDiscountDetails ?? projectDiscountDetails.filter(DiscountService.validate),
@@ -749,7 +749,7 @@ export class QuoteService {
     const userInputs: QuoteCostBuildupUserInputDto = {
       totalPercentageReduction,
       totalAmountReduction,
-      salesOriginationSalesFeeUnitPercentage: data.quoteCostBuildup.salesOriginationSalesFee.unitPercentage,
+      salesOriginationSalesFee: data.quoteCostBuildup.salesOriginationSalesFee,
     };
 
     const quoteCostBuildUp = this.quoteCostBuildUpService.create(
@@ -1037,6 +1037,7 @@ export class QuoteService {
     const itcRate = v2Itc?.itcRate ?? 0;
 
     let isFloatRebate = rebateAssignment === 'customer' ? true : rebateAssignment === 'swell' && false;
+    let amount = 0;
 
     const rebateDetails: IRebateDetailsSchema[] = [
       {
@@ -1051,10 +1052,11 @@ export class QuoteService {
       if (existingRebateDetails?.length) {
         const foundedRebate = existingRebateDetails.find(item => item.type === rebateProgram.name);
         isFloatRebate = foundedRebate ? !!foundedRebate?.isFloatRebate : isFloatRebate;
+        amount = foundedRebate?.amount || 0;
       }
 
       rebateDetails.push({
-        amount: 0,
+        amount,
         type: <any>rebateProgram.name,
         description: '',
         isFloatRebate:

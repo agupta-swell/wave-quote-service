@@ -2,7 +2,7 @@ import { Document } from 'mongoose';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
 import { IQuoteCost } from './IQuoteCost';
-import { IProjectSubtotal4 } from './IProjectSubtotal4';
+import { IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards } from './IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards';
 import { IAdditionalFees, IBaseCostBuildupFee } from './ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
 
@@ -19,15 +19,15 @@ export interface IQuoteCostBuildup {
   grossPrice: number;
   equipmentSubtotal: IBaseQuoteCost;
   equipmentAndLaborSubtotal: IBaseQuoteCost;
-  equipmentAndLaborAndAddersSubtotal: IBaseQuoteCost;
-  projectSubtotal3: IBaseQuoteCost;
-  projectSubtotal4: IProjectSubtotal4;
+  equipmentLaborAndAddersSubtotal: IBaseQuoteCost;
+  projectGrossTotal: IBaseQuoteCost;
+  projectSubtotalWithDiscountsPromotionsAndSwellGridrewards: IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards;
   totalPromotionsDiscountsAndSwellGridrewards: ITotalPromotionsDiscountsAndSwellGridrewards;
   salesOriginationManagerFee: IBaseCostBuildupFee;
   salesOriginationSalesFee: IBaseCostBuildupFee;
   subtotalWithSalesOriginationManagerFee: number;
   additionalFees: IAdditionalFees;
-  projectGrandTotal: IProjectSubtotal4;
+  projectGrandTotal: IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards;
 }
 
 export type IQuoteCostBuildupDocument = Document &

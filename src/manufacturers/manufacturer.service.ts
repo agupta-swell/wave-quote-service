@@ -108,4 +108,10 @@ export class ManufacturerService {
 
     return res[0];
   }
+
+  async getManufacturersByIds(ids: ObjectId[]): Promise<LeanDocument<Manufacturer>[]> {
+    const res = await this.manufacturers.find({ _id: { $in: ids } }).lean();
+
+    return res;
+  }
 }

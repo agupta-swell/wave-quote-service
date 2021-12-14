@@ -46,9 +46,9 @@ export interface IProposalTemplate {
   sections: ISectionSchema[];
   proposalSectionMaster: IProposalSectionMaster;
   createdAt: Date;
-  createdBy: String;
+  createdBy: string;
   updatedAt: Date;
-  updatedBy: String;
+  updatedBy: string;
 }
 
 export interface ProposalTemplate extends IProposalTemplate, Document {}
