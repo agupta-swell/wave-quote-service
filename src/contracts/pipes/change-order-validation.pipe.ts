@@ -73,13 +73,11 @@ export class ChangeOrderValidationPipe implements PipeTransform<SaveChangeOrderR
   }
 
   protected async validateCreateNoCostChangeOrder(req: SaveChangeOrderReqDto): Promise<any> {
-    const found = await this.contractModel.find({ opportunityId: req.contractDetail.opportunityId }).lean();
+    const primaryContract = await this.contractModel.findById(req.contractDetail.primaryContractId).lean();
 
-    if (!found) throw new NotFoundException('No related contract found');
+    if (!primaryContract) throw new NotFoundException('No related contract found');
 
-    const primaryContract = found.find(e => e.contractType === CONTRACT_TYPE.PRIMARY_CONTRACT);
-
-    if (primaryContract?.contractStatus !== PROCESS_STATUS.COMPLETED) {
+    if (primaryContract.contractStatus !== PROCESS_STATUS.COMPLETED) {
       throw new BadRequestException('Not qualified to create No Cost Change Order Contract');
     }
 
