@@ -1037,6 +1037,7 @@ export class QuoteService {
     const itcRate = v2Itc?.itcRate ?? 0;
 
     let isFloatRebate = rebateAssignment === 'customer' ? true : rebateAssignment === 'swell' && false;
+    let amount = 0;
 
     const rebateDetails: IRebateDetailsSchema[] = [
       {
@@ -1051,10 +1052,11 @@ export class QuoteService {
       if (existingRebateDetails?.length) {
         const foundedRebate = existingRebateDetails.find(item => item.type === rebateProgram.name);
         isFloatRebate = foundedRebate ? !!foundedRebate?.isFloatRebate : isFloatRebate;
+        amount = foundedRebate?.amount || 0;
       }
 
       rebateDetails.push({
-        amount: 0,
+        amount,
         type: <any>rebateProgram.name,
         description: '',
         isFloatRebate:
