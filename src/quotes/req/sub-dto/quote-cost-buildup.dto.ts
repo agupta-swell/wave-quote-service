@@ -4,7 +4,7 @@ import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { IQuoteCost, IQuoteCostBuildup } from 'src/quotes/interfaces';
 import { IBaseQuoteCost } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteCost';
-import { IProjectSubtotal4 } from 'src/quotes/interfaces/quote-cost-buildup/IProjectSubtotal4';
+import { IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards } from 'src/quotes/interfaces/quote-cost-buildup/IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards';
 import {
   TotalPromotionsDiscountsAndSwellGridrewardsDto,
   BaseCostBuildupFeeDto,
@@ -123,7 +123,7 @@ export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuote
   quantity: number;
 }
 
-export class ProjectSubtotal4Dto implements IProjectSubtotal4 {
+export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto implements IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
   @ApiProperty()
   cost: number;
 
@@ -169,7 +169,7 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   grossPrice: number;
 
   @ApiProperty({ type: QuoteCostBuildupCommon })
-  equipmentAndLaborAndAddersSubtotal: QuoteCostBuildupCommon;
+  equipmentLaborAndAddersSubtotal: QuoteCostBuildupCommon;
 
   @ApiProperty({ type: QuoteCostBuildupCommon })
   equipmentAndLaborSubtotal: QuoteCostBuildupCommon;
@@ -178,13 +178,13 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   equipmentSubtotal: QuoteCostBuildupCommon;
 
   @ApiProperty({ type: QuoteCostBuildupCommon })
-  projectSubtotal3: QuoteCostBuildupCommon;
+  projectGrossTotal: QuoteCostBuildupCommon;
 
-  @ApiProperty({ type: ProjectSubtotal4Dto })
-  projectSubtotal4: ProjectSubtotal4Dto;
+  @ApiProperty({ type: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto })
+  projectSubtotalWithDiscountsPromotionsAndSwellGridrewards: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto;
 
-  @ApiProperty({ type: ProjectSubtotal4Dto })
-  projectGrandTotal: ProjectSubtotal4Dto;
+  @ApiProperty({ type: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto })
+  projectGrandTotal: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto;
 
   @ExposeProp({ type: TotalPromotionsDiscountsAndSwellGridrewardsDto })
   totalPromotionsDiscountsAndSwellGridrewards: TotalPromotionsDiscountsAndSwellGridrewardsDto;

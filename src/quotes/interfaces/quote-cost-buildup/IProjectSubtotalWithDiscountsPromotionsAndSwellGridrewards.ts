@@ -1,4 +1,4 @@
-export interface IProjectSubtotal4 {
+export interface IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
   cost: number;
   marginPercentage: number;
   netMargin: number;
