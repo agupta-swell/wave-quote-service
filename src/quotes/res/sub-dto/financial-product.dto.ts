@@ -102,4 +102,7 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   allowsWetSignedContracts: boolean;
+
+  @ExposeProp()
+  projectCompletionDateOffset: number;
 }

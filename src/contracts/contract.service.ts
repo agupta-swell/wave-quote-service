@@ -24,7 +24,15 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
-import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE, PROCESS_STATUS, REQUEST_MODE, SIGN_STATUS } from './constants';
+import {
+  CONTRACT_ROLE,
+  CONTRACT_SECRET_PREFIX,
+  CONTRACT_TYPE,
+  DEFAULT_PROJECT_COMPLETION_DATE_OFFSET,
+  PROCESS_STATUS,
+  REQUEST_MODE,
+  SIGN_STATUS,
+} from './constants';
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import { ContractReqDto } from './req/contract-req.dto';
@@ -409,7 +417,7 @@ export class ContractService {
         contractSystemReferenceId,
       })
       .lean();
-
+    const quote = await this.quoteService.getOneById(contract?.associatedQuoteId || '');
     if (!contract) {
       throw ApplicationException.EntityNotFound(
         `Contract with contractSystemReferenceId: ${req.contractSystemReferenceId}`,
@@ -429,6 +437,17 @@ export class ContractService {
       if (status.status === CONTRACTING_SYSTEM_STATUS.SIGNED) {
         contract.signerDetails[idx].signStatus = SIGN_STATUS.SIGNED;
         contract.signerDetails[idx].signedOn = new Date(status.date);
+      }
+
+      if (
+        contract.signerDetails[idx].role === CONTRACT_ROLE.PRIMARY_OWNER &&
+        status.status === CONTRACTING_SYSTEM_STATUS.SIGNED
+      ) {
+        const dateOffset =
+          quote?.quoteFinanceProduct.financialProductSnapshot.projectCompletionDateOffset ||
+          DEFAULT_PROJECT_COMPLETION_DATE_OFFSET;
+        contract.projectCompletionDate = new Date(status.date);
+        contract.projectCompletionDate.setDate(contract.projectCompletionDate.getDate() + dateOffset);
       }
     });
 

@@ -89,7 +89,6 @@ export interface Contract extends Document {
   primaryContractId: string;
   contractStatus: PROCESS_STATUS;
   changeOrderDescription: string;
-  completionDate: string;
   contractingSystemReferenceId: string;
   createdBy: string;
   systemDesignId: string;
@@ -111,7 +110,7 @@ export const ContractSchema = new Schema<Contract>({
   primary_contract_id: String,
   contract_status: String,
   change_order_description: String,
-  completion_date: String,
+  project_completion_date: Date,
   contracting_system_reference_id: String,
   system_design_id: String,
 
