@@ -443,7 +443,6 @@ export class QuoteCostBuildUpService {
       softCostQuoteDetails,
       storageQuoteDetails,
       generalMarkup,
-      grossPrice: grossPrice.toNumber(),
       equipmentSubtotal,
       equipmentAndLaborSubtotal,
       equipmentLaborAndAddersSubtotal,

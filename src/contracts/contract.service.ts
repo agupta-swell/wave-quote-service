@@ -304,10 +304,7 @@ export class ContractService {
       utilityUsageDetails: utilityUsageDetails!,
     };
 
-    if (
-      contract.contractType !== CONTRACT_TYPE.PRIMARY_CONTRACT ||
-      contract.contractType !== CONTRACT_TYPE.PRIMARY_CONTRACT
-    ) {
+    if (contract.contractType !== CONTRACT_TYPE.PRIMARY_CONTRACT) {
       const primaryContract = await this.contractModel.findById(contract.primaryContractId).lean();
 
       if (!primaryContract) throw new NotFoundException('Primary contract not found');
@@ -315,6 +312,8 @@ export class ContractService {
       const primaryContractQuote = await this.quoteService.getOneById(primaryContract?.associatedQuoteId);
 
       genericObject.primaryContractQuote = primaryContractQuote;
+
+      genericObject.primaryContract = primaryContract;
     }
 
     const sentOn = new Date();

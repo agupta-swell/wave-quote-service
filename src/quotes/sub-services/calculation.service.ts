@@ -30,7 +30,7 @@ export class CalculationService {
   ): Promise<CalculateQuoteDetailDto> {
     const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
       .productAttribute as LeaseProductAttributesDto;
-    productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.grossPrice;
+    productAttribute.leaseAmount = detailedQuote.quoteCostBuildup.projectGrossTotal.netCost;
 
     const query: IGetDetail = {
       tier: tier ?? 'DTC',

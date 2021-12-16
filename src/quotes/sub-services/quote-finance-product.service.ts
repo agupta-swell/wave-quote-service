@@ -57,4 +57,10 @@ export class QuoteFinanceProductService {
       .minus(totalAmountReduction)
       .toNumber();
   }
+
+  public static calculateReduction(reduction: IReductionAmount<'percentage' | 'amount'>, grossPrice: number): number {
+    if (reduction.type === 'amount') return reduction.amount;
+
+    return new BigNumber(100).minus(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
+  }
 }
