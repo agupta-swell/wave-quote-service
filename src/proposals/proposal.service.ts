@@ -76,7 +76,7 @@ export class ProposalService {
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
     private readonly manufacturerService: ManufacturerService,
-  ) { }
+  ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
     const [systemDesign, detailedQuote, proposalTemplate] = await Promise.all([
@@ -151,14 +151,11 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(id.toString());
     }
 
-    const { isSelected, proposalValidityPeriod, proposalName, recipients, pdfFileUrl, htmlFileUrl } = proposalDto;
+    const filteredPayload = pickBy(proposalDto, x => x !== undefined);
 
-    foundProposal.detailedProposal.isSelected = isSelected;
-    foundProposal.detailedProposal.proposalName = proposalName;
-    foundProposal.detailedProposal.proposalValidityPeriod = proposalValidityPeriod;
-    foundProposal.detailedProposal.recipients = recipients;
-    foundProposal.detailedProposal.pdfFileUrl = pdfFileUrl;
-    foundProposal.detailedProposal.htmlFileUrl = htmlFileUrl;
+    Object.keys(filteredPayload).forEach(key => {
+      foundProposal.detailedProposal[key] = filteredPayload[key];
+    });
 
     await foundProposal.save();
 
@@ -261,8 +258,8 @@ export class ProposalService {
           proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
           recipientNotice: recipients.filter(i => i !== recipient).join(', ')
             ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipients
-              .filter(i => i !== recipient)
-              .join(', ')}`
+                .filter(i => i !== recipient)
+                .join(', ')}`
             : '',
           proposalLink: linksByToken[index],
         };
@@ -309,14 +306,16 @@ export class ProposalService {
     const requiredData = await this.getProposalRequiredData(proposal);
     const storages = proposal.detailedProposal.systemDesignData.roofTopDesignData.storage;
     let manufacturer: LeanDocument<Manufacturer> = {
-      name: ''
+      name: '',
     };
-    if (!!storages.length) {
-      manufacturer = await this.manufacturerService.getOneById(storages[0].storageModelDataSnapshot.manufacturerId || '');
-      storages.map((item) => {
+    if (storages.length) {
+      manufacturer = await this.manufacturerService.getOneById(
+        storages[0].storageModelDataSnapshot.manufacturerId || '',
+      );
+      storages.map(item => {
         item.storageModelDataSnapshot.manufacturer = manufacturer.name;
         return item;
-      })
+      });
     }
 
     return OperationResult.ok({
@@ -371,13 +370,13 @@ export class ProposalService {
     const dataToUpdate =
       type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
         ? {
-          downloads: [...foundAnalytic.downloads, new Date()],
-          views: foundAnalytic.views,
-        }
+            downloads: [...foundAnalytic.downloads, new Date()],
+            views: foundAnalytic.views,
+          }
         : {
-          views: [...foundAnalytic.views, new Date()],
-          downloads: foundAnalytic.downloads,
-        };
+            views: [...foundAnalytic.views, new Date()],
+            downloads: foundAnalytic.downloads,
+          };
 
     await this.proposalAnalyticModel.findByIdAndUpdate(foundAnalytic._id, dataToUpdate);
     return OperationResult.ok(true);
@@ -550,16 +549,17 @@ export class ProposalService {
       true,
     );
 
-    const fileName = `${contact?.lastName || ''}, ${contact?.firstName || ''} - Sample ${compositeTemplates.find(e => e.templates.includes(templateDetailsData[0].id.toString()))?.filenameForDownloads ||
+    const fileName = `${contact?.lastName || ''}, ${contact?.firstName || ''} - Sample ${
+      compositeTemplates.find(e => e.templates.includes(templateDetailsData[0].id.toString()))?.filenameForDownloads ||
       ''
-      } - Not Executable.pdf`;
+    } - Not Executable.pdf`;
 
     try {
       const s3UploadResult = await this.saveToStorage(document, fileName, proposal._id.toString());
       const currentSampleContractUrl =
         proposal.detailedProposal.sampleContractUrl &&
-          proposal.detailedProposal.sampleContractUrl.length > 0 &&
-          proposal.detailedProposal.sampleContractUrl[0].sampleContractUrl !== undefined
+        proposal.detailedProposal.sampleContractUrl.length > 0 &&
+        proposal.detailedProposal.sampleContractUrl[0].sampleContractUrl !== undefined
           ? proposal.detailedProposal.sampleContractUrl
           : [];
       if (!currentSampleContractUrl.find(item => item.compositeTemplateId === compositeTemplateIds[0])) {
@@ -585,7 +585,8 @@ export class ProposalService {
 
     if (doc.length) {
       return name =>
-        `${name} is being used in the proposal named ${doc[0].detailedProposal.proposalName
+        `${name} is being used in the proposal named ${
+          doc[0].detailedProposal.proposalName
         } (id: ${doc[0]._id.toString()})`;
     }
     return false;
@@ -598,7 +599,8 @@ export class ProposalService {
 
     if (doc.length) {
       return name =>
-        `${name} is being used in the proposal named ${doc[0].detailedProposal.proposalName
+        `${name} is being used in the proposal named ${
+          doc[0].detailedProposal.proposalName
         } (id: ${doc[0]._id.toString()})`;
     }
     return false;
