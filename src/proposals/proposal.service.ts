@@ -440,7 +440,7 @@ export class ProposalService {
     proposalId: ObjectId,
     templateDetails: TemplateDetailDto[],
     signerDetails: SignerDetailDto[],
-  ): Promise<OperationResult<ProposalSendSampleContractResultDto>> {
+  ): Promise<OperationResult<ProposalDto>> {
     const proposal = await this.proposalModel.findById(proposalId);
 
     if (!proposal) throw ApplicationException.EntityNotFound(`ProposalId: ${proposalId}`);
@@ -471,7 +471,7 @@ export class ProposalService {
     // Get gsProgram
     const incentiveDetails = quote.quoteFinanceProduct.incentiveDetails[0];
 
-    const gsProgramSnapshotId = incentiveDetails.detail.gsProgramSnapshot.id;
+    const gsProgramSnapshotId = incentiveDetails?.detail?.gsProgramSnapshot?.id;
 
     const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
 
@@ -571,9 +571,8 @@ export class ProposalService {
 
       proposal.detailedProposal.sampleContractUrl = currentSampleContractUrl;
       await proposal.save();
-      return OperationResult.ok({
-        url: s3UploadResult.Location,
-      });
+
+      return OperationResult.ok(strictPlainToClass(ProposalDto, proposal.toJSON()));
     } catch (err) {
       // TODO use Logger
       console.error('s3 upload error', err);

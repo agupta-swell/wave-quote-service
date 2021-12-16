@@ -159,7 +159,7 @@ export class ProposalController {
   @ApiBearerAuth()
   @ApiParam({ name: 'proposalId', type: String })
   @ApiOperation({ summary: 'Send sample contract' })
-  @ApiCreatedResponse({ type: ProposalSendSampleContractRes })
+  @ApiOkResponse({ type: ProposalRes })
   async sendSampleContracts(
     @Param('proposalId', ParseObjectIdPipe) proposalId: ObjectId,
     @Body() body: ProposalSendSampleContractDto,
