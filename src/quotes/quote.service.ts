@@ -948,19 +948,88 @@ export class QuoteService {
   }
 
   async setOutdatedData(opportunityId: string, outdatedMessage: string, systemDesignId?: string): Promise<void> {
-    const query: Record<string, unknown> = { opportunityId };
+    const query: Record<string, unknown> = { opportunity_id: opportunityId };
 
-    if (systemDesignId) query.systemDesignId = systemDesignId;
+    if (systemDesignId) query.system_design_id = systemDesignId;
 
-    const quotes = await this.quoteModel.find(query);
+    const quotes = await this.quoteModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $lookup: {
+          from: 'v2_contracts',
+          let: {
+            id: {
+              $toString: '$_id',
+            },
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$associated_quote_id', '$$id'],
+                },
+              },
+            },
+          ],
+          as: 'contracts',
+        },
+      },
+      {
+        $match: {
+          'contracts.0': {
+            $exists: false,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'v2_proposals',
+          let: {
+            id: {
+              $toString: '$_id',
+            },
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$quote_id', '$$id'],
+                },
+              },
+            },
+          ],
+          as: 'proposals',
+        },
+      },
+      {
+        $match: {
+          'proposals.0': {
+            $exists: false,
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+        },
+      },
+    ]);
 
-    await Promise.all(
-      quotes.map(item => {
-        item.isSync = false;
-        item.isSyncMessages.push(outdatedMessage);
-        item.isSyncMessages = uniq(item.isSyncMessages);
-        return item.save();
-      }),
+    await this.quoteModel.updateMany(
+      { _id: { $in: quotes.map(item => item._id) } },
+      {
+        $set: {
+          is_sync: false,
+        },
+        $addToSet: {
+          is_sync_messages: outdatedMessage,
+        },
+      },
+      {
+        multi: true,
+      },
     );
   }
 
