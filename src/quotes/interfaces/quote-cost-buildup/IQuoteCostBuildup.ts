@@ -16,7 +16,6 @@ export interface IQuoteCostBuildup {
   laborCostQuoteDetails: IQuoteCost<PRODUCT_TYPE.LABOR>[];
   softCostQuoteDetails: IQuoteCost<PRODUCT_TYPE.SOFT_COST>[];
   generalMarkup: number;
-  grossPrice: number;
   equipmentSubtotal: IBaseQuoteCost;
   equipmentAndLaborSubtotal: IBaseQuoteCost;
   equipmentLaborAndAddersSubtotal: IBaseQuoteCost;

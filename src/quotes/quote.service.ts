@@ -148,7 +148,7 @@ export class QuoteService {
           fundingSourceName: fundingSource.name,
           productAttribute: await this.createProductAttribute(
             fundingSource.type,
-            quoteCostBuildup.grossPrice,
+            quoteCostBuildup.projectGrossTotal.netCost,
             financialProduct?.defaultDownPayment || 0,
           ),
           financialProductSnapshot: financialProduct,
@@ -157,7 +157,7 @@ export class QuoteService {
         incentiveDetails: [],
         rebateDetails: await this.createRebateDetails(
           data.opportunityId,
-          quoteCostBuildup.grossPrice ?? 0,
+          quoteCostBuildup.projectGrossTotal.netCost ?? 0,
           fundingSource.rebateAssignment,
         ),
         projectDiscountDetails: [],
@@ -291,7 +291,7 @@ export class QuoteService {
 
     switch (selectedQuoteMode) {
       case QUOTE_MODE_TYPE.COST_BUILD_UP:
-        currentGrossPrice = model.detailedQuote.quoteCostBuildup?.grossPrice || 0;
+        currentGrossPrice = model.detailedQuote.quoteCostBuildup?.projectGrossTotal.netCost || 0;
         break;
       case QUOTE_MODE_TYPE.PRICE_PER_WATT:
         currentGrossPrice = model.detailedQuote.quotePricePerWatt?.grossPrice || 0;
@@ -350,7 +350,7 @@ export class QuoteService {
 
     const rebateDetails = await this.createRebateDetails(
       foundQuote.opportunityId,
-      quoteCostBuildup.grossPrice,
+      quoteCostBuildup.projectGrossTotal.netCost,
       fundingSource?.rebateAssignment || '',
       foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
     );
@@ -375,7 +375,7 @@ export class QuoteService {
     model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
 
     model.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.grossPrice ?? 0),
+      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrossTotal.netCost ?? 0),
     );
 
     assignToModel(
@@ -515,7 +515,7 @@ export class QuoteService {
         promotionDetails,
         projectDiscountDetails,
       },
-      utilityProgram
+      utilityProgram,
     } = foundQuote.detailedQuote;
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quotePartnerConfig);
@@ -524,7 +524,7 @@ export class QuoteService {
 
     let productAttribute = await this.createProductAttribute(
       financeProduct.productType,
-      quoteCostBuildup.grossPrice,
+      quoteCostBuildup.projectGrossTotal.netCost,
       financialProductSnapshot?.defaultDownPayment || 0,
     );
     const { productAttribute: product_attribute } = financeProduct as any;
@@ -564,9 +564,10 @@ export class QuoteService {
         ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
         : null;
 
-    const rebateProgramDetail = data.rebateProgramId && data.rebateProgramId !== 'None'
-      ? await this.rebateProgramService.getOneById(data.rebateProgramId)
-      : null;
+    const rebateProgramDetail =
+      data.rebateProgramId && data.rebateProgramId !== 'None'
+        ? await this.rebateProgramService.getOneById(data.rebateProgramId)
+        : null;
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
@@ -598,7 +599,7 @@ export class QuoteService {
           productAttribute,
           financialProductSnapshot: financeProduct.financialProductSnapshot,
         },
-        netAmount: quoteCostBuildup.grossPrice,
+        netAmount: quoteCostBuildup.projectGrossTotal.netCost,
         incentiveDetails: data.utilityProgramId !== utilityProgram?.utilityProgramId ? [] : incentiveDetails,
         rebateDetails,
         projectDiscountDetails:
@@ -617,7 +618,7 @@ export class QuoteService {
       quotePriceOverride: foundQuote.detailedQuote.quotePriceOverride,
       notes: foundQuote.detailedQuote.notes,
       taxCreditData: taxCreditData.map(taxCredit =>
-        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.grossPrice ?? 0),
+        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrossTotal.netCost ?? 0),
       ),
     };
 
@@ -628,7 +629,7 @@ export class QuoteService {
 
     detailedQuote.quoteFinanceProduct.rebateDetails = await this.createRebateDetails(
       data.opportunityId,
-      quoteCostBuildup.grossPrice ?? 0,
+      quoteCostBuildup.projectGrossTotal.netCost ?? 0,
       fundingSource.rebateAssignment,
       rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
     );
@@ -761,13 +762,13 @@ export class QuoteService {
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
 
     detailedQuote.quoteFinanceProduct.netAmount = this.quoteFinanceProductService.calculateNetAmount(
-      quoteCostBuildUp.grossPrice,
+      quoteCostBuildUp.projectGrossTotal.netCost,
       totalPercentageReduction,
       totalAmountReduction,
     );
 
     detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.grossPrice ?? 0),
+      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrossTotal.netCost ?? 0),
     );
 
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
@@ -947,19 +948,88 @@ export class QuoteService {
   }
 
   async setOutdatedData(opportunityId: string, outdatedMessage: string, systemDesignId?: string): Promise<void> {
-    const query: Record<string, unknown> = { opportunityId };
+    const query: Record<string, unknown> = { opportunity_id: opportunityId };
 
-    if (systemDesignId) query.systemDesignId = systemDesignId;
+    if (systemDesignId) query.system_design_id = systemDesignId;
 
-    const quotes = await this.quoteModel.find(query);
+    const quotes = await this.quoteModel.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $lookup: {
+          from: 'v2_contracts',
+          let: {
+            id: {
+              $toString: '$_id',
+            },
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$associated_quote_id', '$$id'],
+                },
+              },
+            },
+          ],
+          as: 'contracts',
+        },
+      },
+      {
+        $match: {
+          'contracts.0': {
+            $exists: false,
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: 'v2_proposals',
+          let: {
+            id: {
+              $toString: '$_id',
+            },
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$quote_id', '$$id'],
+                },
+              },
+            },
+          ],
+          as: 'proposals',
+        },
+      },
+      {
+        $match: {
+          'proposals.0': {
+            $exists: false,
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+        },
+      },
+    ]);
 
-    await Promise.all(
-      quotes.map(item => {
-        item.isSync = false;
-        item.isSyncMessages.push(outdatedMessage);
-        item.isSyncMessages = uniq(item.isSyncMessages);
-        return item.save();
-      }),
+    await this.quoteModel.updateMany(
+      { _id: { $in: quotes.map(item => item._id) } },
+      {
+        $set: {
+          is_sync: false,
+        },
+        $addToSet: {
+          is_sync_messages: outdatedMessage,
+        },
+      },
+      {
+        multi: true,
+      },
     );
   }
 
@@ -968,7 +1038,7 @@ export class QuoteService {
     quoteCostBuildup: IQuoteCostBuildup,
     projectGrossPrice?: number,
   ): QuoteFinanceProductDto {
-    const grossPrice = projectGrossPrice ?? quoteCostBuildup.grossPrice;
+    const grossPrice = projectGrossPrice ?? quoteCostBuildup.projectGrossTotal.netCost;
 
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
 

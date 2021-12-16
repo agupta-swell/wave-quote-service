@@ -76,6 +76,7 @@ export interface IGenericObject {
   systemDesign: LeanDocument<SystemDesign> | SystemDesign;
   utilityUsageDetails?: LeanDocument<UtilityUsageDetails>;
   primaryContractQuote?: IDetailedQuoteSchema;
+  primaryContract?: LeanDocument<Contract>;
 }
 
 // ==================== DOCUSIGN PAYLOAD ====================

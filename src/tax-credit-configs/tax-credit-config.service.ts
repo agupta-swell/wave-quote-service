@@ -15,25 +15,55 @@ export class TaxCreditConfigService {
     private taxCreditConfigModel: Model<ITaxCreditConfigDocument>,
   ) {}
 
-  public static parseActiveTaxCreditConfigValidation(): { $match: Record<string, unknown> } {
+  public static parseActiveTaxCreditConfigValidation(): Record<string, unknown>[] {
     const now = new Date();
 
-    return {
-      $match: {
-        end_date: {
-          $gte: now,
-        },
-        start_date: {
-          $lte: now,
+    return [
+      {
+        $addFields: {
+          startDateInst: {
+            $dateFromString: {
+              dateString: '$start_date',
+              onError: '$start_date',
+            },
+          },
+          endDateInst: {
+            $dateFromString: {
+              dateString: '$end_date',
+              onError: '$end_date',
+            },
+          },
         },
       },
-    };
+      {
+        $match: {
+          endDateInst: {
+            $gte: now,
+          },
+          startDateInst: {
+            $lte: now,
+          },
+        },
+      },
+      {
+        $project: {
+          name: 1,
+          percentage: 1,
+          startDate: '$startDateInst',
+          endDate: '$endDateInst',
+          updatedAt: '$updated_at',
+          createdAt: '$created_at',
+          updatedBy: '$updated_by',
+          createdBy: '$created_by',
+        },
+      },
+    ];
   }
 
   public async getActiveTaxCreditConfigs(): Promise<LeanDocument<ITaxCreditConfigDocument>[]> {
-    const res = await this.taxCreditConfigModel
-      .find(TaxCreditConfigService.parseActiveTaxCreditConfigValidation().$match)
-      .lean();
+    const res = await this.taxCreditConfigModel.aggregate(
+      TaxCreditConfigService.parseActiveTaxCreditConfigValidation(),
+    );
 
     return res;
   }

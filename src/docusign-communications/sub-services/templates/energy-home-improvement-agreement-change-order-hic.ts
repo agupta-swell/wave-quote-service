@@ -2,6 +2,7 @@ import BigNumber from 'bignumber.js';
 import { sumBy } from 'lodash';
 import { IGenericObject } from 'src/docusign-communications/typing';
 import { parseSystemDesignProducts } from 'src/docusign-communications/utils';
+import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import {
   DefaultTabTransformation,
   DefaultTabType,
@@ -34,6 +35,9 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   )
   homeAddress: string;
 
+  @TabValue<IGenericObject>(({ primaryContract }) =>
+    primaryContract?.signerDetails.find(e => e.role === 'Fianancier')?.signedOn.toLocaleDateString(),
+  )
   primaryContractFinancierSignDate: Date;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
@@ -104,6 +108,58 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
       .toNumber(),
   )
   changeInContractAmount: string;
+
+  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
+    const { projectDiscountDetails, promotionDetails } = quoteFinanceProduct;
+
+    const { adderQuoteDetails } = quoteCostBuildup;
+
+    const headings: string[] = [];
+
+    if (adderQuoteDetails.length) headings.push('Project Adders');
+
+    if (promotionDetails.length) headings.push('Promotions');
+
+    if (projectDiscountDetails.length) headings.push('Discounts');
+
+    if (headings.length > 2) {
+      const last = headings.pop();
+
+      return `${headings.join(', ')}, and ${last}`;
+    }
+
+    return headings.join(' and ');
+  })
+  addersPromotionsDiscountsHeading: string;
+
+  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
+    const { projectDiscountDetails, promotionDetails } = quoteFinanceProduct;
+
+    const { adderQuoteDetails } = quoteCostBuildup;
+
+    return adderQuoteDetails
+      .map(item => `Adder: ${item.adderModelDataSnapshot.name}`)
+      .concat(
+        promotionDetails.map(
+          item =>
+            `Promotion: ${item.name} ($${QuoteFinanceProductService.calculateReduction(
+              item,
+              quoteCostBuildup.projectGrossTotal.netCost,
+            )})`,
+        ),
+      )
+      .concat(
+        projectDiscountDetails.map(
+          item =>
+            `Discount: ${item.name} ($${QuoteFinanceProductService.calculateReduction(
+              item,
+              quoteCostBuildup.projectGrossTotal.netCost,
+            )})`,
+        ),
+      )
+      .join('\n');
+  })
+  addersPromotionsDiscountsSummary: string;
 
   @TabValue('123.45')
   downPayment: string;

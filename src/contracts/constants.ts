@@ -25,9 +25,17 @@ export enum REQUEST_MODE {
   UPDATE = 'UPDATE',
 }
 
+export enum CONTRACT_ROLE {
+  PRIMARY_OWNER = 'Primary Owner',
+  CO_OWNER = 'Co Owner',
+  FINANCIER = 'Financier'
+}
+
 export const KEYS = {
   CONTRACT_TYPE: Symbol.for('contractType'),
   CONTRACT_ID_PATH: Symbol.for('contractIdProp'),
 };
 
 export const CONTRACT_SECRET_PREFIX = 'contract';
+
+export const DEFAULT_PROJECT_COMPLETION_DATE_OFFSET = 90;

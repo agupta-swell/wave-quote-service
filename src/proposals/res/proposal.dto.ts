@@ -45,7 +45,7 @@ export class ProposalDto {
   @ExposeMongoId()
   id: string;
 
-  @ExposeAndMap({}, ({ obj }) => obj.detailedProposal.isSelected || false)
+  @ExposeAndMap({}, ({ obj }) => obj.detailedProposal?.isSelected || false)
   isSelected: boolean;
 
   @ExposeAndMap({ type: QuoteDto, root: 'detailedProposal' })

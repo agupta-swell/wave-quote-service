@@ -123,7 +123,8 @@ export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuote
   quantity: number;
 }
 
-export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto implements IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
+export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto
+  implements IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
   @ApiProperty()
   cost: number;
 
@@ -164,9 +165,6 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
 
   @ApiProperty()
   generalMarkup: number;
-
-  @ApiProperty()
-  grossPrice: number;
 
   @ApiProperty({ type: QuoteCostBuildupCommon })
   equipmentLaborAndAddersSubtotal: QuoteCostBuildupCommon;

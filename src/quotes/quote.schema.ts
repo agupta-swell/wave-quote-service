@@ -223,6 +223,7 @@ export interface IFinancialProductDetails {
   interestRate: number;
   termMonths: number;
   dealerFee: number;
+  projectCompletionDateOffset: number;
 }
 
 export interface IQuoteFinanceProductSchema {

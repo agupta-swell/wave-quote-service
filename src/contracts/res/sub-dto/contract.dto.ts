@@ -56,7 +56,7 @@ export class ContractResDto {
   changeOrderDescription: string;
 
   @ExposeProp()
-  completionDate: string;
+  projectCompletionDate: Date;
 
   @ExposeProp()
   createdAt: Date;

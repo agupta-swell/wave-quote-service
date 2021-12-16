@@ -106,6 +106,9 @@ export class FinancialProductDto {
 
   @ExposeProp()
   allowsWetSignedContracts: boolean;
+
+  @ExposeProp()
+  projectCompletionDateOffset: number;
 }
 
 class FinancialProductPaginationDto implements Pagination<FinancialProductDto> {
