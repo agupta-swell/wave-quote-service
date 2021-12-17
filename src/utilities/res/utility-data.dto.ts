@@ -80,15 +80,15 @@ export class UtilityDataDto {
   loadServingEntityData: LoadServingEntity;
 
   @ExposeAndMap({ type: TypicalBaseLine }, ({ obj, value }) => {
-    if (!obj.isInternal && obj?.typicalBaselineUsage?.typicalBaseline) {
-      delete obj.typicalBaselineUsage.typicalBaseline.typicalHourlyUsage;
+    if (!obj.isInternal && obj?.typicalBaselineUsage) {
+      delete obj.typicalBaselineUsage.typicalHourlyUsage;
     }
 
-    return obj?.typicalBaselineUsage?.typicalBaseline || value || {};
+    return obj?.typicalBaselineUsage || value || {};
   })
   typicalBaselineUsage: TypicalBaseLine;
 
-  @ExposeProp({ type: ActualUsageDto, default: {}, noTransformDefault: true })
+  @ExposeProp({ type: ActualUsageDto })
   actualUsage: ActualUsageDto;
 
   static actualUsages(props: any): UtilityDataDto {

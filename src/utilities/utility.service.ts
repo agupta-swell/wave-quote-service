@@ -89,7 +89,7 @@ export class UtilityService {
         delete typicalBaseLine.typicalBaseline.typicalHourlyUsage;
       }
 
-      const data = { typicalBaselineUsage: typicalBaseLine };
+      const data = { typicalBaselineUsage: typicalBaseLine.typicalBaseline };
       return OperationResult.ok(strictPlainToClass(UtilityDataDto, data));
     }
 
@@ -109,7 +109,7 @@ export class UtilityService {
       // @ts-ignore
       delete createdTypicalBaseLineObj?.typicalBaseline?.typicalHourlyUsage;
     }
-    const data = { typicalBaselineUsage: createdTypicalBaseLineObj };
+    const data = { typicalBaselineUsage: createdTypicalBaseLineObj.typicalBaseline };
     return OperationResult.ok(strictPlainToClass(UtilityDataDto, data));
   }
 
