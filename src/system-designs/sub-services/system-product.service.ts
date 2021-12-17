@@ -125,7 +125,9 @@ export class SystemProductService {
 
   async calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
     const { latitude, longitude } = systemDesignDto;
-    let pvProductionArray: ISystemProduction[] = [{ hourly: [], monthly: [], annual: 0 }];
+    let pvProductionArray: ISystemProduction[] = [
+      { hourly: new Array(8760).fill(0), monthly: new Array(8760).fill(0), annual: 0 },
+    ];
 
     if (systemDesignDto?.roofTopDesignData?.panelArray?.length) {
       pvProductionArray = await Promise.all(
