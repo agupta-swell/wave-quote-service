@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BigNumber } from 'bignumber.js';
 import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
 import { PROMOTION_TYPE } from 'src/promotions/promotion.constant';
+import { REBATE_TYPE } from '../constants';
 import { ICalculateQuoteFinanceProductNetAmountArg, IReductionAmount } from '../interfaces';
 
 @Injectable()
@@ -61,6 +62,19 @@ export class QuoteFinanceProductService {
   public static calculateReduction(reduction: IReductionAmount<'percentage' | 'amount'>, grossPrice: number): number {
     if (reduction.type === 'amount') return reduction.amount;
 
-    return new BigNumber(100).minus(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
+    return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
+  }
+
+  public static calculateReductions(
+    reductions: IReductionAmount<'percentage' | 'amount' | REBATE_TYPE>[],
+    grossPrice: number,
+  ): number {
+    return reductions
+      .reduce((total, reduction) => {
+        if (reduction.type === 'amount') return total.plus(reduction.amount);
+
+        return total.plus(new BigNumber(reduction.amount).times(grossPrice).dividedBy(100));
+      }, new BigNumber(0))
+      .toNumber();
   }
 }
