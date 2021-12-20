@@ -171,7 +171,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     return labels.join('\n');
   })
-  aggrementPriceLabels: string;
+  agreementPriceLabels: string;
 
   @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
     const values: string[] = ['Contract Price'];
@@ -221,7 +221,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     return values.join('\n');
   })
-  aggrementPriceValues: string;
+  agreementPriceValues: string;
 
   @TabValue('123.45')
   downPayment: string;
