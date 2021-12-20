@@ -174,7 +174,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   agreementPriceLabels: string;
 
   @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
-    const values: string[] = ['Contract Price'];
+    const values: string[] = [];
 
     const { projectGrandTotal, projectGrossTotal, totalPromotionsDiscountsAndSwellGridrewards } = quoteCostBuildup;
 
