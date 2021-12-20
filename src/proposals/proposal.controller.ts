@@ -149,7 +149,14 @@ export class ProposalController {
   @ApiOperation({ summary: 'Validate and Response Url' })
   @ApiOkResponse({ type: String })
   async getPresignedUrl(@Body() body: GetPresignedUrlSqtDto): Promise<ServiceResponse<string>> {
-    const res = await this.proposalService.getPreSignedObjectUrl(body.fileName, body.fileType, '', true, false);
+    const res = await this.proposalService.getPreSignedObjectUrl(
+      body.fileName,
+      body.fileType,
+      '',
+      true,
+      false,
+      body.isProposal,
+    );
     return ServiceResponse.fromResult(res);
   }
 

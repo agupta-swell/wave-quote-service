@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsBoolean, IsOptional } from 'class-validator';
 
 export class GetPresignedUrlSqtDto {
   @ApiProperty()
@@ -9,4 +9,9 @@ export class GetPresignedUrlSqtDto {
   @ApiProperty()
   @IsString()
   fileType: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsBoolean()
+  isProposal?: boolean;
 }
