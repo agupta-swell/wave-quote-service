@@ -11,6 +11,7 @@ import { IPromotionDocument } from 'src/promotions/interfaces';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
+import { deepTransform, camelToSnake, snakeToCamel } from 'mongoose-schema-mapper/build/utils/transform';
 import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
@@ -199,6 +200,48 @@ const FinanceProductSchema = new Schema<Document<IFinanceProductSchema>>(
   },
   { _id: false },
 );
+
+const transformProductAttributeToSnake = (str: string): string => {
+  if (str === 'currentPricePerKWh') return 'current_price_per_kWh';
+
+  if (str === 'newPricePerKWh') return 'new_price_per_kWh';
+
+  return camelToSnake(str);
+};
+
+const transformProductAttributeToCamel = (str: string): string => {
+  if (str === 'current_price_per_kWh') return 'currentPricePerKWh';
+
+  if (str === 'new_price_per_kWh') return 'newPricePerKWh';
+
+  return snakeToCamel(str);
+};
+
+FinanceProductSchema.pre('save', function (next) {
+  const productAttribute = ((this as unknown) as IFinanceProductSchema).productAttribute;
+
+  if (productAttribute.currentPricePerKWh === (productAttribute as any).current_price_per_kWh) {
+    next();
+    return;
+  }
+
+  deepTransform(productAttribute as any, transformProductAttributeToSnake, true);
+
+  next();
+});
+
+FinanceProductSchema.post('save', (doc: IFinanceProductSchema, next) => {
+  const productAttribute = doc.productAttribute;
+
+  if (productAttribute.currentPricePerKWh === (productAttribute as any).current_price_per_kWh) {
+    next();
+    return;
+  }
+
+  deepTransform(productAttribute as any, transformProductAttributeToCamel, true);
+
+  next();
+});
 
 export interface IFinancialProductDetails {
   fundingSourceId: string;

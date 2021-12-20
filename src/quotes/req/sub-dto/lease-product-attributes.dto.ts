@@ -57,11 +57,11 @@ export class LeaseProductAttributesDto {
 
   @ApiProperty()
   @IsNumber()
-  currentPricePerKwh: number;
+  currentPricePerKWh: number;
 
   @ApiProperty()
   @IsNumber()
-  newPricePerKwh: number;
+  newPricePerKWh: number;
 
   @ApiProperty()
   yearlyLoanPaymentDetails: any;
