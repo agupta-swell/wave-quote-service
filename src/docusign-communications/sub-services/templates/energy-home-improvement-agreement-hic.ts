@@ -112,7 +112,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
     if (headings.length > 2) {
       const last = headings.pop();
 
-      return `${headings.join(', ')}, and ${last}`;
+      return `${headings.join(', ')} and ${last}`;
     }
 
     return headings.join(' and ');
