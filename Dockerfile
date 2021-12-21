@@ -1,4 +1,4 @@
-FROM node:15.11.0 as builder
+FROM public.ecr.aws/bitnami/node:15.11.0 as builder
 RUN mkdir -p /home/node/app
 WORKDIR /home/node/app
 COPY . .
