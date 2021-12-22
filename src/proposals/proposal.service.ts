@@ -388,6 +388,7 @@ export class ProposalService {
     token: string,
     isSolarQuoteTool: boolean,
     isGetDownloadLink: boolean,
+    isProposal?: boolean,
   ): Promise<OperationResult<string>> {
     if (!isSolarQuoteTool) {
       try {
@@ -405,7 +406,7 @@ export class ProposalService {
       extName: fileType,
       downloadable: isGetDownloadLink,
       expires: 300,
-      rootDir: false,
+      rootDir: !!isProposal,
       responseContentType: !isGetDownloadLink,
     });
     return OperationResult.ok(url);

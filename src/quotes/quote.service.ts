@@ -2,7 +2,7 @@
 /* eslint-disable no-return-assign */
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { isNil, omit, omitBy, pickBy, sum, sumBy, uniq } from 'lodash';
+import { isNil, omit, omitBy, pickBy, sum, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
@@ -38,6 +38,8 @@ import {
   QUOTE,
   QuoteModel,
   ILoanProductAttributes,
+  ILeaseProductAttributes,
+  ICashProductAttributes,
 } from './quote.schema';
 import {
   CalculateQuoteDetailDto,
@@ -414,7 +416,8 @@ export class QuoteService {
   }
 
   async createProductAttribute(productType: string, netAmount: number, defaultDownPayment: number): Promise<any> {
-    let template = {};
+    let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
+
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
         template = {
@@ -432,10 +435,11 @@ export class QuoteService {
           netCustomerEnergySpend: 0,
           returnOnInvestment: 0,
           payBackPeriod: 0,
-          currentPricePerKwh: 0,
-          newPricePerKwh: 0,
+          currentPricePerKWh: 0,
+          newPricePerKWh: 0,
           yearlyLoanPaymentDetails: [],
-        };
+          reinvestment: [],
+        } as ILoanProductAttributes;
         return template;
 
       case FINANCE_PRODUCT_TYPE.LEASE:
@@ -450,10 +454,11 @@ export class QuoteService {
           gridServicePayment: 0,
           netCustomerEnergySpend: 0,
           rateEscalator: 0,
-          currentPricePerKwh: 0,
-          newPricePerKwh: 0,
+          currentPricePerKWh: 0,
+          newPricePerKWh: 0,
           yearlyLeasePaymentDetails: [],
-        };
+          ratePerKWh: 0,
+        } as ILeaseProductAttributes;
         return template;
 
       default: {
@@ -472,9 +477,10 @@ export class QuoteService {
           cashQuoteConfigSnapShotDate: '',
           currentAverageMonthlyBill: 0,
           newAverageMonthlyBill: 0,
-          currentPricePerKwh: 0,
-          newPricePerKwh: 0,
-        };
+          currentPricePerKWh: 0,
+          newPricePerKWh: 0,
+          cashQuoteConfigSnapshotDate: new Date(),
+        } as ICashProductAttributes;
         return template;
       }
     }

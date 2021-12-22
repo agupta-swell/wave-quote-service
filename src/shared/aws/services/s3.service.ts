@@ -123,9 +123,18 @@ export class S3Service {
    * @param opts
    * @returns
    */
-  public async putBase64Image(bucketName: string, base64Data: string, acl: string, opts: IS3RootDir = {}): Promise<string|undefined> {
-    if (!base64Data) return;
+  public putBase64Image(
+    bucketName: string,
+    base64Data: string,
+    acl: string,
+    opts: IS3RootDir = {},
+  ): Promise<string | undefined> {
     return new Promise((resolve, reject) => {
+      if (!base64Data) {
+        resolve(undefined);
+        return;
+      }
+
       const { rootDir } = opts;
       const buf = Buffer.from(base64Data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
       const type = base64Data.split(';')[0].split('/')[1];
@@ -143,10 +152,11 @@ export class S3Service {
       };
       this.S3.upload(params, undefined, (err, data) => {
         if (err) {
-          return reject(err);
+          reject(err);
+          return;
         }
 
-        return resolve(data?.Location);
+        resolve(data?.Location);
       });
     });
   }
@@ -241,7 +251,7 @@ export class S3Service {
   }
 
   private buildObjectKey(fileNameWithExt: string, rootDir?: string | boolean): string {
-    if (rootDir === true) return fileNameWithExt;
+    if (!rootDir) return fileNameWithExt;
 
     if (typeof rootDir === 'string') {
       return `${rootDir}/${fileNameWithExt}`;

@@ -22,13 +22,13 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.fullName)
   primaryOwnerFullName: string;
 
-  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName || 'none')
   coOwnerFullName: string;
 
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.email)
   primaryOwnerEmail: string;
 
-  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.phoneNumber)
+  @TabValue<IGenericObject>(({ contact }) => contact.businessPhone ?? contact.cellPhone)
   primaryOwnerPhone: string;
 
   @TabValue<IGenericObject>(
@@ -44,7 +44,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   )
   salesAgentFullName: string;
 
-  @TabValue<IGenericObject>(({ assignedMember }) => assignedMember?.hisNumber)
+  @TabValue<IGenericObject>(({ assignedMember }) => assignedMember?.hisNumber || 'none')
   hisNumber: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
@@ -112,7 +112,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
     if (headings.length > 2) {
       const last = headings.pop();
 
-      return `${headings.join(', ')}, and ${last}`;
+      return `${headings.join(', ')} and ${last}`;
     }
 
     return headings.join(' and ');
@@ -174,7 +174,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   agreementPriceLabels: string;
 
   @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
-    const values: string[] = ['Contract Price'];
+    const values: string[] = [];
 
     const { projectGrandTotal, projectGrossTotal, totalPromotionsDiscountsAndSwellGridrewards } = quoteCostBuildup;
 
@@ -232,8 +232,9 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   @TabValue('123.45')
   payment2: string;
 
-  @TabValue<IGenericObject>(({ quote: { utilityProgram, rebateProgram } }) =>
-    [utilityProgram?.utilityProgramName, rebateProgram?.name].filter(p => !!p).join('+'),
+  @TabValue<IGenericObject>(
+    ({ quote: { utilityProgram, rebateProgram } }) =>
+      [utilityProgram?.utilityProgramName, rebateProgram?.name].filter(p => !!p).join('+') || 'none',
   )
   utilityProgramAndRebateProgram: string;
 

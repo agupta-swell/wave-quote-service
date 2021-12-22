@@ -36,7 +36,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   homeAddress: string;
 
   @TabValue<IGenericObject>(({ primaryContract }) =>
-    primaryContract?.signerDetails.find(e => e.role === 'Fianancier')?.signedOn.toLocaleDateString(),
+    primaryContract?.signerDetails.find(e => e.role === 'Financier')?.signedOn.toLocaleDateString(),
   )
   primaryContractFinancierSignDate: Date;
 

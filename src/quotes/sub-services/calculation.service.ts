@@ -91,8 +91,8 @@ export class CalculationService {
 
     const actualUsage = sumBy(utilityUsage?.utilityData.actualUsage.monthlyUsage, item => item.v);
     const currentBill = sumBy(utilityUsage?.costData.actualUsageCost.cost, item => item.v);
-    productAttribute.currentPricePerKwh = currentBill / actualUsage;
-    productAttribute.newPricePerKwh = (productAttribute.monthlyEnergyPayment * 12) / actualUsage;
+    productAttribute.currentPricePerKWh = currentBill / actualUsage;
+    productAttribute.newPricePerKWh = (productAttribute.monthlyEnergyPayment * 12) / actualUsage;
 
     return detailedQuote;
   }

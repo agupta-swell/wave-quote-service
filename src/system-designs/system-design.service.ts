@@ -909,12 +909,13 @@ export class SystemDesignService {
         ? systemDesign.roofTopDesignData
         : systemDesign.capacityProductionDesignData;
 
-    const { ancillaryEquipments, inverters, panelArray } = products;
+    const { ancillaryEquipments, inverters, panelArray, storage } = products;
 
     const manufacturerIds = uniq([
       ...ancillaryEquipments.map(item => item.ancillaryEquipmentModelDataSnapshot.manufacturerId),
       ...inverters.map(item => item.inverterModelDataSnapshot.manufacturerId),
       ...panelArray.map<any>(item => item.panelModelDataSnapshot?.manufacturerId),
+      ...storage.map(item => item.storageModelDataSnapshot.manufacturerId),
     ]);
 
     const manufacturerNames = await this.manufacturerService.getManufacturersByIds(manufacturerIds);
@@ -936,6 +937,12 @@ export class SystemDesignService {
         item.panelModelDataSnapshot.manufacturer = manufacturerNames.find(
           m => item.panelModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
         )?.name;
+    });
+
+    storage.forEach(item => {
+      item.storageModelDataSnapshot.manufacturer = manufacturerNames.find(
+        m => item.storageModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
+      )?.name;
     });
 
     return systemDesign;

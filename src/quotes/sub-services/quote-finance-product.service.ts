@@ -60,9 +60,10 @@ export class QuoteFinanceProductService {
   }
 
   public static calculateReduction(reduction: IReductionAmount<'percentage' | 'amount'>, grossPrice: number): number {
-    if (reduction.type === 'amount') return reduction.amount;
+    if (reduction.type === 'percentage')
+      return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
 
-    return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
+    return reduction.amount;
   }
 
   public static calculateReductions(
@@ -71,9 +72,10 @@ export class QuoteFinanceProductService {
   ): number {
     return reductions
       .reduce((total, reduction) => {
-        if (reduction.type === 'amount') return total.plus(reduction.amount);
+        if (reduction.type === 'percentage')
+          return total.plus(new BigNumber(reduction.amount).times(grossPrice).dividedBy(100));
 
-        return total.plus(new BigNumber(reduction.amount).times(grossPrice).dividedBy(100));
+        return total.plus(reduction.amount);
       }, new BigNumber(0))
       .toNumber();
   }
