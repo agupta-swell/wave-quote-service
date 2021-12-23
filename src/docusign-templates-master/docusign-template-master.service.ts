@@ -6,10 +6,11 @@ import { OperationResult } from 'src/app/common';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { ITemplateDetailSchema } from 'src/contracts/contract.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { EApplicableProducts } from 'src/proposal-templates/proposal-template.schema';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
-import { SAVE_TEMPLATE_MODE } from './constants';
+import { SAVE_TEMPLATE_MODE, SYSTEM_TYPE } from './constants';
 import { DocusignTemplateMaster, DOCUSIGN_TEMPLATE_MASTER } from './docusign-template-master.schema';
 import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
 import {
@@ -312,6 +313,7 @@ export class DocusignTemplateMasterService {
     fundingSources: string[],
     utilities: string[],
     utilityPrograms: string[],
+    applicableSystemTypes: SYSTEM_TYPE[],
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({
@@ -319,6 +321,7 @@ export class DocusignTemplateMasterService {
         applicableFundingSources: { $in: fundingSources },
         applicableUtilities: { $in: utilities },
         applicableUtilityPrograms: { $in: utilityPrograms },
+        applicableSystemTypes: { $in: applicableSystemTypes },
       })
       .lean();
 
@@ -328,12 +331,14 @@ export class DocusignTemplateMasterService {
   async getDocusignCompositeTemplateMasterForGSA(
     utilityPrograms: string[],
     rebatePrograms: string[],
+    applicableSystemTypes: SYSTEM_TYPE[],
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({
         type: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
         applicableUtilityPrograms: { $in: utilityPrograms },
         applicableRebatePrograms: { $in: rebatePrograms },
+        applicableSystemTypes: { $in: applicableSystemTypes },
       })
       .lean();
 
