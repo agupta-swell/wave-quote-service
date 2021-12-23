@@ -14,4 +14,5 @@ export interface IRawTab<Context> {
   tabValue: string | Function;
   tabType?: DOCUSIGN_TAB_TYPE;
   tabDynamicValue?: (ctx: Context, defaultContractor: IDefaultContractor) => IDynamicRawTab[] | Record<string, unknown>;
+  tabRequireProp?: string;
 }

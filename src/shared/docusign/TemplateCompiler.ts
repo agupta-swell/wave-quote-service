@@ -1,4 +1,5 @@
 import * as docusign from 'docusign-esign';
+import { DocusignException } from './docusign.exception';
 import { IContext } from './interfaces/IContext';
 import { DOCUSIGN_TAB_TYPE, KEYS } from './constants';
 import { IClass } from './interfaces/IClass';
@@ -129,6 +130,9 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
             case KEYS.TAB_DYNAMIC:
               o.tabDynamicValue = value;
               break;
+            case KEYS.ON_TAB_FAILED_REQUIRE:
+              o.tabRequireProp = value;
+              break;
             default:
           }
         });
@@ -154,6 +158,14 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
           typeof e.tabValue === 'function'
             ? e.tabValue(ctx, defaultContractor)?.toString() ?? ''
             : e.tabValue.toString();
+
+        if (!value && e.tabRequireProp) {
+          throw new DocusignException(
+            undefined,
+            `Missing tab value for  ${e.tabRequireProp}, template id: ${this._id}`,
+            true,
+          );
+        }
 
         tabs.push({
           value,
@@ -208,13 +220,23 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
         if (!rawTab) return;
 
+        const tabValue =
+          (typeof rawTab.tabValue === 'function'
+            ? rawTab.tabValue(ctx, defaultContractor)
+            : rawTab.tabValue
+          )?.toString() ?? '';
+
+        if (!tabValue && rawTab.tabRequireProp) {
+          throw new DocusignException(
+            undefined,
+            `Missing tab value for  ${rawTab.tabRequireProp}, template id: ${this._id}`,
+            true,
+          );
+        }
+
         const value = {
           tabId,
-          value:
-            (typeof rawTab.tabValue === 'function'
-              ? rawTab.tabValue(ctx, defaultContractor)
-              : rawTab.tabValue
-            )?.toString() ?? '',
+          value: tabValue,
         } as docusign.Text;
 
         // eslint-disable-next-line consistent-return

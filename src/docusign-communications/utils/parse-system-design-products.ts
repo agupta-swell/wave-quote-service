@@ -1,16 +1,17 @@
 import { LeanDocument } from 'mongoose';
-import { SystemDesign } from 'src/system-designs/system-design.schema';
+import { Manufacturer } from 'src/manufacturers/manufacturer.schema';
+import { ISnapshotProduct } from 'src/products-v2/interfaces';
+import { WithMetaOfType } from 'src/shared/mongo';
+import { SystemDesignWithManufacturerMeta } from 'src/system-designs/system-design.schema';
 
 export interface ISystemDesignProducts {
-  systemDesignBatteries: LeanDocument<SystemDesign>['roofTopDesignData']['storage'];
-  systemDesignModules: LeanDocument<SystemDesign>['roofTopDesignData']['panelArray'];
-  systemDesignInverters: LeanDocument<SystemDesign>['roofTopDesignData']['inverters'];
-  systemDesignAdders: LeanDocument<SystemDesign>['roofTopDesignData']['adders'];
+  systemDesignBatteries: SystemDesignWithManufacturerMeta['roofTopDesignData']['storage'];
+  systemDesignModules: SystemDesignWithManufacturerMeta['roofTopDesignData']['panelArray'];
+  systemDesignInverters: SystemDesignWithManufacturerMeta['roofTopDesignData']['inverters'];
+  systemDesignAdders: SystemDesignWithManufacturerMeta['roofTopDesignData']['adders'];
 }
 
-export const parseSystemDesignProducts = (
-  systemDesign: SystemDesign | LeanDocument<SystemDesign>,
-): ISystemDesignProducts => {
+export const parseSystemDesignProducts = (systemDesign: SystemDesignWithManufacturerMeta): ISystemDesignProducts => {
   const { designMode, roofTopDesignData, capacityProductionDesignData } = systemDesign;
 
   if (designMode === 'roofTop') {

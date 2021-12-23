@@ -1,4 +1,5 @@
-import { Document, Schema, Types } from 'mongoose';
+import { Document, LeanDocument, Schema, Types } from 'mongoose';
+import { Manufacturer } from 'src/manufacturers/manufacturer.schema';
 import { PRICING_UNIT, PRODUCT_TYPE, BATTERY_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import {
@@ -11,6 +12,7 @@ import {
   SoftCostSnapshotSchema,
   LaborCostSnapshotSchema,
 } from 'src/products-v2/schemas';
+import { WithMetaOfType } from 'src/shared/mongo';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { DESIGN_MODE } from './constants';
 import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
@@ -350,6 +352,14 @@ export interface SystemDesign extends Document {
   updatedBy: string;
   updatedAt: Date;
 }
+
+export type SystemDesignWithManufacturerMeta = WithMetaOfType<
+  LeanDocument<SystemDesign>,
+  ISnapshotProduct<unknown>,
+  {
+    manufacturer: LeanDocument<Manufacturer>;
+  }
+>;
 
 // @ts-ignore
 export const SystemDesignSchema = new Schema<SystemDesign>({

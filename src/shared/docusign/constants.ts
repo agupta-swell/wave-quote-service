@@ -8,12 +8,14 @@ export enum DOCUSIGN_TAB_META {
   TAB_LABEL,
   TAB_VALUE,
   TAB_DYNAMIC,
+  ON_TAB_FAILED_REQUIRE,
 }
 
 export const KEYS = {
   TAB_TYPE: Symbol.for('kDocusign/tab/type'),
   TAB_LABEL: Symbol.for('kDocusign/tab/label'),
   TAB_VALUE: Symbol.for('kDocusign/tab/value'),
+  ON_TAB_FAILED_REQUIRE: Symbol.for('kDocusign/tab/failedRequire'),
   TAB_DYNAMIC: Symbol.for('kDocusign/tab/dynamic'),
   TEMPLATE_ENV: Symbol.for('kDocusign/template/id'),
   PROP: Symbol.for('kDocusign/template/prop'),

@@ -3,7 +3,6 @@ import { EmailService } from 'src/emails/email.service';
 import { IDocusignContextStore } from 'src/shared/docusign';
 import { InjectDocusignContext } from 'src/shared/docusign/decorators/inject-docusign-context';
 import { DocusignException } from 'src/shared/docusign/docusign.exception';
-import { error } from 'winston';
 import { IGenericObject } from '../typing';
 
 @Catch(DocusignException)
@@ -34,14 +33,14 @@ export class DocusignExceptionsFilter implements ExceptionFilter {
     } ${new Date().toISOString()}`;
 
     const message = `
-      Cannot generated contact at ${request.url} <br />
+      Cannot generate contract at ${request.url} <br />
       Message: ${exception.message}; ${exception.rawError?.message} <br />
       Stack: <pre>${exception.rawError?.stack}</pre>
     `;
 
     response.code(status).send({
       statusCode: status,
-      message: 'This contract cannot be sent',
+      message: exception.isSafe ? exception.getResponse().toString() : 'This contract cannot be sent',
     });
 
     this.emailService.sendMail(process.env.SUPPORT_MAIL!, message, subject).catch(err => {

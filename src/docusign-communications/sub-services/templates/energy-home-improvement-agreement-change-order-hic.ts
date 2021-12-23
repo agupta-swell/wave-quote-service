@@ -60,7 +60,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
     parseSystemDesignProducts(systemDesign)
       .systemDesignBatteries.map(
         item =>
-          `${item.quantity} x ${item.storageModelDataSnapshot.manufacturer} ${item.storageModelDataSnapshot.name}`,
+          `${item.quantity} x ${item.storageModelDataSnapshot.$meta.manufacturer.name} ${item.storageModelDataSnapshot.name}`,
       )
       .join(', '),
   )
@@ -73,7 +73,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
     parseSystemDesignProducts(systemDesign)
       .systemDesignModules.map(
         item =>
-          `${item.numberOfPanels} x ${item.panelModelDataSnapshot.manufacturer} ${item.panelModelDataSnapshot.name}`,
+          `${item.numberOfPanels} x ${item.panelModelDataSnapshot.$meta.manufacturer.name} ${item.panelModelDataSnapshot.name}`,
       )
       .join(', '),
   )
@@ -83,7 +83,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
     parseSystemDesignProducts(systemDesign)
       .systemDesignInverters.map(
         item =>
-          `${item.quantity} x ${item.inverterModelDataSnapshot.manufacturer} ${item.inverterModelDataSnapshot.name}`,
+          `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
       )
       .join(', '),
   )

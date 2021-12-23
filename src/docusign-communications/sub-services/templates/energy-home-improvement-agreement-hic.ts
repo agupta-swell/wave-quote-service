@@ -7,6 +7,7 @@ import {
   DefaultTabType,
   DocusignTemplate,
   DOCUSIGN_TAB_TYPE,
+  TabRequire,
   TabValue,
 } from 'src/shared/docusign';
 import { QuoteFinanceProductService } from 'src/quotes/sub-services';
@@ -22,13 +23,15 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.fullName)
   primaryOwnerFullName: string;
 
-  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName || 'none')
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
   coOwnerFullName: string;
 
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.email)
   primaryOwnerEmail: string;
 
-  @TabValue<IGenericObject>(({ contact }) => contact.businessPhone ?? contact.cellPhone)
+  @TabValue<IGenericObject>(({ contact }) =>
+    contact.primaryPhone === 'CellPhone' ? contact.cellPhone : contact.businessPhone,
+  )
   primaryOwnerPhone: string;
 
   @TabValue<IGenericObject>(
@@ -44,7 +47,8 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   )
   salesAgentFullName: string;
 
-  @TabValue<IGenericObject>(({ assignedMember }) => assignedMember?.hisNumber || 'none')
+  @TabValue<IGenericObject>(({ assignedMember }) => assignedMember?.hisNumber)
+  @TabRequire('SalesAgent HIS number')
   hisNumber: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
@@ -67,7 +71,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
     parseSystemDesignProducts(systemDesign)
       .systemDesignBatteries.map(
         item =>
-          `${item.quantity} x ${item.storageModelDataSnapshot.manufacturer} ${item.storageModelDataSnapshot.name}`,
+          `${item.quantity} x ${item.storageModelDataSnapshot.$meta.manufacturer.name} ${item.storageModelDataSnapshot.name}`,
       )
       .join(', '),
   )
@@ -80,7 +84,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
     parseSystemDesignProducts(systemDesign)
       .systemDesignModules.map(
         item =>
-          `${item.numberOfPanels} x ${item.panelModelDataSnapshot.manufacturer} ${item.panelModelDataSnapshot.name}`,
+          `${item.numberOfPanels} x ${item.panelModelDataSnapshot.$meta.manufacturer.name} ${item.panelModelDataSnapshot.name}`,
       )
       .join(', '),
   )
@@ -90,7 +94,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
     parseSystemDesignProducts(systemDesign)
       .systemDesignInverters.map(
         item =>
-          `${item.quantity} x ${item.inverterModelDataSnapshot.manufacturer} ${item.inverterModelDataSnapshot.name}`,
+          `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
       )
       .join(', '),
   )
