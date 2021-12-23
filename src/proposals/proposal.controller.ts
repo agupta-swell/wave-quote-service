@@ -139,6 +139,7 @@ export class ProposalController {
       body.token,
       false,
       body.isDownload,
+      body.isProposal,
     );
     return ServiceResponse.fromResult(res);
   }

@@ -17,4 +17,9 @@ export class GetPresignedUrlDto {
   @ApiProperty()
   @IsBoolean()
   isDownload: boolean;
+
+  @ApiProperty()
+  @IsBoolean()
+  @IsOptional()
+  isProposal?: boolean;
 }
