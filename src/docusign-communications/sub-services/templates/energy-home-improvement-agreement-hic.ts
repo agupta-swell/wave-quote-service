@@ -88,7 +88,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   )
   batterySummary: string;
 
-  @TabValue<IGenericObject>(({ systemDesign }) => systemDesign.systemProductionData.capacityKW)
+  @TabValue<IGenericObject>(({ systemDesign }) => systemDesign.systemProductionData.capacityKW.toFixed(3))
   pvKw: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
