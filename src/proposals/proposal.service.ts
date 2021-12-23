@@ -463,7 +463,7 @@ export class ProposalService {
       this.customerPaymentService.getCustomerPaymentByOpportunityId(proposal.opportunityId),
       this.utilityService.getUtilityName(opportunity.utilityId),
       this.systemDesignService.getRoofTopDesignById(proposal.systemDesignId),
-      this.systemDesignService.getOneById(proposal.systemDesignId),
+      this.systemDesignService.getOneById(proposal.systemDesignId, true),
     ]);
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);

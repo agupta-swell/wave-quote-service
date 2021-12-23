@@ -62,8 +62,14 @@ export class ContractController {
     @Query('opportunity-id') opportunityId: string,
     @Query('funding-source-id') fundingSourceId: string,
     @Query('contract-type') contractType: CONTRACT_TYPE,
+    @Query('system-design-id') systemDesignId: string,
   ): Promise<ServiceResponse<GetContractTemplatesDto>> {
-    const res = await this.contractService.getContractTemplates(opportunityId, fundingSourceId, contractType);
+    const res = await this.contractService.getContractTemplates(
+      opportunityId,
+      fundingSourceId,
+      contractType,
+      systemDesignId,
+    );
     return ServiceResponse.fromResult(res);
   }
 

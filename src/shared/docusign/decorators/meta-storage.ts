@@ -48,6 +48,9 @@ export const registerTab = (type: DOCUSIGN_TAB_META, value: any, prop: string, t
     case DOCUSIGN_TAB_META.TAB_VALUE:
       metaKey = KEYS.TAB_VALUE;
       break;
+    case DOCUSIGN_TAB_META.ON_TAB_FAILED_REQUIRE:
+      metaKey = KEYS.ON_TAB_FAILED_REQUIRE;
+      break;
     default:
       throw new Error('Invalid docusign tab type');
   }

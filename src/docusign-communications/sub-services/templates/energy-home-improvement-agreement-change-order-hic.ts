@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import { sumBy } from 'lodash';
 import { IGenericObject } from 'src/docusign-communications/typing';
-import { parseSystemDesignProducts } from 'src/docusign-communications/utils';
+import { ISystemDesignProducts, parseSystemDesignProducts } from 'src/docusign-communications/utils';
 import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import {
   DefaultTabTransformation,
@@ -58,9 +58,20 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
     parseSystemDesignProducts(systemDesign)
-      .systemDesignBatteries.map(
+      .systemDesignBatteries.reduce<ISystemDesignProducts['systemDesignBatteries']>((acc, cur) => {
+        const batt = acc.find(e => e.storageModelId === cur.storageModelId);
+
+        if (batt) {
+          batt.quantity += cur.quantity;
+          return acc;
+        }
+
+        acc.push(cur);
+        return acc;
+      }, [])
+      .map(
         item =>
-          `${item.quantity} x ${item.storageModelDataSnapshot.manufacturer} ${item.storageModelDataSnapshot.name}`,
+          `${item.quantity} x ${item.storageModelDataSnapshot.$meta.manufacturer.name} ${item.storageModelDataSnapshot.name}`,
       )
       .join(', '),
   )
@@ -73,7 +84,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
     parseSystemDesignProducts(systemDesign)
       .systemDesignModules.map(
         item =>
-          `${item.numberOfPanels} x ${item.panelModelDataSnapshot.manufacturer} ${item.panelModelDataSnapshot.name}`,
+          `${item.numberOfPanels} x ${item.panelModelDataSnapshot.$meta.manufacturer.name} ${item.panelModelDataSnapshot.name}`,
       )
       .join(', '),
   )
@@ -83,7 +94,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
     parseSystemDesignProducts(systemDesign)
       .systemDesignInverters.map(
         item =>
-          `${item.quantity} x ${item.inverterModelDataSnapshot.manufacturer} ${item.inverterModelDataSnapshot.name}`,
+          `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
       )
       .join(', '),
   )

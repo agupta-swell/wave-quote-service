@@ -142,6 +142,8 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       return result;
     } catch (error) {
+      if (error instanceof DocusignException) throw error;
+
       throw new DocusignException(error, error.response?.text);
     }
   }

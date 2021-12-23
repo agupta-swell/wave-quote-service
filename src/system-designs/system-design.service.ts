@@ -15,6 +15,7 @@ import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
 import { IGetBuildingResult } from 'src/shared/google-sunroof/interfaces';
+import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
@@ -31,7 +32,13 @@ import {
 import { SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { ISystemProduction, SystemProductService } from './sub-services';
-import { IRoofTopSchema, SystemDesign, SystemDesignModel, SYSTEM_DESIGN } from './system-design.schema';
+import {
+  IRoofTopSchema,
+  SystemDesign,
+  SystemDesignModel,
+  SYSTEM_DESIGN,
+  SystemDesignWithManufacturerMeta,
+} from './system-design.schema';
 
 @Injectable()
 export class SystemDesignService {
@@ -896,13 +903,21 @@ export class SystemDesignService {
   }
 
   //  ->>>>>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<<<<<<<-
+  public async getOneById(id: string | ObjectId): Promise<LeanDocument<SystemDesign> | null>;
 
-  async getOneById(id: string | ObjectId, populateManufacturer = false): Promise<LeanDocument<SystemDesign> | null> {
+  public async getOneById(
+    id: string | ObjectId,
+    populateManufacturer: true,
+  ): Promise<SystemDesignWithManufacturerMeta | null>;
+
+  public async getOneById(id: string | ObjectId, populateManufacturer?: true): Promise<any> {
     const systemDesign = await this.systemDesignModel.findById(id).lean();
 
     if (!systemDesign) {
       return null;
     }
+
+    if (!populateManufacturer) return systemDesign;
 
     const products =
       systemDesign.designMode === 'roofTop'
@@ -921,28 +936,34 @@ export class SystemDesignService {
     const manufacturerNames = await this.manufacturerService.getManufacturersByIds(manufacturerIds);
 
     ancillaryEquipments.forEach(item => {
-      item.ancillaryEquipmentModelDataSnapshot.manufacturer = manufacturerNames.find(
-        m => item.ancillaryEquipmentModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
-      )?.name;
+      attachMeta(
+        item.ancillaryEquipmentModelDataSnapshot,
+        manufacturerNames.find(
+          m => item.ancillaryEquipmentModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
+        ),
+      );
     });
 
     inverters.forEach(item => {
-      item.inverterModelDataSnapshot.manufacturer = manufacturerNames.find(
-        m => item.inverterModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
-      )?.name;
+      attachMeta(
+        item.inverterModelDataSnapshot,
+        manufacturerNames.find(m => item.inverterModelDataSnapshot.manufacturerId.toString() === m._id.toString()),
+      );
     });
 
     panelArray.forEach(item => {
       if (item.panelModelDataSnapshot)
-        item.panelModelDataSnapshot.manufacturer = manufacturerNames.find(
-          m => item.panelModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
-        )?.name;
+        attachMeta(
+          item.panelModelDataSnapshot,
+          manufacturerNames.find(m => item.panelModelDataSnapshot.manufacturerId.toString() === m._id.toString()),
+        );
     });
 
     storage.forEach(item => {
-      item.storageModelDataSnapshot.manufacturer = manufacturerNames.find(
-        m => item.storageModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
-      )?.name;
+      attachMeta(
+        item.storageModelDataSnapshot,
+        manufacturerNames.find(m => item.storageModelDataSnapshot.manufacturerId.toString() === m._id.toString()),
+      );
     });
 
     return systemDesign;

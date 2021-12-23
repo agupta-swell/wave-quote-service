@@ -47,6 +47,7 @@ import {
 
 import { ContractResDto } from './res/sub-dto';
 import { FastifyFile } from '../shared/fastify';
+import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 
 @Injectable()
 export class ContractService {
@@ -95,6 +96,7 @@ export class ContractService {
     opportunityId: string,
     fundingSourceId?: string,
     contractType?: CONTRACT_TYPE,
+    systemDesignId?: string,
   ): Promise<OperationResult<GetContractTemplatesDto>> {
     const opportunityData = await this.opportunityService.getDetailById(opportunityId);
 
@@ -112,11 +114,27 @@ export class ContractService {
     const utilityProgramId =
       (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || null;
 
+    let applicableSystemTypes: SYSTEM_TYPE[] = [];
+
+    const foundSystemDesign = (systemDesignId && (await this.systemDesignService.getOneById(systemDesignId))) || null;
+
+    if (
+      foundSystemDesign?.roofTopDesignData.panelArray?.length &&
+      foundSystemDesign?.roofTopDesignData.storage?.length
+    ) {
+      applicableSystemTypes = [SYSTEM_TYPE.SOLAR_AND_STORAGE];
+    } else if (foundSystemDesign?.roofTopDesignData.panelArray?.length) {
+      applicableSystemTypes = [SYSTEM_TYPE.SOLAR];
+    } else if (foundSystemDesign?.roofTopDesignData.storage?.length) {
+      applicableSystemTypes = [SYSTEM_TYPE.STORAGE];
+    }
+
     if (contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
       const rebateProgramId = opportunityData.rebateProgramId || (null as any);
       const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
         [utilityProgramId, 'ALL'],
         [rebateProgramId, 'ALL'],
+        applicableSystemTypes,
       );
 
       return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
@@ -132,6 +150,7 @@ export class ContractService {
       [fundingSourceId],
       [utilityId],
       [utilityProgramId],
+      applicableSystemTypes,
     );
 
     return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
