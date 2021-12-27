@@ -110,12 +110,12 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   )
   adderSummary: string;
 
-  @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) => quoteCostBuildup.projectGrandTotal.cost)
+  @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) => quoteCostBuildup.projectGrandTotal.netCost)
   newContractAmount: string;
 
   @TabValue<IGenericObject>(({ quote: { quoteCostBuildup }, primaryContractQuote }) =>
-    new BigNumber(quoteCostBuildup.projectGrandTotal.cost)
-      .minus(primaryContractQuote?.quoteCostBuildup.projectGrandTotal.cost ?? 0)
+    new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
+      .minus(primaryContractQuote?.quoteCostBuildup.projectGrandTotal.netCost ?? 0)
       .toNumber(),
   )
   changeInContractAmount: string;
