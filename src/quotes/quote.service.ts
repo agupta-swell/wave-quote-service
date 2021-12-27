@@ -90,9 +90,10 @@ export class QuoteService {
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const [systemDesign, quoteConfigData] = await Promise.all([
+    const [systemDesign, quoteConfigData, taxCreditData] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
+      this.taxCreditConfigService.getActiveTaxCreditConfigs(),
     ]);
 
     if (!systemDesign) {
@@ -201,6 +202,10 @@ export class QuoteService {
     model.setIsSync(true);
 
     const obj = new this.quoteModel(model);
+
+    obj.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
+      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
+    );
 
     await obj.save();
 
@@ -377,7 +382,7 @@ export class QuoteService {
     model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
 
     model.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrossTotal.netCost ?? 0),
+      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
     );
 
     assignToModel(
@@ -624,7 +629,7 @@ export class QuoteService {
       quotePriceOverride: foundQuote.detailedQuote.quotePriceOverride,
       notes: foundQuote.detailedQuote.notes,
       taxCreditData: taxCreditData.map(taxCredit =>
-        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrossTotal.netCost ?? 0),
+        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
       ),
     };
 
@@ -774,7 +779,7 @@ export class QuoteService {
     );
 
     detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrossTotal.netCost ?? 0),
+      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
     );
 
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
