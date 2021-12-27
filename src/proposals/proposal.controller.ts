@@ -102,9 +102,10 @@ export class ProposalController {
   @ApiOkResponse({ type: Boolean })
   async sendRecipients(
     @Param('proposalId', ParseObjectIdPipe) proposalId: ObjectId,
+    @Body() additionalRecipients: string[],
     @CurrentUser() user: ILoggedInUser,
   ): Promise<ServiceResponse<boolean>> {
-    const res = await this.proposalService.sendRecipients(proposalId);
+    const res = await this.proposalService.sendRecipients(proposalId, additionalRecipients);
     return ServiceResponse.fromResult(res);
   }
 
