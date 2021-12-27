@@ -936,34 +936,36 @@ export class SystemDesignService {
     const manufacturerNames = await this.manufacturerService.getManufacturersByIds(manufacturerIds);
 
     ancillaryEquipments.forEach(item => {
-      attachMeta(
-        item.ancillaryEquipmentModelDataSnapshot,
-        manufacturerNames.find(
+      attachMeta(item.ancillaryEquipmentModelDataSnapshot, {
+        manufacturer: manufacturerNames.find(
           m => item.ancillaryEquipmentModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
         ),
-      );
+      });
     });
 
     inverters.forEach(item => {
-      attachMeta(
-        item.inverterModelDataSnapshot,
-        manufacturerNames.find(m => item.inverterModelDataSnapshot.manufacturerId.toString() === m._id.toString()),
-      );
+      attachMeta(item.inverterModelDataSnapshot, {
+        manufacturer: manufacturerNames.find(
+          m => item.inverterModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
+        ),
+      });
     });
 
     panelArray.forEach(item => {
       if (item.panelModelDataSnapshot)
-        attachMeta(
-          item.panelModelDataSnapshot,
-          manufacturerNames.find(m => item.panelModelDataSnapshot.manufacturerId.toString() === m._id.toString()),
-        );
+        attachMeta(item.panelModelDataSnapshot, {
+          manufacturer: manufacturerNames.find(
+            m => item.panelModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
+          ),
+        });
     });
 
     storage.forEach(item => {
-      attachMeta(
-        item.storageModelDataSnapshot,
-        manufacturerNames.find(m => item.storageModelDataSnapshot.manufacturerId.toString() === m._id.toString()),
-      );
+      attachMeta(item.storageModelDataSnapshot, {
+        manufacturer: manufacturerNames.find(
+          m => item.storageModelDataSnapshot.manufacturerId.toString() === m._id.toString(),
+        ),
+      });
     });
 
     return systemDesign;
