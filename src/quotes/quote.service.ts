@@ -653,7 +653,7 @@ export class QuoteService {
         rebateDetails,
         projectDiscountDetails:
           data.quoteFinanceProduct?.projectDiscountDetails ?? projectDiscountDetails.filter(DiscountService.validate),
-        promotionsDetails:
+        promotionDetails:
           data.quoteFinanceProduct?.promotionDetails ?? promotionDetails.filter(PromotionService.validate),
       },
       savingsDetails: [],
