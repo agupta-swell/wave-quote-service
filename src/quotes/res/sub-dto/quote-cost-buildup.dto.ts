@@ -10,6 +10,7 @@ import {
   IBaseCostBuildupFee,
   IAdditionalFees,
   ITotalPromotionsDiscountsAndSwellGridrewards,
+  ICashDiscount,
 } from 'src/quotes/interfaces';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
@@ -139,6 +140,17 @@ export class BaseCostBuildupFeeDto implements IBaseCostBuildupFee {
   total: number;
 }
 
+export class CashDiscountDto implements ICashDiscount {
+  @ExposeProp()
+  name: string;
+
+  @ExposeProp()
+  unitPercentage: number;
+
+  @ExposeProp()
+  total: number;
+}
+
 export class AdditionalFeesDto implements IAdditionalFees {
   @ExposeProp()
   total: number;
@@ -212,6 +224,9 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
 
   @ExposeProp({ type: BaseCostBuildupFeeDto })
   thirdPartyFinancingDealerFee: BaseCostBuildupFeeDto;
+
+  @ExposeProp({ type: CashDiscountDto })
+  cashDiscount: ICashDiscount;
 
   @ExposeProp()
   subtotalWithSalesOriginationManagerFee: number;

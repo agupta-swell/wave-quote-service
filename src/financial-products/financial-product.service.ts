@@ -178,17 +178,17 @@ export class FinancialProductsService {
     return found;
   }
 
-  async getHighestLoanDealerFee(): Promise<number> {
+  async getHighestDealerFee(fundingSourceType: FUNDING_SOURCE_TYPE): Promise<number> {
     const DEFAULT_DEALER_FEE = 0;
 
-    const loanFundingSources = await this.fundingSourceService.getAll({ type: FUNDING_SOURCE_TYPE.LOAN });
-    const loanFinancialProducts = await this.financialProduct
+    const fundingSources = await this.fundingSourceService.getAll({ type: fundingSourceType });
+    const financialProducts = await this.financialProduct
       .find({
-        fundingSourceId: { $in: loanFundingSources.map(fs => fs._id) },
+        fundingSourceId: { $in: fundingSources.map(fs => fs._id) },
         isActive: true,
       })
       .lean();
 
-    return Math.max(...loanFinancialProducts.map(fp => fp.dealerFee), DEFAULT_DEALER_FEE);
+    return Math.max(...financialProducts.map(fp => fp.dealerFee), DEFAULT_DEALER_FEE);
   }
 }

@@ -10,7 +10,6 @@ import { PromotionSchema } from 'src/promotions/promotion.schema';
 import { IPromotionDocument } from 'src/promotions/interfaces';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
-import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
 import { deepTransform, camelToSnake, snakeToCamel } from 'mongoose-schema-mapper/build/utils/transform';
 import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
@@ -266,7 +265,20 @@ export interface IFinancialProductDetails {
   interestRate: number;
   termMonths: number;
   dealerFee: number;
+  financierId: string;
+  minBatteryReserve: number;
+  maxBatteryReserve: number;
+  minClippingRatio: number;
+  maxClippingRatio: number;
+  minMarkup: number;
+  maxMarkup: number;
+  requiresHardCreditApproval: boolean;
+  countersignerName: string;
+  countersignerTitle: string;
+  countersignerEmail: string;
+  allowsWetSignedContracts: boolean;
   projectCompletionDateOffset: number;
+  processingFee: number;
 }
 
 export interface IQuoteFinanceProductSchema {

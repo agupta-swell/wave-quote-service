@@ -2,13 +2,14 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber } from 'class-validator';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
-import { IQuoteCost, IQuoteCostBuildup } from 'src/quotes/interfaces';
+import { ICashDiscount, IQuoteCost, IQuoteCostBuildup } from 'src/quotes/interfaces';
 import { IBaseQuoteCost } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteCost';
 import { IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards } from 'src/quotes/interfaces/quote-cost-buildup/IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards';
 import {
   TotalPromotionsDiscountsAndSwellGridrewardsDto,
   BaseCostBuildupFeeDto,
   AdditionalFeesDto,
+  CashDiscountDto,
 } from 'src/quotes/res/sub-dto';
 import { ExposeProp } from 'src/shared/decorators';
 import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
@@ -195,6 +196,9 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
 
   @ExposeProp({ type: BaseCostBuildupFeeDto })
   thirdPartyFinancingDealerFee: BaseCostBuildupFeeDto;
+
+  @ExposeProp({ type: CashDiscountDto })
+  cashDiscount: ICashDiscount;
 
   @ExposeProp()
   subtotalWithSalesOriginationManagerFee: number;

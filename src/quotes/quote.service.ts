@@ -128,17 +128,18 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('funding Source');
     }
 
-    const dealerFeePercentage =
-      fundingSource.type === FUNDING_SOURCE_TYPE.LOAN
-        ? await this.financialProductService.getHighestLoanDealerFee()
-        : 0;
+    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
+      fundingSource.type as FUNDING_SOURCE_TYPE,
+    )
+      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      : 0;
 
-    const quoteCostBuildup = this.quoteCostBuildUpService.create(
-      systemDesign.roofTopDesignData,
-      quoteConfigData,
-      undefined,
+    const quoteCostBuildup = this.quoteCostBuildUpService.create({
+      roofTopDesignData: systemDesign.roofTopDesignData,
+      partnerMarkup: quoteConfigData,
       dealerFeePercentage,
-    );
+      financialProduct,
+    });
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -297,13 +298,29 @@ export class QuoteService {
       totalAmountReduction,
     };
 
-    const quoteCostBuildup = this.quoteCostBuildUpService.create(
-      foundSystemDesign.roofTopDesignData,
-      markupConfig,
-      userInputs,
-    );
+    const {
+      financeProduct,
+      financeProduct: { financialProductSnapshot },
+    } = foundQuote.detailedQuote.quoteFinanceProduct;
 
-    const { financeProduct, financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct;
+    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
+    if (!fundingSource) {
+      throw ApplicationException.EntityNotFound('funding Source');
+    }
+
+    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
+      fundingSource.type as FUNDING_SOURCE_TYPE,
+    )
+      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      : 0;
+
+    const quoteCostBuildup = this.quoteCostBuildUpService.create({
+      roofTopDesignData: foundSystemDesign.roofTopDesignData,
+      partnerMarkup: markupConfig,
+      userInputs,
+      dealerFeePercentage,
+      financialProduct: financialProductSnapshot,
+    });
 
     let currentGrossPrice: number;
 
@@ -363,8 +380,6 @@ export class QuoteService {
     }
 
     model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
-
-    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
 
     const rebateDetails = await this.createRebateDetails(
       foundQuote.opportunityId,
@@ -533,14 +548,31 @@ export class QuoteService {
         incentiveDetails,
         rebateDetails,
         financeProduct,
-        financialProductSnapshot,
         promotionDetails,
         projectDiscountDetails,
       },
       utilityProgram,
     } = foundQuote.detailedQuote;
 
-    const quoteCostBuildup = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quotePartnerConfig);
+    const { financialProductSnapshot } = financeProduct;
+
+    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
+    if (!fundingSource) {
+      throw ApplicationException.EntityNotFound('funding Source');
+    }
+
+    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
+      fundingSource.type as FUNDING_SOURCE_TYPE,
+    )
+      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      : 0;
+
+    const quoteCostBuildup = this.quoteCostBuildUpService.create({
+      roofTopDesignData: systemDesign.roofTopDesignData,
+      partnerMarkup: quotePartnerConfig,
+      dealerFeePercentage,
+      financialProduct: financialProductSnapshot,
+    });
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
 
@@ -590,11 +622,6 @@ export class QuoteService {
       data.rebateProgramId && data.rebateProgramId !== 'None'
         ? await this.rebateProgramService.getOneById(data.rebateProgramId)
         : null;
-
-    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
-    if (!fundingSource) {
-      throw ApplicationException.EntityNotFound('funding Source');
-    }
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -775,11 +802,22 @@ export class QuoteService {
       salesOriginationSalesFee: data.quoteCostBuildup.salesOriginationSalesFee,
     };
 
-    const quoteCostBuildUp = this.quoteCostBuildUpService.create(
-      systemDesign.roofTopDesignData,
-      quoteConfigData,
+    // TODO: fix typing FUNDING_SOURCE_TYPE and FINANCE_PRODUCT_TYPE
+    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
+      (detailedQuote.quoteFinanceProduct.financeProduct.productType as unknown) as FUNDING_SOURCE_TYPE,
+    )
+      ? await this.financialProductService.getHighestDealerFee(
+          (detailedQuote.quoteFinanceProduct.financeProduct.productType as unknown) as FUNDING_SOURCE_TYPE,
+        )
+      : 0;
+
+    const quoteCostBuildUp = this.quoteCostBuildUpService.create({
+      roofTopDesignData: systemDesign.roofTopDesignData,
+      partnerMarkup: quoteConfigData,
       userInputs,
-    );
+      dealerFeePercentage,
+      financialProduct: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
+    });
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
 

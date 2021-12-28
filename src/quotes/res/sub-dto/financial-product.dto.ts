@@ -105,4 +105,7 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   projectCompletionDateOffset: number;
+  
+  @ExposeProp()
+  processingFee: number;
 }

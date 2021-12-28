@@ -1,10 +1,14 @@
-import { Document } from 'mongoose';
+import { Document, LeanDocument } from 'mongoose';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
+import { QuoteCostBuildupUserInputDto } from 'src/quotes/res/sub-dto';
+import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
 import { IQuoteCost } from './IQuoteCost';
 import { IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards } from './IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards';
-import { IAdditionalFees, IBaseCostBuildupFee } from './ICostBuildupFee';
+import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount } from './ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
+import { ICreateQuoteCostBuildUpArg } from '.';
 
 export interface IQuoteCostBuildup {
   panelQuoteDetails: IQuoteCost<PRODUCT_TYPE.MODULE>[];
@@ -25,6 +29,7 @@ export interface IQuoteCostBuildup {
   salesOriginationManagerFee: IBaseCostBuildupFee;
   salesOriginationSalesFee: IBaseCostBuildupFee;
   thirdPartyFinancingDealerFee: IBaseCostBuildupFee;
+  cashDiscount: ICashDiscount;
   subtotalWithSalesOriginationManagerFee: number;
   additionalFees: IAdditionalFees;
   projectGrandTotal: IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards;
@@ -36,3 +41,11 @@ export type IQuoteCostBuildupDocument = Document &
       ? Array<T & Document>
       : IQuoteCostBuildup[key];
   };
+
+export interface ICreateQuoteCostBuildupParams {
+  roofTopDesignData: ICreateQuoteCostBuildUpArg;
+  partnerMarkup: LeanDocument<QuotePartnerConfig>;
+  financialProduct: LeanDocument<FinancialProduct>;
+  userInputs?: QuoteCostBuildupUserInputDto;
+  dealerFeePercentage: number;
+}

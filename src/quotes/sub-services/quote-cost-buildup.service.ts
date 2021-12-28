@@ -2,18 +2,18 @@
 import { Injectable } from '@nestjs/common';
 import { BigNumber } from 'bignumber.js';
 import { LeanDocument } from 'mongoose';
+import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
-import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
 import {
   ICalculateCostResult,
   IQuoteCost,
   IQuoteCostBuildup,
   ICreateQuoteCostBuildUpArg,
   IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards,
+  ICreateQuoteCostBuildupParams,
 } from '../interfaces';
-import { IBaseCostBuildupFee } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
+import { IBaseCostBuildupFee, ICashDiscount } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from '../interfaces/quote-cost-buildup/ITotalPromotionsDiscountsGridrewards';
-import { QuoteCostBuildupUserInputDto } from '../res/sub-dto';
 
 @Injectable()
 export class QuoteCostBuildUpService {
@@ -315,33 +315,59 @@ export class QuoteCostBuildUpService {
     };
   }
 
-  public create(
-    rooftopData: ICreateQuoteCostBuildUpArg,
-    partnerMarkup: LeanDocument<QuotePartnerConfig>,
-    userInputs?: QuoteCostBuildupUserInputDto,
+  public calculateCashDiscount(
+    thirdPartyFinancingDealerFee: IBaseCostBuildupFee,
+    subtotalWithSalesOriginationManagerFee: number,
+    salesOriginationSalesFee: IBaseCostBuildupFee,
+    financialProduct: LeanDocument<FinancialProduct>,
+  ): ICashDiscount {
+    const processingFee = new BigNumber(financialProduct.processingFee || 0).dividedBy(100);
+
+    // https://swellenergy.atlassian.net/browse/WAV-1152
+    const total = new BigNumber(thirdPartyFinancingDealerFee.total).minus(
+      new BigNumber(subtotalWithSalesOriginationManagerFee)
+        .plus(salesOriginationSalesFee.total)
+        .multipliedBy(processingFee),
+    );
+
+    return {
+      name: `${financialProduct.name} Discount (${financialProduct.processingFee || 0}% effective fee)`,
+      unitPercentage: financialProduct.processingFee || 0,
+      total: total.toNumber(),
+    };
+  }
+
+  public create({
+    roofTopDesignData,
+    partnerMarkup,
+    userInputs,
     dealerFeePercentage = 0,
-  ): IQuoteCostBuildup {
-    const adderQuoteDetails = this.calculateAddersQuoteCost(rooftopData.adders, partnerMarkup.adderMarkup);
+    financialProduct,
+  }: ICreateQuoteCostBuildupParams): IQuoteCostBuildup {
+    const adderQuoteDetails = this.calculateAddersQuoteCost(roofTopDesignData.adders, partnerMarkup.adderMarkup);
 
     const ancillaryEquipmentDetails = this.calculateAncillaryEquipmentsQuoteCost(
-      rooftopData.ancillaryEquipments,
+      roofTopDesignData.ancillaryEquipments,
       partnerMarkup.ancillaryEquipmentMarkup,
     );
 
     const balanceOfSystemDetails = this.calculateBalanceOfSystemsQuoteCost(
-      rooftopData.balanceOfSystems,
+      roofTopDesignData.balanceOfSystems,
       partnerMarkup.bosMarkup,
     );
 
-    const inverterQuoteDetails = this.calculateInvertersQuoteCost(rooftopData.inverters, partnerMarkup.inverterMarkup);
+    const inverterQuoteDetails = this.calculateInvertersQuoteCost(
+      roofTopDesignData.inverters,
+      partnerMarkup.inverterMarkup,
+    );
 
-    const panelQuoteDetails = this.calculatePanelsQuoteCost(rooftopData.panelArray, partnerMarkup.solarMarkup);
+    const panelQuoteDetails = this.calculatePanelsQuoteCost(roofTopDesignData.panelArray, partnerMarkup.solarMarkup);
 
-    const storageQuoteDetails = this.calculateStoragesQuoteCost(rooftopData.storage, partnerMarkup.storageMarkup);
+    const storageQuoteDetails = this.calculateStoragesQuoteCost(roofTopDesignData.storage, partnerMarkup.storageMarkup);
 
-    const softCostQuoteDetails = this.calculateSoftCosts(rooftopData.softCosts, partnerMarkup.softCostMarkup);
+    const softCostQuoteDetails = this.calculateSoftCosts(roofTopDesignData.softCosts, partnerMarkup.softCostMarkup);
 
-    const laborCostQuoteDetails = this.calculateLaborsCost(rooftopData.laborCosts, partnerMarkup.laborMarkup);
+    const laborCostQuoteDetails = this.calculateLaborsCost(roofTopDesignData.laborCosts, partnerMarkup.laborMarkup);
 
     const generalMarkup = partnerMarkup.generalMarkup;
 
@@ -440,7 +466,16 @@ export class QuoteCostBuildUpService {
       dealerFeePercentage,
     );
 
-    const additionalFees = salesOriginationSalesFee; // TODO: additionalFees = salesOriginationSalesFee + 3rd party dealer fee
+    const cashDiscount = this.calculateCashDiscount(
+      thirdPartyFinancingDealerFee,
+      subtotalWithSalesOriginationManagerFee,
+      salesOriginationSalesFee,
+      financialProduct,
+    );
+
+    const additionalFees = {
+      total: salesOriginationSalesFee.total + subtotalWithSalesOriginationManagerFee - cashDiscount.total,
+    };
 
     // TODO: waiting for COGS
     const grandTotalNetCost = new BigNumber(additionalFees.total)
@@ -483,6 +518,7 @@ export class QuoteCostBuildUpService {
       subtotalWithSalesOriginationManagerFee,
       salesOriginationSalesFee,
       thirdPartyFinancingDealerFee,
+      cashDiscount,
       additionalFees,
       projectGrandTotal,
     };
