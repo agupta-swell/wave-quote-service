@@ -28,7 +28,6 @@ export class ValidateQuoteDiscountPipe implements PipeTransform<UpdateQuoteDto, 
           ...e,
           endDate: null,
           startDate: null,
-          name: '',
         } as any;
       }
 
