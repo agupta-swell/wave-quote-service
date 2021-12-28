@@ -193,6 +193,9 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ExposeProp({ type: BaseCostBuildupFeeDto })
   salesOriginationSalesFee: BaseCostBuildupFeeDto;
 
+  @ExposeProp({ type: BaseCostBuildupFeeDto })
+  thirdPartyFinancingDealerFee: BaseCostBuildupFeeDto;
+
   @ExposeProp()
   subtotalWithSalesOriginationManagerFee: number;
 

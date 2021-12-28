@@ -33,6 +33,7 @@ export const QuoteCostBuildupSchema = new Schema(
     subtotal_with_sales_origination_manager_fee: Number,
     sales_origination_sales_fee: BaseCostBuildupFeeSchema,
     sales_origination_manager_fee: BaseCostBuildupFeeSchema,
+    third_party_financing_dealer_fee: BaseCostBuildupFeeSchema,
     additional_fees: AdditionalFeesSchema,
     project_grand_total: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsSchema,
   },

@@ -111,7 +111,8 @@ export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuote
   quantity: number;
 }
 
-export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto implements IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
+export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto
+  implements IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
   @ExposeProp()
   cost: number;
 
@@ -208,6 +209,9 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
 
   @ExposeProp({ type: BaseCostBuildupFeeDto })
   salesOriginationSalesFee: BaseCostBuildupFeeDto;
+
+  @ExposeProp({ type: BaseCostBuildupFeeDto })
+  thirdPartyFinancingDealerFee: BaseCostBuildupFeeDto;
 
   @ExposeProp()
   subtotalWithSalesOriginationManagerFee: number;

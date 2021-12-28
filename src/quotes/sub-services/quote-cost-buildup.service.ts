@@ -296,10 +296,30 @@ export class QuoteCostBuildUpService {
     });
   }
 
+  public calculateThirdPartyFinancingDealerFee(
+    subtotalWithSalesOriginationManagerFee: number,
+    salesOriginationSalesFee: IBaseCostBuildupFee,
+    dealerFeePercentage: number,
+  ): IBaseCostBuildupFee {
+    const dealerFee = new BigNumber(dealerFeePercentage).dividedBy(100);
+
+    // https://swellenergy.atlassian.net/browse/WAV-1152
+    const total = new BigNumber(subtotalWithSalesOriginationManagerFee)
+      .plus(salesOriginationSalesFee.total)
+      .multipliedBy(dealerFee)
+      .dividedBy(1 - dealerFee.toNumber());
+
+    return {
+      unitPercentage: dealerFeePercentage,
+      total: total.toNumber(),
+    };
+  }
+
   public create(
     rooftopData: ICreateQuoteCostBuildUpArg,
     partnerMarkup: LeanDocument<QuotePartnerConfig>,
     userInputs?: QuoteCostBuildupUserInputDto,
+    dealerFeePercentage = 0,
   ): IQuoteCostBuildup {
     const adderQuoteDetails = this.calculateAddersQuoteCost(rooftopData.adders, partnerMarkup.adderMarkup);
 
@@ -359,8 +379,6 @@ export class QuoteCostBuildUpService {
       totalProductCost = totalProductCost.plus(softCost.cost);
     });
 
-    const grossPrice = new BigNumber(generalMarkup).plus(1).times(totalProductCost);
-
     const equipmentSubtotal = this.sumQuoteCosts(
       panelQuoteDetails,
       storageQuoteDetails,
@@ -403,7 +421,9 @@ export class QuoteCostBuildUpService {
       partnerMarkup.salesOriginationManagerFee,
     );
 
-    const subtotalWithSalesOriginationManagerFee = new BigNumber(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.netCost)
+    const subtotalWithSalesOriginationManagerFee = new BigNumber(
+      projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.netCost,
+    )
       .plus(salesOriginationManagerFee.total)
       .toNumber();
 
@@ -414,13 +434,23 @@ export class QuoteCostBuildUpService {
           unitPercentage: userInputs?.salesOriginationSalesFee?.unitPercentage || 0,
         };
 
+    const thirdPartyFinancingDealerFee = this.calculateThirdPartyFinancingDealerFee(
+      subtotalWithSalesOriginationManagerFee,
+      salesOriginationSalesFee,
+      dealerFeePercentage,
+    );
+
     const additionalFees = salesOriginationSalesFee; // TODO: additionalFees = salesOriginationSalesFee + 3rd party dealer fee
 
     // TODO: waiting for COGS
     const grandTotalNetCost = new BigNumber(additionalFees.total)
       .plus(subtotalWithSalesOriginationManagerFee)
       .toNumber();
-    const grandTotalNetMargin = new BigNumber(grandTotalNetCost).minus(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost).toNumber();
+
+    const grandTotalNetMargin = new BigNumber(grandTotalNetCost)
+      .minus(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost)
+      .toNumber();
+
     const grandTotalMarginPercentage = new BigNumber(grandTotalNetMargin)
       .dividedBy(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost)
       .multipliedBy(100)
@@ -452,6 +482,7 @@ export class QuoteCostBuildUpService {
       salesOriginationManagerFee,
       subtotalWithSalesOriginationManagerFee,
       salesOriginationSalesFee,
+      thirdPartyFinancingDealerFee,
       additionalFees,
       projectGrandTotal,
     };

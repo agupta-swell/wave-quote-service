@@ -24,6 +24,7 @@ export interface IQuoteCostBuildup {
   totalPromotionsDiscountsAndSwellGridrewards: ITotalPromotionsDiscountsAndSwellGridrewards;
   salesOriginationManagerFee: IBaseCostBuildupFee;
   salesOriginationSalesFee: IBaseCostBuildupFee;
+  thirdPartyFinancingDealerFee: IBaseCostBuildupFee;
   subtotalWithSalesOriginationManagerFee: number;
   additionalFees: IAdditionalFees;
   projectGrandTotal: IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards;

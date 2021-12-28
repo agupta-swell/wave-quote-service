@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model } from 'mongoose';
+import { FilterQuery, LeanDocument, Model } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { FundingSource, FUNDING_SOURCE } from './funding-source.schema';
@@ -48,8 +48,8 @@ export class FundingSourceService {
     return product;
   }
 
-  async getAll(): Promise<LeanDocument<FundingSource>[]> {
-    const fundingSources = await this.fundingSource.find().lean();
+  async getAll(query?: FilterQuery<FundingSource>): Promise<LeanDocument<FundingSource>[]> {
+    const fundingSources = await this.fundingSource.find(query as any).lean();
     return fundingSources;
   }
 }

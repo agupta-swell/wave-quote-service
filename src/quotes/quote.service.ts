@@ -26,6 +26,7 @@ import { DiscountService } from 'src/discounts/discount.service';
 import { PromotionService } from 'src/promotions/promotion.service';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
+import { FUNDING_SOURCE_TYPE } from 'src/funding-sources/constants';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -109,8 +110,6 @@ export class QuoteService {
       throw ApplicationException.NoQuoteConfigAvailable();
     }
 
-    const quoteCostBuildup = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quoteConfigData);
-
     const utilityProgram = data.utilityProgramId
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
       : null;
@@ -128,6 +127,18 @@ export class QuoteService {
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('funding Source');
     }
+
+    const dealerFeePercentage =
+      fundingSource.type === FUNDING_SOURCE_TYPE.LOAN
+        ? await this.financialProductService.getHighestLoanDealerFee()
+        : 0;
+
+    const quoteCostBuildup = this.quoteCostBuildUpService.create(
+      systemDesign.roofTopDesignData,
+      quoteConfigData,
+      undefined,
+      dealerFeePercentage,
+    );
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
