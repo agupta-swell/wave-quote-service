@@ -12,6 +12,7 @@ import { ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsSchema } from 
 import { BaseCostBuildupFeeSchema } from './base-cost-buildup-fee.schema';
 import { AdditionalFeesSchema } from './quote-cost-buildup-additional-fee-data.schema';
 import { totalPromotionsDiscountsAndSwellGridrewardsSchema } from './total-promotions-discounts-gridrewards.schema';
+import { CashDiscountSchema } from './cash-discount.schema';
 
 export const QuoteCostBuildupSchema = new Schema(
   {
@@ -33,6 +34,8 @@ export const QuoteCostBuildupSchema = new Schema(
     subtotal_with_sales_origination_manager_fee: Number,
     sales_origination_sales_fee: BaseCostBuildupFeeSchema,
     sales_origination_manager_fee: BaseCostBuildupFeeSchema,
+    third_party_financing_dealer_fee: BaseCostBuildupFeeSchema,
+    cash_discount: CashDiscountSchema,
     additional_fees: AdditionalFeesSchema,
     project_grand_total: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsSchema,
   },

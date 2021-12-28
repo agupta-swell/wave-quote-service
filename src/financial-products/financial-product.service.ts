@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { inRange } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
+import { FUNDING_SOURCE_TYPE } from 'src/funding-sources/constants';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -175,5 +176,19 @@ export class FinancialProductsService {
     ]);
 
     return found;
+  }
+
+  async getHighestDealerFee(fundingSourceType: FUNDING_SOURCE_TYPE): Promise<number> {
+    const DEFAULT_DEALER_FEE = 0;
+
+    const fundingSources = await this.fundingSourceService.getAll({ type: fundingSourceType });
+    const financialProducts = await this.financialProduct
+      .find({
+        fundingSourceId: { $in: fundingSources.map(fs => fs._id) },
+        isActive: true,
+      })
+      .lean();
+
+    return Math.max(...financialProducts.map(fp => fp.dealerFee), DEFAULT_DEALER_FEE);
   }
 }

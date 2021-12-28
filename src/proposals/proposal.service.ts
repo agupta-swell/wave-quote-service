@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
-import { identity, pickBy, uniq } from 'lodash';
+import { identity, pickBy, uniq, cloneDeep } from 'lodash';
 import { ObjectId, LeanDocument, Model, Types } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
@@ -30,7 +30,7 @@ import { EmailService } from '../emails/email.service';
 import { QuoteService } from '../quotes/quote.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { PROPOSAL_ANALYTIC_TYPE, PROPOSAL_STATUS } from './constants';
-import { Proposal, PROPOSAL } from './proposal.schema';
+import { IRecipientSchema, Proposal, PROPOSAL } from './proposal.schema';
 import {
   CreateProposalDto,
   CustomerInformationDto,
@@ -226,7 +226,7 @@ export class ProposalService {
     return OperationResult.ok({ proposalLink: (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`) });
   }
 
-  async sendRecipients(proposalId: ObjectId): Promise<OperationResult<boolean>> {
+  async sendRecipients(proposalId: ObjectId, additionalRecipients: string[]): Promise<OperationResult<boolean>> {
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
       throw ApplicationException.EntityNotFound(proposalId.toString());
@@ -249,15 +249,35 @@ export class ProposalService {
     );
 
     const linksByToken = tokensByRecipients.map(token => (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`));
-    const recipients = foundProposal.detailedProposal.recipients.map(item => item.email);
+
+    let recipientsEmail: string[] = [];
+    const recipients: IRecipientSchema[] = cloneDeep(foundProposal.detailedProposal.recipients);
+
+    additionalRecipients.forEach(additionalRecipient => {
+      if(additionalRecipient){
+        recipients.forEach(recipient => {
+          if(recipient.email !== additionalRecipient){
+            recipients.push({
+              email: additionalRecipient,
+              name: additionalRecipient.split('@')?.[0] ? additionalRecipient.split('@')[0] : 'Customer'
+            })
+          }
+        })
+      }
+    })
+
+    recipientsEmail = additionalRecipients.filter(additionalRecipient=> additionalRecipient);
+
+    foundProposal.detailedProposal.recipients = recipients;
+    foundProposal.save();
 
     await Promise.all(
-      recipients.map((recipient, index) => {
+      recipientsEmail.map((recipient, index) => {
         const data = {
           customerName: recipient.split('@')?.[0] ? recipient.split('@')[0] : 'Customer',
           proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
-          recipientNotice: recipients.filter(i => i !== recipient).join(', ')
-            ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipients
+          recipientNotice: recipientsEmail.filter(i => i !== recipient).join(', ')
+            ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsEmail
                 .filter(i => i !== recipient)
                 .join(', ')}`
             : '',

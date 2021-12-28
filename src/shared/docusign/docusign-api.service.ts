@@ -117,9 +117,9 @@ export class DocusignApiService<Context> implements OnModuleInit {
         ...createContractPayload,
         status: 'created',
       },
+      mergeRolesOnDraft: true,
+      changeRoutingOrder: true,
     };
-
-    envelope.mergeRolesOnDraft = true;
 
     try {
       const result = await this.envelopeApi.createEnvelope(this.accountId, envelope);

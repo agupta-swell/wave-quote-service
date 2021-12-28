@@ -38,6 +38,7 @@ export interface FinancialProduct extends Document {
   countersignerEmail: string;
   allowsWetSignedContracts: boolean;
   projectCompletionDateOffset: number;
+  processingFee: number;
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({
@@ -80,4 +81,5 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   requires_hard_credit_approval: Boolean,
   allows_wet_signed_contracts: Boolean,
   project_completion_date_offset: Number,
+  processing_fee: Number,
 });

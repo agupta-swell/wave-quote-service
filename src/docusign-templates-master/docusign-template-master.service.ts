@@ -331,14 +331,12 @@ export class DocusignTemplateMasterService {
   async getDocusignCompositeTemplateMasterForGSA(
     utilityPrograms: string[],
     rebatePrograms: string[],
-    applicableSystemTypes: SYSTEM_TYPE[],
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({
         type: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
         applicableUtilityPrograms: { $in: utilityPrograms },
         applicableRebatePrograms: { $in: rebatePrograms },
-        applicableSystemTypes: { $in: applicableSystemTypes },
       })
       .lean();
 

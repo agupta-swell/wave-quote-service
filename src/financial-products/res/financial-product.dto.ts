@@ -109,6 +109,9 @@ export class FinancialProductDto {
 
   @ExposeProp()
   projectCompletionDateOffset: number;
+
+  @ExposeProp()
+  processingFee: number;
 }
 
 class FinancialProductPaginationDto implements Pagination<FinancialProductDto> {

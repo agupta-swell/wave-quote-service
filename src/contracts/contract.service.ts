@@ -114,6 +114,16 @@ export class ContractService {
     const utilityProgramId =
       (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || null;
 
+    if (contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
+      const rebateProgramId = opportunityData.rebateProgramId || (null as any);
+      const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
+        [utilityProgramId, 'ALL'],
+        [rebateProgramId, 'ALL'],
+      );
+
+      return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
+    }
+
     let applicableSystemTypes: SYSTEM_TYPE[] = [];
 
     const foundSystemDesign = (systemDesignId && (await this.systemDesignService.getOneById(systemDesignId))) || null;
@@ -127,17 +137,6 @@ export class ContractService {
       applicableSystemTypes = [SYSTEM_TYPE.SOLAR];
     } else if (foundSystemDesign?.roofTopDesignData.storage?.length) {
       applicableSystemTypes = [SYSTEM_TYPE.STORAGE];
-    }
-
-    if (contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
-      const rebateProgramId = opportunityData.rebateProgramId || (null as any);
-      const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
-        [utilityProgramId, 'ALL'],
-        [rebateProgramId, 'ALL'],
-        applicableSystemTypes,
-      );
-
-      return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
     }
 
     if (!fundingSourceId) {

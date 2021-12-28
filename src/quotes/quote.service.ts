@@ -26,6 +26,7 @@ import { DiscountService } from 'src/discounts/discount.service';
 import { PromotionService } from 'src/promotions/promotion.service';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
+import { FUNDING_SOURCE_TYPE } from 'src/funding-sources/constants';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -90,9 +91,10 @@ export class QuoteService {
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const [systemDesign, quoteConfigData] = await Promise.all([
+    const [systemDesign, quoteConfigData, taxCreditData] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
+      this.taxCreditConfigService.getActiveTaxCreditConfigs(),
     ]);
 
     if (!systemDesign) {
@@ -107,8 +109,6 @@ export class QuoteService {
     ) {
       throw ApplicationException.NoQuoteConfigAvailable();
     }
-
-    const quoteCostBuildup = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quoteConfigData);
 
     const utilityProgram = data.utilityProgramId
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
@@ -127,6 +127,19 @@ export class QuoteService {
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('funding Source');
     }
+
+    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
+      fundingSource.type as FUNDING_SOURCE_TYPE,
+    )
+      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      : 0;
+
+    const quoteCostBuildup = this.quoteCostBuildUpService.create({
+      roofTopDesignData: systemDesign.roofTopDesignData,
+      partnerMarkup: quoteConfigData,
+      dealerFeePercentage,
+      financialProduct,
+    });
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -201,6 +214,10 @@ export class QuoteService {
     model.setIsSync(true);
 
     const obj = new this.quoteModel(model);
+
+    obj.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
+      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
+    );
 
     await obj.save();
 
@@ -281,13 +298,29 @@ export class QuoteService {
       totalAmountReduction,
     };
 
-    const quoteCostBuildup = this.quoteCostBuildUpService.create(
-      foundSystemDesign.roofTopDesignData,
-      markupConfig,
-      userInputs,
-    );
+    const {
+      financeProduct,
+      financeProduct: { financialProductSnapshot },
+    } = foundQuote.detailedQuote.quoteFinanceProduct;
 
-    const { financeProduct, financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct;
+    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
+    if (!fundingSource) {
+      throw ApplicationException.EntityNotFound('funding Source');
+    }
+
+    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
+      fundingSource.type as FUNDING_SOURCE_TYPE,
+    )
+      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      : 0;
+
+    const quoteCostBuildup = this.quoteCostBuildUpService.create({
+      roofTopDesignData: foundSystemDesign.roofTopDesignData,
+      partnerMarkup: markupConfig,
+      userInputs,
+      dealerFeePercentage,
+      financialProduct: financialProductSnapshot,
+    });
 
     let currentGrossPrice: number;
 
@@ -348,8 +381,6 @@ export class QuoteService {
 
     model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
-    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
-
     const rebateDetails = await this.createRebateDetails(
       foundQuote.opportunityId,
       quoteCostBuildup.projectGrossTotal.netCost,
@@ -377,7 +408,7 @@ export class QuoteService {
     model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
 
     model.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrossTotal.netCost ?? 0),
+      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
     );
 
     assignToModel(
@@ -517,14 +548,31 @@ export class QuoteService {
         incentiveDetails,
         rebateDetails,
         financeProduct,
-        financialProductSnapshot,
         promotionDetails,
         projectDiscountDetails,
       },
       utilityProgram,
     } = foundQuote.detailedQuote;
 
-    const quoteCostBuildup = this.quoteCostBuildUpService.create(systemDesign.roofTopDesignData, quotePartnerConfig);
+    const { financialProductSnapshot } = financeProduct;
+
+    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
+    if (!fundingSource) {
+      throw ApplicationException.EntityNotFound('funding Source');
+    }
+
+    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
+      fundingSource.type as FUNDING_SOURCE_TYPE,
+    )
+      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      : 0;
+
+    const quoteCostBuildup = this.quoteCostBuildUpService.create({
+      roofTopDesignData: systemDesign.roofTopDesignData,
+      partnerMarkup: quotePartnerConfig,
+      dealerFeePercentage,
+      financialProduct: financialProductSnapshot,
+    });
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
 
@@ -575,11 +623,6 @@ export class QuoteService {
         ? await this.rebateProgramService.getOneById(data.rebateProgramId)
         : null;
 
-    const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
-    if (!fundingSource) {
-      throw ApplicationException.EntityNotFound('funding Source');
-    }
-
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
       quoteCostBuildup,
@@ -624,7 +667,7 @@ export class QuoteService {
       quotePriceOverride: foundQuote.detailedQuote.quotePriceOverride,
       notes: foundQuote.detailedQuote.notes,
       taxCreditData: taxCreditData.map(taxCredit =>
-        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrossTotal.netCost ?? 0),
+        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
       ),
     };
 
@@ -759,11 +802,22 @@ export class QuoteService {
       salesOriginationSalesFee: data.quoteCostBuildup.salesOriginationSalesFee,
     };
 
-    const quoteCostBuildUp = this.quoteCostBuildUpService.create(
-      systemDesign.roofTopDesignData,
-      quoteConfigData,
+    // TODO: fix typing FUNDING_SOURCE_TYPE and FINANCE_PRODUCT_TYPE
+    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
+      (detailedQuote.quoteFinanceProduct.financeProduct.productType as unknown) as FUNDING_SOURCE_TYPE,
+    )
+      ? await this.financialProductService.getHighestDealerFee(
+          (detailedQuote.quoteFinanceProduct.financeProduct.productType as unknown) as FUNDING_SOURCE_TYPE,
+        )
+      : 0;
+
+    const quoteCostBuildUp = this.quoteCostBuildUpService.create({
+      roofTopDesignData: systemDesign.roofTopDesignData,
+      partnerMarkup: quoteConfigData,
       userInputs,
-    );
+      dealerFeePercentage,
+      financialProduct: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
+    });
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
 
@@ -774,7 +828,7 @@ export class QuoteService {
     );
 
     detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrossTotal.netCost ?? 0),
+      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
     );
 
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);

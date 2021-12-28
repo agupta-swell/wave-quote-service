@@ -144,4 +144,16 @@ export class FinanceProductDetailDto {
 
   @ApiProperty()
   countersignerEmail: string;
+
+  @ApiProperty()
+  financierId: string;
+
+  @ApiProperty()
+  allowsWetSignedContracts: boolean;
+
+  @ApiProperty()
+  projectCompletionDateOffset: number;
+
+  @ApiProperty()
+  processingFee: number;
 }
