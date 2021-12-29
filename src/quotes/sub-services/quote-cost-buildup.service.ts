@@ -474,7 +474,7 @@ export class QuoteCostBuildUpService {
     );
 
     const additionalFees = {
-      total: salesOriginationSalesFee.total + subtotalWithSalesOriginationManagerFee - cashDiscount.total,
+      total: salesOriginationSalesFee.total + thirdPartyFinancingDealerFee.total - cashDiscount.total,
     };
 
     // TODO: waiting for COGS
