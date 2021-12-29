@@ -144,18 +144,16 @@ export class EnergyHomeImprovementAgreementHicTemplate {
       .concat(
         promotionDetails.map(
           item =>
-            `Promotion: ${item.name} ($${QuoteFinanceProductService.calculateReduction(
-              item,
-              quoteCostBuildup.projectGrossTotal.netCost,
+            `Promotion: ${item.name} (${CurrencyFormatter.format(
+              QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
             )})`,
         ),
       )
       .concat(
         projectDiscountDetails.map(
           item =>
-            `Discount: ${item.name} ($${QuoteFinanceProductService.calculateReduction(
-              item,
-              quoteCostBuildup.projectGrossTotal.netCost,
+            `Discount: ${item.name} (${CurrencyFormatter.format(
+              QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
             )})`,
         ),
       )
