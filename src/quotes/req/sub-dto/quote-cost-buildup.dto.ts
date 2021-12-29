@@ -86,6 +86,9 @@ class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon implements IQuote
 
   @ApiProperty()
   balanceOfSystemModelSnapshotDate: Date;
+
+  @ApiProperty()
+  quantity: number;
 }
 
 class AncillaryDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.ANCILLARY_EQUIPMENT> {
