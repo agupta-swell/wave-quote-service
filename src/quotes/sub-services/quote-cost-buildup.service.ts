@@ -217,14 +217,16 @@ export class QuoteCostBuildUpService {
     markupPercentage: number,
   ): IQuoteCost<PRODUCT_TYPE.BALANCE_OF_SYSTEM>[] {
     return balancesOfSystem.map<IQuoteCost<PRODUCT_TYPE.BALANCE_OF_SYSTEM>>(balanceOfSystem => {
+      const quantity = balanceOfSystem.quantity ?? 1;
+
       const cost = this.calculateCost(
         balanceOfSystem.balanceOfSystemModelDataSnapshot.cost,
-        balanceOfSystem.quantity,
+        quantity,
         markupPercentage,
       );
 
       return {
-        quantity: balanceOfSystem.quantity,
+        quantity,
         markupPercentage,
         balanceOfSystemModelDataSnapshot: balanceOfSystem.balanceOfSystemModelDataSnapshot,
         balanceOfSystemModelSnapshotDate: balanceOfSystem.balanceOfSystemSnapshotDate,
