@@ -25,7 +25,7 @@ export interface ICreateQuoteCostBuildUpArg {
   adders: Pick<IAdderSchema, 'quantity' | 'adderModelDataSnapshot' | 'adderModelSnapshotDate' | 'adderId'>[];
   balanceOfSystems: Pick<
     IBalanceOfSystemSchema,
-    'balanceOfSystemModelDataSnapshot' | 'balanceOfSystemSnapshotDate' | 'balanceOfSystemId'
+    'quantity' | 'balanceOfSystemModelDataSnapshot' | 'balanceOfSystemSnapshotDate' | 'balanceOfSystemId'
   >[];
   ancillaryEquipments: Pick<
     IAncillaryEquipmentSchema,

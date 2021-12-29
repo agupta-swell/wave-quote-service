@@ -200,6 +200,7 @@ export interface IBalanceOfSystemSchema {
   balanceOfSystemModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BALANCE_OF_SYSTEM>;
   balanceOfSystemSnapshotDate: Date;
   unit: PRICING_UNIT;
+  quantity: number;
 }
 
 export const BalanceOfSystemSchema = new Schema<Document<IBalanceOfSystemSchema>>(
@@ -208,6 +209,7 @@ export const BalanceOfSystemSchema = new Schema<Document<IBalanceOfSystemSchema>
     balance_of_system_model_data_snapshot: BalanceOfSystemSnapshotSchema,
     balance_of_system_snapshot_date: Date,
     unit: String,
+    quantity: Number,
   },
   { _id: false },
 );

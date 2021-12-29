@@ -10,6 +10,7 @@ import {
   DOCUSIGN_TAB_TYPE,
   TabValue,
 } from 'src/shared/docusign';
+import { CurrencyFormatter } from 'src/utils/numberFormatter';
 
 @DocusignTemplate('demo', '9616836b-3b23-4fd7-8550-6bcf89584476')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
@@ -153,18 +154,16 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
       .concat(
         promotionDetails.map(
           item =>
-            `Promotion: ${item.name} ($${QuoteFinanceProductService.calculateReduction(
-              item,
-              quoteCostBuildup.projectGrossTotal.netCost,
+            `Promotion: ${item.name} (${CurrencyFormatter.format(
+              QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
             )})`,
         ),
       )
       .concat(
         projectDiscountDetails.map(
           item =>
-            `Discount: ${item.name} ($${QuoteFinanceProductService.calculateReduction(
-              item,
-              quoteCostBuildup.projectGrossTotal.netCost,
+            `Discount: ${item.name} (${CurrencyFormatter.format(
+              QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
             )})`,
         ),
       )

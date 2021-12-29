@@ -5,4 +5,5 @@ import { IBaseQuoteCost } from './IBaseQuoteCost';
 export interface IBalanceOfSystemQuoteDetail extends IBaseQuoteCost {
   balanceOfSystemModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.BALANCE_OF_SYSTEM>;
   balanceOfSystemModelSnapshotDate: Date;
+  quantity: number;
 }

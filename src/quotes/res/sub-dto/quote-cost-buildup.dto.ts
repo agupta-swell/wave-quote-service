@@ -77,6 +77,9 @@ class BalanceOfSystemDetailsDto extends QuoteCostBuildupCommon implements IQuote
 
   @ExposeProp()
   balanceOfSystemModelSnapshotDate: Date;
+
+  @ExposeProp()
+  quantity: number;
 }
 
 class AncillaryDetailsDto extends QuoteCostBuildupCommon implements IQuoteCost<PRODUCT_TYPE.ANCILLARY_EQUIPMENT> {

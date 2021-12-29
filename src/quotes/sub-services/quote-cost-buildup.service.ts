@@ -17,10 +17,10 @@ import { ITotalPromotionsDiscountsAndSwellGridrewards } from '../interfaces/quot
 
 @Injectable()
 export class QuoteCostBuildUpService {
-  private calculateCost(pricePerUnit: number, quantiy: number, markupPercentage: number): ICalculateCostResult {
+  private calculateCost(pricePerUnit: number, quantity: number, markupPercentage: number): ICalculateCostResult {
     const price = new BigNumber(pricePerUnit ?? 0);
 
-    const total = price.multipliedBy(quantiy);
+    const total = price.multipliedBy(quantity);
 
     const markup = new BigNumber(markupPercentage ?? 0);
 
@@ -217,10 +217,16 @@ export class QuoteCostBuildUpService {
     markupPercentage: number,
   ): IQuoteCost<PRODUCT_TYPE.BALANCE_OF_SYSTEM>[] {
     return balancesOfSystem.map<IQuoteCost<PRODUCT_TYPE.BALANCE_OF_SYSTEM>>(balanceOfSystem => {
-      const cost = this.calculateCost(balanceOfSystem.balanceOfSystemModelDataSnapshot.cost, 1, markupPercentage);
+      const quantity = balanceOfSystem.quantity ?? 1;
+
+      const cost = this.calculateCost(
+        balanceOfSystem.balanceOfSystemModelDataSnapshot.cost,
+        quantity,
+        markupPercentage,
+      );
 
       return {
-        quantity: 1,
+        quantity,
         markupPercentage,
         balanceOfSystemModelDataSnapshot: balanceOfSystem.balanceOfSystemModelDataSnapshot,
         balanceOfSystemModelSnapshotDate: balanceOfSystem.balanceOfSystemSnapshotDate,
@@ -474,7 +480,7 @@ export class QuoteCostBuildUpService {
     );
 
     const additionalFees = {
-      total: salesOriginationSalesFee.total + subtotalWithSalesOriginationManagerFee - cashDiscount.total,
+      total: salesOriginationSalesFee.total + thirdPartyFinancingDealerFee.total - cashDiscount.total,
     };
 
     // TODO: waiting for COGS

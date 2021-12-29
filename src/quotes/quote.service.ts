@@ -170,11 +170,7 @@ export class QuoteService {
         },
         netAmount: 0,
         incentiveDetails: [],
-        rebateDetails: await this.createRebateDetails(
-          data.opportunityId,
-          quoteCostBuildup.projectGrossTotal.netCost ?? 0,
-          fundingSource.rebateAssignment,
-        ),
+        rebateDetails: await this.createRebateDetails(data.opportunityId, fundingSource.rebateAssignment),
         projectDiscountDetails: [],
         promotionDetails: [],
       },
@@ -383,9 +379,8 @@ export class QuoteService {
 
     const rebateDetails = await this.createRebateDetails(
       foundQuote.opportunityId,
-      quoteCostBuildup.projectGrossTotal.netCost,
       fundingSource?.rebateAssignment || '',
-      foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
+      foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails,
     );
 
     const { quoteFinanceProduct } = model.detailedQuote;
@@ -653,7 +648,7 @@ export class QuoteService {
         rebateDetails,
         projectDiscountDetails:
           data.quoteFinanceProduct?.projectDiscountDetails ?? projectDiscountDetails.filter(DiscountService.validate),
-        promotionsDetails:
+        promotionDetails:
           data.quoteFinanceProduct?.promotionDetails ?? promotionDetails.filter(PromotionService.validate),
       },
       savingsDetails: [],
@@ -678,9 +673,8 @@ export class QuoteService {
 
     detailedQuote.quoteFinanceProduct.rebateDetails = await this.createRebateDetails(
       data.opportunityId,
-      quoteCostBuildup.projectGrossTotal.netCost ?? 0,
       fundingSource.rebateAssignment,
-      rebateDetails.filter(item => item.type !== REBATE_TYPE.ITC),
+      rebateDetails,
     );
 
     const model = new QuoteModel(data, detailedQuote);
@@ -1155,28 +1149,15 @@ export class QuoteService {
 
   async createRebateDetails(
     opportunityId: string,
-    grossPrice: number,
     rebateAssignment: string,
     existingRebateDetails?: IRebateDetailsSchema[],
   ): Promise<IRebateDetailsSchema[]> {
-    const [v2Itc, rebatePrograms] = await Promise.all([
-      this.iTCModel.findOne().lean(),
-      this.rebateProgramService.findByOpportunityId(opportunityId),
-    ]);
-
-    const itcRate = v2Itc?.itcRate ?? 0;
+    const [rebatePrograms] = await Promise.all([this.rebateProgramService.findByOpportunityId(opportunityId)]);
 
     let isFloatRebate = rebateAssignment === 'customer' ? true : rebateAssignment === 'swell' && false;
     let amount = 0;
 
-    const rebateDetails: IRebateDetailsSchema[] = [
-      {
-        amount: (itcRate * grossPrice) / 100,
-        type: REBATE_TYPE.ITC,
-        description: '',
-        isFloatRebate: true,
-      },
-    ];
+    const rebateDetails: IRebateDetailsSchema[] = [];
 
     rebatePrograms.forEach(rebateProgram => {
       if (existingRebateDetails?.length) {
