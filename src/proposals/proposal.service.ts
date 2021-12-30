@@ -485,11 +485,7 @@ export class ProposalService {
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
 
     // Get gsProgram
-    const incentiveDetails = quote.quoteFinanceProduct.incentiveDetails[0];
-
-    const gsProgramSnapshotId = incentiveDetails?.detail?.gsProgramSnapshot?.id;
-
-    const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
+    const gsProgram = quote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot;
 
     // Get utilityProgramMaster
     const utilityProgramMaster = quote.utilityProgram?.utilityProgramId

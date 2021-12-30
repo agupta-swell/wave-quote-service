@@ -282,12 +282,8 @@ export class ContractService {
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
 
-    // Get gsProgram
-    const incentiveDetails = quote.detailedQuote.quoteFinanceProduct.incentiveDetails[0];
-
-    const gsProgramSnapshotId = incentiveDetails?.detail?.gsProgramSnapshot?.id;
-
-    const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
+    // Get gsProgram=
+    const gsProgram = quote.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot;
 
     // Get utilityProgramMaster
     const utilityProgramMaster = quote.detailedQuote.utilityProgram?.utilityProgramId
