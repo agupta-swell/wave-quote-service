@@ -7,6 +7,7 @@ import {
   TabLabel,
   TabValue,
 } from 'src/shared/docusign';
+import { roundNumber } from 'src/utils/transformNumber';
 import { IGenericObject } from '../../typing';
 
 @DocusignTemplate('demo', 'f880c5fa-28eb-4b63-b974-3e5290792ef9')
@@ -19,37 +20,43 @@ export class DummyChangeOrderTemplate {
   @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerTitle)
   financierTitle: string;
 
-  @TabValue<IGenericObject>(({ contract }) => 'Change Order description:\n' + (contract!.changeOrderDescription ?? ''))
+  @TabValue<IGenericObject>(({ contract }) => `Change Order description:\n${contract!.changeOrderDescription ?? ''}`)
   changeOrderDescription: string;
 
   @TabLabel('PV_KW')
   @TabValue<IGenericObject>(
     ({ quote: { quoteCostBuildup } }) =>
-      `System Size:` +
-      sumBy(quoteCostBuildup.panelQuoteDetails, item => item.panelModelDataSnapshot.ratings.watts * item.quantity) /
-        1000,
+      `System Size: ${roundNumber(
+        sumBy(quoteCostBuildup.panelQuoteDetails, item => item.panelModelDataSnapshot.ratings.watts * item.quantity) /
+          1000,
+        3,
+      )}`,
   )
   pvKw: string;
 
   @TabLabel('ES_KW')
   @TabValue<IGenericObject>(
     ({ quote: { quoteCostBuildup } }) =>
-      `Battery kW:` +
-      sumBy(
-        quoteCostBuildup.storageQuoteDetails,
-        item => item.storageModelDataSnapshot.ratings.kilowatts * item.quantity,
-      ),
+      `Battery kW:${roundNumber(
+        sumBy(
+          quoteCostBuildup.storageQuoteDetails,
+          item => item.storageModelDataSnapshot.ratings.kilowatts * item.quantity,
+        ),
+        3,
+      )}`,
   )
   esKw: string;
 
   @TabLabel('ES_KWH')
   @TabValue<IGenericObject>(
     ({ quote: { quoteCostBuildup } }) =>
-      `Battery kWh:` +
-      sumBy(
-        quoteCostBuildup.storageQuoteDetails,
-        item => item.storageModelDataSnapshot.ratings.kilowattHours * item.quantity,
-      ),
+      `Battery kWh: ${roundNumber(
+        sumBy(
+          quoteCostBuildup.storageQuoteDetails,
+          item => item.storageModelDataSnapshot.ratings.kilowattHours * item.quantity,
+        ),
+        3,
+      )}`,
   )
   esKWh: string;
 

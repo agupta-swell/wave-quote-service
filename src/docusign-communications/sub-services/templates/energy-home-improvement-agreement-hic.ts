@@ -12,6 +12,7 @@ import {
 } from 'src/shared/docusign';
 import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import { CurrencyFormatter } from 'src/utils/numberFormatter';
+import { roundNumber } from 'src/utils/transformNumber';
 
 @DocusignTemplate('demo', 'b0eb7c6c-7c1a-4060-a4bd-375274be977d')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
@@ -52,17 +53,23 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   hisNumber: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
-    sumBy(
-      parseSystemDesignProducts(systemDesign).systemDesignBatteries,
-      item => item.storageModelDataSnapshot.ratings.kilowattHours,
+    roundNumber(
+      sumBy(
+        parseSystemDesignProducts(systemDesign).systemDesignBatteries,
+        item => item.storageModelDataSnapshot.ratings.kilowattHours,
+      ),
+      3,
     ),
   )
   esKwh: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
-    sumBy(
-      parseSystemDesignProducts(systemDesign).systemDesignBatteries,
-      item => item.storageModelDataSnapshot.ratings.kilowatts,
+    roundNumber(
+      sumBy(
+        parseSystemDesignProducts(systemDesign).systemDesignBatteries,
+        item => item.storageModelDataSnapshot.ratings.kilowatts,
+      ),
+      3,
     ),
   )
   esKw: string;
@@ -88,7 +95,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   )
   batterySummary: string;
 
-  @TabValue<IGenericObject>(({ systemDesign }) => systemDesign.systemProductionData.capacityKW.toFixed(3))
+  @TabValue<IGenericObject>(({ systemDesign }) => roundNumber(systemDesign.systemProductionData.capacityKW, 3))
   pvKw: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
