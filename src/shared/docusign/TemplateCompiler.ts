@@ -235,6 +235,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
         }
 
         const value = {
+          ...tab,
           tabId,
           value: tabValue,
         } as docusign.Text;
@@ -242,7 +243,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
         // eslint-disable-next-line consistent-return
         return value;
       })
-      .filter(e => e) as docusign.Text[];
+      .filter((e): e is docusign.Text => !!e);
 
     // handle dynamic tab value
 

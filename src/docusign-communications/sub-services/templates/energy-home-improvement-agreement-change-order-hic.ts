@@ -10,7 +10,7 @@ import {
   DOCUSIGN_TAB_TYPE,
   TabValue,
 } from 'src/shared/docusign';
-import { CurrencyFormatter } from 'src/utils/numberFormatter';
+import { CurrencyFormatter, NumberFormatter } from 'src/utils/numberFormatter';
 
 @DocusignTemplate('demo', '9616836b-3b23-4fd7-8550-6bcf89584476')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
@@ -111,13 +111,17 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   )
   adderSummary: string;
 
-  @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) => quoteCostBuildup.projectGrandTotal.netCost)
+  @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) =>
+    NumberFormatter.format(quoteCostBuildup.projectGrandTotal.netCost),
+  )
   newContractAmount: string;
 
   @TabValue<IGenericObject>(({ quote: { quoteCostBuildup }, primaryContractQuote }) =>
-    new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
-      .minus(primaryContractQuote?.quoteCostBuildup.projectGrandTotal.netCost ?? 0)
-      .toNumber(),
+    NumberFormatter.format(
+      new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
+        .minus(primaryContractQuote?.quoteCostBuildup.projectGrandTotal.netCost ?? 0)
+        .toNumber(),
+    ),
   )
   changeInContractAmount: string;
 
