@@ -3,6 +3,7 @@ import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
 import { QuoteCostBuildupUserInputDto } from 'src/quotes/res/sub-dto';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
+import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
 import { IQuoteCost } from './IQuoteCost';
 import { IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards } from './IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards';
@@ -46,6 +47,7 @@ export interface ICreateQuoteCostBuildupParams {
   roofTopDesignData: ICreateQuoteCostBuildUpArg;
   partnerMarkup: LeanDocument<QuotePartnerConfig>;
   financialProduct: LeanDocument<FinancialProduct>;
+  fundingSourceType: FINANCE_PRODUCT_TYPE;
   userInputs?: QuoteCostBuildupUserInputDto;
   dealerFeePercentage: number;
 }

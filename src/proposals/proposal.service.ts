@@ -226,13 +226,27 @@ export class ProposalService {
     return OperationResult.ok({ proposalLink: (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`) });
   }
 
-  async sendRecipients(proposalId: ObjectId, additionalRecipients: string[]): Promise<OperationResult<boolean>> {
+  async sendRecipients(proposalId: ObjectId, recipientEmails: string[]): Promise<OperationResult<boolean>> {
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
       throw ApplicationException.EntityNotFound(proposalId.toString());
     }
 
-    const tokensByRecipients = foundProposal.detailedProposal.recipients.map(item =>
+    const recipients: IRecipientSchema[] = cloneDeep(foundProposal.detailedProposal.recipients);
+
+    recipientEmails
+      .filter(recipientEmail => !!recipientEmail)
+      .forEach(email => {
+        const foundRecipientEmail = recipients.find(recipient => recipient.email === email);
+        if (!foundRecipientEmail) {
+          recipients.push({
+            email,
+            name: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
+          });
+        }
+      });
+
+    const tokensByRecipients = recipients.map(item =>
       this.jwtService.sign(
         {
           proposalId: foundProposal._id,
@@ -250,34 +264,16 @@ export class ProposalService {
 
     const linksByToken = tokensByRecipients.map(token => (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`));
 
-    let recipientsEmail: string[] = [];
-    const recipients: IRecipientSchema[] = cloneDeep(foundProposal.detailedProposal.recipients);
-
-    additionalRecipients.forEach(additionalRecipient => {
-      if(additionalRecipient){
-        recipients.forEach(recipient => {
-          if(recipient.email !== additionalRecipient){
-            recipients.push({
-              email: additionalRecipient,
-              name: additionalRecipient.split('@')?.[0] ? additionalRecipient.split('@')[0] : 'Customer'
-            })
-          }
-        })
-      }
-    })
-
-    recipientsEmail = additionalRecipients.filter(additionalRecipient=> additionalRecipient);
-
     foundProposal.detailedProposal.recipients = recipients;
-    foundProposal.save();
+    await foundProposal.save();
 
     await Promise.all(
-      recipientsEmail.map((recipient, index) => {
+      recipientEmails.map((recipient, index) => {
         const data = {
           customerName: recipient.split('@')?.[0] ? recipient.split('@')[0] : 'Customer',
           proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
-          recipientNotice: recipientsEmail.filter(i => i !== recipient).join(', ')
-            ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsEmail
+          recipientNotice: recipientEmails.filter(i => i !== recipient).join(', ')
+            ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientEmails
                 .filter(i => i !== recipient)
                 .join(', ')}`
             : '',
@@ -489,11 +485,7 @@ export class ProposalService {
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
 
     // Get gsProgram
-    const incentiveDetails = quote.quoteFinanceProduct.incentiveDetails[0];
-
-    const gsProgramSnapshotId = incentiveDetails?.detail?.gsProgramSnapshot?.id;
-
-    const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
+    const gsProgram = quote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot;
 
     // Get utilityProgramMaster
     const utilityProgramMaster = quote.utilityProgram?.utilityProgramId

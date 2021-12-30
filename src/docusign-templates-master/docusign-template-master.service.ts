@@ -6,7 +6,6 @@ import { OperationResult } from 'src/app/common';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { ITemplateDetailSchema } from 'src/contracts/contract.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
-import { EApplicableProducts } from 'src/proposal-templates/proposal-template.schema';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -312,7 +311,7 @@ export class DocusignTemplateMasterService {
   async getDocusignCompositeTemplateMaster(
     fundingSources: string[],
     utilities: string[],
-    utilityPrograms: string[],
+    utilityPrograms: (string | null)[],
     applicableSystemTypes: SYSTEM_TYPE[],
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
@@ -329,8 +328,8 @@ export class DocusignTemplateMasterService {
   }
 
   async getDocusignCompositeTemplateMasterForGSA(
-    utilityPrograms: string[],
-    rebatePrograms: string[],
+    utilityPrograms: (string | null)[],
+    rebatePrograms: (string | null)[],
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({

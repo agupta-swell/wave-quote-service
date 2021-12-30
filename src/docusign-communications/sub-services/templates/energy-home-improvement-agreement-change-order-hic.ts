@@ -10,7 +10,8 @@ import {
   DOCUSIGN_TAB_TYPE,
   TabValue,
 } from 'src/shared/docusign';
-import { CurrencyFormatter } from 'src/utils/numberFormatter';
+import { CurrencyFormatter, NumberFormatter } from 'src/utils/numberFormatter';
+import { roundNumber } from 'src/utils/transformNumber';
 
 @DocusignTemplate('demo', '9616836b-3b23-4fd7-8550-6bcf89584476')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
@@ -42,17 +43,23 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   primaryContractFinancierSignDate: Date;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
-    sumBy(
-      parseSystemDesignProducts(systemDesign).systemDesignBatteries,
-      item => item.storageModelDataSnapshot.ratings.kilowattHours,
+    roundNumber(
+      sumBy(
+        parseSystemDesignProducts(systemDesign).systemDesignBatteries,
+        item => item.storageModelDataSnapshot.ratings.kilowattHours,
+      ),
+      3,
     ),
   )
   esKwh: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
-    sumBy(
-      parseSystemDesignProducts(systemDesign).systemDesignBatteries,
-      item => item.storageModelDataSnapshot.ratings.kilowatts,
+    roundNumber(
+      sumBy(
+        parseSystemDesignProducts(systemDesign).systemDesignBatteries,
+        item => item.storageModelDataSnapshot.ratings.kilowatts,
+      ),
+      3,
     ),
   )
   esKw: string;
@@ -78,7 +85,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   )
   batterySummary: string;
 
-  @TabValue<IGenericObject>(({ systemDesign }) => systemDesign.systemProductionData.capacityKW)
+  @TabValue<IGenericObject>(({ systemDesign }) => roundNumber(systemDesign.systemProductionData.capacityKW, 3))
   pvKw: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
@@ -111,13 +118,17 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   )
   adderSummary: string;
 
-  @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) => quoteCostBuildup.projectGrandTotal.netCost)
+  @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) =>
+    NumberFormatter.format(quoteCostBuildup.projectGrandTotal.netCost),
+  )
   newContractAmount: string;
 
   @TabValue<IGenericObject>(({ quote: { quoteCostBuildup }, primaryContractQuote }) =>
-    new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
-      .minus(primaryContractQuote?.quoteCostBuildup.projectGrandTotal.netCost ?? 0)
-      .toNumber(),
+    NumberFormatter.format(
+      new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
+        .minus(primaryContractQuote?.quoteCostBuildup.projectGrandTotal.netCost ?? 0)
+        .toNumber(),
+    ),
   )
   changeInContractAmount: string;
 
@@ -147,27 +158,29 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
     const { projectDiscountDetails, promotionDetails } = quoteFinanceProduct;
 
-    const { adderQuoteDetails } = quoteCostBuildup;
+    const { adderQuoteDetails, cashDiscount } = quoteCostBuildup;
 
-    return adderQuoteDetails
-      .map(item => `Adder: ${item.adderModelDataSnapshot.name}`)
-      .concat(
-        promotionDetails.map(
-          item =>
-            `Promotion: ${item.name} (${CurrencyFormatter.format(
-              QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
-            )})`,
-        ),
-      )
-      .concat(
-        projectDiscountDetails.map(
-          item =>
-            `Discount: ${item.name} (${CurrencyFormatter.format(
-              QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
-            )})`,
-        ),
-      )
-      .join('\n');
+    const adderTexts = adderQuoteDetails.map(item => `Adder: ${item.adderModelDataSnapshot.name}`);
+
+    const promotionTexts = promotionDetails.map(
+      item =>
+        `Promotion: ${item.name} (${CurrencyFormatter.format(
+          QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
+        )})`,
+    );
+
+    const discountTexts = projectDiscountDetails.map(
+      item =>
+        `Discount: ${item.name} (${CurrencyFormatter.format(
+          QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
+        )})`,
+    );
+
+    if (cashDiscount?.total) {
+      discountTexts.push(`Discount: Cash Discount (${CurrencyFormatter.format(cashDiscount.total)})`);
+    }
+
+    return [...adderTexts, ...promotionTexts, ...discountTexts].join('\n');
   })
   addersPromotionsDiscountsSummary: string;
 

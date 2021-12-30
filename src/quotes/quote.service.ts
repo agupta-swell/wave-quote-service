@@ -26,7 +26,7 @@ import { DiscountService } from 'src/discounts/discount.service';
 import { PromotionService } from 'src/promotions/promotion.service';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
-import { FUNDING_SOURCE_TYPE } from 'src/funding-sources/constants';
+
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -128,10 +128,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('funding Source');
     }
 
-    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
-      fundingSource.type as FUNDING_SOURCE_TYPE,
+    const dealerFeePercentage = [FINANCE_PRODUCT_TYPE.CASH, FINANCE_PRODUCT_TYPE.LOAN].includes(
+      fundingSource.type as FINANCE_PRODUCT_TYPE,
     )
-      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      ? await this.financialProductService.getHighestDealerFee(FINANCE_PRODUCT_TYPE.LOAN)
       : 0;
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
@@ -139,6 +139,7 @@ export class QuoteService {
       partnerMarkup: quoteConfigData,
       dealerFeePercentage,
       financialProduct,
+      fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
 
     const detailedQuote = {
@@ -304,10 +305,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('funding Source');
     }
 
-    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
-      fundingSource.type as FUNDING_SOURCE_TYPE,
+    const dealerFeePercentage = [FINANCE_PRODUCT_TYPE.CASH, FINANCE_PRODUCT_TYPE.LOAN].includes(
+      fundingSource.type as FINANCE_PRODUCT_TYPE,
     )
-      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      ? await this.financialProductService.getHighestDealerFee(FINANCE_PRODUCT_TYPE.LOAN)
       : 0;
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
@@ -316,6 +317,7 @@ export class QuoteService {
       userInputs,
       dealerFeePercentage,
       financialProduct: financialProductSnapshot,
+      fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
 
     let currentGrossPrice: number;
@@ -556,10 +558,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('funding Source');
     }
 
-    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
-      fundingSource.type as FUNDING_SOURCE_TYPE,
+    const dealerFeePercentage = [FINANCE_PRODUCT_TYPE.CASH, FINANCE_PRODUCT_TYPE.LOAN].includes(
+      fundingSource.type as FINANCE_PRODUCT_TYPE,
     )
-      ? await this.financialProductService.getHighestDealerFee(fundingSource.type as FUNDING_SOURCE_TYPE)
+      ? await this.financialProductService.getHighestDealerFee(FINANCE_PRODUCT_TYPE.LOAN)
       : 0;
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
@@ -567,6 +569,7 @@ export class QuoteService {
       partnerMarkup: quotePartnerConfig,
       dealerFeePercentage,
       financialProduct: financialProductSnapshot,
+      fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
@@ -796,13 +799,10 @@ export class QuoteService {
       salesOriginationSalesFee: data.quoteCostBuildup.salesOriginationSalesFee,
     };
 
-    // TODO: fix typing FUNDING_SOURCE_TYPE and FINANCE_PRODUCT_TYPE
-    const dealerFeePercentage = [FUNDING_SOURCE_TYPE.CASH, FUNDING_SOURCE_TYPE.LOAN].includes(
-      (detailedQuote.quoteFinanceProduct.financeProduct.productType as unknown) as FUNDING_SOURCE_TYPE,
+    const dealerFeePercentage = [FINANCE_PRODUCT_TYPE.CASH, FINANCE_PRODUCT_TYPE.LOAN].includes(
+      detailedQuote.quoteFinanceProduct.financeProduct.productType,
     )
-      ? await this.financialProductService.getHighestDealerFee(
-          (detailedQuote.quoteFinanceProduct.financeProduct.productType as unknown) as FUNDING_SOURCE_TYPE,
-        )
+      ? await this.financialProductService.getHighestDealerFee(FINANCE_PRODUCT_TYPE.LOAN)
       : 0;
 
     const quoteCostBuildUp = this.quoteCostBuildUpService.create({
@@ -811,6 +811,7 @@ export class QuoteService {
       userInputs,
       dealerFeePercentage,
       financialProduct: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
+      fundingSourceType: detailedQuote.quoteFinanceProduct.financeProduct.productType,
     });
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;

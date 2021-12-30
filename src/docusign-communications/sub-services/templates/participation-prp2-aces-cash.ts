@@ -22,7 +22,7 @@ export class ParticipationPRP2ACESCashTemplate {
   @TabValue<IGenericObject>(({ gsProgram }) => numberWithCommas(gsProgram?.annualIncentives ?? 0, 2))
   annualIncentiveAmount: string;
 
-  @TabValue<IGenericObject>(({ gsProgram }) => `${gsProgram?.termYears ?? 0} ${toWord(+(gsProgram?.termYears ?? 0))}`)
+  @TabValue<IGenericObject>(({ gsProgram }) => `${gsProgram?.termYears ?? 0} (${toWord(+(gsProgram?.termYears ?? 0))})`)
   initialTermYears: string;
 
   @TabValue<IGenericObject>(({ utilityProgramMaster }) => dayjs(utilityProgramMaster?.endDate).format('MM/DD/YYYY'))

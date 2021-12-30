@@ -1,5 +1,6 @@
 import { sumBy } from 'lodash';
 import { TabLabel, TabValue, DocusignTemplate, PrefillTab, TextTab } from 'src/shared/docusign';
+import { roundNumber } from 'src/utils/transformNumber';
 import { IGenericObject } from '../../typing';
 
 @DocusignTemplate('demo', '67aa9e1d-aaef-46db-8f70-e23f392a10b2')
@@ -13,12 +14,13 @@ export class DummyPrimaryContractTemplate {
   @TabLabel('PV_KW')
   @TabValue<IGenericObject>(
     ctx =>
-      `System size: ${
+      `System size: ${roundNumber(
         sumBy(
           ctx.quote.quoteCostBuildup.panelQuoteDetails,
           item => item.panelModelDataSnapshot.ratings.watts * item.quantity,
-        ) / 1000
-      }`,
+        ) / 1000,
+        3,
+      )}`,
   )
   pvKW: string;
 
@@ -26,9 +28,12 @@ export class DummyPrimaryContractTemplate {
   @TabLabel('ES_KWH')
   @TabValue<IGenericObject>(
     ctx =>
-      `Battery kWh: ${sumBy(
-        ctx.quote.quoteCostBuildup.storageQuoteDetails,
-        item => item.storageModelDataSnapshot.ratings.kilowattHours * item.quantity,
+      `Battery kWh: ${roundNumber(
+        sumBy(
+          ctx.quote.quoteCostBuildup.storageQuoteDetails,
+          item => item.storageModelDataSnapshot.ratings.kilowattHours * item.quantity,
+        ),
+        3,
       )}`,
   )
   esKWh: string;
@@ -37,9 +42,12 @@ export class DummyPrimaryContractTemplate {
   @TabLabel('ES_KW')
   @TabValue<IGenericObject>(
     ctx =>
-      `Battery kW: ${sumBy(
-        ctx.quote.quoteCostBuildup.storageQuoteDetails,
-        item => item.storageModelDataSnapshot.ratings.kilowatts * item.quantity,
+      `Battery kW: ${roundNumber(
+        sumBy(
+          ctx.quote.quoteCostBuildup.storageQuoteDetails,
+          item => item.storageModelDataSnapshot.ratings.kilowatts * item.quantity,
+        ),
+        3,
       )}`,
   )
   esKw: string;

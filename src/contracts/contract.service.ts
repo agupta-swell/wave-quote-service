@@ -1,14 +1,15 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { IncomingMessage } from 'http';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { DOWNLOADABLE_RESOURCE, IDownloadResourcePayload, ILoggedInUser } from 'src/app/securities';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ContactService } from 'src/contacts/contact.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
+import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
@@ -24,6 +25,7 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
+import { FastifyFile } from '../shared/fastify';
 import {
   CONTRACT_ROLE,
   CONTRACT_SECRET_PREFIX,
@@ -39,15 +41,12 @@ import { ContractReqDto } from './req/contract-req.dto';
 import {
   GetContractTemplatesDto,
   GetCurrentContractDto,
+  GetDocusignCommunicationDetailsDto,
   SaveChangeOrderDto,
   SaveContractDto,
   SendContractDto,
-  GetDocusignCommunicationDetailsDto,
 } from './res';
-
 import { ContractResDto } from './res/sub-dto';
-import { FastifyFile } from '../shared/fastify';
-import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 
 @Injectable()
 export class ContractService {
@@ -107,15 +106,12 @@ export class ContractService {
     // e.g. "SCE - PRP2+SGIP"
     const utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunityData.utilityId);
 
-    const [utilityName = '', utilityProgramName = ''] = utilityNameConcatUtilityProgramName
-      .split('-')
-      .map(x => x.trim());
+    const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
 
-    const utilityProgramId =
-      (await this.utilityProgramMasterService.getDetailByName(utilityProgramName))?._id?.toString() || null;
+    const utilityProgramId = opportunityData.utilityProgramId || null;
 
     if (contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
-      const rebateProgramId = opportunityData.rebateProgramId || (null as any);
+      const rebateProgramId = opportunityData.rebateProgramId || null;
       const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
         [utilityProgramId, 'ALL'],
         [rebateProgramId, 'ALL'],
@@ -282,12 +278,8 @@ export class ContractService {
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
 
-    // Get gsProgram
-    const incentiveDetails = quote.detailedQuote.quoteFinanceProduct.incentiveDetails[0];
-
-    const gsProgramSnapshotId = incentiveDetails?.detail?.gsProgramSnapshot?.id;
-
-    const gsProgram = await this.gsProgramsService.getById(gsProgramSnapshotId);
+    // Get gsProgram=
+    const gsProgram = quote.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot;
 
     // Get utilityProgramMaster
     const utilityProgramMaster = quote.detailedQuote.utilityProgram?.utilityProgramId

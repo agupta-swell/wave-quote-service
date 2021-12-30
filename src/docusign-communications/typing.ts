@@ -6,7 +6,7 @@ import { FinancialProduct } from 'src/financial-products/financial-product.schem
 import { GsPrograms } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
-import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
+import { IDetailedQuoteSchema, IGsProgramSnapshot } from 'src/quotes/quote.schema';
 import { IRoofTopSchema, SystemDesignWithManufacturerMeta } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
@@ -68,7 +68,7 @@ export interface IGenericObject {
   isCash: boolean;
   roofTopDesign: IRoofTopSchema;
   assignedMember: LeanDocument<User> | null;
-  gsProgram: LeanDocument<GsPrograms> | null;
+  gsProgram?: IGsProgramSnapshot;
   utilityProgramMaster: LeanDocument<UtilityProgramMaster> | null;
   leaseSolverConfig: LeaseSolverConfig | null;
   financialProduct?: LeanDocument<FinancialProduct>;

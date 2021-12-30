@@ -47,7 +47,7 @@ export const toWord = (value: number): string => {
 };
 
 /**
- * 
+ *
  * Add comma separator to number:
  * * numberWithCommas(10000.123456) => "10,000.123456"
  * * numberWithCommas(10000000.123456, 2) => "10,000,000.12"
@@ -56,7 +56,7 @@ export const toWord = (value: number): string => {
  * @returns string
  */
 export const numberWithCommas = (x: number, decimal?: number) => {
-  const parts = x.toFixed(decimal).split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return parts.join(".");
-}
+  const parts = x.toFixed(decimal).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+};
