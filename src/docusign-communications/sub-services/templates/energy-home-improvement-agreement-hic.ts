@@ -47,7 +47,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   )
   salesAgentFullName: string;
 
-  @TabValue<IGenericObject>(({ assignedMember }) => assignedMember?.hisNumber)
+  @TabValue<IGenericObject>(({ assignedMember }) => assignedMember?.hisNumber && `HIS #${assignedMember?.hisNumber}`)
   @TabRequire('SalesAgent HIS number')
   hisNumber: string;
 
