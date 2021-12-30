@@ -4,6 +4,7 @@ import { BigNumber } from 'bignumber.js';
 import { LeanDocument } from 'mongoose';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { FINANCE_PRODUCT_TYPE } from '../constants';
 import {
   ICalculateCostResult,
   IQuoteCost,
@@ -326,7 +327,16 @@ export class QuoteCostBuildUpService {
     subtotalWithSalesOriginationManagerFee: number,
     salesOriginationSalesFee: IBaseCostBuildupFee,
     financialProduct: LeanDocument<FinancialProduct>,
+    fundingSourceType: FINANCE_PRODUCT_TYPE,
   ): ICashDiscount {
+    if (fundingSourceType !== FINANCE_PRODUCT_TYPE.CASH) {
+      return {
+        name: '',
+        unitPercentage: 0,
+        total: 0,
+      };
+    }
+
     const processingFee = new BigNumber(financialProduct.processingFee || 0).dividedBy(100);
 
     // https://swellenergy.atlassian.net/browse/WAV-1152
@@ -349,6 +359,7 @@ export class QuoteCostBuildUpService {
     userInputs,
     dealerFeePercentage = 0,
     financialProduct,
+    fundingSourceType,
   }: ICreateQuoteCostBuildupParams): IQuoteCostBuildup {
     const adderQuoteDetails = this.calculateAddersQuoteCost(roofTopDesignData.adders, partnerMarkup.adderMarkup);
 
@@ -477,6 +488,7 @@ export class QuoteCostBuildUpService {
       subtotalWithSalesOriginationManagerFee,
       salesOriginationSalesFee,
       financialProduct,
+      fundingSourceType,
     );
 
     const additionalFees = {
