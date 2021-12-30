@@ -10,7 +10,7 @@ import {
 import { IGenericObject } from '../../typing';
 
 @DocusignTemplate('demo', 'f880c5fa-28eb-4b63-b974-3e5290792ef9')
-@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
+@DefaultTabType(DOCUSIGN_TAB_TYPE.TEXT_TABS)
 @DefaultTabTransformation('pascal_case')
 export class DummyChangeOrderTemplate {
   @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)
@@ -20,7 +20,6 @@ export class DummyChangeOrderTemplate {
   financierTitle: string;
 
   @TabValue<IGenericObject>(({ contract }) => 'Change Order description:\n' + (contract!.changeOrderDescription ?? ''))
-  @TabLabel('ChangeOrderDescription')
   changeOrderDescription: string;
 
   @TabLabel('PV_KW')

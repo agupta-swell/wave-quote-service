@@ -335,7 +335,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
 
     try {
-      const tabs = foundTemplate.toTextTabs(ctx, this._defaultContractor);
+      const tabs = foundTemplate.toTextTabs(ctx.genericObject, this._defaultContractor);
 
       ctx.compiledTemplates[templateId] = {
         textTabs: tabs,
