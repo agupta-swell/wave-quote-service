@@ -147,27 +147,29 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
     const { projectDiscountDetails, promotionDetails } = quoteFinanceProduct;
 
-    const { adderQuoteDetails } = quoteCostBuildup;
+    const { adderQuoteDetails, cashDiscount } = quoteCostBuildup;
 
-    return adderQuoteDetails
-      .map(item => `Adder: ${item.adderModelDataSnapshot.name}`)
-      .concat(
-        promotionDetails.map(
-          item =>
-            `Promotion: ${item.name} (${CurrencyFormatter.format(
-              QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
-            )})`,
-        ),
-      )
-      .concat(
-        projectDiscountDetails.map(
-          item =>
-            `Discount: ${item.name} (${CurrencyFormatter.format(
-              QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
-            )})`,
-        ),
-      )
-      .join('\n');
+    const adderTexts = adderQuoteDetails.map(item => `Adder: ${item.adderModelDataSnapshot.name}`);
+
+    const promotionTexts = promotionDetails.map(
+      item =>
+        `Promotion: ${item.name} (${CurrencyFormatter.format(
+          QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
+        )})`,
+    );
+
+    const discountTexts = projectDiscountDetails.map(
+      item =>
+        `Discount: ${item.name} (${CurrencyFormatter.format(
+          QuoteFinanceProductService.calculateReduction(item, quoteCostBuildup.projectGrossTotal.netCost),
+        )})`,
+    );
+
+    if (cashDiscount?.total) {
+      discountTexts.push(`Discount: Cash Discount (${CurrencyFormatter.format(cashDiscount.total)})`);
+    }
+
+    return [...adderTexts, ...promotionTexts, ...discountTexts].join('\n');
   })
   addersPromotionsDiscountsSummary: string;
 
