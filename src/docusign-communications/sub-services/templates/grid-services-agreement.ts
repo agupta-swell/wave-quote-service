@@ -22,7 +22,7 @@ export class GridServiceAgreementTemplate {
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
   coOwnerFullName: string;
 
-  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.name)
+  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)
   financierFullName: string;
 
   @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerTitle)
