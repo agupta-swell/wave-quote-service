@@ -141,7 +141,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   })
   addersPromotionsDiscountsHeading: string;
 
-  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
+  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup }, financialProduct }) => {
     const { projectDiscountDetails, promotionDetails } = quoteFinanceProduct;
 
     const { adderQuoteDetails, cashDiscount } = quoteCostBuildup;
@@ -163,7 +163,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
     );
 
     if (cashDiscount.total) {
-      discountTexts.push(`Discount: Cash Discount (${CurrencyFormatter.format(cashDiscount.total)})`);
+      discountTexts.push(`Discount: ${financialProduct?.name} Discount (${CurrencyFormatter.format(cashDiscount.total)})`);
     }
 
     return [...adderTexts, ...promotionTexts, ...discountTexts].join('\n');
