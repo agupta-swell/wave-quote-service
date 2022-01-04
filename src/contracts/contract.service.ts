@@ -811,4 +811,17 @@ export class ContractService {
 
     return contracts;
   }
+
+  public async getContractSinceLastModified(
+    contractId: ObjectId,
+    since: Date,
+  ): Promise<OperationResult<ContractResDto> | undefined> {
+    const foundContract = await this.getOneByContractId(contractId);
+
+    if (foundContract.updatedAt.getTime() > since.getTime()) {
+      return OperationResult.ok(strictPlainToClass(ContractResDto, foundContract.toJSON()));
+    }
+
+    return undefined;
+  }
 }

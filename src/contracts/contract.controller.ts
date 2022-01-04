@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Head, Param, Post, Put, Query, Res, UsePipes, ValidationPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { CurrentUser, ILoggedInUser, PreAuthenticate } from 'src/app/securities';
@@ -8,6 +8,7 @@ import { CatchDocusignException } from 'src/docusign-communications/filters';
 import { ReplaceInstalledProductAfterSuccess } from 'src/installed-products/interceptors';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { UseDocusignContext } from 'src/shared/docusign';
+import { ParseDatePipe } from 'src/shared/pipes/parse-date.pipe';
 import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE } from './constants';
 import { ContractService } from './contract.service';
 import { UseDefaultContractName, UseWetSignContract, VoidRelatedContracts } from './interceptors';
@@ -15,6 +16,7 @@ import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier, V
 import { DownloadContractPipe, IContractDownloadReqPayload } from './pipes/download-contract.validation.pipe';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import {
+  ContractResDetailDto,
   GetContractTemplatesDto,
   GetContractTemplatesRes,
   GetCurrentContractDto,
@@ -29,7 +31,7 @@ import {
   SendContractReq,
   SendContractRes,
 } from './res';
-import { FastifyFile } from '../shared/fastify';
+import { FastifyFile, FastifyResponse } from '../shared/fastify';
 import { IContractWithDetailedQuote } from './interceptors/wet-sign-contract.interceptor';
 import { Contract } from './contract.schema';
 
@@ -203,5 +205,24 @@ export class ContractController {
   ): Promise<Contract> {
     await this.contractService.voidContract(contract);
     return contract;
+  }
+
+  @Get('/:contractId')
+  @ApiOperation({ summary: 'Check if contract modified since specific time' })
+  @ApiResponse({ status: 304, description: 'Contract has not been modified' })
+  @ApiResponse({ status: 200, description: 'Detailed contract', type: ContractResDetailDto })
+  async checkLastModified(
+    @Param('contractId', ParseObjectIdPipe) contractId: ObjectId,
+    @Query('since', ParseDatePipe) since: Date,
+    @Res() res: FastifyResponse,
+  ): Promise<void> {
+    const contract = await this.contractService.getContractSinceLastModified(contractId, since);
+
+    if (contract) {
+      res.send(ServiceResponse.fromResult(contract));
+      return;
+    }
+
+    res.status(304).send();
   }
 }
