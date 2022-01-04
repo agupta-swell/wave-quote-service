@@ -30,12 +30,6 @@ export enum ORIENTATION {
   PORTRAIT = 'Portrait',
 }
 
-export enum COMPONENT_TYPE {
-  STORAGE = 'storage',
-  SOLAR = 'solar',
-  INVERTER = 'inverter',
-}
-
 export enum COMPONENT_CATEGORY_TYPE {
   AC = 'AC',
   DC = 'DC',

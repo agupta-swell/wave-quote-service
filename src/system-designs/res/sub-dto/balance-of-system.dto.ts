@@ -5,6 +5,9 @@ export class BalanceOfSystemDto {
   balanceOfSystemId: string;
 
   @ExposeProp()
+  quantity: number;
+
+  @ExposeProp()
   balanceOfSystemSnapshotDate: Date;
 
   @ExposeProp({ type: ProductResDto })

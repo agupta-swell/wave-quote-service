@@ -12,9 +12,6 @@ export class AncillaryEquipmentDto {
   modelName: string;
 
   @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
-  relatedComponent: string;
-
-  @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })
   description: string;
 
   @ExposeAndMap({ root: 'ancillaryEquipmentModelDataSnapshot', checkParent: true })

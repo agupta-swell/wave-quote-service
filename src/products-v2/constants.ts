@@ -20,12 +20,6 @@ export enum PRICING_UNIT {
   PER_STORAGE_KILOWATT_HOUR = 'PER_STORAGE_KILOWATT_HOUR',
 }
 
-export enum COMPONENT_TYPE {
-  INVERTER = 'INVERTER',
-  SOLAR = 'SOLAR',
-  STORAGE = 'STORAGE',
-}
-
 export enum BATTERY_TYPE {
   AC = 'AC',
   DC = 'DC',

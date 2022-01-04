@@ -12,7 +12,6 @@ export const ProductSchema = new Schema<IUnknownProduct>({
 
   description: String,
 
-  related_component: String,
   insertion_rule: String,
 
   battery_type: String,
