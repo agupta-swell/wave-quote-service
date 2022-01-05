@@ -121,7 +121,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
     const { projectDiscountDetails, promotionDetails } = quoteFinanceProduct;
 
-    const { adderQuoteDetails } = quoteCostBuildup;
+    const { adderQuoteDetails, cashDiscount } = quoteCostBuildup;
 
     const headings: string[] = [];
 
@@ -129,7 +129,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     if (promotionDetails.length) headings.push('Promotions');
 
-    if (projectDiscountDetails.length) headings.push('Discounts');
+    if (projectDiscountDetails.length || cashDiscount.total) headings.push('Discounts');
 
     if (headings.length > 2) {
       const last = headings.pop();
@@ -163,21 +163,25 @@ export class EnergyHomeImprovementAgreementHicTemplate {
     );
 
     if (cashDiscount.total) {
-      discountTexts.push(`Discount: ${financialProduct?.name} Discount (${CurrencyFormatter.format(cashDiscount.total)})`);
+      discountTexts.push(
+        `Discount: ${financialProduct?.name} Discount (${CurrencyFormatter.format(cashDiscount.total)})`,
+      );
     }
 
     return [...adderTexts, ...promotionTexts, ...discountTexts].join('\n');
   })
   addersPromotionsDiscountsSummary: string;
 
-  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct } }) => {
+  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
     const labels: string[] = ['Contract Price'];
 
     const { projectDiscountDetails, promotionDetails, rebateDetails, incentiveDetails } = quoteFinanceProduct;
 
+    const { cashDiscount } = quoteCostBuildup;
+
     if (promotionDetails.length) labels.push('Promotions Total');
 
-    if (projectDiscountDetails.length) labels.push('Discounts Total');
+    if (projectDiscountDetails.length || cashDiscount.total) labels.push('Discounts Total');
 
     if (incentiveDetails.length) labels.push('Swell GridRewards Upfront Payment Discount');
 
