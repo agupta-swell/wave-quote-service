@@ -229,7 +229,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
         )})`,
       );
 
-    if (projectDiscountDetails.length) {
+    if (projectDiscountDetails.length || cashDiscount.total) {
       const discountTotalAmount = new BigNumber(
         QuoteFinanceProductService.calculateReductions(projectDiscountDetails, projectGrossTotal.netCost),
       );
