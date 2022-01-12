@@ -119,7 +119,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   adderSummary: string;
 
   @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) =>
-    NumberFormatter.format(roundNumber(quoteCostBuildup.projectGrandTotal.netCost, 2)),
+    NumberFormatter.format(quoteCostBuildup.projectGrandTotal.netCost),
   )
   newContractAmount: string;
 

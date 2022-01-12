@@ -7,6 +7,7 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { TAX_CREDIT_CONFIG_COLLECTION } from './tax-credit-config.constant';
 import { TaxCreditConfigResDto } from './dto';
 import { ITaxCreditConfigDocument, ITaxCreditConfig, ITaxCreditConfigSnapshot } from './interfaces';
+import { roundNumber } from 'src/utils/transformNumber';
 
 @Injectable()
 export class TaxCreditConfigService {
@@ -98,7 +99,10 @@ export class TaxCreditConfigService {
     return {
       name: taxCreditConfig.name,
       percentage: taxCreditConfig.percentage,
-      value: new BigNumber(totalGrandValue).multipliedBy(taxCreditConfig.percentage).dividedBy(100).toNumber(),
+      value: roundNumber(
+        new BigNumber(totalGrandValue).multipliedBy(taxCreditConfig.percentage).dividedBy(100).toNumber(),
+        2,
+      ),
       taxCreditConfigDataId: _id.toString(),
       taxCreditConfigDataSnapshot: p,
       taxCreditConfigDataSnapshotDate: now,
