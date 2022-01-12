@@ -81,6 +81,12 @@ export class ProductResDto {
     return res;
   })
   ratings?: BaseRatingResDto | BatteryRatingResDto;
+
+  @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.BATTERY)
+  productImage: string;
+
+  @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.BATTERY)
+  productDataSheet: string;
 }
 
 class ProductPaginationRes implements Pagination<ProductResDto> {

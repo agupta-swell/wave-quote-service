@@ -26,6 +26,9 @@ export const ProductSchema = new Schema<IUnknownProduct>({
 
   ratings: RatingSchema,
 
+  product_image: String,
+  product_data_sheet: String,
+
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

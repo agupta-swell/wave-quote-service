@@ -13,6 +13,10 @@ export class JwtAuthGuard implements CanActivate {
   constructor(private jwtService: JwtService, private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext) {
+    if (this.isPublicCtx(context)) {
+      return true;
+    }
+
     const resourceSecret = this.getResourceScoped(context);
 
     if (resourceSecret) {
@@ -99,6 +103,12 @@ export class JwtAuthGuard implements CanActivate {
     const secret = this.reflector.getAllAndOverride<string>(KEYS.RESOURCE_SCOPED, [ctx.getClass(), ctx.getHandler()]);
 
     return secret;
+  }
+
+  private isPublicCtx(ctx: ExecutionContext): boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(KEYS.PUBLIC, [ctx.getClass(), ctx.getHandler()]);
+
+    return isPublic;
   }
 }
 
