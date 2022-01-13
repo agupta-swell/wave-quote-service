@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
+import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export const OPPORTUNITY = Symbol('OPPORTUNITY').toString();

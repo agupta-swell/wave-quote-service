@@ -1,6 +1,6 @@
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import * as mongoose from 'mongoose';
-import { MongooseNamingStrategy, IMongooseNamingStrategyOptions } from 'mongoose-schema-mapper';
+import { MongooseNamingStrategy, IMongooseNamingStrategyOptions } from 'src/shared/mongoose-schema-mapper';
 import { KEYS } from './constants';
 import { MongooseNamingStrategyOpts } from './decorators';
 

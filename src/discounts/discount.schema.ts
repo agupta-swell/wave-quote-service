@@ -1,5 +1,5 @@
 import { Schema } from 'mongoose';
-import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
+import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
 import { IDiscountDocument } from './interfaces';
 
 export const DiscountSchema = new Schema<IDiscountDocument>({

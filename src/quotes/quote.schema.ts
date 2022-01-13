@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
+import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
 import { FinancialProduct, FinancialProductSchema } from 'src/financial-products/financial-product.schema';
 import { GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
@@ -10,7 +10,7 @@ import { PromotionSchema } from 'src/promotions/promotion.schema';
 import { IPromotionDocument } from 'src/promotions/interfaces';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
-import { deepTransform, camelToSnake, snakeToCamel } from 'mongoose-schema-mapper/build/utils/transform';
+import { deepTransform, camelToSnake, snakeToCamel } from 'src/shared/mongoose-schema-mapper/utils/transform';
 import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { CreateQuoteDto } from './req/create-quote.dto';
