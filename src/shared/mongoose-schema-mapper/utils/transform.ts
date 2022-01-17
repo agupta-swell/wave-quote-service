@@ -52,9 +52,27 @@ export const deepTransform = (
   target: Record<string, unknown>,
   handler: TCaseTransform,
   mutate?: boolean,
-): Record<string, unknown> =>
-  target &&
-  Object.entries(target).reduce<Record<string, unknown>>(
+  checkTransform?: boolean,
+): Record<string, unknown> => {
+  if (!target || !Object.keys(target).length) return target;
+
+  let onCheck = checkTransform;
+
+  if (onCheck === undefined) {
+    if (target['@@check-transform']) {
+      onCheck = true;
+      delete target['@@check-transform'];
+    } else onCheck = false;
+  }
+
+  if (onCheck) {
+    if (target['@@keep']) {
+      delete target['@@keep'];
+      return target;
+    }
+  }
+
+  return Object.entries(target).reduce<Record<string, unknown>>(
     (acc, [key, val]) => {
       const newKey = handler(key);
 
@@ -64,7 +82,7 @@ export const deepTransform = (
             return e;
           }
 
-          return deepTransform(e, handler, mutate);
+          return deepTransform(e, handler, mutate, onCheck);
         });
 
         acc[newKey] = newVal as any;
@@ -80,7 +98,7 @@ export const deepTransform = (
           return acc;
         }
 
-        const newVal = deepTransform(<Record<string, unknown>>val, handler, mutate);
+        const newVal = deepTransform(<Record<string, unknown>>val, handler, mutate, onCheck);
         acc[newKey] = newVal;
         mutate && key !== newKey && delete acc[key];
         return acc;
@@ -92,3 +110,4 @@ export const deepTransform = (
     },
     mutate ? target : {},
   );
+};
