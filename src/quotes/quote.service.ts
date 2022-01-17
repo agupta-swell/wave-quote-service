@@ -31,7 +31,7 @@ import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { FINANCE_PRODUCT_TYPE, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
+import { FINANCE_PRODUCT_TYPE, PRIMARY_QUOTE_TYPE, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import {
   IDetailedQuoteSchema,
   IRebateDetailsSchema,
@@ -609,7 +609,7 @@ export class QuoteService {
         } as CashProductAttributesDto;
         break;
       }
-    };
+    }
 
     const utilityProgramDetail =
       data.utilityProgramId && data.utilityProgramId !== 'None'
@@ -621,7 +621,6 @@ export class QuoteService {
         ? await this.rebateProgramService.getOneById(data.rebateProgramId)
         : null;
 
-   
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     // eslint-disable-next-line func-names
     const handledIncentiveDetails = (function () {
@@ -650,7 +649,6 @@ export class QuoteService {
 
       return incentiveDetails;
     })();
-    
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -1312,5 +1310,29 @@ export class QuoteService {
     });
 
     return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
+  }
+
+  getPrimaryQuoteType(detailedQuote: IDetailedQuoteSchema, existingPV: boolean): PRIMARY_QUOTE_TYPE {
+    const {
+      quoteCostBuildup: { storageQuoteDetails, panelQuoteDetails },
+    } = detailedQuote;
+
+    const isSolar = !!panelQuoteDetails?.length;
+
+    const isHasBattery = !!storageQuoteDetails?.length;
+
+    if (!isHasBattery && !existingPV && isSolar) {
+      return PRIMARY_QUOTE_TYPE.SOLAR_ONLY;
+    }
+
+    if (isHasBattery && !existingPV && !isSolar) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_ONLY;
+    }
+
+    if (isHasBattery && existingPV && !isSolar) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR;
+    }
+
+    return PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR;
   }
 }

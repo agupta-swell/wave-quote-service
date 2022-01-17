@@ -71,7 +71,7 @@ export class OpportunityService {
       inverterManufacturer: foundOpportunity.inverterManufacturer,
       inverterModel: foundOpportunity.inverterModel,
       tpoFundingSource: foundOpportunity.tpoFundingSource,
-      assignedMember: foundOpportunity.assignedMember
+      assignedMember: foundOpportunity.assignedMember,
     };
     return OperationResult.ok(strictPlainToClass(GetRelatedInformationDto, data));
   }

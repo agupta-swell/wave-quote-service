@@ -33,6 +33,7 @@ export interface Opportunity extends Document {
   inverterModel: string;
   tpoFundingSource: string;
   assignedMember: string;
+  gsTermYears?: string;
 }
 
 export const OpportunitySchema = new Schema<Opportunity>({
@@ -64,6 +65,7 @@ export const OpportunitySchema = new Schema<Opportunity>({
   inverterModel: String,
   tpoFundingSource: String,
   assignedMember: String,
+  gsTermYears: String,
 });
 
 MongooseNamingStrategy.ExcludeOne(OpportunitySchema);
