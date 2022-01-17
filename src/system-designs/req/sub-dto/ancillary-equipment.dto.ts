@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsMongoId, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
 
 export class AncillaryEquipmentDto {
   @ApiProperty()
@@ -11,5 +11,6 @@ export class AncillaryEquipmentDto {
   @ApiPropertyOptional()
   @IsNotEmpty()
   @IsNumber()
+  @Min(1)
   quantity: number;
 }

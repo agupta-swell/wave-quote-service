@@ -4,6 +4,7 @@ import { BigNumber } from 'bignumber.js';
 import { LeanDocument } from 'mongoose';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { roundNumber } from 'src/utils/transformNumber';
 import { FINANCE_PRODUCT_TYPE } from '../constants';
 import {
   ICalculateCostResult,
@@ -30,9 +31,9 @@ export class QuoteCostBuildUpService {
     const totalWithMarkup = total.plus(markupAmount);
 
     return {
-      markupAmount: markupAmount.toNumber(),
-      total: total.toNumber(),
-      totalWithMarkup: totalWithMarkup.toNumber(),
+      markupAmount: roundNumber(markupAmount.toNumber(), 2),
+      total: roundNumber(total.toNumber(), 2),
+      totalWithMarkup: roundNumber(totalWithMarkup.toNumber(), 2),
     };
   }
 
@@ -70,9 +71,9 @@ export class QuoteCostBuildUpService {
     const netCost = totalCost.plus(totalMarkupAmount);
 
     return {
-      cost: totalCost.toNumber(),
-      netCost: netCost.toNumber(),
-      markupAmount: totalMarkupAmount.toNumber(),
+      cost: roundNumber(totalCost.toNumber(), 2),
+      netCost: roundNumber(netCost.toNumber(), 2),
+      markupAmount: roundNumber(totalMarkupAmount.toNumber(), 2),
       markupPercentage: markupPercentage.toNumber(),
     };
   }
@@ -86,7 +87,7 @@ export class QuoteCostBuildUpService {
       new BigNumber(totalPercentageReduction).multipliedBy(projectGrossTotal.netCost).dividedBy(100),
     );
     return {
-      total: total.toNumber(),
+      total: roundNumber(total.toNumber(), 2),
     };
   }
 
@@ -116,7 +117,7 @@ export class QuoteCostBuildUpService {
 
     return {
       unitPercentage,
-      total: total.toNumber(),
+      total: roundNumber(total.toNumber(), 2),
     };
   }
 
@@ -318,7 +319,7 @@ export class QuoteCostBuildUpService {
 
     return {
       unitPercentage: dealerFeePercentage,
-      total: total.toNumber(),
+      total: roundNumber(total.toNumber(), 2),
     };
   }
 
@@ -349,7 +350,7 @@ export class QuoteCostBuildUpService {
     return {
       name: `${financialProduct.name} Discount (${financialProduct.processingFee || 0}% effective fee)`,
       unitPercentage: financialProduct.processingFee || 0,
-      total: total.toNumber(),
+      total: roundNumber(total.toNumber(), 2),
     };
   }
 

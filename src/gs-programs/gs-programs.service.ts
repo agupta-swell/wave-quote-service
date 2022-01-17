@@ -7,6 +7,7 @@ import { ProductService } from 'src/products-v2/services';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { QuoteService } from 'src/quotes/quote.service';
+import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { GsPrograms, GS_PROGRAMS } from './gs-programs.schema';
 import { GsProgramsDto } from './res/gs-programs.dto';
 
@@ -18,6 +19,8 @@ export class GsProgramsService {
     private readonly productService: ProductService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
+    @Inject(forwardRef(() => SystemDesignService))
+    private readonly systemDesignService: SystemDesignService,
   ) {}
 
   async getById(id: string): Promise<LeanDocument<GsPrograms> | null> {
@@ -32,21 +35,32 @@ export class GsProgramsService {
     utilityProgramMasterId: string,
     quoteId: string,
   ): Promise<OperationResult<Pagination<GsProgramsDto>>> {
-    const quote = await this.quoteService.getOneById(quoteId);
+    const quote = await this.quoteService.getOneFullQuoteDataById(quoteId);
     if (!quote) {
       throw ApplicationException.EntityNotFound(`Quote Id: ${quoteId}`);
     }
 
+    const systemDesign = await this.systemDesignService.getRoofTopDesignById(quote.systemDesignId);
+
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(`System Design Id: ${quote.systemDesignId}`);
+    }
+
+    const { storage } = systemDesign;
+
     const {
       quoteCostBuildup: { storageQuoteDetails },
-    } = quote;
+    } = quote.detailedQuote;
 
-    if (!storageQuoteDetails?.length) {
+    if (!storageQuoteDetails?.length || !storage.length) {
       throw ApplicationException.EntityNotFound('There is no battery');
     }
 
-    const { quantity, storageModelDataSnapshot } = storageQuoteDetails[0];
-    const storageSize = quantity * storageModelDataSnapshot.ratings.kilowattHours;
+    const { storageModelDataSnapshot } = storageQuoteDetails[0];
+    const storageSize = storage.reduce(
+      (acc, cur) => acc + cur.quantity * cur.storageModelDataSnapshot.ratings.kilowattHours,
+      0,
+    );
     const manufacturerId = storageModelDataSnapshot.manufacturerId as any;
 
     const [gsPrograms, total] = await Promise.all([

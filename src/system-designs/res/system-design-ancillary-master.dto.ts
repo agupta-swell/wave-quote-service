@@ -12,9 +12,6 @@ export class SystemDesignAncillaryMasterDto {
   modelName: string;
 
   @ExposeProp()
-  relatedComponent: string;
-
-  @ExposeProp()
   description: string;
 
   @ExposeProp()

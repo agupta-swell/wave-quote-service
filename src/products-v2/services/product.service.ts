@@ -3,16 +3,24 @@ import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, LeanDocument, Model, ObjectId, Types, UpdateQuery } from 'mongoose';
 import { isObjectId, transformToValidId } from 'src/utils/common';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { InjectBucket } from 'src/shared/mongo/decorators/inject-bucket';
+import { FastifyFile } from 'src/shared/fastify';
+import { GridFSPromiseBucket } from 'src/shared/mongo';
+import type { GridFSBucketReadStream } from 'mongodb';
 import { OperationResult, Pagination } from '../../app/common';
 import { SaveInsertionRuleReq } from '../req/save-insertion-rule.dto';
 import { ProductResDto } from '../res/product.dto';
 import { IProduct, IProductDocument, IUnknownProduct } from '../interfaces';
-import { PRODUCT_MODEL_NAME, PRODUCT_TYPE } from '../constants';
+import { PRODUCT_MODEL_NAME, PRODUCT_TYPE, PRODUCT_BUCKET } from '../constants';
 import { GetAllProductsQueryDto } from '../req';
+import { ValidateUploadBatteryAssetsInterceptor } from '../interceptors/validate-upload-battery-assets.interceptor';
 
 @Injectable()
 export class ProductService {
-  constructor(@InjectModel(PRODUCT_MODEL_NAME) private productModel: Model<IUnknownProduct>) {}
+  constructor(
+    @InjectModel(PRODUCT_MODEL_NAME) private productModel: Model<IUnknownProduct>,
+    @InjectBucket(PRODUCT_BUCKET) private productImageBucket: GridFSPromiseBucket,
+  ) {}
 
   async getAllProductsByType(query: GetAllProductsQueryDto): Promise<OperationResult<Pagination<ProductResDto>>> {
     const { limit, skip, types, hasRule } = query;
@@ -41,9 +49,12 @@ export class ProductService {
     }
 
     if (
-      ![PRODUCT_TYPE.ANCILLARY_EQUIPMENT, PRODUCT_TYPE.BALANCE_OF_SYSTEM, PRODUCT_TYPE.SOFT_COST, PRODUCT_TYPE.LABOR].includes(
-        foundProduct.type,
-      )
+      ![
+        PRODUCT_TYPE.ANCILLARY_EQUIPMENT,
+        PRODUCT_TYPE.BALANCE_OF_SYSTEM,
+        PRODUCT_TYPE.SOFT_COST,
+        PRODUCT_TYPE.LABOR,
+      ].includes(foundProduct.type)
     ) {
       throw new BadRequestException('Only ancillary equipment/balance of system/soft cost/labor product is allowed');
     }
@@ -72,6 +83,62 @@ export class ProductService {
     const product = await this.productModel.find(query).lean();
 
     return product;
+  }
+
+  async uploadBatteryAsset(battery: IProductDocument<PRODUCT_TYPE.BATTERY>, asset: FastifyFile): Promise<string> {
+    const filename = `${battery._id.toString()}_${Date.now()}.${asset.filename.split('.').at(-1)}`;
+
+    await this.productImageBucket.uploadPromise(filename, asset.file, {
+      contentType: asset.mimetype,
+    });
+
+    return filename;
+  }
+
+  async saveBatteryAssets(
+    battery: IProductDocument<PRODUCT_TYPE.BATTERY>,
+    assets: AsyncIterableIterator<FastifyFile>,
+  ): Promise<OperationResult<ProductResDto>> {
+    await ValidateUploadBatteryAssetsInterceptor.getMultiparts(assets, async file => {
+      if (!file) return;
+
+      if (file.image) {
+        const imagePath = await this.uploadBatteryAsset(battery, file.image);
+
+        battery.productImage = `/v2/products/assets/${imagePath}`;
+        return;
+      }
+
+      if (file.datasheet) {
+        const datasheetPath = await this.uploadBatteryAsset(battery, file.datasheet);
+
+        battery.productDataSheet = `/v2/products/assets/${datasheetPath}`;
+      }
+    });
+
+    if (battery.isModified()) {
+      battery.updatedAt = new Date();
+      await battery.save();
+    }
+
+    return OperationResult.ok(strictPlainToClass(ProductResDto, battery.toJSON()));
+  }
+
+  async getAsset(filename: string, since?: Date): Promise<[string, Date, GridFSBucketReadStream] | undefined> {
+    const files = await this.productImageBucket
+      .find({
+        filename,
+      })
+      .limit(1)
+      .toArray();
+
+    if (!files.length) throw new NotFoundException(`No file found with filename ${filename}`);
+
+    const [file] = files;
+
+    if (since && Math.floor(+file.uploadDate / 1000) <= Math.floor(+since / 1000)) return undefined;
+
+    return [file.contentType, file.uploadDate, this.productImageBucket.openDownloadStreamByName(filename)];
   }
 
   public async getManyByQuery<T extends PRODUCT_TYPE>(

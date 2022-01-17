@@ -34,7 +34,7 @@ import { RebateProgramModule } from 'src/rebate-programs/rebate-programs.module'
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { HealthcheckModule } from 'src/health-checks/health-check.module';
 import { MongooseNamingStrategyLoader } from 'src/shared/plugins/mongoose/naming-strategy.plugin';
-import { ENaming, MongooseNamingStrategy } from 'mongoose-schema-mapper';
+import { ENaming, MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';

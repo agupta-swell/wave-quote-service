@@ -609,7 +609,7 @@ export class QuoteService {
         } as CashProductAttributesDto;
         break;
       }
-    }
+    };
 
     const utilityProgramDetail =
       data.utilityProgramId && data.utilityProgramId !== 'None'
@@ -620,6 +620,37 @@ export class QuoteService {
       data.rebateProgramId && data.rebateProgramId !== 'None'
         ? await this.rebateProgramService.getOneById(data.rebateProgramId)
         : null;
+
+   
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    // eslint-disable-next-line func-names
+    const handledIncentiveDetails = (function () {
+      const { storageQuoteDetails } = quoteCostBuildup;
+      const storageQuoteDetailsOfQuote = foundQuote.detailedQuote?.quoteCostBuildup?.storageQuoteDetails;
+
+      if (
+        !storageQuoteDetails?.length ||
+        !storageQuoteDetailsOfQuote?.length ||
+        data.utilityProgramId !== utilityProgram?.utilityProgramId
+      ) {
+        return [];
+      }
+      const newManufacturerId = storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId.toString();
+      const oldManufacturerId = storageQuoteDetailsOfQuote[0].storageModelDataSnapshot.manufacturerId.toString();
+
+      if (newManufacturerId !== oldManufacturerId) return [];
+
+      const newStorageSize =
+        storageQuoteDetails[0].quantity * storageQuoteDetails[0].storageModelDataSnapshot.ratings.kilowattHours;
+      const oldStorageSize =
+        storageQuoteDetailsOfQuote[0].quantity *
+        storageQuoteDetailsOfQuote[0].storageModelDataSnapshot.ratings.kilowattHours;
+
+      if (newStorageSize !== oldStorageSize) return [];
+
+      return incentiveDetails;
+    })();
+    
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -647,7 +678,7 @@ export class QuoteService {
           financialProductSnapshot: financeProduct.financialProductSnapshot,
         },
         netAmount: quoteCostBuildup.projectGrossTotal.netCost,
-        incentiveDetails: data.utilityProgramId !== utilityProgram?.utilityProgramId ? [] : incentiveDetails,
+        incentiveDetails: handledIncentiveDetails,
         rebateDetails,
         projectDiscountDetails:
           data.quoteFinanceProduct?.projectDiscountDetails ?? projectDiscountDetails.filter(DiscountService.validate),

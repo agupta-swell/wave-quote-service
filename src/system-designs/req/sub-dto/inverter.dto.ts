@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { Types } from 'mongoose';
 import { INVERTER_TYPE } from '../../constants';
 
@@ -16,6 +16,7 @@ export class InverterDto {
   @ApiProperty()
   @IsOptional()
   @IsNumber()
+  @Min(1)
   quantity: number;
 
   @ApiProperty()

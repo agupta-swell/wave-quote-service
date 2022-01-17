@@ -119,7 +119,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   adderSummary: string;
 
   @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) =>
-    NumberFormatter.format(roundNumber(quoteCostBuildup.projectGrandTotal.netCost, 2)),
+    NumberFormatter.format(quoteCostBuildup.projectGrandTotal.netCost),
   )
   newContractAmount: string;
 
@@ -136,7 +136,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
     const { projectDiscountDetails, promotionDetails } = quoteFinanceProduct;
 
-    const { adderQuoteDetails } = quoteCostBuildup;
+    const { adderQuoteDetails, cashDiscount } = quoteCostBuildup;
 
     const headings: string[] = [];
 
@@ -144,7 +144,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
 
     if (promotionDetails.length) headings.push('Promotions');
 
-    if (projectDiscountDetails.length) headings.push('Discounts');
+    if (projectDiscountDetails.length || cashDiscount.total) headings.push('Discounts');
 
     if (headings.length > 2) {
       const last = headings.pop();
@@ -156,7 +156,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   })
   addersPromotionsDiscountsHeading: string;
 
-  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup } }) => {
+  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct, quoteCostBuildup }, financialProduct }) => {
     const { projectDiscountDetails, promotionDetails } = quoteFinanceProduct;
 
     const { adderQuoteDetails, cashDiscount } = quoteCostBuildup;
@@ -178,7 +178,9 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
     );
 
     if (cashDiscount?.total) {
-      discountTexts.push(`Discount: Cash Discount (${CurrencyFormatter.format(cashDiscount.total)})`);
+      discountTexts.push(
+        `Discount: ${financialProduct?.name} Discount (${CurrencyFormatter.format(cashDiscount.total)})`,
+      );
     }
 
     return [...adderTexts, ...promotionTexts, ...discountTexts].join('\n');

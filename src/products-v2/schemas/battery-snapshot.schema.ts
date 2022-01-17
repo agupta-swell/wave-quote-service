@@ -10,6 +10,8 @@ export const BatterySnapshotSchema = new Schema(
     round_trip_efficiency: Number,
     manufacturer_id: Schema.Types.ObjectId,
     ratings: BatteryRatingSchema,
+    product_image: String,
+    product_data_sheet: String,
   },
   { _id: false },
 );

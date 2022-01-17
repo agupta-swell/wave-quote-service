@@ -67,3 +67,11 @@ export class ContractResDto {
   @ExposeProp()
   systemDesignId: string;
 }
+
+export class ContractResDetailDto {
+  @ExposeProp()
+  status: string;
+
+  @ExposeProp({ type: ContractResDto })
+  data: ContractResDto;
+}

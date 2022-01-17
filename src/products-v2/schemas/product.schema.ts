@@ -12,7 +12,6 @@ export const ProductSchema = new Schema<IUnknownProduct>({
 
   description: String,
 
-  related_component: String,
   insertion_rule: String,
 
   battery_type: String,
@@ -26,6 +25,9 @@ export const ProductSchema = new Schema<IUnknownProduct>({
   dimensions: DimensionSchema,
 
   ratings: RatingSchema,
+
+  product_image: String,
+  product_data_sheet: String,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,

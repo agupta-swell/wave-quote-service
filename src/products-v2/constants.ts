@@ -1,6 +1,8 @@
 export const PRODUCT_COLL = 'v2_products';
 export const PRODUCT_MODEL_NAME = 'v2/v2_products';
 
+export const PRODUCT_BUCKET = 'v2_products_bucket'
+
 export enum PRODUCT_TYPE {
   ADDER = 'ADDER',
   ANCILLARY_EQUIPMENT = 'ANCILLARY_EQUIPMENT',
@@ -20,12 +22,6 @@ export enum PRICING_UNIT {
   PER_STORAGE_KILOWATT_HOUR = 'PER_STORAGE_KILOWATT_HOUR',
 }
 
-export enum COMPONENT_TYPE {
-  INVERTER = 'INVERTER',
-  SOLAR = 'SOLAR',
-  STORAGE = 'STORAGE',
-}
-
 export enum BATTERY_TYPE {
   AC = 'AC',
   DC = 'DC',
@@ -35,3 +31,7 @@ export enum INVERTER_TYPE {
   MICRO = 'MICRO',
   STRING = 'STRING',
 }
+
+export const KEYS = {
+  REQ_PARAM_ID: Symbol.for('kReq/products/:id'),
+};

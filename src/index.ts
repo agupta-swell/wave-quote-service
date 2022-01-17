@@ -13,6 +13,7 @@ async function bootstrap() {
   fAdapt.register(require('fastify-multipart'), {
     limits: {
       fileSize: 1024 * 1024 * 15,
+      files: 2,
     },
   });
 

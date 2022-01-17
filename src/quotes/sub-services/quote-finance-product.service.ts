@@ -2,21 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { BigNumber } from 'bignumber.js';
 import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
 import { PROMOTION_TYPE } from 'src/promotions/promotion.constant';
+import { roundNumber } from 'src/utils/transformNumber';
 import { REBATE_TYPE } from '../constants';
 import { ICalculateQuoteFinanceProductNetAmountArg, IReductionAmount } from '../interfaces';
 
 @Injectable()
 export class QuoteFinanceProductService {
   private calculateTotalAmount(...products: IReductionAmount<unknown>[]): number {
-    return (
+    const amount =
       products
         .reduce((total, product) => {
           total = total.plus(product.amount);
 
           return total;
         }, new BigNumber(0))
-        .toNumber() ?? 0
-    );
+        .toNumber() ?? 0;
+
+    return roundNumber(amount, 2);
   }
 
   /**
@@ -51,26 +53,28 @@ export class QuoteFinanceProductService {
     totalPercentageReduction: number,
     totalAmountReduction: number,
   ): number {
-    return new BigNumber(100)
+    const amount = new BigNumber(100)
       .minus(totalPercentageReduction)
       .times(grossPrice)
       .dividedBy(100)
       .minus(totalAmountReduction)
       .toNumber();
+
+    return roundNumber(amount, 2);
   }
 
   public static calculateReduction(reduction: IReductionAmount<'percentage' | 'amount'>, grossPrice: number): number {
     if (reduction.type === 'percentage')
       return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
 
-    return reduction.amount;
+    return roundNumber(reduction.amount, 2);
   }
 
   public static calculateReductions(
     reductions: IReductionAmount<'percentage' | 'amount' | REBATE_TYPE>[],
     grossPrice: number,
   ): number {
-    return reductions
+    const total = reductions
       .reduce((total, reduction) => {
         if (reduction.type === 'percentage')
           return total.plus(new BigNumber(reduction.amount).times(grossPrice).dividedBy(100));
@@ -78,5 +82,7 @@ export class QuoteFinanceProductService {
         return total.plus(reduction.amount);
       }, new BigNumber(0))
       .toNumber();
+
+    return roundNumber(total, 2);
   }
 }

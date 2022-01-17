@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import { MongooseNamingStrategy } from 'mongoose-schema-mapper';
+import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
 
 export const GS_PROGRAMS = Symbol('GS_PROGRAMS').toString();
 

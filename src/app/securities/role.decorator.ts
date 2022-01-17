@@ -7,3 +7,5 @@ import { KEYS } from './constants';
  * @returns
  */
 export const Role = (...roles: string[]) => SetMetadata(KEYS.ROLES, roles);
+
+export const Public = () => SetMetadata(KEYS.PUBLIC, true);
