@@ -341,7 +341,7 @@ export class MongooseNamingStrategy {
       if (Array.isArray(res)) {
         for (let i = 0; i < res.length; i++) {
           const doc = res[i];
-          res[i] = deepTransform(doc, self.#handlePreTransform);
+          res[i] = deepTransform(doc, self.#handlePreTransform, true);
         }
 
         return next();
