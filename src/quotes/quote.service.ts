@@ -88,7 +88,7 @@ export class QuoteService {
     private readonly manufacturerService: ManufacturerService,
     @Inject(forwardRef(() => QuoteCostBuildUpService))
     private readonly quoteCostBuildUpService: QuoteCostBuildUpService,
-    @Inject(forwardRef(() => QuoteCostBuildUpService))
+    @Inject(forwardRef(() => QuoteFinanceProductService))
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
   ) {}
