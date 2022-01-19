@@ -474,7 +474,7 @@ export class QuoteCostBuildUpService {
     const salesOriginationSalesFee = partnerMarkup.useFixedSalesOriginationSalesFee
       ? this.calculateCostBuildupFee(subtotalWithSalesOriginationManagerFee, partnerMarkup.salesOriginationSalesFee)
       : {
-          total: userInputs?.salesOriginationSalesFee?.total || 0,
+          total: roundNumber(userInputs?.salesOriginationSalesFee?.total || 0, 2),
           unitPercentage: userInputs?.salesOriginationSalesFee?.unitPercentage || 0,
         };
 
@@ -493,7 +493,7 @@ export class QuoteCostBuildUpService {
     );
 
     const additionalFees = {
-      total: salesOriginationSalesFee.total + thirdPartyFinancingDealerFee.total - cashDiscount.total,
+      total: roundNumber(salesOriginationSalesFee.total + thirdPartyFinancingDealerFee.total - cashDiscount.total, 2),
     };
 
     // TODO: waiting for COGS
