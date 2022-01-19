@@ -39,6 +39,8 @@ export interface FinancialProduct extends Document {
   allowsWetSignedContracts: boolean;
   projectCompletionDateOffset: number;
   processingFee: number;
+  payment1?: number;
+  payment1PayPercent?: boolean;
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({
@@ -82,4 +84,6 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   allows_wet_signed_contracts: Boolean,
   project_completion_date_offset: Number,
   processing_fee: Number,
+  payment1: Number,
+  payment1_pay_percent: Boolean,
 });

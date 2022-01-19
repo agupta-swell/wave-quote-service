@@ -190,13 +190,17 @@ export class ContractService {
     }
 
     if (mode === REQUEST_MODE.ADD) {
+      const quoteDetail = await this.quoteService.getOneById(contractDetail.associatedQuoteId);
+
+      if (!quoteDetail) {
+        throw new NotFoundException(`No quote found with id ${contractDetail.associatedQuoteId}`);
+      }
+
       if (contractDetail.contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
         const isValid = await this.validateNewGridServiceContract(contractDetail);
         if (!isValid) {
           throw new BadRequestException({ message: 'Not qualified for new GS Contract' });
         }
-
-        const quoteDetail = await this.quoteService.getOneById(contractDetail.associatedQuoteId);
 
         const SGIPIncentive = quoteDetail?.quoteFinanceProduct.incentiveDetails.find(
           incentive => incentive.type === REBATE_TYPE.SGIP,
@@ -231,6 +235,8 @@ export class ContractService {
       });
 
       await newlyUpdatedContract.save();
+
+      this.customerPaymentService.create(newlyUpdatedContract._id, contractDetail.opportunityId, quoteDetail);
 
       return OperationResult.ok(strictPlainToClass(SaveContractDto, { status: true, newlyUpdatedContract }));
     }

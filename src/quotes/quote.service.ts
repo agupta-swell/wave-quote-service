@@ -71,6 +71,7 @@ export class QuoteService {
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
     private readonly cashPaymentConfigService: CashPaymentConfigService,
+    @Inject(forwardRef(() => CalculationService))
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
@@ -85,7 +86,9 @@ export class QuoteService {
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly manufacturerService: ManufacturerService,
+    @Inject(forwardRef(() => QuoteCostBuildUpService))
     private readonly quoteCostBuildUpService: QuoteCostBuildUpService,
+    @Inject(forwardRef(() => QuoteCostBuildUpService))
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
   ) {}

@@ -33,6 +33,6 @@ import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService
   ],
   controllers: [QuoteController],
   providers: [QuoteService, CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService],
-  exports: [QuoteService, CalculationService],
+  exports: [QuoteService, CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService],
 })
 export class QuoteModule {}
