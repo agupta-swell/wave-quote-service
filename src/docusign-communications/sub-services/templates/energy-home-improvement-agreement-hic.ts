@@ -259,13 +259,13 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   })
   agreementPriceValues: string;
 
-  @TabValue('123.45')
+  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.deposit))
   downPayment: string;
 
-  @TabValue('123.45')
+  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.payment1))
   payment1: string;
 
-  @TabValue('123.45')
+  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.payment2))
   payment2: string;
 
   @TabValue<IGenericObject>(
