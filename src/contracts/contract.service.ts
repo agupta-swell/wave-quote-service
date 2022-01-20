@@ -236,7 +236,7 @@ export class ContractService {
 
       await newlyUpdatedContract.save();
 
-      this.customerPaymentService.create(newlyUpdatedContract._id, contractDetail.opportunityId, quoteDetail);
+      await this.customerPaymentService.create(newlyUpdatedContract._id, contractDetail.opportunityId, quoteDetail);
 
       return OperationResult.ok(strictPlainToClass(SaveContractDto, { status: true, newlyUpdatedContract }));
     }
@@ -426,6 +426,12 @@ export class ContractService {
     }
 
     if (mode === REQUEST_MODE.ADD) {
+      const quoteDetail = await this.quoteService.getOneById(contractDetail.associatedQuoteId);
+
+      if (!quoteDetail) {
+        throw new NotFoundException(`No quote found with id ${contractDetail.associatedQuoteId}`);
+      }
+
       const templateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
         contractDetail.contractTemplateId,
       );
@@ -438,6 +444,8 @@ export class ContractService {
       });
 
       await model.save();
+
+      await this.customerPaymentService.create(model._id, contractDetail.opportunityId, quoteDetail);
 
       return OperationResult.ok(strictPlainToClass(SaveChangeOrderDto, { status: true, newlyUpdatedContract: model }));
     }
