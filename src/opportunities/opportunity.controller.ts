@@ -4,6 +4,7 @@ import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ContractResDto } from 'src/contracts/res/sub-dto';
 import { OpportunityService } from './opportunity.service';
+import { UpdateOpportunityExistingSystemDto } from './req/update-opportunity-existing-system.dto';
 import { UpdateOpportunityRebateProgramDto } from './req/update-opportunity-rebate-program.dto';
 import { UpdateOpportunityUtilityProgramDto } from './req/update-opportunity-utility-program.dto';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
@@ -25,6 +26,18 @@ export class OpportunityController {
   ): Promise<ServiceResponse<GetRelatedInformationDto>> {
     const result = await this.opportunityService.getRelatedInformation(opportunityId);
     return ServiceResponse.fromResult(result);
+  }
+
+  @Put('/:opportunityId/existing-system')
+  @ApiOperation({ summary: "Update Opportunity's Existing System" })
+  @ApiOkResponse({ type: GetRelatedInformationDto })
+  async updateOpportunityExistingSystem(
+    @Body() existingSystem: UpdateOpportunityExistingSystemDto,
+    @Param('opportunityId') opportunityId: string,
+  ): Promise<ServiceResponse<GetRelatedInformationDto>> {
+    const res = await this.opportunityService.updateOpportunityExistingSystem(opportunityId, existingSystem);
+
+    return ServiceResponse.fromResult(res);
   }
 
   @Put('/:opportunityId/utility-program')

@@ -36,8 +36,8 @@ import {
   IRoofTopSchema,
   SystemDesign,
   SystemDesignModel,
-  SYSTEM_DESIGN,
   SystemDesignWithManufacturerMeta,
+  SYSTEM_DESIGN,
 } from './system-design.schema';
 
 @Injectable()
@@ -91,7 +91,8 @@ export class SystemDesignService {
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
-      systemDesignDto.isRetrofit,
+      // systemDesignDto.isRetrofit,
+      true,
       systemDesignDto.existingSolarData,
     );
 
@@ -718,7 +719,8 @@ export class SystemDesignService {
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
-      systemDesignDto.isRetrofit,
+      // systemDesignDto.isRetrofit,
+      true,
       systemDesignDto.existingSolarData,
     );
 

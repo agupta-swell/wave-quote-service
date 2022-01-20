@@ -15,9 +15,11 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
+import { UpdateOpportunityExistingSystemDto } from './req/update-opportunity-existing-system.dto';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
 import { QuoteDetailResDto } from './res/quote-detail.dto';
+import { UpdateOpportunityExistingSystemDto as UpdateOpportunityExistingSystemDtoRes } from './res/update-opportunity-existing-system.dto';
 import { UpdateOpportunityRebateProgramDto as UpdateOpportunityRebateProgramDtoRes } from './res/update-opportunity-rebate-program.dto';
 import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } from './res/update-opportunity-utility-program.dto';
 
@@ -74,6 +76,25 @@ export class OpportunityService {
       assignedMember: foundOpportunity.assignedMember,
     };
     return OperationResult.ok(strictPlainToClass(GetRelatedInformationDto, data));
+  }
+
+  async updateOpportunityExistingSystem(
+    opportunityId: string,
+    existingSystem: UpdateOpportunityExistingSystemDto,
+  ): Promise<OperationResult<UpdateOpportunityExistingSystemDtoRes>> {
+    const foundOpportunity = await this.opportunityModel.findById(opportunityId);
+
+    if (!foundOpportunity) {
+      throw ApplicationException.EntityNotFound(opportunityId);
+    }
+
+    const savedOpportunity = await this.opportunityModel
+      .findByIdAndUpdate(opportunityId, existingSystem, { new: true })
+      .lean();
+
+    const updatedOpportunity = strictPlainToClass(UpdateOpportunityExistingSystemDtoRes, savedOpportunity);
+
+    return OperationResult.ok(updatedOpportunity);
   }
 
   async updateOpportunityUtilityProgram(
