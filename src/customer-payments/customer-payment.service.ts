@@ -56,11 +56,15 @@ export class CustomerPaymentService {
       promotionDetails: [],
     });
 
-    customerPayment.credit = this.quoteCostBuildupService.calculateTotalPromotionsDiscountsAndSwellGridrewards(
-      quoteCostBuildup.projectGrossTotal,
-      totalCreditAmountReduction,
-      totalCreditPercentageReduction,
-    ).total;
+    customerPayment.credit = new BigNumber(
+      this.quoteCostBuildupService.calculateTotalPromotionsDiscountsAndSwellGridrewards(
+        quoteCostBuildup.projectGrossTotal,
+        totalCreditAmountReduction,
+        totalCreditPercentageReduction,
+      ).total,
+    )
+      .plus(quoteCostBuildup.cashDiscount.total)
+      .toNumber();
 
     customerPayment.programIncentiveDiscount = QuoteFinanceProductService.calculateReductions(
       quoteFinanceProduct.promotionDetails,
@@ -95,6 +99,8 @@ export class CustomerPaymentService {
           .div(100)
           .toNumber();
       }
+
+      customerPayment.deposit = deposit;
 
       customerPayment.payment1 = roundNumber(
         Math.min(

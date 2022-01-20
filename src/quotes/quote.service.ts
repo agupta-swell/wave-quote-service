@@ -800,9 +800,10 @@ export class QuoteService {
     ]);
 
     if (data.quoteFinanceProduct.financeProduct.financialProductSnapshot.id) {
-      (<any>data.quoteFinanceProduct.financeProduct.financialProductSnapshot)._id = new Types.ObjectId(
-        data.quoteFinanceProduct.financeProduct.financialProductSnapshot.id,
-      );
+      data.quoteFinanceProduct.financeProduct.financialProductSnapshot = {
+        ...data.quoteFinanceProduct.financeProduct.financialProductSnapshot,
+        ...foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
+      };
     }
     const detailedQuote = {
       ...data,
