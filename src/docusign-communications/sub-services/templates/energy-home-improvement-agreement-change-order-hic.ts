@@ -187,13 +187,13 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   })
   addersPromotionsDiscountsSummary: string;
 
-  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.deposit))
+  @TabValue<IGenericObject>(({ customerPayment }) => NumberFormatter.format(customerPayment.deposit))
   downPayment: string;
 
-  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.payment1))
+  @TabValue<IGenericObject>(({ customerPayment }) => NumberFormatter.format(customerPayment.payment1))
   payment1: string;
 
-  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.payment2))
+  @TabValue<IGenericObject>(({ customerPayment }) => NumberFormatter.format(customerPayment.payment2))
   payment2: string;
 
   @TabValue<IGenericObject>(({ contract }) => contract?.projectCompletionDate.toLocaleDateString())

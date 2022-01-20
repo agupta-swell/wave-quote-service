@@ -11,7 +11,7 @@ import {
   TabValue,
 } from 'src/shared/docusign';
 import { QuoteFinanceProductService } from 'src/quotes/sub-services';
-import { CurrencyFormatter } from 'src/utils/numberFormatter';
+import { CurrencyFormatter, NumberFormatter } from 'src/utils/numberFormatter';
 import { roundNumber } from 'src/utils/transformNumber';
 
 @DocusignTemplate('demo', 'b0eb7c6c-7c1a-4060-a4bd-375274be977d')
@@ -259,13 +259,13 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   })
   agreementPriceValues: string;
 
-  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.deposit))
+  @TabValue<IGenericObject>(({ customerPayment }) => NumberFormatter.format(customerPayment.deposit))
   downPayment: string;
 
-  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.payment1))
+  @TabValue<IGenericObject>(({ customerPayment }) => NumberFormatter.format(customerPayment.payment1))
   payment1: string;
 
-  @TabValue<IGenericObject>(({ customerPayment }) => CurrencyFormatter.format(customerPayment.payment2))
+  @TabValue<IGenericObject>(({ customerPayment }) => NumberFormatter.format(customerPayment.payment2))
   payment2: string;
 
   @TabValue<IGenericObject>(

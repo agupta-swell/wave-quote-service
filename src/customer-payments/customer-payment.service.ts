@@ -24,6 +24,11 @@ export class CustomerPaymentService {
     return res;
   }
 
+  async getCustomerPaymentByContractId(wqtContractId: string): Promise<LeanDocument<CustomerPayment> | null> {
+    const res = await this.customerPaymentModel.findOne({ wqtContractId }).lean();
+    return res;
+  }
+
   async create(
     contractId: string | ObjectId,
     opportunityId: string,

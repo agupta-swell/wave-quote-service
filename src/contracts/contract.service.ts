@@ -296,7 +296,7 @@ export class ContractService {
     const fundingSourceType = quote.detailedQuote.quoteFinanceProduct.financeProduct.productType;
 
     const [customerPayment, utilityName, systemDesign, utilityUsageDetails] = await Promise.all([
-      this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunityId),
+      this.customerPaymentService.getCustomerPaymentByContractId(contract._id.toString()),
       this.utilityService.getUtilityName(opportunity.utilityId),
       this.systemDesignService.getOneById(
         contract.contractType === CONTRACT_TYPE.NO_COST_CHANGE_ORDER ? contract.systemDesignId : quote.systemDesignId,
