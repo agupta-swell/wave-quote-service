@@ -11,6 +11,7 @@ export interface FinancialProduct extends Document {
   minDownPayment: number;
   defaultDownPayment: number;
   maxDownPayment: number;
+  maxDownPaymentPercentage: number;
   annualDegradation: number;
   guaranteedProduction: number;
   minMargin: number;
@@ -53,6 +54,7 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   min_down_payment: Number,
   default_down_payment: Number,
   max_down_payment: Number,
+  max_down_payment_percentage: Number,
   annual_degradation: Number,
   guaranteed_production: Number,
   min_margin: Number,

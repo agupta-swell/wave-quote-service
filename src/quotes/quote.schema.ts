@@ -1,21 +1,21 @@
 import { Document, Schema } from 'mongoose';
-import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
+import { DiscountSchema } from 'src/discounts/discount.schema';
+import { IDiscountDocument } from 'src/discounts/interfaces';
 import { FinancialProduct, FinancialProductSchema } from 'src/financial-products/financial-product.schema';
 import { GsProgramsSchema } from 'src/gs-programs/gs-programs.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
-import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
-import { DiscountSchema } from 'src/discounts/discount.schema';
-import { IDiscountDocument } from 'src/discounts/interfaces';
-import { PromotionSchema } from 'src/promotions/promotion.schema';
 import { IPromotionDocument } from 'src/promotions/interfaces';
+import { PromotionSchema } from 'src/promotions/promotion.schema';
+import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
+import { camelToSnake, deepTransform, snakeToCamel } from 'src/shared/mongoose-schema-mapper/utils/transform';
+import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
-import { deepTransform, camelToSnake, snakeToCamel } from 'src/shared/mongoose-schema-mapper/utils/transform';
-import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
+import { IQuoteCostBuildup } from './interfaces';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
-import { IQuoteCostBuildup } from './interfaces';
+import { QuoteCostBuildupSchema } from './schemas';
 
 export const QUOTE = Symbol('QUOTE').toString();
 
@@ -251,6 +251,7 @@ export interface IFinancialProductDetails {
   minDownPayment: number;
   defaultDownPayment: number;
   maxDownPayment: number;
+  maxDownPaymentPercentage: number;
   annualDegradation: number;
   guaranteedProduction: number;
   minMargin: number;

@@ -29,6 +29,9 @@ export class FinanceProductDetailDto {
   maxDownPayment: number;
 
   @ExposeProp()
+  maxDownPaymentPercentage: number;
+
+  @ExposeProp()
   annualDegradation: number;
 
   @ExposeProp()
@@ -105,7 +108,7 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   projectCompletionDateOffset: number;
-  
+
   @ExposeProp()
   processingFee: number;
 }

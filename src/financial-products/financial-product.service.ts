@@ -153,6 +153,7 @@ export class FinancialProductsService {
           minDownPayment: '$min_down_payment',
           defaultDownPayment: '$default_down_payment',
           maxDownPayment: '$max_down_payment',
+          maxDownPaymentPercentage: '$max_down_payment_percentage',
           annualDegradation: '$annual_degradation',
           guaranteedProduction: '$guaranteed_production',
           minMargin: '$min_margin',

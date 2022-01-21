@@ -30,6 +30,9 @@ export class FinancialProductDto {
   maxDownPayment: number;
 
   @ExposeProp()
+  maxDownPaymentPercentage: number;
+
+  @ExposeProp()
   annualDegradation: number;
 
   @ExposeProp()
