@@ -793,37 +793,30 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
-    const minDownPayment =
-      foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.minDownPayment;
-    const maxDownPayment =
-      foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.maxDownPayment;
+    const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProductSnapshot;
+
     let maxDownPaymentValue = maxDownPayment;
-    const maxDownPaymentPercentage =
-      foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.maxDownPaymentPercentage;
     if (maxDownPaymentPercentage) {
       const maxDownPaymentWithPercentage =
-        (maxDownPaymentPercentage / 100) *
-        (foundQuote.detailedQuote.quoteCostBuildup.projectSubtotalWithDiscountsPromotionsAndSwellGridrewards?.netCost ||
-          0);
+        (maxDownPaymentPercentage / 100) * (foundQuote.detailedQuote.quoteCostBuildup.projectGrandTotal.netCost || 0);
       maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
     }
 
-    const currentUpfrontPayment = data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment;
-    if (minDownPayment > currentUpfrontPayment || currentUpfrontPayment > maxDownPaymentValue) {
-      throw ApplicationException.UnprocessableEntity(
-        `Upfront payment should be between ${minDownPayment} and ${maxDownPaymentValue}`,
-      );
-    }
+    let currentUpfrontPayment = data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment;
+    if (minDownPayment > currentUpfrontPayment) currentUpfrontPayment = minDownPayment;
+    if (maxDownPaymentValue < currentUpfrontPayment) currentUpfrontPayment = maxDownPaymentValue;
 
     const [quoteConfigData, taxCreditData] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
     ]);
 
-    if (data.quoteFinanceProduct.financeProduct.financialProductSnapshot.id) {
-      data.quoteFinanceProduct.financeProduct.financialProductSnapshot = {
-        ...data.quoteFinanceProduct.financeProduct.financialProductSnapshot,
-        ...foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
+    let currentFinancialProductSnapshot = data.quoteFinanceProduct.financeProduct.financialProductSnapshot;
+    if (currentFinancialProductSnapshot.id) {
+      currentFinancialProductSnapshot = {
+        ...currentFinancialProductSnapshot,
+        ...financialProductSnapshot,
       };
     }
     const detailedQuote = {
