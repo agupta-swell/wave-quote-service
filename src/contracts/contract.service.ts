@@ -878,7 +878,7 @@ export class ContractService {
     );
 
     const joinedUtilityProgramAndRebateProgramName =
-      [quoteDetail.utilityProgram.utilityProgramName, quoteDetail.rebateProgram?.name]
+      [quoteDetail.utilityProgram?.utilityProgramName, quoteDetail.rebateProgram?.name]
         .filter(name => !!name)
         .join('+') || 'None';
 
