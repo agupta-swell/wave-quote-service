@@ -4,7 +4,7 @@ import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { ICashDiscount, IQuoteCost, IQuoteCostBuildup } from 'src/quotes/interfaces';
 import { IBaseQuoteCost } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteCost';
-import { IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards } from 'src/quotes/interfaces/quote-cost-buildup/IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards';
+import { IBaseQuoteMarginData } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteMarginData';
 import {
   TotalPromotionsDiscountsAndSwellGridrewardsDto,
   BaseCostBuildupFeeDto,
@@ -127,8 +127,7 @@ export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuote
   quantity: number;
 }
 
-export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto
-  implements IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
+export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto implements IBaseQuoteMarginData {
   @ApiProperty()
   cost: number;
 
@@ -203,8 +202,8 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ExposeProp({ type: CashDiscountDto })
   cashDiscount: ICashDiscount;
 
-  @ExposeProp()
-  subtotalWithSalesOriginationManagerFee: number;
+  @ExposeProp({ type: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto })
+  subtotalWithSalesOriginationManagerFee: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto;
 
   @ExposeProp({ type: AdditionalFeesDto })
   additionalFees: AdditionalFeesDto;

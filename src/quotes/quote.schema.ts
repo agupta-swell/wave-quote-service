@@ -7,15 +7,15 @@ import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.
 import { IPromotionDocument } from 'src/promotions/interfaces';
 import { PromotionSchema } from 'src/promotions/promotion.schema';
 import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
-import { camelToSnake, deepTransform, snakeToCamel } from 'src/shared/mongoose-schema-mapper/utils/transform';
 import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
+import { deepTransform, camelToSnake, snakeToCamel } from 'src/shared/mongoose-schema-mapper/utils/transform';
+import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
-import { IQuoteCostBuildup } from './interfaces';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
-import { QuoteCostBuildupSchema } from './schemas';
+import { ICogsImpact, IMarginImpact, IQuoteCostBuildup } from './interfaces';
 
 export const QUOTE = Symbol('QUOTE').toString();
 
@@ -43,7 +43,7 @@ const GridServiceDetailsSchema = new Schema<Document<IGridServiceDetails>>(
 
 MongooseNamingStrategy.ExcludeOne(GridServiceDetailsSchema);
 
-export interface IIncentiveDetailsSchema {
+export interface IIncentiveDetailsSchema extends ICogsImpact, IMarginImpact {
   type: REBATE_TYPE;
   detail: IGridServiceDetails;
   amount: number;
@@ -54,6 +54,10 @@ const IncentiveDetailsSchema = new Schema<Document<IIncentiveDetailsSchema>>(
     type: String,
     amount: Number,
     detail: GridServiceDetailsSchema,
+    cogsAllocation: Number,
+    cogsAmount: Number,
+    marginAllocation: Number,
+    marginAmount: Number,
   },
   { _id: false },
 );

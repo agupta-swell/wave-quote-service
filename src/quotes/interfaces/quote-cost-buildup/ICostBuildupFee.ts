@@ -1,4 +1,7 @@
-export interface IBaseCostBuildupFee {
+import { IMarginImpact } from '.';
+import { ICogsImpact } from './ICogsImpact';
+
+export interface IBaseCostBuildupFee extends ICogsImpact, IMarginImpact {
   unitPercentage: number;
   total: number;
 }

@@ -19,6 +19,18 @@ export class DiscountResDto {
 
   @ExposeProp()
   endDate: Date;
+
+  @ExposeProp()
+  cogsAllocation: number;
+
+  @ExposeProp()
+  marginAllocation: number;
+
+  @ExposeProp()
+  cogsAmount: number;
+
+  @ExposeProp()
+  marginAmount: number;
 }
 
 class PaginationRes implements Pagination<DiscountResDto> {

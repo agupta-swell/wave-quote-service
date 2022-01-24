@@ -18,6 +18,22 @@ export const DiscountSchema = new Schema<IDiscountDocument>({
     alias: 'start_date',
   },
   type: String,
+  cogsAllocation: {
+    type: Number,
+    alias: 'cogs_allocation',
+  },
+  marginAllocation: {
+    type: Number,
+    alias: 'margin_allocation',
+  },
+  cogsAmount: {
+    type: Number,
+    alias: 'cogs_amount',
+  },
+  marginAmount: {
+    type: Number,
+    alias: 'margin_amount',
+  },
 });
 
 MongooseNamingStrategy.ExcludeOne(DiscountSchema);

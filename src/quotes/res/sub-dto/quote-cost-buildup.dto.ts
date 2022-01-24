@@ -6,7 +6,7 @@ import {
   IBaseQuoteCost,
   IQuoteCost,
   IQuoteCostBuildup,
-  IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards,
+  IBaseQuoteMarginData,
   IBaseCostBuildupFee,
   IAdditionalFees,
   ITotalPromotionsDiscountsAndSwellGridrewards,
@@ -115,8 +115,7 @@ export class SoftCostDetailsDto extends QuoteCostBuildupCommon implements IQuote
   quantity: number;
 }
 
-export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto
-  implements IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
+export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto implements IBaseQuoteMarginData {
   @ExposeProp()
   cost: number;
 
@@ -141,6 +140,18 @@ export class BaseCostBuildupFeeDto implements IBaseCostBuildupFee {
 
   @ExposeProp()
   total: number;
+
+  @ExposeProp()
+  cogsAllocation: number;
+
+  @ExposeProp()
+  cogsAmount: number;
+
+  @ExposeProp()
+  marginAllocation: number;
+
+  @ExposeProp()
+  marginAmount: number;
 }
 
 export class CashDiscountDto implements ICashDiscount {
@@ -152,6 +163,18 @@ export class CashDiscountDto implements ICashDiscount {
 
   @ExposeProp()
   total: number;
+
+  @ExposeProp()
+  cogsAllocation: number;
+
+  @ExposeProp()
+  cogsAmount: number;
+
+  @ExposeProp()
+  marginAllocation: number;
+
+  @ExposeProp()
+  marginAmount: number;
 }
 
 export class AdditionalFeesDto implements IAdditionalFees {
@@ -231,8 +254,8 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ExposeProp({ type: CashDiscountDto })
   cashDiscount: ICashDiscount;
 
-  @ExposeProp()
-  subtotalWithSalesOriginationManagerFee: number;
+  @ExposeProp({ type: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto })
+  subtotalWithSalesOriginationManagerFee: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto;
 
   @ExposeProp({ type: AdditionalFeesDto })
   additionalFees: AdditionalFeesDto;

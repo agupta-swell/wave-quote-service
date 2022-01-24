@@ -11,7 +11,7 @@ import {
   IQuoteCost,
   IQuoteCostBuildup,
   ICreateQuoteCostBuildUpArg,
-  IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards,
+  IBaseQuoteMarginData,
   ICreateQuoteCostBuildupParams,
 } from '../interfaces';
 import { IBaseCostBuildupFee, ICashDiscount } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
@@ -94,7 +94,7 @@ export class QuoteCostBuildUpService {
   public calculateProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards(
     projectGrossTotal: IQuoteCost<unknown>,
     totalPromotionsDiscountsAndSwellGridrewards: ITotalPromotionsDiscountsAndSwellGridrewards,
-  ): IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards {
+  ): IBaseQuoteMarginData {
     const netMargin = new BigNumber(projectGrossTotal.markupAmount).minus(
       totalPromotionsDiscountsAndSwellGridrewards.total,
     );
@@ -112,12 +112,40 @@ export class QuoteCostBuildUpService {
     };
   }
 
+  public calculateSubtotalWithSalesOriginationManagerFee(
+    projectGrossTotal: IQuoteCost<unknown>,
+    projectSubtotalWithDiscountsPromotionsAndSwellGridrewards: IBaseQuoteMarginData,
+    salesOriginationManagerFee: IBaseCostBuildupFee,
+  ): IBaseQuoteMarginData {
+    const netCost = new BigNumber(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.netCost).plus(
+      salesOriginationManagerFee.total,
+    );
+
+    const netMargin = new BigNumber(projectGrossTotal.cost).minus(netCost);
+
+    const marginPercentage =
+      projectGrossTotal.cost === 0 ? new BigNumber(0) : netMargin.dividedBy(projectGrossTotal.cost).multipliedBy(100);
+
+    return {
+      cost: projectGrossTotal.cost,
+      marginPercentage: marginPercentage.toNumber(),
+      netCost: netCost.toNumber(),
+      netMargin: netMargin.toNumber(),
+    };
+  }
+
   public calculateCostBuildupFee(previousSubTotal: number, unitPercentage = 0): IBaseCostBuildupFee {
     const total = new BigNumber(previousSubTotal).multipliedBy(unitPercentage).dividedBy(100);
 
+    const amount = roundNumber(total.toNumber(), 2);
+
     return {
       unitPercentage,
-      total: roundNumber(total.toNumber(), 2),
+      total: amount,
+      cogsAllocation: 0,
+      marginAllocation: 100,
+      cogsAmount: 0,
+      marginAmount: amount,
     };
   }
 
@@ -317,9 +345,15 @@ export class QuoteCostBuildUpService {
       .multipliedBy(dealerFee)
       .dividedBy(1 - dealerFee.toNumber());
 
+    const amount = roundNumber(total.toNumber(), 2);
+
     return {
       unitPercentage: dealerFeePercentage,
-      total: roundNumber(total.toNumber(), 2),
+      total: amount,
+      cogsAllocation: 100,
+      marginAllocation: 0,
+      cogsAmount: amount,
+      marginAmount: 0,
     };
   }
 
@@ -335,6 +369,10 @@ export class QuoteCostBuildUpService {
         name: '',
         unitPercentage: 0,
         total: 0,
+        cogsAllocation: 0,
+        marginAllocation: 100,
+        cogsAmount: 0,
+        marginAmount: 0,
       };
     }
 
@@ -347,10 +385,16 @@ export class QuoteCostBuildUpService {
         .multipliedBy(processingFee),
     );
 
+    const amount = roundNumber(total.toNumber(), 2);
+
     return {
       name: `${financialProduct.name} Discount (${financialProduct.processingFee || 0}% effective fee)`,
       unitPercentage: financialProduct.processingFee || 0,
-      total: roundNumber(total.toNumber(), 2),
+      total: amount,
+      cogsAllocation: 0,
+      marginAllocation: 100,
+      cogsAmount: 0,
+      marginAmount: amount,
     };
   }
 
@@ -465,28 +509,35 @@ export class QuoteCostBuildUpService {
       partnerMarkup.salesOriginationManagerFee,
     );
 
-    const subtotalWithSalesOriginationManagerFee = new BigNumber(
-      projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.netCost,
-    )
-      .plus(salesOriginationManagerFee.total)
-      .toNumber();
+    const subtotalWithSalesOriginationManagerFee = this.calculateSubtotalWithSalesOriginationManagerFee(
+      projectGrossTotal,
+      projectSubtotalWithDiscountsPromotionsAndSwellGridrewards,
+      salesOriginationManagerFee,
+    );
 
-    const salesOriginationSalesFee = partnerMarkup.useFixedSalesOriginationSalesFee
-      ? this.calculateCostBuildupFee(subtotalWithSalesOriginationManagerFee, partnerMarkup.salesOriginationSalesFee)
+    const salesOriginationSalesFee: IBaseCostBuildupFee = partnerMarkup.useFixedSalesOriginationSalesFee
+      ? this.calculateCostBuildupFee(
+          subtotalWithSalesOriginationManagerFee.netCost,
+          partnerMarkup.salesOriginationSalesFee,
+        )
       : {
           total: roundNumber(userInputs?.salesOriginationSalesFee?.total || 0, 2),
           unitPercentage: userInputs?.salesOriginationSalesFee?.unitPercentage || 0,
+          cogsAllocation: 0,
+          marginAllocation: 100,
+          cogsAmount: 0,
+          marginAmount: roundNumber(userInputs?.salesOriginationSalesFee?.total || 0, 2),
         };
 
     const thirdPartyFinancingDealerFee = this.calculateThirdPartyFinancingDealerFee(
-      subtotalWithSalesOriginationManagerFee,
+      subtotalWithSalesOriginationManagerFee.netCost,
       salesOriginationSalesFee,
       dealerFeePercentage,
     );
 
     const cashDiscount = this.calculateCashDiscount(
       thirdPartyFinancingDealerFee,
-      subtotalWithSalesOriginationManagerFee,
+      subtotalWithSalesOriginationManagerFee.netCost,
       salesOriginationSalesFee,
       financialProduct,
       fundingSourceType,
@@ -498,7 +549,7 @@ export class QuoteCostBuildUpService {
 
     // TODO: waiting for COGS
     const grandTotalNetCost = new BigNumber(additionalFees.total)
-      .plus(subtotalWithSalesOriginationManagerFee)
+      .plus(subtotalWithSalesOriginationManagerFee.netCost)
       .toNumber();
 
     const grandTotalNetMargin = new BigNumber(grandTotalNetCost)

@@ -4,7 +4,7 @@ import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
 import { PROMOTION_TYPE } from 'src/promotions/promotion.constant';
 import { roundNumber } from 'src/utils/transformNumber';
 import { REBATE_TYPE } from '../constants';
-import { ICalculateQuoteFinanceProductNetAmountArg, IReductionAmount } from '../interfaces';
+import { ICalculateQuoteFinanceProductNetAmountArg, ICogsImpact, IMarginImpact, IReductionAmount } from '../interfaces';
 
 @Injectable()
 export class QuoteFinanceProductService {
@@ -66,7 +66,10 @@ export class QuoteFinanceProductService {
     return roundNumber(amount, 2);
   }
 
-  public static calculateReduction(reduction: IReductionAmount<'percentage' | 'amount'>, grossPrice: number): number {
+  public static calculateReduction(
+    reduction: IReductionAmount<'percentage' | 'amount' | REBATE_TYPE>,
+    grossPrice: number,
+  ): number {
     if (reduction.type === 'percentage')
       return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
 
@@ -87,5 +90,23 @@ export class QuoteFinanceProductService {
       .toNumber();
 
     return roundNumber(total, 2);
+  }
+
+  public static attachImpact(
+    reduction: IReductionAmount<'percentage' | 'amount' | REBATE_TYPE> & IMarginImpact & ICogsImpact,
+    grossPrice: number,
+  ) {
+    const amount = QuoteFinanceProductService.calculateReduction(reduction, grossPrice);
+
+    if (reduction.cogsAllocation === undefined) {
+      reduction.cogsAllocation = 0;
+    }
+
+    if (reduction.marginAllocation === undefined) {
+      reduction.marginAllocation = 100;
+    }
+
+    reduction.cogsAmount = new BigNumber(amount).multipliedBy(reduction.cogsAllocation).dividedBy(100).toNumber();
+    reduction.marginAmount = new BigNumber(amount).multipliedBy(reduction.marginAllocation).dividedBy(100).toNumber();
   }
 }

@@ -124,6 +124,18 @@ export class PromotionDiscountDetailDto {
 
   @ApiProperty()
   endDate: Date;
+
+  @ApiProperty()
+  cogsAllocation: number;
+
+  @ApiProperty()
+  cogsAmount: number;
+
+  @ApiProperty()
+  marginAllocation: number;
+
+  @ApiProperty()
+  marginAmount: number;
 }
 
 export class ProjectDiscountDetailDto {
@@ -156,6 +168,22 @@ export class ProjectDiscountDetailDto {
   @ApiProperty()
   @IsOptional()
   endDate: Date;
+
+  @ApiProperty()
+  @IsOptional()
+  cogsAllocation: number;
+
+  @ApiProperty()
+  @IsOptional()
+  cogsAmount: number;
+
+  @ApiProperty()
+  @IsOptional()
+  marginAllocation: number;
+
+  @ApiProperty()
+  @IsOptional()
+  marginAmount: number;
 }
 
 export class QuoteFinanceProductDto {
