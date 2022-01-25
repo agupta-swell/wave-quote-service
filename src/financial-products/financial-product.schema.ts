@@ -45,7 +45,10 @@ export interface FinancialProduct extends Document {
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({
-  _id: Schema.Types.Mixed,
+  _id: {
+    type: Schema.Types.Mixed,
+    alias: 'id',
+  },
   funding_source_id: String,
   is_active: Boolean,
   name: String,
