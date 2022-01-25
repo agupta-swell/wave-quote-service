@@ -38,5 +38,12 @@ export enum REBATE_TYPE {
   ITC = 'ITC',
   SGIP = 'SGIP',
   ERT = 'ERT',
-  ER = 'ER'
+  ER = 'ER',
+}
+
+export enum PRIMARY_QUOTE_TYPE {
+  BATTERY_ONLY = 'Battery Only',
+  BATTERY_WITH_EXISTING_SOLAR = 'Battery with Existing Solar',
+  BATTERY_WITH_NEW_SOLAR = 'Battery with New Solar',
+  SOLAR_ONLY = 'Solar Only',
 }

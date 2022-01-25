@@ -3,44 +3,44 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isNil, omit, omitBy, pickBy, sum, sumBy } from 'lodash';
-import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
+import { ContractService } from 'src/contracts/contract.service';
+import { DiscountService } from 'src/discounts/discount.service';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
+import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
+import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { PromotionService } from 'src/promotions/promotion.service';
+import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
+import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
+import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
+import { assignToModel } from 'src/shared/transform/assignToModel';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { SystemDesign } from 'src/system-designs/system-design.schema';
+import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
+import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
+import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
-import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
-import { ProposalService } from 'src/proposals/proposal.service';
-import { ContractService } from 'src/contracts/contract.service';
-import { assignToModel } from 'src/shared/transform/assignToModel';
-import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
-import { UtilityService } from 'src/utilities/utility.service';
-import { OpportunityService } from 'src/opportunities/opportunity.service';
-import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
-import { SystemDesign } from 'src/system-designs/system-design.schema';
-import { DiscountService } from 'src/discounts/discount.service';
-import { PromotionService } from 'src/promotions/promotion.service';
-import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
-import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
-
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { FINANCE_PRODUCT_TYPE, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
+import { FINANCE_PRODUCT_TYPE, PRIMARY_QUOTE_TYPE, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
+import { IQuoteCostBuildup } from './interfaces';
 import {
+  ICashProductAttributes,
   IDetailedQuoteSchema,
+  ILeaseProductAttributes,
+  ILoanProductAttributes,
   IRebateDetailsSchema,
   Quote,
   QUOTE,
   QuoteModel,
-  ILoanProductAttributes,
-  ILeaseProductAttributes,
-  ICashProductAttributes,
 } from './quote.schema';
 import {
   CalculateQuoteDetailDto,
@@ -50,14 +50,13 @@ import {
   LeaseQuoteValidationDto,
   LoanProductAttributesDto,
   QuoteFinanceProductDto,
-  UpdateQuoteDto,
   UpdateLatestQuoteDto,
+  UpdateQuoteDto,
 } from './req';
 import { QuoteDto } from './res';
-import { ITC, I_T_C } from './schemas';
-import { QuoteCostBuildUpService, CalculationService, QuoteFinanceProductService } from './sub-services';
-import { IQuoteCostBuildup } from './interfaces';
 import { QuoteCostBuildupUserInputDto } from './res/sub-dto';
+import { ITC, I_T_C } from './schemas';
+import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
 
 @Injectable()
 export class QuoteService {
@@ -71,6 +70,7 @@ export class QuoteService {
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
     private readonly cashPaymentConfigService: CashPaymentConfigService,
+    @Inject(forwardRef(() => CalculationService))
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
@@ -85,7 +85,9 @@ export class QuoteService {
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly manufacturerService: ManufacturerService,
+    @Inject(forwardRef(() => QuoteCostBuildUpService))
     private readonly quoteCostBuildUpService: QuoteCostBuildUpService,
+    @Inject(forwardRef(() => QuoteFinanceProductService))
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
   ) {}
@@ -609,7 +611,7 @@ export class QuoteService {
         } as CashProductAttributesDto;
         break;
       }
-    };
+    }
 
     const utilityProgramDetail =
       data.utilityProgramId && data.utilityProgramId !== 'None'
@@ -621,7 +623,6 @@ export class QuoteService {
         ? await this.rebateProgramService.getOneById(data.rebateProgramId)
         : null;
 
-   
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     // eslint-disable-next-line func-names
     const handledIncentiveDetails = (function () {
@@ -650,7 +651,6 @@ export class QuoteService {
 
       return incentiveDetails;
     })();
-    
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -793,15 +793,31 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
+    const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProductSnapshot;
+
+    let maxDownPaymentValue = maxDownPayment;
+    if (maxDownPaymentPercentage) {
+      const maxDownPaymentWithPercentage =
+        (maxDownPaymentPercentage / 100) * (foundQuote.detailedQuote.quoteCostBuildup.projectGrandTotal.netCost || 0);
+      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
+    }
+
+    let currentUpfrontPayment = data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment;
+    if (minDownPayment > currentUpfrontPayment) currentUpfrontPayment = minDownPayment;
+    if (maxDownPaymentValue < currentUpfrontPayment) currentUpfrontPayment = maxDownPaymentValue;
+
     const [quoteConfigData, taxCreditData] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
     ]);
 
-    if (data.quoteFinanceProduct.financeProduct.financialProductSnapshot.id) {
-      (<any>data.quoteFinanceProduct.financeProduct.financialProductSnapshot)._id = new Types.ObjectId(
-        data.quoteFinanceProduct.financeProduct.financialProductSnapshot.id,
-      );
+    let currentFinancialProductSnapshot = data.quoteFinanceProduct.financeProduct.financialProductSnapshot;
+    if (currentFinancialProductSnapshot.id) {
+      currentFinancialProductSnapshot = {
+        ...currentFinancialProductSnapshot,
+        ...financialProductSnapshot,
+      };
     }
     const detailedQuote = {
       ...data,
@@ -1312,5 +1328,29 @@ export class QuoteService {
     });
 
     return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
+  }
+
+  getPrimaryQuoteType(detailedQuote: IDetailedQuoteSchema, existingPV: boolean): PRIMARY_QUOTE_TYPE {
+    const {
+      quoteCostBuildup: { storageQuoteDetails, panelQuoteDetails },
+    } = detailedQuote;
+
+    const isSolar = !!panelQuoteDetails?.length;
+
+    const isHasBattery = !!storageQuoteDetails?.length;
+
+    if (!isHasBattery && !existingPV && isSolar) {
+      return PRIMARY_QUOTE_TYPE.SOLAR_ONLY;
+    }
+
+    if (isHasBattery && !existingPV && !isSolar) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_ONLY;
+    }
+
+    if (isHasBattery && existingPV && !isSolar) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR;
+    }
+
+    return PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR;
   }
 }

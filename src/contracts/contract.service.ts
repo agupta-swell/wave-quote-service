@@ -2,6 +2,7 @@ import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException 
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { IncomingMessage } from 'http';
+import { sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
@@ -12,17 +13,19 @@ import { DocusignCommunicationService } from 'src/docusign-communications/docusi
 import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
-import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
+import { GenabilityUtilityMapService } from 'src/genability-utility-map/genability-utility-map.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
+import { REBATE_TYPE } from 'src/quotes/constants';
 import { IDetailedQuoteSchema, ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
-import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { SystemAttributeService } from 'src/system-attribute/system-attribute.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
+import { roundNumber } from 'src/utils/transformNumber';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
 import { FastifyFile } from '../shared/fastify';
@@ -66,10 +69,10 @@ export class ContractService {
     private readonly contactService: ContactService,
     private readonly customerPaymentService: CustomerPaymentService,
     private readonly systemDesignService: SystemDesignService,
-    private readonly gsProgramsService: GsProgramsService,
     private readonly financialProductService: FinancialProductsService,
-    private readonly s3Service: S3Service,
     private readonly jwtService: JwtService,
+    private readonly genabilityUtilityMapService: GenabilityUtilityMapService,
+    private readonly systemAttributeService: SystemAttributeService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -187,11 +190,35 @@ export class ContractService {
     }
 
     if (mode === REQUEST_MODE.ADD) {
+      const quoteDetail = await this.quoteService.getOneById(contractDetail.associatedQuoteId);
+
+      if (!quoteDetail) {
+        throw new NotFoundException(`No quote found with id ${contractDetail.associatedQuoteId}`);
+      }
+
       if (contractDetail.contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
         const isValid = await this.validateNewGridServiceContract(contractDetail);
         if (!isValid) {
           throw new BadRequestException({ message: 'Not qualified for new GS Contract' });
         }
+
+        const SGIPIncentive = quoteDetail?.quoteFinanceProduct.incentiveDetails.find(
+          incentive => incentive.type === REBATE_TYPE.SGIP,
+        );
+
+        if (!SGIPIncentive) {
+          throw new BadRequestException({ message: 'Swell GridRewards Incentive not found!' });
+        }
+
+        await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
+          $set: {
+            gsTermYears: SGIPIncentive?.detail.gsTermYears,
+          },
+        });
+      }
+
+      if (contractDetail.contractType === CONTRACT_TYPE.PRIMARY_CONTRACT) {
+        await this.syncWithWav(contractDetail);
       }
 
       const contractTemplateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
@@ -208,6 +235,8 @@ export class ContractService {
       });
 
       await newlyUpdatedContract.save();
+
+      await this.customerPaymentService.create(newlyUpdatedContract._id, contractDetail.opportunityId, quoteDetail);
 
       return OperationResult.ok(strictPlainToClass(SaveContractDto, { status: true, newlyUpdatedContract }));
     }
@@ -267,7 +296,7 @@ export class ContractService {
     const fundingSourceType = quote.detailedQuote.quoteFinanceProduct.financeProduct.productType;
 
     const [customerPayment, utilityName, systemDesign, utilityUsageDetails] = await Promise.all([
-      this.customerPaymentService.getCustomerPaymentByOpportunityId(contract.opportunityId),
+      this.customerPaymentService.getCustomerPaymentByContractId(contract._id.toString()),
       this.utilityService.getUtilityName(opportunity.utilityId),
       this.systemDesignService.getOneById(
         contract.contractType === CONTRACT_TYPE.NO_COST_CHANGE_ORDER ? contract.systemDesignId : quote.systemDesignId,
@@ -397,6 +426,12 @@ export class ContractService {
     }
 
     if (mode === REQUEST_MODE.ADD) {
+      const quoteDetail = await this.quoteService.getOneById(contractDetail.associatedQuoteId);
+
+      if (!quoteDetail) {
+        throw new NotFoundException(`No quote found with id ${contractDetail.associatedQuoteId}`);
+      }
+
       const templateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
         contractDetail.contractTemplateId,
       );
@@ -409,6 +444,8 @@ export class ContractService {
       });
 
       await model.save();
+
+      await this.customerPaymentService.create(model._id, contractDetail.opportunityId, quoteDetail);
 
       return OperationResult.ok(strictPlainToClass(SaveChangeOrderDto, { status: true, newlyUpdatedContract: model }));
     }
@@ -823,5 +860,85 @@ export class ContractService {
     }
 
     return undefined;
+  }
+
+  async syncWithWav(contractDetail: ContractReqDto): Promise<void> {
+    const [quoteDetail, utilityData, opportunityData] = await Promise.all([
+      this.quoteService.getOneById(contractDetail.associatedQuoteId),
+      this.utilityService.getUtilityByOpportunityId(contractDetail.opportunityId),
+      this.opportunityService.getDetailById(contractDetail.opportunityId),
+    ]);
+
+    if (!quoteDetail || !utilityData || !opportunityData) {
+      throw new BadRequestException({ message: 'Related Opportunity or Utility or Quote is not found!' });
+    }
+
+    const wavUtilityCode = await this.genabilityUtilityMapService.getWavUtilityCodeByGenabilityLseName(
+      utilityData.utilityData.loadServingEntityData.lseName,
+    );
+
+    const joinedUtilityProgramAndRebateProgramName =
+      [quoteDetail.utilityProgram?.utilityProgramName, quoteDetail.rebateProgram?.name]
+        .filter(name => !!name)
+        .join('+') || 'None';
+
+    //  Examples:
+    // “SCE - None”
+    // “SCE - ACES+SGIP”
+    const wavUtilityName = `${wavUtilityCode} - ${joinedUtilityProgramAndRebateProgramName}`;
+    const DEFAULT_UTILITY_NAME = 'Other - None';
+
+    const utilityId =
+      (await this.utilityService.getUtilityDetailByName(wavUtilityName))?._id ||
+      (await this.utilityService.getUtilityDetailByName(DEFAULT_UTILITY_NAME))?._id;
+
+    const primaryQuoteType = this.quoteService.getPrimaryQuoteType(quoteDetail, opportunityData?.existingPV);
+
+    await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
+      $set: {
+        fundingSourceId: quoteDetail?.quoteFinanceProduct.financeProduct.fundingSourceId,
+        utilityId,
+        primaryQuoteType,
+        amount: quoteDetail.quoteCostBuildup.projectGrandTotal.netCost,
+      },
+    });
+
+    const pvKw = roundNumber(
+      sumBy(
+        quoteDetail.quoteCostBuildup.panelQuoteDetails,
+        item => item.panelModelDataSnapshot.ratings.watts * item.quantity,
+      ) / 1000,
+      3,
+    );
+
+    const batteryKw = roundNumber(
+      sumBy(
+        quoteDetail.quoteCostBuildup.storageQuoteDetails,
+        item => item.storageModelDataSnapshot.ratings.kilowattHours * item.quantity,
+      ),
+      3,
+    );
+
+    const batteryKwh = roundNumber(
+      sumBy(
+        quoteDetail.quoteCostBuildup.storageQuoteDetails,
+        item => item.storageModelDataSnapshot.ratings.kilowattHours * item.quantity,
+      ),
+      3,
+    );
+
+    await this.systemAttributeService.updateSystemAttributeByQuery(
+      {
+        opportunityId: contractDetail.opportunityId,
+      },
+      {
+        $set: {
+          opportunityId: contractDetail.opportunityId,
+          pvKw,
+          batteryKw,
+          batteryKwh,
+        },
+      },
+    );
   }
 }

@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { PRIMARY_QUOTE_TYPE } from 'src/quotes/constants';
 import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
@@ -33,6 +34,8 @@ export interface Opportunity extends Document {
   inverterModel: string;
   tpoFundingSource: string;
   assignedMember: string;
+  gsTermYears?: string;
+  primaryQuoteType: PRIMARY_QUOTE_TYPE;
 }
 
 export const OpportunitySchema = new Schema<Opportunity>({
@@ -64,6 +67,8 @@ export const OpportunitySchema = new Schema<Opportunity>({
   inverterModel: String,
   tpoFundingSource: String,
   assignedMember: String,
+  gsTermYears: String,
+  primaryQuoteType: String,
 });
 
 MongooseNamingStrategy.ExcludeOne(OpportunitySchema);

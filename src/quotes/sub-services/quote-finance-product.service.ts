@@ -8,7 +8,7 @@ import { ICalculateQuoteFinanceProductNetAmountArg, IReductionAmount } from '../
 
 @Injectable()
 export class QuoteFinanceProductService {
-  private calculateTotalAmount(...products: IReductionAmount<unknown>[]): number {
+  private calculateTotalAmount(roundNum: boolean, ...products: IReductionAmount<unknown>[]): number {
     const amount =
       products
         .reduce((total, product) => {
@@ -18,6 +18,7 @@ export class QuoteFinanceProductService {
         }, new BigNumber(0))
         .toNumber() ?? 0;
 
+    if (!roundNum) return amount;
     return roundNumber(amount, 2);
   }
 
@@ -34,11 +35,13 @@ export class QuoteFinanceProductService {
     } = financeProduct;
 
     const totalPercentage = this.calculateTotalAmount(
+      false,
       ...projectDiscountDetails.filter(e => e.type === DISCOUNT_TYPE.PERCENTAGE),
       ...promotionDetails.filter(e => e.type === PROMOTION_TYPE.PERCENTAGE),
     );
 
     const totalAmount = this.calculateTotalAmount(
+      true,
       ...incentiveDetails,
       // ...rebateDetails,
       ...projectDiscountDetails.filter(e => e.type === DISCOUNT_TYPE.AMOUNT),

@@ -11,6 +11,7 @@ export interface FinancialProduct extends Document {
   minDownPayment: number;
   defaultDownPayment: number;
   maxDownPayment: number;
+  maxDownPaymentPercentage: number;
   annualDegradation: number;
   guaranteedProduction: number;
   minMargin: number;
@@ -39,6 +40,8 @@ export interface FinancialProduct extends Document {
   allowsWetSignedContracts: boolean;
   projectCompletionDateOffset: number;
   processingFee: number;
+  payment1?: number;
+  payment1PayPercent?: boolean;
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({
@@ -51,6 +54,7 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   min_down_payment: Number,
   default_down_payment: Number,
   max_down_payment: Number,
+  max_down_payment_percentage: Number,
   annual_degradation: Number,
   guaranteed_production: Number,
   min_margin: Number,
@@ -82,4 +86,6 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   allows_wet_signed_contracts: Boolean,
   project_completion_date_offset: Number,
   processing_fee: Number,
+  payment1: Number,
+  payment1_pay_percent: Boolean,
 });

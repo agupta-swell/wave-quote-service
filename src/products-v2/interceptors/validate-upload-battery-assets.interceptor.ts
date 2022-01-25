@@ -46,7 +46,11 @@ export class ValidateUploadBatteryAssetsInterceptor implements NestInterceptor {
 
     const product = await this.validateBatteryProduct(productId);
 
-    Object.defineProperty(request, 'body', { value: request.files() });
+    Object.defineProperty(request, 'body', {
+      value: request.files({
+        limits: { files: 2 },
+      }),
+    });
     Object.defineProperty(request.params, productIdProp, { value: product });
 
     return next.handle().pipe(

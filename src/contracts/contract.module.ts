@@ -8,6 +8,8 @@ import { FinancialProductsModule } from 'src/financial-products/financial-produc
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { DocusignApiModule } from 'src/shared/docusign';
+import { GenabilityUtilityMapModule } from 'src/genability-utility-map/genability-utility-map.module';
+import { SystemAttributeModule } from 'src/system-attribute/system-attribute.module';
 import { ContractController } from './contract.controller';
 import { CONTRACT, ContractSchema } from './contract.schema';
 import { ContractService } from './contract.service';
@@ -30,7 +32,9 @@ import { ContractService } from './contract.service';
     GsProgramsModule,
     FinancialProductsModule,
     InstalledProductModule,
-    DocusignApiModule.forContext()
+    DocusignApiModule.forContext(),
+    GenabilityUtilityMapModule,
+    SystemAttributeModule,
   ],
   controllers: [ContractController],
   providers: [ContractService],

@@ -40,7 +40,6 @@ export class DocusignTemplateMasterService {
     private readonly docusignCompositeTemplateMasterModel: Model<DocusignCompositeTemplateMaster>,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly fundingSourceService: FundingSourceService,
-    private readonly utilityService: UtilityService,
   ) {}
 
   async getTemplateMasterById(id: string): Promise<ITemplateDetailSchema> {

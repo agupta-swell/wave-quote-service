@@ -444,8 +444,8 @@ export class UtilityService {
     return utility?.name || '';
   }
 
-  // async getAllUtilities(): Promise<Utilities[]> {
-  //   const utilities = await this.utilitiesModel.find();
-  //   return utilities?.map(item => item.toObject({ versionKey: false }));
-  // }
+  async getUtilityDetailByName(utilityName: string): Promise<LeanDocument<Utilities> | null> {
+    const utility = await this.utilitiesModel.findOne({ name: utilityName }).lean();
+    return utility;
+  }
 }

@@ -42,6 +42,8 @@ import { InstalledProductModule } from 'src/installed-products/installed-product
 import { DocusignApiModule } from 'src/shared/docusign';
 import { DiscountModule } from 'src/discounts/discount.module';
 import { PromotionModule } from 'src/promotions/promotion.module';
+import { SystemAttributeModule } from 'src/system-attribute/system-attribute.module';
+import { GenabilityUtilityMapModule } from 'src/genability-utility-map/genability-utility-map.module';
 import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
@@ -104,6 +106,8 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     DocusignApiModule,
     DiscountModule,
     PromotionModule,
+    GenabilityUtilityMapModule,
+    SystemAttributeModule,
   ],
 })
 export class AppModule {}

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsBoolean, IsNumber, IsArray } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class FinanceProductDetailDto {
   @ApiProperty()
@@ -44,6 +44,11 @@ export class FinanceProductDetailDto {
   @IsNotEmpty()
   @IsNumber()
   maxDownPayment: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  maxDownPaymentPercentage: number;
 
   @ApiProperty()
   @IsNotEmpty()
