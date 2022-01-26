@@ -369,8 +369,8 @@ export class QuoteCostBuildUpService {
         name: '',
         unitPercentage: 0,
         total: 0,
-        cogsAllocation: 0,
-        marginAllocation: 100,
+        cogsAllocation: 100,
+        marginAllocation: 0,
         cogsAmount: 0,
         marginAmount: 0,
       };
@@ -391,10 +391,10 @@ export class QuoteCostBuildUpService {
       name: `${financialProduct.name} Discount (${financialProduct.processingFee || 0}% effective fee)`,
       unitPercentage: financialProduct.processingFee || 0,
       total: amount,
-      cogsAllocation: 0,
-      marginAllocation: 100,
-      cogsAmount: 0,
-      marginAmount: amount,
+      cogsAllocation: 100,
+      marginAllocation: 0,
+      cogsAmount: amount,
+      marginAmount: 0,
     };
   }
 
