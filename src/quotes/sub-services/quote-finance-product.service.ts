@@ -106,7 +106,13 @@ export class QuoteFinanceProductService {
       reduction.marginAllocation = 100;
     }
 
-    reduction.cogsAmount = new BigNumber(amount).multipliedBy(reduction.cogsAllocation).dividedBy(100).toNumber();
-    reduction.marginAmount = new BigNumber(amount).multipliedBy(reduction.marginAllocation).dividedBy(100).toNumber();
+    reduction.cogsAmount = roundNumber(
+      new BigNumber(amount).multipliedBy(reduction.cogsAllocation).dividedBy(100).toNumber(),
+      2,
+    );
+    reduction.marginAmount = roundNumber(
+      new BigNumber(amount).multipliedBy(reduction.marginAllocation).dividedBy(100).toNumber(),
+      2,
+    );
   }
 }
