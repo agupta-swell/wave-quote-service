@@ -218,6 +218,18 @@ export class QuoteService {
       TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
     );
 
+    obj.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
+    );
+
+    obj.detailedQuote.quoteFinanceProduct.promotionDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
+    );
+
+    obj.detailedQuote.quoteFinanceProduct.incentiveDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
+    );
+
     await obj.save();
 
     return OperationResult.ok(strictPlainToClass(QuoteDto, obj.toJSON()));
@@ -408,6 +420,18 @@ export class QuoteService {
 
     model.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
       TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
+    );
+
+    model.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
+    );
+
+    model.detailedQuote.quoteFinanceProduct.promotionDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
+    );
+
+    model.detailedQuote.quoteFinanceProduct.incentiveDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
     );
 
     assignToModel(
@@ -714,6 +738,18 @@ export class QuoteService {
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
 
+    model.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
+    );
+
+    model.detailedQuote.quoteFinanceProduct.promotionDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
+    );
+
+    model.detailedQuote.quoteFinanceProduct.incentiveDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
+    );
+
     return OperationResult.ok(strictPlainToClass(QuoteDto, { ...model, _id: foundQuote._id } as any));
   }
 
@@ -895,6 +931,18 @@ export class QuoteService {
     }
 
     const model = new QuoteModel(data, detailedQuote);
+
+    model.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildUp.projectGrossTotal.netCost),
+    );
+
+    model.detailedQuote.quoteFinanceProduct.promotionDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildUp.projectGrossTotal.netCost),
+    );
+
+    model.detailedQuote.quoteFinanceProduct.incentiveDetails?.map(e =>
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildUp.projectGrossTotal.netCost),
+    );
 
     model.setIsSync(data.isSync);
 

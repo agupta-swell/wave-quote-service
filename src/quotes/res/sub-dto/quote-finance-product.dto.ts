@@ -41,6 +41,18 @@ export class IncentiveDetailsDto {
 
   @ExposeAndMap({}, ({ obj }) => obj.unitValue)
   unit_value: string;
+
+  @ExposeProp()
+  cogsAllocation: number;
+
+  @ExposeProp()
+  cogsAmount: number;
+
+  @ExposeProp()
+  marginAllocation: number;
+
+  @ExposeProp()
+  marginAmount: number;
 }
 
 export class RebateDetailsDto {
@@ -55,6 +67,18 @@ export class RebateDetailsDto {
 
   @ExposeProp()
   isFloatRebate: string;
+
+  @ExposeProp()
+  cogsAllocation: number;
+
+  @ExposeProp()
+  cogsAmount: number;
+
+  @ExposeProp()
+  marginAllocation: number;
+
+  @ExposeProp()
+  marginAmount: number;
 }
 
 @ApiExtraModels(LoanProductAttributesDto, CashProductAttributesDto, LeaseProductAttributesDto)

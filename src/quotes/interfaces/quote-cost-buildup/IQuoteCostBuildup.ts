@@ -6,7 +6,7 @@ import { FinancialProduct } from 'src/financial-products/financial-product.schem
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
 import { IQuoteCost } from './IQuoteCost';
-import { IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards } from './IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards';
+import { IBaseQuoteMarginData } from './IBaseQuoteMarginData';
 import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount } from './ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
 import { ICreateQuoteCostBuildUpArg } from '.';
@@ -25,15 +25,15 @@ export interface IQuoteCostBuildup {
   equipmentAndLaborSubtotal: IBaseQuoteCost;
   equipmentLaborAndAddersSubtotal: IBaseQuoteCost;
   projectGrossTotal: IBaseQuoteCost;
-  projectSubtotalWithDiscountsPromotionsAndSwellGridrewards: IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards;
+  projectSubtotalWithDiscountsPromotionsAndSwellGridrewards: IBaseQuoteMarginData;
   totalPromotionsDiscountsAndSwellGridrewards: ITotalPromotionsDiscountsAndSwellGridrewards;
   salesOriginationManagerFee: IBaseCostBuildupFee;
   salesOriginationSalesFee: IBaseCostBuildupFee;
   thirdPartyFinancingDealerFee: IBaseCostBuildupFee;
   cashDiscount: ICashDiscount;
-  subtotalWithSalesOriginationManagerFee: number;
+  subtotalWithSalesOriginationManagerFee: IBaseQuoteMarginData;
   additionalFees: IAdditionalFees;
-  projectGrandTotal: IProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards;
+  projectGrandTotal: IBaseQuoteMarginData;
 }
 
 export type IQuoteCostBuildupDocument = Document &
