@@ -117,17 +117,19 @@ export class QuoteCostBuildUpService {
     projectSubtotalWithDiscountsPromotionsAndSwellGridrewards: IBaseQuoteMarginData,
     salesOriginationManagerFee: IBaseCostBuildupFee,
   ): IBaseQuoteMarginData {
+    const cost = new BigNumber(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost).plus(salesOriginationManagerFee.cogsAmount);
+
     const netCost = new BigNumber(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.netCost).plus(
       salesOriginationManagerFee.total,
     );
 
-    const netMargin = new BigNumber(projectGrossTotal.cost).minus(netCost);
+    const netMargin = new BigNumber(netCost).minus(cost);
 
     const marginPercentage =
       projectGrossTotal.cost === 0 ? new BigNumber(0) : netMargin.dividedBy(projectGrossTotal.cost).multipliedBy(100);
 
     return {
-      cost: projectGrossTotal.cost,
+      cost: cost.toNumber(),
       marginPercentage: marginPercentage.toNumber(),
       netCost: netCost.toNumber(),
       netMargin: netMargin.toNumber(),
