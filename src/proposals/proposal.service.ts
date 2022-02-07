@@ -5,7 +5,7 @@ import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
 import { identity, pickBy, uniq, cloneDeep } from 'lodash';
-import { ObjectId, LeanDocument, Model, Types } from 'mongoose';
+import { ObjectId, LeanDocument, Model } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
@@ -39,7 +39,6 @@ import {
   ValidateProposalDto,
 } from './req';
 import { SignerDetailDto, TemplateDetailDto } from './req/send-sample-contract.dto';
-import { ProposalSendSampleContractResultDto } from './res/proposal-send-sample-contract.dto';
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
 import { PROPOSAL_EMAIL_TEMPLATE } from './template-html/proposal-template';
@@ -502,10 +501,6 @@ export class ProposalService {
       lastName: 'Contract',
     };
 
-    const financialProduct = await this.financialProductService.getOneByQuoteId(
-      <any>new Types.ObjectId(proposal.quoteId),
-    );
-
     const genericObject: IGenericObject = {
       signerDetails: [],
       opportunity,
@@ -520,7 +515,7 @@ export class ProposalService {
       gsProgram,
       utilityProgramMaster,
       leaseSolverConfig,
-      financialProduct,
+      financialProduct: quote.quoteFinanceProduct.financialProductSnapshot,
       contract: {} as any,
       systemDesign: systemDesign!,
     };
