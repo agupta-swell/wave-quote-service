@@ -4,7 +4,7 @@ export class TariffDetailDto {
   @ExposeProp()
   tariffCode: string;
 
-  @ExposeProp()
+  @ExposeAndMap({}, ({ value }) => value.toString())
   masterTariffId: string;
 
   @ExposeProp()
