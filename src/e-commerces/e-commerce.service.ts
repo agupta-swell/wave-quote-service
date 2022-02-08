@@ -231,6 +231,7 @@ export class ECommerceService {
       annualUsage += item.v * deltaValueRatio;
     });
 
+    utilityDataInst.actualUsage = utilityDataInst.actualUsage || {};
     utilityDataInst.actualUsage.monthlyUsage = actualMonthlyUsage;
 
     const actualCostDataInst = (

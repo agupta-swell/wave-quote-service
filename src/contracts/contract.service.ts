@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { IncomingMessage } from 'http';
 import { sumBy } from 'lodash';
-import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { DOWNLOADABLE_RESOURCE, IDownloadResourcePayload, ILoggedInUser } from 'src/app/securities';
@@ -319,10 +319,6 @@ export class ContractService {
       (quote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
         .leaseSolverConfigSnapshot || null;
 
-    const financialProduct = await this.financialProductService.getOneByQuoteId(
-      <any>new Types.ObjectId(contract.associatedQuoteId),
-    );
-
     const genericObject: IGenericObject = {
       signerDetails: contract.signerDetails,
       opportunity,
@@ -337,7 +333,7 @@ export class ContractService {
       gsProgram,
       utilityProgramMaster,
       leaseSolverConfig,
-      financialProduct,
+      financialProduct: quote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
       contract,
       systemDesign: systemDesign!,
       utilityUsageDetails: utilityUsageDetails!,
