@@ -578,6 +578,7 @@ export class QuoteService {
     } = foundQuote.detailedQuote;
 
     const { financialProductSnapshot } = financeProduct;
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProductSnapshot;
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
@@ -636,6 +637,19 @@ export class QuoteService {
         break;
       }
     }
+
+    let maxDownPaymentValue = maxDownPayment;
+    if (maxDownPaymentPercentage) {
+      const maxDownPaymentWithPercentage =
+        (maxDownPaymentPercentage / 100) * (quoteCostBuildup.projectGrandTotal.netCost || 0);
+      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
+    }
+
+    let newUpfrontPayment = productAttribute.upfrontPayment;
+    if (maxDownPaymentValue < newUpfrontPayment) newUpfrontPayment = maxDownPaymentValue;
+    if (minDownPayment > newUpfrontPayment) newUpfrontPayment = minDownPayment;
+
+    productAttribute.upfrontPayment = newUpfrontPayment;
 
     const utilityProgramDetail =
       data.utilityProgramId && data.utilityProgramId !== 'None'
@@ -832,17 +846,6 @@ export class QuoteService {
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProductSnapshot;
 
-    let maxDownPaymentValue = maxDownPayment;
-    if (maxDownPaymentPercentage) {
-      const maxDownPaymentWithPercentage =
-        (maxDownPaymentPercentage / 100) * (foundQuote.detailedQuote.quoteCostBuildup.projectGrandTotal.netCost || 0);
-      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
-    }
-
-    let currentUpfrontPayment = data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment;
-    if (minDownPayment > currentUpfrontPayment) currentUpfrontPayment = minDownPayment;
-    if (maxDownPaymentValue < currentUpfrontPayment) currentUpfrontPayment = maxDownPaymentValue;
-
     const [quoteConfigData, taxCreditData] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
@@ -897,7 +900,19 @@ export class QuoteService {
       fundingSourceType: detailedQuote.quoteFinanceProduct.financeProduct.productType,
     });
 
+    let maxDownPaymentValue = maxDownPayment;
+    if (maxDownPaymentPercentage) {
+      const maxDownPaymentWithPercentage =
+        (maxDownPaymentPercentage / 100) * (quoteCostBuildUp.projectGrandTotal.netCost || 0);
+      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
+    }
+
+    let currentUpfrontPayment = data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment || 0;
+    if (maxDownPaymentValue < currentUpfrontPayment) currentUpfrontPayment = maxDownPaymentValue;
+    if (minDownPayment > currentUpfrontPayment) currentUpfrontPayment = minDownPayment;
+
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
+    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = currentUpfrontPayment;
 
     detailedQuote.quoteFinanceProduct.netAmount = this.quoteFinanceProductService.calculateNetAmount(
       quoteCostBuildUp.projectGrossTotal.netCost,
