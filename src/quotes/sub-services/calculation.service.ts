@@ -387,7 +387,7 @@ export class CalculationService {
     return detailedQuote;
   }
 
-  private monthlyPaymentAmount(principle: number, interestRateAPR: number, numberOfPayments: number): number {
+  monthlyPaymentAmount(principle: number, interestRateAPR: number, numberOfPayments: number): number {
     const interestRateMonthly = this.getMonthlyInterestRate(interestRateAPR);
     const monthlyPayment =
       principle *

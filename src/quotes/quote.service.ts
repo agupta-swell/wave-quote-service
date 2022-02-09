@@ -7,6 +7,7 @@ import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { ContractService } from 'src/contracts/contract.service';
 import { DiscountService } from 'src/discounts/discount.service';
+import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
@@ -166,8 +167,8 @@ export class QuoteService {
           fundingSourceName: fundingSource.name,
           productAttribute: await this.createProductAttribute(
             fundingSource.type,
-            quoteCostBuildup.projectGrossTotal.netCost,
-            financialProduct?.defaultDownPayment || 0,
+            quoteCostBuildup.projectGrandTotal.netCost,
+            financialProduct,
           ),
           financialProductSnapshot: financialProduct,
         },
@@ -334,26 +335,26 @@ export class QuoteService {
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
 
-    let currentGrossPrice: number;
+    let currentProjectPrice: number;
 
     switch (selectedQuoteMode) {
       case QUOTE_MODE_TYPE.COST_BUILD_UP:
-        currentGrossPrice = model.detailedQuote.quoteCostBuildup?.projectGrossTotal.netCost || 0;
+        currentProjectPrice = model.detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost || 0;
         break;
       case QUOTE_MODE_TYPE.PRICE_PER_WATT:
-        currentGrossPrice = model.detailedQuote.quotePricePerWatt?.grossPrice || 0;
+        currentProjectPrice = model.detailedQuote.quotePricePerWatt?.grossPrice || 0;
         break;
       case QUOTE_MODE_TYPE.PRICE_OVERRIDE:
-        currentGrossPrice = model.detailedQuote.quotePriceOverride?.grossPrice || 0;
+        currentProjectPrice = model.detailedQuote.quotePriceOverride?.grossPrice || 0;
         break;
       default:
-        currentGrossPrice = 0;
+        currentProjectPrice = 0;
     }
 
     let productAttribute = await this.createProductAttribute(
       financeProduct.productType,
-      currentGrossPrice,
-      financialProductSnapshot?.defaultDownPayment || 0,
+      currentProjectPrice,
+      financialProductSnapshot,
     );
 
     const { productAttribute: product_attribute } = financeProduct as any;
@@ -446,7 +447,7 @@ export class QuoteService {
           promotionDetails: quoteFinanceProduct.promotionDetails,
         } as any,
         model.detailedQuote.quoteCostBuildup,
-        currentGrossPrice,
+        currentProjectPrice,
       ),
     );
 
@@ -469,8 +470,15 @@ export class QuoteService {
     return OperationResult.ok(strictPlainToClass(QuoteDto, model.toJSON()));
   }
 
-  async createProductAttribute(productType: string, netAmount: number, defaultDownPayment: number): Promise<any> {
+  async createProductAttribute(
+    productType: string,
+    netAmount: number,
+    financeProductSnapshot: LeanDocument<FinancialProduct>,
+  ): Promise<any> {
+    // TODO: Refactor this function with correct params and default value.
     let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
+
+    const { defaultDownPayment, interestRate, termMonths } = financeProductSnapshot;
 
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
@@ -478,11 +486,11 @@ export class QuoteService {
           upfrontPayment: defaultDownPayment,
           loanAmount: netAmount,
           loanStartDate: new Date(new Date().setDate(1)),
-          interestRate: 6.5,
-          loanTerm: 240,
+          interestRate,
+          loanTerm: termMonths,
           taxCreditPrepaymentAmount: 0,
           willingToPayThroughAch: false,
-          monthlyLoanPayment: 0,
+          monthlyLoanPayment: this.calculationService.monthlyPaymentAmount(netAmount, interestRate, termMonths),
           currentMonthlyAverageUtilityPayment: 0,
           monthlyUtilityPayment: 0,
           gridServicePayment: 0,
@@ -603,8 +611,8 @@ export class QuoteService {
 
     let productAttribute = await this.createProductAttribute(
       financeProduct.productType,
-      quoteCostBuildup.projectGrossTotal.netCost,
-      financialProductSnapshot?.defaultDownPayment || 0,
+      quoteCostBuildup.projectGrandTotal.netCost,
+      financialProductSnapshot,
     );
     const { productAttribute: product_attribute } = financeProduct as any;
     switch (financeProduct.productType) {
@@ -930,10 +938,17 @@ export class QuoteService {
     switch (detailedQuote.quoteFinanceProduct.financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE:
       case FINANCE_PRODUCT_TYPE.LOAN: {
-        (detailedQuote.quoteFinanceProduct.financeProduct
-          .productAttribute as LoanProductAttributesDto).monthlyUtilityPayment =
-          (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as LoanProductAttributesDto)
-            .currentMonthlyAverageUtilityPayment - avgMonthlySavings;
+        const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
+          .productAttribute as LoanProductAttributesDto;
+
+        productAttribute.monthlyUtilityPayment =
+          productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings;
+
+        productAttribute.monthlyLoanPayment = this.calculationService.monthlyPaymentAmount(
+          quoteCostBuildUp.projectGrandTotal.netCost,
+          financialProductSnapshot.interestRate,
+          financialProductSnapshot.termMonths,
+        );
         break;
       }
 
