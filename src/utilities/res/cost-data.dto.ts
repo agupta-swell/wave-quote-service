@@ -8,10 +8,10 @@ class CostDetailData {
   @ExposeProp()
   endDate: Date;
 
-  @ExposeAndMap({}, ({obj}) => obj.startDate)
+  @ExposeAndMap({}, ({ obj }) => obj.startDate)
   start_date: Date;
 
-  @ExposeAndMap({}, ({obj}) => obj.endDate)
+  @ExposeAndMap({}, ({ obj }) => obj.endDate)
   end_date: Date;
 
   @ExposeProp()
@@ -44,6 +44,9 @@ export class CostDataDto {
 
   @ExposeProp({ type: UtilityCostData })
   actualUsageCost: UtilityCostData | undefined;
+
+  @ExposeProp({ type: UtilityCostData })
+  computedCost: UtilityCostData | undefined;
 
   @ExposeProp()
   postInstallMasterTariffId: string;

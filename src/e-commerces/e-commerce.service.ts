@@ -11,7 +11,7 @@ import { CalculationService } from 'src/quotes/sub-services/calculation.service'
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { CALCULATION_MODE } from 'src/utilities/constants';
 import { CostDataDto, UtilityDataDto } from 'src/utilities/res';
-import { ITypicalUsage } from 'src/utilities/utility.schema';
+import { IUsageValue } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
@@ -223,7 +223,7 @@ export class ECommerceService {
 
     const typicalCostAvg = typicalAnnualCost / 12;
     const deltaValueRatio = monthlyUtilityBill / typicalCostAvg;
-    const actualMonthlyUsage: ITypicalUsage[] = [];
+    const actualMonthlyUsage: IUsageValue[] = [];
     let annualUsage = 0;
 
     typicalBaselineInst?.typicalBaselineUsage.typicalMonthlyUsage.forEach(item => {
@@ -238,9 +238,9 @@ export class ECommerceService {
       await this.utilityService.calculateActualUsageCost({
         masterTariffId: utilityTariffDataInst?.tariffDetails[0].masterTariffId || '',
         zipCode,
-        utilityData: utilityDataInst,
+        utilityData: utilityDataInst as any, // TODO: fix type
       })
-    ).data?.actualUsageCost;
+    ).data?.computedCost;
 
     costDataInst.actualUsageCost = actualCostDataInst || undefined;
 

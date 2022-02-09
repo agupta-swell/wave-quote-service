@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNumber, ValidateNested } from 'class-validator';
 
-export class UsageValue {
+class UsageValue {
   @ApiProperty()
   @IsNumber()
   i: number;
@@ -12,7 +12,7 @@ export class UsageValue {
   v: number;
 }
 
-export class ActualUsageDto {
+export class ComputedUsageDto {
   @ApiProperty()
   sourceType: string;
 

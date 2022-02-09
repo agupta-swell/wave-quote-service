@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { IsNotEmpty, ValidateNested } from 'class-validator';
+import { ComputedUsageDto } from 'src/utilities/res';
 import { ActualUsageDto, LoadServingEntityDto, TypicalBaselineUsageDto } from '.';
 
 class TypicalUsage {
@@ -27,4 +29,10 @@ export class UtilityDataReqDto {
   @ApiProperty({ type: ActualUsageDto })
   @Type(() => ActualUsageDto)
   actualUsage: ActualUsageDto;
+
+  @ApiProperty({ type: ComputedUsageDto })
+  @IsNotEmpty()
+  @ValidateNested()
+  @Type(() => ComputedUsageDto)
+  computedUsage: ComputedUsageDto;
 }

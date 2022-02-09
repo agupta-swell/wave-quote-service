@@ -1435,8 +1435,8 @@ export class QuoteService {
     const oppData = await this.opportunityService.getRelatedInformation(opportunityId);
 
     const savings = await this.savingCalculatorService.getSavings({
-      historicalUsageByHour: utilityUsage.data?.utilityData.actualUsage.hourlyUsage.map(e => e.v),
-      historicalBillsByMonth: utilityUsage.data?.costData.actualUsageCost?.cost.map(e => e.v),
+      historicalUsageByHour: utilityUsage.data?.utilityData.computedUsage.hourlyUsage.map(e => e.v),
+      historicalBillsByMonth: utilityUsage.data?.costData.computedCost?.cost.map(e => e.v),
       historicalProductionByHour: productionByHour.hourly, //
       existingBatteryKwh: undefined, // TODO
       additionalBatteryKwh: undefined, // TODO

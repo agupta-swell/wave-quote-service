@@ -87,7 +87,7 @@ export class SystemDesignService {
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
-    const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
+    const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
@@ -341,7 +341,7 @@ export class SystemDesignService {
     }
 
     const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-      (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
+      (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
       systemProductionArray.hourly,
     );
 
@@ -386,7 +386,7 @@ export class SystemDesignService {
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
-    const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
+    const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
 
     if (systemDesignDto.roofTopDesignData) {
       let cumulativeGenerationKWh = 0;
@@ -495,7 +495,7 @@ export class SystemDesignService {
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-        (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
+        (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
         systemProductionArray.hourly,
       );
 
@@ -656,7 +656,7 @@ export class SystemDesignService {
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-        (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
+        (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
         systemProductionArray.hourly,
       );
 
