@@ -394,7 +394,7 @@ export class CalculationService {
       ((interestRateMonthly * (interestRateMonthly + 1) ** numberOfPayments) /
         ((interestRateMonthly + 1) ** numberOfPayments - 1));
 
-    return monthlyPayment;
+    return roundNumber(monthlyPayment, 2);
   }
 
   getMonthlyInterestRate(annualInterestRate: number): number {
