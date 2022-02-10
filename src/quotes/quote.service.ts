@@ -2,6 +2,7 @@
 /* eslint-disable no-return-assign */
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import BigNumber from 'bignumber.js';
 import { isNil, omit, omitBy, pickBy, sum, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -301,15 +302,6 @@ export class QuoteService {
       };
     }
 
-    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
-      model.detailedQuote.quoteFinanceProduct,
-    );
-
-    const userInputs: QuoteCostBuildupUserInputDto = {
-      totalPercentageReduction,
-      totalAmountReduction,
-    };
-
     const {
       financeProduct,
       financeProduct: { financialProductSnapshot },
@@ -329,7 +321,6 @@ export class QuoteService {
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
       roofTopDesignData: foundSystemDesign.roofTopDesignData,
       partnerMarkup: markupConfig,
-      userInputs,
       dealerFeePercentage,
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
@@ -859,13 +850,6 @@ export class QuoteService {
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
     ]);
 
-    let currentFinancialProductSnapshot = data.quoteFinanceProduct.financeProduct.financialProductSnapshot;
-    if (currentFinancialProductSnapshot.id) {
-      currentFinancialProductSnapshot = {
-        ...currentFinancialProductSnapshot,
-        ...financialProductSnapshot,
-      };
-    }
     const detailedQuote = {
       ...data,
       systemProduction: systemDesign.systemProductionData,
@@ -883,13 +867,7 @@ export class QuoteService {
 
     detailedQuote.quoteFinanceProduct.rebateDetails = data.quoteFinanceProduct.rebateDetails;
 
-    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
-      detailedQuote.quoteFinanceProduct,
-    );
-
     const userInputs: QuoteCostBuildupUserInputDto = {
-      totalPercentageReduction,
-      totalAmountReduction,
       salesOriginationSalesFee: data.quoteCostBuildup.salesOriginationSalesFee,
     };
 
@@ -906,6 +884,11 @@ export class QuoteService {
       dealerFeePercentage,
       financialProduct: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
       fundingSourceType: detailedQuote.quoteFinanceProduct.financeProduct.productType,
+      discountsPromotionsAndIncentives: {
+        discounts: detailedQuote.quoteFinanceProduct.projectDiscountDetails,
+        promotions: detailedQuote.quoteFinanceProduct.promotionDetails,
+        incentives: detailedQuote.quoteFinanceProduct.incentiveDetails,
+      },
     });
 
     let maxDownPaymentValue = maxDownPayment;
@@ -922,11 +905,7 @@ export class QuoteService {
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = currentUpfrontPayment;
 
-    detailedQuote.quoteFinanceProduct.netAmount = this.quoteFinanceProductService.calculateNetAmount(
-      quoteCostBuildUp.projectGrossTotal.netCost,
-      totalPercentageReduction,
-      totalAmountReduction,
-    );
+    detailedQuote.quoteFinanceProduct.netAmount = quoteCostBuildUp.projectGrandTotal.netCost;
 
     detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
       TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
@@ -1222,15 +1201,9 @@ export class QuoteService {
 
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
 
-    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
-      quoteFinanceProduct,
-    );
-
-    newQuoteFinanceProduct.netAmount = this.quoteFinanceProductService.calculateNetAmount(
-      grossPrice,
-      totalPercentageReduction,
-      totalAmountReduction,
-    );
+    newQuoteFinanceProduct.netAmount = new BigNumber(grossPrice)
+      .minus(quoteCostBuildup.totalPromotionsDiscountsAndSwellGridrewards.total)
+      .toNumber();
     newQuoteFinanceProduct.financeProduct.productAttribute = this.handleUpdateProductAttribute(newQuoteFinanceProduct);
 
     return newQuoteFinanceProduct;

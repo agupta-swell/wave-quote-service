@@ -45,6 +45,18 @@ export class IncentiveDetailsDto {
   @IsNotEmpty()
   @IsNumber()
   amount: number;
+
+  @ApiProperty()
+  cogsAllocation: number;
+
+  @ApiProperty()
+  cogsAmount: number;
+
+  @ApiProperty()
+  marginAllocation: number;
+
+  @ApiProperty()
+  marginAmount: number;
 }
 
 export class RebateDetailsDto {

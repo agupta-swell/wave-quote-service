@@ -3,6 +3,13 @@ import { ITotalPromotionsDiscountsAndSwellGridrewards } from 'src/quotes/interfa
 
 export const totalPromotionsDiscountsAndSwellGridrewardsSchema = new Schema<
   Document & ITotalPromotionsDiscountsAndSwellGridrewards
->({
-  total: Number,
-});
+>(
+  {
+    cogs_amount: Number,
+    margin_amount: Number,
+    total: Number,
+  },
+  {
+    _id: false,
+  },
+);
