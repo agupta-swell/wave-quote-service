@@ -51,8 +51,8 @@ export class UpdateSystemDesignDto {
   @IsBoolean()
   isSolar: boolean;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
+  @IsNotEmpty()
   @IsBoolean()
   isRetrofit: boolean;
 

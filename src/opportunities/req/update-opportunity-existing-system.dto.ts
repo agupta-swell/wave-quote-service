@@ -1,48 +1,54 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export class UpdateOpportunityExistingSystemDto {
   @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
+  @IsBoolean()
+  existingPV: boolean;
+
+  @ApiProperty()
+  @IsNotEmpty()
   @IsBoolean()
   hasGrantedHomeBatterySystemRights: boolean;
 
   @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
   @IsBoolean()
   hasHadOtherDemandResponseProvider: boolean;
 
   @ApiProperty()
+  @IsNotEmpty()
   originalInstaller: string;
 
   @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
   existingPVSize: number;
 
   @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
   @IsInt()
   @Min(1000)
   yearSystemInstalled: number;
 
   @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
   @IsEnum(INVERTER_TYPE_EXISTING_SOLAR)
   inverter: INVERTER_TYPE_EXISTING_SOLAR;
 
   @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
   @IsEnum(FINANCE_TYPE_EXISTING_SOLAR)
   financeType: FINANCE_TYPE_EXISTING_SOLAR;
 
   @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
   inverterManufacturer: string;
 
   @ApiProperty()
-  @IsOptional()
+  @IsNotEmpty()
   inverterModel: string;
 
   @ApiProperty()
