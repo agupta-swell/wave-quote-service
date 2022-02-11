@@ -2,8 +2,10 @@
 import { Injectable } from '@nestjs/common';
 import { BigNumber } from 'bignumber.js';
 import { LeanDocument } from 'mongoose';
+import { IDiscount } from 'src/discounts/interfaces';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { IPromotion } from 'src/promotions/interfaces';
 import { roundNumber } from 'src/utils/transformNumber';
 import { FINANCE_PRODUCT_TYPE } from '../constants';
 import {
@@ -14,8 +16,10 @@ import {
   IBaseQuoteMarginData,
   ICreateQuoteCostBuildupParams,
 } from '../interfaces';
-import { IBaseCostBuildupFee, ICashDiscount } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
+import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from '../interfaces/quote-cost-buildup/ITotalPromotionsDiscountsGridrewards';
+import { IIncentiveDetailsSchema } from '../quote.schema';
+import { QuoteFinanceProductService } from './quote-finance-product.service';
 
 @Injectable()
 export class QuoteCostBuildUpService {
@@ -71,23 +75,48 @@ export class QuoteCostBuildUpService {
     const netCost = totalCost.plus(totalMarkupAmount);
 
     return {
-      cost: roundNumber(totalCost.toNumber(), 2),
-      netCost: roundNumber(netCost.toNumber(), 2),
-      markupAmount: roundNumber(totalMarkupAmount.toNumber(), 2),
+      cost: totalCost.toNumber(),
+      netCost: netCost.toNumber(),
+      markupAmount: totalMarkupAmount.toNumber(),
       markupPercentage: markupPercentage.toNumber(),
     };
   }
 
   public calculateTotalPromotionsDiscountsAndSwellGridrewards(
-    projectGrossTotal: IQuoteCost<unknown>,
-    totalAmountReduction = 0,
-    totalPercentageReduction = 0,
+    grossPrice: number,
+    discounts: IDiscount[] = [],
+    promotions: IPromotion[] = [],
+    incentives: IIncentiveDetailsSchema[] = [],
   ): ITotalPromotionsDiscountsAndSwellGridrewards {
-    const total = new BigNumber(totalAmountReduction).plus(
-      new BigNumber(totalPercentageReduction).multipliedBy(projectGrossTotal.netCost).dividedBy(100),
-    );
+    let cogs = new BigNumber(0);
+    let margin = new BigNumber(0);
+
+    discounts.forEach(discount => {
+      QuoteFinanceProductService.attachImpact(discount, grossPrice);
+      cogs = cogs.plus(discount.cogsAmount);
+      margin = margin.plus(discount.marginAmount);
+    });
+
+    promotions.forEach(promotion => {
+      QuoteFinanceProductService.attachImpact(promotion, grossPrice);
+      cogs = cogs.plus(promotion.cogsAmount);
+      margin = margin.plus(promotion.marginAmount);
+    });
+
+    incentives.forEach(incentive => {
+      // incentives are 0% cogs and 100% margin
+      QuoteFinanceProductService.attachImpact(incentive, grossPrice);
+      margin = margin.plus(incentive.marginAmount);
+    });
+
+    const cogsAmount = cogs.toNumber();
+    const marginAmount = margin.toNumber();
+    const total = cogs.plus(margin).toNumber();
+
     return {
-      total: roundNumber(total.toNumber(), 2),
+      cogsAmount,
+      marginAmount,
+      total,
     };
   }
 
@@ -95,17 +124,16 @@ export class QuoteCostBuildUpService {
     projectGrossTotal: IQuoteCost<unknown>,
     totalPromotionsDiscountsAndSwellGridrewards: ITotalPromotionsDiscountsAndSwellGridrewards,
   ): IBaseQuoteMarginData {
-    const netMargin = new BigNumber(projectGrossTotal.markupAmount).minus(
-      totalPromotionsDiscountsAndSwellGridrewards.total,
-    );
+    const cost = new BigNumber(projectGrossTotal.cost).minus(totalPromotionsDiscountsAndSwellGridrewards.cogsAmount);
 
-    const marginPercentage =
-      projectGrossTotal.cost === 0 ? new BigNumber(0) : netMargin.dividedBy(projectGrossTotal.cost).multipliedBy(100);
+    const netCost = new BigNumber(projectGrossTotal.netCost).minus(totalPromotionsDiscountsAndSwellGridrewards.total);
 
-    const netCost = netMargin.plus(projectGrossTotal.cost);
+    const netMargin = netCost.minus(cost);
+
+    const marginPercentage = netMargin.dividedBy(netCost).multipliedBy(100);
 
     return {
-      cost: projectGrossTotal.cost,
+      cost: cost.toNumber(),
       marginPercentage: marginPercentage.toNumber(),
       netCost: netCost.toNumber(),
       netMargin: netMargin.toNumber(),
@@ -117,7 +145,9 @@ export class QuoteCostBuildUpService {
     projectSubtotalWithDiscountsPromotionsAndSwellGridrewards: IBaseQuoteMarginData,
     salesOriginationManagerFee: IBaseCostBuildupFee,
   ): IBaseQuoteMarginData {
-    const cost = new BigNumber(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost).plus(salesOriginationManagerFee.cogsAmount);
+    const cost = new BigNumber(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost).plus(
+      salesOriginationManagerFee.cogsAmount,
+    );
 
     const netCost = new BigNumber(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.netCost).plus(
       salesOriginationManagerFee.total,
@@ -125,8 +155,7 @@ export class QuoteCostBuildUpService {
 
     const netMargin = new BigNumber(netCost).minus(cost);
 
-    const marginPercentage =
-      projectGrossTotal.cost === 0 ? new BigNumber(0) : netMargin.dividedBy(projectGrossTotal.cost).multipliedBy(100);
+    const marginPercentage = netCost.eq(0) ? new BigNumber(0) : netMargin.dividedBy(netCost).multipliedBy(100);
 
     return {
       cost: cost.toNumber(),
@@ -400,6 +429,47 @@ export class QuoteCostBuildUpService {
     };
   }
 
+  private calculateAddidionalFees(
+    salesOriginationSalesFee: IBaseCostBuildupFee,
+    thirdPartyFinancingDealerFee: IBaseCostBuildupFee,
+    cashDiscount: IBaseCostBuildupFee,
+  ): IAdditionalFees {
+    return {
+      total: new BigNumber(salesOriginationSalesFee.total)
+        .plus(thirdPartyFinancingDealerFee.total)
+        .minus(cashDiscount.total)
+        .toNumber(),
+      cogsAmount: new BigNumber(salesOriginationSalesFee.cogsAmount)
+        .plus(thirdPartyFinancingDealerFee.cogsAmount)
+        .minus(cashDiscount.cogsAmount)
+        .toNumber(),
+      marginAmount: new BigNumber(salesOriginationSalesFee.cogsAmount)
+        .plus(thirdPartyFinancingDealerFee.cogsAmount)
+        .minus(cashDiscount.cogsAmount)
+        .toNumber(),
+    };
+  }
+
+  private calculateProjectGrandTotal(
+    subtotalWithSalesOriginationManagerFee: IBaseQuoteMarginData,
+    additionalFees: IAdditionalFees,
+  ): IBaseQuoteMarginData {
+    const grandTotalNetCost = new BigNumber(additionalFees.total).plus(subtotalWithSalesOriginationManagerFee.netCost);
+
+    const grandTotalCost = new BigNumber(subtotalWithSalesOriginationManagerFee.cost).plus(additionalFees.cogsAmount);
+
+    const grandTotalNetMargin = new BigNumber(grandTotalNetCost).minus(grandTotalCost);
+
+    const grandTotalMarginPercentage = grandTotalNetMargin.dividedBy(grandTotalNetCost).multipliedBy(100);
+
+    return {
+      cost: grandTotalCost.toNumber(),
+      marginPercentage: grandTotalMarginPercentage.toNumber(),
+      netMargin: grandTotalNetMargin.toNumber(),
+      netCost: grandTotalNetCost.toNumber(),
+    };
+  }
+
   public create({
     roofTopDesignData,
     partnerMarkup,
@@ -407,7 +477,10 @@ export class QuoteCostBuildUpService {
     dealerFeePercentage = 0,
     financialProduct,
     fundingSourceType,
+    discountsPromotionsAndIncentives = {},
   }: ICreateQuoteCostBuildupParams): IQuoteCostBuildup {
+    const { discounts, promotions, incentives } = discountsPromotionsAndIncentives;
+
     const adderQuoteDetails = this.calculateAddersQuoteCost(roofTopDesignData.adders, partnerMarkup.adderMarkup);
 
     const ancillaryEquipmentDetails = this.calculateAncillaryEquipmentsQuoteCost(
@@ -496,9 +569,10 @@ export class QuoteCostBuildUpService {
     ]);
 
     const totalPromotionsDiscountsAndSwellGridrewards = this.calculateTotalPromotionsDiscountsAndSwellGridrewards(
-      projectGrossTotal,
-      userInputs?.totalAmountReduction,
-      userInputs?.totalPercentageReduction,
+      projectGrossTotal.netCost,
+      discounts,
+      promotions,
+      incentives,
     );
 
     const projectSubtotalWithDiscountsPromotionsAndSwellGridrewards = this.calculateProjectSubtotalWithDiscountsPromotionsAndSwellGridrewards(
@@ -545,30 +619,13 @@ export class QuoteCostBuildUpService {
       fundingSourceType,
     );
 
-    const additionalFees = {
-      total: roundNumber(salesOriginationSalesFee.total + thirdPartyFinancingDealerFee.total - cashDiscount.total, 2),
-    };
+    const additionalFees = this.calculateAddidionalFees(
+      salesOriginationSalesFee,
+      thirdPartyFinancingDealerFee,
+      cashDiscount,
+    );
 
-    // TODO: waiting for COGS
-    const grandTotalNetCost = new BigNumber(additionalFees.total)
-      .plus(subtotalWithSalesOriginationManagerFee.netCost)
-      .toNumber();
-
-    const grandTotalNetMargin = new BigNumber(grandTotalNetCost)
-      .minus(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost)
-      .toNumber();
-
-    const grandTotalMarginPercentage = new BigNumber(grandTotalNetMargin)
-      .dividedBy(projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost)
-      .multipliedBy(100)
-      .toNumber();
-
-    const projectGrandTotal = {
-      cost: projectSubtotalWithDiscountsPromotionsAndSwellGridrewards.cost,
-      marginPercentage: grandTotalMarginPercentage,
-      netMargin: grandTotalNetMargin,
-      netCost: grandTotalNetCost,
-    };
+    const projectGrandTotal = this.calculateProjectGrandTotal(subtotalWithSalesOriginationManagerFee, additionalFees);
 
     return {
       adderQuoteDetails,

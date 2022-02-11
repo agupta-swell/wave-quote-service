@@ -4,12 +4,15 @@ import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-conf
 import { QuoteCostBuildupUserInputDto } from 'src/quotes/res/sub-dto';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
+import { IDiscount } from 'src/discounts/interfaces';
+import { IPromotion } from 'src/promotions/interfaces';
+import { IIncentiveDetailsSchema } from 'src/quotes/quote.schema';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
 import { IQuoteCost } from './IQuoteCost';
 import { IBaseQuoteMarginData } from './IBaseQuoteMarginData';
 import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount } from './ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
-import { ICreateQuoteCostBuildUpArg } from '.';
+import { ICreateQuoteCostBuildUpArg } from './ICreateQuoteCostBuildUpArg';
 
 export interface IQuoteCostBuildup {
   panelQuoteDetails: IQuoteCost<PRODUCT_TYPE.MODULE>[];
@@ -50,4 +53,9 @@ export interface ICreateQuoteCostBuildupParams {
   fundingSourceType: FINANCE_PRODUCT_TYPE;
   userInputs?: QuoteCostBuildupUserInputDto;
   dealerFeePercentage: number;
+  discountsPromotionsAndIncentives?: {
+    discounts?: IDiscount[];
+    promotions?: IPromotion[];
+    incentives?: IIncentiveDetailsSchema[];
+  };
 }

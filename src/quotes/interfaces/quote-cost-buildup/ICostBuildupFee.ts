@@ -12,4 +12,6 @@ export interface ICashDiscount extends IBaseCostBuildupFee {
 
 export interface IAdditionalFees {
   total: number;
+  cogsAmount: number;
+  marginAmount: number;
 }

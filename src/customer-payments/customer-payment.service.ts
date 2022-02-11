@@ -5,6 +5,7 @@ import { BigNumber } from 'bignumber.js';
 import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { QuoteCostBuildUpService, QuoteFinanceProductService } from 'src/quotes/sub-services';
 import { roundNumber } from 'src/utils/transformNumber';
+import { BigNumberUtils } from 'src/utils';
 import { CustomerPayment, CUSTOMER_PAYMENT } from './customer-payment.schema';
 
 @Injectable()
@@ -32,58 +33,32 @@ export class CustomerPaymentService {
   async create(
     contractId: string | ObjectId,
     opportunityId: string,
-    quote: IDetailedQuoteSchema,
+    detailedQuote: IDetailedQuoteSchema,
   ): Promise<CustomerPayment> {
     const customerPayment = new this.customerPaymentModel();
 
-    const { quoteCostBuildup, quoteFinanceProduct } = quote;
+    const { quoteCostBuildup, quoteFinanceProduct } = detailedQuote;
 
     customerPayment.opportunityId = opportunityId;
     customerPayment.wqtContractId = contractId.toString();
 
     customerPayment.netAmount = quoteCostBuildup.projectGrandTotal.netCost;
 
-    customerPayment.rebate = QuoteFinanceProductService.calculateReductions(
-      quoteFinanceProduct.rebateDetails,
-      quoteCostBuildup.projectGrossTotal.netCost,
-    );
+    customerPayment.rebate = BigNumberUtils.sumBy(quoteFinanceProduct.rebateDetails, 'amount').toNumber();
 
-    const [
-      totalCreditPercentageReduction,
-      totalCreditAmountReduction,
-    ] = this.quoteFinanceProductService.calculateReduction({
-      ...quoteFinanceProduct,
-      promotionDetails: [],
-    });
-
-    customerPayment.credit = new BigNumber(
-      this.quoteCostBuildupService.calculateTotalPromotionsDiscountsAndSwellGridrewards(
-        quoteCostBuildup.projectGrossTotal,
-        totalCreditAmountReduction,
-        totalCreditPercentageReduction,
-      ).total,
-    )
+    customerPayment.credit = BigNumberUtils.sumBy(quoteFinanceProduct.projectDiscountDetails, 'amount')
+      .plus(BigNumberUtils.sumBy(quoteFinanceProduct.incentiveDetails, 'amount'))
       .plus(quoteCostBuildup.cashDiscount.total)
       .toNumber();
 
-    customerPayment.programIncentiveDiscount = QuoteFinanceProductService.calculateReductions(
+    customerPayment.programIncentiveDiscount = BigNumberUtils.sumBy(
       quoteFinanceProduct.promotionDetails,
-      quoteCostBuildup.projectGrossTotal.netCost,
-    );
+      'amount',
+    ).toNumber();
 
-    const [totalPercentageReduction, totalAmountReduction] = this.quoteFinanceProductService.calculateReduction(
-      quoteFinanceProduct,
-    );
-
-    const reductionsAmount = this.quoteCostBuildupService.calculateTotalPromotionsDiscountsAndSwellGridrewards(
-      quoteCostBuildup.projectGrossTotal,
-      totalAmountReduction,
-      totalPercentageReduction,
-    );
-
-    customerPayment.amount = new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
-      .plus(reductionsAmount.total)
-      .plus(quoteCostBuildup.cashDiscount.total)
+    customerPayment.amount = new BigNumber(customerPayment.netAmount)
+      .plus(customerPayment.credit)
+      .plus(customerPayment.programIncentiveDiscount)
       .toNumber();
 
     customerPayment.adjustment = 0;

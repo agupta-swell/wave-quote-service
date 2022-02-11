@@ -131,6 +131,12 @@ export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto implem
 
 export class TotalPromotionsDiscountsAndSwellGridrewardsDto implements ITotalPromotionsDiscountsAndSwellGridrewards {
   @ExposeProp()
+  cogsAmount: number;
+
+  @ExposeProp()
+  marginAmount: number;
+
+  @ExposeProp()
   total: number;
 }
 
@@ -180,13 +186,15 @@ export class CashDiscountDto implements ICashDiscount {
 export class AdditionalFeesDto implements IAdditionalFees {
   @ExposeProp()
   total: number;
+
+  @ExposeProp()
+  cogsAmount: number;
+
+  @ExposeProp()
+  marginAmount: number;
 }
 
 export class QuoteCostBuildupUserInputDto {
-  totalPercentageReduction?: number;
-
-  totalAmountReduction?: number;
-
   salesOriginationSalesFee?: BaseCostBuildupFeeDto;
 }
 

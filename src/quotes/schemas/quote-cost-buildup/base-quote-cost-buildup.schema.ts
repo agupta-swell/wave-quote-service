@@ -9,7 +9,9 @@ const baseQuoteCostBuildupSchemaDefinition = {
   net_cost: Number,
 };
 
-export const BaseQuoteCostDataSchema = new Schema<Document & IBaseQuoteCost>(baseQuoteCostBuildupSchemaDefinition);
+export const BaseQuoteCostDataSchema = new Schema<Document & IBaseQuoteCost>(baseQuoteCostBuildupSchemaDefinition, {
+  _id: false,
+});
 
 export const createQuoteCostBuildupSchema = <T extends PRODUCT_TYPE>(
   schema: Record<string, any>,
