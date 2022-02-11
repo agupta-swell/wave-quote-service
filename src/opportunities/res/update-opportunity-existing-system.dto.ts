@@ -3,9 +3,6 @@ import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/s
 
 export class UpdateOpportunityExistingSystemDto {
   @ExposeProp()
-  existingPV: boolean;
-
-  @ExposeProp()
   hasGrantedHomeBatterySystemRights: boolean;
 
   @ExposeProp()

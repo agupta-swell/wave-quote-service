@@ -1,44 +1,44 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsNumber, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export class ExistingSolarDataDto {
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   originalInstaller?: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   existingPVSize?: number;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   yearSystemInstalled?: number;
 
-  @ApiProperty({ enum: INVERTER_TYPE_EXISTING_SOLAR })
-  @IsNotEmpty()
+  @ApiPropertyOptional({ enum: INVERTER_TYPE_EXISTING_SOLAR })
+  @IsOptional()
   @IsEnum(INVERTER_TYPE_EXISTING_SOLAR)
   inverter?: INVERTER_TYPE_EXISTING_SOLAR;
 
-  @ApiProperty({ enum: FINANCE_TYPE_EXISTING_SOLAR })
-  @IsNotEmpty()
+  @ApiPropertyOptional({ enum: FINANCE_TYPE_EXISTING_SOLAR })
+  @IsOptional()
   @IsEnum(FINANCE_TYPE_EXISTING_SOLAR)
   financeType?: FINANCE_TYPE_EXISTING_SOLAR;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   inverterManufacturer?: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   inverterModel?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   @IsOptional()
   @ValidateIf(o => o.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO)
   @IsString()

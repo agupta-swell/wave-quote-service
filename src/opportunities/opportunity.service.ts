@@ -88,30 +88,8 @@ export class OpportunityService {
       throw ApplicationException.EntityNotFound(opportunityId);
     }
 
-    let updateOpportunityQuery: any = existingSystem;
-
-    if (!existingSystem.existingPV) {
-      updateOpportunityQuery = {
-        $set: {
-          existingPV: false,
-          hasHadOtherDemandResponseProvider: false,
-          hasGrantedHomeBatterySystemRights: false,
-        },
-        $unset: {
-          existingPVSize: '',
-          yearSystemInstalled: '',
-          originalInstaller: '',
-          inverter: '',
-          financeType: '',
-          tpoFundingSource: '',
-          inverterManufacturer: '',
-          inverterModel: '',
-        },
-      };
-    }
-
     const savedOpportunity = await this.opportunityModel
-      .findByIdAndUpdate(opportunityId, updateOpportunityQuery, { new: true })
+      .findByIdAndUpdate(opportunityId, existingSystem, { new: true })
       .lean();
 
     const updatedOpportunity = strictPlainToClass(UpdateOpportunityExistingSystemDtoRes, savedOpportunity);

@@ -91,7 +91,8 @@ export class SystemDesignService {
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
-      systemDesignDto.isRetrofit,
+      // systemDesignDto.isRetrofit,
+      true,
       systemDesignDto.existingSolarData,
     );
 
@@ -718,7 +719,8 @@ export class SystemDesignService {
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
-      systemDesignDto.isRetrofit,
+      // systemDesignDto.isRetrofit,
+      true,
       systemDesignDto.existingSolarData,
     );
 
@@ -1030,8 +1032,6 @@ export class SystemDesignService {
       this.opportunityService.updateExistingOppDataById(opportunityId, {
         $set: {
           existingPV: false,
-          hasHadOtherDemandResponseProvider: false,
-          hasGrantedHomeBatterySystemRights: false,
         },
         $unset: {
           existingPVSize: '',
