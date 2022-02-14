@@ -161,4 +161,10 @@ export class FinanceProductDetailDto {
 
   @ApiProperty()
   processingFee: number;
+
+  @ApiProperty()
+  payment1: number;
+
+  @ApiProperty()
+  payment1PayPercent: boolean;
 }

@@ -111,4 +111,10 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   processingFee: number;
+
+  @ExposeProp()
+  payment1: number;
+
+  @ExposeProp()
+  payment1PayPercent: boolean;
 }
