@@ -15,6 +15,8 @@ import {
   ICreateQuoteCostBuildUpArg,
   IBaseQuoteMarginData,
   ICreateQuoteCostBuildupParams,
+  IBaseQuoteCost,
+  ISalesTaxData,
 } from '../interfaces';
 import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from '../interfaces/quote-cost-buildup/ITotalPromotionsDiscountsGridrewards';
@@ -470,6 +472,73 @@ export class QuoteCostBuildUpService {
     };
   }
 
+  private calculateTaxableEquipmentSubtotal(
+    moduleCosts: IQuoteCost<PRODUCT_TYPE.MODULE>[],
+    storageCosts: IQuoteCost<PRODUCT_TYPE.BATTERY>[],
+    inverterCosts: IQuoteCost<PRODUCT_TYPE.INVERTER>[],
+    ancillaryCosts: IQuoteCost<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>[],
+  ): IBaseQuoteCost {
+    let netCost = new BigNumber(0);
+    let markupAmount = new BigNumber(0);
+
+    moduleCosts.forEach(moduleCost => {
+      netCost = netCost.plus(moduleCost.netCost);
+      markupAmount = markupAmount.plus(moduleCost.markupAmount);
+    });
+
+    storageCosts.forEach(storageCost => {
+      netCost = netCost.plus(storageCost.netCost);
+      markupAmount = markupAmount.plus(storageCost.markupAmount);
+    });
+
+    inverterCosts.forEach(inverterCost => {
+      netCost = netCost.plus(inverterCost.netCost);
+      markupAmount = markupAmount.plus(inverterCost.markupAmount);
+    });
+
+    ancillaryCosts.forEach(ancillaryCost => {
+      netCost = netCost.plus(ancillaryCost.netCost);
+      markupAmount = markupAmount.plus(ancillaryCost.markupAmount);
+    });
+
+    const cost = netCost.minus(markupAmount);
+
+    const markupPercentage = markupAmount.dividedBy(cost).multipliedBy(100);
+
+    return {
+      cost: cost.toNumber(),
+      markupAmount: markupAmount.toNumber(),
+      markupPercentage: markupPercentage.toNumber(),
+      netCost: netCost.toNumber(),
+    };
+  }
+
+  private calculateSalesTax(taxableEquipmentSubtotal: IBaseQuoteCost, taxRate = 9): ISalesTaxData {
+    const salesTax = new BigNumber(taxableEquipmentSubtotal.netCost).times(taxRate).div(100);
+
+    return {
+      taxAmount: roundNumber(salesTax.toNumber(), 2),
+      taxRate,
+    };
+  }
+
+  private calculateEquipmentSubTotalWithSalesTax(
+    taxableEquipmentSubtotal: IBaseQuoteCost,
+    salesTaxData: ISalesTaxData,
+  ): IBaseQuoteCost {
+    const netCost = new BigNumber(taxableEquipmentSubtotal.netCost).plus(salesTaxData.taxAmount);
+    const cost = new BigNumber(taxableEquipmentSubtotal.cost).plus(salesTaxData.taxAmount);
+
+    const markupPercentage = new BigNumber(taxableEquipmentSubtotal.markupAmount).dividedBy(cost).multipliedBy(100);
+
+    return {
+      cost: cost.toNumber(),
+      markupAmount: taxableEquipmentSubtotal.markupAmount,
+      markupPercentage: markupPercentage.toNumber(),
+      netCost: netCost.toNumber(),
+    };
+  }
+
   public create({
     roofTopDesignData,
     partnerMarkup,
@@ -508,45 +577,22 @@ export class QuoteCostBuildUpService {
 
     const generalMarkup = partnerMarkup.generalMarkup;
 
-    let totalProductCost = new BigNumber(0);
-
-    adderQuoteDetails.forEach(adder => {
-      totalProductCost = totalProductCost.plus(adder.cost);
-    });
-
-    ancillaryEquipmentDetails.forEach(ancillaryEquipment => {
-      totalProductCost = totalProductCost.plus(ancillaryEquipment.cost);
-    });
-
-    balanceOfSystemDetails.forEach(balanceOfSystem => {
-      totalProductCost = totalProductCost.plus(balanceOfSystem.cost);
-    });
-
-    inverterQuoteDetails.forEach(inverter => {
-      totalProductCost = totalProductCost.plus(inverter.cost);
-    });
-
-    panelQuoteDetails.forEach(panel => {
-      totalProductCost = totalProductCost.plus(panel.cost);
-    });
-
-    storageQuoteDetails.forEach(storage => {
-      totalProductCost = totalProductCost.plus(storage.cost);
-    });
-
-    laborCostQuoteDetails.forEach(labor => {
-      totalProductCost = totalProductCost.plus(labor.cost);
-    });
-
-    softCostQuoteDetails.forEach(softCost => {
-      totalProductCost = totalProductCost.plus(softCost.cost);
-    });
-
-    const equipmentSubtotal = this.sumQuoteCosts(
+    const taxableEquipmentSubtotal = this.calculateTaxableEquipmentSubtotal(
       panelQuoteDetails,
       storageQuoteDetails,
       inverterQuoteDetails,
       ancillaryEquipmentDetails,
+    );
+
+    const salesTax = this.calculateSalesTax(taxableEquipmentSubtotal);
+
+    const equipmentSubtotalWithSalesTax = this.calculateEquipmentSubTotalWithSalesTax(
+      taxableEquipmentSubtotal,
+      salesTax,
+    );
+
+    const equipmentSubtotal = this.sumQuoteCosts(
+      [equipmentSubtotalWithSalesTax],
       balanceOfSystemDetails,
       softCostQuoteDetails,
     );
@@ -650,6 +696,9 @@ export class QuoteCostBuildUpService {
       cashDiscount,
       additionalFees,
       projectGrandTotal,
+      taxableEquipmentSubtotal,
+      equipmentSubtotalWithSalesTax,
+      salesTax,
     };
   }
 }

@@ -11,6 +11,7 @@ import {
   IAdditionalFees,
   ITotalPromotionsDiscountsAndSwellGridrewards,
   ICashDiscount,
+  ISalesTaxData,
 } from 'src/quotes/interfaces';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
@@ -194,6 +195,14 @@ export class AdditionalFeesDto implements IAdditionalFees {
   marginAmount: number;
 }
 
+export class SalesTaxDataDto implements ISalesTaxData {
+  @ExposeProp()
+  taxRate: number;
+
+  @ExposeProp()
+  taxAmount: number;
+}
+
 export class QuoteCostBuildupUserInputDto {
   salesOriginationSalesFee?: BaseCostBuildupFeeDto;
 }
@@ -267,4 +276,13 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
 
   @ExposeProp({ type: AdditionalFeesDto })
   additionalFees: AdditionalFeesDto;
+
+  @ExposeProp({ type: QuoteCostBuildupCommon })
+  taxableEquipmentSubtotal: QuoteCostBuildupCommon;
+
+  @ExposeProp({ type: SalesTaxDataDto })
+  salesTax: SalesTaxDataDto;
+
+  @ExposeProp({ type: QuoteCostBuildupCommon })
+  equipmentSubtotalWithSalesTax: QuoteCostBuildupCommon;
 }

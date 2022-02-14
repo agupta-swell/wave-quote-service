@@ -141,7 +141,7 @@ export class ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto implem
   netCost: number;
 }
 
-export class QuoteCostBuildupDto implements IQuoteCostBuildup {
+export class QuoteCostBuildupDto implements Partial<IQuoteCostBuildup> {
   @ApiProperty({ type: PanelQuoteDetailsDto, isArray: true })
   panelQuoteDetails: PanelQuoteDetailsDto[];
 

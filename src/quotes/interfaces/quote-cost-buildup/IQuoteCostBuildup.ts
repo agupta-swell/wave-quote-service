@@ -13,6 +13,7 @@ import { IBaseQuoteMarginData } from './IBaseQuoteMarginData';
 import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount } from './ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
 import { ICreateQuoteCostBuildUpArg } from './ICreateQuoteCostBuildUpArg';
+import { ISalesTaxData } from './ISalesTaxData';
 
 export interface IQuoteCostBuildup {
   panelQuoteDetails: IQuoteCost<PRODUCT_TYPE.MODULE>[];
@@ -37,6 +38,9 @@ export interface IQuoteCostBuildup {
   subtotalWithSalesOriginationManagerFee: IBaseQuoteMarginData;
   additionalFees: IAdditionalFees;
   projectGrandTotal: IBaseQuoteMarginData;
+  taxableEquipmentSubtotal: IBaseQuoteCost;
+  salesTax: ISalesTaxData;
+  equipmentSubtotalWithSalesTax: IBaseQuoteCost;
 }
 
 export type IQuoteCostBuildupDocument = Document &
