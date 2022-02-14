@@ -91,8 +91,7 @@ export class SystemDesignService {
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
-      // systemDesignDto.isRetrofit,
-      true,
+      systemDesignDto.isRetrofit,
       systemDesignDto.existingSolarData,
     );
 
@@ -719,8 +718,7 @@ export class SystemDesignService {
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
-      // systemDesignDto.isRetrofit,
-      true,
+      systemDesignDto.isRetrofit,
       systemDesignDto.existingSolarData,
     );
 
