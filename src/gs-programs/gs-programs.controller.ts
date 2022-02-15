@@ -16,17 +16,17 @@ export class GsProgramsController {
   @ApiQuery({ name: 'limit' })
   @ApiQuery({ name: 'skip' })
   @ApiQuery({ name: 'utility-program-master-id' })
-  @ApiQuery({ name: 'quote-id' })
+  @ApiQuery({ name: 'systemdesign-id' })
   @ApiOperation({ summary: 'Get List GsPrograms' })
   @ApiOkResponse({ type: GsProgramsPaginationRes })
   async getGsPrograms(
-    @Query() query: { limit: string; skip: string; 'utility-program-master-id': string, 'quote-id': string },
+    @Query() query: { limit: string; skip: string; 'utility-program-master-id': string, 'systemdesign-id': string },
   ): Promise<ServiceResponse<Pagination<GsProgramsDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
     const utilityProgramMasterId = query['utility-program-master-id'];
-    const quoteId = query['quote-id'];
-    const gsPrograms = await this.gsProgramsService.getList(limit, skip, utilityProgramMasterId, quoteId);
+    const systemDesignId = query['systemdesign-id'];
+    const gsPrograms = await this.gsProgramsService.getList(limit, skip, utilityProgramMasterId, systemDesignId);
 
     return ServiceResponse.fromResult(gsPrograms);
   }

@@ -33,30 +33,21 @@ export class GsProgramsService {
     limit: number,
     skip: number,
     utilityProgramMasterId: string,
-    quoteId: string,
+    systemDesignId: string,
   ): Promise<OperationResult<Pagination<GsProgramsDto>>> {
-    const quote = await this.quoteService.getOneFullQuoteDataById(quoteId);
-    if (!quote) {
-      throw ApplicationException.EntityNotFound(`Quote Id: ${quoteId}`);
-    }
-
-    const systemDesign = await this.systemDesignService.getRoofTopDesignById(quote.systemDesignId);
+    const systemDesign = await this.systemDesignService.getRoofTopDesignById(systemDesignId);
 
     if (!systemDesign) {
-      throw ApplicationException.EntityNotFound(`System Design Id: ${quote.systemDesignId}`);
+      throw ApplicationException.EntityNotFound(`System Design Id: ${systemDesignId}`);
     }
 
     const { storage } = systemDesign;
 
-    const {
-      quoteCostBuildup: { storageQuoteDetails },
-    } = quote.detailedQuote;
-
-    if (!storageQuoteDetails?.length || !storage.length) {
+    if (!storage.length) {
       throw ApplicationException.EntityNotFound('There is no battery');
     }
 
-    const { storageModelDataSnapshot } = storageQuoteDetails[0];
+    const { storageModelDataSnapshot } = storage[0];
     const storageSize = storage.reduce(
       (acc, cur) => acc + cur.quantity * cur.storageModelDataSnapshot.ratings.kilowattHours,
       0,
