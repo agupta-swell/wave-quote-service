@@ -3,6 +3,8 @@ import { ITaxCreditConfigDocument, ITaxCreditConfigSnapshotDocument } from './in
 
 export const TaxCreditConfigSchema = new Schema<ITaxCreditConfigDocument>({
   name: String,
+  is_federal: Boolean,
+  state_code: String,
   percentage: Number,
   start_date: Date,
   end_date: Date,

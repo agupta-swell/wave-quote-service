@@ -9,6 +9,12 @@ export class TaxCreditConfigResDto {
   name: string;
 
   @ExposeProp()
+  isFederal: boolean;
+
+  @ExposeProp()
+  stateCode: string;
+
+  @ExposeProp()
   percentage: number;
 
   @ExposeProp()

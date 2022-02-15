@@ -95,10 +95,11 @@ export class QuoteService {
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const [systemDesign, quoteConfigData, taxCreditData] = await Promise.all([
+    const [systemDesign, quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+      this.opportunityService.getRelatedInformation(data.opportunityId)
     ]);
 
     if (!systemDesign) {
@@ -216,9 +217,12 @@ export class QuoteService {
 
     const obj = new this.quoteModel(model);
 
-    obj.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
-    );
+    const opportunityState = opportunityRelatedInformation?.data?.state;
+    obj.detailedQuote.taxCreditData = taxCreditData
+      .filter(
+        ({ isFederal, stateCode }) => isFederal || (stateCode && opportunityState && stateCode === opportunityState),
+      )
+      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0));
 
     obj.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
@@ -249,9 +253,10 @@ export class QuoteService {
       throw new NotFoundException('System design not found');
     }
 
-    const [markupConfig, taxCreditData] = await Promise.all([
+    const [markupConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+      this.opportunityService.getRelatedInformation(foundQuote.opportunityId)
     ]);
 
     const newDoc = omit(foundQuote, ['_id', 'createdAt', 'updatedAt']);
@@ -410,9 +415,12 @@ export class QuoteService {
 
     model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
 
-    model.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
-    );
+    const opportunityState = opportunityRelatedInformation?.data?.state;
+    model.detailedQuote.taxCreditData = taxCreditData
+      .filter(
+        ({ isFederal, stateCode }) => isFederal || (stateCode && opportunityState && stateCode === opportunityState),
+      )
+      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0));
 
     model.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
@@ -546,11 +554,12 @@ export class QuoteService {
       throw new BadRequestException(isInUsed);
     }
 
-    const [foundQuote, systemDesign, quotePartnerConfig, taxCreditData] = await Promise.all([
+    const [foundQuote, systemDesign, quotePartnerConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+      this.opportunityService.getRelatedInformation(data.opportunityId)
     ]);
 
     if (!foundQuote) {
@@ -564,6 +573,8 @@ export class QuoteService {
     if (!quotePartnerConfig) {
       throw new NotFoundException('No quote partner config');
     }
+
+    const opportunityState = opportunityRelatedInformation?.data?.state;
 
     const {
       quoteFinanceProduct: {
@@ -732,9 +743,11 @@ export class QuoteService {
       quotePricePerWatt: foundQuote.detailedQuote.quotePricePerWatt,
       quotePriceOverride: foundQuote.detailedQuote.quotePriceOverride,
       notes: foundQuote.detailedQuote.notes,
-      taxCreditData: taxCreditData.map(taxCredit =>
-        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
-      ),
+      taxCreditData: taxCreditData
+        .filter(
+          ({ isFederal, stateCode }) => isFederal || (stateCode && opportunityState && stateCode === opportunityState),
+        )
+        .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0)),
     };
 
     detailedQuote.quoteFinanceProduct = this.handleUpdateQuoteFinanceProduct(
@@ -845,10 +858,13 @@ export class QuoteService {
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProductSnapshot;
 
-    const [quoteConfigData, taxCreditData] = await Promise.all([
+    const [quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+      this.opportunityService.getRelatedInformation(data.opportunityId)
     ]);
+
+    const opportunityState = opportunityRelatedInformation?.data?.state;
 
     const detailedQuote = {
       ...data,
@@ -907,9 +923,13 @@ export class QuoteService {
 
     detailedQuote.quoteFinanceProduct.netAmount = quoteCostBuildUp.projectGrandTotal.netCost;
 
-    detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
-    );
+    detailedQuote.taxCreditData = taxCreditData
+      .filter(
+        ({ isFederal, stateCode }) => isFederal || (stateCode && opportunityState && stateCode === opportunityState),
+      )
+      .map(taxCredit =>
+        TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
+      );
 
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
     const avgMonthlySavings = 0; // Commented because we work on battery-only system design for this release.

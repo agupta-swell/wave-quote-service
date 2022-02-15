@@ -50,6 +50,8 @@ export class TaxCreditConfigService {
         $project: {
           name: 1,
           percentage: 1,
+          isFederal: '$is_federal',
+          stateCode: '$state_code',
           startDate: '$startDateInst',
           endDate: '$endDateInst',
           updatedAt: '$updated_at',

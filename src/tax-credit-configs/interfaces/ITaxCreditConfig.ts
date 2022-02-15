@@ -2,6 +2,8 @@ import { Document } from 'mongoose';
 
 export interface ITaxCreditConfig {
   name: string;
+  isFederal: boolean;
+  stateCode?: string;
   percentage: number;
   startDate: Date;
   endDate: Date;
