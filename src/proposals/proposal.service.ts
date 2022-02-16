@@ -4,8 +4,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
-import { identity, pickBy, uniq, cloneDeep } from 'lodash';
-import { ObjectId, LeanDocument, Model } from 'mongoose';
+import { cloneDeep, identity, pickBy, uniq } from 'lodash';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ContactService } from 'src/contacts/contact.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
@@ -329,6 +329,17 @@ export class ProposalService {
       );
       storages.map(item => {
         item.storageModelDataSnapshot.manufacturer = manufacturer.name;
+        return item;
+      });
+    }
+
+    const inverters = proposal.detailedProposal.systemDesignData.roofTopDesignData.inverters;
+    if (inverters.length) {
+      manufacturer = await this.manufacturerService.getOneById(
+        inverters[0].inverterModelDataSnapshot.manufacturerId || '',
+      );
+      inverters.map(item => {
+        item.inverterModelDataSnapshot.manufacturer = manufacturer.name;
         return item;
       });
     }
