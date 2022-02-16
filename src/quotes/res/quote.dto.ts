@@ -32,8 +32,8 @@ class UtilityProgramDto {
 }
 
 class RebateProgramDto {
-  @ExposeProp()
-  _id: string;
+  @ExposeMongoId()
+  id: string;
 
   @ExposeProp()
   name: string;

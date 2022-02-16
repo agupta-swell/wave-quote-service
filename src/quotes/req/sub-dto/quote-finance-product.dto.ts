@@ -2,7 +2,6 @@ import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayUnique,
-  IsArray,
   IsBoolean,
   IsEnum,
   IsNotEmpty,

@@ -1,17 +1,20 @@
 import { Body, Controller, Get, Head, Param, Post, Put, Query, Res, UsePipes, ValidationPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { CurrentUser, ILoggedInUser, PreAuthenticate } from 'src/app/securities';
 import { ResourceGuard } from 'src/app/securities/resource-guard.decorator';
 import { CatchDocusignException } from 'src/docusign-communications/filters';
 import { ReplaceInstalledProductAfterSuccess } from 'src/installed-products/interceptors';
-import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { UseDocusignContext } from 'src/shared/docusign';
 import { ParseDatePipe } from 'src/shared/pipes/parse-date.pipe';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
+import { FastifyFile, FastifyResponse } from '../shared/fastify';
 import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE } from './constants';
+import { Contract } from './contract.schema';
 import { ContractService } from './contract.service';
 import { UseDefaultContractName, UseWetSignContract, VoidRelatedContracts } from './interceptors';
+import { IContractWithDetailedQuote } from './interceptors/wet-sign-contract.interceptor';
 import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier, VoidPrimaryContractPipe } from './pipes';
 import { DownloadContractPipe, IContractDownloadReqPayload } from './pipes/download-contract.validation.pipe';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
@@ -31,9 +34,6 @@ import {
   SendContractReq,
   SendContractRes,
 } from './res';
-import { FastifyFile, FastifyResponse } from '../shared/fastify';
-import { IContractWithDetailedQuote } from './interceptors/wet-sign-contract.interceptor';
-import { Contract } from './contract.schema';
 
 // @ts-ignore
 @ApiTags('Contract')
@@ -65,12 +65,14 @@ export class ContractController {
     @Query('funding-source-id') fundingSourceId: string,
     @Query('contract-type') contractType: CONTRACT_TYPE,
     @Query('system-design-id') systemDesignId: string,
+    @Query('quote-id') quoteId: string,
   ): Promise<ServiceResponse<GetContractTemplatesDto>> {
     const res = await this.contractService.getContractTemplates(
       opportunityId,
       fundingSourceId,
       contractType,
       systemDesignId,
+      quoteId,
     );
     return ServiceResponse.fromResult(res);
   }

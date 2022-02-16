@@ -135,7 +135,7 @@ export class OpportunityService {
 
     const updatedOpportunity = strictPlainToClass(UpdateOpportunityUtilityProgramDtoRes, savedOpportunity);
 
-    await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
+    // await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
 
     return OperationResult.ok(updatedOpportunity);
   }
@@ -156,7 +156,7 @@ export class OpportunityService {
 
     const updatedOpportunity = strictPlainToClass(UpdateOpportunityRebateProgramDtoRes, savedOpportunity);
 
-    await this.quoteService.setOutdatedData(opportunityId, 'Rebate Program');
+    // await this.quoteService.setOutdatedData(opportunityId, 'Rebate Program');
 
     return OperationResult.ok(updatedOpportunity);
   }
