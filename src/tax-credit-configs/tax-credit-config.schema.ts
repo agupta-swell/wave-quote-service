@@ -6,6 +6,7 @@ export const TaxCreditConfigSchema = new Schema<ITaxCreditConfigDocument>({
   is_federal: Boolean,
   state_code: String,
   percentage: Number,
+  applicable_quote_types: [String],
   start_date: Date,
   end_date: Date,
   created_at: { type: Date, default: Date.now },

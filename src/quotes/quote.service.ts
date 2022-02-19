@@ -99,7 +99,7 @@ export class QuoteService {
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
-      this.opportunityService.getRelatedInformation(data.opportunityId)
+      this.opportunityService.getRelatedInformation(data.opportunityId),
     ]);
 
     if (!systemDesign) {
@@ -146,6 +146,7 @@ export class QuoteService {
       financialProduct,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, !!opportunityRelatedInformation?.data?.existingPV);
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -220,7 +221,9 @@ export class QuoteService {
     const opportunityState = opportunityRelatedInformation?.data?.state;
     obj.detailedQuote.taxCreditData = taxCreditData
       .filter(
-        ({ isFederal, stateCode }) => isFederal || (stateCode && opportunityState && stateCode === opportunityState),
+        ({ isFederal, stateCode, applicableQuoteTypes }) =>
+          applicableQuoteTypes?.includes(primaryQuoteType) &&
+          (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
       )
       .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0));
 
@@ -256,7 +259,7 @@ export class QuoteService {
     const [markupConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
-      this.opportunityService.getRelatedInformation(foundQuote.opportunityId)
+      this.opportunityService.getRelatedInformation(foundQuote.opportunityId),
     ]);
 
     const newDoc = omit(foundQuote, ['_id', 'createdAt', 'updatedAt']);
@@ -330,6 +333,7 @@ export class QuoteService {
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, !!opportunityRelatedInformation?.data?.existingPV);
 
     let currentProjectPrice: number;
 
@@ -418,7 +422,9 @@ export class QuoteService {
     const opportunityState = opportunityRelatedInformation?.data?.state;
     model.detailedQuote.taxCreditData = taxCreditData
       .filter(
-        ({ isFederal, stateCode }) => isFederal || (stateCode && opportunityState && stateCode === opportunityState),
+        ({ isFederal, stateCode, applicableQuoteTypes }) =>
+          applicableQuoteTypes?.includes(primaryQuoteType) &&
+          (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
       )
       .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0));
 
@@ -554,12 +560,18 @@ export class QuoteService {
       throw new BadRequestException(isInUsed);
     }
 
-    const [foundQuote, systemDesign, quotePartnerConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
+    const [
+      foundQuote,
+      systemDesign,
+      quotePartnerConfig,
+      taxCreditData,
+      opportunityRelatedInformation,
+    ] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
-      this.opportunityService.getRelatedInformation(data.opportunityId)
+      this.opportunityService.getRelatedInformation(data.opportunityId),
     ]);
 
     if (!foundQuote) {
@@ -608,6 +620,7 @@ export class QuoteService {
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, !!opportunityRelatedInformation?.data?.existingPV);
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
 
@@ -745,7 +758,9 @@ export class QuoteService {
       notes: foundQuote.detailedQuote.notes,
       taxCreditData: taxCreditData
         .filter(
-          ({ isFederal, stateCode }) => isFederal || (stateCode && opportunityState && stateCode === opportunityState),
+          ({ isFederal, stateCode, applicableQuoteTypes }) =>
+            applicableQuoteTypes?.includes(primaryQuoteType) &&
+            (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
         )
         .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0)),
     };
@@ -861,7 +876,7 @@ export class QuoteService {
     const [quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
-      this.opportunityService.getRelatedInformation(data.opportunityId)
+      this.opportunityService.getRelatedInformation(data.opportunityId),
     ]);
 
     const opportunityState = opportunityRelatedInformation?.data?.state;
@@ -906,6 +921,7 @@ export class QuoteService {
         incentives: detailedQuote.quoteFinanceProduct.incentiveDetails,
       },
     });
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildUp, !!opportunityRelatedInformation?.data?.existingPV);
 
     let maxDownPaymentValue = maxDownPayment;
     if (maxDownPaymentPercentage) {
@@ -925,7 +941,9 @@ export class QuoteService {
 
     detailedQuote.taxCreditData = taxCreditData
       .filter(
-        ({ isFederal, stateCode }) => isFederal || (stateCode && opportunityState && stateCode === opportunityState),
+        ({ isFederal, stateCode, applicableQuoteTypes }) =>
+          applicableQuoteTypes?.includes(primaryQuoteType) &&
+          (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
       )
       .map(taxCredit =>
         TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
@@ -1401,10 +1419,10 @@ export class QuoteService {
     return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
   }
 
-  getPrimaryQuoteType(detailedQuote: IDetailedQuoteSchema, existingPV: boolean): PRIMARY_QUOTE_TYPE {
+  getPrimaryQuoteType(quoteCostBuildup: IQuoteCostBuildup, existingPV: boolean): PRIMARY_QUOTE_TYPE {
     const {
-      quoteCostBuildup: { storageQuoteDetails, panelQuoteDetails },
-    } = detailedQuote;
+       storageQuoteDetails, panelQuoteDetails 
+    } = quoteCostBuildup;
 
     const isSolar = !!panelQuoteDetails?.length;
 

@@ -18,6 +18,9 @@ export class TaxCreditConfigResDto {
   percentage: number;
 
   @ExposeProp()
+  applicableQuoteTypes: string[];
+
+  @ExposeProp()
   startDate: Date;
 
   @ExposeProp()

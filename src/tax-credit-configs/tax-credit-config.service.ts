@@ -52,6 +52,7 @@ export class TaxCreditConfigService {
           percentage: 1,
           isFederal: '$is_federal',
           stateCode: '$state_code',
+          applicableQuoteTypes: '$applicable_quote_types',
           startDate: '$startDateInst',
           endDate: '$endDateInst',
           updatedAt: '$updated_at',
