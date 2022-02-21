@@ -607,10 +607,10 @@ export class QuoteCostBuildUpService {
         cost: 0,
         markupPercentage: 0,
         netCost: 0,
-        markupAmount: new BigNumber(generalMarkup ?? 0)
-          .dividedBy(100)
-          .times(equipmentLaborAndAddersSubtotal.netCost)
-          .toNumber(),
+        markupAmount: roundNumber(
+          new BigNumber(generalMarkup ?? 0).dividedBy(100).times(equipmentLaborAndAddersSubtotal.netCost).toNumber(),
+          2,
+        ),
       },
     ]);
 
