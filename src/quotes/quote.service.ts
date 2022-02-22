@@ -146,7 +146,26 @@ export class QuoteService {
       financialProduct,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
-    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, !!opportunityRelatedInformation?.data?.existingPV);
+    const primaryQuoteType = this.getPrimaryQuoteType(
+      quoteCostBuildup,
+      !!opportunityRelatedInformation?.data?.existingPV,
+    );
+
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
+
+    const productAttribute = await this.createProductAttribute(
+      fundingSource.type,
+      quoteCostBuildup.projectGrandTotal.netCost,
+      financialProduct,
+    );
+
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      quoteCostBuildup.projectGrandTotal.netCost || 0,
+      productAttribute.upfrontPayment,
+    );
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -168,11 +187,7 @@ export class QuoteService {
           productType: fundingSource.type,
           fundingSourceId: fundingSource.id,
           fundingSourceName: fundingSource.name,
-          productAttribute: await this.createProductAttribute(
-            fundingSource.type,
-            quoteCostBuildup.projectGrandTotal.netCost,
-            financialProduct,
-          ),
+          productAttribute,
           financialProductSnapshot: financialProduct,
         },
         netAmount: 0,
@@ -333,7 +348,13 @@ export class QuoteService {
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
-    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, !!opportunityRelatedInformation?.data?.existingPV);
+
+    model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
+
+    const primaryQuoteType = this.getPrimaryQuoteType(
+      quoteCostBuildup,
+      !!opportunityRelatedInformation?.data?.existingPV,
+    );
 
     let currentProjectPrice: number;
 
@@ -391,6 +412,16 @@ export class QuoteService {
         break;
       }
     }
+
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financeProduct.financialProductSnapshot;
+
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      quoteCostBuildup.projectGrandTotal.netCost || 0,
+      productAttribute.upfrontPayment,
+    );
 
     model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
@@ -620,7 +651,10 @@ export class QuoteService {
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
-    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, !!opportunityRelatedInformation?.data?.existingPV);
+    const primaryQuoteType = this.getPrimaryQuoteType(
+      quoteCostBuildup,
+      !!opportunityRelatedInformation?.data?.existingPV,
+    );
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
 
@@ -661,18 +695,13 @@ export class QuoteService {
       }
     }
 
-    let maxDownPaymentValue = maxDownPayment;
-    if (maxDownPaymentPercentage) {
-      const maxDownPaymentWithPercentage =
-        (maxDownPaymentPercentage / 100) * (quoteCostBuildup.projectGrandTotal.netCost || 0);
-      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
-    }
-
-    let newUpfrontPayment = productAttribute.upfrontPayment;
-    if (maxDownPaymentValue < newUpfrontPayment) newUpfrontPayment = maxDownPaymentValue;
-    if (minDownPayment > newUpfrontPayment) newUpfrontPayment = minDownPayment;
-
-    productAttribute.upfrontPayment = newUpfrontPayment;
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      quoteCostBuildup.projectGrandTotal.netCost || 0,
+      productAttribute.upfrontPayment,
+    );
 
     const utilityProgramDetail =
       data.utilityProgramId && data.utilityProgramId !== 'None'
@@ -921,21 +950,19 @@ export class QuoteService {
         incentives: detailedQuote.quoteFinanceProduct.incentiveDetails,
       },
     });
-    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildUp, !!opportunityRelatedInformation?.data?.existingPV);
-
-    let maxDownPaymentValue = maxDownPayment;
-    if (maxDownPaymentPercentage) {
-      const maxDownPaymentWithPercentage =
-        (maxDownPaymentPercentage / 100) * (quoteCostBuildUp.projectGrandTotal.netCost || 0);
-      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
-    }
-
-    let currentUpfrontPayment = data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment || 0;
-    if (maxDownPaymentValue < currentUpfrontPayment) currentUpfrontPayment = maxDownPaymentValue;
-    if (minDownPayment > currentUpfrontPayment) currentUpfrontPayment = minDownPayment;
+    const primaryQuoteType = this.getPrimaryQuoteType(
+      quoteCostBuildUp,
+      !!opportunityRelatedInformation?.data?.existingPV,
+    );
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
-    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = currentUpfrontPayment;
+    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      quoteCostBuildUp.projectGrandTotal.netCost || 0,
+      data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment || 0,
+    );
 
     detailedQuote.quoteFinanceProduct.netAmount = quoteCostBuildUp.projectGrandTotal.netCost;
 
@@ -1420,9 +1447,7 @@ export class QuoteService {
   }
 
   getPrimaryQuoteType(quoteCostBuildup: IQuoteCostBuildup, existingPV: boolean): PRIMARY_QUOTE_TYPE {
-    const {
-       storageQuoteDetails, panelQuoteDetails 
-    } = quoteCostBuildup;
+    const { storageQuoteDetails, panelQuoteDetails } = quoteCostBuildup;
 
     const isSolar = !!panelQuoteDetails?.length;
 
@@ -1441,5 +1466,25 @@ export class QuoteService {
     }
 
     return PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR;
+  }
+
+  calculateUpfrontPayment(
+    minDownPayment: number,
+    maxDownPayment: number,
+    maxDownPaymentPercentage: number,
+    projectGrandTotal: number,
+    currentUpfrontPayment: number,
+  ): number {
+    let maxDownPaymentValue = maxDownPayment;
+    if (maxDownPaymentPercentage) {
+      const maxDownPaymentWithPercentage = (maxDownPaymentPercentage / 100) * projectGrandTotal;
+      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
+    }
+
+    let newUpfrontPayment = currentUpfrontPayment;
+    if (maxDownPaymentValue < newUpfrontPayment) newUpfrontPayment = maxDownPaymentValue;
+    if (minDownPayment > newUpfrontPayment) newUpfrontPayment = minDownPayment;
+
+    return newUpfrontPayment;
   }
 }
