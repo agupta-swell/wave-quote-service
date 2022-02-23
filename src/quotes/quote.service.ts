@@ -1453,7 +1453,7 @@ export class QuoteService {
 
     const isHasBattery = !!storageQuoteDetails?.length;
 
-    if (!isHasBattery && !existingPV && isSolar) {
+    if (!isHasBattery && isSolar) {
       return PRIMARY_QUOTE_TYPE.SOLAR_ONLY;
     }
 
