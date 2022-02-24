@@ -17,6 +17,7 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PromotionService } from 'src/promotions/promotion.service';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
+import { RebateProgram } from 'src/rebate-programs/rebate-programs.schema';
 import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
 import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
 import { assignToModel } from 'src/shared/transform/assignToModel';
@@ -40,6 +41,7 @@ import {
   ILeaseProductAttributes,
   ILoanProductAttributes,
   IRebateDetailsSchema,
+  IRebateProgramSchema,
   Quote,
   QUOTE,
   QuoteModel,
@@ -192,7 +194,7 @@ export class QuoteService {
         },
         netAmount: 0,
         incentiveDetails: [],
-        rebateDetails: await this.createRebateDetails(data.opportunityId, fundingSource.rebateAssignment),
+        rebateDetails: await this.createRebateDetails(rebateProgram, fundingSource.rebateAssignment),
         projectDiscountDetails: [],
         promotionDetails: [],
       },
@@ -426,7 +428,7 @@ export class QuoteService {
     model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
     const rebateDetails = await this.createRebateDetails(
-      foundQuote.opportunityId,
+      foundQuote.detailedQuote.rebateProgram,
       fundingSource?.rebateAssignment || '',
       foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails,
     );
@@ -628,6 +630,7 @@ export class QuoteService {
         projectDiscountDetails,
       },
       utilityProgram,
+      rebateProgram,
     } = foundQuote.detailedQuote;
 
     const { financialProductSnapshot } = financeProduct;
@@ -800,7 +803,7 @@ export class QuoteService {
     ) as any;
 
     detailedQuote.quoteFinanceProduct.rebateDetails = await this.createRebateDetails(
-      data.opportunityId,
+      rebateProgram,
       fundingSource.rebateAssignment,
       rebateDetails,
     );
@@ -1312,31 +1315,26 @@ export class QuoteService {
   }
 
   async createRebateDetails(
-    opportunityId: string,
+    rebateProgram: LeanDocument<RebateProgram> | null | IRebateProgramSchema | undefined,
     rebateAssignment: string,
     existingRebateDetails?: IRebateDetailsSchema[],
   ): Promise<IRebateDetailsSchema[]> {
-    const [rebatePrograms] = await Promise.all([this.rebateProgramService.findByOpportunityId(opportunityId)]);
-
     let isFloatRebate = rebateAssignment === 'customer' ? true : rebateAssignment === 'swell' && false;
     let amount = 0;
 
     const rebateDetails: IRebateDetailsSchema[] = [];
 
-    rebatePrograms.forEach(rebateProgram => {
-      if (existingRebateDetails?.length) {
-        const foundedRebate = existingRebateDetails.find(item => item.type === rebateProgram.name);
-        isFloatRebate = foundedRebate ? !!foundedRebate?.isFloatRebate : isFloatRebate;
-        amount = foundedRebate?.amount || 0;
-      }
+    if (existingRebateDetails?.length) {
+      const foundedRebate = existingRebateDetails.find(item => item.type === rebateProgram?.name);
+      isFloatRebate = foundedRebate ? !!foundedRebate?.isFloatRebate : isFloatRebate;
+      amount = foundedRebate?.amount || 0;
+    }
 
-      rebateDetails.push({
-        amount,
-        type: <any>rebateProgram.name,
-        description: '',
-        isFloatRebate:
-          !existingRebateDetails?.length && rebateProgram.name === REBATE_TYPE.SGIP ? false : isFloatRebate,
-      });
+    rebateDetails.push({
+      amount,
+      type: <any>rebateProgram?.name,
+      description: '',
+      isFloatRebate: !existingRebateDetails?.length && rebateProgram?.name === REBATE_TYPE.SGIP ? false : isFloatRebate,
     });
 
     return rebateDetails;
