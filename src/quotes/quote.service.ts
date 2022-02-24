@@ -1304,12 +1304,15 @@ export class QuoteService {
       amount = foundedRebate?.amount || 0;
     }
 
-    rebateDetails.push({
-      amount,
-      type: <any>rebateProgram?.name,
-      description: '',
-      isFloatRebate: !existingRebateDetails?.length && rebateProgram?.name === REBATE_TYPE.SGIP ? false : isFloatRebate,
-    });
+    if (rebateProgram?.name) {
+      rebateDetails.push({
+        amount,
+        type: <any>rebateProgram?.name,
+        description: '',
+        isFloatRebate:
+          !existingRebateDetails?.length && rebateProgram?.name === REBATE_TYPE.SGIP ? false : isFloatRebate,
+      });
+    }
 
     return rebateDetails;
   }

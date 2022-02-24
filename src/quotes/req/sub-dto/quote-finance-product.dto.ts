@@ -205,7 +205,6 @@ export class QuoteFinanceProductDto {
   incentiveDetails: IncentiveDetailsDto[];
 
   @ApiProperty({ type: RebateDetailsDto, isArray: true })
-  @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => RebateDetailsDto)
   rebateDetails: RebateDetailsDto[];
