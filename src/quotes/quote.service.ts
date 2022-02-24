@@ -706,27 +706,13 @@ export class QuoteService {
       productAttribute.upfrontPayment,
     );
 
-    const utilityProgramDetail =
-      data.utilityProgramId && data.utilityProgramId !== 'None'
-        ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
-        : null;
-
-    const rebateProgramDetail =
-      data.rebateProgramId && data.rebateProgramId !== 'None'
-        ? await this.rebateProgramService.getOneById(data.rebateProgramId)
-        : null;
-
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     // eslint-disable-next-line func-names
     const handledIncentiveDetails = (function () {
       const { storageQuoteDetails } = quoteCostBuildup;
       const storageQuoteDetailsOfQuote = foundQuote.detailedQuote?.quoteCostBuildup?.storageQuoteDetails;
 
-      if (
-        !storageQuoteDetails?.length ||
-        !storageQuoteDetailsOfQuote?.length ||
-        data.utilityProgramId !== utilityProgram?.utilityProgramId
-      ) {
+      if (!storageQuoteDetails?.length || !storageQuoteDetailsOfQuote?.length) {
         return [];
       }
       const newManufacturerId = storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId.toString();
@@ -748,20 +734,8 @@ export class QuoteService {
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
       quoteCostBuildup,
-      rebateProgramDetail,
-      utilityProgram: utilityProgramDetail
-        ? {
-            utilityProgramId: utilityProgramDetail.id,
-            utilityProgramName: utilityProgramDetail.utilityProgramName,
-            rebateAmount: utilityProgramDetail.rebateAmount,
-            utilityProgramDataSnapshot: {
-              id: utilityProgramDetail.id,
-              name: utilityProgramDetail.utilityProgramName,
-              rebateAmount: utilityProgramDetail.rebateAmount,
-            },
-            utilityProgramDataSnapshotDate: new Date(),
-          }
-        : null,
+      rebateProgramDetail: rebateProgram,
+      utilityProgram,
       quoteFinanceProduct: {
         financeProduct: {
           productType: financeProduct.productType,

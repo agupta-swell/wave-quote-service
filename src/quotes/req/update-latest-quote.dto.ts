@@ -25,16 +25,6 @@ export class UpdateLatestQuoteDto {
   financialProductId: string;
 
   @ApiProperty()
-  @IsMongoId()
-  @IsOptional()
-  utilityProgramId: string;
-
-  @ApiProperty()
-  @IsMongoId()
-  @IsOptional()
-  rebateProgramId: string;
-
-  @ApiProperty()
   @IsString()
   @IsOptional()
   quoteName: string;

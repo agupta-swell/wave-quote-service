@@ -13,6 +13,7 @@ import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { ICogsImpact, IMarginImpact, IQuoteCostBuildup } from './interfaces';
+import { UpdateLatestQuoteDto } from './req';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
 import { QuoteCostBuildupSchema } from './schemas';
@@ -516,7 +517,7 @@ export class QuoteModel {
 
   isSyncMessages: string[];
 
-  constructor(data: CreateQuoteDto | UpdateQuoteDto, detailedQuote: any) {
+  constructor(data: CreateQuoteDto | UpdateQuoteDto | UpdateLatestQuoteDto, detailedQuote: any) {
     this.opportunityId = data.opportunityId;
     this.systemDesignId = data.systemDesignId;
     this.quoteModelType = 'detailed';
