@@ -346,6 +346,7 @@ export class QuoteService {
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
       roofTopDesignData: foundSystemDesign.roofTopDesignData,
       partnerMarkup: markupConfig,
+      userInputs: foundQuote.detailedQuote.quoteCostBuildup,
       dealerFeePercentage,
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
