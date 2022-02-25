@@ -350,6 +350,11 @@ export class QuoteService {
       dealerFeePercentage,
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
+      discountsPromotionsAndIncentives: {
+        discounts: foundQuote.detailedQuote.quoteFinanceProduct.projectDiscountDetails,
+        promotions: foundQuote.detailedQuote.quoteFinanceProduct.promotionDetails,
+        incentives: foundQuote.detailedQuote.quoteFinanceProduct.incentiveDetails,
+      },
     });
 
     model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
