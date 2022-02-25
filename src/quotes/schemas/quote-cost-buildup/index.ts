@@ -13,6 +13,7 @@ import { BaseCostBuildupFeeSchema } from './base-cost-buildup-fee.schema';
 import { AdditionalFeesSchema } from './quote-cost-buildup-additional-fee-data.schema';
 import { totalPromotionsDiscountsAndSwellGridrewardsSchema } from './total-promotions-discounts-gridrewards.schema';
 import { CashDiscountSchema } from './cash-discount.schema';
+import { SalesTaxDataSchema } from './sales-tax-data.schema';
 
 export const QuoteCostBuildupSchema = new Schema(
   {
@@ -38,6 +39,9 @@ export const QuoteCostBuildupSchema = new Schema(
     cash_discount: CashDiscountSchema,
     additional_fees: AdditionalFeesSchema,
     project_grand_total: BaseQuoteMarginDataSchema,
+    taxable_equipment_subtotal: BaseQuoteCostDataSchema,
+    sales_tax: SalesTaxDataSchema,
+    equipment_subtotal_with_sales_tax: BaseQuoteCostDataSchema,
   },
   { _id: false },
 );

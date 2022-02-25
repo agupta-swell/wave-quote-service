@@ -1,8 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsInt, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export class UpdateOpportunityExistingSystemDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsBoolean()
+  existingPV: boolean;
+
   @ApiProperty()
   @IsOptional()
   @IsBoolean()
@@ -14,6 +19,7 @@ export class UpdateOpportunityExistingSystemDto {
   hasHadOtherDemandResponseProvider: boolean;
 
   @ApiProperty()
+  @IsOptional()
   originalInstaller: string;
 
   @ApiProperty()

@@ -7,15 +7,16 @@ import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.
 import { IPromotionDocument } from 'src/promotions/interfaces';
 import { PromotionSchema } from 'src/promotions/promotion.schema';
 import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
+import { camelToSnake, deepTransform, snakeToCamel } from 'src/shared/mongoose-schema-mapper/utils/transform';
 import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
-import { deepTransform, camelToSnake, snakeToCamel } from 'src/shared/mongoose-schema-mapper/utils/transform';
-import { QuoteCostBuildupSchema } from './schemas';
 import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
+import { ICogsImpact, IMarginImpact, IQuoteCostBuildup } from './interfaces';
+import { UpdateLatestQuoteDto } from './req';
 import { CreateQuoteDto } from './req/create-quote.dto';
 import { UpdateQuoteDto } from './req/update-quote.dto';
-import { ICogsImpact, IMarginImpact, IQuoteCostBuildup } from './interfaces';
+import { QuoteCostBuildupSchema } from './schemas';
 
 export const QUOTE = Symbol('QUOTE').toString();
 
@@ -347,7 +348,10 @@ export interface IRebateProgramSchema {
 
 const RebateProgramSchema = new Schema<Document<IRebateProgramSchema>>(
   {
-    _id: String,
+    _id: {
+      type: String,
+      alias: 'id',
+    },
     name: String,
   },
   { _id: false },
@@ -513,7 +517,7 @@ export class QuoteModel {
 
   isSyncMessages: string[];
 
-  constructor(data: CreateQuoteDto | UpdateQuoteDto, detailedQuote: any) {
+  constructor(data: CreateQuoteDto | UpdateQuoteDto | UpdateLatestQuoteDto, detailedQuote: any) {
     this.opportunityId = data.opportunityId;
     this.systemDesignId = data.systemDesignId;
     this.quoteModelType = 'detailed';

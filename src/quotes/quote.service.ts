@@ -17,6 +17,7 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PromotionService } from 'src/promotions/promotion.service';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
+import { RebateProgram } from 'src/rebate-programs/rebate-programs.schema';
 import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
 import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
 import { assignToModel } from 'src/shared/transform/assignToModel';
@@ -40,6 +41,7 @@ import {
   ILeaseProductAttributes,
   ILoanProductAttributes,
   IRebateDetailsSchema,
+  IRebateProgramSchema,
   Quote,
   QUOTE,
   QuoteModel,
@@ -95,10 +97,11 @@ export class QuoteService {
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const [systemDesign, quoteConfigData, taxCreditData] = await Promise.all([
+    const [systemDesign, quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+      this.opportunityService.getRelatedInformation(data.opportunityId),
     ]);
 
     if (!systemDesign) {
@@ -145,6 +148,26 @@ export class QuoteService {
       financialProduct,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+    const primaryQuoteType = this.getPrimaryQuoteType(
+      quoteCostBuildup,
+      !!opportunityRelatedInformation?.data?.existingPV,
+    );
+
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
+
+    const productAttribute = await this.createProductAttribute(
+      fundingSource.type,
+      quoteCostBuildup.projectGrandTotal.netCost,
+      financialProduct,
+    );
+
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      quoteCostBuildup.projectGrandTotal.netCost || 0,
+      productAttribute.upfrontPayment,
+    );
 
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
@@ -166,16 +189,12 @@ export class QuoteService {
           productType: fundingSource.type,
           fundingSourceId: fundingSource.id,
           fundingSourceName: fundingSource.name,
-          productAttribute: await this.createProductAttribute(
-            fundingSource.type,
-            quoteCostBuildup.projectGrandTotal.netCost,
-            financialProduct,
-          ),
+          productAttribute,
           financialProductSnapshot: financialProduct,
         },
         netAmount: 0,
         incentiveDetails: [],
-        rebateDetails: await this.createRebateDetails(data.opportunityId, fundingSource.rebateAssignment),
+        rebateDetails: await this.createRebateDetails(rebateProgram, fundingSource.rebateAssignment),
         projectDiscountDetails: [],
         promotionDetails: [],
       },
@@ -216,9 +235,14 @@ export class QuoteService {
 
     const obj = new this.quoteModel(model);
 
-    obj.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
-    );
+    const opportunityState = opportunityRelatedInformation?.data?.state;
+    obj.detailedQuote.taxCreditData = taxCreditData
+      .filter(
+        ({ isFederal, stateCode, applicableQuoteTypes }) =>
+          applicableQuoteTypes?.includes(primaryQuoteType) &&
+          (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
+      )
+      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0));
 
     obj.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
@@ -249,9 +273,10 @@ export class QuoteService {
       throw new NotFoundException('System design not found');
     }
 
-    const [markupConfig, taxCreditData] = await Promise.all([
+    const [markupConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+      this.opportunityService.getRelatedInformation(foundQuote.opportunityId),
     ]);
 
     const newDoc = omit(foundQuote, ['_id', 'createdAt', 'updatedAt']);
@@ -321,10 +346,23 @@ export class QuoteService {
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
       roofTopDesignData: foundSystemDesign.roofTopDesignData,
       partnerMarkup: markupConfig,
+      userInputs: foundQuote.detailedQuote.quoteCostBuildup,
       dealerFeePercentage,
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
+      discountsPromotionsAndIncentives: {
+        discounts: foundQuote.detailedQuote.quoteFinanceProduct.projectDiscountDetails,
+        promotions: foundQuote.detailedQuote.quoteFinanceProduct.promotionDetails,
+        incentives: foundQuote.detailedQuote.quoteFinanceProduct.incentiveDetails,
+      },
     });
+
+    model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
+
+    const primaryQuoteType = this.getPrimaryQuoteType(
+      quoteCostBuildup,
+      !!opportunityRelatedInformation?.data?.existingPV,
+    );
 
     let currentProjectPrice: number;
 
@@ -383,10 +421,20 @@ export class QuoteService {
       }
     }
 
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financeProduct.financialProductSnapshot;
+
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      quoteCostBuildup.projectGrandTotal.netCost || 0,
+      productAttribute.upfrontPayment,
+    );
+
     model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
     const rebateDetails = await this.createRebateDetails(
-      foundQuote.opportunityId,
+      foundQuote.detailedQuote.rebateProgram,
       fundingSource?.rebateAssignment || '',
       foundQuote.detailedQuote.quoteFinanceProduct.rebateDetails,
     );
@@ -410,9 +458,14 @@ export class QuoteService {
 
     model.detailedQuote.quoteFinanceProduct.rebateDetails = rebateDetails;
 
-    model.detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
-    );
+    const opportunityState = opportunityRelatedInformation?.data?.state;
+    model.detailedQuote.taxCreditData = taxCreditData
+      .filter(
+        ({ isFederal, stateCode, applicableQuoteTypes }) =>
+          applicableQuoteTypes?.includes(primaryQuoteType) &&
+          (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
+      )
+      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0));
 
     model.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
@@ -546,11 +599,18 @@ export class QuoteService {
       throw new BadRequestException(isInUsed);
     }
 
-    const [foundQuote, systemDesign, quotePartnerConfig, taxCreditData] = await Promise.all([
+    const [
+      foundQuote,
+      systemDesign,
+      quotePartnerConfig,
+      taxCreditData,
+      opportunityRelatedInformation,
+    ] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+      this.opportunityService.getRelatedInformation(data.opportunityId),
     ]);
 
     if (!foundQuote) {
@@ -565,6 +625,8 @@ export class QuoteService {
       throw new NotFoundException('No quote partner config');
     }
 
+    const opportunityState = opportunityRelatedInformation?.data?.state;
+
     const {
       quoteFinanceProduct: {
         incentiveDetails,
@@ -574,6 +636,7 @@ export class QuoteService {
         projectDiscountDetails,
       },
       utilityProgram,
+      rebateProgram,
     } = foundQuote.detailedQuote;
 
     const { financialProductSnapshot } = financeProduct;
@@ -597,6 +660,10 @@ export class QuoteService {
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+    const primaryQuoteType = this.getPrimaryQuoteType(
+      quoteCostBuildup,
+      !!opportunityRelatedInformation?.data?.existingPV,
+    );
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
 
@@ -637,28 +704,13 @@ export class QuoteService {
       }
     }
 
-    let maxDownPaymentValue = maxDownPayment;
-    if (maxDownPaymentPercentage) {
-      const maxDownPaymentWithPercentage =
-        (maxDownPaymentPercentage / 100) * (quoteCostBuildup.projectGrandTotal.netCost || 0);
-      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
-    }
-
-    let newUpfrontPayment = productAttribute.upfrontPayment;
-    if (maxDownPaymentValue < newUpfrontPayment) newUpfrontPayment = maxDownPaymentValue;
-    if (minDownPayment > newUpfrontPayment) newUpfrontPayment = minDownPayment;
-
-    productAttribute.upfrontPayment = newUpfrontPayment;
-
-    const utilityProgramDetail =
-      data.utilityProgramId && data.utilityProgramId !== 'None'
-        ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
-        : null;
-
-    const rebateProgramDetail =
-      data.rebateProgramId && data.rebateProgramId !== 'None'
-        ? await this.rebateProgramService.getOneById(data.rebateProgramId)
-        : null;
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      quoteCostBuildup.projectGrandTotal.netCost || 0,
+      productAttribute.upfrontPayment,
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     // eslint-disable-next-line func-names
@@ -666,11 +718,7 @@ export class QuoteService {
       const { storageQuoteDetails } = quoteCostBuildup;
       const storageQuoteDetailsOfQuote = foundQuote.detailedQuote?.quoteCostBuildup?.storageQuoteDetails;
 
-      if (
-        !storageQuoteDetails?.length ||
-        !storageQuoteDetailsOfQuote?.length ||
-        data.utilityProgramId !== utilityProgram?.utilityProgramId
-      ) {
+      if (!storageQuoteDetails?.length || !storageQuoteDetailsOfQuote?.length) {
         return [];
       }
       const newManufacturerId = storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId.toString();
@@ -692,20 +740,8 @@ export class QuoteService {
     const detailedQuote = {
       systemProduction: systemDesign.systemProductionData,
       quoteCostBuildup,
-      rebateProgramDetail,
-      utilityProgram: utilityProgramDetail
-        ? {
-            utilityProgramId: utilityProgramDetail.id,
-            utilityProgramName: utilityProgramDetail.utilityProgramName,
-            rebateAmount: utilityProgramDetail.rebateAmount,
-            utilityProgramDataSnapshot: {
-              id: utilityProgramDetail.id,
-              name: utilityProgramDetail.utilityProgramName,
-              rebateAmount: utilityProgramDetail.rebateAmount,
-            },
-            utilityProgramDataSnapshotDate: new Date(),
-          }
-        : null,
+      rebateProgramDetail: rebateProgram,
+      utilityProgram,
       quoteFinanceProduct: {
         financeProduct: {
           productType: financeProduct.productType,
@@ -732,9 +768,13 @@ export class QuoteService {
       quotePricePerWatt: foundQuote.detailedQuote.quotePricePerWatt,
       quotePriceOverride: foundQuote.detailedQuote.quotePriceOverride,
       notes: foundQuote.detailedQuote.notes,
-      taxCreditData: taxCreditData.map(taxCredit =>
-        TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0),
-      ),
+      taxCreditData: taxCreditData
+        .filter(
+          ({ isFederal, stateCode, applicableQuoteTypes }) =>
+            applicableQuoteTypes?.includes(primaryQuoteType) &&
+            (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
+        )
+        .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0)),
     };
 
     detailedQuote.quoteFinanceProduct = this.handleUpdateQuoteFinanceProduct(
@@ -743,7 +783,7 @@ export class QuoteService {
     ) as any;
 
     detailedQuote.quoteFinanceProduct.rebateDetails = await this.createRebateDetails(
-      data.opportunityId,
+      rebateProgram,
       fundingSource.rebateAssignment,
       rebateDetails,
     );
@@ -845,10 +885,13 @@ export class QuoteService {
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProductSnapshot;
 
-    const [quoteConfigData, taxCreditData] = await Promise.all([
+    const [quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
+      this.opportunityService.getRelatedInformation(data.opportunityId),
     ]);
+
+    const opportunityState = opportunityRelatedInformation?.data?.state;
 
     const detailedQuote = {
       ...data,
@@ -890,26 +933,31 @@ export class QuoteService {
         incentives: detailedQuote.quoteFinanceProduct.incentiveDetails,
       },
     });
-
-    let maxDownPaymentValue = maxDownPayment;
-    if (maxDownPaymentPercentage) {
-      const maxDownPaymentWithPercentage =
-        (maxDownPaymentPercentage / 100) * (quoteCostBuildUp.projectGrandTotal.netCost || 0);
-      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
-    }
-
-    let currentUpfrontPayment = data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment || 0;
-    if (maxDownPaymentValue < currentUpfrontPayment) currentUpfrontPayment = maxDownPaymentValue;
-    if (minDownPayment > currentUpfrontPayment) currentUpfrontPayment = minDownPayment;
+    const primaryQuoteType = this.getPrimaryQuoteType(
+      quoteCostBuildUp,
+      !!opportunityRelatedInformation?.data?.existingPV,
+    );
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
-    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = currentUpfrontPayment;
+    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      quoteCostBuildUp.projectGrandTotal.netCost || 0,
+      data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment || 0,
+    );
 
     detailedQuote.quoteFinanceProduct.netAmount = quoteCostBuildUp.projectGrandTotal.netCost;
 
-    detailedQuote.taxCreditData = taxCreditData.map(taxCredit =>
-      TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
-    );
+    detailedQuote.taxCreditData = taxCreditData
+      .filter(
+        ({ isFederal, stateCode, applicableQuoteTypes }) =>
+          applicableQuoteTypes?.includes(primaryQuoteType) &&
+          (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
+      )
+      .map(taxCredit =>
+        TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
+      );
 
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
     const avgMonthlySavings = 0; // Commented because we work on battery-only system design for this release.
@@ -1247,32 +1295,30 @@ export class QuoteService {
   }
 
   async createRebateDetails(
-    opportunityId: string,
+    rebateProgram: LeanDocument<RebateProgram> | null | IRebateProgramSchema | undefined,
     rebateAssignment: string,
     existingRebateDetails?: IRebateDetailsSchema[],
   ): Promise<IRebateDetailsSchema[]> {
-    const [rebatePrograms] = await Promise.all([this.rebateProgramService.findByOpportunityId(opportunityId)]);
-
     let isFloatRebate = rebateAssignment === 'customer' ? true : rebateAssignment === 'swell' && false;
     let amount = 0;
 
     const rebateDetails: IRebateDetailsSchema[] = [];
 
-    rebatePrograms.forEach(rebateProgram => {
-      if (existingRebateDetails?.length) {
-        const foundedRebate = existingRebateDetails.find(item => item.type === rebateProgram.name);
-        isFloatRebate = foundedRebate ? !!foundedRebate?.isFloatRebate : isFloatRebate;
-        amount = foundedRebate?.amount || 0;
-      }
+    if (existingRebateDetails?.length) {
+      const foundedRebate = existingRebateDetails.find(item => item.type === rebateProgram?.name);
+      isFloatRebate = foundedRebate ? !!foundedRebate?.isFloatRebate : isFloatRebate;
+      amount = foundedRebate?.amount || 0;
+    }
 
+    if (rebateProgram?.name) {
       rebateDetails.push({
         amount,
-        type: <any>rebateProgram.name,
+        type: <any>rebateProgram?.name,
         description: '',
         isFloatRebate:
-          !existingRebateDetails?.length && rebateProgram.name === REBATE_TYPE.SGIP ? false : isFloatRebate,
+          !existingRebateDetails?.length && rebateProgram?.name === REBATE_TYPE.SGIP ? false : isFloatRebate,
       });
-    });
+    }
 
     return rebateDetails;
   }
@@ -1381,16 +1427,14 @@ export class QuoteService {
     return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
   }
 
-  getPrimaryQuoteType(detailedQuote: IDetailedQuoteSchema, existingPV: boolean): PRIMARY_QUOTE_TYPE {
-    const {
-      quoteCostBuildup: { storageQuoteDetails, panelQuoteDetails },
-    } = detailedQuote;
+  getPrimaryQuoteType(quoteCostBuildup: IQuoteCostBuildup, existingPV: boolean): PRIMARY_QUOTE_TYPE {
+    const { storageQuoteDetails, panelQuoteDetails } = quoteCostBuildup;
 
     const isSolar = !!panelQuoteDetails?.length;
 
     const isHasBattery = !!storageQuoteDetails?.length;
 
-    if (!isHasBattery && !existingPV && isSolar) {
+    if (!isHasBattery && isSolar) {
       return PRIMARY_QUOTE_TYPE.SOLAR_ONLY;
     }
 
@@ -1403,5 +1447,25 @@ export class QuoteService {
     }
 
     return PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR;
+  }
+
+  calculateUpfrontPayment(
+    minDownPayment: number,
+    maxDownPayment: number,
+    maxDownPaymentPercentage: number,
+    projectGrandTotal: number,
+    currentUpfrontPayment: number,
+  ): number {
+    let maxDownPaymentValue = maxDownPayment;
+    if (maxDownPaymentPercentage) {
+      const maxDownPaymentWithPercentage = (maxDownPaymentPercentage / 100) * projectGrandTotal;
+      maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
+    }
+
+    let newUpfrontPayment = currentUpfrontPayment;
+    if (maxDownPaymentValue < newUpfrontPayment) newUpfrontPayment = maxDownPaymentValue;
+    if (minDownPayment > newUpfrontPayment) newUpfrontPayment = minDownPayment;
+
+    return newUpfrontPayment;
   }
 }

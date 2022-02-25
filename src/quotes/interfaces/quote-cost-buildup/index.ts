@@ -8,3 +8,4 @@ export * from './ICostBuildupFee';
 export * from './ITotalPromotionsDiscountsGridrewards';
 export * from './ICogsImpact';
 export * from './IMarginImpact';
+export * from './ISalesTaxData';

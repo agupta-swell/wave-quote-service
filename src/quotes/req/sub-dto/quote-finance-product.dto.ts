@@ -2,7 +2,6 @@ import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayUnique,
-  IsArray,
   IsBoolean,
   IsEnum,
   IsNotEmpty,
@@ -206,7 +205,6 @@ export class QuoteFinanceProductDto {
   incentiveDetails: IncentiveDetailsDto[];
 
   @ApiProperty({ type: RebateDetailsDto, isArray: true })
-  @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => RebateDetailsDto)
   rebateDetails: RebateDetailsDto[];

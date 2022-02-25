@@ -88,8 +88,30 @@ export class OpportunityService {
       throw ApplicationException.EntityNotFound(opportunityId);
     }
 
+    let updateOpportunityQuery: any = existingSystem;
+
+    if (!existingSystem.existingPV) {
+      updateOpportunityQuery = {
+        $set: {
+          existingPV: false,
+          hasHadOtherDemandResponseProvider: existingSystem.hasHadOtherDemandResponseProvider,
+          hasGrantedHomeBatterySystemRights: existingSystem.hasGrantedHomeBatterySystemRights,
+        },
+        $unset: {
+          existingPVSize: '',
+          yearSystemInstalled: '',
+          originalInstaller: '',
+          inverter: '',
+          financeType: '',
+          tpoFundingSource: '',
+          inverterManufacturer: '',
+          inverterModel: '',
+        },
+      };
+    }
+
     const savedOpportunity = await this.opportunityModel
-      .findByIdAndUpdate(opportunityId, existingSystem, { new: true })
+      .findByIdAndUpdate(opportunityId, updateOpportunityQuery, { new: true })
       .lean();
 
     const updatedOpportunity = strictPlainToClass(UpdateOpportunityExistingSystemDtoRes, savedOpportunity);
@@ -113,7 +135,7 @@ export class OpportunityService {
 
     const updatedOpportunity = strictPlainToClass(UpdateOpportunityUtilityProgramDtoRes, savedOpportunity);
 
-    await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
+    // await this.quoteService.setOutdatedData(opportunityId, 'Utility Program');
 
     return OperationResult.ok(updatedOpportunity);
   }
@@ -134,7 +156,7 @@ export class OpportunityService {
 
     const updatedOpportunity = strictPlainToClass(UpdateOpportunityRebateProgramDtoRes, savedOpportunity);
 
-    await this.quoteService.setOutdatedData(opportunityId, 'Rebate Program');
+    // await this.quoteService.setOutdatedData(opportunityId, 'Rebate Program');
 
     return OperationResult.ok(updatedOpportunity);
   }

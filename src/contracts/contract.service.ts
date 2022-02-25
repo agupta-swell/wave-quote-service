@@ -99,6 +99,7 @@ export class ContractService {
     fundingSourceId?: string,
     contractType?: CONTRACT_TYPE,
     systemDesignId?: string,
+    quoteId?: string,
   ): Promise<OperationResult<GetContractTemplatesDto>> {
     const opportunityData = await this.opportunityService.getDetailById(opportunityId);
 
@@ -111,13 +112,19 @@ export class ContractService {
 
     const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
 
-    const utilityProgramId = opportunityData.utilityProgramId || null;
+    let quoteDetail;
+
+    if (quoteId) {
+      quoteDetail = await this.quoteService.getOneById(quoteId || '');
+    }
+    const utilityProgramIdTemp = quoteDetail?.utilityProgram?.utilityProgramId || null;
+
+    const rebateProgramIdTemp = quoteDetail?.rebateProgram?._id || null;
 
     if (contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
-      const rebateProgramId = opportunityData.rebateProgramId || null;
       const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
-        [utilityProgramId, 'ALL'],
-        [rebateProgramId, 'ALL'],
+        [utilityProgramIdTemp, 'ALL'],
+        [rebateProgramIdTemp, 'ALL'],
       );
 
       return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));
@@ -147,7 +154,7 @@ export class ContractService {
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId],
       [utilityId],
-      [utilityProgramId],
+      [utilityProgramIdTemp],
       applicableSystemTypes,
     );
 
@@ -237,6 +244,13 @@ export class ContractService {
       await newlyUpdatedContract.save();
 
       await this.customerPaymentService.create(newlyUpdatedContract._id, contractDetail.opportunityId, quoteDetail);
+
+      await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
+        $set: {
+          utilityProgramId: quoteDetail.utilityProgram.utilityProgramId,
+          rebateProgramId: quoteDetail.rebateProgram?._id,
+        },
+      });
 
       return OperationResult.ok(strictPlainToClass(SaveContractDto, { status: true, newlyUpdatedContract }));
     }
@@ -888,7 +902,7 @@ export class ContractService {
       (await this.utilityService.getUtilityDetailByName(wavUtilityName))?._id ||
       (await this.utilityService.getUtilityDetailByName(DEFAULT_UTILITY_NAME))?._id;
 
-    const primaryQuoteType = this.quoteService.getPrimaryQuoteType(quoteDetail, opportunityData?.existingPV);
+    const primaryQuoteType = this.quoteService.getPrimaryQuoteType(quoteDetail.quoteCostBuildup, opportunityData?.existingPV);
 
     await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
       $set: {

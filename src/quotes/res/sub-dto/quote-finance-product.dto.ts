@@ -1,9 +1,9 @@
 import { ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
+import { DiscountResDto } from 'src/discounts/dto';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
+import { PromotionResDto } from 'src/promotions/dto';
 import { REBATE_TYPE } from 'src/quotes/constants';
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
-import { DiscountResDto } from 'src/discounts/dto';
-import { PromotionResDto } from 'src/promotions/dto';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FinanceProductDetailDto } from './financial-product.dto';
 
