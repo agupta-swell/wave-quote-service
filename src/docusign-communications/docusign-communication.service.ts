@@ -52,8 +52,14 @@ export class DocusignCommunicationService {
       compositeTemplates: [],
     };
 
+    const maxSignerRoutingOrders = this.getMaxSignerRoutingOrders(templateDetails);
+
     templateDetails.map(template => {
-      const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(template, signerDetails);
+      const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(
+        template,
+        signerDetails,
+        maxSignerRoutingOrders,
+      );
       docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
     });
 
@@ -87,6 +93,7 @@ export class DocusignCommunicationService {
   getCompositeTemplatePayloadData(
     template: ITemplateDetailSchema,
     signerDetails: ISignerDetailDataSchema[],
+    maxSignerRoutingOrders: string[],
   ): ICompositeTemplate {
     let runningCounter = 0;
     const compositeTemplateDataPayload: ICompositeTemplate = {
@@ -114,9 +121,13 @@ export class DocusignCommunicationService {
     };
     inlineTemplateDataPayload.sequence = runningCounter;
 
-    template.recipientRoles.map((role, index) => {
+    template.recipientRoles.map(role => {
       const signerDataPayload: ISignerData = {} as any;
       const signerDetailData = signerDetails.find(signer => signer.roleId === `${role._id}`);
+
+      // const order = this.const
+
+      const order = maxSignerRoutingOrders.findIndex(e => e === role._id.toString());
 
       if (!signerDetailData) return;
 
@@ -124,9 +135,9 @@ export class DocusignCommunicationService {
 
       signerDataPayload.email = signerDetailData.email;
       signerDataPayload.name = signerName;
-      signerDataPayload.recipientId = (index + 1).toString();
+      signerDataPayload.recipientId = (order + 1).toString();
       signerDataPayload.roleName = signerDetailData.role;
-      signerDataPayload.routingOrder = (index + 1).toString();
+      signerDataPayload.routingOrder = (order + 1).toString();
       signerDataPayload.templateId = template.docusignTemplateId;
 
       if (signerDataPayload.email) {
@@ -136,12 +147,16 @@ export class DocusignCommunicationService {
 
     inlineTemplateDataPayload.recipients.carbonCopies = signerDetails
       .filter(signer => !template.recipientRoles.find(role => role._id.toString() === signer.roleId))
-      .map((signer, id) => ({
-        email: signer.email,
-        name: signer.fullName || signer.role,
-        recipientId: `${inlineTemplateDataPayload.recipients.signers.length + id + 1}`,
-        routingOrder: `${inlineTemplateDataPayload.recipients.signers.length + id + 1}`,
-      }));
+      .map(signer => {
+        const order = maxSignerRoutingOrders.findIndex(e => e === signer.roleId);
+
+        return {
+          email: signer.email,
+          name: signer.fullName || signer.role,
+          recipientId: `${order + 1}`,
+          routingOrder: `${order + 1}`,
+        };
+      });
 
     compositeTemplateDataPayload.inlineTemplates.push(inlineTemplateDataPayload);
 
@@ -258,5 +273,21 @@ export class DocusignCommunicationService {
 
   voidEnvelope(envelopeId: string): Promise<EnvelopeUpdateSummary> {
     return this.docusignApiService.voidEnvelope(envelopeId);
+  }
+
+  private getMaxSignerRoutingOrders(templateDetails: ITemplateDetailSchema[]): string[] {
+    let maxRecipientsTemplateIdx = 0;
+    let maxRecipientsTemplate = 0;
+
+    templateDetails.forEach((template, idx) => {
+      if (template.recipientRoles.length > maxRecipientsTemplate) {
+        maxRecipientsTemplate = template.recipientRoles.length;
+        maxRecipientsTemplateIdx = idx;
+      }
+    });
+
+    return templateDetails[maxRecipientsTemplateIdx].recipientRoles.map((role: LeanDocument<SignerRoleMaster>) =>
+      role._id.toString(),
+    );
   }
 }
