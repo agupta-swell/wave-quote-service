@@ -11,6 +11,7 @@ import { DiscountService } from 'src/discounts/discount.service';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
@@ -94,6 +95,7 @@ export class QuoteService {
     @Inject(forwardRef(() => QuoteFinanceProductService))
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
+    private readonly gsProgramsService: GsProgramsService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -273,6 +275,19 @@ export class QuoteService {
       throw new NotFoundException('System design not found');
     }
 
+    let gsPrograms;
+    if (
+      foundQuote.detailedQuote.quoteCostBuildup.storageQuoteDetails.length &&
+      foundSystemDesign.roofTopDesignData.storage.length
+    ) {
+      gsPrograms = await this.gsProgramsService.getList(
+        100,
+        0,
+        foundQuote.detailedQuote.utilityProgram.utilityProgramId,
+        systemDesignId,
+      );
+    }
+
     const [markupConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
@@ -290,6 +305,21 @@ export class QuoteService {
     newDoc.detailedQuote.quoteFinanceProduct.projectDiscountDetails = validDiscounts;
 
     newDoc.detailedQuote.quoteFinanceProduct.promotionDetails = validPromotions;
+
+    if (foundQuote.systemDesignId !== systemDesignId) {
+      const gsProgram = gsPrograms?.data?.data?.find(
+        gsProgram =>
+          gsProgram.id === newDoc.detailedQuote.quoteFinanceProduct.incentiveDetails[0].detail.gsProgramSnapshot.id,
+      );
+      if (!gsProgram) {
+        newDoc.detailedQuote.quoteCostBuildup.totalPromotionsDiscountsAndSwellGridrewards = {
+          cogsAmount: 0,
+          marginAmount: 0,
+          total: 0,
+        };
+        newDoc.detailedQuote.quoteFinanceProduct.incentiveDetails = [];
+      }
+    }
 
     const model = new this.quoteModel(newDoc);
 
