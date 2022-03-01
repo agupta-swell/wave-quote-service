@@ -309,7 +309,8 @@ export class QuoteService {
     if (foundQuote.systemDesignId !== systemDesignId) {
       const gsProgram = gsPrograms?.data?.data?.find(
         gsProgram =>
-          gsProgram.id === newDoc.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot?.id,
+          gsProgram.termYears ===
+          newDoc.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot?.termYears,
       );
       if (!gsProgram) {
         newDoc.detailedQuote.quoteCostBuildup.totalPromotionsDiscountsAndSwellGridrewards = {
