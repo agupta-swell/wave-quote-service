@@ -288,6 +288,22 @@ export class QuoteService {
       );
     }
 
+    if (foundQuote.systemDesignId !== systemDesignId) {
+      const currentGsProgram = gsPrograms?.data?.data?.find(
+        gsProgram =>
+          gsProgram.id ===
+          foundQuote.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot?.id,
+      );
+      if (!currentGsProgram) {
+        foundQuote.detailedQuote.quoteCostBuildup.totalPromotionsDiscountsAndSwellGridrewards = {
+          cogsAmount: 0,
+          marginAmount: 0,
+          total: 0,
+        };
+        foundQuote.detailedQuote.quoteFinanceProduct.incentiveDetails = [];
+      }
+    }
+
     const [markupConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
@@ -305,22 +321,6 @@ export class QuoteService {
     newDoc.detailedQuote.quoteFinanceProduct.projectDiscountDetails = validDiscounts;
 
     newDoc.detailedQuote.quoteFinanceProduct.promotionDetails = validPromotions;
-
-    if (foundQuote.systemDesignId !== systemDesignId) {
-      const gsProgram = gsPrograms?.data?.data?.find(
-        gsProgram =>
-          gsProgram.termYears ===
-          newDoc.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot?.termYears,
-      );
-      if (!gsProgram) {
-        newDoc.detailedQuote.quoteCostBuildup.totalPromotionsDiscountsAndSwellGridrewards = {
-          cogsAmount: 0,
-          marginAmount: 0,
-          total: 0,
-        };
-        newDoc.detailedQuote.quoteFinanceProduct.incentiveDetails = [];
-      }
-    }
 
     const model = new this.quoteModel(newDoc);
 
