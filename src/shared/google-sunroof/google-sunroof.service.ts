@@ -61,7 +61,7 @@ export class GoogleSunroofService {
                 this.GOOGLE_SUNROOF_BUCKET,
                 'application/json',
                 'private',
-                true,
+                false,
                 (err, data) => {
                   if (err) return reject(err);
 
