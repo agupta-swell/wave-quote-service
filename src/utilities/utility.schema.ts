@@ -1,4 +1,6 @@
 import { Document, Schema } from 'mongoose';
+import { IUsageProfile, IUsageProfileSnapshot } from 'src/usage-profiles/interfaces';
+import { UsageProfileSnapshotSchema } from 'src/usage-profiles/schema';
 import { ITypicalBaseLine } from '../external-services/typing';
 import { ENTRY_MODE } from './constants';
 import { CreateUtilityReqDto } from './req/create-utility.dto';
@@ -217,7 +219,7 @@ export const CostDataSchema = new Schema<Document<ICostData>>(
   { _id: false },
 );
 
-export interface UtilityUsageDetails extends Document {
+export interface UtilityUsageDetails extends Document, Partial<IUsageProfileSnapshot> {
   opportunityId: string;
   utilityData: IUtilityData;
   costData: ICostData;
@@ -233,6 +235,7 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
+  ...UsageProfileSnapshotSchema.obj,
 });
 
 export interface GenabilityCostData extends Document {
@@ -256,11 +259,20 @@ export class UtilityUsageDetailsModel {
 
   entryMode: ENTRY_MODE;
 
+  usageProfileId?: string;
+
+  usageProfileSnapshotDate?: Date;
+
+  usageProfileSnapshot?: IUsageProfile;
+
   constructor(props: CreateUtilityReqDto | any) {
     this.opportunityId = props.opportunityId;
     this.utilityData = props.utilityData;
     this.costData = props.costData;
     this.entryMode = props.entryMode;
+    this.usageProfileId = props.usageProfileId;
+    this.usageProfileSnapshotDate = props.usageProfileSnapshotDate;
+    this.usageProfileSnapshot = props.usageProfileSnapshot;
   }
 
   setActualHourlyUsage(data: IUsageValue[]) {

@@ -5,6 +5,7 @@ import { ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
+import { ValidateAndSnapshotUsageProfilePipe } from './pipes';
 import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
 import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
 import { UtilityService } from './utility.service';
@@ -78,7 +79,9 @@ export class UtilityController {
   @ApiOperation({ summary: 'Create A Utility Usage Detail' })
   @ApiOkResponse({ type: UtilityDetailsDto })
   @CheckOpportunity()
-  async createUtility(@Body() utility: CreateUtilityReqDto): Promise<ServiceResponse<UtilityDetailsDto>> {
+  async createUtility(
+    @Body(ValidateAndSnapshotUsageProfilePipe) utility: CreateUtilityReqDto,
+  ): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.createUtilityUsageDetail(utility);
     return ServiceResponse.fromResult(res);
   }
@@ -89,7 +92,7 @@ export class UtilityController {
   @CheckOpportunity()
   async updateUtility(
     @Param('utilityId', ParseObjectIdPipe) utilityId: ObjectId,
-    @Body() utilityDto: CreateUtilityReqDto,
+    @Body(ValidateAndSnapshotUsageProfilePipe) utilityDto: CreateUtilityReqDto,
   ): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.updateUtilityUsageDetail(utilityId, utilityDto);
     return ServiceResponse.fromResult(res);

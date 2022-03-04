@@ -24,8 +24,8 @@ import {
   IUsageValue,
   IUtilityCostData,
   UtilityUsageDetails,
-  UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
+  UtilityUsageDetailsModel,
 } from './utility.schema';
 
 @Injectable()
@@ -251,9 +251,9 @@ export class UtilityService {
     utilityModel.setComputedHourlyUsage(computedHourlyUsage);
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
+
     await createdUtility.save();
     const createdUtilityObj = createdUtility.toObject();
-    delete createdUtilityObj.utilityData.typicalBaselineUsage._id;
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, createdUtilityObj));
   }
 
@@ -299,8 +299,6 @@ export class UtilityService {
     if (!isUpdated) {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
     }
-
-    delete updatedUtility?.utilityData?.typicalBaselineUsage?._id;
 
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, updatedUtility));
   }
