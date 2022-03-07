@@ -280,7 +280,7 @@ export class UtilityService {
       typicalHourlyUsage,
     );
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
-    utilityModel.setActualHourlyUsage(hourlyUsage);
+    utilityModel.setComputedHourlyUsage(hourlyUsage);
 
     const updatedUtility = await this.utilityUsageDetailsModel
       .findOneAndUpdate({ _id: utilityId }, utilityModel, {
