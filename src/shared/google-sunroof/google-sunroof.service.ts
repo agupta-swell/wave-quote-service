@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { S3Service } from '../aws/services/s3.service';
 import { SUNROOF_API } from './constants';
 import { Stream } from 'stream';
-import { IGetBuildingResult, IGetRequestResult, IGetRequestResultWithS3UploadResult } from './interfaces';
+import { IGetBuildingResult, IGetSolarInfoResult, IGetRequestResult, IGetRequestResultWithS3UploadResult } from './interfaces';
 
 @Injectable()
 export class GoogleSunroofService {
@@ -46,7 +46,42 @@ export class GoogleSunroofService {
         if (cacheKey) {
           const chunks: Buffer[] = [];
 
-          res
+          if ( cacheKey.slice( cacheKey.length - 4) == 'json' ) {
+            res
+              .pipe(
+                new Stream.Transform({
+                  transform(chunk, _, cb) {
+                    chunks.push(chunk);
+                    cb(null, chunk);
+                  },
+                }),
+              )
+              .pipe(
+                this.s3Service.putStream(
+                  cacheKey,
+                  this.GOOGLE_SUNROOF_BUCKET,
+                  'application/json',
+                  'private',
+                  false,
+                  (err, data) => {
+                    if (err) return reject(err);
+
+                    const payloadStr = Buffer.concat(chunks).toString('utf-8');
+
+                    try {
+                      resolve({
+                        s3Result: data,
+                        payload: JSON.parse(payloadStr),
+                      });
+                    } catch (error) {
+                      reject(error);
+                    }
+                  },
+                ),
+              );
+
+          } else if ( cacheKey.slice( cacheKey.length - 4) == 'tiff' ) {
+            res
             .pipe(
               new Stream.Transform({
                 transform(chunk, _, cb) {
@@ -59,7 +94,7 @@ export class GoogleSunroofService {
               this.s3Service.putStream(
                 cacheKey,
                 this.GOOGLE_SUNROOF_BUCKET,
-                'application/json',
+                'image/tiff',
                 'private',
                 false,
                 (err, data) => {
@@ -70,7 +105,7 @@ export class GoogleSunroofService {
                   try {
                     resolve({
                       s3Result: data,
-                      payload: JSON.parse(payloadStr),
+                      payload: payloadStr,
                     });
                   } catch (error) {
                     reject(error);
@@ -78,6 +113,7 @@ export class GoogleSunroofService {
                 },
               ),
             );
+          }
 
           return;
         }
@@ -137,5 +173,25 @@ export class GoogleSunroofService {
     const payloadStr = Buffer.concat(chunks).toString('utf-8');
 
     return JSON.parse(payloadStr);
+  }
+
+  public getSolarInfo(lat: number, long: number, radiusMeters: number): Promise<IGetRequestResult<IGetSolarInfoResult>>;
+  public getSolarInfo(
+    lat: number,
+    long: number,
+    radiusMeters: number,
+    cacheKey: string,
+  ): Promise<IGetRequestResultWithS3UploadResult<IGetSolarInfoResult>>;
+  public getSolarInfo(lat: number, long: number, radiusMeters: number, cacheKey?: string): Promise<any> {
+    const url = this.makeGetUrl(
+      {
+        'location.latitude': lat,
+        'location.longitude': long,
+        'radiusMeters': radiusMeters,
+      },
+      SUNROOF_API.SOLAR_INFO_GET,
+    );
+
+    return this.getRequest<IGetSolarInfoResult>(url, cacheKey!);
   }
 }
