@@ -14,7 +14,7 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
-import { IGetBuildingResult, IGetSolarInfoResult } from 'src/shared/google-sunroof/interfaces';
+import { IGetBuildingResult, IGetSolarInfoResult, IGetRequestResultWithS3UploadResult } from 'src/shared/google-sunroof/interfaces';
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -1098,7 +1098,7 @@ export class SystemDesignService {
       if (!existed) {
         const data = await this.googleSunroofService.getSolarInfo(lat,lng,radiusMeters, fileNameToTest);
         const solarInfo = data.payload;
-
+        const requestPromises: Promise<IGetRequestResultWithS3UploadResult<unknown>>[] = [];
         const coreUrls = ['rgb','mask','annualFlux','monthlyFlux','hourlyShade'];
     
         coreUrls.forEach( coreUrl => {
@@ -1106,17 +1106,19 @@ export class SystemDesignService {
             const url = solarInfo[coreUrl +'Url'];
             const fileName = `${opportunityId}/tiff/${coreUrl}.tiff`;
 
-            this.googleSunroofService.getRequest( url, fileName );
+            requestPromises.push( this.googleSunroofService.getRequest( url, fileName ) );
           } else {
             const hourlyUrls = solarInfo[coreUrl +'Urls'];
 
             hourlyUrls.forEach((hourlyUrl, index) => {
               const fileName = `${opportunityId}/tiff/month${index}.tiff`;
 
-              this.googleSunroofService.getRequest( hourlyUrl, fileName );
+              requestPromises.push( this.googleSunroofService.getRequest( hourlyUrl, fileName ) );
             })
           }
         })        
+
+        await Promise.all( requestPromises);
 
         return data.payload;
       }
