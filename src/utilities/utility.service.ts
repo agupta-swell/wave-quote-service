@@ -8,7 +8,7 @@ import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
+import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE } from './constants';
 import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
 import { UsageValue } from './req/sub-dto';
 import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
@@ -242,13 +242,16 @@ export class UtilityService {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
 
-    const computedHourlyUsage = this.getHourlyUsageFromMonthlyUsage(
-      utilityDto.utilityData.computedUsage.monthlyUsage,
-      typicalMonthlyUsage,
-      typicalHourlyUsage,
-    );
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
-    utilityModel.setComputedHourlyUsage(computedHourlyUsage);
+
+    if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
+      const computedHourlyUsage = this.getHourlyUsageFromMonthlyUsage(
+        utilityDto.utilityData.computedUsage.monthlyUsage,
+        typicalMonthlyUsage,
+        typicalHourlyUsage,
+      );
+      utilityModel.setComputedHourlyUsage(computedHourlyUsage);
+    }
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
 
@@ -273,14 +276,16 @@ export class UtilityService {
   ): Promise<OperationResult<UtilityDetailsDto>> {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
-
-    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(
-      utilityDto.utilityData.computedUsage.monthlyUsage,
-      typicalMonthlyUsage,
-      typicalHourlyUsage,
-    );
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
-    utilityModel.setComputedHourlyUsage(hourlyUsage);
+
+    if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
+      const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(
+        utilityDto.utilityData.computedUsage.monthlyUsage,
+        typicalMonthlyUsage,
+        typicalHourlyUsage,
+      );
+      utilityModel.setComputedHourlyUsage(hourlyUsage);
+    }
 
     const updatedUtility = await this.utilityUsageDetailsModel
       .findOneAndUpdate({ _id: utilityId }, utilityModel, {
