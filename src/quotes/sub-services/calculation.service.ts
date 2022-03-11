@@ -89,8 +89,8 @@ export class CalculationService {
     // eslint-disable-next-line no-param-reassign
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
-    const actualUsage = sumBy(utilityUsage?.utilityData.actualUsage.monthlyUsage, item => item.v);
-    const currentBill = sumBy(utilityUsage?.costData.actualUsageCost.cost, item => item.v);
+    const actualUsage = sumBy(utilityUsage?.utilityData.computedUsage.monthlyUsage, item => item.v);
+    const currentBill = sumBy(utilityUsage?.costData.computedCost.cost, item => item.v);
     productAttribute.currentPricePerKWh = currentBill / actualUsage;
     productAttribute.newPricePerKWh = (productAttribute.monthlyEnergyPayment * 12) / actualUsage;
 

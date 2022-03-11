@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { UTILITIES, UtilitiesSchema } from './schemas';
 import { GENEBILITY_LSE_DATA, GenebilityLseDataSchema } from './schemas/genebility-lse-caching.schema';
 import { GenebilityTariffDataSchema, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
@@ -54,6 +55,7 @@ import { UtilityService } from './utility.service';
         collection: GENEBILITY_TARIFF_DATA,
       },
     ]),
+    UsageProfileModule,
   ],
   controllers: [UtilityController],
   providers: [UtilityService],

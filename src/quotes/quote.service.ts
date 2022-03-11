@@ -11,6 +11,7 @@ import { DiscountService } from 'src/discounts/discount.service';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
@@ -94,6 +95,7 @@ export class QuoteService {
     @Inject(forwardRef(() => QuoteFinanceProductService))
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
+    private readonly gsProgramsService: GsProgramsService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -271,6 +273,35 @@ export class QuoteService {
 
     if (!foundSystemDesign || foundSystemDesign.opportunityId !== foundQuote.opportunityId) {
       throw new NotFoundException('System design not found');
+    }
+
+    let gsPrograms;
+    if (
+      foundQuote.detailedQuote.quoteCostBuildup.storageQuoteDetails.length &&
+      foundSystemDesign.roofTopDesignData.storage.length
+    ) {
+      gsPrograms = await this.gsProgramsService.getList(
+        100,
+        0,
+        foundQuote.detailedQuote.utilityProgram.utilityProgramId,
+        systemDesignId,
+      );
+    }
+
+    if (foundQuote.systemDesignId !== systemDesignId) {
+      const currentGsProgram = gsPrograms?.data?.data?.find(
+        gsProgram =>
+          gsProgram.id ===
+          foundQuote.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot?.id,
+      );
+      if (!currentGsProgram) {
+        foundQuote.detailedQuote.quoteCostBuildup.totalPromotionsDiscountsAndSwellGridrewards = {
+          cogsAmount: 0,
+          marginAmount: 0,
+          total: 0,
+        };
+        foundQuote.detailedQuote.quoteFinanceProduct.incentiveDetails = [];
+      }
     }
 
     const [markupConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
@@ -1404,8 +1435,8 @@ export class QuoteService {
     const oppData = await this.opportunityService.getRelatedInformation(opportunityId);
 
     const savings = await this.savingCalculatorService.getSavings({
-      historicalUsageByHour: utilityUsage.data?.utilityData.actualUsage.hourlyUsage.map(e => e.v),
-      historicalBillsByMonth: utilityUsage.data?.costData.actualUsageCost?.cost.map(e => e.v),
+      historicalUsageByHour: utilityUsage.data?.utilityData.computedUsage.hourlyUsage.map(e => e.v),
+      historicalBillsByMonth: utilityUsage.data?.costData.computedCost?.cost.map(e => e.v),
       historicalProductionByHour: productionByHour.hourly, //
       existingBatteryKwh: undefined, // TODO
       additionalBatteryKwh: undefined, // TODO

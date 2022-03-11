@@ -1,17 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
-import { isNumber } from 'lodash';
-
-class TypicalUsage {
-  @ApiProperty()
-  @IsNumber()
-  i: number;
-
-  @ApiProperty()
-  @IsNumber()
-  v: number;
-}
+import { UsageValue } from '.';
 
 export class TypicalBaselineUsageDto {
   @ApiProperty()
@@ -42,9 +32,9 @@ export class TypicalBaselineUsageDto {
   @IsNumber()
   annualConsumption: number;
 
-  @ApiProperty({ type: TypicalUsage, isArray: true, default: [{ i: 1, v: 2 }] })
+  @ApiProperty({ type: UsageValue, isArray: true, default: [{ i: 1, v: 2 }] })
   @IsNotEmpty()
-  @Type(() => TypicalUsage)
+  @Type(() => UsageValue)
   @ValidateNested()
-  typicalMonthlyUsage: TypicalUsage[];
+  typicalMonthlyUsage: UsageValue[];
 }

@@ -14,7 +14,7 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
-import { IGetBuildingResult } from 'src/shared/google-sunroof/interfaces';
+import { IGetBuildingResult, IGetSolarInfoResult, IGetRequestResultWithS3UploadResult } from 'src/shared/google-sunroof/interfaces';
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -87,7 +87,7 @@ export class SystemDesignService {
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
-    const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
+    const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
 
     this.handleUpdateExistingSolar(
       systemDesignDto.opportunityId,
@@ -341,7 +341,7 @@ export class SystemDesignService {
     }
 
     const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-      (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
+      (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
       systemProductionArray.hourly,
     );
 
@@ -386,7 +386,7 @@ export class SystemDesignService {
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
-    const annualUsageKWh = utilityAndUsage?.utilityData.actualUsage?.annualConsumption || 0;
+    const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
 
     if (systemDesignDto.roofTopDesignData) {
       let cumulativeGenerationKWh = 0;
@@ -495,7 +495,7 @@ export class SystemDesignService {
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-        (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
+        (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
         systemProductionArray.hourly,
       );
 
@@ -656,7 +656,7 @@ export class SystemDesignService {
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-        (utilityAndUsage?.utilityData?.actualUsage?.hourlyUsage || []).map(item => item.v),
+        (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
         systemProductionArray.hourly,
       );
 
@@ -1084,6 +1084,52 @@ export class SystemDesignService {
     }
   }
 
+  private async getSunroofSolarInfoData(
+    lat: number,
+    lng: number,
+    opportunityId: string,
+    radiusMeters: number = 25,
+  ): Promise<IGetSolarInfoResult | undefined> {
+    try {
+      const fileNameToTest = `${opportunityId}/sunroofSolarInfo.json`
+      
+      const existed = await this.googleSunroofService.hasS3File(fileNameToTest);
+
+      if (!existed) {
+        const { payload: solarInfo } = await this.googleSunroofService.getSolarInfo(lat,lng,radiusMeters, fileNameToTest);
+
+        const promises: Promise<IGetRequestResultWithS3UploadResult<unknown>>[] = [];
+
+        [
+          'rgb',
+          'mask',
+          'annualFlux',
+          'monthlyFlux'
+        ].forEach( component => {
+          const url = solarInfo[component +'Url'];
+          const fileName = `${opportunityId}/tiff/${component}.tiff`;
+          const promise = this.googleSunroofService.getRequest(url, fileName);
+          promises.push(promise);
+        })
+
+        solarInfo.hourlyShadeUrls.forEach((url, index) => {
+          const fileName = `${opportunityId}/tiff/month${index}.tiff`;
+          const promise = this.googleSunroofService.getRequest(url, fileName);
+          promises.push(promise);
+        });
+
+        await Promise.all(promises);
+
+        return solarInfo;
+      }
+
+      return await this.googleSunroofService.getS3File<IGetSolarInfoResult>(fileNameToTest);
+    } catch(_) {
+      return undefined;
+    }
+  }
+
+
   private getSunroofPitchAndAzimuth(
     buildingData: IGetBuildingResult,
     centerLat: number,
@@ -1164,15 +1210,17 @@ export class SystemDesignService {
   public async calculateSunroofData(req: CalculateSunroofDto): Promise<OperationResult<CalculateSunroofResDto>> {
     const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths } = req;
 
-    const sunroofData = await this.getSunRoofData(latitude, longitude, opportunityId);
+    const [sunroofData] = await Promise.all([
+      this.getSunRoofData(latitude, longitude, opportunityId),
+      this.getSunroofSolarInfoData(latitude, longitude, opportunityId),
+    ]);
 
     if (!sunroofData) {
       return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));
     }
+    const sunroofPitchAndAzimuth = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
 
-    const res = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
-
-    return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, res));
+    return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, sunroofPitchAndAzimuth));
   }
 
   public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {

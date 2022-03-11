@@ -1,17 +1,20 @@
 import { Document, Schema } from 'mongoose';
+import { IUsageProfile, IUsageProfileSnapshot } from 'src/usage-profiles/interfaces';
+import { UsageProfileSnapshotSchema } from 'src/usage-profiles/schema';
 import { ITypicalBaseLine } from '../external-services/typing';
+import { ENTRY_MODE } from './constants';
 import { CreateUtilityReqDto } from './req/create-utility.dto';
 
 export const GENABILITY_USAGE_DATA = Symbol('GENABILITY_USAGE_DATA').toString();
 export const UTILITY_USAGE_DETAILS = Symbol('UTILITY_USAGE_DETAILS').toString();
 export const GENABILITY_COST_DATA = Symbol('GENABILITY_COST_DATA').toString();
 
-export interface ITypicalUsage {
+export interface IUsageValue {
   i: number;
   v: number;
 }
 
-const TypicalUsageSchema = new Schema<Document<ITypicalUsage>>(
+const UsageValueSchema = new Schema<Document<IUsageValue>>(
   {
     i: Number,
     v: Number,
@@ -27,8 +30,8 @@ export interface IGenabilityTypicalBaseLine extends Document {
   lseId: number;
   sourceType: string;
   annualConsumption: number;
-  typicalHourlyUsage: ITypicalUsage[];
-  typicalMonthlyUsage: ITypicalUsage[];
+  typicalHourlyUsage: IUsageValue[];
+  typicalMonthlyUsage: IUsageValue[];
 }
 
 const GenabilityTypicalBaseLineSchema = new Schema<IGenabilityTypicalBaseLine>({
@@ -39,8 +42,8 @@ const GenabilityTypicalBaseLineSchema = new Schema<IGenabilityTypicalBaseLine>({
   lse_id: Number,
   source_type: String,
   annual_consumption: Number,
-  typical_hourly_usage: [TypicalUsageSchema],
-  typical_monthly_usage: [TypicalUsageSchema],
+  typical_hourly_usage: [UsageValueSchema],
+  typical_monthly_usage: [UsageValueSchema],
 });
 
 export class GenabilityTypicalBaseLineModel {
@@ -58,9 +61,9 @@ export class GenabilityTypicalBaseLineModel {
 
   annualConsumption: number;
 
-  typicalHourlyUsage: ITypicalUsage[];
+  typicalHourlyUsage: IUsageValue[];
 
-  typicalMonthlyUsage: ITypicalUsage[];
+  typicalMonthlyUsage: IUsageValue[];
 
   constructor(props: ITypicalBaseLine) {
     this.zipCode = props.zipCode;
@@ -95,8 +98,8 @@ export interface IActualUsage {
   opportunityId: string;
   sourceType: string;
   annualConsumption: number;
-  monthlyUsage: ITypicalUsage[];
-  hourlyUsage: ITypicalUsage[];
+  monthlyUsage: IUsageValue[];
+  hourlyUsage: IUsageValue[];
 }
 
 export const ActualUsageSchema = new Schema<Document<IActualUsage>>(
@@ -104,8 +107,23 @@ export const ActualUsageSchema = new Schema<Document<IActualUsage>>(
     opportunity_id: String,
     source_type: String,
     annual_consumption: Number,
-    monthly_usage: [TypicalUsageSchema],
-    hourly_usage: [TypicalUsageSchema],
+    monthly_usage: [UsageValueSchema],
+    hourly_usage: [UsageValueSchema],
+  },
+  { _id: false },
+);
+
+export interface IComputedUsage {
+  annualConsumption: number;
+  monthlyUsage: IUsageValue[];
+  hourlyUsage: IUsageValue[];
+}
+
+export const ComputedUsageSchema = new Schema<Document<IComputedUsage>>(
+  {
+    annual_consumption: Number,
+    monthly_usage: [UsageValueSchema],
+    hourly_usage: [UsageValueSchema],
   },
   { _id: false },
 );
@@ -135,6 +153,7 @@ export interface IUtilityData {
   loadServingEntityData: ILoadServingEntityData;
   typicalBaselineUsage: IGenabilityTypicalBaseLine;
   actualUsage: IActualUsage;
+  computedUsage: IComputedUsage;
 }
 
 export const UtilityDataSchema = new Schema<Document<IUtilityData>>(
@@ -142,6 +161,7 @@ export const UtilityDataSchema = new Schema<Document<IUtilityData>>(
     load_serving_entity_data: LoadServingEntityDataSchema,
     typical_baseline_usage: GenabilityTypicalBaseLineSchema,
     actual_usage: ActualUsageSchema,
+    computed_usage: ComputedUsageSchema,
   },
   { _id: false },
 );
@@ -184,6 +204,7 @@ export interface ICostData {
   masterTariffId: string;
   typicalUsageCost: IUtilityCostData;
   actualUsageCost: IUtilityCostData;
+  computedCost: IUtilityCostData;
   postInstallMasterTariffId: string;
 }
 
@@ -192,25 +213,29 @@ export const CostDataSchema = new Schema<Document<ICostData>>(
     master_tariff_id: String,
     typical_usage_cost: UtilityCostDataSchema,
     actual_usage_cost: UtilityCostDataSchema,
+    computed_cost: UtilityCostDataSchema,
     post_install_master_tariff_id: String,
   },
   { _id: false },
 );
 
-export interface UtilityUsageDetails extends Document {
+export interface UtilityUsageDetails extends Document, Partial<IUsageProfileSnapshot> {
   opportunityId: string;
   utilityData: IUtilityData;
   costData: ICostData;
+  entryMode: ENTRY_MODE;
 }
 
 export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   opportunity_id: String,
+  entry_mode: String,
   utility_data: UtilityDataSchema,
   cost_data: CostDataSchema,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
+  ...UsageProfileSnapshotSchema.obj,
 });
 
 export interface GenabilityCostData extends Document {
@@ -232,13 +257,29 @@ export class UtilityUsageDetailsModel {
 
   costData: ICostData;
 
+  entryMode: ENTRY_MODE;
+
+  usageProfileId?: string;
+
+  usageProfileSnapshotDate?: Date;
+
+  usageProfileSnapshot?: IUsageProfile;
+
   constructor(props: CreateUtilityReqDto | any) {
     this.opportunityId = props.opportunityId;
     this.utilityData = props.utilityData;
     this.costData = props.costData;
+    this.entryMode = props.entryMode;
+    this.usageProfileId = props.usageProfileId;
+    this.usageProfileSnapshotDate = props.usageProfileSnapshotDate;
+    this.usageProfileSnapshot = props.usageProfileSnapshot;
   }
 
-  setActualHourlyUsage(data: ITypicalUsage[]) {
+  setActualHourlyUsage(data: IUsageValue[]) {
     this.utilityData.actualUsage.hourlyUsage = data;
+  }
+
+  setComputedHourlyUsage(data: IUsageValue[]) {
+    this.utilityData.computedUsage.hourlyUsage = data;
   }
 }

@@ -8,8 +8,9 @@ import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { CALCULATION_MODE, INTERVAL_VALUE } from './constants';
+import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE } from './constants';
 import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
+import { UsageValue } from './req/sub-dto';
 import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
 import { UTILITIES, Utilities } from './schemas';
 import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
@@ -20,11 +21,11 @@ import {
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
-  ITypicalUsage,
+  IUsageValue,
   IUtilityCostData,
   UtilityUsageDetails,
-  UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
+  UtilityUsageDetailsModel,
 } from './utility.schema';
 
 @Injectable()
@@ -188,7 +189,7 @@ export class UtilityService {
     const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
     const deltaValues = {} as { i: number };
 
-    utilityData.actualUsage.monthlyUsage.map((monthly, index) => {
+    utilityData.computedUsage.monthlyUsage.map((monthly, index) => {
       const typicalUsageValue = utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v;
       const actualUsageValue = monthly.v;
       deltaValues[monthly.i] = (actualUsageValue - typicalUsageValue) / typicalUsageValue;
@@ -212,8 +213,8 @@ export class UtilityService {
 
     const costData = {
       masterTariffId,
-      typicalUsageCost: null as any,
-      actualUsageCost: monthlyCost,
+      actualUsageCost: null as any,
+      computedCost: monthlyCost,
     };
 
     return OperationResult.ok(strictPlainToClass(CostDataDto, costData));
@@ -222,12 +223,18 @@ export class UtilityService {
   async createActualUsages(data: GetActualUsageDto): Promise<OperationResult<UtilityDataDto>> {
     const { costData, utilityData } = data;
 
-    costData.actualUsageCost.cost.map((costDetail, index) => {
+    costData.computedCost.cost.map((costDetail, index) => {
       const deltaValueFactor =
         (costDetail.v - costData.typicalUsageCost.cost[index].v) / costData.typicalUsageCost.cost[index].v;
-      utilityData.actualUsage.monthlyUsage[index].v =
+      utilityData.computedUsage.monthlyUsage[index].v =
         utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
     });
+
+    utilityData.computedUsage.annualConsumption = utilityData.computedUsage.monthlyUsage.reduce((total, { v }) => {
+      total += v;
+      return total;
+    }, 0);
+
     return OperationResult.ok(strictPlainToClass(UtilityDataDto, utilityData as any));
   }
 
@@ -239,16 +246,23 @@ export class UtilityService {
     }
 
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
-    const { typicalHourlyUsage = [] } = typicalBaseLine.typicalBaseline;
+    const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
 
-    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(utilityDto, typicalHourlyUsage);
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
-    utilityModel.setActualHourlyUsage(hourlyUsage);
+
+    if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
+      const computedHourlyUsage = this.getHourlyUsageFromMonthlyUsage(
+        utilityDto.utilityData.computedUsage.monthlyUsage,
+        typicalMonthlyUsage,
+        typicalHourlyUsage,
+      );
+      utilityModel.setComputedHourlyUsage(computedHourlyUsage);
+    }
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
+
     await createdUtility.save();
     const createdUtilityObj = createdUtility.toObject();
-    delete createdUtilityObj.utilityData.typicalBaselineUsage._id;
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, createdUtilityObj));
   }
 
@@ -267,11 +281,17 @@ export class UtilityService {
     utilityDto: CreateUtilityReqDto,
   ): Promise<OperationResult<UtilityDetailsDto>> {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
-    const { typicalHourlyUsage = [] } = typicalBaseLine.typicalBaseline;
-
-    const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(utilityDto, typicalHourlyUsage);
+    const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
-    utilityModel.setActualHourlyUsage(hourlyUsage);
+
+    if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
+      const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(
+        utilityDto.utilityData.computedUsage.monthlyUsage,
+        typicalMonthlyUsage,
+        typicalHourlyUsage,
+      );
+      utilityModel.setComputedHourlyUsage(hourlyUsage);
+    }
 
     const updatedUtility = await this.utilityUsageDetailsModel
       .findOneAndUpdate({ _id: utilityId }, utilityModel, {
@@ -282,7 +302,7 @@ export class UtilityService {
     const [isUpdated] = await Promise.all([
       this.systemDesignService.updateListSystemDesign(
         utilityDto.opportunityId,
-        utilityDto.utilityData.actualUsage.annualConsumption,
+        utilityDto.utilityData.computedUsage.annualConsumption,
       ),
       this.quoteService.setOutdatedData(utilityDto.opportunityId, 'Utility & Usage'),
     ]);
@@ -290,8 +310,6 @@ export class UtilityService {
     if (!isUpdated) {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
     }
-
-    delete updatedUtility?.utilityData?.typicalBaselineUsage?._id;
 
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, updatedUtility));
   }
@@ -400,9 +418,10 @@ export class UtilityService {
   }
 
   getHourlyUsageFromMonthlyUsage(
-    utilityDto: CreateUtilityReqDto,
-    typicalHourlyUsage: ITypicalUsage[],
-  ): ITypicalUsage[] {
+    monthlyUsage: UsageValue[],
+    typicalMonthlyUsage: UsageValue[],
+    typicalHourlyUsage: IUsageValue[],
+  ): IUsageValue[] {
     const deltaValue: any[] = [];
     const hourlyUsage: any[] = [];
 
@@ -421,8 +440,8 @@ export class UtilityService {
       12: 8760,
     };
 
-    utilityDto.utilityData.actualUsage.monthlyUsage.forEach((item, index) => {
-      const typicalUsageValue = utilityDto.utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v;
+    monthlyUsage.forEach((item, index) => {
+      const typicalUsageValue = typicalMonthlyUsage[index].v;
       const actualUsageValue = item.v;
       deltaValue[index] = (actualUsageValue - typicalUsageValue) / typicalUsageValue;
     });

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { ActualUsageDto, TypicalBaselineUsageDto } from './sub-dto';
+import { ComputedUsageDto, TypicalBaselineUsageDto } from './sub-dto';
 
 class UtilityDataDto {
   @ApiProperty()
@@ -14,22 +14,14 @@ class UtilityDataDto {
   @ValidateNested()
   typicalBaselineUsage: TypicalBaselineUsageDto;
 
-  @ApiProperty({ type: ActualUsageDto })
+  @ApiProperty({ type: ComputedUsageDto })
   @IsNotEmpty()
-  @Type(() => ActualUsageDto)
+  @Type(() => ComputedUsageDto)
   @ValidateNested()
-  actualUsage: ActualUsageDto;
+  computedUsage: ComputedUsageDto;
 }
 
 class CostDetailDto {
-  @ApiProperty()
-  @IsDateString()
-  startDate: Date;
-
-  @ApiProperty()
-  @IsDateString()
-  endDate: Date;
-
   @ApiProperty()
   @IsNumber()
   i: number;
@@ -39,6 +31,13 @@ class CostDetailDto {
   v: number;
 }
 
+class ComputedCostDto {
+  @ApiProperty({ type: CostDetailDto, isArray: true })
+  @IsArray()
+  @Type(() => CostDetailDto)
+  @ValidateNested({ each: true })
+  cost: CostDetailDto[];
+}
 class UtilityCostDataDto {
   @ApiProperty()
   @IsDateString()
@@ -78,7 +77,7 @@ class CostDataDto {
   @IsNotEmpty()
   @Type(() => UtilityCostDataDto)
   @ValidateNested()
-  actualUsageCost: UtilityCostDataDto;
+  computedCost: ComputedCostDto;
 }
 
 export class GetActualUsageDto {

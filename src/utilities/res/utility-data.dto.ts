@@ -18,7 +18,7 @@ export class LoadServingEntity {
   lseId: string;
 }
 
-export class TypicalUsage {
+export class UsageValueDto {
   @ExposeProp()
   i: number;
 
@@ -51,11 +51,11 @@ export class TypicalBaseLine {
   @ExposeProp()
   annualConsumption: number;
 
-  @ExposeProp({ type: TypicalUsage })
-  typicalMonthlyUsage: TypicalUsage[];
+  @ExposeProp({ type: UsageValueDto })
+  typicalMonthlyUsage: UsageValueDto[];
 
-  @ExposeProp({ type: TypicalUsage })
-  typicalHourlyUsage: TypicalUsage[];
+  @ExposeProp({ type: UsageValueDto })
+  typicalHourlyUsage: UsageValueDto[];
 }
 
 export class ActualUsageDto {
@@ -68,11 +68,22 @@ export class ActualUsageDto {
   @ExposeProp()
   annualConsumption: number;
 
-  @ExposeProp({ type: TypicalUsage, isArray: true })
-  monthlyUsage: TypicalUsage[];
+  @ExposeProp({ type: UsageValueDto, isArray: true })
+  monthlyUsage: UsageValueDto[];
 
-  @ExposeProp({ type: TypicalUsage, isArray: true })
-  hourlyUsage: TypicalUsage[];
+  @ExposeProp({ type: UsageValueDto, isArray: true })
+  hourlyUsage: UsageValueDto[];
+}
+
+export class ComputedUsageDto {
+  @ExposeProp()
+  annualConsumption: number;
+
+  @ExposeProp({ type: UsageValueDto, isArray: true })
+  monthlyUsage: UsageValueDto[];
+
+  @ExposeProp({ type: UsageValueDto, isArray: true })
+  hourlyUsage: UsageValueDto[];
 }
 
 export class UtilityDataDto {
@@ -90,6 +101,9 @@ export class UtilityDataDto {
 
   @ExposeProp({ type: ActualUsageDto })
   actualUsage: ActualUsageDto;
+
+  @ExposeProp({ type: ComputedUsageDto })
+  computedUsage: ComputedUsageDto;
 
   static actualUsages(props: any): UtilityDataDto {
     return strictPlainToClass(UtilityDataDto, props);

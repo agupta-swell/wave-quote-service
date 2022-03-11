@@ -1,4 +1,6 @@
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { UsageProfileResDto } from 'src/usage-profiles/res';
+import { ENTRY_MODE } from '../constants';
 import { CostDataDto } from './cost-data.dto';
 import { UtilityDataDto } from './utility-data.dto';
 
@@ -14,4 +16,16 @@ export class UtilityDetailsDto {
 
   @ExposeProp({ type: CostDataDto })
   costData: CostDataDto;
+
+  @ExposeProp()
+  entryMode: ENTRY_MODE;
+
+  @ExposeProp()
+  usageProfileSnapshotDate?: Date;
+
+  @ExposeProp()
+  usageProfileId?: string;
+
+  @ExposeProp({ type: UsageProfileResDto })
+  usageProfileSnapshot: UsageProfileResDto;
 }
