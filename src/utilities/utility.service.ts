@@ -229,6 +229,12 @@ export class UtilityService {
       utilityData.computedUsage.monthlyUsage[index].v =
         utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v * (1 + deltaValueFactor);
     });
+
+    utilityData.computedUsage.annualConsumption = utilityData.computedUsage.monthlyUsage.reduce((total, { v }) => {
+      total += v;
+      return total;
+    }, 0);
+
     return OperationResult.ok(strictPlainToClass(UtilityDataDto, utilityData as any));
   }
 
