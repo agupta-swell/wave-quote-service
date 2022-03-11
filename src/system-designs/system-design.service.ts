@@ -1087,8 +1087,8 @@ export class SystemDesignService {
   private async getSunroofSolarInfoData(
     lat: number,
     lng: number,
-    radiusMeters: number,
     opportunityId: string,
+    radiusMeters: number = 25,
   ): Promise<IGetSolarInfoResult | undefined> {
     try {
       const fileNameToTest = `${opportunityId}/sunroofSolarInfo.json`
@@ -1096,35 +1096,34 @@ export class SystemDesignService {
       const existed = await this.googleSunroofService.hasS3File(fileNameToTest);
 
       if (!existed) {
-        const data = await this.googleSunroofService.getSolarInfo(lat,lng,radiusMeters, fileNameToTest);
-        const solarInfo = data.payload;
-        const requestPromises: Promise<IGetRequestResultWithS3UploadResult<unknown>>[] = [];
-        const coreUrls = ['rgb','mask','annualFlux','monthlyFlux','hourlyShade'];
-    
-        coreUrls.forEach( coreUrl => {
-          if ( coreUrl !== 'hourlyShade' ) {
-            const url = solarInfo[coreUrl +'Url'];
-            const fileName = `${opportunityId}/tiff/${coreUrl}.tiff`;
+        const { payload: solarInfo } = await this.googleSunroofService.getSolarInfo(lat,lng,radiusMeters, fileNameToTest);
 
-            requestPromises.push( this.googleSunroofService.getRequest( url, fileName ) );
-          } else {
-            const hourlyUrls = solarInfo[coreUrl +'Urls'];
+        const promises: Promise<IGetRequestResultWithS3UploadResult<unknown>>[] = [];
 
-            hourlyUrls.forEach((hourlyUrl, index) => {
-              const fileName = `${opportunityId}/tiff/month${index}.tiff`;
+        [
+          'rgb',
+          'mask',
+          'annualFlux',
+          'monthlyFlux'
+        ].forEach( component => {
+          const url = solarInfo[component +'Url'];
+          const fileName = `${opportunityId}/tiff/${component}.tiff`;
+          const promise = this.googleSunroofService.getRequest(url, fileName);
+          promises.push(promise);
+        })
 
-              requestPromises.push( this.googleSunroofService.getRequest( hourlyUrl, fileName ) );
-            })
-          }
-        })        
+        solarInfo.hourlyShadeUrls.forEach((url, index) => {
+          const fileName = `${opportunityId}/tiff/month${index}.tiff`;
+          const promise = this.googleSunroofService.getRequest(url, fileName);
+          promises.push(promise);
+        });
 
-        await Promise.all( requestPromises);
+        await Promise.all(promises);
 
-        return data.payload;
+        return solarInfo;
       }
 
-      const found = await this.googleSunroofService.getS3File<IGetSolarInfoResult>(fileNameToTest);
-      return found;
+      return await this.googleSunroofService.getS3File<IGetSolarInfoResult>(fileNameToTest);
     } catch(_) {
       return undefined;
     }
@@ -1210,11 +1209,11 @@ export class SystemDesignService {
 
   public async calculateSunroofData(req: CalculateSunroofDto): Promise<OperationResult<CalculateSunroofResDto>> {
     const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths } = req;
-    const radiusMeters = 25;
-    
-    const sunroofSolarInfoData = await this.getSunroofSolarInfoData(latitude, longitude, radiusMeters, opportunityId);
 
-    const sunroofData = await this.getSunRoofData(latitude, longitude, opportunityId);
+    const [sunroofData] = await Promise.all([
+      this.getSunRoofData(latitude, longitude, opportunityId),
+      this.getSunroofSolarInfoData(latitude, longitude, opportunityId),
+    ]);
 
     if (!sunroofData) {
       return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));

@@ -43,10 +43,11 @@ export class GoogleSunroofService {
       https.get(url, res => {
         if (res.statusCode !== 200) reject(new Error(`${res.statusCode}: ${res.statusMessage}`));
 
-        if (cacheKey) {
-          const chunks: Buffer[] = [];
+        const chunks: Buffer[] = [];
 
-          if ( cacheKey.slice( cacheKey.length - 4) == 'json' ) {
+        if (cacheKey) {
+
+          if ( cacheKey.slice(-4) === 'json' ) {
             res
               .pipe(
                 new Stream.Transform({
@@ -80,7 +81,7 @@ export class GoogleSunroofService {
                 ),
               );
 
-          } else if ( cacheKey.slice( cacheKey.length - 4) == 'tiff' ) {
+          } else if ( cacheKey.slice(-4) === 'tiff' ) {
             res
             .pipe(
               new Stream.Transform({
@@ -100,12 +101,10 @@ export class GoogleSunroofService {
                 (err, data) => {
                   if (err) return reject(err);
 
-                  const payloadStr = Buffer.concat(chunks).toString('utf-8');
-
                   try {
                     resolve({
                       s3Result: data,
-                      payload: payloadStr,
+                      payload: Buffer.concat(chunks),
                     });
                   } catch (error) {
                     reject(error);
@@ -117,8 +116,6 @@ export class GoogleSunroofService {
 
           return;
         }
-
-        const chunks: Buffer[] = [];
 
         res
           .on('data', chunk => {
