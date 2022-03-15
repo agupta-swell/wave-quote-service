@@ -18,4 +18,7 @@ export class SystemProductionDto {
 
   @ExposeProp()
   generationMonthlyKWh: number[];
+
+  @ExposeProp()
+  arrayGenerationKWh: number[];
 }

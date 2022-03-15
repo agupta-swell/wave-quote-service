@@ -1,6 +1,6 @@
 import { Document, LeanDocument, Schema, Types } from 'mongoose';
 import { Manufacturer } from 'src/manufacturers/manufacturer.schema';
-import { PRICING_UNIT, PRODUCT_TYPE, BATTERY_TYPE } from 'src/products-v2/constants';
+import { BATTERY_TYPE, PRICING_UNIT, PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import {
   AdderSnapshotSchema,
@@ -8,9 +8,9 @@ import {
   BalanceOfSystemSnapshotSchema,
   BatterySnapshotSchema,
   InverterSnapshotSchema,
+  LaborCostSnapshotSchema,
   ModuleSnapshotSchema,
   SoftCostSnapshotSchema,
-  LaborCostSnapshotSchema,
 } from 'src/products-v2/schemas';
 import { WithMetaOfType } from 'src/shared/mongo';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
@@ -39,6 +39,7 @@ export interface ISystemProductionSchema {
   annualUsageKWh: number;
   offsetPercentage: number;
   generationMonthlyKWh: number[];
+  arrayGenerationKWh: number[];
 }
 
 export const SystemProductionSchema = new Schema<Document<ISystemProductionSchema>>(
@@ -49,6 +50,7 @@ export const SystemProductionSchema = new Schema<Document<ISystemProductionSchem
     annual_usageKWh: Number,
     offset_percentage: Number,
     generationMonthlyKWh: [Number],
+    array_generationKWh: [Number],
   },
   { _id: false },
 );
@@ -213,6 +215,7 @@ export const BalanceOfSystemSchema = new Schema<Document<IBalanceOfSystemSchema>
   },
   { _id: false },
 );
+
 export interface IAncillaryEquipmentSchema {
   ancillaryId: string;
   ancillaryEquipmentModelDataSnapshot: ISnapshotProduct<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>;

@@ -5,12 +5,7 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
-import {
-  CalculateSunroofDto,
-  CreateSystemDesignDto,
-  UpdateAncillaryMasterDtoReq,
-  UpdateSystemDesignDto,
-} from './req';
+import { CalculateSunroofDto, CreateSystemDesignDto, UpdateAncillaryMasterDtoReq, UpdateSystemDesignDto } from './req';
 import {
   AnciallaryMasterRes,
   SystemDesignAncillaryMasterDto,
@@ -27,7 +22,7 @@ import { SystemDesignService } from './system-design.service';
 @Controller('/system-designs')
 @PreAuthenticate()
 export class SystemDesignController {
-  constructor(private systemDesignService: SystemDesignService) { }
+  constructor(private systemDesignService: SystemDesignService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create system design' })

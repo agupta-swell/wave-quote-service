@@ -64,7 +64,9 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
         .addCustomMapping('annualUsageKWh', 'annual_usageKWh')
         .addCustomMapping('annual_usageKWh', 'annualUsageKWh')
         .addCustomMapping('laborCostPerWatt', 'labor_cost_perWatt')
-        .addCustomMapping('systemCapacityKW', 'system_capacity_kW'),
+        .addCustomMapping('systemCapacityKW', 'system_capacity_kW')
+        .addCustomMapping('array_generationKWh', 'arrayGenerationKWh')
+        .addCustomMapping('arrayGenerationKWh', 'array_generationKWh'),
     ),
     AwsModule,
     GoogleSunroofModule,
