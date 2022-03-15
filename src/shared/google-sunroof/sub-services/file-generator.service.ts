@@ -14,18 +14,12 @@ import type {
     writePngToFile,
   } from '../utils'
   
-  @Injectable()
-  export class FileGeneratorService {
+@Injectable()
+export class FileGeneratorService {
 
-  //-----------------------------------------------------------------------------
-  
-  const tiffFilename = path.join(__dirname, 'tiff', 'mask.tiff')
-  const pngFilename = path.join(__dirname, 'png', 'mask.png')
-  
-  //-----------------------------------------------------------------------------
-  
-  async function run() {
-    console.log(`parsing ${tiffFilename}...`)
+  public async saveRooftopMask(){
+    const pngFilename = path.join(__dirname, 'png', 'mask.png')
+    const tiffFilename = path.join(__dirname, 'tiff', 'mask.tiff')
     const tiff = await GeoTIFF.fromFile(tiffFilename)
     const layers = await tiff.readRasters()
     const { height, width } = layers
@@ -48,8 +42,4 @@ import type {
     console.log(`saving to ${pngFilename}...`)
     await writePngToFile(maskPng, pngFilename)
   }
-  
-  run().catch((e) => {
-    console.error(e)
-  })
 }
