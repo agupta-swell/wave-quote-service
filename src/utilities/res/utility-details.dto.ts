@@ -21,6 +21,10 @@ export class UtilityDetailsDto {
   entryMode: ENTRY_MODE;
 
   @ExposeProp()
+  @Default()
+  poolValue: number;
+
+  @ExposeProp()
   usageProfileSnapshotDate?: Date;
 
   @ExposeProp()

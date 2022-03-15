@@ -223,6 +223,7 @@ export interface UtilityUsageDetails extends Document, Partial<IUsageProfileSnap
   opportunityId: string;
   utilityData: IUtilityData;
   costData: ICostData;
+  poolValue: number;
   entryMode: ENTRY_MODE;
   increaseAmount: number;
   increasePercentage: number;
@@ -231,6 +232,7 @@ export interface UtilityUsageDetails extends Document, Partial<IUsageProfileSnap
 export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   opportunity_id: String,
   entry_mode: String,
+  pool_value: Number,
   utility_data: UtilityDataSchema,
   cost_data: CostDataSchema,
   created_at: { type: Date, default: Date.now },
@@ -273,6 +275,8 @@ export class UtilityUsageDetailsModel {
 
   increasePercentage: number;
 
+  poolValue: number;
+
   constructor(props: CreateUtilityReqDto | any) {
     this.opportunityId = props.opportunityId;
     this.utilityData = props.utilityData;
@@ -283,6 +287,7 @@ export class UtilityUsageDetailsModel {
     this.usageProfileSnapshot = props.usageProfileSnapshot;
     this.increaseAmount = props.increaseAmount;
     this.increasePercentage = props.increasePercentage;
+    this.poolValue = props.poolValue;
   }
 
   setActualHourlyUsage(data: IUsageValue[]) {
