@@ -224,6 +224,8 @@ export interface UtilityUsageDetails extends Document, Partial<IUsageProfileSnap
   utilityData: IUtilityData;
   costData: ICostData;
   entryMode: ENTRY_MODE;
+  increaseAmount: number;
+  increasePercentage: number;
 }
 
 export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
@@ -236,6 +238,8 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
   ...UsageProfileSnapshotSchema.obj,
+  increase_amount: Number,
+  increase_percentage: Number,
 });
 
 export interface GenabilityCostData extends Document {
@@ -265,6 +269,10 @@ export class UtilityUsageDetailsModel {
 
   usageProfileSnapshot?: IUsageProfile;
 
+  increaseAmount: number;
+
+  increasePercentage: number;
+
   constructor(props: CreateUtilityReqDto | any) {
     this.opportunityId = props.opportunityId;
     this.utilityData = props.utilityData;
@@ -273,6 +281,8 @@ export class UtilityUsageDetailsModel {
     this.usageProfileId = props.usageProfileId;
     this.usageProfileSnapshotDate = props.usageProfileSnapshotDate;
     this.usageProfileSnapshot = props.usageProfileSnapshot;
+    this.increaseAmount = props.increaseAmount;
+    this.increasePercentage = props.increasePercentage;
   }
 
   setActualHourlyUsage(data: IUsageValue[]) {

@@ -1,4 +1,4 @@
-import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { UsageProfileResDto } from 'src/usage-profiles/res';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto } from './cost-data.dto';
@@ -28,4 +28,12 @@ export class UtilityDetailsDto {
 
   @ExposeProp({ type: UsageProfileResDto })
   usageProfileSnapshot: UsageProfileResDto;
+
+  @ExposeProp()
+  @Default()
+  increaseAmount: number;
+
+  @ExposeProp()
+  @Default()
+  increasePercentage: number;
 }

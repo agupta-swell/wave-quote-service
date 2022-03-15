@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsString, ValidateNested, IsMongoId, IsOptional } from 'class-validator';
-import { ExposeProp } from 'src/shared/decorators';
+import { IsEnum, IsNotEmpty, IsString, ValidateNested, IsMongoId, IsOptional, IsInt, IsNumber } from 'class-validator';
+import { Default, ExposeProp } from 'src/shared/decorators';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto, UtilityDataReqDto } from './sub-dto';
@@ -36,4 +36,12 @@ export class CreateUtilityReqDto {
   usageProfileSnapshotDate?: Date;
 
   usageProfileSnapshot?: IUsageProfile;
+
+  @IsNumber()
+  @Default()
+  increaseAmount: number;
+
+  @IsNumber()
+  @Default()
+  increasePercentage: number;
 }
