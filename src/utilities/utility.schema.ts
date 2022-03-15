@@ -1,4 +1,6 @@
 import { Document, Schema } from 'mongoose';
+import { IElectricVehicleSnapshot } from 'src/electric-vehicles/interfaces';
+import { ElectricVehicleSnapshotSchema } from 'src/electric-vehicles/schemas';
 import { IUsageProfile, IUsageProfileSnapshot } from 'src/usage-profiles/interfaces';
 import { UsageProfileSnapshotSchema } from 'src/usage-profiles/schema';
 import { ITypicalBaseLine } from '../external-services/typing';
@@ -227,6 +229,7 @@ export interface UtilityUsageDetails extends Document, Partial<IUsageProfileSnap
   entryMode: ENTRY_MODE;
   increaseAmount: number;
   increasePercentage: number;
+  electricVehicles: IElectricVehicleSnapshot[];
 }
 
 export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
@@ -242,6 +245,7 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   ...UsageProfileSnapshotSchema.obj,
   increase_amount: Number,
   increase_percentage: Number,
+  electric_vehicles: [ElectricVehicleSnapshotSchema],
 });
 
 export interface GenabilityCostData extends Document {
@@ -275,6 +279,8 @@ export class UtilityUsageDetailsModel {
 
   increasePercentage: number;
 
+  electricVehicles: IElectricVehicleSnapshot[];
+
   poolValue: number;
 
   constructor(props: CreateUtilityReqDto | any) {
@@ -288,6 +294,7 @@ export class UtilityUsageDetailsModel {
     this.increaseAmount = props.increaseAmount;
     this.increasePercentage = props.increasePercentage;
     this.poolValue = props.poolValue;
+    this.electricVehicles = props.electricVehicles ?? [];
   }
 
   setActualHourlyUsage(data: IUsageValue[]) {

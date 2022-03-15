@@ -45,6 +45,7 @@ import { PromotionModule } from 'src/promotions/promotion.module';
 import { SystemAttributeModule } from 'src/system-attribute/system-attribute.module';
 import { GenabilityUtilityMapModule } from 'src/genability-utility-map/genability-utility-map.module';
 import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
+import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
 import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
@@ -112,6 +113,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     GenabilityUtilityMapModule,
     SystemAttributeModule,
     UsageProfileModule,
+    ElectricVehicleModule,
   ],
 })
 export class AppModule {}

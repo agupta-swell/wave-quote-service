@@ -1,7 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, ValidateNested, IsMongoId, IsOptional, IsNumber } from 'class-validator';
 import { Default, ExposeProp } from 'src/shared/decorators';
 import { Transform, Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+  IsMongoId,
+  IsOptional,
+  IsArray,
+  IsNumber,
+} from 'class-validator';
+import { ElectricVehicleSnapshotReqDto } from 'src/electric-vehicles/req';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto, UtilityDataReqDto } from './sub-dto';
@@ -34,6 +44,14 @@ export class CreateUtilityReqDto {
 
   @Transform(({ obj }) => (obj.hasPoolValue ? 2500 : 0))
   poolValue: number;
+
+  @ApiProperty({
+    type: [ElectricVehicleSnapshotReqDto],
+  })
+  @IsArray()
+  @Type(() => ElectricVehicleSnapshotReqDto)
+  @ValidateNested()
+  electricVehicles: ElectricVehicleSnapshotReqDto[];
 
   @IsMongoId()
   @IsOptional()

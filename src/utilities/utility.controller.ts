@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
+import { ValidateAndSnapshotElectricVehiclesPipe } from 'src/electric-vehicles/pipes';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ValidateAndSnapshotUsageProfilePipe } from './pipes';
@@ -80,7 +81,7 @@ export class UtilityController {
   @ApiOkResponse({ type: UtilityDetailsDto })
   @CheckOpportunity()
   async createUtility(
-    @Body(ValidateAndSnapshotUsageProfilePipe) utility: CreateUtilityReqDto,
+    @Body(ValidateAndSnapshotUsageProfilePipe, ValidateAndSnapshotElectricVehiclesPipe) utility: CreateUtilityReqDto,
   ): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.createUtilityUsageDetail(utility);
     return ServiceResponse.fromResult(res);
@@ -92,7 +93,7 @@ export class UtilityController {
   @CheckOpportunity()
   async updateUtility(
     @Param('utilityId', ParseObjectIdPipe) utilityId: ObjectId,
-    @Body(ValidateAndSnapshotUsageProfilePipe) utilityDto: CreateUtilityReqDto,
+    @Body(ValidateAndSnapshotUsageProfilePipe, ValidateAndSnapshotElectricVehiclesPipe) utilityDto: CreateUtilityReqDto,
   ): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.updateUtilityUsageDetail(utilityId, utilityDto);
     return ServiceResponse.fromResult(res);

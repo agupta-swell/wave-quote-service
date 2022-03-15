@@ -1,4 +1,5 @@
 import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { ElectricVehicleSnapshotResDto } from 'src/electric-vehicles/res/electric-vehicles-snapshot-res.dto';
 import { UsageProfileResDto } from 'src/usage-profiles/res';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto } from './cost-data.dto';
@@ -40,4 +41,7 @@ export class UtilityDetailsDto {
   @ExposeProp()
   @Default()
   increasePercentage: number;
+
+  @ExposeProp({ type: [ElectricVehicleSnapshotResDto] })
+  electricVehicles: ElectricVehicleSnapshotResDto[];
 }
