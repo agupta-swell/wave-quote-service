@@ -1,10 +1,16 @@
+/* eslint-disable no-restricted-syntax */
 import * as https from 'https';
 import * as qs from 'qs';
 import { Injectable } from '@nestjs/common';
+import { Stream } from 'stream';
 import { S3Service } from '../aws/services/s3.service';
 import { SUNROOF_API } from './constants';
-import { Stream } from 'stream';
-import { IGetBuildingResult, IGetSolarInfoResult, IGetRequestResult, IGetRequestResultWithS3UploadResult } from './interfaces';
+import {
+  IGetBuildingResult,
+  IGetSolarInfoResult,
+  IGetRequestResult,
+  IGetRequestResultWithS3UploadResult,
+} from './interfaces';
 
 @Injectable()
 export class GoogleSunroofService {
@@ -37,7 +43,9 @@ export class GoogleSunroofService {
   }
 
   public getRequest<T>(url: string): Promise<IGetRequestResult<T>>;
+
   public getRequest<T>(url: string, cacheKey: string): Promise<IGetRequestResultWithS3UploadResult<T>>;
+
   public getRequest<T>(url: string, cacheKey?: string): Promise<any> {
     return new Promise((resolve, reject) => {
       https.get(url, res => {
@@ -46,8 +54,7 @@ export class GoogleSunroofService {
         const chunks: Buffer[] = [];
 
         if (cacheKey) {
-
-          if ( cacheKey.slice(-4) === 'json' ) {
+          if (cacheKey.slice(-4) === 'json') {
             res
               .pipe(
                 new Stream.Transform({
@@ -65,7 +72,10 @@ export class GoogleSunroofService {
                   'private',
                   false,
                   (err, data) => {
-                    if (err) return reject(err);
+                    if (err) {
+                      reject(err);
+                      return;
+                    }
 
                     const payloadStr = Buffer.concat(chunks).toString('utf-8');
 
@@ -80,38 +90,40 @@ export class GoogleSunroofService {
                   },
                 ),
               );
-
-          } else if ( cacheKey.slice(-4) === 'tiff' ) {
+          } else if (cacheKey.slice(-4) === 'tiff') {
             res
-            .pipe(
-              new Stream.Transform({
-                transform(chunk, _, cb) {
-                  chunks.push(chunk);
-                  cb(null, chunk);
-                },
-              }),
-            )
-            .pipe(
-              this.s3Service.putStream(
-                cacheKey,
-                this.GOOGLE_SUNROOF_BUCKET,
-                'image/tiff',
-                'private',
-                false,
-                (err, data) => {
-                  if (err) return reject(err);
+              .pipe(
+                new Stream.Transform({
+                  transform(chunk, _, cb) {
+                    chunks.push(chunk);
+                    cb(null, chunk);
+                  },
+                }),
+              )
+              .pipe(
+                this.s3Service.putStream(
+                  cacheKey,
+                  this.GOOGLE_SUNROOF_BUCKET,
+                  'image/tiff',
+                  'private',
+                  false,
+                  (err, data) => {
+                    if (err) {
+                      reject(err);
+                      return;
+                    }
 
-                  try {
-                    resolve({
-                      s3Result: data,
-                      payload: Buffer.concat(chunks),
-                    });
-                  } catch (error) {
-                    reject(error);
-                  }
-                },
-              ),
-            );
+                    try {
+                      resolve({
+                        s3Result: data,
+                        payload: Buffer.concat(chunks),
+                      });
+                    } catch (error) {
+                      reject(error);
+                    }
+                  },
+                ),
+              );
           }
 
           return;
@@ -137,11 +149,13 @@ export class GoogleSunroofService {
   }
 
   public getBuilding(lat: number, long: number): Promise<IGetRequestResult<IGetBuildingResult>>;
+
   public getBuilding(
     lat: number,
     long: number,
     cacheKey: string,
   ): Promise<IGetRequestResultWithS3UploadResult<IGetBuildingResult>>;
+
   public getBuilding(lat: number, long: number, cacheKey?: string): Promise<any> {
     const url = this.makeGetUrl(
       {
@@ -173,18 +187,20 @@ export class GoogleSunroofService {
   }
 
   public getSolarInfo(lat: number, long: number, radiusMeters: number): Promise<IGetRequestResult<IGetSolarInfoResult>>;
+
   public getSolarInfo(
     lat: number,
     long: number,
     radiusMeters: number,
     cacheKey: string,
   ): Promise<IGetRequestResultWithS3UploadResult<IGetSolarInfoResult>>;
+
   public getSolarInfo(lat: number, long: number, radiusMeters: number, cacheKey?: string): Promise<any> {
     const url = this.makeGetUrl(
       {
         'location.latitude': lat,
         'location.longitude': long,
-        'radiusMeters': radiusMeters,
+        radiusMeters,
       },
       SUNROOF_API.SOLAR_INFO_GET,
     );
