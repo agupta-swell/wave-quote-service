@@ -1128,8 +1128,9 @@ export class SystemDesignService {
     try {
       const fileNameToTest = `${opportunityId}/sunroofSolarInfo.json`;
 
-      const existed = await this.googleSunroofService.hasS3File(fileNameToTest);
-
+      // const existed = await this.googleSunroofService.hasS3File(fileNameToTest);
+      const existed = false;
+      
       if (!existed) {
         const { payload: solarInfo } = await this.googleSunroofService.getSolarInfo(
           lat,
@@ -1153,7 +1154,10 @@ export class SystemDesignService {
           promises.push(promise);
         });
 
-        await Promise.all(promises);
+        const tiffPayloadResponses = await Promise.all(promises);
+
+        // call google-sunroof service - stagePng
+        this.googleSunroofService.stagePng( tiffPayloadResponses );
 
         return solarInfo;
       }

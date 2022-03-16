@@ -4,6 +4,7 @@ import * as qs from 'qs';
 import { Injectable } from '@nestjs/common';
 import { Stream } from 'stream';
 import { S3Service } from '../aws/services/s3.service';
+import { generatePng } from './sub-services/file-generator.service';
 import { SUNROOF_API } from './constants';
 import {
   IGetBuildingResult,
@@ -206,5 +207,57 @@ export class GoogleSunroofService {
     );
 
     return this.getRequest<IGetSolarInfoResult>(url, cacheKey!);
+  }
+
+  public stagePng( tiffPayloadResponses ){
+    // console.log( tiffPayloadResponses );
+
+    tiffPayloadResponses.forEach( response => {
+      const tiffKey = response.s3Result.key;
+      const tiffBuffer = response.payload;
+      const tiffName = tiffKey.slice( 
+        tiffKey.lastIndexOf('/') + 1, 
+        tiffKey.lastIndexOf('.')
+      );
+      const pngKey = 
+        tiffKey.slice( 0, tiffKey.indexOf('/') ) 
+        + '/png/'
+        + tiffName
+        + '.png';
+      
+      console.log( `pngKey: ${pngKey}`);
+
+      if (tiffName === 'mask' ){
+        console.log( response );
+        const maskPng = generatePng( tiffName, tiffBuffer );
+        
+        this.s3Service.putStream(
+          pngKey,
+          this.GOOGLE_SUNROOF_BUCKET,
+          'image/png',
+          'private',
+          false,
+          (err, data) => {
+            if (err) {
+              console.log( err )
+              return err;
+            }
+
+            const pngFile = maskPng;
+
+            try {
+              return({
+                s3Result: data,
+                payload: pngFile
+              });
+            } catch (error) {
+              console.log( err )
+              return (error);
+            }
+          },
+        );
+
+      }
+    })
   }
 }
