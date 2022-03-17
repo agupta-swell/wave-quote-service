@@ -1,6 +1,8 @@
 /* eslint-disable no-restricted-syntax */
 import * as https from 'https';
 import * as qs from 'qs';
+import { Readable } from 'stream';
+import { PNG } from 'pngjs';
 import { Injectable } from '@nestjs/common';
 import { Stream } from 'stream';
 import { S3Service } from '../aws/services/s3.service';
@@ -92,6 +94,11 @@ export class GoogleSunroofService {
                 ),
               );
           } else if (cacheKey.slice(-4) === 'tiff') {
+            const dataLabel = cacheKey.slice( 
+              cacheKey.lastIndexOf('/') + 1, 
+              cacheKey.lastIndexOf('.')
+            );
+
             res
               .pipe(
                 new Stream.Transform({
@@ -116,6 +123,7 @@ export class GoogleSunroofService {
 
                     try {
                       resolve({
+                        dataLabel: dataLabel,
                         s3Result: data,
                         payload: Buffer.concat(chunks),
                       });
@@ -209,55 +217,66 @@ export class GoogleSunroofService {
     return this.getRequest<IGetSolarInfoResult>(url, cacheKey!);
   }
 
-  public stagePng( tiffPayloadResponses ){
-    // console.log( tiffPayloadResponses );
+  private savePng( pngKey, png ) {
+    Readable.from(PNG.sync.write(png)).pipe(
+      this.s3Service.putStream(
+        pngKey,
+        this.GOOGLE_SUNROOF_BUCKET,
+        'image/png',
+        'private',
+        false,
+        (err, data) => {
+          if (err) {
+            console.log( err )
+            return err;
+          }
 
-    tiffPayloadResponses.forEach( response => {
+          const pngFile = png;
+
+          try {
+            return({
+              s3Result: data,
+              payload: pngFile
+            });
+          } catch (error) {
+            console.log( err )
+            return (error);
+          }
+        },
+      )
+    );
+
+  }
+
+  private setPngKey( tiffKey, dataLabel ){
+    return tiffKey.slice( 0, tiffKey.indexOf('/') ) 
+    + '/png/'
+    + dataLabel
+    + '.png';
+  }
+
+  public stagePng( tiffPayloadResponses ){
+    // remove monthlyFlux from payloadResponses - we got what we need from it
+    tiffPayloadResponses.splice(
+      tiffPayloadResponses.findIndex((element) => element.dataLabel === 'monthlyFlux'),
+      1
+    );
+
+    tiffPayloadResponses.forEach(async response => {
       const tiffKey = response.s3Result.key;
       const tiffBuffer = response.payload;
-      const tiffName = tiffKey.slice( 
-        tiffKey.lastIndexOf('/') + 1, 
-        tiffKey.lastIndexOf('.')
-      );
-      const pngKey = 
-        tiffKey.slice( 0, tiffKey.indexOf('/') ) 
-        + '/png/'
-        + tiffName
-        + '.png';
+      const dataLabel = response.dataLabel;
+
+      const pngKey = this.setPngKey( tiffKey, dataLabel );
       
-      console.log( `pngKey: ${pngKey}`);
-
-      if (tiffName === 'mask' ){
-        console.log( response );
-        const maskPng = generatePng( tiffName, tiffBuffer );
-        
-        this.s3Service.putStream(
-          pngKey,
-          this.GOOGLE_SUNROOF_BUCKET,
-          'image/png',
-          'private',
-          false,
-          (err, data) => {
-            if (err) {
-              console.log( err )
-              return err;
-            }
-
-            const pngFile = maskPng;
-
-            try {
-              return({
-                s3Result: data,
-                payload: pngFile
-              });
-            } catch (error) {
-              console.log( err )
-              return (error);
-            }
-          },
-        );
-
+      console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+      
+      if ( dataLabel === 'mask' || dataLabel === 'annualFlux' || dataLabel === 'rgb' ) {
+        const newPng = await generatePng( dataLabel, tiffBuffer);
+        this.savePng( pngKey, newPng )
       }
     })
+
+    return true
   }
 }
