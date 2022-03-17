@@ -22,7 +22,9 @@ import {
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { SystemProductionService } from 'src/system-production/system-production.service';
 import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
+import { v4 as uuidv4 } from 'uuid';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
@@ -38,15 +40,17 @@ import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
-  SYSTEM_DESIGN,
   SystemDesign,
   SystemDesignModel,
   SystemDesignWithManufacturerMeta,
+  SYSTEM_DESIGN,
 } from './system-design.schema';
 
 @Injectable()
 export class SystemDesignService {
   private SYSTEM_DESIGN_S3_BUCKET = process.env.AWS_S3_BUCKET as string;
+
+  private ARRAY_HOURLY_PRODUCTION_BUCKET = process.env.AWS_S3_ARRAY_HOURLY_PRODUCTION as string;
 
   constructor(
     // @ts-ignore
@@ -67,6 +71,8 @@ export class SystemDesignService {
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly productService: ProductService,
     private readonly manufacturerService: ManufacturerService,
+    @Inject(forwardRef(() => SystemProductionService))
+    private readonly systemProductionService: SystemProductionService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -106,11 +112,11 @@ export class SystemDesignService {
       },
     });
 
-    if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
-      const arrayGenerationKWh: number[] = [];
-      let cumulativeGenerationKWh = 0;
-      let cumulativeCapacityKW = 0;
+    const arrayGenerationKWh: number[] = [];
+    let cumulativeGenerationKWh = 0;
+    let cumulativeCapacityKW = 0;
 
+    if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
       const [thumbnail] = await Promise.all(
         flatten([
           this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
@@ -206,16 +212,6 @@ export class SystemDesignService {
       );
 
       systemDesign.setThumbnail(thumbnail);
-
-      systemDesign.setSystemProductionData({
-        capacityKW: cumulativeCapacityKW,
-        generationKWh: cumulativeGenerationKWh,
-        productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
-        annualUsageKWh,
-        offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
-        generationMonthlyKWh: systemProductionArray.monthly,
-        arrayGenerationKWh,
-      });
     } else if (systemDesign.designMode === DESIGN_MODE.CAPACITY_PRODUCTION) {
       const {
         inverters,
@@ -226,10 +222,6 @@ export class SystemDesignService {
         softCosts,
         laborCosts,
       } = systemDesign.capacityProductionDesignData;
-
-      const arrayGenerationKWh: number[] = [];
-      let cumulativeGenerationKWh = 0;
-      let cumulativeCapacityKW = 0;
 
       await Promise.all(
         flatten([
@@ -339,16 +331,31 @@ export class SystemDesignService {
           }),
         ]),
       );
+    }
 
-      systemDesign.setSystemProductionData({
-        capacityKW: cumulativeCapacityKW,
-        generationKWh: cumulativeGenerationKWh,
-        productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
-        annualUsageKWh,
-        offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
-        generationMonthlyKWh: systemProductionArray.monthly,
-        arrayGenerationKWh,
-      });
+    const hourlyProduction = uuidv4();
+
+    await this.s3Service.putObject(
+      this.ARRAY_HOURLY_PRODUCTION_BUCKET,
+      hourlyProduction,
+      JSON.stringify(systemProductionArray.arrayHourly),
+      'application/json; charset=utf-8',
+    );
+
+    // create systemProduction then save only systemProduction.id to current systemDesign
+    const newSystemProduction = await this.systemProductionService.create({
+      capacityKW: cumulativeCapacityKW,
+      generationKWh: cumulativeGenerationKWh,
+      productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
+      annualUsageKWh,
+      offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+      generationMonthlyKWh: systemProductionArray.monthly,
+      arrayGenerationKWh,
+      hourlyProduction,
+    });
+
+    if (newSystemProduction.data) {
+      systemDesign.systemProductionId = newSystemProduction.data.id;
     }
 
     const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
@@ -369,9 +376,14 @@ export class SystemDesignService {
 
     const createdSystemDesign = new this.systemDesignModel(systemDesign);
 
-    await createdSystemDesign.save();
+    const newSystemDesign = (await createdSystemDesign.save()).toJSON();
 
-    return OperationResult.ok(strictPlainToClass(SystemDesignDto, createdSystemDesign.toJSON()));
+    // expose systemProduction's props
+    if (newSystemProduction.data) {
+      newSystemDesign.systemProductionData = newSystemProduction.data;
+    }
+
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, newSystemDesign));
   }
 
   async calculateSystemDesign<AuxCalculateResult>({
@@ -382,6 +394,7 @@ export class SystemDesignService {
     postExtendCalculate,
     dispatch,
     remainArrayId,
+    updateHourlyProductionToS3 = false,
   }: {
     systemDesign: SystemDesignModel;
     systemDesignDto: UpdateSystemDesignDto;
@@ -390,6 +403,7 @@ export class SystemDesignService {
     postExtendCalculate?: (result: [AuxCalculateResult, ...unknown[]]) => void;
     dispatch?: (systemDesign: SystemDesignModel) => Promise<void>;
     remainArrayId?: boolean;
+    updateHourlyProductionToS3?: boolean;
   }): Promise<Partial<SystemDesignModel>> {
     if (preCalculate) await preCalculate();
 
@@ -496,6 +510,20 @@ export class SystemDesignService {
 
       if (extendCalculate && postExtendCalculate) {
         postExtendCalculate(result as any);
+      }
+
+      // update the hourlyProduction
+      if (updateHourlyProductionToS3) {
+        const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
+        if (systemProduction.data) {
+          const { hourlyProduction } = systemProduction.data;
+          await this.s3Service.putObject(
+            this.ARRAY_HOURLY_PRODUCTION_BUCKET,
+            hourlyProduction,
+            JSON.stringify(systemProductionArray.arrayHourly),
+            'application/json; charset=utf-8',
+          );
+        }
       }
 
       systemDesign.setSystemProductionData({
@@ -728,6 +756,8 @@ export class SystemDesignService {
 
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
 
+    systemDesign.setSystemProductionId(foundSystemDesign.systemProductionId);
+
     if (systemDesignDto.name) {
       systemDesign.name = systemDesignDto.name;
     }
@@ -780,11 +810,14 @@ export class SystemDesignService {
           systemDesign.setThumbnail(thumbnail);
         }
       },
+      updateHourlyProductionToS3: true,
     });
 
     delete removedUndefined?._id;
 
     assignToModel(foundSystemDesign, removedUndefined);
+
+    delete foundSystemDesign?.systemProductionData;
 
     await Promise.all([
       foundSystemDesign.save(),
@@ -794,6 +827,9 @@ export class SystemDesignService {
           'System Design',
           foundSystemDesign._id.toString(),
         ),
+      this.systemProductionService.update(systemDesign.systemProductionId, {
+        ...removedUndefined.systemProductionData,
+      }),
     ]);
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign.toJSON()));
@@ -822,6 +858,8 @@ export class SystemDesignService {
       const foundSystemDesign = await this.systemDesignModel.findOne({ _id: id });
 
       if (!foundSystemDesign) throw ApplicationException.NotFoundStatus('System Design', id.toString());
+
+      systemDesign.setSystemProductionId(foundSystemDesign.systemProductionId);
 
       const result = await this.calculateSystemDesign({ systemDesign, systemDesignDto, remainArrayId: true });
 
@@ -886,7 +924,15 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(id.toString());
     }
 
-    const isInUsed = await this.checkInUsed(id.toString());
+    const [systemProduction, isInUsed] = await Promise.all([
+      this.systemProductionService.findById(foundSystemDesign.systemProductionId),
+      this.checkInUsed(id.toString()),
+    ]);
+
+    // expose systemProduction's props
+    if (systemProduction.data) {
+      foundSystemDesign.systemProductionData = systemProduction.data;
+    }
 
     return OperationResult.ok(
       strictPlainToClass(SystemDesignDto, {
@@ -1001,11 +1047,14 @@ export class SystemDesignService {
 
     try {
       await Promise.all(
-        systemDesigns.map(item => {
-          item.systemProductionData.annualUsageKWh = annualUsageKWh;
-          item.systemProductionData.offsetPercentage =
-            annualUsageKWh > 0 ? item.systemProductionData.generationKWh / annualUsageKWh : 0;
-          return item.save();
+        systemDesigns.map(async item => {
+          const systemProduction = await this.systemProductionService.findById(item.systemProductionId);
+          if (systemProduction.data) {
+            this.systemProductionService.update(item.systemProductionId, {
+              annualUsageKWh,
+              offsetPercentage: annualUsageKWh > 0 ? systemProduction.data.generationKWh / annualUsageKWh : 0,
+            });
+          }
         }),
       );
     } catch (error) {
@@ -1128,7 +1177,7 @@ export class SystemDesignService {
     lat: number,
     lng: number,
     opportunityId: string,
-    radiusMeters: number = 25,
+    radiusMeters = 25,
   ): Promise<IGetSolarInfoResult | undefined> {
     try {
       const fileNameToTest = `${opportunityId}/sunroofSolarInfo.json`;
@@ -1146,7 +1195,7 @@ export class SystemDesignService {
         const promises: Promise<IGetRequestResultWithS3UploadResult<unknown>>[] = [];
 
         ['rgb', 'mask', 'annualFlux', 'monthlyFlux'].forEach(component => {
-          const url = solarInfo[component + 'Url'];
+          const url = solarInfo[`${component}Url`];
           const fileName = `${opportunityId}/tiff/${component}.tiff`;
           const promise = this.googleSunroofService.getRequest(url, fileName);
           promises.push(promise);

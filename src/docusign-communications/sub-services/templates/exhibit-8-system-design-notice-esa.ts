@@ -16,7 +16,7 @@ export class Exhibit8SystemDesignNoticeEsaTemplate {
       .map(e => `${e.quantity} x ${e.storageModelDataSnapshot.name}`)
       .join(',');
 
-    obj.pv_kw = `${systemDesign.systemProductionData.capacityKW}`;
+    obj.pv_kw = `${systemDesign?.systemProductionData?.capacityKW || 0}`;
 
     obj.module_summary = fields.systemDesignModules
       .map(e => `${e.numberOfPanels} x ${e.panelModelDataSnapshot.name}`)

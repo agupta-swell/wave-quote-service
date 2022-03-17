@@ -24,6 +24,7 @@ import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculat
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
+import { SystemProductionService } from 'src/system-production/system-production.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
 import { UtilityService } from 'src/utilities/utility.service';
@@ -97,6 +98,7 @@ export class QuoteService {
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
     private readonly gsProgramsService: GsProgramsService,
+    private readonly systemProductionService: SystemProductionService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -339,19 +341,18 @@ export class QuoteService {
     model.detailedQuote.quoteName = `${originQuoteName} ${
       totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
     }`.trim();
-    model.detailedQuote.systemProduction = foundSystemDesign.systemProductionData;
+    model.detailedQuote.systemProductionId = foundSystemDesign.systemProductionId;
 
     const { selectedQuoteMode, quotePricePerWatt, quotePriceOverride } = foundQuote.detailedQuote;
 
     model.detailedQuote.selectedQuoteMode = selectedQuoteMode;
 
-    if (quotePricePerWatt) {
+    const systemProduction = await this.systemProductionService.findById(foundSystemDesign.id);
+
+    if (systemProduction.data && quotePricePerWatt) {
       model.detailedQuote.quotePricePerWatt = {
         pricePerWatt: foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt,
-        grossPrice:
-          foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt *
-          foundSystemDesign.systemProductionData.capacityKW *
-          1000,
+        grossPrice: foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt * systemProduction.data.capacityKW * 1000,
       };
     }
 

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
-
+import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
-import { FINANCIAL_PRODUCT, FinancialProductSchema } from './financial-product.schema';
-import { FinancialProductsService } from './financial-product.service';
+import { SystemProductionModule } from 'src/system-production/system-production.module';
 import { FinancialProductsController } from './financial-product.controller';
+import { FinancialProductSchema, FINANCIAL_PRODUCT } from './financial-product.schema';
+import { FinancialProductsService } from './financial-product.service';
 
 @Module({
   imports: [
@@ -19,6 +19,7 @@ import { FinancialProductsController } from './financial-product.controller';
         collection: 'v2_financial_products',
       },
     ]),
+    SystemProductionModule,
   ],
   providers: [FinancialProductsService],
   controllers: [FinancialProductsController],

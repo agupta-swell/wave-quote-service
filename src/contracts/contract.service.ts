@@ -22,6 +22,7 @@ import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemAttributeService } from 'src/system-attribute/system-attribute.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
+import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -73,6 +74,7 @@ export class ContractService {
     private readonly jwtService: JwtService,
     private readonly genabilityUtilityMapService: GenabilityUtilityMapService,
     private readonly systemAttributeService: SystemAttributeService,
+    private readonly systemProductionService: SystemProductionService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -332,6 +334,15 @@ export class ContractService {
     const leaseSolverConfig =
       (quote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
         .leaseSolverConfigSnapshot || null;
+
+    // add props systemProductionData to systemDesign and quote.detailedQuote
+    if (systemDesign) {
+      const systemProduction = await this.systemProductionService.findById(systemDesign.id);
+      if (systemDesign?.systemProductionData && quote?.detailedQuote && systemProduction.data) {
+        systemDesign.systemProductionData = systemProduction.data;
+        quote.detailedQuote.systemProduction = systemProduction.data;
+      }
+    }
 
     const genericObject: IGenericObject = {
       signerDetails: contract.signerDetails,
@@ -906,7 +917,7 @@ export class ContractService {
       quoteDetail.quoteCostBuildup,
       opportunityData?.existingPV,
       opportunityData?.interconnectedWithExistingSystem,
-      opportunityData?.financeType
+      opportunityData?.financeType,
     );
 
     await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {

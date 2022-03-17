@@ -27,6 +27,7 @@ import { QualificationModule } from 'src/qualifications/qualification.module';
 import { QuotePartnerConfigModule } from 'src/quote-partner-configs/quote-partner-config.module';
 import { QuoteModule } from 'src/quotes/quote.module';
 import { SystemDesignModule } from 'src/system-designs/system-design.module';
+import { SystemProductionModule } from 'src/system-production/system-production.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
@@ -98,6 +99,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     QuotePartnerConfigModule,
     RebateProgramModule,
     SystemDesignModule,
+    SystemProductionModule,
     UserModule,
     UtilityModule,
     UtilityProgramMasterModule,

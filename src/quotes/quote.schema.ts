@@ -418,6 +418,7 @@ export interface INote {
 }
 
 export interface IDetailedQuoteSchema {
+  systemProductionId: string;
   systemProduction: ISystemProductionSchema;
   utilityProgram: IUtilityProgramSchema;
   rebateProgram?: IRebateProgramSchema;
@@ -524,6 +525,7 @@ export class QuoteModel {
 
   transformDetailedQuote(data: any): IDetailedQuoteSchema {
     const {
+      systemProductionId,
       systemProduction,
       utilityProgram,
       rebateProgram,
@@ -553,6 +555,7 @@ export class QuoteModel {
     } = data;
 
     return {
+      systemProductionId,
       systemProduction,
       quoteName,
       isSelected,

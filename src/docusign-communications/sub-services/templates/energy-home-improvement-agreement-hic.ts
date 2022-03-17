@@ -2,6 +2,7 @@ import BigNumber from 'bignumber.js';
 import { sumBy } from 'lodash';
 import { IGenericObject } from 'src/docusign-communications/typing';
 import { ISystemDesignProducts, parseSystemDesignProducts } from 'src/docusign-communications/utils';
+import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import {
   DefaultTabTransformation,
   DefaultTabType,
@@ -10,7 +11,6 @@ import {
   TabRequire,
   TabValue,
 } from 'src/shared/docusign';
-import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import { CurrencyFormatter, NumberFormatter } from 'src/utils/numberFormatter';
 import { roundNumber } from 'src/utils/transformNumber';
 
@@ -95,7 +95,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
   )
   batterySummary: string;
 
-  @TabValue<IGenericObject>(({ systemDesign }) => roundNumber(systemDesign.systemProductionData.capacityKW, 3))
+  @TabValue<IGenericObject>(({ systemDesign }) => roundNumber(systemDesign?.systemProductionData?.capacityKW || 0, 3))
   pvKw: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>

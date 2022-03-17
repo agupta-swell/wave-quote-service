@@ -9,6 +9,7 @@ import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
+import { SystemProductionService } from 'src/system-production/system-production.service';
 import { FinancialProduct, FINANCIAL_PRODUCT } from './financial-product.schema';
 import { FinancialProductDto } from './res/financial-product.dto';
 
@@ -18,6 +19,7 @@ export class FinancialProductsService {
     @InjectModel(FINANCIAL_PRODUCT) private financialProduct: Model<FinancialProduct>,
     private readonly systemDesignService: SystemDesignService,
     private readonly fundingSourceService: FundingSourceService,
+    private readonly systemProductionService: SystemProductionService,
   ) {}
 
   async getList(
@@ -38,12 +40,11 @@ export class FinancialProductsService {
     if (systemDesignId) {
       systemDesign = await this.systemDesignService.getOneById(systemDesignId);
     }
-
     return OperationResult.ok(
       new Pagination({
         data: strictPlainToClass(
           FinancialProductDto,
-          this.checkEligibleByQuoteType(financialProducts, fundingSources, { systemDesign }),
+          await this.checkEligibleByQuoteType(financialProducts, fundingSources, { systemDesign }),
         ),
         total,
       }),
@@ -70,31 +71,40 @@ export class FinancialProductsService {
     financialProducts: LeanDocument<FinancialProduct>[],
     fundingSources: (FundingSource | null)[],
     data: any,
-  ): LeanDocument<FinancialProduct>[] {
-    return financialProducts.map(e => {
-      const foundFundingSource = fundingSources.find(fs => fs?._id.toString() === e.fundingSourceId)?.toObject();
-      if (foundFundingSource?.type === 'lease') {
-        const systemDesign: LeanDocument<SystemDesign> = data.systemDesign;
+  ): Promise<LeanDocument<FinancialProduct>[]> {
+    return Promise.all(
+      financialProducts.map(async e => {
+        const foundFundingSource = fundingSources.find(fs => fs?._id.toString() === e.fundingSourceId)!;
+        if (foundFundingSource?.type === 'lease') {
+          const systemDesign: LeanDocument<SystemDesign> = data.systemDesign;
 
-        const systemKW = systemDesign.systemProductionData.capacityKW;
-        const batteryKwh = systemDesign.roofTopDesignData.storage.reduce(
-          (acc, cv) => (acc += cv.quantity * cv.storageModelDataSnapshot.ratings.kilowattHours),
-          0,
-        );
-        const systemProductivity = systemDesign.systemProductionData.productivity;
+          const systemProductionData = await this.systemProductionService.findById(systemDesign.id);
 
-        if (
-          !inRange(systemKW, e.minSystemKw, e.maxSystemKw) ||
-          !inRange(batteryKwh, e.minBatteryKwh, e.maxBatteryKwh) ||
-          !inRange(systemProductivity, e.minProductivity, e.maxProductivity)
-        ) {
-          e.name = `${e.name} (not eligible)`;
+          let systemKW = 0;
+          let batteryKwh = 0;
+          let systemProductivity = 0;
+          if (systemProductionData.data) {
+            systemKW = systemProductionData.data.capacityKW;
+            batteryKwh = systemDesign.roofTopDesignData.storage.reduce(
+              (acc, cv) => (acc += cv.quantity * cv.storageModelDataSnapshot.ratings.kilowattHours),
+              0,
+            );
+            systemProductivity = systemProductionData.data.productivity;
+          }
+
+          if (
+            !inRange(systemKW, e.minSystemKw, e.maxSystemKw) ||
+            !inRange(batteryKwh, e.minBatteryKwh, e.maxBatteryKwh) ||
+            !inRange(systemProductivity, e.minProductivity, e.maxProductivity)
+          ) {
+            e.name = `${e.name} (not eligible)`;
+          }
+
+          return e;
         }
-
         return e;
-      }
-      return e;
-    });
+      }),
+    );
   }
 
   async getHighestDealerFee(fundingSourceType: FINANCE_PRODUCT_TYPE): Promise<number> {

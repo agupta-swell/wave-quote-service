@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ExternalService } from '../../external-services/external-service.service';
 import { ProductService } from 'src/products-v2/services';
+import { ExternalService } from '../../external-services/external-service.service';
 import { UpdateSystemDesignDto } from '../req';
 import { PvWattSystemProduction, PV_WATT_SYSTEM_PRODUCTION } from '../schemas/pv-watt-system-production.schema';
 import { INetUsagePostInstallationSchema } from '../system-design.schema';
@@ -26,6 +26,7 @@ interface ICalculatePVProduction {
 }
 export interface ISystemProduction {
   hourly: number[];
+  arrayHourly?: number[][];
   monthly: number[];
   annual: number;
 }
@@ -126,7 +127,7 @@ export class SystemProductService {
   async calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
     const { latitude, longitude } = systemDesignDto;
     let pvProductionArray: ISystemProduction[] = [
-      { hourly: new Array(8760).fill(0), monthly: new Array(12).fill(0), annual: 0 },
+      { hourly: new Array(8760).fill(0), monthly: new Array(12).fill(0), annual: 0, arrayHourly: [] },
     ];
 
     if (systemDesignDto?.roofTopDesignData?.panelArray?.length) {
@@ -154,13 +155,15 @@ export class SystemProductService {
       );
     }
 
-    const cumulativePvProduction: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
+    const cumulativePvProduction: ISystemProduction = { arrayHourly: [], hourly: [], monthly: [], annual: 0 };
     if (pvProductionArray.length === 1) {
+      cumulativePvProduction.arrayHourly = [pvProductionArray[0].hourly] || [];
       cumulativePvProduction.hourly = pvProductionArray[0].hourly || [];
       cumulativePvProduction.monthly = pvProductionArray[0].monthly || [];
       cumulativePvProduction.annual = pvProductionArray[0].annual || 0;
     } else {
       pvProductionArray.forEach(item => {
+        cumulativePvProduction.arrayHourly?.push(item.hourly);
         item.hourly.forEach(
           // eslint-disable-next-line no-return-assign
           (value, index) =>

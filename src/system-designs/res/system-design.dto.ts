@@ -1,8 +1,8 @@
 import { Pagination } from 'src/app/common';
 import { ServiceResponse } from 'src/app/common/service-response';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { SystemProductionDto } from 'src/system-production/res';
 import { CapacityProductionDataDto, RoofTopDataDto } from './sub-dto';
-import { SystemProductionDto } from './sub-dto/system-production.dto';
 
 export class SystemDesignDto {
   @ExposeMongoId()
