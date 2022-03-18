@@ -1,7 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsString, ValidateNested, IsMongoId, IsOptional } from 'class-validator';
-import { ExposeProp } from 'src/shared/decorators';
+import { Default, ExposeProp } from 'src/shared/decorators';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  ValidateNested,
+  IsMongoId,
+  IsOptional,
+  IsArray,
+  IsNumber,
+} from 'class-validator';
+import { ElectricVehicleSnapshotReqDto } from 'src/electric-vehicles/req';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto, UtilityDataReqDto } from './sub-dto';
@@ -28,6 +38,21 @@ export class CreateUtilityReqDto {
   @IsEnum(ENTRY_MODE)
   entryMode: ENTRY_MODE;
 
+  @ApiProperty()
+  @IsOptional()
+  hasPoolValue: boolean;
+
+  @Transform(({ obj }) => (obj.hasPoolValue ? 2500 : 0))
+  poolValue: number;
+
+  @ApiProperty({
+    type: [ElectricVehicleSnapshotReqDto],
+  })
+  @IsArray()
+  @Type(() => ElectricVehicleSnapshotReqDto)
+  @ValidateNested()
+  electricVehicles: ElectricVehicleSnapshotReqDto[];
+
   @IsMongoId()
   @IsOptional()
   @ApiProperty()
@@ -36,4 +61,12 @@ export class CreateUtilityReqDto {
   usageProfileSnapshotDate?: Date;
 
   usageProfileSnapshot?: IUsageProfile;
+
+  @IsNumber()
+  @Default()
+  increaseAmount: number;
+
+  @IsNumber()
+  @Default()
+  increasePercentage: number;
 }

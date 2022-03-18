@@ -1,4 +1,5 @@
-import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { ElectricVehicleSnapshotResDto } from 'src/electric-vehicles/res/electric-vehicles-snapshot-res.dto';
 import { UsageProfileResDto } from 'src/usage-profiles/res';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto } from './cost-data.dto';
@@ -21,6 +22,10 @@ export class UtilityDetailsDto {
   entryMode: ENTRY_MODE;
 
   @ExposeProp()
+  @Default()
+  poolValue: number;
+
+  @ExposeProp()
   usageProfileSnapshotDate?: Date;
 
   @ExposeProp()
@@ -28,4 +33,15 @@ export class UtilityDetailsDto {
 
   @ExposeProp({ type: UsageProfileResDto })
   usageProfileSnapshot: UsageProfileResDto;
+
+  @ExposeProp()
+  @Default()
+  increaseAmount: number;
+
+  @ExposeProp()
+  @Default()
+  increasePercentage: number;
+
+  @ExposeProp({ type: [ElectricVehicleSnapshotResDto] })
+  electricVehicles: ElectricVehicleSnapshotResDto[];
 }

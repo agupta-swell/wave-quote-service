@@ -14,7 +14,11 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
-import { IGetBuildingResult, IGetSolarInfoResult, IGetRequestResultWithS3UploadResult } from 'src/shared/google-sunroof/interfaces';
+import {
+  IGetBuildingResult,
+  IGetRequestResultWithS3UploadResult,
+  IGetSolarInfoResult,
+} from 'src/shared/google-sunroof/interfaces';
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -34,10 +38,10 @@ import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
+  SYSTEM_DESIGN,
   SystemDesign,
   SystemDesignModel,
   SystemDesignWithManufacturerMeta,
-  SYSTEM_DESIGN,
 } from './system-design.schema';
 
 @Injectable()
@@ -103,6 +107,7 @@ export class SystemDesignService {
     });
 
     if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
+      const arrayGenerationKWh: number[] = [];
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
@@ -133,6 +138,7 @@ export class SystemDesignService {
               losses: item.losses,
             });
 
+            arrayGenerationKWh.push(acAnnual);
             cumulativeGenerationKWh += acAnnual;
             cumulativeCapacityKW += capacity;
           }),
@@ -208,6 +214,7 @@ export class SystemDesignService {
         annualUsageKWh,
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
+        arrayGenerationKWh,
       });
     } else if (systemDesign.designMode === DESIGN_MODE.CAPACITY_PRODUCTION) {
       const {
@@ -220,6 +227,7 @@ export class SystemDesignService {
         laborCosts,
       } = systemDesign.capacityProductionDesignData;
 
+      const arrayGenerationKWh: number[] = [];
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
@@ -258,6 +266,7 @@ export class SystemDesignService {
               });
             }
 
+            arrayGenerationKWh.push(capacity);
             cumulativeCapacityKW += capacity;
             cumulativeGenerationKWh += generation;
 
@@ -269,6 +278,7 @@ export class SystemDesignService {
                 annualUsageKWh,
                 offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
                 generationMonthlyKWh: systemProductionArray.monthly,
+                arrayGenerationKWh,
               },
               index,
             );
@@ -337,6 +347,7 @@ export class SystemDesignService {
         annualUsageKWh,
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
+        arrayGenerationKWh,
       });
     }
 
@@ -389,6 +400,7 @@ export class SystemDesignService {
     const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
 
     if (systemDesignDto.roofTopDesignData) {
+      const arrayGenerationKWh: number[] = [];
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
@@ -416,6 +428,7 @@ export class SystemDesignService {
             losses: item.losses,
           });
 
+          arrayGenerationKWh.push(acAnnual);
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
         }),
@@ -492,6 +505,7 @@ export class SystemDesignService {
         annualUsageKWh,
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
+        arrayGenerationKWh,
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
@@ -527,6 +541,8 @@ export class SystemDesignService {
         softCosts,
         laborCosts,
       } = systemDesignDto.capacityProductionDesignData;
+
+      const arrayGenerationKWh: number[] = [];
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
@@ -564,6 +580,8 @@ export class SystemDesignService {
               losses,
             });
           }
+
+          arrayGenerationKWh.push(capacity);
           cumulativeCapacityKW += capacity;
           cumulativeGenerationKWh += generation;
 
@@ -575,6 +593,7 @@ export class SystemDesignService {
               annualUsageKWh,
               offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
               generationMonthlyKWh: systemProductionArray.monthly,
+              arrayGenerationKWh,
             },
             index,
           );
@@ -653,6 +672,7 @@ export class SystemDesignService {
         annualUsageKWh,
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
+        arrayGenerationKWh,
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
@@ -1061,6 +1081,26 @@ export class SystemDesignService {
     return false;
   }
 
+  public async calculateSunroofData(req: CalculateSunroofDto): Promise<OperationResult<CalculateSunroofResDto>> {
+    const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths } = req;
+
+    const [sunroofData] = await Promise.all([
+      this.getSunRoofData(latitude, longitude, opportunityId),
+      this.getSunroofSolarInfoData(latitude, longitude, opportunityId),
+    ]);
+
+    if (!sunroofData) {
+      return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));
+    }
+    const sunroofPitchAndAzimuth = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
+
+    return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, sunroofPitchAndAzimuth));
+  }
+
+  public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
+    return this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
+  }
+
   private async getSunRoofData(
     lat: number,
     lng: number,
@@ -1091,26 +1131,26 @@ export class SystemDesignService {
     radiusMeters: number = 25,
   ): Promise<IGetSolarInfoResult | undefined> {
     try {
-      const fileNameToTest = `${opportunityId}/sunroofSolarInfo.json`
-      
+      const fileNameToTest = `${opportunityId}/sunroofSolarInfo.json`;
+
       const existed = await this.googleSunroofService.hasS3File(fileNameToTest);
 
       if (!existed) {
-        const { payload: solarInfo } = await this.googleSunroofService.getSolarInfo(lat,lng,radiusMeters, fileNameToTest);
+        const { payload: solarInfo } = await this.googleSunroofService.getSolarInfo(
+          lat,
+          lng,
+          radiusMeters,
+          fileNameToTest,
+        );
 
         const promises: Promise<IGetRequestResultWithS3UploadResult<unknown>>[] = [];
 
-        [
-          'rgb',
-          'mask',
-          'annualFlux',
-          'monthlyFlux'
-        ].forEach( component => {
-          const url = solarInfo[component +'Url'];
+        ['rgb', 'mask', 'annualFlux', 'monthlyFlux'].forEach(component => {
+          const url = solarInfo[component + 'Url'];
           const fileName = `${opportunityId}/tiff/${component}.tiff`;
           const promise = this.googleSunroofService.getRequest(url, fileName);
           promises.push(promise);
-        })
+        });
 
         solarInfo.hourlyShadeUrls.forEach((url, index) => {
           const fileName = `${opportunityId}/tiff/month${index}.tiff`;
@@ -1124,11 +1164,10 @@ export class SystemDesignService {
       }
 
       return await this.googleSunroofService.getS3File<IGetSolarInfoResult>(fileNameToTest);
-    } catch(_) {
+    } catch (_) {
       return undefined;
     }
   }
-
 
   private getSunroofPitchAndAzimuth(
     buildingData: IGetBuildingResult,
@@ -1205,25 +1244,5 @@ export class SystemDesignService {
 
       assignToModel(systemDesignModel.roofTopDesignData.panelArray[idx], sunroofRes);
     });
-  }
-
-  public async calculateSunroofData(req: CalculateSunroofDto): Promise<OperationResult<CalculateSunroofResDto>> {
-    const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths } = req;
-
-    const [sunroofData] = await Promise.all([
-      this.getSunRoofData(latitude, longitude, opportunityId),
-      this.getSunroofSolarInfoData(latitude, longitude, opportunityId),
-    ]);
-
-    if (!sunroofData) {
-      return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));
-    }
-    const sunroofPitchAndAzimuth = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
-
-    return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, sunroofPitchAndAzimuth));
-  }
-
-  public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
-    return this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
   }
 }
