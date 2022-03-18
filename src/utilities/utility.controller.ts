@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
+import { Observable } from 'rxjs';
 import { ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { ValidateAndSnapshotElectricVehiclesPipe } from 'src/electric-vehicles/pipes';
@@ -8,8 +9,23 @@ import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ValidateAndSnapshotUsageProfilePipe } from './pipes';
 import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
-import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
+import {
+  CostDataDto,
+  LoadServingEntity,
+  TariffDto,
+  UtilityDataDto,
+  UtilityDetailsDto,
+  GetDataSeriesResDto,
+} from './res';
 import { UtilityService } from './utility.service';
+import { IGetTypicalUsageKwh } from './sub-services';
+import { TransformTypicalUsage } from './interceptors';
+import {
+  calculateElectricVehicle,
+  calculatePlannedUsageIncreasesKwh,
+  calculatePoolUsageKwh,
+  mapToResult,
+} from './operators';
 
 @ApiTags('Utilities')
 @ApiBearerAuth()
@@ -108,5 +124,18 @@ export class UtilityController {
   ): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.getUtilityUsageDetail(opportunityId);
     return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/:opportunityId/data-series')
+  @TransformTypicalUsage(
+    calculatePlannedUsageIncreasesKwh,
+    calculatePoolUsageKwh,
+    calculateElectricVehicle,
+    mapToResult(GetDataSeriesResDto),
+  )
+  @ApiOperation({ summary: 'Get utility data for rendering' })
+  @ApiOkResponse({ type: GetDataSeriesResDto })
+  getRenderDataSeries(@Param('opportunityId') opportunityId: string): Observable<IGetTypicalUsageKwh> {
+    return this.utilityService.getTypicalUsage$(opportunityId);
   }
 }

@@ -1,7 +1,10 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+/* eslint-disable consistent-return */
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
+import { from, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { ApplicationException } from '../app/app.exception';
@@ -27,6 +30,7 @@ import {
   UTILITY_USAGE_DETAILS,
   UtilityUsageDetailsModel,
 } from './utility.schema';
+import { getTypicalusage, IGetTypicalUsageKwh } from './sub-services';
 
 @Injectable()
 export class UtilityService {
@@ -312,6 +316,19 @@ export class UtilityService {
     }
 
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, updatedUtility));
+  }
+
+  getTypicalUsage$(opportunityId: string): Observable<IGetTypicalUsageKwh> {
+    const utility$ = from(this.getUtilityByOpportunityId(opportunityId));
+
+    return utility$.pipe(
+      map(v => {
+        if (!v) {
+          throw new NotFoundException(`Utility not found for opportunityId: ${opportunityId}`);
+        }
+        return getTypicalusage(v);
+      }),
+    );
   }
 
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----

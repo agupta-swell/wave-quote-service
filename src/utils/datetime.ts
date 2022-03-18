@@ -13,3 +13,20 @@ export const getPaymentDueDateByPeriod = (startYear: number, period: number, sta
 
 export const dateAdd = (interval: 'day' | 'year' | 'month', value: number, date: Date) =>
   dayjs(date).add(value, interval).toDate();
+
+export const getMonthDatesOfYear = (year: number): number[] => [
+  31,
+  isLeapYear(year) ? 29 : 28,
+  31,
+  30,
+  31,
+  30,
+  31,
+  31,
+  30,
+  31,
+  30,
+  31,
+];
+
+export const getDatesOfYear = (year: number) => (isLeapYear(year) ? 366 : 365);

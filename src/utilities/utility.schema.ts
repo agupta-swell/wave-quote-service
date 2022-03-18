@@ -221,7 +221,7 @@ export const CostDataSchema = new Schema<Document<ICostData>>(
   { _id: false },
 );
 
-export interface UtilityUsageDetails extends Document, Partial<IUsageProfileSnapshot> {
+export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   opportunityId: string;
   utilityData: IUtilityData;
   costData: ICostData;
@@ -231,6 +231,8 @@ export interface UtilityUsageDetails extends Document, Partial<IUsageProfileSnap
   increasePercentage: number;
   electricVehicles: IElectricVehicleSnapshot[];
 }
+
+export type UtilityUsageDetails = Document & IUtilityUsageDetails;
 
 export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   opportunity_id: String,

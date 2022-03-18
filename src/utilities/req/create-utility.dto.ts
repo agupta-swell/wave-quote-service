@@ -51,6 +51,7 @@ export class CreateUtilityReqDto {
   @IsArray()
   @Type(() => ElectricVehicleSnapshotReqDto)
   @ValidateNested()
+  @Default([])
   electricVehicles: ElectricVehicleSnapshotReqDto[];
 
   @IsMongoId()
