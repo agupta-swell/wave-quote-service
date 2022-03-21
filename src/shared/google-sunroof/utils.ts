@@ -13,6 +13,7 @@ export const getPixelColor = (png: PNG, pixel: Pixel): Color => {
   const [x, y] = pixel;
   const pixelIndex = y * png.width + x;
   const pixelOffset = pixelIndex * 4;
+
   return [png.data[pixelOffset], png.data[pixelOffset + 1], png.data[pixelOffset + 2], png.data[pixelOffset + 3]];
 };
 

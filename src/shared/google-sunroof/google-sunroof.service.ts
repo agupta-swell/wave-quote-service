@@ -1,12 +1,13 @@
 /* eslint-disable no-restricted-syntax */
 import * as https from 'https';
 import * as qs from 'qs';
+import * as path from 'path';
 import { Readable } from 'stream';
 import { PNG } from 'pngjs';
 import { Injectable } from '@nestjs/common';
 import { Stream } from 'stream';
 import { S3Service } from '../aws/services/s3.service';
-import { generatePng } from './sub-services/file-generator.service';
+import { generatePng, generateMaskedHeatmapPng } from './sub-services/file-generator.service';
 import { SUNROOF_API } from './constants';
 import {
   IGetBuildingResult,
@@ -14,6 +15,7 @@ import {
   IGetRequestResult,
   IGetRequestResultWithS3UploadResult,
 } from './interfaces';
+import { writePngToFile } from './utils';
 
 @Injectable()
 export class GoogleSunroofService {
@@ -234,6 +236,8 @@ export class GoogleSunroofService {
           const pngFile = png;
 
           try {
+            console.log( data );
+
             return({
               s3Result: data,
               payload: pngFile
@@ -255,28 +259,80 @@ export class GoogleSunroofService {
     + '.png';
   }
 
-  public stagePng( tiffPayloadResponses ){
-    // remove monthlyFlux from payloadResponses - we got what we need from it
-    tiffPayloadResponses.splice(
-      tiffPayloadResponses.findIndex((element) => element.dataLabel === 'monthlyFlux'),
-      1
-    );
+  public async stagePngs( tiffPayloadResponses ){
+    const maskTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'mask');
 
-    tiffPayloadResponses.forEach(async response => {
-      const tiffKey = response.s3Result.key;
-      const tiffBuffer = response.payload;
-      const dataLabel = response.dataLabel;
+    // const maskCarton = await this.stagePng( maskTiffPayloadResponse );
+    this.stagePng( maskTiffPayloadResponse );
 
-      const pngKey = this.setPngKey( tiffKey, dataLabel );
-      
-      console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-      
-      if ( dataLabel === 'mask' || dataLabel === 'annualFlux' || dataLabel === 'rgb' ) {
-        const newPng = await generatePng( dataLabel, tiffBuffer);
-        this.savePng( pngKey, newPng )
-      }
-    })
+    const rgbTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'rgb');
+
+    // const rgbCarton = await this.stagePng( rgbTiffPayloadResponse );
+    this.stagePng( rgbTiffPayloadResponse );
+
+    const annualFluxTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'annualFlux');
+    
+    this.stagePng( annualFluxTiffPayloadResponse );
+    this.stageMaskedHeatmapPng( annualFluxTiffPayloadResponse, maskTiffPayloadResponse, rgbTiffPayloadResponse );
+
+
+    const monthlyFluxTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'monthlyFlux');
+    // this.stageMaskedHeatmapPng( monthlyFluxTiffPayloadResponse, maskTiffPayloadResponse, rgbTiffPayloadResponse );
 
     return true
   }
+
+  private async stagePng(tiffPayloadResponse: any){
+    const tiffKey = tiffPayloadResponse.s3Result.key;
+    const tiffBuffer = tiffPayloadResponse.payload;
+    const dataLabel = tiffPayloadResponse.dataLabel;
+
+    const response = await generatePng( dataLabel, tiffBuffer);
+    
+    let fileName = dataLabel;
+    
+    if ( dataLabel === 'annualFlux' ){
+      fileName = 'heatmap.annual';
+    }
+    
+    const pngKey = this.setPngKey( tiffKey, fileName );
+    const pngFilename = path.join(__dirname, 'png', `${fileName}.png`);
+
+    console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+
+    this.savePng( pngKey, response )
+    writePngToFile( response, pngFilename );
+
+    return response
+  }
+
+  private async stageMaskedHeatmapPng(tiffPayloadResponse: any, maskTiffPayloadResponse: any, rgbTiffPayloadResponse: any){
+    const tiffKey = tiffPayloadResponse.s3Result.key;
+    const tiffBuffer = tiffPayloadResponse.payload;
+    const dataLabel = tiffPayloadResponse.dataLabel;
+
+    const maskBuffer = maskTiffPayloadResponse.payload;
+    const rgbBuffer = rgbTiffPayloadResponse.payload;
+
+    let fileName = dataLabel;
+    
+    if ( dataLabel === 'annualFlux' ){
+      fileName = 'heatmap.annual.masked';
+      const annualFluxMaskedPng = await generateMaskedHeatmapPng( dataLabel, tiffBuffer, maskBuffer, rgbBuffer);
+
+      const pngKey = this.setPngKey( tiffKey, fileName );
+      const pngFilename = path.join(__dirname, 'png', `${fileName}.png`);
+  
+      console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+
+      this.savePng( pngKey, annualFluxMaskedPng )
+      writePngToFile( annualFluxMaskedPng, pngFilename );
+
+    } else if (dataLabel === 'monthlyFlux'){
+      // loop through months???
+    }
+    
+    return true;
+  }
+
 }
