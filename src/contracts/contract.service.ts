@@ -902,7 +902,12 @@ export class ContractService {
       (await this.utilityService.getUtilityDetailByName(wavUtilityName))?._id ||
       (await this.utilityService.getUtilityDetailByName(DEFAULT_UTILITY_NAME))?._id;
 
-    const primaryQuoteType = this.quoteService.getPrimaryQuoteType(quoteDetail.quoteCostBuildup, opportunityData?.existingPV);
+    const primaryQuoteType = this.quoteService.getPrimaryQuoteType(
+      quoteDetail.quoteCostBuildup,
+      opportunityData?.existingPV,
+      opportunityData?.interconnectedWithExistingSystem,
+      opportunityData?.financeType
+    );
 
     await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
       $set: {

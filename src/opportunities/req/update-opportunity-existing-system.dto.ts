@@ -20,6 +20,11 @@ export class UpdateOpportunityExistingSystemDto {
 
   @ApiProperty()
   @IsOptional()
+  @IsBoolean()
+  interconnectedWithExistingSystem: boolean;
+
+  @ApiProperty()
+  @IsOptional()
   originalInstaller: string;
 
   @ApiProperty()

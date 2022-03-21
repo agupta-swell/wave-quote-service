@@ -36,6 +36,7 @@ export interface Opportunity extends Document {
   assignedMember: string;
   gsTermYears?: string;
   primaryQuoteType: PRIMARY_QUOTE_TYPE;
+  interconnectedWithExistingSystem: boolean;
 }
 
 export const OpportunitySchema = new Schema<Opportunity>({
@@ -69,6 +70,7 @@ export const OpportunitySchema = new Schema<Opportunity>({
   assignedMember: String,
   gsTermYears: String,
   primaryQuoteType: String,
+  interconnectedWithExistingSystem: Boolean,
 });
 
 MongooseNamingStrategy.ExcludeOne(OpportunitySchema);

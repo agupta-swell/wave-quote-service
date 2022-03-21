@@ -29,6 +29,7 @@ import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
+import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 import { roundNumber } from 'src/utils/transformNumber';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
@@ -153,6 +154,8 @@ export class QuoteService {
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildup,
       !!opportunityRelatedInformation?.data?.existingPV,
+      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
+      opportunityRelatedInformation?.data?.financeType,
     );
 
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
@@ -393,6 +396,8 @@ export class QuoteService {
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildup,
       !!opportunityRelatedInformation?.data?.existingPV,
+      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
+      opportunityRelatedInformation?.data?.financeType,
     );
 
     let currentProjectPrice: number;
@@ -693,6 +698,8 @@ export class QuoteService {
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildup,
       !!opportunityRelatedInformation?.data?.existingPV,
+      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
+      opportunityRelatedInformation?.data?.financeType,
     );
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
@@ -966,6 +973,8 @@ export class QuoteService {
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildUp,
       !!opportunityRelatedInformation?.data?.existingPV,
+      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
+      opportunityRelatedInformation?.data?.financeType,
     );
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
@@ -1457,23 +1466,44 @@ export class QuoteService {
     return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
   }
 
-  getPrimaryQuoteType(quoteCostBuildup: IQuoteCostBuildup, existingPV: boolean): PRIMARY_QUOTE_TYPE {
+  getPrimaryQuoteType(
+    quoteCostBuildup: IQuoteCostBuildup,
+    existingPV: boolean,
+    interconnectedWithExistingSystem: boolean,
+    financeType: FINANCE_TYPE_EXISTING_SOLAR | undefined,
+  ): PRIMARY_QUOTE_TYPE {
     const { storageQuoteDetails, panelQuoteDetails } = quoteCostBuildup;
 
     const isSolar = !!panelQuoteDetails?.length;
 
     const isHasBattery = !!storageQuoteDetails?.length;
 
+    if (
+      isHasBattery &&
+      existingPV &&
+      interconnectedWithExistingSystem &&
+      financeType &&
+      financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO
+    ) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_TPO_EXISTING_SOLAR;
+    }
+
+    if (
+      isHasBattery &&
+      existingPV &&
+      interconnectedWithExistingSystem &&
+      financeType &&
+      financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO
+    ) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR;
+    }
+
     if (!isHasBattery && isSolar) {
       return PRIMARY_QUOTE_TYPE.SOLAR_ONLY;
     }
 
-    if (isHasBattery && !existingPV && !isSolar) {
+    if (isHasBattery && !isSolar) {
       return PRIMARY_QUOTE_TYPE.BATTERY_ONLY;
-    }
-
-    if (isHasBattery && existingPV && !isSolar) {
-      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR;
     }
 
     return PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR;

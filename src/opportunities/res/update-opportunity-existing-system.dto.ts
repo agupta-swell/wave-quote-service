@@ -12,6 +12,9 @@ export class UpdateOpportunityExistingSystemDto {
   hasHadOtherDemandResponseProvider: boolean;
 
   @ExposeProp()
+  interconnectedWithExistingSystem
+
+  @ExposeProp()
   originalInstaller: string;
 
   @ExposeProp()
