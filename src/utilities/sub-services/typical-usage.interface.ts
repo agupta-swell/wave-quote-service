@@ -25,6 +25,7 @@ export interface IGetTypicalUsageKwh {
   annualConsumption: number;
   usage: TypicalUsageKwh;
   increasePercentage: number;
+  increaseAmount: number;
   poolUsageKwh: number;
   electricVehicles: IElectricVehicleSnapshot[];
 }

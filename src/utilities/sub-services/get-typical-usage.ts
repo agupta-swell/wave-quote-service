@@ -98,9 +98,10 @@ export const getTypicalusage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
   if (doc.entryMode === ENTRY_MODE.CSV_INTERVAL_DATA) {
     const { hourlyUsage } = doc.utilityData.computedUsage;
     return {
-      annualConsumption: 0,
+      annualConsumption,
       usage: getCSVTypicalUsage(hourlyUsage, currentYear),
-      increasePercentage: increaseAmount ? increaseAmount / annualConsumption : increasePercentage,
+      increaseAmount,
+      increasePercentage,
       poolUsageKwh: poolValue / _hourlyUsage.length,
       electricVehicles,
     };
@@ -155,7 +156,8 @@ export const getTypicalusage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
   return {
     annualConsumption,
     usage: [annualTypicalUsageKwh, ...monthlyTypicalUsage] as TypicalUsageKwh,
-    increasePercentage: increaseAmount ? increaseAmount / annualConsumption : increasePercentage,
+    increaseAmount,
+    increasePercentage,
     poolUsageKwh: poolValue / (datesOfCurrentYear * 24),
     electricVehicles,
   };
