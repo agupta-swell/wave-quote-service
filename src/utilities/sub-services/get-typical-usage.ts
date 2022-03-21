@@ -1,5 +1,4 @@
 /* eslint-disable no-plusplus */
-import { sumBy } from 'lodash';
 import { ISeason } from 'src/usage-profiles/interfaces';
 import { sliceBySize, sliceBySizesMap } from 'src/utils/array';
 import { getDaysInMonth, getMonthDatesOfYear, getDatesOfYear } from 'src/utils/datetime';
@@ -53,15 +52,29 @@ const getCSVTypicalUsage = (hourlyUsage: IUsageValue[], currentYear: number): Ty
   const monthHours = datesInMonths.map(d => d * 24);
 
   const typicalDailyUsagePerMonths = sliceBySizesMap(hourlyUsage, monthHours)
-    .map((month, monthIdx) => sliceBySize(month, 24).map(d => roundNumber(sumBy(d, 'v') / datesInMonths[monthIdx], 2)))
+    .map((month, monthIdx) =>
+      sliceBySize(month, 24)
+        .reduce<number[]>((acc, cur) => {
+          cur.forEach((c, idx) => {
+            acc[idx] += c.v;
+          });
+          return acc;
+        }, Array(24).fill(0))
+        .map(e => roundNumber(e / datesInMonths[monthIdx], 2)),
+    )
     .map(m => {
       m.push(m[0]);
       return m;
     });
 
-  const typicalDailyUsagePerYear = sliceBySize(hourlyUsage, 24).map(hourUsage =>
-    roundNumber(sumBy(hourUsage, 'v') / totalDatesOfHourlyUsage, 2),
-  );
+  const typicalDailyUsagePerYear = sliceBySize(hourlyUsage, 24)
+    .reduce<number[]>((acc, cur) => {
+      cur.forEach((c, idx) => {
+        acc[idx] += c.v;
+      });
+      return acc;
+    }, Array(24).fill(0))
+    .map(e => roundNumber(e / totalDatesOfHourlyUsage, 2));
 
   typicalDailyUsagePerYear.push(typicalDailyUsagePerYear[0]);
 
