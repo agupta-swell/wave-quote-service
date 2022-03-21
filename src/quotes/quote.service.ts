@@ -435,7 +435,6 @@ export class QuoteService {
         productAttribute = {
           ...productAttribute,
           upfrontPayment: product_attribute.upfrontPayment,
-          interestRate: product_attribute.interestRate,
           loanTerm: product_attribute.loanTerm,
           monthlyUtilityPayment: productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings,
         } as LoanProductAttributesDto;
@@ -553,7 +552,7 @@ export class QuoteService {
     // TODO: Refactor this function with correct params and default value.
     let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
 
-    const { defaultDownPayment, interestRate, termMonths } = financeProductSnapshot;
+    const { defaultDownPayment, terms, termMonths } = financeProductSnapshot;
 
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
@@ -561,11 +560,11 @@ export class QuoteService {
           upfrontPayment: defaultDownPayment,
           loanAmount: netAmount,
           loanStartDate: new Date(new Date().setDate(1)),
-          interestRate,
+          terms,
           loanTerm: termMonths,
           taxCreditPrepaymentAmount: 0,
           willingToPayThroughAch: false,
-          monthlyLoanPayment: this.calculationService.monthlyPaymentAmount(netAmount, interestRate, termMonths),
+          monthlyLoanPayment: this.calculationService.monthlyPaymentAmount(netAmount, terms, termMonths),
           currentMonthlyAverageUtilityPayment: 0,
           monthlyUtilityPayment: 0,
           gridServicePayment: 0,
@@ -1004,7 +1003,7 @@ export class QuoteService {
 
         productAttribute.monthlyLoanPayment = this.calculationService.monthlyPaymentAmount(
           quoteCostBuildUp.projectGrandTotal.netCost,
-          financialProductSnapshot.interestRate,
+          financialProductSnapshot.terms,
           financialProductSnapshot.termMonths,
         );
         break;

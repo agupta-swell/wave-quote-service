@@ -1,4 +1,16 @@
+import { ILoanTerms } from 'src/financial-products/financial-product.schema';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+
+export class LoanTermsDto implements ILoanTerms {
+  @ExposeProp()
+  interestRate: number;
+
+  @ExposeProp()
+  months: number;
+
+  @ExposeProp()
+  paymentFactor: number;
+}
 
 export class FinanceProductDetailDto {
   @ExposeMongoId()
@@ -64,8 +76,8 @@ export class FinanceProductDetailDto {
   @ExposeProp({ type: String, isArray: true })
   allowedStates: string[];
 
-  @ExposeProp()
-  interestRate: number;
+  @ExposeProp({ type: LoanTermsDto, isArray: true })
+  terms: LoanTermsDto[];
 
   @ExposeProp()
   termMonths: number;

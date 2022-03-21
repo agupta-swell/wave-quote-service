@@ -66,9 +66,6 @@ export class FinancialProductDto {
   allowedStates: string[];
 
   @ExposeProp()
-  interestRate: number;
-
-  @ExposeProp()
   termMonths: number;
 
   @ExposeProp()

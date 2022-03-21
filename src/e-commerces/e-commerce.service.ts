@@ -291,7 +291,13 @@ export class ECommerceService {
     const loanProductAttributesDto: LoanProductAttributesDto = {} as any;
     loanProductAttributesDto.upfrontPayment = depositAmount;
     loanProductAttributesDto.loanAmount = overallCost - depositAmount;
-    loanProductAttributesDto.interestRate = loanInterestRate;
+    loanProductAttributesDto.terms = [
+      {
+        months: loanTermsInMonths,
+        interestRate: loanInterestRate,
+        paymentFactor: 1, // TODO: how to calculate this?
+      },
+    ];
     loanProductAttributesDto.loanTerm = loanTermsInMonths;
     loanProductAttributesDto.reinvestment = null as any;
     loanProductAttributesDto.loanStartDate = new Date(new Date().setDate(15)).getTime();
@@ -305,14 +311,18 @@ export class ECommerceService {
     );
 
     // Fix: for loans calculated in November or December, we only have at most 2 months in the Year 0
-    const loanProductAttributesOut = calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct.productAttribute as any;
+    const loanProductAttributesOut = calculateQuoteDetailDtoResponse.quoteFinanceProduct.financeProduct
+      .productAttribute as any;
     const monthsInYear0 = loanProductAttributesOut.yearlyLoanPaymentDetails[0].monthlyPaymentDetails.length;
     let monthlyPaymentAmount = 0;
 
     if (monthsInYear0 < 3) {
-      monthlyPaymentAmount = loanProductAttributesOut.yearlyLoanPaymentDetails[1].monthlyPaymentDetails[2 - monthsInYear0].monthlyPayment || 0;
+      monthlyPaymentAmount =
+        loanProductAttributesOut.yearlyLoanPaymentDetails[1].monthlyPaymentDetails[2 - monthsInYear0].monthlyPayment ||
+        0;
     } else {
-      monthlyPaymentAmount = loanProductAttributesOut.yearlyLoanPaymentDetails[0].monthlyPaymentDetails[2].monthlyPayment || 0;
+      monthlyPaymentAmount =
+        loanProductAttributesOut.yearlyLoanPaymentDetails[0].monthlyPaymentDetails[2].monthlyPayment || 0;
     }
 
     return {
@@ -499,17 +509,17 @@ export class ECommerceService {
 
   private async getTotalCost(zipCode: number, numberOfPanelsToInstall = 0, numberOfBatteries = 0) {
     const foundECommerceConfig = await this.getEcommerceConfig(zipCode);
-    
+
     if (numberOfPanelsToInstall > 0) {
       const solarProduct = await this.getPanelProduct();
-      const { 
+      const {
         modulePricePerWatt,
         moduleLaborPerWatt,
         moduleMarkup,
         storagePrice,
         storageBaseCost,
         storageLaborPerHour,
-        storageMarkup
+        storageMarkup,
       } = foundECommerceConfig;
 
       const wattsBeingInstalled = solarProduct.sizeW * numberOfPanelsToInstall;
@@ -522,7 +532,7 @@ export class ECommerceService {
         storageBaseCost,
         storageMarkup,
         wattsBeingInstalled,
-        numberOfBatteries
+        numberOfBatteries,
       );
 
       return totalCost;
@@ -639,12 +649,7 @@ export class ECommerceService {
       paymentOptionData.push(cashDetails);
     }
 
-    const loanDetails = await this.getLoanPaymentOptionDetails(
-      zipCode,
-      totalCost,
-      deposit,
-      systemCapacityKW,
-    );
+    const loanDetails = await this.getLoanPaymentOptionDetails(zipCode, totalCost, deposit, systemCapacityKW);
     paymentOptionData.push(loanDetails);
 
     return {
@@ -672,15 +677,15 @@ export class ECommerceService {
   }
 
   private getTotalCostForSolarSystem(
-      modulePricePerW: number,
-      moduleLaborCost: number,
-      moduleMarkupRate: number,
-      storagePrice: number,
-      storageLaborPerHour: number,
-      storageBaseCost: number,
-      storageMarkupRate: number,
-      systemSizeW: number,
-      batteryCount: number
+    modulePricePerW: number,
+    moduleLaborCost: number,
+    moduleMarkupRate: number,
+    storagePrice: number,
+    storageLaborPerHour: number,
+    storageBaseCost: number,
+    storageMarkupRate: number,
+    systemSizeW: number,
+    batteryCount: number,
   ) {
     const solarBaseCost = systemSizeW * modulePricePerW;
     const solarLaborCost = systemSizeW * moduleLaborCost;

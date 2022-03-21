@@ -112,7 +112,6 @@ export interface IReinvestment {
 export interface ILoanProductAttributes {
   upfrontPayment: number;
   loanAmount: number;
-  interestRate: number;
   loanTerm: number;
   reinvestment: IReinvestment[];
   loanStartDate: Date;
@@ -268,7 +267,6 @@ export interface IFinancialProductDetails {
   minProductivity: number;
   maxProductivity: number;
   allowedStates: string[];
-  interestRate: number;
   termMonths: number;
   dealerFee: number;
   financierId: string;
