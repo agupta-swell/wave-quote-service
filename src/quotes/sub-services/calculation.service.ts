@@ -393,11 +393,12 @@ export class CalculationService {
     return detailedQuote;
   }
 
-  monthlyPaymentAmount(principle: number, terms: ILoanTerms[], numberOfPayments: number): number {
-    const interestRateAPR = roundNumber(
-      terms.reduce((prev, term) => prev + term.interestRate * term.months, 0) / numberOfPayments,
-      0,
-    );
+  monthlyPaymentAmount(principle: number, terms: ILoanTerms[] = [], numberOfPayments: number): number {
+    const interestRateAPR =
+      (terms.length &&
+        roundNumber(terms.reduce((prev, term) => prev + term.interestRate * term.months, 0) / numberOfPayments, 0)) ||
+      0;
+
     const interestRateMonthly = this.getMonthlyInterestRate(interestRateAPR);
     const monthlyPayment =
       principle *
