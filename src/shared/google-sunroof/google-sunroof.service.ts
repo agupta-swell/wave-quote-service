@@ -7,7 +7,7 @@ import { PNG } from 'pngjs';
 import { Injectable } from '@nestjs/common';
 import { Stream } from 'stream';
 import { S3Service } from '../aws/services/s3.service';
-import { generatePng, generateMaskedHeatmapPng } from './sub-services/file-generator.service';
+import { generatePng, generateMonthlyPngs, generateMaskedHeatmapPngs } from './sub-services/file-generator.service';
 import { SUNROOF_API } from './constants';
 import {
   IGetBuildingResult,
@@ -219,7 +219,7 @@ export class GoogleSunroofService {
     return this.getRequest<IGetSolarInfoResult>(url, cacheKey!);
   }
 
-  private savePng( pngKey, png ) {
+  private savePngToS3( pngKey, png ) {
     Readable.from(PNG.sync.write(png)).pipe(
       this.s3Service.putStream(
         pngKey,
@@ -277,6 +277,7 @@ export class GoogleSunroofService {
 
 
     const monthlyFluxTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'monthlyFlux');
+    const monthlyPngs = this.stageMonthlyPng( monthlyFluxTiffPayloadResponse );
     // this.stageMaskedHeatmapPng( monthlyFluxTiffPayloadResponse, maskTiffPayloadResponse, rgbTiffPayloadResponse );
 
     return true
@@ -287,7 +288,7 @@ export class GoogleSunroofService {
     const tiffBuffer = tiffPayloadResponse.payload;
     const dataLabel = tiffPayloadResponse.dataLabel;
 
-    const response = await generatePng( dataLabel, tiffBuffer);
+    let response = await generatePng( dataLabel, tiffBuffer);
     
     let fileName = dataLabel;
     
@@ -300,8 +301,36 @@ export class GoogleSunroofService {
 
     console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
 
-    this.savePng( pngKey, response )
+    this.savePngToS3( pngKey, response )
+
+    // TODO TEMP: don't write to disk
     writePngToFile( response, pngFilename );
+
+    return response
+  }
+
+  private async stageMonthlyPng(tiffPayloadResponse: any){
+    const tiffKey = tiffPayloadResponse.s3Result.key;
+    const tiffBuffer = tiffPayloadResponse.payload;
+    const dataLabel = tiffPayloadResponse.dataLabel;
+
+    let response = await generateMonthlyPngs(tiffBuffer);
+    
+    let fileName = 'heatmap.monthly';
+
+    response.map((layerPng, layerPngIndex) => {
+      const monthIndex = layerPngIndex < 10 ? `0${layerPngIndex}` : `${layerPngIndex}`;
+      const pngKey = this.setPngKey( tiffKey, `${fileName}${monthIndex}` );
+      const pngFilename = path.join(__dirname, 'png', `${fileName}${monthIndex}.png`);
+  
+      console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+  
+      this.savePngToS3( pngKey, layerPng )
+  
+      // TODO TEMP: don't write to disk
+      writePngToFile( layerPng, pngFilename );
+    })
+    
 
     return response
   }
@@ -316,20 +345,31 @@ export class GoogleSunroofService {
 
     let fileName = dataLabel;
     
+    const annualFluxMaskedPngs = await generateMaskedHeatmapPngs( dataLabel, tiffBuffer, maskBuffer, rgbBuffer);
+
     if ( dataLabel === 'annualFlux' ){
       fileName = 'heatmap.annual.masked';
-      const annualFluxMaskedPng = await generateMaskedHeatmapPng( dataLabel, tiffBuffer, maskBuffer, rgbBuffer);
 
       const pngKey = this.setPngKey( tiffKey, fileName );
       const pngFilename = path.join(__dirname, 'png', `${fileName}.png`);
-  
-      console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+      console.log( pngFilename );
 
-      this.savePng( pngKey, annualFluxMaskedPng )
-      writePngToFile( annualFluxMaskedPng, pngFilename );
+      this.savePngToS3( pngKey, annualFluxMaskedPngs[0] )
+      await writePngToFile( annualFluxMaskedPngs[0], pngFilename );
 
     } else if (dataLabel === 'monthlyFlux'){
-      // loop through months???
+      for ( let i = 0; i < annualFluxMaskedPngs.length; i++ ){
+        fileName = `heatmap.month${i}.masked`;
+
+        const pngKey = this.setPngKey( tiffKey, fileName );
+        const pngFilename = path.join(__dirname, 'png', `${fileName}.png`);
+        console.log( pngFilename );
+  
+        // this.savePngToS3( pngKey, annualFluxMaskedPngs[i] )
+
+        // TODO TEMP: don't write to disk
+        await writePngToFile( annualFluxMaskedPngs[i], pngFilename );
+      }
     }
     
     return true;
