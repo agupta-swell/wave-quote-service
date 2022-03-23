@@ -905,6 +905,10 @@ export class SystemDesignService {
     const checkedSystemDesigns = await Promise.all(
       systemDesigns.map(async systemDesign => {
         const isInUsed = await this.checkInUsed(systemDesign._id.toString());
+        if (systemDesign.systemProductionId) {
+          const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
+          systemDesign.systemProductionData = systemProduction.data;
+        }
         return {
           ...systemDesign,
           editable: !isInUsed,

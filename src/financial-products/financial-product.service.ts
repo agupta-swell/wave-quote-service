@@ -78,7 +78,7 @@ export class FinancialProductsService {
         if (foundFundingSource?.type === 'lease') {
           const systemDesign: LeanDocument<SystemDesign> = data.systemDesign;
 
-          const systemProductionData = await this.systemProductionService.findById(systemDesign.id);
+          const systemProductionData = await this.systemProductionService.findById(systemDesign.systemProductionId);
 
           let systemKW = 0;
           let batteryKwh = 0;
