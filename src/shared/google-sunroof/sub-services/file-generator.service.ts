@@ -8,8 +8,6 @@ import type { Pixel, Color } from '../types';
 import { gray, setPixelColor, toArrayBuffer, getPixelColor, lerpColor } from '../utils';
 import {fluxGradient, fluxMax, fluxMin, magenta} from '../constants';
 
-const pixelsPerMeter = 5;
-
 export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<any> {
   const layers = await generateLayers( tiffBuffer );
 
@@ -21,9 +19,9 @@ export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<any
     drawFunction = 'drawSatellite'
   }
   
-  const response = await eval(drawFunction)(layers);
+  const newPng = await eval(drawFunction)(layers);
  
-  return response;  
+  return newPng;  
 }
 
 export async function generateMonthlyPngs( tiffBuffer ) : Promise<any> {
@@ -70,16 +68,16 @@ async function drawMonthlyHeatmap( layers: any ): Promise<any> {
       }
     }
 
-    const finalizedPng = resizePng(newPng, height, width );
+    const finalizedPng = resizePng(newPng, height, width, 5 );
     response.push( finalizedPng );
   })
 
   return response;
 }
 
-function resizePng( heatMapPng, inputHeight, inputWidth ) : PNG {
-  const interpolatedHeight = (inputHeight - 1) * pixelsPerMeter;
-  const interpolatedWidth = (inputWidth - 1) * pixelsPerMeter;
+function resizePng( heatMapPng, inputHeight, inputWidth, resizeFactor ) : PNG {
+  const interpolatedHeight = (inputHeight - 1) * resizeFactor;
+  const interpolatedWidth = (inputWidth - 1) * resizeFactor;
   const interpolated = new PNG({
       height: interpolatedHeight,
       width: interpolatedWidth,
@@ -90,16 +88,16 @@ function resizePng( heatMapPng, inputHeight, inputWidth ) : PNG {
           const xColor = getPixelColor(heatMapPng, [x + 1, y]);
           const yColor = getPixelColor(heatMapPng, [x, y + 1]);
           const xyColor = getPixelColor(heatMapPng, [x + 1, y + 1]);
-          for (let b = 0; b < pixelsPerMeter; b++) {
-              const percentB = b / pixelsPerMeter;
+          for (let b = 0; b < resizeFactor; b++) {
+              const percentB = b / resizeFactor;
               const leftColor = lerpColor(thisColor, yColor, percentB);
               const rightColor = lerpColor(xColor, xyColor, percentB);
-              for (let a = 0; a < pixelsPerMeter; a++) {
+              for (let a = 0; a < resizeFactor; a++) {
                   const pixel: Pixel = [
-                      pixelsPerMeter * x + a,
-                      pixelsPerMeter * y + b,
+                      resizeFactor * x + a,
+                      resizeFactor * y + b,
                   ];
-                  const percentA = a / pixelsPerMeter;
+                  const percentA = a / resizeFactor;
                   const color = lerpColor(leftColor, rightColor, percentA);
                   setPixelColor(interpolated, pixel, color);
               }
@@ -120,7 +118,7 @@ function drawHeatmap( layers: any ) : PNG {
   for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
           const pixel: Pixel = [x, y];
-          const fluxValue = flux[y][x] as number;
+          const fluxValue = flux[y][x] as number; //fluxLayer[y*width +]
 
           const percentage = (fluxValue - fluxMin) / fluxRange;
           const fluxGradientIndex = Math.floor(
@@ -134,7 +132,7 @@ function drawHeatmap( layers: any ) : PNG {
   return newPng;
 }
 
-async function drawMask( layers: any ) : Promise<PNG> {
+function drawMask( layers: any ) : PNG {
   const { height, width } = layers;
   const [layer] = layers;
   const mask = chunk(layer, width);
@@ -153,7 +151,7 @@ async function drawMask( layers: any ) : Promise<PNG> {
   return newPng;
 }
 
-async function drawSatellite( layers: any ) : Promise<PNG> {
+function drawSatellite( layers: any ) : PNG {
   const { height, width } = layers;
   const [redLayer, greenLayer, blueLayer] = layers;
   const rgbColors = {
@@ -183,23 +181,11 @@ async function drawSatellite( layers: any ) : Promise<PNG> {
   return newPng;
 }
 
-export async function generateMaskedHeatmapPngs(dataLabel: any, tiffBuffer: any, maskBuffer: any, rgbBuffer: any) : Promise<any> {
-  const fluxLayers = await generateLayers( tiffBuffer );
+export async function generateMaskedHeatmapPngs(annualHeatmapPng: PNG, maskBuffer: any, rgbBuffer: any) : Promise<PNG> {
   const maskLayers = await generateLayers( maskBuffer );
   const satelliteLayers = await generateLayers( rgbBuffer );
 
-  let response = Array();
-  let fluxPng: PNG;
-
-  const { height, width } = fluxLayers;
-
-  if ( dataLabel === 'annualFlux' ){
-    fluxPng = await drawHeatmap( fluxLayers );
-  } else if ( dataLabel === 'monthlyFlux' ) {
-    fluxPng = await drawMonthlyHeatmap( fluxLayers );
-  } else {
-    return false;
-  }
+  const { height, width } = satelliteLayers;
 
   console.log( `flux height: ${height} || width: ${width}`);
 
@@ -218,7 +204,7 @@ export async function generateMaskedHeatmapPngs(dataLabel: any, tiffBuffer: any,
         let color: Color = magenta;
 
         if (mask[y][x]) {
-            color = getPixelColor(fluxPng, pixel);
+            color = getPixelColor(annualHeatmapPng, pixel);
         } else {
             color = [
                 reds[y][x] as number,
@@ -230,9 +216,7 @@ export async function generateMaskedHeatmapPngs(dataLabel: any, tiffBuffer: any,
       }
   }
 
-  response.push( maskedPng );
-
-  return response;
+  return maskedPng;
 }
 
 async function generateLayers( tiffBuffer ) : Promise<any> {
@@ -241,38 +225,4 @@ async function generateLayers( tiffBuffer ) : Promise<any> {
   const layers = await tiff.readRasters();
 
   return layers;
-}
-
-async function drawUpscaledHeatmap( layers: any ) : Promise<PNG> {
-  const { height, width } = layers;
-  const [fluxLayer] = layers;
-  const flux = chunk(fluxLayer, width);
-  const newPng = new PNG({ height, width });
-
-  let min = 8760;
-  let max = 0;
-  for (let pixelIndex = 0; pixelIndex < fluxLayer.length; pixelIndex++) {
-      const value = fluxLayer[pixelIndex];
-      if (value < min) min = value;
-      if (value > max) max = value;
-  }
-  const range = max - min;
-
-  const fluxRange = fluxMax - fluxMin;
-  for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-          const pixel: Pixel = [x, y];
-          const fluxValue = flux[y][x] as number;
-
-          const percentage = (fluxValue - fluxMin) / fluxRange;
-          const fluxGradientIndex = Math.floor(
-              percentage * fluxGradient.length
-          );
-          const color = fluxGradient[fluxGradientIndex];
-          setPixelColor(newPng, pixel, color);
-      }
-  }
-
-  
-  return newPng;
 }
