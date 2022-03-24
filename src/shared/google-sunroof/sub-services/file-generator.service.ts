@@ -5,7 +5,7 @@ import { chunk } from 'lodash';
 import { PNG } from 'pngjs';
 
 import type { Pixel, Color } from '../types';
-import { gray, setPixelColor, toArrayBuffer, getPixelColor, lerpColor } from '../utils';
+import { gray, setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor } from '../utils';
 import {fluxGradient, fluxMax, fluxMin, magenta} from '../constants';
 
 export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<any> {
@@ -60,10 +60,11 @@ async function drawMonthlyHeatmap( layers: any ): Promise<any> {
           const fluxValue = flux[y][x] as number;
 
           const percentage = (fluxValue - min) / range;
-          const fluxGradientIndex = Math.floor(
-              percentage * fluxGradient.length
-          );
-          const color = fluxGradient[fluxGradientIndex];
+          // const fluxGradientIndex = Math.floor(
+          //     percentage * fluxGradient.length
+          // );
+          // const color = fluxGradient[fluxGradientIndex];
+          const color = getHeatmapColor(fluxValue,percentage);
           setPixelColor(newPng, pixel, color);
       }
     }
@@ -121,10 +122,11 @@ function drawHeatmap( layers: any ) : PNG {
           const fluxValue = flux[y][x] as number; //fluxLayer[y*width +]
 
           const percentage = (fluxValue - fluxMin) / fluxRange;
-          const fluxGradientIndex = Math.floor(
-              percentage * fluxGradient.length
-          );
-          const color = fluxGradient[fluxGradientIndex];
+          // const fluxGradientIndex = Math.floor(
+          //     percentage * fluxGradient.length
+          // );
+          // const color = fluxGradient[fluxGradientIndex];
+          const color = getHeatmapColor(fluxValue,percentage);
           setPixelColor(newPng, pixel, color);
       }
   }

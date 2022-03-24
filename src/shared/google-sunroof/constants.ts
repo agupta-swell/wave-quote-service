@@ -18,6 +18,12 @@ export const black: Color = [0, 0, 0]
 
 export const fluxMin = 0
 export const fluxMax = 4000
+export const fluxGradientStops = {
+  0: <Color>[67,23,89],
+  50: <Color>[222,162,57],
+  100: <Color>[254,255,63]
+}
+
 export const fluxGradient: Color[] = [
   [82, 36, 117],
   [85, 38, 115],

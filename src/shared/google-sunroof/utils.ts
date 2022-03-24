@@ -4,10 +4,11 @@
 import type { PNG } from 'pngjs';
 import * as fs from 'fs';
 import * as path from 'path';
+import { inRange } from 'lodash';
 import type { Color } from './types';
 
 import { Pixel, PixelPolygon } from './types';
-import { magenta } from './constants';
+import { magenta, fluxMin, fluxMax, fluxGradientStops } from './constants';
 
 export const getPixelColor = (png: PNG, pixel: Pixel): Color => {
   const [x, y] = pixel;
@@ -41,6 +42,23 @@ export const setPixelColor = (png: PNG, pixel: Pixel, color: Color = magenta): v
   png.data[pixelOffset + 2] = blue;
   png.data[pixelOffset + 3] = alpha;
 };
+
+export const getHeatmapColor = (fluxValue: number, percentage: number ): Color => {
+  const adjustedPercentage = percentage / .5;
+  console.log( `fluxValue: ${fluxValue} || percentage: ${percentage} || adjustedPct: ${adjustedPercentage}`);
+  
+  if ( fluxValue < fluxMin ) {
+    return fluxGradientStops[0];
+  } else if ( fluxValue > fluxMax ) {
+    return fluxGradientStops[100];
+  } else if ( fluxValue === (fluxMax + fluxMin) / 2){
+    return fluxGradientStops[50];
+  } else if ( inRange(percentage, 50)) {
+    return lerpColor(fluxGradientStops[0], fluxGradientStops[50], adjustedPercentage);
+  } else {
+    return lerpColor(fluxGradientStops[0], fluxGradientStops[100], adjustedPercentage);
+  }
+}
 
 export const writePngToFile = async (png: PNG, filename: string): Promise<void> => {
   await fs.promises.mkdir(path.dirname(filename), { recursive: true });
