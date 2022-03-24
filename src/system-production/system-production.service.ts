@@ -21,7 +21,7 @@ export class SystemProductionService {
   async findById(id: string | ObjectId): Promise<OperationResult<SystemProductionDto>> {
     const foundSystemProduction = await this.systemProductionModel.findById(id).lean();
     if (!foundSystemProduction) {
-      throw ApplicationException.EntityNotFound(id.toString());
+      throw ApplicationException.EntityNotFound(`SystemProductionId: ${id.toString()}`);
     }
     return OperationResult.ok(strictPlainToClass(SystemProductionDto, foundSystemProduction));
   }
@@ -37,7 +37,7 @@ export class SystemProductionService {
       new: true,
     });
     if (!foundSystemProduction) {
-      throw ApplicationException.EntityNotFound(id.toString());
+      throw ApplicationException.EntityNotFound(`SystemProductionId: ${id.toString()}`);
     }
     return OperationResult.ok(strictPlainToClass(SystemProductionDto, foundSystemProduction.toJSON()));
   }

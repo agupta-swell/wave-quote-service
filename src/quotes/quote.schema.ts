@@ -455,6 +455,7 @@ export const NoteSchema = new Schema<Document<INote>>(
 
 export const DetailedQuoteSchema = new Schema<Document<IDetailedQuoteSchema>>(
   {
+    system_production_id: String,
     system_production: SystemProductionSchema,
     rebate_program: RebateProgramSchema,
     utility_program: UtilityProgramSchema,

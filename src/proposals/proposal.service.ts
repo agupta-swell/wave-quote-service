@@ -516,7 +516,7 @@ export class ProposalService {
 
     // add props systemProductionData to systemDesign
     if (systemDesign) {
-      const systemProduction = await this.systemProductionService.findById(systemDesign.id);
+      const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
       if (systemDesign?.systemProductionData && systemProduction.data) {
         systemDesign.systemProductionData = systemProduction.data;
       }

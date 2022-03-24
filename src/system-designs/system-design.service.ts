@@ -144,7 +144,7 @@ export class SystemDesignService {
               losses: item.losses,
             });
 
-            arrayGenerationKWh.push(acAnnual);
+            arrayGenerationKWh[index] = acAnnual;
             cumulativeGenerationKWh += acAnnual;
             cumulativeCapacityKW += capacity;
           }),
@@ -258,7 +258,7 @@ export class SystemDesignService {
               });
             }
 
-            arrayGenerationKWh.push(capacity);
+            arrayGenerationKWh[index] = capacity;
             cumulativeCapacityKW += capacity;
             cumulativeGenerationKWh += generation;
 
@@ -442,7 +442,7 @@ export class SystemDesignService {
             losses: item.losses,
           });
 
-          arrayGenerationKWh.push(acAnnual);
+          arrayGenerationKWh[index] = acAnnual;
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
         }),
@@ -512,7 +512,7 @@ export class SystemDesignService {
         postExtendCalculate(result as any);
       }
 
-      // update the hourlyProduction
+      // update the hourlyProduction to s3
       if (updateHourlyProductionToS3) {
         const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
         if (systemProduction.data) {
@@ -609,7 +609,7 @@ export class SystemDesignService {
             });
           }
 
-          arrayGenerationKWh.push(capacity);
+          arrayGenerationKWh[index] = capacity;
           cumulativeCapacityKW += capacity;
           cumulativeGenerationKWh += generation;
 
@@ -702,6 +702,20 @@ export class SystemDesignService {
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
       });
+
+      // update the hourlyProduction to s3
+      if (updateHourlyProductionToS3) {
+        const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
+        if (systemProduction.data) {
+          const { hourlyProduction } = systemProduction.data;
+          await this.s3Service.putObject(
+            this.ARRAY_HOURLY_PRODUCTION_BUCKET,
+            hourlyProduction,
+            JSON.stringify(systemProductionArray.arrayHourly),
+            'application/json; charset=utf-8',
+          );
+        }
+      }
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
         (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
@@ -815,9 +829,12 @@ export class SystemDesignService {
 
     delete removedUndefined?._id;
 
-    assignToModel(foundSystemDesign, removedUndefined);
+    // save newSystemProduction to systemProduction and remove it from systemDesign's props
+    const newSystemProduction = { ...removedUndefined?.systemProductionData };
 
-    delete foundSystemDesign?.systemProductionData;
+    delete removedUndefined?.systemProductionData;
+
+    assignToModel(foundSystemDesign, removedUndefined);
 
     await Promise.all([
       foundSystemDesign.save(),
@@ -828,7 +845,7 @@ export class SystemDesignService {
           foundSystemDesign._id.toString(),
         ),
       this.systemProductionService.update(systemDesign.systemProductionId, {
-        ...removedUndefined.systemProductionData,
+        ...newSystemProduction,
       }),
     ]);
 

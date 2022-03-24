@@ -23,6 +23,7 @@ import { RebateProgramService } from 'src/rebate-programs/rebate-programs.servic
 import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
@@ -30,7 +31,6 @@ import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
-import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 import { roundNumber } from 'src/utils/transformNumber';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
@@ -177,7 +177,7 @@ export class QuoteService {
     );
 
     const detailedQuote = {
-      systemProduction: systemDesign.systemProductionData,
+      systemProductionId: systemDesign.systemProductionId,
       quoteCostBuildup,
       rebateProgram,
       utilityProgram: utilityProgram && {
@@ -347,7 +347,7 @@ export class QuoteService {
 
     model.detailedQuote.selectedQuoteMode = selectedQuoteMode;
 
-    const systemProduction = await this.systemProductionService.findById(foundSystemDesign.id);
+    const systemProduction = await this.systemProductionService.findById(foundSystemDesign.systemProductionId);
 
     if (systemProduction.data && quotePricePerWatt) {
       model.detailedQuote.quotePricePerWatt = {
@@ -776,7 +776,7 @@ export class QuoteService {
     })();
 
     const detailedQuote = {
-      systemProduction: systemDesign.systemProductionData,
+      systemProductionId: systemDesign.systemProductionId,
       quoteCostBuildup,
       rebateProgramDetail: rebateProgram,
       utilityProgram,
@@ -868,6 +868,12 @@ export class QuoteService {
     const checkedQuotes = await Promise.all(
       quotes.map(async q => {
         const isInUsed = await this.checkInUsed(q._id.toString());
+        if (q.detailedQuote.systemProductionId) {
+          const systemProduction = await this.systemProductionService.findById(q.detailedQuote.systemProductionId);
+          if (systemProduction.data && q) {
+            q.detailedQuote.systemProduction = systemProduction.data;
+          }
+        }
         return { ...q, editable: !isInUsed, editableMessage: isInUsed || null };
       }),
     );
@@ -933,7 +939,7 @@ export class QuoteService {
 
     const detailedQuote = {
       ...data,
-      systemProduction: systemDesign.systemProductionData,
+      systemProductionId: systemDesign.systemProductionId,
       quoteName: data.quoteName || foundQuote.detailedQuote.quoteName,
       isSelected: typeof data.isSelected === 'boolean' ? data.isSelected : foundQuote.detailedQuote.isSelected,
       isSolar: systemDesign.isSolar,

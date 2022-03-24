@@ -337,7 +337,7 @@ export class ContractService {
 
     // add props systemProductionData to systemDesign and quote.detailedQuote
     if (systemDesign) {
-      const systemProduction = await this.systemProductionService.findById(systemDesign.id);
+      const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
       if (systemDesign?.systemProductionData && quote?.detailedQuote && systemProduction.data) {
         systemDesign.systemProductionData = systemProduction.data;
         quote.detailedQuote.systemProduction = systemProduction.data;
