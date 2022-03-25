@@ -884,13 +884,12 @@ export class ContractService {
   }
 
   async syncWithWav(contractDetail: ContractReqDto): Promise<void> {
-    const [quoteDetail, utilityData, opportunityData] = await Promise.all([
+    const [quoteDetail, utilityData] = await Promise.all([
       this.quoteService.getOneById(contractDetail.associatedQuoteId),
       this.utilityService.getUtilityByOpportunityId(contractDetail.opportunityId),
-      this.opportunityService.getDetailById(contractDetail.opportunityId),
     ]);
 
-    if (!quoteDetail || !utilityData || !opportunityData) {
+    if (!quoteDetail || !utilityData) {
       throw new BadRequestException({ message: 'Related Opportunity or Utility or Quote is not found!' });
     }
 
@@ -913,18 +912,11 @@ export class ContractService {
       (await this.utilityService.getUtilityDetailByName(wavUtilityName))?._id ||
       (await this.utilityService.getUtilityDetailByName(DEFAULT_UTILITY_NAME))?._id;
 
-    const primaryQuoteType = this.quoteService.getPrimaryQuoteType(
-      quoteDetail.quoteCostBuildup,
-      opportunityData?.existingPV,
-      opportunityData?.interconnectedWithExistingSystem,
-      opportunityData?.financeType,
-    );
-
     await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
       $set: {
         fundingSourceId: quoteDetail?.quoteFinanceProduct.financeProduct.fundingSourceId,
         utilityId,
-        primaryQuoteType,
+        primaryQuoteType: quoteDetail.primaryQuoteType,
         amount: quoteDetail.quoteCostBuildup.projectGrandTotal.netCost,
       },
     });

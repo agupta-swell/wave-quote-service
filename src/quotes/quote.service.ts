@@ -153,6 +153,7 @@ export class QuoteService {
       financialProduct,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildup,
       !!opportunityRelatedInformation?.data?.existingPV,
@@ -178,6 +179,7 @@ export class QuoteService {
 
     const detailedQuote = {
       systemProductionId: systemDesign.systemProductionId,
+      primaryQuoteType,
       quoteCostBuildup,
       rebateProgram,
       utilityProgram: utilityProgram && {
@@ -400,6 +402,8 @@ export class QuoteService {
       !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
       opportunityRelatedInformation?.data?.financeType,
     );
+
+    model.detailedQuote.primaryQuoteType = primaryQuoteType;
 
     let currentProjectPrice: number;
 
@@ -696,6 +700,7 @@ export class QuoteService {
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildup,
       !!opportunityRelatedInformation?.data?.existingPV,
@@ -777,6 +782,7 @@ export class QuoteService {
 
     const detailedQuote = {
       systemProductionId: systemDesign.systemProductionId,
+      primaryQuoteType,
       quoteCostBuildup,
       rebateProgramDetail: rebateProgram,
       utilityProgram,
@@ -944,6 +950,7 @@ export class QuoteService {
       isSelected: typeof data.isSelected === 'boolean' ? data.isSelected : foundQuote.detailedQuote.isSelected,
       isSolar: systemDesign.isSolar,
       isRetrofit: systemDesign.isRetrofit,
+      primaryQuoteType: foundQuote.detailedQuote.primaryQuoteType,
     };
 
     detailedQuote.quoteFinanceProduct.projectDiscountDetails = data.quoteFinanceProduct.projectDiscountDetails;
@@ -977,12 +984,15 @@ export class QuoteService {
         incentives: detailedQuote.quoteFinanceProduct.incentiveDetails,
       },
     });
+
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildUp,
       !!opportunityRelatedInformation?.data?.existingPV,
       !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
       opportunityRelatedInformation?.data?.financeType,
     );
+
+    detailedQuote.primaryQuoteType = primaryQuoteType;
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = this.calculateUpfrontPayment(

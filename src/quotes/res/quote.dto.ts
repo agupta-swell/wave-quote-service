@@ -184,6 +184,9 @@ export class QuoteDto {
 
   @ExposeProp()
   editableMessage?: string;
+
+  @ExposeProp()
+  primaryQuoteType?: string;
 }
 
 class PaginationRes implements Pagination<QuoteDto> {
