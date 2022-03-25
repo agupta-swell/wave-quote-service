@@ -1,5 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { ILoanTerms } from 'src/financial-products/financial-product.schema';
+
+export class LoanTermsDto implements ILoanTerms {
+  @ApiProperty()
+  @IsNumber()
+  interestRate: number;
+
+  @ApiProperty()
+  @IsNumber()
+  months: number;
+
+  @ApiProperty()
+  @IsNumber()
+  paymentFactor: number;
+}
 
 export class FinanceProductDetailDto {
   @ApiProperty()
@@ -105,10 +121,10 @@ export class FinanceProductDetailDto {
   @IsArray()
   allowedStates: string[];
 
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  interestRate: number;
+  @ApiProperty({ type: LoanTermsDto, isArray: true })
+  @ValidateNested({ each: true })
+  @Type(() => LoanTermsDto)
+  terms: LoanTermsDto[];
 
   @ApiProperty()
   @IsNotEmpty()

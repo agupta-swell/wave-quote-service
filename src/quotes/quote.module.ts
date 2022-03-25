@@ -8,6 +8,7 @@ import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { PromotionModule } from 'src/promotions/promotion.module';
 import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
+import { SystemProductionModule } from 'src/system-production/system-production.module';
 import { TaxCreditConfigModule } from 'src/tax-credit-configs/tax-credit-config.module';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';
@@ -32,6 +33,7 @@ import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService
     PromotionModule,
     TaxCreditConfigModule,
     GsProgramsModule,
+    SystemProductionModule,
   ],
   controllers: [QuoteController],
   providers: [QuoteService, CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService],

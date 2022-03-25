@@ -21,6 +21,7 @@ import { ProposalTemplateService } from 'src/proposal-templates/proposal-templat
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -75,6 +76,7 @@ export class ProposalService {
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
     private readonly manufacturerService: ManufacturerService,
+    private readonly systemProductionService: SystemProductionService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -511,6 +513,14 @@ export class ProposalService {
       firstName: 'Sample',
       lastName: 'Contract',
     };
+
+    // add props systemProductionData to systemDesign
+    if (systemDesign) {
+      const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
+      if (systemDesign?.systemProductionData && systemProduction.data) {
+        systemDesign.systemProductionData = systemProduction.data;
+      }
+    }
 
     const genericObject: IGenericObject = {
       signerDetails: [],

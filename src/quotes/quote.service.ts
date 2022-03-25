@@ -23,7 +23,9 @@ import { RebateProgramService } from 'src/rebate-programs/rebate-programs.servic
 import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
+import { SystemProductionService } from 'src/system-production/system-production.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
 import { UtilityService } from 'src/utilities/utility.service';
@@ -96,6 +98,7 @@ export class QuoteService {
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
     private readonly gsProgramsService: GsProgramsService,
+    private readonly systemProductionService: SystemProductionService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -150,9 +153,12 @@ export class QuoteService {
       financialProduct,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildup,
       !!opportunityRelatedInformation?.data?.existingPV,
+      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
+      opportunityRelatedInformation?.data?.financeType,
     );
 
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
@@ -172,7 +178,8 @@ export class QuoteService {
     );
 
     const detailedQuote = {
-      systemProduction: systemDesign.systemProductionData,
+      systemProductionId: systemDesign.systemProductionId,
+      primaryQuoteType,
       quoteCostBuildup,
       rebateProgram,
       utilityProgram: utilityProgram && {
@@ -336,19 +343,18 @@ export class QuoteService {
     model.detailedQuote.quoteName = `${originQuoteName} ${
       totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
     }`.trim();
-    model.detailedQuote.systemProduction = foundSystemDesign.systemProductionData;
+    model.detailedQuote.systemProductionId = foundSystemDesign.systemProductionId;
 
     const { selectedQuoteMode, quotePricePerWatt, quotePriceOverride } = foundQuote.detailedQuote;
 
     model.detailedQuote.selectedQuoteMode = selectedQuoteMode;
 
-    if (quotePricePerWatt) {
+    const systemProduction = await this.systemProductionService.findById(foundSystemDesign.systemProductionId);
+
+    if (systemProduction.data && quotePricePerWatt) {
       model.detailedQuote.quotePricePerWatt = {
         pricePerWatt: foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt,
-        grossPrice:
-          foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt *
-          foundSystemDesign.systemProductionData.capacityKW *
-          1000,
+        grossPrice: foundQuote.detailedQuote.quotePricePerWatt.pricePerWatt * systemProduction.data.capacityKW * 1000,
       };
     }
 
@@ -393,7 +399,11 @@ export class QuoteService {
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildup,
       !!opportunityRelatedInformation?.data?.existingPV,
+      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
+      opportunityRelatedInformation?.data?.financeType,
     );
+
+    model.detailedQuote.primaryQuoteType = primaryQuoteType;
 
     let currentProjectPrice: number;
 
@@ -435,7 +445,6 @@ export class QuoteService {
         productAttribute = {
           ...productAttribute,
           upfrontPayment: product_attribute.upfrontPayment,
-          interestRate: product_attribute.interestRate,
           loanTerm: product_attribute.loanTerm,
           monthlyUtilityPayment: productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings,
         } as LoanProductAttributesDto;
@@ -553,7 +562,7 @@ export class QuoteService {
     // TODO: Refactor this function with correct params and default value.
     let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
 
-    const { defaultDownPayment, interestRate, termMonths } = financeProductSnapshot;
+    const { defaultDownPayment, terms, termMonths } = financeProductSnapshot;
 
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
@@ -561,11 +570,11 @@ export class QuoteService {
           upfrontPayment: defaultDownPayment,
           loanAmount: netAmount,
           loanStartDate: new Date(new Date().setDate(1)),
-          interestRate,
+          terms,
           loanTerm: termMonths,
           taxCreditPrepaymentAmount: 0,
           willingToPayThroughAch: false,
-          monthlyLoanPayment: this.calculationService.monthlyPaymentAmount(netAmount, interestRate, termMonths),
+          monthlyLoanPayment: this.calculationService.monthlyPaymentAmount(netAmount, terms, termMonths),
           currentMonthlyAverageUtilityPayment: 0,
           monthlyUtilityPayment: 0,
           gridServicePayment: 0,
@@ -691,9 +700,12 @@ export class QuoteService {
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildup,
       !!opportunityRelatedInformation?.data?.existingPV,
+      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
+      opportunityRelatedInformation?.data?.financeType,
     );
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
@@ -769,7 +781,8 @@ export class QuoteService {
     })();
 
     const detailedQuote = {
-      systemProduction: systemDesign.systemProductionData,
+      systemProductionId: systemDesign.systemProductionId,
+      primaryQuoteType,
       quoteCostBuildup,
       rebateProgramDetail: rebateProgram,
       utilityProgram,
@@ -861,6 +874,12 @@ export class QuoteService {
     const checkedQuotes = await Promise.all(
       quotes.map(async q => {
         const isInUsed = await this.checkInUsed(q._id.toString());
+        if (q.detailedQuote.systemProductionId) {
+          const systemProduction = await this.systemProductionService.findById(q.detailedQuote.systemProductionId);
+          if (systemProduction.data && q) {
+            q.detailedQuote.systemProduction = systemProduction.data;
+          }
+        }
         return { ...q, editable: !isInUsed, editableMessage: isInUsed || null };
       }),
     );
@@ -926,11 +945,12 @@ export class QuoteService {
 
     const detailedQuote = {
       ...data,
-      systemProduction: systemDesign.systemProductionData,
+      systemProductionId: systemDesign.systemProductionId,
       quoteName: data.quoteName || foundQuote.detailedQuote.quoteName,
       isSelected: typeof data.isSelected === 'boolean' ? data.isSelected : foundQuote.detailedQuote.isSelected,
       isSolar: systemDesign.isSolar,
       isRetrofit: systemDesign.isRetrofit,
+      primaryQuoteType: foundQuote.detailedQuote.primaryQuoteType,
     };
 
     detailedQuote.quoteFinanceProduct.projectDiscountDetails = data.quoteFinanceProduct.projectDiscountDetails;
@@ -964,10 +984,15 @@ export class QuoteService {
         incentives: detailedQuote.quoteFinanceProduct.incentiveDetails,
       },
     });
+
     const primaryQuoteType = this.getPrimaryQuoteType(
       quoteCostBuildUp,
       !!opportunityRelatedInformation?.data?.existingPV,
+      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
+      opportunityRelatedInformation?.data?.financeType,
     );
+
+    detailedQuote.primaryQuoteType = primaryQuoteType;
 
     detailedQuote.quoteCostBuildup = quoteCostBuildUp;
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = this.calculateUpfrontPayment(
@@ -1004,7 +1029,7 @@ export class QuoteService {
 
         productAttribute.monthlyLoanPayment = this.calculationService.monthlyPaymentAmount(
           quoteCostBuildUp.projectGrandTotal.netCost,
-          financialProductSnapshot.interestRate,
+          financialProductSnapshot.terms,
           financialProductSnapshot.termMonths,
         );
         break;
@@ -1177,11 +1202,19 @@ export class QuoteService {
 
   async getOneById(id: string): Promise<IDetailedQuoteSchema | undefined> {
     const res = await this.quoteModel.findById(id).lean();
+    if (res?.detailedQuote.systemProductionId) {
+      const systemProduction = await this.systemProductionService.findById(res?.detailedQuote.systemProductionId);
+      if (systemProduction.data) res.detailedQuote.systemProduction = systemProduction.data;
+    }
     return res?.detailedQuote;
   }
 
   async getOneFullQuoteDataById(id: string): Promise<LeanDocument<Quote> | null> {
     const quote = await this.quoteModel.findById(id).lean();
+    if (quote?.detailedQuote.systemProductionId) {
+      const systemProduction = await this.systemProductionService.findById(quote?.detailedQuote.systemProductionId);
+      if (systemProduction.data) quote.detailedQuote.systemProduction = systemProduction.data;
+    }
     return quote;
   }
 
@@ -1458,23 +1491,44 @@ export class QuoteService {
     return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
   }
 
-  getPrimaryQuoteType(quoteCostBuildup: IQuoteCostBuildup, existingPV: boolean): PRIMARY_QUOTE_TYPE {
+  getPrimaryQuoteType(
+    quoteCostBuildup: IQuoteCostBuildup,
+    existingPV: boolean,
+    interconnectedWithExistingSystem: boolean,
+    financeType: FINANCE_TYPE_EXISTING_SOLAR | undefined,
+  ): PRIMARY_QUOTE_TYPE {
     const { storageQuoteDetails, panelQuoteDetails } = quoteCostBuildup;
 
     const isSolar = !!panelQuoteDetails?.length;
 
     const isHasBattery = !!storageQuoteDetails?.length;
 
+    if (
+      isHasBattery &&
+      existingPV &&
+      interconnectedWithExistingSystem &&
+      financeType &&
+      financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO
+    ) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_TPO_EXISTING_SOLAR;
+    }
+
+    if (
+      isHasBattery &&
+      existingPV &&
+      interconnectedWithExistingSystem &&
+      financeType &&
+      financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO
+    ) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR;
+    }
+
     if (!isHasBattery && isSolar) {
       return PRIMARY_QUOTE_TYPE.SOLAR_ONLY;
     }
 
-    if (isHasBattery && !existingPV && !isSolar) {
+    if (isHasBattery && !isSolar) {
       return PRIMARY_QUOTE_TYPE.BATTERY_ONLY;
-    }
-
-    if (isHasBattery && existingPV && !isSolar) {
-      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR;
     }
 
     return PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR;

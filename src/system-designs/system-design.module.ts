@@ -6,12 +6,8 @@ import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
-import {
-  PvWattSystemProductionSchema,
-  PV_WATT_SYSTEM_PRODUCTION,
-  SystemDesignAncillaryMasterSchema,
-  SYSTEM_DESIGN_ANCILLARY_MASTER,
-} from './schemas';
+import { SystemProductionModule } from 'src/system-production/system-production.module';
+import { PvWattSystemProductionSchema, PV_WATT_SYSTEM_PRODUCTION } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { SystemDesignController } from './system-design.controller';
 import { SystemDesignSchema, SYSTEM_DESIGN } from './system-design.schema';
@@ -35,6 +31,7 @@ import { SystemDesignService } from './system-design.service';
     GoogleSunroofModule,
     ProductModuleV2,
     ManufacturerModule,
+    SystemProductionModule,
   ],
   controllers: [SystemDesignController],
   providers: [SystemDesignService, SystemProductService, UploadImageService],

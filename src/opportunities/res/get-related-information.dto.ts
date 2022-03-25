@@ -55,6 +55,9 @@ export class GetRelatedInformationDto {
   hasHadOtherDemandResponseProvider: boolean;
 
   @ExposeProp()
+  interconnectedWithExistingSystem: boolean;
+
+  @ExposeProp()
   originalInstaller: string;
 
   @ExposeProp()

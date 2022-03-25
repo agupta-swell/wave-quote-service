@@ -40,6 +40,7 @@ export interface ISystemProductionSchema {
   offsetPercentage: number;
   generationMonthlyKWh: number[];
   arrayGenerationKWh: number[];
+  hourlyProduction?: string;
 }
 
 export const SystemProductionSchema = new Schema<Document<ISystemProductionSchema>>(
@@ -347,7 +348,8 @@ export interface SystemDesign extends Document {
   isRetrofit: boolean;
   roofTopDesignData: IRoofTopSchema;
   capacityProductionDesignData: ICapacityProductionSchema;
-  systemProductionData: ISystemProductionSchema;
+  systemProductionData?: ISystemProductionSchema;
+  systemProductionId: string;
   netUsagePostInstallation: INetUsagePostInstallationSchema;
   costPostInstallation: IUtilityCostData;
   latitude: number;
@@ -382,6 +384,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   net_usage_post_installation: NetUsagePostInstallationSchema,
   cost_post_installation: UtilityCostDataSchema,
   system_production_data: SystemProductionSchema,
+  system_production_id: String,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
@@ -414,6 +417,8 @@ export class SystemDesignModel {
   capacityProductionDesignData: ICapacityProductionSchema;
 
   systemProductionData: ISystemProductionSchema;
+
+  systemProductionId: string;
 
   netUsagePostInstallation: INetUsagePostInstallationSchema;
 
@@ -618,6 +623,10 @@ export class SystemDesignModel {
 
   setIsRetrofit(isRetrofit: boolean) {
     this.isSelected = isRetrofit;
+  }
+
+  setSystemProductionId(id: string) {
+    this.systemProductionId = id;
   }
 
   setSystemProductionData(data: ISystemProductionSchema) {

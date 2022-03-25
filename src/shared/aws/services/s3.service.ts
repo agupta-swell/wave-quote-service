@@ -1,10 +1,10 @@
-import { Stream, PassThrough, Readable } from 'stream';
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import * as mime from 'mime';
 import { ApplicationException } from 'src/app/app.exception';
-import { CredentialService } from './credential.service';
+import { PassThrough, Readable, Stream } from 'stream';
 import { IS3GetLocationFromUrlResult, IS3GetUrlOptions, IS3RootDir } from '../interfaces';
+import { CredentialService } from './credential.service';
 
 @Injectable()
 export class S3Service {
@@ -60,6 +60,38 @@ export class S3Service {
     } else if (attachment) params.ResponseContentDisposition = attachment;
 
     return this.S3.getSignedUrlPromise('getObject', params);
+  }
+
+  public getObject(bucketName: string, Key: string): Promise<string | undefined> {
+    return new Promise((resolve, reject) => {
+      this.S3.getObject({ Bucket: bucketName, Key }, (err, data) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(data?.Body?.toString());
+      });
+    });
+  }
+
+  public putObject(bucketName: string, key: string, data: string | Buffer | Blob, contentType: string) {
+    return new Promise((resolve, reject) => {
+      this.S3.putObject(
+        {
+          Bucket: bucketName,
+          Key: key,
+          Body: data,
+          ContentType: contentType,
+        },
+        (err, data) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(data);
+        },
+      );
+    });
   }
 
   /**

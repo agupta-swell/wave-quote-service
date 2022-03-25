@@ -62,7 +62,8 @@ export class OpportunityService {
       zipCode: contact?.zip || '',
       partnerId: foundOpportunity.accountId,
       opportunityName: foundOpportunity.name,
-      existingPV: foundOpportunity.existingPV,
+      existingPV: !!foundOpportunity.existingPV,
+      interconnectedWithExistingSystem: !!foundOpportunity.interconnectedWithExistingSystem,
       hasGrantedHomeBatterySystemRights: foundOpportunity.hasGrantedHomeBatterySystemRights,
       hasHadOtherDemandResponseProvider: foundOpportunity.hasHadOtherDemandResponseProvider,
       originalInstaller: foundOpportunity.originalInstaller,
@@ -94,6 +95,7 @@ export class OpportunityService {
       updateOpportunityQuery = {
         $set: {
           existingPV: false,
+          interconnectedWithExistingSystem: false,
           hasHadOtherDemandResponseProvider: existingSystem.hasHadOtherDemandResponseProvider,
           hasGrantedHomeBatterySystemRights: existingSystem.hasGrantedHomeBatterySystemRights,
         },

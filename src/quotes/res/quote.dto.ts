@@ -1,5 +1,5 @@
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
-import { SystemProductionDto } from 'src/system-designs/res/sub-dto/system-production.dto';
+import { SystemProductionDto } from 'src/system-production/res';
 import { TaxCreditConfigResDto } from 'src/tax-credit-configs/dto';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { NotesDto, QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto';
@@ -184,6 +184,9 @@ export class QuoteDto {
 
   @ExposeProp()
   editableMessage?: string;
+
+  @ExposeProp()
+  primaryQuoteType?: string;
 }
 
 class PaginationRes implements Pagination<QuoteDto> {

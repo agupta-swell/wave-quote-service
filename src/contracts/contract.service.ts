@@ -22,6 +22,7 @@ import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemAttributeService } from 'src/system-attribute/system-attribute.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
+import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -73,6 +74,7 @@ export class ContractService {
     private readonly jwtService: JwtService,
     private readonly genabilityUtilityMapService: GenabilityUtilityMapService,
     private readonly systemAttributeService: SystemAttributeService,
+    private readonly systemProductionService: SystemProductionService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -332,6 +334,15 @@ export class ContractService {
     const leaseSolverConfig =
       (quote.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes)
         .leaseSolverConfigSnapshot || null;
+
+    // add props systemProductionData to systemDesign and quote.detailedQuote
+    if (systemDesign) {
+      const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
+      if (systemDesign?.systemProductionData && quote?.detailedQuote && systemProduction.data) {
+        systemDesign.systemProductionData = systemProduction.data;
+        quote.detailedQuote.systemProduction = systemProduction.data;
+      }
+    }
 
     const genericObject: IGenericObject = {
       signerDetails: contract.signerDetails,
@@ -873,13 +884,12 @@ export class ContractService {
   }
 
   async syncWithWav(contractDetail: ContractReqDto): Promise<void> {
-    const [quoteDetail, utilityData, opportunityData] = await Promise.all([
+    const [quoteDetail, utilityData] = await Promise.all([
       this.quoteService.getOneById(contractDetail.associatedQuoteId),
       this.utilityService.getUtilityByOpportunityId(contractDetail.opportunityId),
-      this.opportunityService.getDetailById(contractDetail.opportunityId),
     ]);
 
-    if (!quoteDetail || !utilityData || !opportunityData) {
+    if (!quoteDetail || !utilityData) {
       throw new BadRequestException({ message: 'Related Opportunity or Utility or Quote is not found!' });
     }
 
@@ -902,13 +912,11 @@ export class ContractService {
       (await this.utilityService.getUtilityDetailByName(wavUtilityName))?._id ||
       (await this.utilityService.getUtilityDetailByName(DEFAULT_UTILITY_NAME))?._id;
 
-    const primaryQuoteType = this.quoteService.getPrimaryQuoteType(quoteDetail.quoteCostBuildup, opportunityData?.existingPV);
-
     await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
       $set: {
         fundingSourceId: quoteDetail?.quoteFinanceProduct.financeProduct.fundingSourceId,
         utilityId,
-        primaryQuoteType,
+        primaryQuoteType: quoteDetail.primaryQuoteType,
         amount: quoteDetail.quoteCostBuildup.projectGrandTotal.netCost,
       },
     });

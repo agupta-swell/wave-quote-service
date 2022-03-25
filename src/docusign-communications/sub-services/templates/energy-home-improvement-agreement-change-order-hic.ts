@@ -85,7 +85,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   )
   batterySummary: string;
 
-  @TabValue<IGenericObject>(({ systemDesign }) => roundNumber(systemDesign.systemProductionData.capacityKW, 3))
+  @TabValue<IGenericObject>(({ systemDesign }) => roundNumber(systemDesign?.systemProductionData?.capacityKW || 0, 3))
   pvKw: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>

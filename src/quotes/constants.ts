@@ -46,4 +46,5 @@ export enum PRIMARY_QUOTE_TYPE {
   BATTERY_WITH_EXISTING_SOLAR = 'Battery with Existing Solar',
   BATTERY_WITH_NEW_SOLAR = 'Battery with New Solar',
   SOLAR_ONLY = 'Solar Only',
+  BATTERY_WITH_TPO_EXISTING_SOLAR = 'Battery with TPO Existing Solar'
 }

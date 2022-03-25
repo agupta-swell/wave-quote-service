@@ -17,3 +17,7 @@ export enum ENTRY_MODE {
   MONTHLY_COST = 'MONTHLY_COST',
   MONTHLY_USAGE = 'MONTHLY_USAGE',
 }
+
+export const TYPICAL_USAGE_METAKEY = Symbol.for('kUtility/typicalUsage');
+
+export const KWH_PER_GALLON = 33.7;

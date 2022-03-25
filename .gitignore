@@ -122,3 +122,5 @@ __snapshots__
 *.cpuprofile
 
 .idea
+
+.run/index.ts.run.xml

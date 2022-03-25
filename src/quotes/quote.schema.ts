@@ -11,7 +11,7 @@ import { camelToSnake, deepTransform, snakeToCamel } from 'src/shared/mongoose-s
 import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
-import { QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
+import { PRIMARY_QUOTE_TYPE, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
 import { ICogsImpact, IMarginImpact, IQuoteCostBuildup } from './interfaces';
 import { UpdateLatestQuoteDto } from './req';
 import { CreateQuoteDto } from './req/create-quote.dto';
@@ -112,7 +112,6 @@ export interface IReinvestment {
 export interface ILoanProductAttributes {
   upfrontPayment: number;
   loanAmount: number;
-  interestRate: number;
   loanTerm: number;
   reinvestment: IReinvestment[];
   loanStartDate: Date;
@@ -268,7 +267,6 @@ export interface IFinancialProductDetails {
   minProductivity: number;
   maxProductivity: number;
   allowedStates: string[];
-  interestRate: number;
   termMonths: number;
   dealerFee: number;
   financierId: string;
@@ -420,6 +418,7 @@ export interface INote {
 }
 
 export interface IDetailedQuoteSchema {
+  systemProductionId: string;
   systemProduction: ISystemProductionSchema;
   utilityProgram: IUtilityProgramSchema;
   rebateProgram?: IRebateProgramSchema;
@@ -438,6 +437,7 @@ export interface IDetailedQuoteSchema {
   quotePricePerWatt: IQuotePricePerWattSchema;
   quotePriceOverride: IQuotePriceOverride;
   notes: INote[];
+  primaryQuoteType: PRIMARY_QUOTE_TYPE;
 }
 
 export const NoteSchema = new Schema<Document<INote>>(
@@ -456,6 +456,8 @@ export const NoteSchema = new Schema<Document<INote>>(
 
 export const DetailedQuoteSchema = new Schema<Document<IDetailedQuoteSchema>>(
   {
+    system_production_id: String,
+    primary_quote_type: String,
     system_production: SystemProductionSchema,
     rebate_program: RebateProgramSchema,
     utility_program: UtilityProgramSchema,
@@ -526,6 +528,7 @@ export class QuoteModel {
 
   transformDetailedQuote(data: any): IDetailedQuoteSchema {
     const {
+      systemProductionId,
       systemProduction,
       utilityProgram,
       rebateProgram,
@@ -552,9 +555,11 @@ export class QuoteModel {
       quotePricePerWatt,
       quotePriceOverride,
       notes,
+      primaryQuoteType,
     } = data;
 
     return {
+      systemProductionId,
       systemProduction,
       quoteName,
       isSelected,
@@ -584,6 +589,7 @@ export class QuoteModel {
       quotePricePerWatt,
       quotePriceOverride,
       notes,
+      primaryQuoteType,
     };
   }
 
