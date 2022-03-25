@@ -1192,11 +1192,19 @@ export class QuoteService {
 
   async getOneById(id: string): Promise<IDetailedQuoteSchema | undefined> {
     const res = await this.quoteModel.findById(id).lean();
+    if (res?.detailedQuote.systemProductionId) {
+      const systemProduction = await this.systemProductionService.findById(res?.detailedQuote.systemProductionId);
+      if (systemProduction.data) res.detailedQuote.systemProduction = systemProduction.data;
+    }
     return res?.detailedQuote;
   }
 
   async getOneFullQuoteDataById(id: string): Promise<LeanDocument<Quote> | null> {
     const quote = await this.quoteModel.findById(id).lean();
+    if (quote?.detailedQuote.systemProductionId) {
+      const systemProduction = await this.systemProductionService.findById(quote?.detailedQuote.systemProductionId);
+      if (systemProduction.data) quote.detailedQuote.systemProduction = systemProduction.data;
+    }
     return quote;
   }
 
