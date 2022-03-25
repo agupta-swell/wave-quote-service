@@ -133,10 +133,17 @@ export class SystemProductService {
     if (systemDesignDto?.roofTopDesignData?.panelArray?.length) {
       pvProductionArray = await Promise.all(
         systemDesignDto.roofTopDesignData.panelArray.map(async item => {
-          const { azimuth, losses, pitch } = item;
+          const { azimuth, losses, pitch, useSunroof, sunroofPitch, sunroofAzimuth } = item;
           const panelModelData = await this.productService.getDetailById(item.panelModelId);
           const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.ratings?.watts ?? 0)) / 1000;
-          return this.calculatePVProduction({ latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses });
+          return this.calculatePVProduction({
+            latitude,
+            longitude,
+            systemCapacityInkWh,
+            azimuth: useSunroof && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
+            pitch: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
+            losses,
+          });
         }),
       );
     } else if (systemDesignDto?.capacityProductionDesignData?.panelArray?.length) {
