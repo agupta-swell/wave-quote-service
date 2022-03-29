@@ -124,5 +124,3 @@ __snapshots__
 .idea
 
 .run/index.ts.run.xml
-
-src/shared/google-sunroof/png/
