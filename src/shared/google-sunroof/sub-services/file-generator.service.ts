@@ -1,6 +1,6 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-console */
-const GeoTIFF = require('geotiff');
+import { fromArrayBuffer } from 'geotiff';
 import { chunk } from 'lodash';
 import { PNG } from 'pngjs';
 
@@ -26,11 +26,8 @@ export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<any
 
 export async function generateMonthlyPngs( tiffBuffer ) : Promise<any> {
   const tiffArrayBuffer = toArrayBuffer( tiffBuffer );
-  const tiff = await GeoTIFF.fromArrayBuffer(tiffArrayBuffer);
-  const layers = ( await tiff.readRasters()) as number[][] & {
-    height: number;
-    width: number;
-  };
+  const tiff = await fromArrayBuffer(tiffArrayBuffer);
+  const layers = await tiff.readRasters();
 
   return await drawMonthlyHeatmap( layers );
 }
@@ -223,7 +220,7 @@ export async function generateMaskedHeatmapPngs(annualHeatmapPng: PNG, maskBuffe
 
 async function generateLayers( tiffBuffer ) : Promise<any> {
   const tiffArrayBuffer = toArrayBuffer( tiffBuffer );
-  const tiff = await GeoTIFF.fromArrayBuffer(tiffArrayBuffer);
+  const tiff = await fromArrayBuffer(tiffArrayBuffer);
   const layers = await tiff.readRasters();
 
   return layers;
