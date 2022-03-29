@@ -16,7 +16,7 @@ export class SystemProductionController {
   constructor(private readonly systemProductionService: SystemProductionService) {}
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get detail system production by Id' })
+  @ApiOperation({ summary: 'Get system production detail by Id' })
   async get(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<SystemProductionDto>> {
     const result = await this.systemProductionService.findById(id);
     return ServiceResponse.fromResult(result);
@@ -36,13 +36,6 @@ export class SystemProductionController {
     @Body() data: UpdateSystemProductionDto,
   ): Promise<ServiceResponse<SystemProductionDto>> {
     const result = await this.systemProductionService.update(id, data);
-    return ServiceResponse.fromResult(result);
-  }
-
-  @Get(':id/getHourlyProductionDetail')
-  @ApiOperation({ summary: 'Get Hourly Production detail by systemProduction.hourlyProduction' })
-  async getHourlyProductionDetail(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<number[][]>> {
-    const result = await this.systemProductionService.getHourlyProductionBySystemProductionId(id);
     return ServiceResponse.fromResult(result);
   }
 }

@@ -18,6 +18,7 @@ import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetai
 import { UTILITIES, Utilities } from './schemas';
 import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
 import { GenebilityTeriffData, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
+import { getTypicalUsage, IGetTypicalUsageKwh } from './sub-services';
 import {
   GenabilityCostData,
   GenabilityTypicalBaseLineModel,
@@ -27,10 +28,9 @@ import {
   IUsageValue,
   IUtilityCostData,
   UtilityUsageDetails,
-  UTILITY_USAGE_DETAILS,
   UtilityUsageDetailsModel,
+  UTILITY_USAGE_DETAILS,
 } from './utility.schema';
-import { getTypicalusage, IGetTypicalUsageKwh } from './sub-services';
 
 @Injectable()
 export class UtilityService {
@@ -326,7 +326,7 @@ export class UtilityService {
         if (!v) {
           throw new NotFoundException(`Utility not found for opportunityId: ${opportunityId}`);
         }
-        return getTypicalusage(v);
+        return getTypicalUsage(v);
       }),
     );
   }
