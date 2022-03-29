@@ -9,19 +9,16 @@ import { gray, setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatma
 import {fluxGradient, fluxMax, fluxMin, magenta} from '../constants';
 
 export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<any> {
-  const layers = await generateLayers( tiffBuffer );
+  const layers = await generateLayers(tiffBuffer);
 
-  let drawFunction = 'drawHeatmap';
-
-  if ( dataLabel === 'mask' ) { 
-    drawFunction = 'drawMask' 
-  } else if ( dataLabel === 'rgb' ) {
-    drawFunction = 'drawSatellite'
+  switch (dataLabel) {
+    case 'mask':
+      return await drawMask(layers);
+    case 'rgb':
+      return await drawSatellite(layers);
+    default:
+      return await drawHeatmap(layers);
   }
-  
-  const newPng = await eval(drawFunction)(layers);
- 
-  return newPng;  
 }
 
 export async function generateMonthlyPngs( tiffBuffer ) : Promise<any> {
