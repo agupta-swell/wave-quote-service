@@ -20,6 +20,11 @@ export interface IMakeTransformMethodOptions {
   toJSON?: boolean;
 }
 
+export type AnySingleArgFunction<TArg, Result> = (arg: TArg) => Result;
+
+const deepLoop = <T, R>(arr: T[], fn: AnySingleArgFunction<T, R>) =>
+  arr.map(e => (Array.isArray(e) ? deepLoop(e, fn) : fn(e)));
+
 export const makeTransform = (
   meta: Record<string, string>,
   opts: IMakeTransformMethodOptions = {},
@@ -80,6 +85,15 @@ export const deepTransform = (
         const newVal = val.map(e => {
           if (typeof e !== 'object' || isObjectId(e)) {
             return e;
+          }
+
+          if (Array.isArray(e)) {
+            return deepLoop(e, el => {
+              if (typeof el !== 'object' || isObjectId(el)) {
+                return el;
+              }
+              return deepTransform(el, handler, mutate, onCheck);
+            });
           }
 
           return deepTransform(e, handler, mutate, onCheck);
