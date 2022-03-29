@@ -6,10 +6,6 @@ import { ILoanTerms } from 'src/financial-products/financial-product.schema';
 export class LoanTermsDto implements ILoanTerms {
   @ApiProperty()
   @IsNumber()
-  interestRate: number;
-
-  @ApiProperty()
-  @IsNumber()
   months: number;
 
   @ApiProperty()
@@ -120,6 +116,11 @@ export class FinanceProductDetailDto {
   @IsNotEmpty()
   @IsArray()
   allowedStates: string[];
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  interestRate: number;
 
   @ApiProperty({ type: LoanTermsDto, isArray: true })
   @ValidateNested({ each: true })

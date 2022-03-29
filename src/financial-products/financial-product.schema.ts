@@ -5,14 +5,12 @@ export const FINANCIAL_PRODUCT = Symbol('FINANCIAL_PRODUCT').toString();
 export interface ILoanTerms {
   months: number;
   paymentFactor: number;
-  interestRate: number;
 }
 
 const LoanTermsSchema = new Schema<Document<ILoanTerms>>(
   {
     months: Number,
     payment_factor: Number,
-    interest_rate: Number,
   },
   { _id: false },
 );
@@ -38,6 +36,7 @@ export interface FinancialProduct extends Document {
   minProductivity: number;
   maxProductivity: number;
   allowedStates: string[];
+  interestRate: number;
   terms: ILoanTerms[];
   termMonths: number;
   dealerFee: number;
@@ -90,6 +89,7 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   min_markup: Number,
   max_markup: Number,
   allowed_states: [String],
+  interest_rate: Number,
   terms: [LoanTermsSchema],
   term_months: Number,
   dealer_fee: Number,
