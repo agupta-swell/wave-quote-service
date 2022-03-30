@@ -8,7 +8,9 @@ import type { Pixel, Color } from './types';
 import { setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor } from '../utils';
 import { fluxMax, fluxMin, magenta, black, white } from '../constants';
 
-export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<PNG> {
+import type { ReadRasterResult, TypedArray } from './geotiff';
+
+export async function generatePng(dataLabel: string, tiffBuffer: Buffer) : Promise<PNG> {
   const layers = await getLayersFromBuffer(tiffBuffer);
 
   switch (dataLabel) {
@@ -21,7 +23,7 @@ export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<PNG
   }
 }
 
-export async function drawMonthlyHeatmap( layers: any ): Promise<Array<PNG>> {
+export async function drawMonthlyHeatmap( layers: ReadRasterResult ): Promise<Array<PNG>> {
   const { height, width } = layers;
  
   return layers.map((layer) => {
@@ -49,8 +51,7 @@ export async function drawMonthlyHeatmap( layers: any ): Promise<Array<PNG>> {
       }
     }
 
-    const finalizedPng = upScalePng(newPng, 5);
-    return finalizedPng;
+    return upScalePng(newPng, 5);
   })
 }
 
@@ -87,7 +88,7 @@ function upScalePng( heatMapPng: PNG, resizeFactor: number ) : PNG {
   return interpolated
 }
 
-function drawHeatmap( layers: any ) : PNG {
+function drawHeatmap( layers: ReadRasterResult ) : PNG {
   const { height, width } = layers;
   const [fluxLayer] = layers;
   const flux = chunk(fluxLayer, width);
@@ -108,7 +109,7 @@ function drawHeatmap( layers: any ) : PNG {
   return newPng;
 }
 
-function drawMask( layers: any ) : PNG {
+function drawMask( layers: ReadRasterResult ) : PNG {
   const { height, width } = layers;
   const [layer] = layers;
   const mask = chunk(layer, width);
@@ -126,7 +127,7 @@ function drawMask( layers: any ) : PNG {
   return newPng;
 }
 
-function drawSatellite( layers: any ) : PNG {
+function drawSatellite( layers: ReadRasterResult ) : PNG {
   const { height, width } = layers;
   const [redLayer, greenLayer, blueLayer] = layers;
   const rgbColors = {
@@ -156,7 +157,7 @@ function drawSatellite( layers: any ) : PNG {
   return newPng;
 }
 
-export async function applyMaskedOverlay(heatMapPng: PNG, maskLayer: any, rgbPng: PNG) : Promise<PNG> {
+export async function applyMaskedOverlay(heatMapPng: PNG, maskLayer: TypedArray, rgbPng: PNG) : Promise<PNG> {
   const height = heatMapPng.height;
   const width = heatMapPng.width;
 
@@ -182,10 +183,8 @@ export async function applyMaskedOverlay(heatMapPng: PNG, maskLayer: any, rgbPng
   return maskedPng;
 }
 
-export async function getLayersFromBuffer( tiffBuffer ) : Promise<any> {
+export async function getLayersFromBuffer( tiffBuffer ) : Promise<ReadRasterResult> {
   const tiffArrayBuffer = toArrayBuffer( tiffBuffer );
   const tiff = await fromArrayBuffer(tiffArrayBuffer);
-  const layers = await tiff.readRasters();
-
-  return layers;
+  return await tiff.readRasters() as ReadRasterResult;
 }
