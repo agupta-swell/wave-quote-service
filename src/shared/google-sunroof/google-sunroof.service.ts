@@ -4,10 +4,11 @@ import * as qs from 'qs';
 import * as path from 'path';
 import { Readable } from 'stream';
 import { PNG } from 'pngjs';
+import { chunk } from 'lodash';
 import { Injectable } from '@nestjs/common';
 import { Stream } from 'stream';
 import { S3Service } from '../aws/services/s3.service';
-import { generatePng, generateMonthlyPngs, generateMaskedHeatmapPngs } from './sub-services/file-generator.service';
+import { generatePng, drawMonthlyHeatmap, applyMaskedOverlay, getLayersFromBuffer } from './sub-services/file-generator.service';
 import { SUNROOF_API } from './constants';
 import {
   IGetBuildingResult,
@@ -51,7 +52,7 @@ export class GoogleSunroofService {
 
   public getRequest<T>(url: string, cacheKey: string): Promise<IGetRequestResultWithS3UploadResult<T>>;
 
-  public getRequest<T>(url: string, cacheKey?: string): Promise<any> {
+  public getRequest<T>(url: string, cacheKey?: string): Promise<Object> {
     return new Promise((resolve, reject) => {
       https.get(url, res => {
         if (res.statusCode !== 200) reject(new Error(`${res.statusCode}: ${res.statusMessage}`));
@@ -167,7 +168,7 @@ export class GoogleSunroofService {
     cacheKey: string,
   ): Promise<IGetRequestResultWithS3UploadResult<IGetBuildingResult>>;
 
-  public getBuilding(lat: number, long: number, cacheKey?: string): Promise<any> {
+  public getBuilding(lat: number, long: number, cacheKey?: string): Promise<Object> {
     const url = this.makeGetUrl(
       {
         'location.latitude': lat,
@@ -206,7 +207,7 @@ export class GoogleSunroofService {
     cacheKey: string,
   ): Promise<IGetRequestResultWithS3UploadResult<IGetSolarInfoResult>>;
 
-  public getSolarInfo(lat: number, long: number, radiusMeters: number, cacheKey?: string): Promise<any> {
+  public getSolarInfo(lat: number, long: number, radiusMeters: number, cacheKey?: string): Promise<Object> {
     const url = this.makeGetUrl(
       {
         'location.latitude': lat,
@@ -236,7 +237,9 @@ export class GoogleSunroofService {
           const pngFile = png;
 
           try {
-            console.log( data );
+            if ( process.env.DEBUG_SUNROOF ) {
+              console.log( data );
+            }
 
             return({
               s3Result: data,
@@ -260,20 +263,25 @@ export class GoogleSunroofService {
   }
 
   public async stagePngs( tiffPayloadResponses ){
-    const maskTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'mask');
+    const maskTiffPayloadResponse = await tiffPayloadResponses.find((element) => element.dataLabel === 'mask');
 
     // const maskCarton = await this.stagePng( maskTiffPayloadResponse );
-    this.stagePng( maskTiffPayloadResponse );
+    const maskPng = await this.stagePng( maskTiffPayloadResponse );
+    const [layer] = maskTiffPayloadResponse.payload;
+    const maskLayer = chunk(layer, maskPng.width);
+
+    if ( process.env.DEBUG_SUNROOF ) { console.log( maskLayer ); };
 
     const rgbTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'rgb');
 
     // const rgbCarton = await this.stagePng( rgbTiffPayloadResponse );
-    this.stagePng( rgbTiffPayloadResponse );
+    const rgbPng = await this.stagePng( rgbTiffPayloadResponse );
 
     const annualFluxTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'annualFlux');
-    
+    const tiffKey = annualFluxTiffPayloadResponse.s3Result.key;
+
     const annualHeatmapPng = await this.stagePng( annualFluxTiffPayloadResponse );
-    this.stageMaskedHeatmapPng( 'heatmap.annual.masked', annualHeatmapPng, annualFluxTiffPayloadResponse, maskTiffPayloadResponse, rgbTiffPayloadResponse );
+    this.stageMaskedHeatmapPng( 'heatmap.annual.masked', annualHeatmapPng, tiffKey, maskLayer, rgbPng );
 
 
     const monthlyFluxTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'monthlyFlux');
@@ -281,7 +289,7 @@ export class GoogleSunroofService {
 
     monthlyPngs.forEach( (monthlyPng, index)  => {
       const monthIndex = index < 10 ? `0${index}` : `${index}`;
-      this.stageMaskedHeatmapPng( `heatmap.monthly${monthIndex}.masked`, monthlyPng, annualFluxTiffPayloadResponse, maskTiffPayloadResponse, rgbTiffPayloadResponse );
+      this.stageMaskedHeatmapPng( `heatmap.monthly${monthIndex}.masked`, monthlyPng, tiffKey, maskLayer, rgbPng );
     })
     
     return true
@@ -302,13 +310,13 @@ export class GoogleSunroofService {
     
     const pngKey = this.setPngKey( tiffKey, fileName );
     const pngFilename = path.join(__dirname, 'png', `${fileName}.png`);
-
-    console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-
+    
     this.savePngToS3( pngKey, newPng )
-
-    // TODO TEMP: don't write to disk
-    writePngToFile( newPng, pngFilename );
+    
+    if ( process.env.DEBUG_SUNROOF ) {
+      console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+      writePngToFile( newPng, pngFilename );
+    }
 
     return newPng
   }
@@ -318,42 +326,42 @@ export class GoogleSunroofService {
     const tiffBuffer = tiffPayloadResponse.payload;
     const dataLabel = tiffPayloadResponse.dataLabel;
 
-    let response = await generateMonthlyPngs(tiffBuffer);
+    const layers = await getLayersFromBuffer(tiffBuffer);
+    const layerPngs = await drawMonthlyHeatmap( layers )
     
     let fileName = 'heatmap.monthly';
 
-    response.map((layerPng, layerPngIndex) => {
+    layerPngs.map((layerPng, layerPngIndex) => {
       const monthIndex = layerPngIndex < 10 ? `0${layerPngIndex}` : `${layerPngIndex}`;
       const pngKey = this.setPngKey( tiffKey, `${fileName}${monthIndex}` );
       const pngFilename = path.join(__dirname, 'png', `${fileName}${monthIndex}.png`);
   
-      console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-  
+      
       this.savePngToS3( pngKey, layerPng )
-  
-      // TODO TEMP: don't write to disk
-      writePngToFile( layerPng, pngFilename );
+      
+      if ( process.env.DEBUG_SUNROOF ) {
+        console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+        writePngToFile( layerPng, pngFilename );
+      }
     })
     
 
-    return response
+    return layerPngs
   }
 
-  private async stageMaskedHeatmapPng(filename: string, annualHeatmapPng: PNG, tiffPayloadResponse: any, maskTiffPayloadResponse: any, rgbTiffPayloadResponse: any){
-    const tiffKey = tiffPayloadResponse.s3Result.key;
-
-    const maskBuffer = maskTiffPayloadResponse.payload;
-    const rgbBuffer = rgbTiffPayloadResponse.payload;
-
-    const annualFluxMaskedPng = await generateMaskedHeatmapPngs( annualHeatmapPng, maskBuffer, rgbBuffer);
+  private async stageMaskedHeatmapPng(filename: string, heatmapPng: PNG, tiffKey: any, maskLayer: any, rgbPng: PNG){
+    const annualFluxMaskedPng = await applyMaskedOverlay( heatmapPng, maskLayer, rgbPng);
 
     const pngKey = this.setPngKey( tiffKey, filename );
     const pngFilename = path.join(__dirname, 'png', `${filename}.png`);
-    console.log( pngFilename );
-
-    this.savePngToS3( pngKey, annualFluxMaskedPng )
-    await writePngToFile( annualFluxMaskedPng, pngFilename );
     
+    this.savePngToS3( pngKey, annualFluxMaskedPng )
+    
+    if ( process.env.DEBUG_SUNROOF ) {
+      console.log( pngFilename );
+      await writePngToFile( annualFluxMaskedPng, pngFilename );
+    }
+
     return true;
   }
 

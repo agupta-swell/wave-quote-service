@@ -4,12 +4,12 @@ import { fromArrayBuffer } from 'geotiff';
 import { chunk } from 'lodash';
 import { PNG } from 'pngjs';
 
-import type { Pixel, Color } from '../types';
-import { gray, setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor } from '../utils';
-import {fluxGradient, fluxMax, fluxMin, magenta} from '../constants';
+import type { Pixel, Color } from './types';
+import { setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor } from '../utils';
+import { fluxMax, fluxMin, magenta, black, white } from '../constants';
 
-export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<any> {
-  const layers = await generateLayers(tiffBuffer);
+export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<PNG> {
+  const layers = await getLayersFromBuffer(tiffBuffer);
 
   switch (dataLabel) {
     case 'mask':
@@ -21,20 +21,10 @@ export async function generatePng(dataLabel: any, tiffBuffer: any) : Promise<any
   }
 }
 
-export async function generateMonthlyPngs( tiffBuffer ) : Promise<any> {
-  const tiffArrayBuffer = toArrayBuffer( tiffBuffer );
-  const tiff = await fromArrayBuffer(tiffArrayBuffer);
-  const layers = await tiff.readRasters();
-
-  return await drawMonthlyHeatmap( layers );
-}
-
-async function drawMonthlyHeatmap( layers: any ): Promise<any> {
+export async function drawMonthlyHeatmap( layers: any ): Promise<Array<PNG>> {
   const { height, width } = layers;
  
-  let response = Array();
-
-  layers.map((layer, layerIndex) => {
+  return layers.map((layer) => {
     const newPng = new PNG({ height, width });
     const flux = chunk(layer, width)
     
@@ -54,31 +44,25 @@ async function drawMonthlyHeatmap( layers: any ): Promise<any> {
           const fluxValue = flux[y][x] as number;
 
           const percentage = (fluxValue - min) / range;
-          // const fluxGradientIndex = Math.floor(
-          //     percentage * fluxGradient.length
-          // );
-          // const color = fluxGradient[fluxGradientIndex];
           const color = getHeatmapColor(fluxValue,percentage);
           setPixelColor(newPng, pixel, color);
       }
     }
 
-    const finalizedPng = resizePng(newPng, height, width, 5 );
-    response.push( finalizedPng );
+    const finalizedPng = upScalePng(newPng, 5);
+    return finalizedPng;
   })
-
-  return response;
 }
 
-function resizePng( heatMapPng, inputHeight, inputWidth, resizeFactor ) : PNG {
-  const interpolatedHeight = (inputHeight - 1) * resizeFactor;
-  const interpolatedWidth = (inputWidth - 1) * resizeFactor;
+function upScalePng( heatMapPng: PNG, resizeFactor: number ) : PNG {
+  const interpolatedHeight = (heatMapPng.height - 1) * resizeFactor;
+  const interpolatedWidth = (heatMapPng.width - 1) * resizeFactor;
   const interpolated = new PNG({
       height: interpolatedHeight,
       width: interpolatedWidth,
   });
-  for (let y = 0; y < inputHeight - 1; y++) {
-      for (let x = 0; x < inputWidth - 1; x++) {
+  for (let y = 0; y < heatMapPng.height - 1; y++) {
+      for (let x = 0; x < heatMapPng.width - 1; x++) {
           const thisColor = getPixelColor(heatMapPng, [x, y]);
           const xColor = getPixelColor(heatMapPng, [x + 1, y]);
           const yColor = getPixelColor(heatMapPng, [x, y + 1]);
@@ -113,13 +97,9 @@ function drawHeatmap( layers: any ) : PNG {
   for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
           const pixel: Pixel = [x, y];
-          const fluxValue = flux[y][x] as number; //fluxLayer[y*width +]
+          const fluxValue = flux[y][x] as number;
 
           const percentage = (fluxValue - fluxMin) / fluxRange;
-          // const fluxGradientIndex = Math.floor(
-          //     percentage * fluxGradient.length
-          // );
-          // const color = fluxGradient[fluxGradientIndex];
           const color = getHeatmapColor(fluxValue,percentage);
           setPixelColor(newPng, pixel, color);
       }
@@ -138,8 +118,7 @@ function drawMask( layers: any ) : PNG {
   for (let y = 0; y < layers.height; y++) {
     for (let x = 0; x < layers.width; x++) {
       const pixel: Pixel = [x, y];
-      const value = (mask[y][x] as number) * 255;
-      const color = gray(value);
+      const color = mask[y][x] ? white: black;
       setPixelColor(newPng, pixel, color);
     }
   }
@@ -158,12 +137,12 @@ function drawSatellite( layers: any ) : PNG {
 
   // show center pixels
   const newPng = new PNG({
-      height: layers.height,
-      width: layers.width,
+      height: height,
+      width: width,
   });
 
-  for (let y = 0; y < layers.height; y++) {
-      for (let x = 0; x < layers.width; x++) {
+  for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
           const driftPixel: Pixel = [x, y];
           const driftColor: Color = [
               rgbColors.reds[y][x] as number,
@@ -177,21 +156,13 @@ function drawSatellite( layers: any ) : PNG {
   return newPng;
 }
 
-export async function generateMaskedHeatmapPngs(annualHeatmapPng: PNG, maskBuffer: any, rgbBuffer: any) : Promise<PNG> {
-  const maskLayers = await generateLayers( maskBuffer );
-  const satelliteLayers = await generateLayers( rgbBuffer );
+export async function applyMaskedOverlay(heatMapPng: PNG, maskLayer: any, rgbPng: PNG) : Promise<PNG> {
+  const height = heatMapPng.height;
+  const width = heatMapPng.width;
 
-  const { height, width } = satelliteLayers;
-
-  console.log( `flux height: ${height} || width: ${width}`);
-
-  const [redLayer, greenLayer, blueLayer] = satelliteLayers;
-  const reds = chunk(redLayer, width);
-  const greens = chunk(greenLayer, width);
-  const blues = chunk(blueLayer, width);
-
-  const [layer] = maskLayers;
-  const mask = chunk(layer, maskLayers.width);
+  if ( process.env.DEBUG_SUNROOF ) {
+    console.log( `flux height: ${height} || width: ${width}`);
+  }
 
   const maskedPng = new PNG({ height, width });
   for (let y = 0; y < height; y++) {
@@ -199,14 +170,10 @@ export async function generateMaskedHeatmapPngs(annualHeatmapPng: PNG, maskBuffe
         const pixel: Pixel = [x, y];
         let color: Color = magenta;
 
-        if (mask[y][x]) {
-            color = getPixelColor(annualHeatmapPng, pixel);
+        if (maskLayer[y][x]) {
+            color = getPixelColor(heatMapPng, pixel);
         } else {
-            color = [
-                reds[y][x] as number,
-                greens[y][x] as number,
-                blues[y][x] as number,
-            ];
+            color = getPixelColor(rgbPng, pixel);
         }
         setPixelColor(maskedPng, pixel, color);
       }
@@ -215,7 +182,7 @@ export async function generateMaskedHeatmapPngs(annualHeatmapPng: PNG, maskBuffe
   return maskedPng;
 }
 
-async function generateLayers( tiffBuffer ) : Promise<any> {
+export async function getLayersFromBuffer( tiffBuffer ) : Promise<any> {
   const tiffArrayBuffer = toArrayBuffer( tiffBuffer );
   const tiff = await fromArrayBuffer(tiffArrayBuffer);
   const layers = await tiff.readRasters();

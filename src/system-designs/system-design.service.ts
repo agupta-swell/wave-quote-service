@@ -1148,11 +1148,11 @@ export class SystemDesignService {
           promises.push(promise);
         });
 
-        solarInfo.hourlyShadeUrls.forEach((url, index) => {
-          const fileName = `${opportunityId}/tiff/hourlyMonth${index}.tiff`;
-          const promise = this.googleSunroofService.getRequest(url, fileName);
-          promises.push(promise);
-        });
+        // solarInfo.hourlyShadeUrls.forEach((url, index) => {
+        //   const fileName = `${opportunityId}/tiff/hourlyMonth${index}.tiff`;
+        //   const promise = this.googleSunroofService.getRequest(url, fileName);
+        //   promises.push(promise);
+        // });
 
         const tiffPayloadResponses = await Promise.all(promises);
 

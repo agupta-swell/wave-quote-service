@@ -5,9 +5,9 @@ import type { PNG } from 'pngjs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { inRange } from 'lodash';
-import type { Color } from './types';
+import type { Color } from './sub-services/types';
 
-import { Pixel, PixelPolygon } from './types';
+import { Pixel, PixelPolygon } from './sub-services/types';
 import { magenta, fluxMin, fluxMax, fluxGradientStops } from './constants';
 
 export const getPixelColor = (png: PNG, pixel: Pixel): Color => {
@@ -17,8 +17,6 @@ export const getPixelColor = (png: PNG, pixel: Pixel): Color => {
 
   return [png.data[pixelOffset], png.data[pixelOffset + 1], png.data[pixelOffset + 2], png.data[pixelOffset + 3]];
 };
-
-export const gray = (x: number): Color => [x, x, x];
 
 export const lerp = (a: number, b: number, percent: number): number => {
   const range = b - a;
@@ -45,7 +43,6 @@ export const setPixelColor = (png: PNG, pixel: Pixel, color: Color = magenta): v
 
 export const getHeatmapColor = (fluxValue: number, percentage: number ): Color => {
   const adjustedPercentage = percentage / .5;
-  console.log( `fluxValue: ${fluxValue} || percentage: ${percentage} || adjustedPct: ${adjustedPercentage}`);
   
   if ( fluxValue < fluxMin ) {
     return fluxGradientStops[0];
@@ -124,7 +121,9 @@ export const getPanelPixels = (polygon: PixelPolygon) => {
     }
   }
 
-  console.log(`${counter} pixels added`);
+  if ( process.env.DEBUG_SUNROOF ) {
+    console.log(`${counter} pixels added`);
+  }
 
   return panelPixels;
 };
