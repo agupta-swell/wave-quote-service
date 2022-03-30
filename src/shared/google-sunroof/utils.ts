@@ -4,7 +4,6 @@
 import type { PNG } from 'pngjs';
 import * as fs from 'fs';
 import * as path from 'path';
-import { inRange } from 'lodash';
 import type { Color } from './sub-services/types';
 
 import { Pixel, PixelPolygon } from './sub-services/types';
@@ -41,19 +40,20 @@ export const setPixelColor = (png: PNG, pixel: Pixel, color: Color = magenta): v
   png.data[pixelOffset + 3] = alpha;
 };
 
-export const getHeatmapColor = (fluxValue: number, percentage: number ): Color => {
-  const adjustedPercentage = percentage / .5;
-  
+export const getHeatmapColor = (fluxValue: number): Color => {
+  const fluxRange = fluxMax - fluxMin;
+  const percentage = (fluxValue - fluxMin) / fluxRange;
+ 
   if ( fluxValue < fluxMin ) {
     return fluxGradientStops[0];
   } else if ( fluxValue > fluxMax ) {
     return fluxGradientStops[100];
   } else if ( fluxValue === (fluxMax + fluxMin) / 2){
     return fluxGradientStops[50];
-  } else if ( inRange(percentage, 50)) {
-    return lerpColor(fluxGradientStops[0], fluxGradientStops[50], adjustedPercentage);
+  } else if (percentage < 0.5) {
+    return lerpColor(fluxGradientStops[0], fluxGradientStops[50], percentage * 2);
   } else {
-    return lerpColor(fluxGradientStops[0], fluxGradientStops[100], adjustedPercentage);
+    return lerpColor(fluxGradientStops[50], fluxGradientStops[100], percentage / 2);
   }
 }
 

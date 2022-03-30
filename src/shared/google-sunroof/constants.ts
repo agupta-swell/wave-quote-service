@@ -16,10 +16,10 @@ export const cyan: Color = [0, 255, 255]
 export const white: Color = [255, 255, 255]
 export const black: Color = [0, 0, 0]
 
-export const fluxMin = 0
-export const fluxMax = 4000
-export const fluxGradientStops = {
-  0: <Color>[67,23,89],
-  50: <Color>[222,162,57],
-  100: <Color>[254,255,63]
+export const fluxMin = 550
+export const fluxMax = 3500
+export const fluxGradientStops: Record<number,Color> = {
+  0: [67,23,89],
+  50: [222,162,57],
+  100: [254,255,63]
 }
