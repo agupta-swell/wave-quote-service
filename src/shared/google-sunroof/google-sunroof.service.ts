@@ -18,6 +18,8 @@ import {
 } from './interfaces';
 import { writePngToFile } from './utils';
 
+const DEBUG = !!process.env.DEBUG_SUNROOF;
+
 @Injectable()
 export class GoogleSunroofService {
   private readonly GOOGLE_SUNROOF_BUCKET: string;
@@ -235,9 +237,7 @@ export class GoogleSunroofService {
           }
 
           try {
-            if ( process.env.DEBUG_SUNROOF ) {
-              console.log( data );
-            }
+            if (DEBUG) console.log(data);
 
             return({
               s3Result: data,
@@ -272,7 +272,6 @@ export class GoogleSunroofService {
     const annualHeatmapPng = await this.stagePng( annualFluxTiffPayloadResponse );
     this.stageMaskedHeatmapPng( 'heatmap.annual.masked', annualHeatmapPng, tiffKey, maskLayer, rgbPng );
 
-
     const monthlyFluxTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'monthlyFlux');
     const monthlyPngs = await this.stageMonthlyPng( monthlyFluxTiffPayloadResponse );
 
@@ -280,8 +279,6 @@ export class GoogleSunroofService {
       const monthIndex = index < 10 ? `0${index}` : `${index}`;
       this.stageMaskedHeatmapPng( `heatmap.monthly${monthIndex}.masked`, monthlyPng, tiffKey, maskLayer, rgbPng );
     })
-    
-    return true
   }
 
   private async stagePng(tiffPayloadResponse: any){
@@ -291,20 +288,16 @@ export class GoogleSunroofService {
 
     let newPng = await generatePng( dataLabel, tiffBuffer);
     
-    let fileName = dataLabel;
-    
-    if ( dataLabel === 'annualFlux' ){
-      fileName = 'heatmap.annual';
-    }
+    let fileName = dataLabel === 'annualFlux' ? 'heatmap.annual' : dataLabel;
     
     const pngKey = makePngKey( tiffKey, fileName );
-    const pngFilename = path.join(__dirname, 'png', `${fileName}.png`);
     
     this.savePngToS3( pngKey, newPng )
     
-    if ( process.env.DEBUG_SUNROOF ) {
+    if (DEBUG) {
       console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-      writePngToFile( newPng, pngFilename );
+      const pngFilename = path.join(__dirname, 'png', `${fileName}.png`);
+      await writePngToFile( newPng, pngFilename );
     }
 
     return newPng
@@ -318,36 +311,33 @@ export class GoogleSunroofService {
     const layers = await getLayersFromBuffer(tiffBuffer);
     const layerPngs = await drawMonthlyHeatmap( layers )
     
-    let fileName = 'heatmap.monthly';
+    let fileNamePrefix = 'heatmap.monthly';
 
-    layerPngs.map((layerPng, layerPngIndex) => {
+    await Promise.all(layerPngs.map(async (layerPng, layerPngIndex) => {
       const monthIndex = layerPngIndex < 10 ? `0${layerPngIndex}` : `${layerPngIndex}`;
-      const pngKey = makePngKey( tiffKey, `${fileName}${monthIndex}` );
-      const pngFilename = path.join(__dirname, 'png', `${fileName}${monthIndex}.png`);
-  
+      const pngKey = makePngKey( tiffKey, `${fileNamePrefix}${monthIndex}` );
       
       this.savePngToS3( pngKey, layerPng )
       
-      if ( process.env.DEBUG_SUNROOF ) {
+      if (DEBUG) {
         console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-        writePngToFile( layerPng, pngFilename );
+        const pngFilename = path.join(__dirname, 'png', `${fileNamePrefix}${monthIndex}.png`);
+        await writePngToFile( layerPng, pngFilename );
       }
-    })
-    
+    }))
 
     return layerPngs
   }
 
   private async stageMaskedHeatmapPng(filename: string, heatmapPng: PNG, tiffKey: string, maskLayer: number[][], rgbPng: PNG){
     const annualFluxMaskedPng = await applyMaskedOverlay( heatmapPng, maskLayer, rgbPng);
-
     const pngKey = makePngKey( tiffKey, filename );
-    const pngFilename = path.join(__dirname, 'png', `${filename}.png`);
     
     this.savePngToS3( pngKey, annualFluxMaskedPng )
     
-    if ( process.env.DEBUG_SUNROOF ) {
-      console.log( pngFilename );
+    if (DEBUG) {
+      console.log( `filename: ${filename} || pngKey: ${pngKey}`);
+      const pngFilename = path.join(__dirname, 'png', `${filename}.png`);
       await writePngToFile( annualFluxMaskedPng, pngFilename );
     }
 
