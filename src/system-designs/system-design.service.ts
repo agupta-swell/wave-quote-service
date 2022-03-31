@@ -1156,8 +1156,7 @@ export class SystemDesignService {
 
         const tiffPayloadResponses = await Promise.all(promises);
 
-        // call google-sunroof service - stagePngs
-        this.googleSunroofService.stagePngs( tiffPayloadResponses );
+        this.googleSunroofService.processPngs( tiffPayloadResponses );
 
         return solarInfo;
       }

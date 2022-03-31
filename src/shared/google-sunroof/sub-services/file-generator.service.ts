@@ -6,32 +6,19 @@ import { PNG } from 'pngjs';
 
 import type { Pixel, Color } from './types';
 import { setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor } from '../utils';
-import { fluxMax, fluxMin, magenta, black, white } from '../constants';
+import { magenta, black, white } from '../constants';
 
-import type { ReadRasterResult, TypedArray } from './geotiff';
+import type { ReadRasterResult } from './geotiff';
 
-export async function generatePng(dataLabel: string, tiffBuffer: Buffer) : Promise<PNG> {
-  const annualLayers = await getLayersFromBuffer(tiffBuffer);
-
-  switch (dataLabel) {
-    case 'mask':
-      return await drawMask(annualLayers);
-    case 'rgb':
-      return await drawSatellite(annualLayers);
-    default:
-      const [fluxLayer] = annualLayers;
-      return await drawHeatmap(chunk(fluxLayer,annualLayers.width),1);
-  }
-}
-
-export async function drawMonthlyHeatmap( monthlyLayers: ReadRasterResult ): Promise<Array<PNG>> {
+export async function generateMonthlyHeatmap( monthlyLayers: ReadRasterResult ): Promise<Array<PNG>> {
   return monthlyLayers
-    .map(x => chunk(x, monthlyLayers.width))
-    .map(x => drawHeatmap(x,12))
+    .map( x => x.map ( value => value * 12 ))
+    .map( x => chunk(x, monthlyLayers.width))
+    .map(x => generateHeatmap(x))
     .map(x => upScalePng(x,5))
 }
 
-function drawHeatmap( flux: number[][], annualModifier: number) : PNG {
+export function generateHeatmap( flux: number[][]) : PNG {
   const height = flux.length;
   const width = flux[0].length;
 
@@ -40,7 +27,7 @@ function drawHeatmap( flux: number[][], annualModifier: number) : PNG {
   for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
           const pixel: Pixel = [x, y];
-          const fluxValue = (flux[y][x] as number) * annualModifier;
+          const fluxValue = flux[y][x] as number;
 
           const color = getHeatmapColor(fluxValue);
           setPixelColor(newPng, pixel, color);
@@ -83,7 +70,7 @@ function upScalePng( heatMapPng: PNG, resizeFactor: number ) : PNG {
   return interpolated
 }
 
-function drawMask( layers: ReadRasterResult ) : PNG {
+export function generateMask( layers: ReadRasterResult ) : PNG {
   const { height, width } = layers;
   const [layer] = layers;
   const mask = chunk(layer, width);
@@ -101,7 +88,7 @@ function drawMask( layers: ReadRasterResult ) : PNG {
   return newPng;
 }
 
-function drawSatellite( layers: ReadRasterResult ) : PNG {
+export function generateSatellite( layers: ReadRasterResult ) : PNG {
   const { height, width } = layers;
   const [redLayer, greenLayer, blueLayer] = layers;
   const rgbColors = {
