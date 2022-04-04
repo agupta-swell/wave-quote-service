@@ -10,6 +10,7 @@ import {
 } from 'src/shared/docusign';
 
 @DocusignTemplate('demo', '06f41497-6dda-46a9-9171-e9718ff392a0')
+@DocusignTemplate('live', '737b935b-f0ca-4c39-8822-eaa488296792')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
 export class ParticipationPRP2ACESCashTemplate {

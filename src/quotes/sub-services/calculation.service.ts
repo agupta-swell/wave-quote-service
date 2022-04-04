@@ -2,7 +2,6 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { groupBy, sumBy } from 'lodash';
 import { Account } from 'src/accounts/account.schema';
 import { ApplicationException } from 'src/app/app.exception';
-import { ILoanTerms } from 'src/financial-products/financial-product.schema';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { UtilityService } from 'src/utilities/utility.service';
@@ -214,12 +213,7 @@ export class CalculationService {
     const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
       .productAttribute as LoanProductAttributesDto;
 
-    const annualInterestRate = roundNumber(
-      productAttribute.terms.reduce((prev, term) => prev + term.interestRate * term.months, 0) /
-        productAttribute.loanTerm,
-      0,
-    );
-
+    const annualInterestRate = productAttribute.interestRate;
     const { dealerFee } = productAttribute;
     const loanAmount = productAttribute.loanAmount / (1.0 - (dealerFee || 0));
     const startDate = new Date(productAttribute.loanStartDate);
@@ -231,7 +225,7 @@ export class CalculationService {
 
     let startingMonthlyPaymentAmount = this.monthlyPaymentAmount(
       loanAmount - prepaymentAmount,
-      productAttribute.terms,
+      annualInterestRate,
       loanPeriod - 1,
     );
 
@@ -296,7 +290,7 @@ export class CalculationService {
       v2_cls_AmortTableInstanceWithPrePay[periodPrepayment - 1]?.endingBalance || 0;
     startingMonthlyPaymentAmount = this.monthlyPaymentAmount(
       endingBalanceAtTheEndOfPrePaymentMonth,
-      productAttribute.terms,
+      annualInterestRate,
       loanPeriod - periodPrepayment,
     );
 
@@ -393,12 +387,7 @@ export class CalculationService {
     return detailedQuote;
   }
 
-  monthlyPaymentAmount(principle: number, terms: ILoanTerms[] = [], numberOfPayments: number): number {
-    const interestRateAPR =
-      (terms.length &&
-        roundNumber(terms.reduce((prev, term) => prev + term.interestRate * term.months, 0) / numberOfPayments, 0)) ||
-      0;
-
+  monthlyPaymentAmount(principle: number, interestRateAPR: number, numberOfPayments: number): number {
     const interestRateMonthly = this.getMonthlyInterestRate(interestRateAPR);
     const monthlyPayment =
       principle *

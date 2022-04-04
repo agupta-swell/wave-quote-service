@@ -41,19 +41,4 @@ export class SystemProductionService {
     }
     return OperationResult.ok(strictPlainToClass(SystemProductionDto, foundSystemProduction.toJSON()));
   }
-
-  async getHourlyProductionBySystemProductionId(id: string | ObjectId): Promise<OperationResult<number[][]>> {
-    const foundSystemProduction = await this.systemProductionModel.findById(id).lean();
-    if (!foundSystemProduction) {
-      throw ApplicationException.EntityNotFound(`SystemProductionId: ${id.toString()}`);
-    }
-    const hourlyProduction = await this.s3Service.getObject(
-      this.ARRAY_HOURLY_PRODUCTION_BUCKET,
-      foundSystemProduction.hourlyProduction,
-    );
-    if (!hourlyProduction) {
-      throw ApplicationException.EntityNotFound(`hourlyProduction: ${foundSystemProduction.hourlyProduction}`);
-    }
-    return OperationResult.ok(JSON.parse(hourlyProduction));
-  }
 }

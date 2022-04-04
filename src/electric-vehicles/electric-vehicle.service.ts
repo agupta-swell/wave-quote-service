@@ -53,7 +53,7 @@ export class ElectricVehicleService {
       },
     ]);
 
-    return OperationResult.ok(strictPlainToClass(UniqueManufacturerNamesRes, res[0]));
+    return OperationResult.ok(strictPlainToClass(UniqueManufacturerNamesRes, res[0] || { manufacturerNames: [] }));
   }
 
   static Snapshot<T>(

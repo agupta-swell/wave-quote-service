@@ -1,6 +1,6 @@
 import { IGetTypicalUsageKwh } from '../sub-services';
 
-interface IHistoricalUsage {
+export interface IHistoricalUsage {
   annualUsage: number[];
   monthlyUsage: number[][];
 }

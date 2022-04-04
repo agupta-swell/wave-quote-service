@@ -139,20 +139,24 @@ export class ExternalService {
   };
 
   async getTypicalBaseLine(zipCode: number): Promise<ITypicalBaseLine> {
-    const url = 'https://api.genability.com/rest/v1/typicals/baselines/best';
+    // Docs: https://developer.genability.com/api-reference/shared-api/typical-baseline/#get-best-baseline
+
+    const URL = 'https://api.genability.com/rest/v1/typicals/baselines/best';
 
     let typicalBaseLine: any;
     try {
-      typicalBaseLine = await axios.get(
-        `${url}?addressString=${zipCode}&buildingType=singleFamilyDetached&excludeMeasures=false&sizingKeyName=loadSize&sizingDataValue=12000&sizingUnit=kWh`,
-        {
-          headers: {
-            Authorization: this.genabilityToken,
-          },
+      typicalBaseLine = await axios.get(URL, {
+        headers: {
+          Authorization: this.genabilityToken,
         },
-      );
+        params: {
+          addressString: zipCode,
+          buildingType: 'singleFamilyDetached',
+          excludeMeasures: false,
+        },
+      });
     } catch (error) {
-      this.logger.errorAPICalling(url, error.message);
+      this.logger.errorAPICalling(URL, error.message);
       throw ApplicationException.ServiceError();
     }
 

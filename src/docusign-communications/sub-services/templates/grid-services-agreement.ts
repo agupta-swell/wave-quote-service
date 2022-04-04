@@ -9,6 +9,7 @@ import {
 } from 'src/shared/docusign';
 
 @DocusignTemplate('demo', '5cb8e3ad-9c80-4b7a-80d6-a8b920741a1a')
+@DocusignTemplate('live', '02a79d51-bdda-4eb8-a63a-1de41e40da0b')
 @DefaultTabTransformation('snake_case')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class GridServiceAgreementTemplate {

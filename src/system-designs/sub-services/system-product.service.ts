@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ProductService } from 'src/products-v2/services';
+import { S3Service } from 'src/shared/aws/services/s3.service';
+import { v4 as uuidv4 } from 'uuid';
 import { ExternalService } from '../../external-services/external-service.service';
 import { UpdateSystemDesignDto } from '../req';
 import { PvWattSystemProduction, PV_WATT_SYSTEM_PRODUCTION } from '../schemas/pv-watt-system-production.schema';
@@ -23,6 +25,7 @@ interface ICalculatePVProduction {
   azimuth: number;
   pitch: number;
   losses: number;
+  shouldGetHourlyProduction: boolean;
 }
 export interface ISystemProduction {
   hourly: number[];
@@ -33,10 +36,13 @@ export interface ISystemProduction {
 
 @Injectable()
 export class SystemProductService {
+  private HOURLY_PRODUCTION_BUCKET = process.env.AWS_S3_ARRAY_HOURLY_PRODUCTION as string;
+
   constructor(
     @InjectModel(PV_WATT_SYSTEM_PRODUCTION) private readonly pvWattSystemProduction: Model<PvWattSystemProduction>,
     private readonly externalService: ExternalService,
     private readonly productService: ProductService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
@@ -53,6 +59,17 @@ export class SystemProductService {
     }
 
     const res = await this.externalService.calculateSystemProduction(data);
+
+    // save hourly to s3 then save only id to pvWattSystemProduction
+    const hourlyProductionId = uuidv4();
+
+    await this.s3Service.putObject(
+      this.HOURLY_PRODUCTION_BUCKET,
+      hourlyProductionId,
+      JSON.stringify(res.ac),
+      'application/json; charset=utf-8',
+    );
+
     const createdPvWattSystemProduction = new this.pvWattSystemProduction({
       lat: data.lat,
       lon: data.lon,
@@ -62,7 +79,7 @@ export class SystemProductService {
       losses: data.losses,
       arrayType: 1,
       moduleType: 1,
-      acAnnualHourlyProduction: res.ac,
+      acAnnualHourlyProduction: hourlyProductionId,
       acMonthlyProduction: res.ac_monthly,
       acAnnualProduction: res.ac_annual,
     });
@@ -72,7 +89,7 @@ export class SystemProductService {
   }
 
   async calculatePVProduction(data: ICalculatePVProduction) {
-    const { latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses } = data;
+    const { latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses, shouldGetHourlyProduction } = data;
     const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
 
     const pvWattSystemProduction = await this.pvWattSystemProduction
@@ -85,8 +102,15 @@ export class SystemProductService {
       })
       .lean();
 
+    // get hourly from s3
     if (pvWattSystemProduction) {
-      arrayProductionData.hourly = pvWattSystemProduction.acAnnualHourlyProduction;
+      if (pvWattSystemProduction.acAnnualHourlyProduction && shouldGetHourlyProduction) {
+        const hourlyProduction = await this.s3Service.getObject(
+          this.HOURLY_PRODUCTION_BUCKET,
+          pvWattSystemProduction.acAnnualHourlyProduction,
+        );
+        if (hourlyProduction) arrayProductionData.hourly = JSON.parse(hourlyProduction);
+      }
       arrayProductionData.monthly = pvWattSystemProduction.acMonthlyProduction;
       arrayProductionData.annual = pvWattSystemProduction.acAnnualProduction;
       return arrayProductionData;
@@ -102,6 +126,16 @@ export class SystemProductService {
     } as IPvWatCalculation;
     const res = await this.externalService.calculateSystemProduction(payload);
 
+    // save hourly to s3 then save only id to pvWattSystemProduction
+    const hourlyProductionId = uuidv4();
+
+    await this.s3Service.putObject(
+      this.HOURLY_PRODUCTION_BUCKET,
+      hourlyProductionId,
+      JSON.stringify(res.ac),
+      'application/json; charset=utf-8',
+    );
+
     const createdPvWattSystemProduction = new this.pvWattSystemProduction({
       lat: latitude,
       lon: longitude,
@@ -111,7 +145,7 @@ export class SystemProductService {
       losses,
       array_type: 1,
       module_type: 1,
-      acAnnualHourlyProduction: res.ac,
+      acAnnualHourlyProduction: hourlyProductionId,
       acMonthlyProduction: res.ac_monthly,
       acAnnualProduction: res.ac_annual,
     });
@@ -143,6 +177,7 @@ export class SystemProductService {
             azimuth: useSunroof && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
             pitch: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
             losses,
+            shouldGetHourlyProduction: true,
           });
         }),
       );
@@ -157,6 +192,7 @@ export class SystemProductService {
             azimuth,
             pitch,
             losses,
+            shouldGetHourlyProduction: true,
           });
         }),
       );

@@ -11,7 +11,7 @@ export interface PvWattSystemProduction extends Document {
   arrayType: number;
   moduleType: number;
   losses: number;
-  acAnnualHourlyProduction: number[];
+  acAnnualHourlyProduction: string;
   acMonthlyProduction: number[];
   acAnnualProduction: number;
   createdBy: string;
@@ -29,7 +29,7 @@ export const PvWattSystemProductionSchema = new Schema<PvWattSystemProduction>({
   array_type: Number,
   module_type: Number,
   losses: Number,
-  ac_annual_hourly_production: [Number],
+  ac_annual_hourly_production: String,
   ac_monthly_production: [Number],
   ac_annual_production: Number,
   created_at: { type: Date, default: Date.now },

@@ -1,10 +1,10 @@
 /* eslint-disable no-plusplus */
 import { ISeason } from 'src/usage-profiles/interfaces';
 import { sliceBySize, sliceBySizesMap } from 'src/utils/array';
-import { getDaysInMonth, getMonthDatesOfYear, getDatesOfYear } from 'src/utils/datetime';
+import { getDatesOfYear, getDaysInMonth, getMonthDatesOfYear } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { ENTRY_MODE } from '../constants';
-import { IUtilityUsageDetails, IUsageValue } from '../utility.schema';
+import { IUsageValue, IUtilityUsageDetails } from '../utility.schema';
 import { IBaseUsage, IGetTypicalUsageKwh, TypicalUsageKwh, WithAvgUsage, WithSeason } from './typical-usage.interface';
 
 export const calculateWeighted = <T extends IBaseUsage>(annualConsumption: number, val: T): number =>
@@ -44,7 +44,7 @@ const weightedAverage = (nums: number[], weights: number[]) => {
   return roundNumber(sum / weightSum, 2);
 };
 
-const getCSVTypicalUsage = (hourlyUsage: IUsageValue[], currentYear: number): TypicalUsageKwh => {
+export const getCSVTypicalUsage = (hourlyUsage: IUsageValue[], currentYear: number): TypicalUsageKwh => {
   const totalDatesOfHourlyUsage = hourlyUsage.length / 24;
 
   const datesInMonths = getMonthDatesOfYear(currentYear);
@@ -81,7 +81,7 @@ const getCSVTypicalUsage = (hourlyUsage: IUsageValue[], currentYear: number): Ty
   return [typicalDailyUsagePerYear, ...typicalDailyUsagePerMonths] as TypicalUsageKwh;
 };
 
-export const getTypicalusage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh => {
+export const getTypicalUsage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh => {
   const currentYear = new Date().getFullYear();
 
   const {

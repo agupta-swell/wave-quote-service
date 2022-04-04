@@ -24,7 +24,6 @@ import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
-import { v4 as uuidv4 } from 'uuid';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
@@ -37,7 +36,7 @@ import {
 } from './req';
 import { SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
-import { ISystemProduction, SystemProductService } from './sub-services';
+import { getTypicalProduction, ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
   SystemDesign,
@@ -333,15 +332,6 @@ export class SystemDesignService {
       );
     }
 
-    const hourlyProduction = uuidv4();
-
-    await this.s3Service.putObject(
-      this.ARRAY_HOURLY_PRODUCTION_BUCKET,
-      hourlyProduction,
-      JSON.stringify(systemProductionArray.arrayHourly),
-      'application/json; charset=utf-8',
-    );
-
     // create systemProduction then save only systemProduction.id to current systemDesign
     const newSystemProduction = await this.systemProductionService.create({
       capacityKW: cumulativeCapacityKW,
@@ -351,7 +341,7 @@ export class SystemDesignService {
       offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
       generationMonthlyKWh: systemProductionArray.monthly,
       arrayGenerationKWh,
-      hourlyProduction,
+      pvWattProduction: getTypicalProduction(systemProductionArray.hourly), // calculate pv watt production typical
     });
 
     if (newSystemProduction.data) {
@@ -394,7 +384,6 @@ export class SystemDesignService {
     postExtendCalculate,
     dispatch,
     remainArrayId,
-    updateHourlyProductionToS3 = false,
   }: {
     systemDesign: SystemDesignModel;
     systemDesignDto: UpdateSystemDesignDto;
@@ -403,7 +392,6 @@ export class SystemDesignService {
     postExtendCalculate?: (result: [AuxCalculateResult, ...unknown[]]) => void;
     dispatch?: (systemDesign: SystemDesignModel) => Promise<void>;
     remainArrayId?: boolean;
-    updateHourlyProductionToS3?: boolean;
   }): Promise<Partial<SystemDesignModel>> {
     if (preCalculate) await preCalculate();
 
@@ -512,20 +500,6 @@ export class SystemDesignService {
         postExtendCalculate(result as any);
       }
 
-      // update the hourlyProduction to s3
-      if (updateHourlyProductionToS3) {
-        const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
-        if (systemProduction.data) {
-          const { hourlyProduction } = systemProduction.data;
-          await this.s3Service.putObject(
-            this.ARRAY_HOURLY_PRODUCTION_BUCKET,
-            hourlyProduction,
-            JSON.stringify(systemProductionArray.arrayHourly),
-            'application/json; charset=utf-8',
-          );
-        }
-      }
-
       systemDesign.setSystemProductionData({
         capacityKW: cumulativeCapacityKW,
         generationKWh: cumulativeGenerationKWh,
@@ -534,6 +508,7 @@ export class SystemDesignService {
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
+        pvWattProduction: getTypicalProduction(systemProductionArray.hourly), // calculate pv watt typical production
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
@@ -701,21 +676,8 @@ export class SystemDesignService {
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
+        pvWattProduction: getTypicalProduction(systemProductionArray.hourly), // calculate pv watt typical production
       });
-
-      // update the hourlyProduction to s3
-      if (updateHourlyProductionToS3) {
-        const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
-        if (systemProduction.data) {
-          const { hourlyProduction } = systemProduction.data;
-          await this.s3Service.putObject(
-            this.ARRAY_HOURLY_PRODUCTION_BUCKET,
-            hourlyProduction,
-            JSON.stringify(systemProductionArray.arrayHourly),
-            'application/json; charset=utf-8',
-          );
-        }
-      }
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
         (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
@@ -824,7 +786,6 @@ export class SystemDesignService {
           systemDesign.setThumbnail(thumbnail);
         }
       },
-      updateHourlyProductionToS3: true,
     });
 
     delete removedUndefined?._id;

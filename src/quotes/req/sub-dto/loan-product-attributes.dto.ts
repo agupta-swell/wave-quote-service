@@ -19,10 +19,6 @@ class ReinvestmentDto {
 export class LoanTermsDto implements ILoanTerms {
   @ApiProperty()
   @IsNumber()
-  interestRate: number;
-
-  @ApiProperty()
-  @IsNumber()
   months: number;
 
   @ApiProperty()
@@ -40,6 +36,10 @@ export class LoanProductAttributesDto {
 
   @ApiProperty()
   loanStartDate: number;
+
+  @ApiProperty()
+  @IsNumber()
+  interestRate: number;
 
   @ApiProperty({ type: LoanTermsDto, isArray: true })
   @ValidateNested({ each: true })

@@ -291,10 +291,10 @@ export class ECommerceService {
     const loanProductAttributesDto: LoanProductAttributesDto = {} as any;
     loanProductAttributesDto.upfrontPayment = depositAmount;
     loanProductAttributesDto.loanAmount = overallCost - depositAmount;
+    loanProductAttributesDto.interestRate = loanInterestRate;
     loanProductAttributesDto.terms = [
       {
         months: loanTermsInMonths,
-        interestRate: loanInterestRate,
         paymentFactor: 1, // TODO: how to calculate this?
       },
     ];

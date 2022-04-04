@@ -3,6 +3,11 @@ import { CreateSystemProductionDto } from './req';
 
 export const SYSTEM_PRODUCTION = Symbol('SYSTEM_PRODUCTION').toString();
 
+export interface IPvWattProduction {
+  annualAverage: number[];
+  monthlyAverage: number[][];
+}
+
 export interface ISystemProduction extends Document {
   capacityKW: number;
   generationKWh: number;
@@ -11,7 +16,7 @@ export interface ISystemProduction extends Document {
   offsetPercentage: number;
   generationMonthlyKWh: number[];
   arrayGenerationKWh: number[];
-  hourlyProduction: string;
+  pvWattProduction: IPvWattProduction;
 }
 
 export const SystemProductionSchema = new Schema<ISystemProduction>({
@@ -22,7 +27,13 @@ export const SystemProductionSchema = new Schema<ISystemProduction>({
   offset_percentage: Number,
   generation_monthlyKWh: [Number],
   array_generationKWh: [Number],
-  hourly_production: String,
+  pv_watt_production: new Schema(
+    {
+      annual_average: [Number],
+      monthly_average: [[Number]],
+    },
+    { _id: false },
+  ),
 });
 
 export class SystemProductionModel {
@@ -42,7 +53,7 @@ export class SystemProductionModel {
 
   arrayGenerationKWh: number[];
 
-  hourlyProduction: string;
+  pvWattProduction: IPvWattProduction;
 
   constructor(systemProduction: CreateSystemProductionDto) {
     this.capacityKW = systemProduction.capacityKW;
@@ -52,7 +63,7 @@ export class SystemProductionModel {
     this.offsetPercentage = systemProduction.offsetPercentage;
     this.generationMonthlyKWh = systemProduction.generationMonthlyKWh;
     this.arrayGenerationKWh = systemProduction.arrayGenerationKWh;
-    this.hourlyProduction = systemProduction.hourlyProduction;
+    this.pvWattProduction = systemProduction.pvWattProduction;
   }
 
   setCapacityKW(data: number) {
@@ -83,7 +94,7 @@ export class SystemProductionModel {
     this.arrayGenerationKWh = data;
   }
 
-  setHourlyProduction(data: string) {
-    this.hourlyProduction = data;
+  setHourlyProduction(data: IPvWattProduction) {
+    this.pvWattProduction = data;
   }
 }

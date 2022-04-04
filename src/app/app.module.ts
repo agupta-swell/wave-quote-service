@@ -14,6 +14,7 @@ import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docu
 import { ECommerceModule } from 'src/e-commerces/e-commerce.module';
 import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
 import { EmailModule } from 'src/emails/email.module';
+import { EnergyProfileModule } from 'src/energy-profiles/energy-profile.module';
 import { ExternalServiceModule } from 'src/external-services/external-service.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
@@ -118,6 +119,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     SystemAttributeModule,
     UsageProfileModule,
     ElectricVehicleModule,
+    EnergyProfileModule,
   ],
 })
 export class AppModule {}

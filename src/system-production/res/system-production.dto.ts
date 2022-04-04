@@ -1,4 +1,13 @@
 import { ExposeMongoId, ExposeProp } from '../../shared/decorators';
+import { IPvWattProduction } from '../system-production.schema';
+
+export class PvWattProductionDto implements IPvWattProduction {
+  @ExposeProp()
+  annualAverage: number[];
+
+  @ExposeProp()
+  monthlyAverage: number[][];
+}
 
 export class SystemProductionDto {
   @ExposeMongoId({ eitherId: true })
@@ -27,4 +36,7 @@ export class SystemProductionDto {
 
   @ExposeProp()
   hourlyProduction: string;
+
+  @ExposeProp()
+  pvWattProduction: PvWattProductionDto;
 }
