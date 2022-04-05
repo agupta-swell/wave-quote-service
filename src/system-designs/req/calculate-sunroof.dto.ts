@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsLatitude, IsLongitude, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsLatitude, IsLongitude, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class CalculateSunroofDto {
   @ApiProperty()

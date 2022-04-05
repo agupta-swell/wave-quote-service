@@ -1,6 +1,11 @@
-interface ICoordinate {
+export interface ICoordinate {
   latitude: number;
   longitude: number;
+}
+
+export interface IBoundingBox {
+  sw: ICoordinate;
+  ne: ICoordinate;
 }
 
 interface IRoofSegmentStat {

@@ -31,11 +31,11 @@ import {
   CalculateSunroofDto,
   CreateSystemDesignDto,
   ExistingSolarDataDto,
+  GetBoundingBoxesReqDto,
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
-import { SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
-import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
+import { SystemDesignAncillaryMasterDto, SystemDesignDto, CalculateSunroofResDto, GetBoundingBoxesResDto } from './res';
 import { getTypicalProduction, ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
@@ -1051,19 +1051,6 @@ export class SystemDesignService {
     return counter;
   }
 
-  // convertIncrementAdder(increment: string): PRICING_UNIT {
-  //   switch (increment) {
-  //     case 'watt':
-  //       return PRICING_UNIT.PER_WATT;
-  //     case 'foot':
-  //       return COST_UNIT_TYPE.PER_FEET;
-  //     case 'each':
-  //       return COST_UNIT_TYPE.PER_EACH;
-  //     default:
-  //       return '' as any;
-  //   }
-  // }
-
   async handleUpdateExistingSolar(opportunityId: string, isRetrofit: boolean, existingSolarData: ExistingSolarDataDto) {
     if (typeof isRetrofit !== 'boolean') return;
 
@@ -1126,6 +1113,20 @@ export class SystemDesignService {
     const sunroofPitchAndAzimuth = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
 
     return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, sunroofPitchAndAzimuth));
+  }
+
+  public async getSunroofBoundingBoxes(req: GetBoundingBoxesReqDto): Promise<OperationResult<GetBoundingBoxesResDto>> {
+    const { latitude, longitude, opportunityId } = req;
+
+    const sunroofData = await this.getSunRoofData(latitude, longitude, opportunityId);
+
+    if (!sunroofData) {
+      return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, {}));
+    }
+
+    const boundingBoxes = sunroofData.solarPotential.roofSegmentStats.map(e => e.boundingBox);
+
+    return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, { boundingBoxes }));
   }
 
   public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
