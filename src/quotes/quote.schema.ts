@@ -420,7 +420,7 @@ export interface INote {
 export interface IDetailedQuoteSchema {
   systemProductionId: string;
   systemProduction: ISystemProductionSchema;
-  utilityProgram: IUtilityProgramSchema;
+  utilityProgram?: IUtilityProgramSchema;
   rebateProgram?: IRebateProgramSchema;
   quoteFinanceProduct: IQuoteFinanceProductSchema;
   savingsDetails: ISavingsDetailsSchema[];

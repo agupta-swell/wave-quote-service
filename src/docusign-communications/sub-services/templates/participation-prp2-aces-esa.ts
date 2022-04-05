@@ -13,7 +13,7 @@ import {
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
 export class ParticipationPRP2ACESEsaTemplate {
-  @TabValue<IGenericObject>(({ quote }) => quote.utilityProgram.utilityProgramName)
+  @TabValue<IGenericObject>(({ quote }) => quote.utilityProgram?.utilityProgramName ?? 'none')
   utilityProgramName: string;
 
   @TabValue<IGenericObject>(({ gsProgram }) => toWord(+(gsProgram?.termYears ?? 0)))
