@@ -222,42 +222,6 @@ export class GoogleSunroofService {
     return this.getRequest<IGetSolarInfoResult>(url, cacheKey!);
   }
 
-  // public async processTiffs(
-  //   lat: number,
-  //   lng: number,
-  //   opportunityId: string,
-  //   radiusMeters = 25
-  // ){
-  //   const filenameToTest = `${opportunityId}/sunroofSolarInfo.json`;
-
-  //   const { payload: solarInfo } = await this.getSolarInfo(
-  //     lat,
-  //     lng,
-  //     radiusMeters,
-  //     filenameToTest
-  //   );
-
-  //   const rgbTiff = await this.getRequest( solarInfo['rgbUrl'], `${opportunityId}/rgb.tiff`);
-  //   const rgbPng = await this.processPng( rgbTiff );
-
-  //   const maskTiff = await this.getRequest( solarInfo['maskUrl'], `${opportunityId}/mask.tiff`);
-  //   const [layer] = await getLayersFromBuffer( maskTiff.payload );
-  //   const maskPng = await this.processPng( maskTiff );
-  //   const maskLayer = chunk(layer, maskPng.width);
-
-  //   const annualFluxTiff = await this.getRequest( solarInfo['annualFluxUrl'], `${opportunityId}/annualFlux.tiff`);
-  //   const tiffKey = annualFluxTiff.s3Result.key;
-  //   const annualFluxPng = await this.processPng( annualFluxTiff );
-
-  //   const monthlyFluxTiff = await this.getRequest( solarInfo['monthlyFluxUrl'], `${opportunityId}/monthlyFluxUrl.tiff`);
-  //   const monthlyFluxPngs = await this.processMonthlyPng( monthlyFluxTiff );
-
-  //   monthlyFluxPngs.forEach( (monthlyPng, index) => {
-  //     const monthIndex = index < 10 ? `0${index}` : `${index}`;
-  //     this.processMaskedHeatmapPng( `heatmap.monthly${monthIndex}.maksed`, monthlyPng, tiffKey, maskLayer, rgbPng);
-  //   })
-  // }
-
   private async savePngToS3( pngKey, png ) {
     Readable.from(PNG.sync.write(png)).pipe(
       this.s3Service.putStream(
@@ -289,36 +253,10 @@ export class GoogleSunroofService {
 
   }
 
-  public async processPngs( tiffPayloadResponses ){
-    const maskTiffPayloadResponse = await tiffPayloadResponses.find((element) => element.dataLabel === 'mask');
-    const maskPng = await this.processPng( maskTiffPayloadResponse );
-    const [layer] = await getLayersFromBuffer( maskTiffPayloadResponse.payload );
-    const maskLayer = chunk(layer, maskPng.width);
-
-    const rgbTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'rgb');
-    const rgbPng = await this.processPng( rgbTiffPayloadResponse );
-
-    const annualFluxTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'annualFlux');
-    const tiffKey = annualFluxTiffPayloadResponse.s3Result.key;
-
-    const annualHeatmapPng = await this.processPng( annualFluxTiffPayloadResponse );
-    this.processMaskedHeatmapPng( 'heatmap.annual.masked', annualHeatmapPng, tiffKey, maskLayer, rgbPng );
-
-    const monthlyFluxTiffPayloadResponse = tiffPayloadResponses.find((element) => element.dataLabel === 'monthlyFlux');
-    const monthlyPngs = await this.processMonthlyPng( monthlyFluxTiffPayloadResponse );
-
-    monthlyPngs.forEach( (monthlyPng, index)  => {
-      const monthIndex = index < 10 ? `0${index}` : `${index}`;
-      this.processMaskedHeatmapPng( `heatmap.monthly${monthIndex}.masked`, monthlyPng, tiffKey, maskLayer, rgbPng );
-    })
-  }
-
-  private async processPng(tiffPayloadResponse: any){
+  public async processTiff(tiffPayloadResponse: any){
     const tiffKey = tiffPayloadResponse.s3Result.key;
     const tiffBuffer = tiffPayloadResponse.payload;
     const dataLabel = tiffPayloadResponse.dataLabel;
-
-    
 
     const annualLayers = await getLayersFromBuffer(tiffBuffer);
     let fileName = dataLabel === 'annualFlux' ? 'heatmap.annual' : dataLabel;
@@ -338,7 +276,6 @@ export class GoogleSunroofService {
         newPng = generateHeatmap(chunk(fluxLayer,annualLayers.width));
         break;
     }
-
     
     await this.savePngToS3( pngKey, newPng )
     
@@ -351,7 +288,7 @@ export class GoogleSunroofService {
     return newPng
   }
 
-  private async processMonthlyPng(tiffPayloadResponse: any){
+  public async processMonthlyTiff(tiffPayloadResponse: any){
     const tiffKey = tiffPayloadResponse.s3Result.key;
     const tiffBuffer = tiffPayloadResponse.payload;
     const dataLabel = tiffPayloadResponse.dataLabel;
@@ -377,10 +314,12 @@ export class GoogleSunroofService {
     return layerPngs
   }
 
-  private async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, tiffKey: string, maskLayer: number[][], rgbPng: PNG){
+  public async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, tiffKey: string, maskPng: PNG, maskTiffResponse: any, rgbPng: PNG){
+    const [layer] = await getLayersFromBuffer( maskTiffResponse.payload );
+    const maskLayer = chunk(layer, maskPng.width);
     const annualFluxMaskedPng = await applyMaskedOverlay( heatmapPng, maskLayer, rgbPng);
     const pngKey = makePngKey( tiffKey, filename );
-    
+
     await this.savePngToS3( pngKey, annualFluxMaskedPng )
     
     if (DEBUG) {

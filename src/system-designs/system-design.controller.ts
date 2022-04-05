@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
-import { Pagination, ServiceResponse } from 'src/app/common';
+import { OperationResult, Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
@@ -132,6 +132,7 @@ export class SystemDesignController {
 
   @Post('/calculate-sunroof')
   async calculateSunroof(@Body() req: CalculateSunroofDto): Promise<ServiceResponse<CalculateSunroofResDto>> {
+    console.log(req);
     const result = await this.systemDesignService.calculateSunroofData(req);
 
     return ServiceResponse.fromResult(result);
@@ -142,5 +143,12 @@ export class SystemDesignController {
     const result = await this.systemDesignService.getSunroofBoundingBoxes(req);
 
     return ServiceResponse.fromResult(result);
+  }
+
+  @Post('/generate-sunroof-pngs')
+  async genrateSunroofPngs(@Body() req: CalculateSunroofDto): Promise<ServiceResponse> {
+    await this.systemDesignService.generateSunroofPngs(req);
+
+    return ServiceResponse.fromResult(OperationResult.ok());
   }
 }
