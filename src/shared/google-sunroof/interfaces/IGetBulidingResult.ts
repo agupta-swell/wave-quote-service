@@ -1,14 +1,14 @@
-export interface ICoordinate {
+export interface ISunroofCoordinate {
   latitude: number;
   longitude: number;
 }
 
 export interface IBoundingBox {
-  sw: ICoordinate;
-  ne: ICoordinate;
+  sw: ISunroofCoordinate;
+  ne: ISunroofCoordinate;
 }
 
-interface IRoofSegmentStat {
+export interface IRoofSegmentStat {
   pitchDegrees: number;
   azimuthDegrees: number;
   stats: {
@@ -16,10 +16,10 @@ interface IRoofSegmentStat {
     sunshineQuantiles: number[];
     groundAreaMeters2: number;
   };
-  center: ICoordinate;
+  center: ISunroofCoordinate;
   boundingBox: {
-    sw: ICoordinate;
-    ne: ICoordinate;
+    sw: ISunroofCoordinate;
+    ne: ISunroofCoordinate;
   };
   planeHeightAtCenterMeters: number;
 }
@@ -61,7 +61,7 @@ interface IFinancialAnalyst {
 }
 
 interface ISolarPanel {
-  center: ICoordinate;
+  center: ISunroofCoordinate;
   orientation: 'LANDSCAPE' | 'PORTRAIT';
   yearlyEnergyDcKwh: number;
   segmentIndex: number;
@@ -70,7 +70,7 @@ interface ISolarPanel {
 // TODO fulfill type
 export interface IGetBuildingResult {
   name: string;
-  center: ICoordinate;
+  center: ISunroofCoordinate;
   imageryDate: {
     year: number;
     month: number;
@@ -106,8 +106,8 @@ export interface IGetBuildingResult {
   };
 
   boundingBox: {
-    sw: ICoordinate;
-    ne: ICoordinate;
+    sw: ISunroofCoordinate;
+    ne: ISunroofCoordinate;
   };
   imageryQuality: string;
   imageryProcessedDate: {

@@ -18,12 +18,17 @@ import {
   IGetBuildingResult,
   IGetRequestResultWithS3UploadResult,
   IGetSolarInfoResult,
+  IRoofSegmentStat,
 } from 'src/shared/google-sunroof/interfaces';
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
-import { calcCoordinatesDistance } from 'src/utils/calculate-coordinates';
+import {
+  calcCoordinatesDistance,
+  isCoordinatesInsideBoundByAtLeast,
+  ICoordinate,
+} from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
@@ -1100,7 +1105,7 @@ export class SystemDesignService {
   }
 
   public async calculateSunroofData(req: CalculateSunroofDto): Promise<OperationResult<CalculateSunroofResDto>> {
-    const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths } = req;
+    const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths, polygons } = req;
 
     const [sunroofData] = await Promise.all([
       this.getSunRoofData(latitude, longitude, opportunityId),
@@ -1110,7 +1115,13 @@ export class SystemDesignService {
     if (!sunroofData) {
       return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));
     }
-    const sunroofPitchAndAzimuth = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
+    const sunroofPitchAndAzimuth = this.getSunroofPitchAndAzimuth(
+      sunroofData,
+      centerLat,
+      centerLng,
+      sideAzimuths,
+      polygons,
+    );
 
     return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, sunroofPitchAndAzimuth));
   }
@@ -1206,6 +1217,7 @@ export class SystemDesignService {
     centerLat: number,
     centerLng: number,
     sideAzimuths: number[],
+    polygons: ICoordinate[],
   ): {
     sunroofPrimaryOrientationSide?: number;
     sunroofPitch?: number;
@@ -1215,25 +1227,48 @@ export class SystemDesignService {
       return {};
     }
 
-    const closestSegment = buildingData.solarPotential.roofSegmentStats
-      .map(e => {
-        const distance = calcCoordinatesDistance(
-          {
-            lat: centerLat,
-            lng: centerLng,
-          },
-          {
-            lat: e.center.latitude,
-            lng: e.center.longitude,
-          },
-        );
+    const segmentsContainPanel = buildingData.solarPotential.roofSegmentStats.filter(segment =>
+      isCoordinatesInsideBoundByAtLeast(polygons, {
+        ne: {
+          lat: segment.boundingBox.ne.latitude,
+          lng: segment.boundingBox.ne.longitude,
+        },
+        sw: {
+          lat: segment.boundingBox.sw.latitude,
+          lng: segment.boundingBox.sw.longitude,
+        },
+      }),
+    );
 
-        return {
-          ...e,
-          distance,
-        };
-      })
-      .sort((a, b) => a.distance - b.distance)[0];
+    let closestSegment: IRoofSegmentStat;
+
+    if (segmentsContainPanel.length === 1) {
+      const [segment] = segmentsContainPanel;
+
+      closestSegment = segment;
+    } else
+      closestSegment = (segmentsContainPanel.length
+        ? segmentsContainPanel
+        : buildingData.solarPotential.roofSegmentStats
+      )
+        .map(e => {
+          const distance = calcCoordinatesDistance(
+            {
+              lat: centerLat,
+              lng: centerLng,
+            },
+            {
+              lat: e.center.latitude,
+              lng: e.center.longitude,
+            },
+          );
+
+          return {
+            ...e,
+            distance,
+          };
+        })
+        .sort((a, b) => a.distance - b.distance)[0];
 
     if (!closestSegment.azimuthDegrees) {
       return {};
@@ -1251,30 +1286,5 @@ export class SystemDesignService {
       sunroofPitch: closestSegment.pitchDegrees,
       sunroofAzimuth: closestSegment.azimuthDegrees,
     };
-  }
-
-  private async setSunroofData(
-    systemDesignModel: SystemDesign,
-    panelArrayReq: {
-      centerLat: number;
-      centerLng: number;
-      sideAzimuths: number[];
-    }[],
-  ): Promise<void> {
-    const sunroofData = await this.getSunRoofData(
-      systemDesignModel.latitude,
-      systemDesignModel.longitude,
-      systemDesignModel.opportunityId,
-    );
-
-    if (!sunroofData) return;
-
-    systemDesignModel.roofTopDesignData.panelArray.forEach((e, idx) => {
-      const { centerLat, centerLng, sideAzimuths } = panelArrayReq[idx];
-
-      const sunroofRes = this.getSunroofPitchAndAzimuth(sunroofData, centerLat, centerLng, sideAzimuths);
-
-      assignToModel(systemDesignModel.roofTopDesignData.panelArray[idx], sunroofRes);
-    });
   }
 }
