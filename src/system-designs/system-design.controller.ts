@@ -146,8 +146,15 @@ export class SystemDesignController {
   }
 
   @Post('/generate-sunroof-pngs')
-  async genrateSunroofPngs(@Body() req: CalculateSunroofDto): Promise<ServiceResponse> {
+  async generateSunroofPngs(@Body() req: CalculateSunroofDto): Promise<ServiceResponse> {
     await this.systemDesignService.generateSunroofPngs(req);
+
+    return ServiceResponse.fromResult(OperationResult.ok());
+  }
+
+  @Post('/generate-array-pngs/:opportunityId')
+  async generateArrayPngs(@Param('opportunityId') opportunityId: string): Promise<ServiceResponse> {
+    await this.systemDesignService.generateArrayPngs(opportunityId);
 
     return ServiceResponse.fromResult(OperationResult.ok());
   }

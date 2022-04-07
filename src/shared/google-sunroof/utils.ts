@@ -4,7 +4,7 @@
 import type { PNG } from 'pngjs';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Color } from './sub-services/types';
+import type { Color, LatLng, LatLngPolygon, Vector2 } from './sub-services/types';
 
 import { Pixel, PixelPolygon } from './sub-services/types';
 import { magenta, fluxMin, fluxMax, fluxGradientStops } from './constants';
@@ -135,4 +135,81 @@ export const toArrayBuffer = ( buffer ) => {
     view[i] = buffer[i];
   }
   return arrayBuffer;
+}
+
+export const mapLatLngToVector2 = (
+  origin: LatLng,
+  location: LatLng,
+  pixelsPerMeter: number
+): Vector2 => {
+  const radiusOfEarthInMeters = 6371009;
+  const metersPerDegreeLatitude = (2 * Math.PI * radiusOfEarthInMeters) / 360;
+
+  const metersPerDegreeLongitude =
+      metersPerDegreeLatitude *
+      Math.cos((Math.abs(origin.lat) / 180) * Math.PI);
+  const degreesLatitude = location.lat - origin.lat;
+  const degreesLongitude = location.lng - origin.lng;
+  const x = degreesLongitude * metersPerDegreeLongitude * pixelsPerMeter;
+  const y = -degreesLatitude * metersPerDegreeLatitude * pixelsPerMeter;
+  return [Math.round(x), Math.round(y)];
+}
+
+export const mapLatLngPolygonToPixelPolygon = (
+  origin: LatLng,
+  latLngPolygon: LatLngPolygon,
+  pixelsPerMeter: number
+): PixelPolygon => {
+  return latLngPolygon.map((latLng) =>
+      mapLatLngToVector2(origin, latLng, pixelsPerMeter)
+  );
+}
+
+export const addVector2 = (v1: Vector2, v2: Vector2): Vector2 => {
+  return [v1[0] + v2[0], v1[1] + v2[1]];
+}
+
+export const translatePixelPolygon = (
+  pixelPolygon: PixelPolygon,
+  translation: Vector2
+): PixelPolygon => {
+  return pixelPolygon.map((pixel) => addVector2(pixel, translation));
+}
+
+export const drawLine = (
+  png: PNG,
+  pixel1: Pixel,
+  cornder2: Pixel,
+  color: Color = magenta
+) => {
+  const [x1, y1] = pixel1;
+  const [x2, y2] = cornder2;
+  const minX = Math.min(x1, x2);
+  const maxX = Math.max(x1, x2);
+  const rangeX = maxX - minX;
+  const minY = Math.min(y1, y2);
+  const maxY = Math.max(y1, y2);
+  const rangeY = maxY - minY;
+
+  if (rangeX > rangeY) {
+      for (let x = minX; x <= maxX; x++) {
+          const percent = (x - minX) / rangeX;
+          const y = x1 < x2 ? lerp(y1, y2, percent) : lerp(y2, y1, percent);
+          setPixelColor(png, [x, y], color);
+      }
+  } else {
+      for (let y = minY; y <= maxY; y++) {
+          const percent = (y - minY) / rangeY;
+          const x = y1 < y2 ? lerp(x1, x2, percent) : lerp(x2, x1, percent);
+          setPixelColor(png, [x, y], color);
+      }
+  }
+}
+
+export const drawPolygon = (png: PNG, polygon: PixelPolygon, color: Color = magenta) => {
+  for (let i = 0; i < polygon.length; i++) {
+      const a = i === 0 ? polygon[polygon.length - 1] : polygon[i - 1];
+      const b = polygon[i];
+      drawLine(png, a, b, color);
+  }
 }

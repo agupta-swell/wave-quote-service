@@ -8,7 +8,9 @@ import { chunk } from 'lodash';
 import { Injectable } from '@nestjs/common';
 import { Stream } from 'stream';
 import { S3Service } from '../aws/services/s3.service';
-import { generateHeatmap, generateMask, generateSatellite, generateMonthlyHeatmap, applyMaskedOverlay, getLayersFromBuffer } from './sub-services/file-generator.service';
+import { generateHeatmap, generateMask, generateSatellite, generateMonthlyHeatmap, applyMaskedOverlay, getLayersFromBuffer, generateArrayPng } from './sub-services/file-generator.service';
+import { LatLng, Pixel } from './sub-services/types';
+
 import { SUNROOF_API } from './constants';
 import {
   IGetBuildingResult,
@@ -16,7 +18,7 @@ import {
   IGetRequestResult,
   IGetRequestResultWithS3UploadResult,
 } from './interfaces';
-import { writePngToFile } from './utils';
+import { writePngToFile, mapLatLngToVector2, mapLatLngPolygonToPixelPolygon, drawLine, drawPolygon } from './utils';
 
 const DEBUG = !!process.env.DEBUG_SUNROOF;
 
@@ -329,6 +331,30 @@ export class GoogleSunroofService {
     }
 
     return true;
+  }
+
+  public processSolarArrays( systemDesign ): void {
+    // need to determine where / how to get these data
+    const height = 500;
+    const width = 500;
+    const pixelsPerMeter = 10;
+
+    const horizontalDrift = 0; // TODO: Possibly define this in the system design?
+    const verticalDrift = 0; // TODO: Possibly define this in the system design?
+
+    const { latitude, longitude } = systemDesign;
+    const { roof_top_design_data: { panel_array: arrays }} = systemDesign;
+
+    const origin: LatLng = { lat: latitude, lng: longitude };
+    const originPixel: Pixel = [
+        Math.round(height * 0.5) + horizontalDrift,
+        Math.round(width * 0.5) + verticalDrift,
+    ];
+
+    arrays.forEach((array, arrayIndex) => {
+      generateArrayPng(array, arrayIndex, origin, pixelsPerMeter, originPixel, height, width);
+    
+    });
   }
 
 }

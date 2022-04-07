@@ -5,8 +5,9 @@ import { chunk } from 'lodash';
 import { PNG } from 'pngjs';
 
 import type { Pixel, Color } from './types';
-import { setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor } from '../utils';
-import { magenta, black, white } from '../constants';
+import { setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor, 
+  mapLatLngToVector2, mapLatLngPolygonToPixelPolygon, drawLine, drawPolygon, translatePixelPolygon } from '../utils';
+import { magenta, black, white, blue } from '../constants';
 
 import type { ReadRasterResult } from './geotiff';
 
@@ -116,6 +117,27 @@ export function generateSatellite( layers: ReadRasterResult ) : PNG {
   }
 
   return newPng;
+}
+
+export async function generateArrayPng( array, arrayIndex, origin, pixelsPerMeter, originPixel, height, width ) {
+  const { bound_polygon: arrayPolygon, panels } = array;
+  console.log(`...drawing ${panels.length} panels on array ${arrayIndex}`);
+
+  const polygon = new PNG({
+    height: height,
+    width: width,
+  });
+  
+  panels.forEach( (panel) => {
+    let pixels = mapLatLngPolygonToPixelPolygon(
+      origin,
+      panel,
+      pixelsPerMeter
+    );
+
+    pixels = translatePixelPolygon(pixels, originPixel);
+    drawPolygon(polygon, pixels, blue);
+  })  
 }
 
 export async function applyMaskedOverlay(heatMapPng: PNG, maskLayer: number[][], rgbPng: PNG) : Promise<PNG> {
