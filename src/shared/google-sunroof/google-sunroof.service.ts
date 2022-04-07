@@ -342,7 +342,7 @@ export class GoogleSunroofService {
     const horizontalDrift = 0; // TODO: Possibly define this in the system design?
     const verticalDrift = 0; // TODO: Possibly define this in the system design?
 
-    const { latitude, longitude } = systemDesign;
+    const { latitude, longitude, opportunity_id, _id } = systemDesign;
     const { roof_top_design_data: { panel_array: arrays }} = systemDesign;
 
     const origin: LatLng = { lat: latitude, lng: longitude };
@@ -351,9 +351,16 @@ export class GoogleSunroofService {
         Math.round(width * 0.5) + verticalDrift,
     ];
 
-    arrays.forEach((array, arrayIndex) => {
-      generateArrayPng(array, arrayIndex, origin, pixelsPerMeter, originPixel, height, width);
-    
+    const fileNamePrefix = `${opportunity_id}/png/${_id.$oid}/`;
+
+    arrays.forEach(async (array, arrayIndex) => {
+      const arrayPng = await generateArrayPng(array, arrayIndex, origin, pixelsPerMeter, originPixel, height, width);
+      await this.savePngToS3( `${fileNamePrefix}array_${arrayIndex}.png`, arrayPng )
+
+      if (DEBUG) {
+        const pngFilename = path.join(__dirname, 'png', `Array_${arrayIndex}.png`);
+        await writePngToFile( arrayPng, pngFilename );
+      }
     });
   }
 

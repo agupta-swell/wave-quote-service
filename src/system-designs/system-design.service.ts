@@ -1310,12 +1310,18 @@ export class SystemDesignService {
       .filter((e): e is LeanDocument<IUnknownProduct> => !!e);
   }
 
-  public async generateArrayPngs( opportunityId: string ): Promise<void> {
-    console.log(`called w id: ${opportunityId}`);
+  // change this to use the systemDesignId
+  public async generateArrayPngs( systemDesignId ): Promise<void> {
+    console.log(`called w id: ${systemDesignId}`);
 
     // get data
-    // const systemDesigns = await this.getAllSystemDesigns(1,0,opportunityId);
-    const systemDesigns = [{
+    // const systemDesignTest = await this.getDetails(systemDesignId);
+    // console.log(systemDesignTest);
+ 
+    const systemDesign = {
+      "_id": {
+        "$oid": "623b549eb11beeedd39c953c"
+      },
       "latitude": 32.74699691076029,
       "longitude": -117.22388741626176,
       "opportunity_id": "FW2NQB7oJeMHBKpen",
@@ -1507,12 +1513,10 @@ export class SystemDesignService {
           }
         ]
       }
-    }];
+    };
     
-    systemDesigns.forEach((systemDesign) => {
-      console.log( systemDesign.roof_top_design_data.panel_array )
-    
-      this.googleSunroofService.processSolarArrays( systemDesign );
-    });
+    console.log( systemDesign.roof_top_design_data.panel_array );
+
+    this.googleSunroofService.processSolarArrays( systemDesign );
   }
 }

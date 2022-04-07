@@ -152,9 +152,10 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(OperationResult.ok());
   }
 
-  @Post('/generate-array-pngs/:opportunityId')
-  async generateArrayPngs(@Param('opportunityId') opportunityId: string): Promise<ServiceResponse> {
-    await this.systemDesignService.generateArrayPngs(opportunityId);
+  // change this to capture the systemDesignId
+  @Post('/generate-array-pngs/:systemDesignId')
+  async generateArrayPngs(@Param('systemDesignId') systemDesignId): Promise<ServiceResponse> {
+    await this.systemDesignService.generateArrayPngs(systemDesignId);
 
     return ServiceResponse.fromResult(OperationResult.ok());
   }

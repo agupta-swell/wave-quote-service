@@ -7,7 +7,7 @@ import { PNG } from 'pngjs';
 import type { Pixel, Color } from './types';
 import { setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor, 
   mapLatLngToVector2, mapLatLngPolygonToPixelPolygon, drawLine, drawPolygon, translatePixelPolygon } from '../utils';
-import { magenta, black, white, blue } from '../constants';
+import { magenta, black, white, blue, red } from '../constants';
 
 import type { ReadRasterResult } from './geotiff';
 
@@ -119,11 +119,11 @@ export function generateSatellite( layers: ReadRasterResult ) : PNG {
   return newPng;
 }
 
-export async function generateArrayPng( array, arrayIndex, origin, pixelsPerMeter, originPixel, height, width ) {
+export async function generateArrayPng( array, arrayIndex, origin, pixelsPerMeter, originPixel, height, width ): Promise<PNG> {
   const { bound_polygon: arrayPolygon, panels } = array;
   console.log(`...drawing ${panels.length} panels on array ${arrayIndex}`);
 
-  const polygon = new PNG({
+  const polygonPng = new PNG({
     height: height,
     width: width,
   });
@@ -136,8 +136,18 @@ export async function generateArrayPng( array, arrayIndex, origin, pixelsPerMete
     );
 
     pixels = translatePixelPolygon(pixels, originPixel);
-    drawPolygon(polygon, pixels, blue);
-  })  
+    drawPolygon(polygonPng, pixels, blue);
+  })
+  
+  let pixels = mapLatLngPolygonToPixelPolygon(
+    origin,
+    arrayPolygon,
+    pixelsPerMeter
+  );
+  pixels = translatePixelPolygon(pixels,originPixel);
+  drawPolygon(polygonPng,pixels,red);
+
+  return polygonPng;
 }
 
 export async function applyMaskedOverlay(heatMapPng: PNG, maskLayer: number[][], rgbPng: PNG) : Promise<PNG> {
