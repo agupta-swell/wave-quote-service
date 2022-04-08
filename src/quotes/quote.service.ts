@@ -287,12 +287,14 @@ export class QuoteService {
       foundQuote.detailedQuote.quoteCostBuildup.storageQuoteDetails.length &&
       foundSystemDesign.roofTopDesignData.storage.length
     ) {
-      gsPrograms = await this.gsProgramsService.getList(
-        100,
-        0,
-        foundQuote.detailedQuote.utilityProgram.utilityProgramId,
-        systemDesignId,
-      );
+      gsPrograms = foundQuote.detailedQuote.utilityProgram?.utilityProgramId
+        ? await this.gsProgramsService.getList(
+            100,
+            0,
+            foundQuote.detailedQuote.utilityProgram.utilityProgramId,
+            systemDesignId,
+          )
+        : [];
     }
 
     if (foundQuote.systemDesignId !== systemDesignId) {

@@ -1,6 +1,13 @@
-interface ICoordinate {
+export interface ICoordinate {
   lat: number;
   lng: number;
+}
+
+const toRad = (Value: number) => (Value * Math.PI) / 180;
+
+export interface ILatLngBound {
+  sw: ICoordinate;
+  ne: ICoordinate;
 }
 
 export const EARTH_R = 6371;
@@ -22,4 +29,44 @@ export const calcCoordinatesDistance = (c1: ICoordinate, c2: ICoordinate): numbe
   return d;
 };
 
-const toRad = (Value: number) => (Value * Math.PI) / 180;
+export const isCoordinateInsideBound = (coord: ICoordinate, bound: ILatLngBound): boolean => {
+  const {
+    ne: { lat: neLat, lng: neLng },
+    sw: { lat: swLat, lng: swLng },
+  } = bound;
+
+  const { lat: pLat, lng: pLng } = coord;
+
+  return swLat <= pLat && pLat <= neLat && swLng <= pLng && pLng <= neLng;
+};
+
+/**
+ *
+ * @param coords
+ * @param bound
+ * @param miniumMatch
+ * @returns
+ */
+export const isCoordinatesInsideBoundByAtLeast = (
+  coords: ICoordinate[],
+  bound: ILatLngBound,
+  miniumMatch = -1,
+): boolean => {
+  if (miniumMatch === 0) return true;
+
+  if (miniumMatch === -1 || miniumMatch >= coords.length) {
+    return coords.every(coord => isCoordinateInsideBound(coord, bound));
+  }
+
+  let isMatch = true;
+  let i = 0;
+
+  while (i < miniumMatch && isMatch) {
+    const coord = coords[i];
+    isMatch = isCoordinateInsideBound(coord, bound);
+    // eslint-disable-next-line no-plusplus
+    i++;
+  }
+
+  return isMatch;
+};

@@ -249,7 +249,7 @@ export class ContractService {
 
       await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
         $set: {
-          utilityProgramId: quoteDetail.utilityProgram.utilityProgramId,
+          utilityProgramId: quoteDetail.utilityProgram?.utilityProgramId,
           rebateProgramId: quoteDetail.rebateProgram?._id,
         },
       });

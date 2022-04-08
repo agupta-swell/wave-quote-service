@@ -5,9 +5,16 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
-import { CalculateSunroofDto, CreateSystemDesignDto, UpdateAncillaryMasterDtoReq, UpdateSystemDesignDto } from './req';
+import {
+  CalculateSunroofDto,
+  CreateSystemDesignDto,
+  GetBoundingBoxesReqDto,
+  UpdateAncillaryMasterDtoReq,
+  UpdateSystemDesignDto,
+} from './req';
 import {
   AnciallaryMasterRes,
+  GetBoundingBoxesResDto,
   SystemDesignAncillaryMasterDto,
   SystemDesignAncillaryMasterListRes,
   SystemDesignDto,
@@ -123,6 +130,13 @@ export class SystemDesignController {
   @Post('/calculate-sunroof')
   async calculateSunroof(@Body() req: CalculateSunroofDto): Promise<ServiceResponse<CalculateSunroofResDto>> {
     const result = await this.systemDesignService.calculateSunroofData(req);
+
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Get('/bounding-boxes')
+  async getBoundingBoxes(@Query() req: GetBoundingBoxesReqDto): Promise<ServiceResponse<GetBoundingBoxesResDto>> {
+    const result = await this.systemDesignService.getSunroofBoundingBoxes(req);
 
     return ServiceResponse.fromResult(result);
   }

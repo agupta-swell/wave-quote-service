@@ -234,16 +234,6 @@ export class ECommerceService {
     utilityDataInst.actualUsage = utilityDataInst.actualUsage || {};
     utilityDataInst.actualUsage.monthlyUsage = actualMonthlyUsage;
 
-    const actualCostDataInst = (
-      await this.utilityService.calculateActualUsageCost({
-        masterTariffId: utilityTariffDataInst?.tariffDetails[0].masterTariffId || '',
-        zipCode,
-        utilityData: utilityDataInst as any, // TODO: fix type
-      })
-    ).data?.computedCost;
-
-    costDataInst.actualUsageCost = actualCostDataInst || undefined;
-
     return {
       annualUsage,
       typicalAnnualCost,
@@ -536,20 +526,20 @@ export class ECommerceService {
       );
 
       return totalCost;
-    } else {
-      const retrofitLookup = foundECommerceConfig.retrofitStoragePrices?.find(
-        p => p.batteryCount === numberOfBatteries,
-      );
-
-      if (!retrofitLookup) {
-        const subject = `E Commerce Config does not have retrofit storage price ${numberOfBatteries}`;
-        const body = `E Commerce Config does not have retrofit storage price ${numberOfBatteries}`;
-        await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
-        throw ApplicationException.EntityNotFound('E Commerce Config');
-      }
-
-      return retrofitLookup.cost;
     }
+    
+    const retrofitLookup = foundECommerceConfig.retrofitStoragePrices?.find(
+      p => p.batteryCount === numberOfBatteries,
+    );
+
+    if (!retrofitLookup) {
+      const subject = `E Commerce Config does not have retrofit storage price ${numberOfBatteries}`;
+      const body = `E Commerce Config does not have retrofit storage price ${numberOfBatteries}`;
+      await this.emailService.sendMail(process.env.SUPPORT_MAIL ?? '', body, subject);
+      throw ApplicationException.EntityNotFound('E Commerce Config');
+    }
+
+    return retrofitLookup.cost;
   }
 
   private getNetGeneration(lat: number, long: number, systemCapacityKW: number) {

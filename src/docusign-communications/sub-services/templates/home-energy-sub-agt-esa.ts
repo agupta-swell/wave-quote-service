@@ -34,7 +34,7 @@ export class HomeEnergySubAgtESATemplate {
     result['TEL_1'] = contact.primaryPhone === 'HomePhone' ? contact.businessPhone! : contact.cellPhone;
     result['TEL_2'] = coOwner?.phoneNumber || '';
 
-    result.GRID_PROG = quote.utilityProgram.utilityProgramName;
+    result.GRID_PROG = quote.utilityProgram?.utilityProgramName ?? 'none';
     result.ES_QUANTITY = quote.quoteCostBuildup.storageQuoteDetails
       .map(({ quantity, storageModelDataSnapshot }) => `${quantity},${storageModelDataSnapshot.name}`)
       .join(', ');
