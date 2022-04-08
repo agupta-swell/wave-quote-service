@@ -3,6 +3,7 @@ import * as https from 'https';
 import * as qs from 'qs';
 import * as path from 'path';
 import { Readable } from 'stream';
+import { LeanDocument } from 'mongoose';
 import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
 import { Injectable } from '@nestjs/common';
@@ -11,6 +12,7 @@ import { S3Service } from '../aws/services/s3.service';
 import { generateHeatmap, generateMask, generateSatellite, generateMonthlyHeatmap, applyMaskedOverlay, getLayersFromBuffer, generateArrayPng } from './sub-services/file-generator.service';
 import { LatLng, Pixel } from './sub-services/types';
 
+import { SystemDesign } from '../../system-designs/system-design.schema';
 import { SUNROOF_API } from './constants';
 import {
   IGetBuildingResult,
@@ -188,7 +190,7 @@ export class GoogleSunroofService {
     return this.s3Service.hasFile(this.GOOGLE_SUNROOF_BUCKET, filePath);
   }
 
-  public async getS3File<T>(filePath: string): Promise<T> {
+  public async getS3FileAsJson<T>(filePath: string): Promise<T> {
     const chunks: Buffer[] = [];
 
     const stream = this.s3Service.getObjectAsReadable(this.GOOGLE_SUNROOF_BUCKET, filePath);
@@ -200,6 +202,20 @@ export class GoogleSunroofService {
     const payloadStr = Buffer.concat(chunks).toString('utf-8');
 
     return JSON.parse(payloadStr);
+  }
+
+  public async getS3FileAsBuffer<T>(filePath: string): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+
+    const stream = this.s3Service.getObjectAsReadable(this.GOOGLE_SUNROOF_BUCKET, filePath);
+
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    const payload = Buffer.concat(chunks);
+
+    return payload;
   }
 
   public getSolarInfo(lat: number, long: number, radiusMeters: number): Promise<IGetRequestResult<IGetSolarInfoResult>>;
@@ -333,35 +349,31 @@ export class GoogleSunroofService {
     return true;
   }
 
-  public processSolarArrays( systemDesign ): void {
+  public async processSolarArrays( systemDesign: LeanDocument<SystemDesign> ): Promise<void> {
+    const annualFluxTiffFilePath = `${systemDesign.opportunityId}/tiff/annualFlux.tiff`;
+    const annualFluxTiff = await this.getS3FileAsBuffer(annualFluxTiffFilePath);
+    const tiffLayers = await getLayersFromBuffer( annualFluxTiff );
+
     // need to determine where / how to get these data
-    const height = 500;
-    const width = 500;
+    const { height, width } = tiffLayers;
     const pixelsPerMeter = 10;
 
-    const horizontalDrift = 0; // TODO: Possibly define this in the system design?
-    const verticalDrift = 0; // TODO: Possibly define this in the system design?
-
-    const { latitude, longitude, opportunity_id, _id } = systemDesign;
-    const { roof_top_design_data: { panel_array: arrays }} = systemDesign;
+    const { latitude, longitude, opportunityId } = systemDesign;
+    const { roofTopDesignData: { panelArray: arrays }} = systemDesign;
 
     const origin: LatLng = { lat: latitude, lng: longitude };
-    const originPixel: Pixel = [
-        Math.round(height * 0.5) + horizontalDrift,
-        Math.round(width * 0.5) + verticalDrift,
-    ];
+    const fileNamePrefix = `${opportunityId}/png/`;
 
-    const fileNamePrefix = `${opportunity_id}/png/${_id.$oid}/`;
+    const arrayPng = await generateArrayPng(arrays, origin, pixelsPerMeter, height, width);
 
-    arrays.forEach(async (array, arrayIndex) => {
-      const arrayPng = await generateArrayPng(array, arrayIndex, origin, pixelsPerMeter, originPixel, height, width);
-      await this.savePngToS3( `${fileNamePrefix}array_${arrayIndex}.png`, arrayPng )
+    await this.savePngToS3( `${fileNamePrefix}array_overlay.png`, arrayPng );
 
-      if (DEBUG) {
-        const pngFilename = path.join(__dirname, 'png', `Array_${arrayIndex}.png`);
-        await writePngToFile( arrayPng, pngFilename );
-      }
-    });
+    if (DEBUG) {
+      const pngFilename = path.join(__dirname, 'png', `array_overlay.png`);
+      await writePngToFile( arrayPng, pngFilename );
+    }
+
+    // placeholder for production calculation WAV-1700
   }
 
 }

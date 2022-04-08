@@ -13,13 +13,15 @@ export type LatLng = {
 export type LatLngPolygon = LatLng[]
 export type Panel = [LatLng, LatLng, LatLng, LatLng]
 
+export type PanelArray = {
+  bound_polygon: LatLngPolygon,
+  panels: Panel[],
+}
+
 export type SystemDesign = {
   latitude: number,
   longitude: number,
   roof_top_design_data: {
-    panel_array: {
-      bound_polygon: LatLngPolygon,
-      panels: Panel[],
-    }[],
+    panel_array: PanelArray[],
   },
 }

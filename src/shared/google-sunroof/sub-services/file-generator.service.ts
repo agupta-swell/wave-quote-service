@@ -4,12 +4,14 @@ import { fromArrayBuffer } from 'geotiff';
 import { chunk } from 'lodash';
 import { PNG } from 'pngjs';
 
-import type { Pixel, Color } from './types';
+import type { Pixel, Color, PanelArray, LatLng } from './types';
 import { setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor, 
   mapLatLngToVector2, mapLatLngPolygonToPixelPolygon, drawLine, drawPolygon, translatePixelPolygon } from '../utils';
 import { magenta, black, white, blue, red } from '../constants';
 
 import type { ReadRasterResult } from './geotiff';
+
+import { ISolarPanelArraySchema } from 'src/system-designs/system-design.schema';
 
 export async function generateMonthlyHeatmap( monthlyLayers: ReadRasterResult ): Promise<Array<PNG>> {
   return monthlyLayers
@@ -119,34 +121,37 @@ export function generateSatellite( layers: ReadRasterResult ) : PNG {
   return newPng;
 }
 
-export async function generateArrayPng( array, arrayIndex, origin, pixelsPerMeter, originPixel, height, width ): Promise<PNG> {
-  const { bound_polygon: arrayPolygon, panels } = array;
-  console.log(`...drawing ${panels.length} panels on array ${arrayIndex}`);
-
+export async function generateArrayPng( arrays: ISolarPanelArraySchema[], origin: LatLng, pixelsPerMeter: number, height: number, width:number ): Promise<PNG> {
+  
   const polygonPng = new PNG({
     height: height,
     width: width,
   });
   
-  panels.forEach( (panel) => {
+  const originPixel: Pixel = [ Math.round(height / 2), Math.round(width / 2) ];
+  
+  arrays.map( async (array) => {
+    const { boundPolygon: arrayPolygon, panels } = array;
+    panels.forEach( (panel) => {
+      let pixels = mapLatLngPolygonToPixelPolygon(
+        origin,
+        panel,
+        pixelsPerMeter
+      );
+  
+      pixels = translatePixelPolygon(pixels, originPixel);
+      drawPolygon(polygonPng, pixels, blue);
+    })
+    
     let pixels = mapLatLngPolygonToPixelPolygon(
       origin,
-      panel,
+      arrayPolygon,
       pixelsPerMeter
     );
-
-    pixels = translatePixelPolygon(pixels, originPixel);
-    drawPolygon(polygonPng, pixels, blue);
+    pixels = translatePixelPolygon(pixels,originPixel);
+    drawPolygon(polygonPng,pixels,red);
   })
   
-  let pixels = mapLatLngPolygonToPixelPolygon(
-    origin,
-    arrayPolygon,
-    pixelsPerMeter
-  );
-  pixels = translatePixelPolygon(pixels,originPixel);
-  drawPolygon(polygonPng,pixels,red);
-
   return polygonPng;
 }
 

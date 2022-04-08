@@ -1116,7 +1116,7 @@ export class SystemDesignService {
         return data.payload;
       }
 
-      const found = await this.googleSunroofService.getS3File<IGetBuildingResult>(fileName);
+      const found = await this.googleSunroofService.getS3FileAsJson<IGetBuildingResult>(fileName);
       return found;
     } catch (_) {
       return undefined;
@@ -1192,7 +1192,7 @@ export class SystemDesignService {
         return solarInfo;
       }
 
-      return await this.googleSunroofService.getS3File<IGetSolarInfoResult>(solarInfoFilename);
+      return await this.googleSunroofService.getS3FileAsJson<IGetSolarInfoResult>(solarInfoFilename);
     } catch (_) {
       return undefined;
     }
@@ -1310,212 +1310,16 @@ export class SystemDesignService {
       .filter((e): e is LeanDocument<IUnknownProduct> => !!e);
   }
 
-  // change this to use the systemDesignId
-  public async generateArrayPngs( systemDesignId ): Promise<void> {
-    console.log(`called w id: ${systemDesignId}`);
+  public async generateArrayPngs( systemDesignId: ObjectId ): Promise<void> {
+    console.log(`called w/ id: ${systemDesignId}`);
 
-    // get data
-    // const systemDesignTest = await this.getDetails(systemDesignId);
-    // console.log(systemDesignTest);
- 
-    const systemDesign = {
-      "_id": {
-        "$oid": "623b549eb11beeedd39c953c"
-      },
-      "latitude": 32.74699691076029,
-      "longitude": -117.22388741626176,
-      "opportunity_id": "FW2NQB7oJeMHBKpen",
-      "roof_top_design_data": {
-        "panel_array": [
-          {
-            "panels": [
-              [
-                {
-                  "lat": 32.74697500158812,
-                  "lng": -117.22390860800613
-                },
-                {
-                  "lat": 32.74697536961087,
-                  "lng": -117.22389761324229
-                },
-                {
-                  "lat": 32.74699046476598,
-                  "lng": -117.2238983275169
-                },
-                {
-                  "lat": 32.74699009674321,
-                  "lng": -117.22390932228072
-                }
-              ],
-              [
-                {
-                  "lat": 32.74697536961087,
-                  "lng": -117.22389761324229
-                },
-                {
-                  "lat": 32.74697573763364,
-                  "lng": -117.2238866184784
-                },
-                {
-                  "lat": 32.74699083278874,
-                  "lng": -117.22388733275302
-                },
-                {
-                  "lat": 32.74699046476598,
-                  "lng": -117.2238983275169
-                }
-              ],
-              [
-                {
-                  "lat": 32.74697573763364,
-                  "lng": -117.2238866184784
-                },
-                {
-                  "lat": 32.746976105656394,
-                  "lng": -117.22387562371448
-                },
-                {
-                  "lat": 32.746991200811486,
-                  "lng": -117.2238763379891
-                },
-                {
-                  "lat": 32.74699083278874,
-                  "lng": -117.22388733275302
-                }
-              ],
-              [
-                {
-                  "lat": 32.746990096743225,
-                  "lng": -117.22390932227886
-                },
-                {
-                  "lat": 32.746990464765986,
-                  "lng": -117.22389832751314
-                },
-                {
-                  "lat": 32.747005559921085,
-                  "lng": -117.22389904178787
-                },
-                {
-                  "lat": 32.747005191898324,
-                  "lng": -117.22391003655359
-                }
-              ],
-              [
-                {
-                  "lat": 32.746990464765986,
-                  "lng": -117.22389832751314
-                },
-                {
-                  "lat": 32.74699083278875,
-                  "lng": -117.22388733274741
-                },
-                {
-                  "lat": 32.74700592794385,
-                  "lng": -117.22388804702213
-                },
-                {
-                  "lat": 32.747005559921085,
-                  "lng": -117.22389904178787
-                }
-              ],
-              [
-                {
-                  "lat": 32.74699083278875,
-                  "lng": -117.22388733274741
-                },
-                {
-                  "lat": 32.7469912008115,
-                  "lng": -117.22387633798161
-                },
-                {
-                  "lat": 32.74700629596659,
-                  "lng": -117.22387705225634
-                },
-                {
-                  "lat": 32.74700592794385,
-                  "lng": -117.22388804702213
-                }
-              ],
-              [
-                {
-                  "lat": 32.7469912008115,
-                  "lng": -117.22387633798161
-                },
-                {
-                  "lat": 32.746991568834254,
-                  "lng": -117.22386534321576
-                },
-                {
-                  "lat": 32.74700666398935,
-                  "lng": -117.22386605749051
-                },
-                {
-                  "lat": 32.74700629596659,
-                  "lng": -117.22387705225634
-                }
-              ]
-            ],
-            "use_sunroof": true,
-            "array_id": {
-              "$oid": "623b549cb11bee87c79c953a"
-            },
-            "bound_polygon": [
-              {
-                "lat": 32.747016932037255,
-                "lng": -117.22391021503839
-              },
-              {
-                "lat": 32.746974633565365,
-                "lng": -117.22391960276994
-              },
-              {
-                "lat": 32.746974633565365,
-                "lng": -117.22386528803739
-              },
-              {
-                "lat": 32.7470191879552,
-                "lng": -117.22385522975358
-              }
-            ],
-            "setbacks_polygon": [],
-            "primary_orientation_side": 3,
-            "azimuth": 100.75096427085558,
-            "panel_model_id": "623412b80117d202660b3cb7",
-            "number_of_panels": 7,
-            "setbacks": null,
-            "panel_orientation": "Portrait",
-            "pitch": 23,
-            "row_spacing": 0,
-            "losses": 14,
-            "sunroof_azimuth": 177.72096,
-            "sunroof_pitch": 23.794548,
-            "sunroof_primary_orientation_side": 2,
-            "panel_model_data_snapshot": {
-              "part_numbers": [],
-              "name": "Q.PEAK DUO ML-G9+ 395",
-              "cost": 250,
-              "type": "MODULE",
-              "dimensions": {
-                "width": 3.38,
-                "length": 6.03
-              },
-              "ratings": {
-                "watts": 395
-              },
-              "manufacturer_id": {
-                "$oid": "57f8297906133c3e40d5e703"
-              }
-            },
-            "panel_model_snapshot_date": {
-              "$date": "2022-03-23T17:10:53.020Z"
-            }
-          }
-        ]
-      }
-    };
+    const systemDesign = await this.getOneById(systemDesignId);
     
-    console.log( systemDesign.roof_top_design_data.panel_array );
+    if (!systemDesign) {
+      throw new Error(`System Design not found with id ${systemDesignId}`)
+    }
+
+    console.log( systemDesign.roofTopDesignData.panelArray );
 
     this.googleSunroofService.processSolarArrays( systemDesign );
   }

@@ -132,7 +132,6 @@ export class SystemDesignController {
 
   @Post('/calculate-sunroof')
   async calculateSunroof(@Body() req: CalculateSunroofDto): Promise<ServiceResponse<CalculateSunroofResDto>> {
-    console.log(req);
     const result = await this.systemDesignService.calculateSunroofData(req);
 
     return ServiceResponse.fromResult(result);
@@ -152,11 +151,15 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(OperationResult.ok());
   }
 
-  // change this to capture the systemDesignId
   @Post('/generate-array-pngs/:systemDesignId')
-  async generateArrayPngs(@Param('systemDesignId') systemDesignId): Promise<ServiceResponse> {
+  @ApiParam({
+    name: 'systemDesignId',
+    type: String,
+  })
+  async generateArrayPngs(
+    @Param('systemDesignId', ParseObjectIdPipe) systemDesignId: ObjectId
+  ): Promise<ServiceResponse> {
     await this.systemDesignService.generateArrayPngs(systemDesignId);
-
     return ServiceResponse.fromResult(OperationResult.ok());
   }
 }
