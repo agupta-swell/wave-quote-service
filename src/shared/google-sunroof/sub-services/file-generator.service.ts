@@ -1,6 +1,6 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-console */
-import { fromArrayBuffer } from 'geotiff';
+import { fromArrayBuffer } from 'geotiff'; /* TODO TEMP */ import type { GeoTIFF } from './types'; type ReadRasterResult = GeoTIFF.ReadRasterResult;
 import { chunk } from 'lodash';
 import { PNG } from 'pngjs';
 
@@ -8,8 +8,6 @@ import type { Pixel, Color, PanelArray, LatLng } from './types';
 import { setPixelColor, toArrayBuffer, getPixelColor, lerpColor, getHeatmapColor, 
   mapLatLngToVector2, mapLatLngPolygonToPixelPolygon, drawLine, drawPolygon, translatePixelPolygon } from '../utils';
 import { magenta, black, white, blue, red } from '../constants';
-
-import type { ReadRasterResult } from './geotiff';
 
 import { ISolarPanelArraySchema } from 'src/system-designs/system-design.schema';
 
