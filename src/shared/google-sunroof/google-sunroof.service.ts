@@ -22,7 +22,7 @@ import {
 } from './interfaces';
 import { writePngToFile, mapLatLngToVector2, mapLatLngPolygonToPixelPolygon, drawLine, drawPolygon } from './utils';
 
-const DEBUG = !!process.env.DEBUG_SUNROOF;
+const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.DEBUG_SUNROOF?.toLowerCase() || 'false');
 
 @Injectable()
 export class GoogleSunroofService {
