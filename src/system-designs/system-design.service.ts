@@ -1091,9 +1091,9 @@ export class SystemDesignService {
 
   public async generateSunroofPngs(req: CalculateSunroofDto): Promise<void> {
     const { latitude, longitude, opportunityId } = req;
-    const sunroofPngs = this.getSunroofPngs( latitude, longitude, opportunityId );
+    const sunroofPngs = await this.getSunroofPngs( latitude, longitude, opportunityId );
 
-    console.log( sunroofPngs );
+    console.log(sunroofPngs);
   }
 
   public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
