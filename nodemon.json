@@ -1,11 +1,18 @@
 {
   "restartable": "rs",
-  "ignore": [".git", "node_modules/**/node_modules", "__test__/*"],
+  "ignore": [
+    ".git/**/*",
+    "node_modules/**/*",
+    "src/shared/google-sunroof/debug/**/*"
+  ],
   "verbose": true,
   "execMap": {
     "ts": "node -r ts-node/register -r tsconfig-paths/register -r dotenv/config"
   },
-  "watch": ["src/", ".env"],
+  "watch": [
+    ".env",
+    "src/**/*"
+  ],
   "env": {
     "NODE_ENV": "development",
     "DOTENV_CONFIG_PATH": "./.env"
