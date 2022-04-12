@@ -1,4 +1,4 @@
-export { DOCUSIGN_TAB_TYPE } from './constants';
+export { DOCUSIGN_TAB_TYPE, DOCUSIGN_ROUTE } from './constants';
 export { IDynamicRawTab } from './interfaces/IRawTab';
 
 export * from './decorators';

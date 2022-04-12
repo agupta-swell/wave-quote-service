@@ -25,3 +25,5 @@ export const KEYS = {
   DEFAULT_TAB_STRATEGY: Symbol.for('kDocusign/template/tabStrategy'),
   PAGE_NUMBER_FORMATTER: Symbol.for('kDocusign/pageNumberFormatter'),
 };
+
+export const DOCUSIGN_ROUTE = Symbol.for('kDocusign/routeMapper');

@@ -1,8 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/ban-types
-export const contextRoutes: Array<[Function, any]> = [];
+import { UseRouteMapper } from 'src/shared/route-mapper';
+import { DOCUSIGN_ROUTE } from '../constants';
 
-export const UseDocusignContext = (): MethodDecorator => (target, __, desc) => {
-  if (desc.value) {
-    contextRoutes.push([target.constructor, desc.value]);
-  }
-};
+export const UseDocusignContext = (): MethodDecorator => UseRouteMapper(DOCUSIGN_ROUTE);
