@@ -4,7 +4,7 @@ export const SUNROOF_API = {
   HOST: 'https://earthenginesolar.googleapis.com',
   VERSION: 'v1',
   BUILDINGS_FIND_CLOSEST: 'buildings:findClosest',
-  SOLAR_INFO_GET: 'solarInfo:get'
+  SOLAR_INFO_GET: 'solarInfo:get',
 };
 
 export const red: Color = [255, 0, 0]

@@ -1146,48 +1146,36 @@ export class SystemDesignService {
         const rgbUrl = solarInfo.rgbUrl;
         const rgbFilename = `${opportunityId}/tiff/rgb.tiff`;
         const rgbTiffResponse = await this.googleSunroofService.getRequest(rgbUrl, rgbFilename);
-        const rgbPng = await this.googleSunroofService.processTiff(rgbTiffResponse);
+        const rgbPng = await this.googleSunroofService.processTiff(rgbTiffResponse, opportunityId);
 
         const maskUrl = solarInfo.maskUrl;
         const maskFilename = `${opportunityId}/tiff/mask.tiff`;
         const maskTiffResponse = await this.googleSunroofService.getRequest(maskUrl, maskFilename);
-        const maskPng = await this.googleSunroofService.processTiff(maskTiffResponse);
+        const maskPng = await this.googleSunroofService.processTiff(maskTiffResponse, opportunityId);
 
         const annualFluxUrl = solarInfo.annualFluxUrl;
         const annualFluxFilename = `${opportunityId}/tiff/annualFlux.tiff`;
         const annualFluxTiffResponse = await this.googleSunroofService.getRequest(annualFluxUrl, annualFluxFilename);
-        const annualFluxPng = await this.googleSunroofService.processTiff(annualFluxTiffResponse);
-        const tiffKey = annualFluxTiffResponse.s3Result.Key;
+        const annualFluxPng = await this.googleSunroofService.processTiff(annualFluxTiffResponse, opportunityId);
 
-        await this.googleSunroofService.processMaskedHeatmapPng( 'heatmap.annual.masked', annualFluxPng, tiffKey, maskPng, maskTiffResponse, rgbPng );
+        await this.googleSunroofService.processMaskedHeatmapPng( 'heatmap.masked.annual', annualFluxPng, opportunityId, maskPng, maskTiffResponse, rgbPng );
 
         const monthlyFluxUrl = solarInfo.monthlyFluxUrl;
         const monthlyFluxFilename = `${opportunityId}/tiff/monthlyFlux.tiff`;
         const monthlyFluxTiffResponse = await this.googleSunroofService.getRequest(monthlyFluxUrl, monthlyFluxFilename);
-        const monthlyPngs = await this.googleSunroofService.processMonthlyTiff(monthlyFluxTiffResponse);
+        const monthlyPngs = await this.googleSunroofService.processMonthlyTiff(monthlyFluxTiffResponse, opportunityId);
 
         await Promise.all( monthlyPngs.map( async (monthlyPng, index)  => { 
           const monthIndex = index < 10 ? `0${index}` : `${index}`;
           await this.googleSunroofService.processMaskedHeatmapPng( 
-            `heatmap.monthly${monthIndex}.masked`, 
+            `heatmap.masked.month${monthIndex}`,
             monthlyPng, 
-            tiffKey, 
+            opportunityId,
             maskPng,
             maskTiffResponse, 
             rgbPng 
           );
         }));
-
-
-        // solarInfo.hourlyShadeUrls.forEach((url, index) => {
-        //   const fileName = `${opportunityId}/tiff/hourlyMonth${index}.tiff`;
-        //   const promise = this.googleSunroofService.getRequest(url, fileName);
-        //   promises.push(promise);
-        // });
-
-        // const tiffPayloadResponses = await Promise.all(promises);
-
-        // this.googleSunroofService.processTiff( tiffPayloadResponses );
 
         return solarInfo;
       }

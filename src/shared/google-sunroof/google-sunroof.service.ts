@@ -23,6 +23,7 @@ import {
 import { writePngToFile, mapLatLngToVector2, mapLatLngPolygonToPixelPolygon, drawLine, drawPolygon } from './utils';
 
 const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.DEBUG_SUNROOF?.toLowerCase() || 'false');
+const DEBUG_FOLDER = path.join(__dirname, 'debug')
 
 @Injectable()
 export class GoogleSunroofService {
@@ -213,9 +214,7 @@ export class GoogleSunroofService {
       chunks.push(chunk);
     }
 
-    const payload = Buffer.concat(chunks);
-
-    return payload;
+    return Buffer.concat(chunks);
   }
 
   public getSolarInfo(lat: number, long: number, radiusMeters: number): Promise<IGetRequestResult<IGetSolarInfoResult>>;
@@ -271,78 +270,80 @@ export class GoogleSunroofService {
 
   }
 
-  public async processTiff(tiffPayloadResponse: any){
-    const tiffKey = tiffPayloadResponse.s3Result.key;
+  public async processTiff(tiffPayloadResponse: any, opportunityId: string){
     const tiffBuffer = tiffPayloadResponse.payload;
     const dataLabel = tiffPayloadResponse.dataLabel;
 
     const annualLayers = await getLayersFromBuffer(tiffBuffer);
-    let fileName = dataLabel === 'annualFlux' ? 'heatmap.annual' : dataLabel;
-    const pngKey = makePngKey( tiffKey, fileName );
 
-    let newPng = new PNG;
+    let newPng;
+    let filename;
 
     switch (dataLabel) {
       case 'mask':
+        filename = 'rootop.mask';
         newPng = generateMask(annualLayers);
         break;
       case 'rgb':
+        filename = 'satellite';
         newPng = generateSatellite(annualLayers);
         break;
-      default:
+      case 'annualFlux':
+        filename = 'heatmap.annual';
         const [fluxLayer] = annualLayers;
         newPng = generateHeatmap(chunk(fluxLayer,annualLayers.width));
         break;
+      default:
+        throw new Error(`unknown data label: ${dataLabel}`)
     }
-    
+
+    const pngKey = makePngKey(opportunityId, filename);
     await this.savePngToS3( pngKey, newPng )
     
     if (DEBUG) {
       console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-      const pngFilename = path.join(__dirname, 'png', `${fileName}.png`);
-      await writePngToFile( newPng, pngFilename );
+      const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
+      await writePngToFile(newPng, pngFilename);
     }
 
     return newPng
   }
 
-  public async processMonthlyTiff(tiffPayloadResponse: any){
-    const tiffKey = tiffPayloadResponse.s3Result.key;
+  public async processMonthlyTiff(tiffPayloadResponse: any, opportunityId: string){
     const tiffBuffer = tiffPayloadResponse.payload;
     const dataLabel = tiffPayloadResponse.dataLabel;
 
     const layers = await getLayersFromBuffer(tiffBuffer);
     const layerPngs = await generateMonthlyHeatmap( layers )
-    
-    let fileNamePrefix = 'heatmap.monthly';
 
     await Promise.all(layerPngs.map(async (layerPng, layerPngIndex) => {
-      const monthIndex = layerPngIndex < 10 ? `0${layerPngIndex}` : `${layerPngIndex}`;
-      const pngKey = makePngKey( tiffKey, `${fileNamePrefix}${monthIndex}` );
-      
+      const paddedMonthIndex = layerPngIndex < 10 ? `0${layerPngIndex}` : layerPngIndex;
+      const filename = `heatmap.month${paddedMonthIndex}`
+
+      const pngKey = makePngKey(opportunityId, filename);
       await this.savePngToS3( pngKey, layerPng )
       
       if (DEBUG) {
         console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-        const pngFilename = path.join(__dirname, 'png', `${fileNamePrefix}${monthIndex}.png`);
-        await writePngToFile( layerPng, pngFilename );
+        const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
+        await writePngToFile(layerPng, pngFilename);
       }
     }))
 
     return layerPngs
   }
 
-  public async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, tiffKey: string, maskPng: PNG, maskTiffResponse: any, rgbPng: PNG){
+  public async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, opportunityId: string, maskPng: PNG, maskTiffResponse: any, rgbPng: PNG){
     const [layer] = await getLayersFromBuffer( maskTiffResponse.payload );
     const maskLayer = chunk(layer, maskPng.width);
     const annualFluxMaskedPng = await applyMaskedOverlay( heatmapPng, maskLayer, rgbPng);
-    const pngKey = makePngKey( tiffKey, filename );
+    const pngKey = makePngKey( opportunityId, filename );
 
     await this.savePngToS3( pngKey, annualFluxMaskedPng )
     
     if (DEBUG) {
       console.log( `filename: ${filename} || pngKey: ${pngKey}`);
-      const pngFilename = path.join(__dirname, 'png', `${filename}.png`);
+      const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
       await writePngToFile( annualFluxMaskedPng, pngFilename );
     }
 
@@ -362,15 +363,16 @@ export class GoogleSunroofService {
     const { roofTopDesignData: { panelArray: arrays }} = systemDesign;
 
     const origin: LatLng = { lat: latitude, lng: longitude };
-    const fileNamePrefix = `${opportunityId}/png/`;
+    const filenamePrefix = `${opportunityId}/`;
+    const filename = 'array_overlay'
 
-    const arrayPng = await generateArrayPng(arrays, origin, pixelsPerMeter, height, width);
+    const arrayPng = await generateArrayPng(arrays,  origin, pixelsPerMeter, height, width);
 
-    await this.savePngToS3( `${fileNamePrefix}array_overlay.png`, arrayPng );
+    await this.savePngToS3( `${filenamePrefix}${filename}.png`, arrayPng );
 
     if (DEBUG) {
-      const pngFilename = path.join(__dirname, 'png', `array_overlay.png`);
-      await writePngToFile( arrayPng, pngFilename );
+      const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
+      await writePngToFile(arrayPng, pngFilename);
     }
 
     // placeholder for production calculation WAV-1700
@@ -378,7 +380,6 @@ export class GoogleSunroofService {
 
 }
 
-function makePngKey ( tiffKey: string, pngFilename: string ) : string {
-  const prefix = tiffKey.slice( 0, tiffKey.lastIndexOf('/') )
-  return `${prefix}/png/${pngFilename}.png`
+function makePngKey ( opportunityId: string, pngFilename: string ) : string {
+  return `${opportunityId}/png/${pngFilename}.png`
 }
