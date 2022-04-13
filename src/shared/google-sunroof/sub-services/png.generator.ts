@@ -14,10 +14,8 @@ import {
   lerpColor,
   mapLatLngPolygonToPixelPolygon,
   setPixelColor,
-  toArrayBuffer,
   translatePixelPolygon,
 } from '../utils';
-import { fromArrayBuffer } from 'geotiff'
 
 // TODO generate PNGs on another thread? e.g. require('worker_threads')
 export class PngGenerator {
@@ -194,11 +192,4 @@ export class PngGenerator {
 
     return maskedPng;
   }
-}
-
-// TODO bleh
-export async function getLayersFromBuffer( tiffBuffer: Buffer ) : Promise<ReadRasterResult> {
-  const tiffArrayBuffer = toArrayBuffer( tiffBuffer );
-  const tiff = await fromArrayBuffer(tiffArrayBuffer);
-  return await tiff.readRasters() as ReadRasterResult;
 }

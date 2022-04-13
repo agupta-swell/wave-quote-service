@@ -1,13 +1,5 @@
 import type { Color } from './sub-services/types'
 
-// TODO delete this; moved into google-sunroof.gateway.service
-export const SUNROOF_API = {
-  HOST: 'https://earthenginesolar.googleapis.com',
-  VERSION: 'v1',
-  BUILDINGS_FIND_CLOSEST: 'buildings:findClosest',
-  SOLAR_INFO_GET: 'solarInfo:get',
-};
-
 export const red: Color = [255, 0, 0]
 export const green: Color = [0, 255, 0]
 export const blue: Color = [0, 0, 255]

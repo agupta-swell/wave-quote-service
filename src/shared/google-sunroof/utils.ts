@@ -129,15 +129,6 @@ export const getPanelPixels = (polygon: PixelPolygon) => {
   return panelPixels;
 };
 
-export const toArrayBuffer = ( buffer ) => {
-  const arrayBuffer = new ArrayBuffer( buffer.length );
-  const view = new Uint8Array( arrayBuffer );
-  for ( let i = 0; i < buffer.length; ++i ){
-    view[i] = buffer[i];
-  }
-  return arrayBuffer;
-}
-
 export const mapLatLngToVector2 = (
   origin: LatLng,
   location: LatLng,

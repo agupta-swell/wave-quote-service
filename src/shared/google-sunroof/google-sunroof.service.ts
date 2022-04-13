@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax */
+import * as geotiff from 'geotiff'; /* TODO TEMP */ import type { GeoTIFF } from './sub-services/types'; type ReadRasterResult = GeoTIFF.ReadRasterResult;
 import * as https from 'https';
 // TODO is `qs` used by any other file? remove dep
 import * as qs from 'qs';
@@ -9,7 +10,7 @@ import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
 import { Injectable } from '@nestjs/common';
 import { S3Service } from '../aws/services/s3.service';
-import { PngGenerator, getLayersFromBuffer } from './sub-services';
+import { PngGenerator } from './sub-services';
 import { LatLng } from './sub-services/types';
 
 import { SystemDesign } from '../../system-designs/system-design.schema';
@@ -184,9 +185,6 @@ export class GoogleSunroofService {
   }
 
   private async savePngToS3(pngKey: string, png: PNG) {
-//  TODO which of these is best?
-//  png.pipe(
-//  png.pack().pipe(
     Readable.from(PNG.sync.write(png)).pipe(
       this.s3Service.putStream(
         pngKey,
@@ -221,7 +219,7 @@ export class GoogleSunroofService {
     const dataLabel = tiffPayloadResponse.dataLabel;
 
     // TODO don't call this here
-    const annualLayers = await getLayersFromBuffer(tiffBuffer);
+    const annualLayers = await readRastersFromTiffBuffer(tiffBuffer);
 
     let newPng;
     let filename;
@@ -260,7 +258,7 @@ export class GoogleSunroofService {
     const tiffBuffer = tiffPayloadResponse.payload;
     const dataLabel = tiffPayloadResponse.dataLabel;
 
-    const layers = await getLayersFromBuffer(tiffBuffer);
+    const layers = await readRastersFromTiffBuffer(tiffBuffer);
     const layerPngs = PngGenerator.generateMonthlyHeatmap(layers)
 
     await Promise.all(layerPngs.map(async (layerPng, layerPngIndex) => {
@@ -281,7 +279,7 @@ export class GoogleSunroofService {
   }
 
   public async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, opportunityId: string, maskPng: PNG, maskTiffResponse: any, rgbPng: PNG){
-    const [layer] = await getLayersFromBuffer( maskTiffResponse.payload );
+    const [layer] = await readRastersFromTiffBuffer( maskTiffResponse.payload );
     const maskLayer = chunk(layer, maskPng.width);
     const annualFluxMaskedPng = await PngGenerator.applyMaskedOverlay( heatmapPng, maskLayer, rgbPng);
     const pngKey = makePngKey( opportunityId, filename );
@@ -350,7 +348,7 @@ export class GoogleSunroofService {
   public async generateOverlayPng (systemDesign: SystemDesign) : Promise<void> {
     const annualFluxTiffFilePath = `${systemDesign.opportunityId}/tiff/annualFlux.tiff`;
     const annualFluxTiff = await this.getS3FileAsBuffer(annualFluxTiffFilePath);
-    const tiffLayers = await getLayersFromBuffer( annualFluxTiff );
+    const tiffLayers = await readRastersFromTiffBuffer( annualFluxTiff );
 
     const { height, width } = tiffLayers;
     const pixelsPerMeter = 10;
@@ -375,6 +373,14 @@ export class GoogleSunroofService {
   }
 }
 
-function makePngKey ( opportunityId: string, pngFilename: string ) : string {
+function makePngKey (opportunityId: string, pngFilename: string) : string {
   return `${opportunityId}/png/${pngFilename}.png`
+}
+
+
+async function readRastersFromTiffBuffer (buffer: Buffer) : Promise<ReadRasterResult> {
+  // TODO A future release of `geotiff` will hopefully support `fromBuffer(...)`
+  const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+  const tiff = await geotiff.fromArrayBuffer(arrayBuffer);
+  return await tiff.readRasters() as ReadRasterResult;
 }
