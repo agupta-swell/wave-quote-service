@@ -5,7 +5,6 @@ import * as qs from 'qs';
 import * as path from 'path';
 import { Readable, Stream } from 'stream'
 
-import { LeanDocument } from 'mongoose';
 import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
 import { Injectable } from '@nestjs/common';
@@ -297,12 +296,61 @@ export class GoogleSunroofService {
     return true;
   }
 
-  public async processSolarArrays( systemDesign: LeanDocument<SystemDesign> ): Promise<void> {
+  public async generateHeatmapPngs (systemDesign: SystemDesign) : Promise<void> {
+    const { latitude, longitude, opportunityId } = systemDesign
+
+    // TODO TEMP hardcode radius meters for now
+    // TODO TEMP this should be calculated from the arrays
+    const radiusMeters = 25
+
+    const solarInfo = await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters)
+    await this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_S3_BUCKET,
+      `${opportunityId}/solarInfo.json`,
+      JSON.stringify(solarInfo, null, 2),
+      'application/json; charset=utf-8',
+    )
+
+    const rgbUrl = solarInfo.rgbUrl;
+    const rgbFilename = `${opportunityId}/tiff/rgb.tiff`;
+    const rgbTiffResponse = await this.getRequest(rgbUrl, rgbFilename);
+    const rgbPng = await this.processTiff(rgbTiffResponse, opportunityId);
+
+    const maskUrl = solarInfo.maskUrl;
+    const maskFilename = `${opportunityId}/tiff/mask.tiff`;
+    const maskTiffResponse = await this.getRequest(maskUrl, maskFilename);
+    const maskPng = await this.processTiff(maskTiffResponse, opportunityId);
+
+    const annualFluxUrl = solarInfo.annualFluxUrl;
+    const annualFluxFilename = `${opportunityId}/tiff/annualFlux.tiff`;
+    const annualFluxTiffResponse = await this.getRequest(annualFluxUrl, annualFluxFilename);
+    const annualFluxPng = await this.processTiff(annualFluxTiffResponse, opportunityId);
+
+    await this.processMaskedHeatmapPng( 'heatmap.masked.annual', annualFluxPng, opportunityId, maskPng, maskTiffResponse, rgbPng );
+
+    const monthlyFluxUrl = solarInfo.monthlyFluxUrl;
+    const monthlyFluxFilename = `${opportunityId}/tiff/monthlyFlux.tiff`;
+    const monthlyFluxTiffResponse = await this.getRequest(monthlyFluxUrl, monthlyFluxFilename);
+    const monthlyPngs = await this.processMonthlyTiff(monthlyFluxTiffResponse, opportunityId);
+
+    await Promise.all( monthlyPngs.map( async (monthlyPng, index)  => {
+      const monthIndex = index < 10 ? `0${index}` : `${index}`;
+      await this.processMaskedHeatmapPng(
+        `heatmap.masked.month${monthIndex}`,
+        monthlyPng,
+        opportunityId,
+        maskPng,
+        maskTiffResponse,
+        rgbPng
+      );
+    }));
+  }
+
+  public async generateOverlayPng (systemDesign: SystemDesign) : Promise<void> {
     const annualFluxTiffFilePath = `${systemDesign.opportunityId}/tiff/annualFlux.tiff`;
     const annualFluxTiff = await this.getS3FileAsBuffer(annualFluxTiffFilePath);
     const tiffLayers = await getLayersFromBuffer( annualFluxTiff );
 
-    // need to determine where / how to get these data
     const { height, width } = tiffLayers;
     const pixelsPerMeter = 10;
 
@@ -311,7 +359,7 @@ export class GoogleSunroofService {
 
     const origin: LatLng = { lat: latitude, lng: longitude };
     const filenamePrefix = `${opportunityId}/`;
-    const filename = 'array_overlay'
+    const filename = 'array.overlay'
 
     const arrayPng = await generateArrayPng(arrays,  origin, pixelsPerMeter, height, width);
 
@@ -323,15 +371,6 @@ export class GoogleSunroofService {
     }
 
     // placeholder for production calculation WAV-1700
-  }
-
-  // TODO this wrapper/pass-through should not be necessary
-  public async getSolarInfo (
-    latitude: number,
-    longitude: number,
-    radiusMeters: number
-  ): Promise<GoogleSunroof.SolarInfo> {
-    return await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters)
   }
 }
 
