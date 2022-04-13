@@ -9,7 +9,7 @@ import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
 import { Injectable } from '@nestjs/common';
 import { S3Service } from '../aws/services/s3.service';
-import { generateHeatmap, generateMask, generateSatellite, generateMonthlyHeatmap, applyMaskedOverlay, getLayersFromBuffer, generateArrayPng } from './sub-services/file-generator.service';
+import { PngGenerator, getLayersFromBuffer } from './sub-services';
 import { LatLng } from './sub-services/types';
 
 import { SystemDesign } from '../../system-designs/system-design.schema';
@@ -17,7 +17,7 @@ import {
   IGetRequestResultWithS3UploadResult,
 } from './interfaces';
 
-import { writePngToFile } from './utils';
+import { writePngToFile } from './utils'
 
 import type { GoogleSunroof } from './sub-services/types'
 import { GoogleSunroofGateway } from './sub-services'
@@ -220,6 +220,7 @@ export class GoogleSunroofService {
     const tiffBuffer = tiffPayloadResponse.payload;
     const dataLabel = tiffPayloadResponse.dataLabel;
 
+    // TODO don't call this here
     const annualLayers = await getLayersFromBuffer(tiffBuffer);
 
     let newPng;
@@ -228,16 +229,16 @@ export class GoogleSunroofService {
     switch (dataLabel) {
       case 'mask':
         filename = 'rootop.mask';
-        newPng = generateMask(annualLayers);
+        newPng = PngGenerator.generateMask(annualLayers);
         break;
       case 'rgb':
         filename = 'satellite';
-        newPng = generateSatellite(annualLayers);
+        newPng = PngGenerator.generateSatellite(annualLayers);
         break;
       case 'annualFlux':
         filename = 'heatmap.annual';
         const [fluxLayer] = annualLayers;
-        newPng = generateHeatmap(chunk(fluxLayer,annualLayers.width));
+        newPng = PngGenerator.generateHeatmap(chunk(fluxLayer, annualLayers.width));
         break;
       default:
         throw new Error(`unknown data label: ${dataLabel}`)
@@ -260,7 +261,7 @@ export class GoogleSunroofService {
     const dataLabel = tiffPayloadResponse.dataLabel;
 
     const layers = await getLayersFromBuffer(tiffBuffer);
-    const layerPngs = await generateMonthlyHeatmap( layers )
+    const layerPngs = PngGenerator.generateMonthlyHeatmap(layers)
 
     await Promise.all(layerPngs.map(async (layerPng, layerPngIndex) => {
       const paddedMonthIndex = layerPngIndex < 10 ? `0${layerPngIndex}` : layerPngIndex;
@@ -282,7 +283,7 @@ export class GoogleSunroofService {
   public async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, opportunityId: string, maskPng: PNG, maskTiffResponse: any, rgbPng: PNG){
     const [layer] = await getLayersFromBuffer( maskTiffResponse.payload );
     const maskLayer = chunk(layer, maskPng.width);
-    const annualFluxMaskedPng = await applyMaskedOverlay( heatmapPng, maskLayer, rgbPng);
+    const annualFluxMaskedPng = await PngGenerator.applyMaskedOverlay( heatmapPng, maskLayer, rgbPng);
     const pngKey = makePngKey( opportunityId, filename );
 
     await this.savePngToS3( pngKey, annualFluxMaskedPng )
@@ -361,7 +362,7 @@ export class GoogleSunroofService {
     const filenamePrefix = `${opportunityId}/`;
     const filename = 'array.overlay'
 
-    const arrayPng = await generateArrayPng(arrays,  origin, pixelsPerMeter, height, width);
+    const arrayPng = await PngGenerator.generateArrayPng(arrays,  origin, pixelsPerMeter, height, width);
 
     await this.savePngToS3( `${filenamePrefix}${filename}.png`, arrayPng );
 

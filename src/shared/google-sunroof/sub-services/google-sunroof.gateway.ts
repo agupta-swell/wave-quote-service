@@ -4,11 +4,6 @@ import { Injectable } from '@nestjs/common'
 
 import type { GoogleSunroof } from './types'
 
-export const SUNROOF_API = {
-  BUILDINGS_FIND_CLOSEST: 'buildings:findClosest',
-  SOLAR_INFO_GET: 'solarInfo:get',
-};
-
 const GOOGLE_SUNROOF_BASE_URL = 'https://earthenginesolar.googleapis.com/v1'
 const BUILDINGS_FIND_CLOSEST = 'buildings:findClosest'
 const SOLAR_INFO_GET = 'solarInfo:get'
