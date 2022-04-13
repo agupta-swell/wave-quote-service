@@ -26,6 +26,40 @@ export type SystemDesign = {
   },
 }
 
+export namespace GoogleSunroof {
+  // Helpers
+  export interface LatitudeAndLongitude {
+    latitude: number;
+    longitude: number;
+  }
+  export interface BoundingBox {
+    sw: LatitudeAndLongitude;
+    ne: LatitudeAndLongitude;
+  }
+
+  // Note: Google Sunroof returns many more fields than are listed here.
+  //       Only fields that are used by Wave are enumerated here.
+  export interface Building {
+    solarPotential: {
+      roofSegmentStats: {
+        pitchDegrees: number
+        azimuthDegrees: number;
+        center: LatitudeAndLongitude;
+        boundingBox: BoundingBox;
+      }[]
+    }
+  }
+
+  // Note: Google Sunroof returns many more fields than are listed here.
+  //       Only fields that are used by Wave are enumerated here.
+  export interface SolarInfo {
+    rgbUrl: string;
+    maskUrl: string;
+    annualFluxUrl: string;
+    monthlyFluxUrl: string;
+  }
+}
+
 /*
  * TODO Temp
  *

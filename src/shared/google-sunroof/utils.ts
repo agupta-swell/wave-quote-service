@@ -40,6 +40,7 @@ export const setPixelColor = (png: PNG, pixel: Pixel, color: Color = magenta): v
   png.data[pixelOffset + 3] = alpha;
 };
 
+// TODO
 export const getHeatmapColor = (fluxValue: number): Color => {
   const fluxRange = fluxMax - fluxMin;
   const percentage = (fluxValue - fluxMin) / fluxRange;

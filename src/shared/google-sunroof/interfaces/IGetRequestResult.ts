@@ -1,3 +1,5 @@
+// TODO delete this file
+
 import { ManagedUpload } from 'aws-sdk/clients/s3';
 
 export interface IGetRequestResult<T> {

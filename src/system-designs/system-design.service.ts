@@ -15,12 +15,6 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
-import {
-  IGetBuildingResult,
-  IGetRequestResultWithS3UploadResult,
-  IGetSolarInfoResult,
-  IRoofSegmentStat,
-} from 'src/shared/google-sunroof/interfaces';
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -51,11 +45,11 @@ import {
   SYSTEM_DESIGN,
 } from './system-design.schema';
 
+import { GoogleSunroof } from '../shared/google-sunroof/sub-services/types'
+
 @Injectable()
 export class SystemDesignService {
   private SYSTEM_DESIGN_S3_BUCKET = process.env.AWS_S3_BUCKET as string;
-
-  private ARRAY_HOURLY_PRODUCTION_BUCKET = process.env.AWS_S3_ARRAY_HOURLY_PRODUCTION as string;
 
   constructor(
     // @ts-ignore
@@ -1004,11 +998,11 @@ export class SystemDesignService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    const counter = await this.systemDesignModel.countDocuments({ opportunityId }).lean();
-    return counter;
+    return await this.systemDesignModel.countDocuments({ opportunityId }).lean();
   }
 
   async handleUpdateExistingSolar(opportunityId: string, isRetrofit: boolean, existingSolarData: ExistingSolarDataDto) {
+    // TODO doesn't typescript guarantee that this is a boolean?
     if (typeof isRetrofit !== 'boolean') return;
 
     if (isRetrofit) {
@@ -1089,105 +1083,32 @@ export class SystemDesignService {
     return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, { boundingBoxes }));
   }
 
-  public async generateSunroofPngs(req: CalculateSunroofDto): Promise<void> {
-    const { latitude, longitude, opportunityId } = req;
-    const sunroofPngs = await this.getSunroofPngs( latitude, longitude, opportunityId );
-
-    console.log(sunroofPngs);
-  }
-
   public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
     return this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
   }
 
+  // TODO this belongs in GoogleSunroofService, i think
   private async getSunRoofData(
     lat: number,
     lng: number,
     opportunityId: string,
-  ): Promise<IGetBuildingResult | undefined> {
+  ): Promise<GoogleSunroof.Building | undefined> {
     try {
+      // TODO fix caching with optimistic read
       const fileName = `${opportunityId}/closestBuilding.json`;
-
       const existed = await this.googleSunroofService.hasS3File(fileName);
-
       if (!existed) {
-        const data = await this.googleSunroofService.getBuilding(lat, lng, fileName);
-
-        return data.payload;
+        return await this.googleSunroofService.getBuilding(lat, lng, fileName);
       }
-
-      const found = await this.googleSunroofService.getS3FileAsJson<IGetBuildingResult>(fileName);
-      return found;
+      return await this.googleSunroofService.getS3FileAsJson<GoogleSunroof.Building>(fileName);
     } catch (_) {
       return undefined;
     }
   }
 
-  private async getSunroofPngs(
-    lat: number,
-    lng: number,
-    opportunityId: string,
-    radiusMeters = 25,
-  ): Promise<IGetSolarInfoResult | undefined> {
-    try {
-      const solarInfoFilename = `${opportunityId}/sunroofSolarInfo.json`;
-      
-      // const existed = await this.googleSunroofService.hasS3File(solarInfoFilename);
-      const existed = false;
-      
-      if (!existed) {
-        const { payload: solarInfo } = await this.googleSunroofService.getSolarInfo(
-          lat,
-          lng,
-          radiusMeters,
-          solarInfoFilename,
-        );
-
-        const rgbUrl = solarInfo.rgbUrl;
-        const rgbFilename = `${opportunityId}/tiff/rgb.tiff`;
-        const rgbTiffResponse = await this.googleSunroofService.getRequest(rgbUrl, rgbFilename);
-        const rgbPng = await this.googleSunroofService.processTiff(rgbTiffResponse, opportunityId);
-
-        const maskUrl = solarInfo.maskUrl;
-        const maskFilename = `${opportunityId}/tiff/mask.tiff`;
-        const maskTiffResponse = await this.googleSunroofService.getRequest(maskUrl, maskFilename);
-        const maskPng = await this.googleSunroofService.processTiff(maskTiffResponse, opportunityId);
-
-        const annualFluxUrl = solarInfo.annualFluxUrl;
-        const annualFluxFilename = `${opportunityId}/tiff/annualFlux.tiff`;
-        const annualFluxTiffResponse = await this.googleSunroofService.getRequest(annualFluxUrl, annualFluxFilename);
-        const annualFluxPng = await this.googleSunroofService.processTiff(annualFluxTiffResponse, opportunityId);
-
-        await this.googleSunroofService.processMaskedHeatmapPng( 'heatmap.masked.annual', annualFluxPng, opportunityId, maskPng, maskTiffResponse, rgbPng );
-
-        const monthlyFluxUrl = solarInfo.monthlyFluxUrl;
-        const monthlyFluxFilename = `${opportunityId}/tiff/monthlyFlux.tiff`;
-        const monthlyFluxTiffResponse = await this.googleSunroofService.getRequest(monthlyFluxUrl, monthlyFluxFilename);
-        const monthlyPngs = await this.googleSunroofService.processMonthlyTiff(monthlyFluxTiffResponse, opportunityId);
-
-        await Promise.all( monthlyPngs.map( async (monthlyPng, index)  => { 
-          const monthIndex = index < 10 ? `0${index}` : `${index}`;
-          await this.googleSunroofService.processMaskedHeatmapPng( 
-            `heatmap.masked.month${monthIndex}`,
-            monthlyPng, 
-            opportunityId,
-            maskPng,
-            maskTiffResponse, 
-            rgbPng 
-          );
-        }));
-
-        return solarInfo;
-      }
-
-      return await this.googleSunroofService.getS3FileAsJson<IGetSolarInfoResult>(solarInfoFilename);
-    } catch (_) {
-      return undefined;
-    }
-  }
-
+  // TODO this belongs in GoogleSunroofService, i think
   private getSunroofPitchAndAzimuth(
-    buildingData: IGetBuildingResult,
+    buildingData: GoogleSunroof.Building,
     centerLat: number,
     centerLng: number,
     sideAzimuths: number[],
@@ -1214,7 +1135,7 @@ export class SystemDesignService {
       }),
     );
 
-    let closestSegment: IRoofSegmentStat;
+    let closestSegment: GoogleSunroof.Building['solarPotential']['roofSegmentStats'][number];
 
     if (segmentsContainPanel.length === 1) {
       const [segment] = segmentsContainPanel;
@@ -1298,17 +1219,79 @@ export class SystemDesignService {
       .filter((e): e is LeanDocument<IUnknownProduct> => !!e);
   }
 
-  public async generateArrayPngs( systemDesignId: ObjectId ): Promise<void> {
-    console.log(`called w/ id: ${systemDesignId}`);
+  // TODO this belongs in GoogleSunroofService
+  public async generateHeatmapPngs (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId);
 
-    const systemDesign = await this.getOneById(systemDesignId);
-    
     if (!systemDesign) {
-      throw new Error(`System Design not found with id ${systemDesignId}`)
+      throw ApplicationException.EntityNotFound(systemDesignId.toString());
     }
 
-    console.log( systemDesign.roofTopDesignData.panelArray );
+    const { latitude, longitude, opportunityId } = systemDesign
 
-    this.googleSunroofService.processSolarArrays( systemDesign );
+    // TODO TEMP hardcode radius meters for now
+    // TODO TEMP this should be calculated from the arrays
+    const radiusMeters = 25
+
+    const solarInfo = await this.googleSunroofService.getSolarInfo(
+      latitude,
+      longitude,
+      radiusMeters,
+    );
+    await this.s3Service.putObject(
+      process.env.GOOGLE_SUNROOF_S3_BUCKET as string,
+      `${opportunityId}/solarInfo.json`,
+      JSON.stringify(solarInfo, null, 2),
+      'application/json; charset=utf-8',
+    )
+
+    const rgbUrl = solarInfo.rgbUrl;
+    const rgbFilename = `${opportunityId}/tiff/rgb.tiff`;
+    const rgbTiffResponse = await this.googleSunroofService.getRequest(rgbUrl, rgbFilename);
+    const rgbPng = await this.googleSunroofService.processTiff(rgbTiffResponse, opportunityId);
+
+    const maskUrl = solarInfo.maskUrl;
+    const maskFilename = `${opportunityId}/tiff/mask.tiff`;
+    const maskTiffResponse = await this.googleSunroofService.getRequest(maskUrl, maskFilename);
+    const maskPng = await this.googleSunroofService.processTiff(maskTiffResponse, opportunityId);
+
+    const annualFluxUrl = solarInfo.annualFluxUrl;
+    const annualFluxFilename = `${opportunityId}/tiff/annualFlux.tiff`;
+    const annualFluxTiffResponse = await this.googleSunroofService.getRequest(annualFluxUrl, annualFluxFilename);
+    const annualFluxPng = await this.googleSunroofService.processTiff(annualFluxTiffResponse, opportunityId);
+
+    await this.googleSunroofService.processMaskedHeatmapPng( 'heatmap.masked.annual', annualFluxPng, opportunityId, maskPng, maskTiffResponse, rgbPng );
+
+    const monthlyFluxUrl = solarInfo.monthlyFluxUrl;
+    const monthlyFluxFilename = `${opportunityId}/tiff/monthlyFlux.tiff`;
+    const monthlyFluxTiffResponse = await this.googleSunroofService.getRequest(monthlyFluxUrl, monthlyFluxFilename);
+    const monthlyPngs = await this.googleSunroofService.processMonthlyTiff(monthlyFluxTiffResponse, opportunityId);
+
+    await Promise.all( monthlyPngs.map( async (monthlyPng, index)  => {
+      const monthIndex = index < 10 ? `0${index}` : `${index}`;
+      await this.googleSunroofService.processMaskedHeatmapPng(
+        `heatmap.masked.month${monthIndex}`,
+        monthlyPng,
+        opportunityId,
+        maskPng,
+        maskTiffResponse,
+        rgbPng
+      );
+    }));
+
+    return OperationResult.ok();
+  }
+
+  // TODO this belongs in GoogleSunroofService
+  public async generateOverlayPng (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId);
+
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId.toString());
+    }
+    
+    await this.googleSunroofService.processSolarArrays(systemDesign);
+
+    return OperationResult.ok();
   }
 }

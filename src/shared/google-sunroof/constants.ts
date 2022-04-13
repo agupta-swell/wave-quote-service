@@ -1,5 +1,6 @@
 import type { Color } from './sub-services/types'
 
+// TODO delete this; moved into google-sunroof.gateway.service
 export const SUNROOF_API = {
   HOST: 'https://earthenginesolar.googleapis.com',
   VERSION: 'v1',

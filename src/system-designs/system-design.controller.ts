@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
-import { OperationResult, Pagination, ServiceResponse } from 'src/app/common';
+import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
@@ -15,6 +15,7 @@ import {
 } from './req';
 import {
   AnciallaryMasterRes,
+  CalculateSunroofResDto,
   GetBoundingBoxesResDto,
   SystemDesignAncillaryMasterDto,
   SystemDesignAncillaryMasterListRes,
@@ -22,7 +23,6 @@ import {
   SystemDesignListRes,
   SystemDesignRes,
 } from './res';
-import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { SystemDesignService } from './system-design.service';
 
 @ApiTags('System Design')
@@ -119,10 +119,7 @@ export class SystemDesignController {
   }
 
   @Get(':id')
-  @ApiParam({
-    name: 'id',
-    type: String,
-  })
+  @ApiParam({ name: 'id', type: String })
   @ApiOperation({ summary: 'Get detail' })
   @ApiOkResponse({ type: SystemDesignRes })
   async getDetails(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<SystemDesignDto>> {
@@ -133,33 +130,26 @@ export class SystemDesignController {
   @Post('/calculate-sunroof')
   async calculateSunroof(@Body() req: CalculateSunroofDto): Promise<ServiceResponse<CalculateSunroofResDto>> {
     const result = await this.systemDesignService.calculateSunroofData(req);
-
     return ServiceResponse.fromResult(result);
   }
 
   @Get('/bounding-boxes')
   async getBoundingBoxes(@Query() req: GetBoundingBoxesReqDto): Promise<ServiceResponse<GetBoundingBoxesResDto>> {
     const result = await this.systemDesignService.getSunroofBoundingBoxes(req);
-
     return ServiceResponse.fromResult(result);
   }
 
-  @Post('/generate-sunroof-pngs')
-  async generateSunroofPngs(@Body() req: CalculateSunroofDto): Promise<ServiceResponse> {
-    await this.systemDesignService.generateSunroofPngs(req);
-
-    return ServiceResponse.fromResult(OperationResult.ok());
+  @Post(':id/generate-heatmap-pngs')
+  @ApiParam({ name: 'id', type: String })
+  async generateHeatmapPngs(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
+    const result = await this.systemDesignService.generateHeatmapPngs(id);
+    return ServiceResponse.fromResult(result);
   }
 
-  @Post('/generate-array-pngs/:systemDesignId')
-  @ApiParam({
-    name: 'systemDesignId',
-    type: String,
-  })
-  async generateArrayPngs(
-    @Param('systemDesignId', ParseObjectIdPipe) systemDesignId: ObjectId
-  ): Promise<ServiceResponse> {
-    await this.systemDesignService.generateArrayPngs(systemDesignId);
-    return ServiceResponse.fromResult(OperationResult.ok());
+  @Post(':id/generate-overlay-png')
+  @ApiParam({ name: 'id', type: String })
+  async generateOverlayPng(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
+    const result = await this.systemDesignService.generateOverlayPng(id);
+    return ServiceResponse.fromResult(result);
   }
 }

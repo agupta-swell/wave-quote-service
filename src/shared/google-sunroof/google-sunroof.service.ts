@@ -1,61 +1,43 @@
 /* eslint-disable no-restricted-syntax */
 import * as https from 'https';
+// TODO is `qs` used by any other file? remove dep
 import * as qs from 'qs';
 import * as path from 'path';
-import { Readable } from 'stream';
+import { Readable, Stream } from 'stream'
+
 import { LeanDocument } from 'mongoose';
 import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
 import { Injectable } from '@nestjs/common';
-import { Stream } from 'stream';
 import { S3Service } from '../aws/services/s3.service';
 import { generateHeatmap, generateMask, generateSatellite, generateMonthlyHeatmap, applyMaskedOverlay, getLayersFromBuffer, generateArrayPng } from './sub-services/file-generator.service';
-import { LatLng, Pixel } from './sub-services/types';
+import { LatLng } from './sub-services/types';
 
 import { SystemDesign } from '../../system-designs/system-design.schema';
-import { SUNROOF_API } from './constants';
 import {
-  IGetBuildingResult,
-  IGetSolarInfoResult,
-  IGetRequestResult,
   IGetRequestResultWithS3UploadResult,
 } from './interfaces';
-import { writePngToFile, mapLatLngToVector2, mapLatLngPolygonToPixelPolygon, drawLine, drawPolygon } from './utils';
 
-const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.DEBUG_SUNROOF?.toLowerCase() || 'false');
+import { writePngToFile } from './utils';
+
+import type { GoogleSunroof } from './sub-services/types'
+import { GoogleSunroofGateway } from './sub-services'
+
+const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.GOOGLE_SUNROOF_DEBUG?.toLowerCase() || 'false');
 const DEBUG_FOLDER = path.join(__dirname, 'debug')
 
 @Injectable()
 export class GoogleSunroofService {
-  private readonly GOOGLE_SUNROOF_BUCKET: string;
+  private readonly GOOGLE_SUNROOF_S3_BUCKET: string;
 
-  private readonly API_KEY: string;
-
-  constructor(private readonly s3Service: S3Service) {
-    const bucket = process.env.SUNROOF_AWS_BUCKET;
-
-    if (!bucket) throw new Error('Missing sunroof aws s3 bucket');
-
-    this.GOOGLE_SUNROOF_BUCKET = bucket;
-
-    const apiKey = process.env.SUNROOF_API_KEY;
-
-    if (!apiKey) throw new Error('Missing sunroof api key');
-
-    this.API_KEY = apiKey;
+  constructor(
+    private readonly googleSunroofGateway: GoogleSunroofGateway,
+    private readonly s3Service: S3Service,
+  ) {
+    const bucket = process.env.GOOGLE_SUNROOF_S3_BUCKET;
+    if (!bucket) throw new Error('Missing GOOGLE_SUNROOF_S3_BUCKET environment variable');
+    this.GOOGLE_SUNROOF_S3_BUCKET = bucket;
   }
-
-  private makeGetUrl(query: Record<string, unknown>, ...path: string[]): string {
-    const url = [SUNROOF_API.HOST, SUNROOF_API.VERSION, ...path].join('/');
-
-    if (!query || !Object.keys(query).length) return url;
-
-    const params = qs.stringify({ ...query, key: this.API_KEY });
-
-    return `${url}?${params}`;
-  }
-
-  public getRequest<T>(url: string): Promise<IGetRequestResult<T>>;
 
   public getRequest<T>(url: string, cacheKey: string): Promise<IGetRequestResultWithS3UploadResult<T>>;
 
@@ -80,7 +62,7 @@ export class GoogleSunroofService {
               .pipe(
                 this.s3Service.putStream(
                   cacheKey,
-                  this.GOOGLE_SUNROOF_BUCKET,
+                  this.GOOGLE_SUNROOF_S3_BUCKET,
                   'application/json',
                   'private',
                   false,
@@ -121,7 +103,7 @@ export class GoogleSunroofService {
               .pipe(
                 this.s3Service.putStream(
                   cacheKey,
-                  this.GOOGLE_SUNROOF_BUCKET,
+                  this.GOOGLE_SUNROOF_S3_BUCKET,
                   'image/tiff',
                   'private',
                   false,
@@ -167,48 +149,33 @@ export class GoogleSunroofService {
     });
   }
 
-  public getBuilding(lat: number, long: number): Promise<IGetRequestResult<IGetBuildingResult>>;
-
-  public getBuilding(
-    lat: number,
-    long: number,
-    cacheKey: string,
-  ): Promise<IGetRequestResultWithS3UploadResult<IGetBuildingResult>>;
-
-  public getBuilding(lat: number, long: number, cacheKey?: string): Promise<Object> {
-    const url = this.makeGetUrl(
-      {
-        'location.latitude': lat,
-        'location.longitude': long,
-      },
-      SUNROOF_API.BUILDINGS_FIND_CLOSEST,
-    );
-
-    return this.getRequest<IGetBuildingResult>(url, cacheKey!);
+  public async getBuilding (lat: number, long: number, cacheKey: string): Promise<GoogleSunroof.Building> {
+    const building = await this.googleSunroofGateway.findClosestBuilding(lat, long)
+    // TODO don't cache here?
+    await this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_S3_BUCKET,
+      cacheKey,
+      JSON.stringify(building, null, 2),
+      'application/json; charset=utf-8',
+    )
+    return building
   }
 
   public hasS3File(filePath: string): Promise<boolean> {
-    return this.s3Service.hasFile(this.GOOGLE_SUNROOF_BUCKET, filePath);
+    return this.s3Service.hasFile(this.GOOGLE_SUNROOF_S3_BUCKET, filePath);
   }
 
   public async getS3FileAsJson<T>(filePath: string): Promise<T> {
-    const chunks: Buffer[] = [];
-
-    const stream = this.s3Service.getObjectAsReadable(this.GOOGLE_SUNROOF_BUCKET, filePath);
-
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-
-    const payloadStr = Buffer.concat(chunks).toString('utf-8');
-
-    return JSON.parse(payloadStr);
+    const buffer = await this.getS3FileAsBuffer(filePath)
+    const json = buffer.toString('utf-8')
+    return JSON.parse(json);
   }
 
+  // TODO typed Buffer, e.g. Buffer<SolarInfo> ??
   public async getS3FileAsBuffer<T>(filePath: string): Promise<Buffer> {
     const chunks: Buffer[] = [];
 
-    const stream = this.s3Service.getObjectAsReadable(this.GOOGLE_SUNROOF_BUCKET, filePath);
+    const stream = this.s3Service.getObjectAsReadable(this.GOOGLE_SUNROOF_S3_BUCKET, filePath);
 
     for await (const chunk of stream) {
       chunks.push(chunk);
@@ -217,33 +184,14 @@ export class GoogleSunroofService {
     return Buffer.concat(chunks);
   }
 
-  public getSolarInfo(lat: number, long: number, radiusMeters: number): Promise<IGetRequestResult<IGetSolarInfoResult>>;
-
-  public getSolarInfo(
-    lat: number,
-    long: number,
-    radiusMeters: number,
-    cacheKey: string,
-  ): Promise<IGetRequestResultWithS3UploadResult<IGetSolarInfoResult>>;
-
-  public getSolarInfo(lat: number, long: number, radiusMeters: number, cacheKey?: string): Promise<Object> {
-    const url = this.makeGetUrl(
-      {
-        'location.latitude': lat,
-        'location.longitude': long,
-        radiusMeters,
-      },
-      SUNROOF_API.SOLAR_INFO_GET,
-    );
-
-    return this.getRequest<IGetSolarInfoResult>(url, cacheKey!);
-  }
-
-  private async savePngToS3( pngKey, png ) {
+  private async savePngToS3(pngKey: string, png: PNG) {
+//  TODO which of these is best?
+//  png.pipe(
+//  png.pack().pipe(
     Readable.from(PNG.sync.write(png)).pipe(
       this.s3Service.putStream(
         pngKey,
-        this.GOOGLE_SUNROOF_BUCKET,
+        this.GOOGLE_SUNROOF_S3_BUCKET,
         'image/png',
         'private',
         false,
@@ -267,7 +215,6 @@ export class GoogleSunroofService {
         },
       )
     );
-
   }
 
   public async processTiff(tiffPayloadResponse: any, opportunityId: string){
@@ -378,6 +325,14 @@ export class GoogleSunroofService {
     // placeholder for production calculation WAV-1700
   }
 
+  // TODO this wrapper/pass-through should not be necessary
+  public async getSolarInfo (
+    latitude: number,
+    longitude: number,
+    radiusMeters: number
+  ): Promise<GoogleSunroof.SolarInfo> {
+    return await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters)
+  }
 }
 
 function makePngKey ( opportunityId: string, pngFilename: string ) : string {
