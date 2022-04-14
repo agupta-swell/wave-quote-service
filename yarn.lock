@@ -3745,10 +3745,9 @@ gensync@^1.0.0-beta.2:
   resolved "https://registry.npmjs.org/gensync/-/gensync-1.0.0-beta.2.tgz"
   integrity sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==
 
-geotiff@2.0.4:
+geotiff@SwellEnergy/geotiff.js#master:
   version "2.0.4"
-  resolved "https://registry.yarnpkg.com/geotiff/-/geotiff-2.0.4.tgz#d6f231fdd76186aba21c61823ed759fcbf5d4f86"
-  integrity sha512-aG8h9bJccGusioPsEWsEqx8qdXpZN71A20WCvRKGxcnHSOWLKmC5ZmsAmodfxb9TRQvs+89KikGuPzxchhA+Uw==
+  resolved "https://codeload.github.com/SwellEnergy/geotiff.js/tar.gz/777fe4a1bcbe3c329c15121aeb8f78bfa97d05fc"
   dependencies:
     "@petamoriken/float16" "^3.4.7"
     lerc "^3.0.0"

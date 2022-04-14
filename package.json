@@ -42,7 +42,7 @@
     "docusign-esign": "^5.8.1",
     "fastify-multipart": "^5.3.1",
     "fastify-swagger": "^4.5.0",
-    "geotiff": "2.0.4",
+    "geotiff": "SwellEnergy/geotiff.js#master",
     "handlebars": "^4.7.7",
     "lodash": "^4.17.21",
     "mailgun-js": "^0.22.0",

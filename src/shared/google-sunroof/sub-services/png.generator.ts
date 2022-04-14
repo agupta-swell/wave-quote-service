@@ -1,4 +1,4 @@
-/* TODO TEMP */ import type { GeoTIFF } from './types'; type ReadRasterResult = GeoTIFF.ReadRasterResult;
+import type { ReadRasterResult, TypedArray } from 'geotiff';
 import { chunk } from 'lodash';
 import { PNG } from 'pngjs';
 
@@ -21,7 +21,7 @@ import {
 export class PngGenerator {
   // TODO delete this. contains too much logic. move up to google-sunroof.service
   public static generateMonthlyHeatmap (monthlyLayers: ReadRasterResult): Array<PNG> {
-    return monthlyLayers
+    return (monthlyLayers as TypedArray[])
       .map( x => x.map ( value => value * 12 ))
       .map( x => chunk(x, monthlyLayers.width))
       .map(x => PngGenerator.generateHeatmap(x))
@@ -82,7 +82,7 @@ export class PngGenerator {
 
   public static generateMask (layers: ReadRasterResult) : PNG {
     const { height, width } = layers;
-    const [layer] = layers;
+    const [layer] = layers as TypedArray[];
     const mask = chunk(layer, width);
 
     const newPng = new PNG({ height, width });
@@ -100,7 +100,7 @@ export class PngGenerator {
 
   public static generateSatellite (layers: ReadRasterResult) : PNG {
     const { height, width } = layers;
-    const [redLayer, greenLayer, blueLayer] = layers;
+    const [redLayer, greenLayer, blueLayer] = layers as TypedArray[];
     const rgbColors = {
       reds: chunk(redLayer, width),
       greens: chunk(greenLayer, width),

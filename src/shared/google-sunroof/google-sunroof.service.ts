@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-syntax */
-import * as geotiff from 'geotiff'; /* TODO TEMP */ import type { GeoTIFF } from './sub-services/types'; type ReadRasterResult = GeoTIFF.ReadRasterResult;
+import { fromBuffer as newGeotiffFromBuffer, TypedArray } from 'geotiff'
 import * as https from 'https';
 // TODO is `qs` used by any other file? remove dep
 import * as qs from 'qs';
@@ -235,7 +235,7 @@ export class GoogleSunroofService {
         break;
       case 'annualFlux':
         filename = 'heatmap.annual';
-        const [fluxLayer] = annualLayers;
+        const [fluxLayer] = annualLayers as TypedArray[];
         newPng = PngGenerator.generateHeatmap(chunk(fluxLayer, annualLayers.width));
         break;
       default:
@@ -279,7 +279,7 @@ export class GoogleSunroofService {
   }
 
   public async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, opportunityId: string, maskPng: PNG, maskTiffResponse: any, rgbPng: PNG){
-    const [layer] = await readRastersFromTiffBuffer( maskTiffResponse.payload );
+    const [layer] = await readRastersFromTiffBuffer( maskTiffResponse.payload ) as TypedArray[];
     const maskLayer = chunk(layer, maskPng.width);
     const annualFluxMaskedPng = await PngGenerator.applyMaskedOverlay( heatmapPng, maskLayer, rgbPng);
     const pngKey = makePngKey( opportunityId, filename );
@@ -378,9 +378,7 @@ function makePngKey (opportunityId: string, pngFilename: string) : string {
 }
 
 
-async function readRastersFromTiffBuffer (buffer: Buffer) : Promise<ReadRasterResult> {
-  // TODO A future release of `geotiff` will hopefully support `fromBuffer(...)`
-  const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
-  const tiff = await geotiff.fromArrayBuffer(arrayBuffer);
-  return await tiff.readRasters() as ReadRasterResult;
+async function readRastersFromTiffBuffer (buffer: Buffer) {
+  const tiff = await newGeotiffFromBuffer(buffer);
+  return await tiff.readRasters();
 }
