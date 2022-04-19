@@ -26,8 +26,8 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import {
   calcCoordinatesDistance,
-  isCoordinatesInsideBoundByAtLeast,
   ICoordinate,
+  isCoordinatesInsideBoundByAtLeast,
 } from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
@@ -40,7 +40,7 @@ import {
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
-import { SystemDesignAncillaryMasterDto, SystemDesignDto, CalculateSunroofResDto, GetBoundingBoxesResDto } from './res';
+import { CalculateSunroofResDto, GetBoundingBoxesResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { getTypicalProduction, ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
@@ -802,7 +802,7 @@ export class SystemDesignService {
 
     assignToModel(foundSystemDesign, removedUndefined);
 
-    await Promise.all([
+    const [, , systemProductionUpdated] = await Promise.all([
       foundSystemDesign.save(),
       systemDesignDto.designMode &&
         this.quoteService.setOutdatedData(
@@ -815,7 +815,12 @@ export class SystemDesignService {
       }),
     ]);
 
-    return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign.toJSON()));
+    const systemDesignUpdated = foundSystemDesign.toJSON();
+    if (systemProductionUpdated.data) {
+      systemDesignUpdated.systemProductionData = systemProductionUpdated.data;
+    }
+
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, systemDesignUpdated));
   }
 
   async recalculateSystemDesign(
