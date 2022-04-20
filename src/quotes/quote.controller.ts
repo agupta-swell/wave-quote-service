@@ -4,6 +4,7 @@ import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
+import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { UseSaveQuoteIdToReq } from './interceptors';
 import { ValidateQuoteDiscountPipe, ValidateQuotePromotionsPipe } from './pipes';
@@ -91,6 +92,7 @@ export class QuoteController {
     return ServiceResponse.fromResult(res);
   }
 
+  @UseAsyncContext
   @Put('/:quoteId/latest')
   @ApiOperation({ summary: 'Update Latest Quote' })
   @ApiOkResponse({ type: QuoteRes })

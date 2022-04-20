@@ -37,6 +37,8 @@ export class RouteMapper {
 
         const methodKey = RequestMethod[methodValue];
 
+        if (routePath === '/') return [methodKey, controllerPath];
+
         const path = join(controllerPath, routePath);
 
         return [methodKey, path];

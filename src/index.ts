@@ -4,6 +4,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as morgan from 'morgan';
 import { AppModule } from './app/app.module';
 import { ValidationPipe } from './app/validation.pipe';
+import { ASYNC_CTX } from './shared/async-context';
+import { AsyncContextProvider } from './shared/async-context/providers/async-context.provider';
 import { IDocusignContextStore } from './shared/docusign';
 import { DOCUSIGN_ROUTE, KEYS } from './shared/docusign/constants';
 import { NO_LOGGING } from './shared/morgan';
@@ -25,6 +27,8 @@ async function bootstrap() {
 
   const docusignContextStore = app.get<IDocusignContextStore>(KEYS.CONTEXT);
 
+  const asyncContext = app.get(AsyncContextProvider);
+
   RouteMapper.initRoutesMapper();
 
   fAdapt.getInstance().addHook('preHandler', (req, _rep, done) => {
@@ -32,10 +36,15 @@ async function bootstrap() {
       docusignContextStore.run(() => {
         done();
       });
+    }
+
+    if (RouteMapper.checkRoute(ASYNC_CTX, req.routerMethod, req.routerPath)) {
+      asyncContext.run(() => {
+        done();
+      });
 
       return;
     }
-
     done();
   });
 

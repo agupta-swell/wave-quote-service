@@ -85,6 +85,20 @@ export class ProductService {
     return product;
   }
 
+  async getDetailByIds(idList: string[]): Promise<LeanDocument<IUnknownProduct[]>> {
+    const newIdList = idList.map(id => transformToValidId(id));
+
+    const products = await this.productModel
+      .find({
+        _id: {
+          $in: newIdList,
+        },
+      })
+      .lean();
+
+    return products;
+  }
+
   async uploadBatteryAsset(battery: IProductDocument<PRODUCT_TYPE.BATTERY>, asset: FastifyFile): Promise<string> {
     const filename = `${battery._id.toString()}_${Date.now()}.${asset.filename.split('.').at(-1)}`;
 

@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { LeanDocument, Model } from 'mongoose';
+import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { IProductDocument, IUnknownProduct } from 'src/products-v2/interfaces';
 import { ProductService } from 'src/products-v2/services';
+import { AsyncContextProvider } from 'src/shared/async-context/providers/async-context.provider';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { v4 as uuidv4 } from 'uuid';
 import { ExternalService } from '../../external-services/external-service.service';
@@ -43,6 +46,7 @@ export class SystemProductService {
     private readonly externalService: ExternalService,
     private readonly productService: ProductService,
     private readonly s3Service: S3Service,
+    private readonly asyncContext: AsyncContextProvider,
   ) {}
 
   async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
@@ -63,11 +67,13 @@ export class SystemProductService {
     // save hourly to s3 then save only id to pvWattSystemProduction
     const hourlyProductionId = uuidv4();
 
-    await this.s3Service.putObject(
-      this.HOURLY_PRODUCTION_BUCKET,
-      hourlyProductionId,
-      JSON.stringify(res.ac),
-      'application/json; charset=utf-8',
+    this.asyncContext.queue(() =>
+      this.s3Service.putObject(
+        this.HOURLY_PRODUCTION_BUCKET,
+        hourlyProductionId,
+        JSON.stringify(res.ac),
+        'application/json; charset=utf-8',
+      ),
     );
 
     const createdPvWattSystemProduction = new this.pvWattSystemProduction({
@@ -96,7 +102,7 @@ export class SystemProductService {
       .findOne({
         lat: latitude,
         lon: longitude,
-        system_capacity_kW: systemCapacityInkWh,
+        systemCapacityKW: systemCapacityInkWh,
         azimuth,
         tilt: pitch,
       })
@@ -129,11 +135,13 @@ export class SystemProductService {
     // save hourly to s3 then save only id to pvWattSystemProduction
     const hourlyProductionId = uuidv4();
 
-    await this.s3Service.putObject(
-      this.HOURLY_PRODUCTION_BUCKET,
-      hourlyProductionId,
-      JSON.stringify(res.ac),
-      'application/json; charset=utf-8',
+    this.asyncContext.queue(() =>
+      this.s3Service.putObject(
+        this.HOURLY_PRODUCTION_BUCKET,
+        hourlyProductionId,
+        JSON.stringify(res.ac),
+        'application/json; charset=utf-8',
+      ),
     );
 
     const createdPvWattSystemProduction = new this.pvWattSystemProduction({
@@ -158,7 +166,10 @@ export class SystemProductService {
     return arrayProductionData;
   }
 
-  async calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
+  async calculateSystemProductionByHour(
+    systemDesignDto: UpdateSystemDesignDto,
+    cachedProducts?: LeanDocument<IUnknownProduct>[],
+  ): Promise<ISystemProduction> {
     const { latitude, longitude } = systemDesignDto;
     let pvProductionArray: ISystemProduction[] = [
       { hourly: new Array(8760).fill(0), monthly: new Array(12).fill(0), annual: 0, arrayHourly: [] },
@@ -168,7 +179,11 @@ export class SystemProductService {
       pvProductionArray = await Promise.all(
         systemDesignDto.roofTopDesignData.panelArray.map(async item => {
           const { azimuth, losses, pitch, useSunroof, sunroofPitch, sunroofAzimuth } = item;
-          const panelModelData = await this.productService.getDetailById(item.panelModelId);
+          const panelModelData = cachedProducts
+            ? (cachedProducts.find(p => p._id?.toString() === item.panelModelId) as LeanDocument<
+                IProductDocument<PRODUCT_TYPE.MODULE>
+              >)
+            : await this.productService.getDetailById(item.panelModelId);
           const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.ratings?.watts ?? 0)) / 1000;
           return this.calculatePVProduction({
             latitude,

@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServiceResponse } from 'src/app/common';
+import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ECommerceService } from './e-commerce.service';
 import { GetEcomStorageOnlyQuoteReq } from './req/get-ecom-storage-only-quote.dto';
 import { GetEcomSystemDesignAndQuoteReq } from './req/get-ecom-system-design-and-quote.dto';
@@ -12,6 +13,7 @@ import { GetStorageOnlyQuoteRes } from './res/get-storage-only-quote.dto';
 export class ECommerceController {
   constructor(private readonly eCommerceService: ECommerceService) {}
 
+  @UseAsyncContext
   @Post('/system-and-storage')
   @ApiOperation({ summary: 'Get E Commerce Quote for System and Storage' })
   @ApiOkResponse({ type: GetGeneratedSystemStorageQuoteRes })
@@ -25,9 +27,7 @@ export class ECommerceController {
   @Post('/storage-only')
   @ApiOperation({ summary: 'Get E Commerce Quote for Storage Only' })
   @ApiOkResponse({ type: GetStorageOnlyQuoteRes })
-  async getStorageOnlyQuote(
-    @Body() req: GetEcomStorageOnlyQuoteReq,
-  ): Promise<ServiceResponse<GetStorageOnlyQuoteRes>> {
+  async getStorageOnlyQuote(@Body() req: GetEcomStorageOnlyQuoteReq): Promise<ServiceResponse<GetStorageOnlyQuoteRes>> {
     const result = await this.eCommerceService.getStorageOnlyQuote(req);
     return ServiceResponse.fromResult(result);
   }
