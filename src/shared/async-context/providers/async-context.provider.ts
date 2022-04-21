@@ -4,8 +4,11 @@ import { IAsyncContext, QueueItem, QueueTarget } from '../interfaces';
 export class AsyncContextProvider implements IAsyncContext {
   private _als: AsyncLocalStorage<Array<QueueItem>>;
 
+  private _sharedCacheStorage: Map<string, unknown>;
+
   constructor() {
     this._als = new AsyncLocalStorage();
+    this._sharedCacheStorage = new Map();
   }
 
   run(cb: () => void): void {
@@ -25,16 +28,10 @@ export class AsyncContextProvider implements IAsyncContext {
   flush(): void {
     const store = this._als.getStore();
 
-    store?.forEach(cb => {
-      const item = cb();
-
-      if (item instanceof Promise || (typeof item === 'function' && item.constructor.name === 'AsyncFunction')) {
-        (item as Promise<unknown>).catch(this.logError);
-        return;
-      }
-
+    store?.forEach(async cb => {
+      const item = cb() as any;
       try {
-        item();
+        const res = await item();
       } catch (err) {
         this.logError(err);
       }
@@ -43,5 +40,17 @@ export class AsyncContextProvider implements IAsyncContext {
 
   private logError(err: unknown) {
     console.error(err);
+  }
+
+  public get<T>(key: string): T | undefined {
+    return this._sharedCacheStorage.get(key) as T;
+  }
+
+  public uncache(key: string): boolean {
+    return this._sharedCacheStorage.delete(key);
+  }
+
+  public cache<T>(key: string, value: T): void {
+    this._sharedCacheStorage.set(key, value);
   }
 }

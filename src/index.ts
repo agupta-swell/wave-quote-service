@@ -36,6 +36,8 @@ async function bootstrap() {
       docusignContextStore.run(() => {
         done();
       });
+
+      return;
     }
 
     if (RouteMapper.checkRoute(ASYNC_CTX, req.routerMethod, req.routerPath)) {

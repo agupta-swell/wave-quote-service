@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
@@ -38,16 +38,29 @@ export interface ISystemProduction {
 }
 
 @Injectable()
-export class SystemProductService {
+export class SystemProductService implements OnModuleInit {
   private HOURLY_PRODUCTION_BUCKET = process.env.AWS_S3_ARRAY_HOURLY_PRODUCTION as string;
 
+  private readonly logger = new Logger(SystemProductService.name);
+
   constructor(
+    // @ts-ignore
     @InjectModel(PV_WATT_SYSTEM_PRODUCTION) private readonly pvWattSystemProduction: Model<PvWattSystemProduction>,
     private readonly externalService: ExternalService,
     private readonly productService: ProductService,
     private readonly s3Service: S3Service,
     private readonly asyncContext: AsyncContextProvider,
   ) {}
+
+  async onModuleInit() {
+    try {
+      this.logger.log('Ensure pv_watt index');
+      await this.ensurePvWattIndex();
+      this.logger.log('Done ensure pv_watt index');
+    } catch (err) {
+      this.logger.error(err);
+    }
+  }
 
   async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
     const { systemCapacity, ...p } = data;
@@ -56,6 +69,7 @@ export class SystemProductService {
         ...p,
         systemCapacityKW: systemCapacity,
       })
+      .select('acAnnualProduction')
       .lean();
 
     if (pvWattSystemProduction) {
@@ -67,14 +81,17 @@ export class SystemProductService {
     // save hourly to s3 then save only id to pvWattSystemProduction
     const hourlyProductionId = uuidv4();
 
-    this.asyncContext.queue(() =>
-      this.s3Service.putObject(
+    this.asyncContext.cache(hourlyProductionId, res.ac);
+
+    this.asyncContext.queue(() => async () => {
+      await this.s3Service.putObject(
         this.HOURLY_PRODUCTION_BUCKET,
         hourlyProductionId,
         JSON.stringify(res.ac),
         'application/json; charset=utf-8',
-      ),
-    );
+      );
+      this.asyncContext.uncache(hourlyProductionId);
+    });
 
     const createdPvWattSystemProduction = new this.pvWattSystemProduction({
       lat: data.lat,
@@ -94,6 +111,58 @@ export class SystemProductService {
     return res.ac_annual;
   }
 
+  private async getHourlyProduction(
+    hourlyId: string,
+    lat: number,
+    lon: number,
+    systemCapacity: number,
+    azimuth: number,
+    tilt: number,
+    losses: number,
+  ): Promise<number[]> {
+    const cachedHourly = this.asyncContext.get<number[]>(hourlyId);
+
+    if (cachedHourly) return cachedHourly;
+
+    let hourly: number[] = [];
+
+    try {
+      const res = await this.s3Service.getObject(this.HOURLY_PRODUCTION_BUCKET, 'hourly-production');
+
+      if (res) hourly = JSON.parse(res) as number[];
+    } catch (_) {
+      // do nothing
+    }
+
+    if (hourly) return hourly;
+
+    const payload = {
+      lat,
+      lon,
+      systemCapacity,
+      azimuth,
+      tilt,
+      losses,
+    } as IPvWatCalculation;
+
+    const res = await this.externalService.calculateSystemProduction(payload);
+
+    this.asyncContext.cache(hourlyId, res.ac);
+
+    this.asyncContext.queue(() => async () => {
+      await this.s3Service.putObject(
+        this.HOURLY_PRODUCTION_BUCKET,
+        hourlyId,
+        JSON.stringify(res.ac),
+        'application/json; charset=utf-8',
+      );
+
+      this.asyncContext.uncache(hourlyId);
+    });
+
+    return res.ac;
+  }
+
   async calculatePVProduction(data: ICalculatePVProduction) {
     const { latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses, shouldGetHourlyProduction } = data;
     const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
@@ -111,11 +180,17 @@ export class SystemProductService {
     // get hourly from s3
     if (pvWattSystemProduction) {
       if (pvWattSystemProduction.acAnnualHourlyProduction && shouldGetHourlyProduction) {
-        const hourlyProduction = await this.s3Service.getObject(
-          this.HOURLY_PRODUCTION_BUCKET,
+        const hourlyProduction = await this.getHourlyProduction(
           pvWattSystemProduction.acAnnualHourlyProduction,
+          latitude,
+          longitude,
+          systemCapacityInkWh,
+          azimuth,
+          pitch,
+          losses,
         );
-        if (hourlyProduction) arrayProductionData.hourly = JSON.parse(hourlyProduction);
+
+        arrayProductionData.hourly = hourlyProduction;
       }
       arrayProductionData.monthly = pvWattSystemProduction.acMonthlyProduction;
       arrayProductionData.annual = pvWattSystemProduction.acAnnualProduction;
@@ -135,14 +210,17 @@ export class SystemProductService {
     // save hourly to s3 then save only id to pvWattSystemProduction
     const hourlyProductionId = uuidv4();
 
-    this.asyncContext.queue(() =>
-      this.s3Service.putObject(
+    this.asyncContext.cache(hourlyProductionId, res.ac);
+
+    this.asyncContext.queue(() => async () => {
+      await this.s3Service.putObject(
         this.HOURLY_PRODUCTION_BUCKET,
         hourlyProductionId,
         JSON.stringify(res.ac),
         'application/json; charset=utf-8',
-      ),
-    );
+      );
+      this.asyncContext.uncache(hourlyProductionId);
+    });
 
     const createdPvWattSystemProduction = new this.pvWattSystemProduction({
       lat: latitude,
@@ -253,5 +331,13 @@ export class SystemProductService {
     return netUsagePostInstallation;
   }
 
-  // ==================== INTERNAL ====================
+  private ensurePvWattIndex(): Promise<string> {
+    return this.pvWattSystemProduction.collection.createIndex({
+      lat: 1,
+      lon: 1,
+      system_capacity_kW: 1,
+      azimuth: 1,
+      tilt: 1,
+    });
+  }
 }
