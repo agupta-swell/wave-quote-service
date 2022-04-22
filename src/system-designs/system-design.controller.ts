@@ -42,6 +42,7 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(result);
   }
 
+  @UseAsyncContext
   @Put(':id')
   @ApiOperation({ summary: 'Update system design' })
   @ApiOkResponse({ type: SystemDesignRes })
