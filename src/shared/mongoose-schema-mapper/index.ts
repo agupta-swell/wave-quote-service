@@ -4,22 +4,9 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-underscore-dangle */
 import { Schema } from 'mongoose';
-import {
-  ISchemaMapper,
-  ENaming,
-  IMongooseNamingStrategyOptions,
-  TProcessTransform,
-  IKeysMapper,
-} from './interfaces';
+import { ENaming, IMongooseNamingStrategyOptions, TProcessTransform, IKeysMapper } from './interfaces';
 import { SIGNATURE, KEYS } from './constants';
-import {
-  camelToSnake,
-  snakeToCamel,
-  makeTransform,
-  TRuntimeTransformMethod,
-  deepTransform,
-  isObject,
-} from './utils';
+import { camelToSnake, snakeToCamel, makeTransform, TRuntimeTransformMethod, deepTransform, isObject } from './utils';
 import { createLogger } from './utils/logger';
 
 export * from './constants';
@@ -62,19 +49,11 @@ export class MongooseNamingStrategy {
     this.#autoload = autoload;
 
     if (schemaType === ENaming.CAMEL_CASE) {
-      this.#handlePreTransform = this.generateNamingTransformation(
-        customCamelToSnake || camelToSnake
-      );
-      this.#handlePostTransform = this.generateNamingTransformation(
-        customSnakeToCamel || snakeToCamel
-      );
+      this.#handlePreTransform = this.generateNamingTransformation(customCamelToSnake || camelToSnake);
+      this.#handlePostTransform = this.generateNamingTransformation(customSnakeToCamel || snakeToCamel);
     } else {
-      this.#handlePreTransform = this.generateNamingTransformation(
-        customSnakeToCamel || snakeToCamel
-      );
-      this.#handlePostTransform = this.generateNamingTransformation(
-        customCamelToSnake || camelToSnake
-      );
+      this.#handlePreTransform = this.generateNamingTransformation(customSnakeToCamel || snakeToCamel);
+      this.#handlePostTransform = this.generateNamingTransformation(customCamelToSnake || camelToSnake);
     }
 
     if (exclusion) this.#exclusions = exclusion;
@@ -97,7 +76,7 @@ export class MongooseNamingStrategy {
 
     if (!this.#schemaToDb) {
       this.#logger.warn(
-        'Calling setSchemaToDb() will override all application transformations includes virtual properties'
+        'Calling setSchemaToDb() will override all application transformations includes virtual properties',
       );
       this.#schemaToDb = true;
     }
@@ -110,7 +89,7 @@ export class MongooseNamingStrategy {
 
     if (!this.#schemaToDb) {
       this.#logger.warn(
-        'Calling setDbToSchema() will override all application transformations includes virtual properties'
+        'Calling setDbToSchema() will override all application transformations includes virtual properties',
       );
       this.#schemaToDb = true;
     }
@@ -122,9 +101,7 @@ export class MongooseNamingStrategy {
     this.#handlePostTransform = this.generateNamingTransformation(fn);
 
     if (this.#schemaToDb) {
-      this.#logger.warn(
-        'Calling setJSToSchema() will override all direct schema transformation to DB'
-      );
+      this.#logger.warn('Calling setJSToSchema() will override all direct schema transformation to DB');
       this.#schemaToDb = false;
     }
 
@@ -135,9 +112,7 @@ export class MongooseNamingStrategy {
     this.#handlePreTransform = this.generateNamingTransformation(fn);
 
     if (this.#schemaToDb) {
-      this.#logger.warn(
-        'Calling setSchemaToJS() will override all direct schema transformations to DB'
-      );
+      this.#logger.warn('Calling setSchemaToJS() will override all direct schema transformations to DB');
       this.#schemaToDb = false;
     }
 
@@ -150,9 +125,8 @@ export class MongooseNamingStrategy {
   }
 
   public addExclusions(...val: string[]): this {
-    val.forEach((e) => {
-      if (this.#exclusions.findIndex((v) => v === e) === -1)
-        this.#exclusions.push(e);
+    val.forEach(e => {
+      if (this.#exclusions.findIndex(v => v === e) === -1) this.#exclusions.push(e);
     });
     return this;
   }
@@ -162,9 +136,7 @@ export class MongooseNamingStrategy {
   }
 
   public removeExclusions(...val: string[]): this {
-    this.#exclusions = this.#exclusions.filter(
-      (e) => val.findIndex((v) => e === v) === -1
-    );
+    this.#exclusions = this.#exclusions.filter(e => val.findIndex(v => e === v) === -1);
     return this;
   }
 
@@ -185,16 +157,14 @@ export class MongooseNamingStrategy {
     return this;
   }
 
-  private generateNamingTransformation(
-    fn: TProcessTransform
-  ): TProcessTransform {
-    return (str) => {
+  private generateNamingTransformation(fn: TProcessTransform): TProcessTransform {
+    return str => {
       if (this.#customMapping) {
         const val = this.#customMapping.get(str);
         if (val) return val;
       }
 
-      if (this.#exclusions.find((e) => e === str)) return str;
+      if (this.#exclusions.find(e => e === str)) return str;
 
       if (str.startsWith('$')) return str;
 
@@ -203,27 +173,16 @@ export class MongooseNamingStrategy {
   }
 
   private makePreTransform(schema: Schema) {
-    if (
-      Object.getOwnPropertySymbols(schema).find((k) => k === KEYS.KEY_MAPPERS)
-    )
-      return;
+    if (Object.getOwnPropertySymbols(schema).find(k => k === KEYS.KEY_MAPPERS)) return;
 
     const { tree } = <any>schema;
 
-    const keyMappers = Object.entries(tree).reduce<IKeysMapper>(
-      (acc, [cur, curValue]) => {
-        if (
-          curValue &&
-          typeof curValue === 'object' &&
-          curValue.constructor.name === 'VirtualType'
-        )
-          return acc;
+    const keyMappers = Object.entries(tree).reduce<IKeysMapper>((acc, [cur, curValue]) => {
+      if (curValue && typeof curValue === 'object' && curValue.constructor.name === 'VirtualType') return acc;
 
-        acc[this.#handlePreTransform(cur)] = cur;
-        return acc;
-      },
-      {}
-    );
+      acc[this.#handlePreTransform(cur)] = cur;
+      return acc;
+    }, {});
 
     Object.defineProperty(schema, KEYS.KEY_MAPPERS, {
       writable: false,
@@ -272,13 +231,9 @@ export class MongooseNamingStrategy {
 
   // eslint-disable-next-line class-methods-use-this
   private attachTransform(schema: Schema) {
-    const transformJSON = (<any>schema)[
-      KEYS.FN_TRANSFORM_JSON
-    ] as TRuntimeTransformMethod;
+    const transformJSON = (<any>schema)[KEYS.FN_TRANSFORM_JSON] as TRuntimeTransformMethod;
 
-    const transformObj = (<any>schema)[
-      KEYS.FN_TRANSFORM_OBJ
-    ] as TRuntimeTransformMethod;
+    const transformObj = (<any>schema)[KEYS.FN_TRANSFORM_OBJ] as TRuntimeTransformMethod;
 
     schema.set('toJSON', {
       transform(doc: Record<string, unknown>) {
@@ -311,10 +266,7 @@ export class MongooseNamingStrategy {
     schema.pre('countDocuments', function (next: any) {
       const conditions = (<any>this)._conditions;
       if (isObject(conditions)) {
-        (<any>this)._conditions = deepTransform(
-          conditions,
-          self.#handlePostTransform
-        );
+        (<any>this)._conditions = deepTransform(conditions, self.#handlePostTransform);
       }
 
       next();
@@ -329,10 +281,7 @@ export class MongooseNamingStrategy {
         return next();
       }
 
-      if (
-        self.#leanSignature &&
-        !(<any>this)._mongooseOptions?.lean[self.#leanSignature]
-      ) {
+      if (self.#leanSignature && !(<any>this)._mongooseOptions?.lean[self.#leanSignature]) {
         return next();
       }
 
@@ -364,10 +313,7 @@ export class MongooseNamingStrategy {
       const updateDoc = (<any>this)._update;
 
       if (isObject(conditions)) {
-        (<any>this)._conditions = deepTransform(
-          conditions,
-          self.#handlePostTransform
-        );
+        (<any>this)._conditions = deepTransform(conditions, self.#handlePostTransform);
       }
 
       if (isObject(fields)) {
@@ -377,19 +323,13 @@ export class MongooseNamingStrategy {
       if (isObject(options)) {
         Object.entries(options).forEach(([key, value]) => {
           if (isObject(value)) {
-            (<any>this).options[key] = deepTransform(
-              <Record<string, unknown>>value,
-              self.#handlePostTransform
-            );
+            (<any>this).options[key] = deepTransform(<Record<string, unknown>>value, self.#handlePostTransform);
           } else (<any>this).options[key] = value;
         });
       }
 
       if (isObject(updateDoc)) {
-        (<any>this)._update = deepTransform(
-          updateDoc,
-          self.#handlePostTransform
-        );
+        (<any>this)._update = deepTransform(updateDoc, self.#handlePostTransform);
       }
 
       next();
@@ -407,10 +347,7 @@ export class MongooseNamingStrategy {
       }
 
       if (isObject(conditions)) {
-        (<any>this)._conditions = deepTransform(
-          conditions,
-          self.#handlePostTransform
-        );
+        (<any>this)._conditions = deepTransform(conditions, self.#handlePostTransform);
       }
       next();
     });
@@ -422,10 +359,7 @@ export class MongooseNamingStrategy {
       const conditions = (<any>this)._conditions;
 
       if (isObject(conditions)) {
-        (<any>this)._conditions = deepTransform(
-          conditions,
-          self.#handlePostTransform
-        );
+        (<any>this)._conditions = deepTransform(conditions, self.#handlePostTransform);
       }
 
       next();
@@ -433,7 +367,7 @@ export class MongooseNamingStrategy {
   }
 
   public getPlugin(): (schema: Schema) => void {
-    return (schema) => {
+    return schema => {
       if (Object.getOwnPropertySymbols(schema).includes(KEYS.EXCLUDE_SCHEMA)) {
         return;
       }
@@ -453,7 +387,7 @@ export class MongooseNamingStrategy {
     };
   }
 
-  public static ExcludeOne(schema: Schema) {
+  public static ExcludeOne(schema: Schema<any, any>) {
     Object.defineProperty(schema, KEYS.EXCLUDE_SCHEMA, {
       value: true,
       writable: false,
