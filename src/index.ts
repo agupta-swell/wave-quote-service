@@ -4,8 +4,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as morgan from 'morgan';
 import { AppModule } from './app/app.module';
 import { ValidationPipe } from './app/validation.pipe';
-import { IDocusignContextRouteMapper, IDocusignContextStore } from './shared/docusign';
-import { KEYS } from './shared/docusign/constants';
+import { ASYNC_CTX } from './shared/async-context';
+import { AsyncContextProvider } from './shared/async-context/providers/async-context.provider';
+import { IDocusignContextStore } from './shared/docusign';
+import { DOCUSIGN_ROUTE, KEYS } from './shared/docusign/constants';
+import { NO_LOGGING } from './shared/morgan';
+import { RouteMapper } from './shared/route-mapper';
 
 async function bootstrap() {
   const fAdapt = new FastifyAdapter();
@@ -21,12 +25,14 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, fAdapt);
 
-  const docusignContextStore = app.get<IDocusignContextRouteMapper & IDocusignContextStore>(KEYS.CONTEXT);
+  const docusignContextStore = app.get<IDocusignContextStore>(KEYS.CONTEXT);
 
-  docusignContextStore.initRoutesMapper();
+  const asyncContext = app.get(AsyncContextProvider);
+
+  RouteMapper.initRoutesMapper();
 
   fAdapt.getInstance().addHook('preHandler', (req, _rep, done) => {
-    if (docusignContextStore.checkRoute(req.routerMethod, req.routerPath)) {
+    if (RouteMapper.checkRoute(DOCUSIGN_ROUTE, req.routerMethod, req.routerPath)) {
       docusignContextStore.run(() => {
         done();
       });
@@ -34,6 +40,13 @@ async function bootstrap() {
       return;
     }
 
+    if (RouteMapper.checkRoute(ASYNC_CTX, req.routerMethod, req.routerPath)) {
+      asyncContext.run(() => {
+        done();
+      });
+
+      return;
+    }
     done();
   });
 
@@ -51,6 +64,9 @@ async function bootstrap() {
   app.use(
     morgan(
       '[:date[iso]] :remote-addr HTTP/:http-version :method :url HTTP-Code: :status Size: :res[content-length] bytes - Response-time: :response-time ms',
+      {
+        skip: req => RouteMapper.checkIncommingReq(NO_LOGGING, req.method ?? 'ALL', req.url ?? ''),
+      },
     ),
   );
   // app.useLogger(app.get(MyLogger));

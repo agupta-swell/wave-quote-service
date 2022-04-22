@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsNotEmpty, IsNumber, IsOptional, Min, ValidateIf } from 'class-validator';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
 export class UpdateOpportunityExistingSystemDto {
@@ -40,11 +40,13 @@ export class UpdateOpportunityExistingSystemDto {
 
   @ApiProperty()
   @IsOptional()
+  @ValidateIf(o => !!o.existingPV)
   @IsEnum(INVERTER_TYPE_EXISTING_SOLAR)
   inverter: INVERTER_TYPE_EXISTING_SOLAR;
 
   @ApiProperty()
   @IsOptional()
+  @ValidateIf(o => !!o.existingPV)
   @IsEnum(FINANCE_TYPE_EXISTING_SOLAR)
   financeType: FINANCE_TYPE_EXISTING_SOLAR;
 

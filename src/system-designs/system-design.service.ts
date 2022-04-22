@@ -8,6 +8,7 @@ import { ContractService } from 'src/contracts/contract.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
+import { IUnknownProduct, IProductDocument } from 'src/products-v2/interfaces';
 import { ProductService } from 'src/products-v2/services';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
@@ -26,8 +27,8 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import {
   calcCoordinatesDistance,
-  isCoordinatesInsideBoundByAtLeast,
   ICoordinate,
+  isCoordinatesInsideBoundByAtLeast,
 } from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
@@ -40,7 +41,7 @@ import {
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
-import { SystemDesignAncillaryMasterDto, SystemDesignDto, CalculateSunroofResDto, GetBoundingBoxesResDto } from './res';
+import { CalculateSunroofResDto, GetBoundingBoxesResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { getTypicalProduction, ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
@@ -400,11 +401,63 @@ export class SystemDesignService {
   }): Promise<Partial<SystemDesignModel>> {
     if (preCalculate) await preCalculate();
 
-    const [utilityAndUsage, systemProductionArray] = await Promise.all([
+    const [utilityAndUsage, products] = await Promise.all([
       this.utilityService.getUtilityByOpportunityId(systemDesignDto.opportunityId),
-      this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
+      this.getAllProductsOfSystemDesign(systemDesignDto),
     ]);
+
+    const systemProductionArray = await this.systemProductService.calculateSystemProductionByHour(
+      systemDesignDto,
+      products,
+    );
+
     const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
+
+    const adders = products.filter(item => item.type === PRODUCT_TYPE.ADDER) as LeanDocument<
+      IProductDocument<PRODUCT_TYPE.ADDER>
+    >[];
+
+    const inverters = products.filter(item => item.type === PRODUCT_TYPE.INVERTER) as LeanDocument<
+      IProductDocument<PRODUCT_TYPE.INVERTER>
+    >[];
+
+    const storages = (products.filter(item => item.type === PRODUCT_TYPE.BATTERY) as unknown) as LeanDocument<
+      IProductDocument<PRODUCT_TYPE.BATTERY>
+    >[];
+
+    const balanceOfSystems = products.filter(item => item.type === PRODUCT_TYPE.BALANCE_OF_SYSTEM) as LeanDocument<
+      IProductDocument<PRODUCT_TYPE.BALANCE_OF_SYSTEM>
+    >[];
+
+    const ancilaryEquipments = products.filter(item => item.type === PRODUCT_TYPE.ANCILLARY_EQUIPMENT) as LeanDocument<
+      IProductDocument<PRODUCT_TYPE.ANCILLARY_EQUIPMENT>
+    >[];
+
+    const softCosts = products.filter(item => item.type === PRODUCT_TYPE.SOFT_COST) as LeanDocument<
+      IProductDocument<PRODUCT_TYPE.SOFT_COST>
+    >[];
+
+    const laborCosts = products.filter(item => item.type === PRODUCT_TYPE.LABOR) as LeanDocument<
+      IProductDocument<PRODUCT_TYPE.LABOR>
+    >[];
+
+    adders.forEach((adder, id) => systemDesign.setAdder(adder, adder.pricingUnit, id, systemDesign.designMode));
+
+    inverters.forEach((inverter, id) => systemDesign.setInverter(inverter, id, systemDesign.designMode));
+
+    storages.forEach((storage, id) => systemDesign.setStorage(storage, id, systemDesign.designMode));
+
+    balanceOfSystems.forEach((balanceOfSystems, id) =>
+      systemDesign.setBalanceOfSystem(balanceOfSystems, id, systemDesign.designMode),
+    );
+
+    ancilaryEquipments.forEach((ancillaryEquipment, id) =>
+      systemDesign.setAncillaryEquipment(ancillaryEquipment, id, systemDesign.designMode),
+    );
+
+    softCosts.forEach((softCost, id) => systemDesign.setSoftCost(softCost, id, systemDesign.designMode));
+
+    laborCosts.forEach((laborCost, id) => systemDesign.setLaborCost(laborCost, id, systemDesign.designMode));
 
     if (systemDesignDto.roofTopDesignData) {
       const arrayGenerationKWh: number[] = [];
@@ -419,13 +472,16 @@ export class SystemDesignService {
 
           item.panelModelId = panelModelId;
 
-          const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
+          const panelModelData = products.find(p => p._id?.toString() === panelModelId) as LeanDocument<
+            IProductDocument<PRODUCT_TYPE.MODULE>
+          >;
 
           systemDesign.setPanelModelDataSnapshot(panelModelData, index);
 
           const capacity = (item.numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
 
           const { azimuth, pitch, useSunroof, sunroofPitch, sunroofAzimuth } = item;
+
           const acAnnual = await this.systemProductService.pvWatCalculation({
             lat: systemDesign.latitude,
             lon: systemDesign.longitude,
@@ -438,60 +494,6 @@ export class SystemDesignService {
           arrayGenerationKWh[index] = acAnnual;
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
-        }),
-        systemDesign.roofTopDesignData.adders?.map(async (item, index) => {
-          const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
-
-          systemDesign.setAdder(adder, adder.pricingUnit, index);
-        }),
-        systemDesign.roofTopDesignData.inverters?.map(async (inverter, index) => {
-          const inverterModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.INVERTER,
-            inverter.inverterModelId,
-          );
-
-          systemDesign.setInverter(inverterModelData, index);
-        }),
-        systemDesign.roofTopDesignData.storage?.map(async (storage, index) => {
-          const storageModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.BATTERY,
-            storage.storageModelId,
-          );
-
-          systemDesign.setStorage(storageModelData, index);
-        }),
-        systemDesign.roofTopDesignData.balanceOfSystems?.map(async (balanceOfSystem, index) => {
-          const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.BALANCE_OF_SYSTEM,
-            balanceOfSystem.balanceOfSystemId,
-          );
-
-          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
-        }),
-        systemDesign.roofTopDesignData.ancillaryEquipments?.map(async (ancillary, index) => {
-          const ancillaryModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.ANCILLARY_EQUIPMENT,
-            ancillary.ancillaryId,
-          );
-
-          systemDesign.setAncillaryEquipment(ancillaryModelData, index);
-        }),
-        systemDesign.roofTopDesignData.softCosts?.map(async (softCost, index) => {
-          const softCostModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.SOFT_COST,
-            softCost.softCostId,
-          );
-
-          systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
-        }),
-
-        systemDesign.roofTopDesignData.laborCosts?.map(async (laborCost, index) => {
-          const laborCostModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.LABOR,
-            laborCost.laborCostId,
-          );
-
-          systemDesign.setLaborCost(laborCostModelData, index, systemDesign.designMode);
         }),
       ];
 
@@ -540,16 +542,6 @@ export class SystemDesignService {
     }
 
     if (systemDesignDto.capacityProductionDesignData) {
-      const {
-        adders,
-        inverters,
-        storage,
-        balanceOfSystems,
-        ancillaryEquipments,
-        softCosts,
-        laborCosts,
-      } = systemDesignDto.capacityProductionDesignData;
-
       const arrayGenerationKWh: number[] = [];
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
@@ -559,7 +551,9 @@ export class SystemDesignService {
           const { panelModelId, capacity, production, pitch, azimuth, losses } = item;
           let generation = 0;
 
-          const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
+          const panelModelData = products.find(p => p._id?.toString() === panelModelId) as LeanDocument<
+            IProductDocument<PRODUCT_TYPE.MODULE>
+          >;
 
           systemDesign.setPanelModelDataSnapshot(panelModelData, index, systemDesign.designMode);
 
@@ -605,61 +599,6 @@ export class SystemDesignService {
             },
             index,
           );
-        }),
-        adders?.map(async (item, index) => {
-          const adder = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.ADDER, item.adderId);
-
-          systemDesign.setAdder(adder, adder.pricingUnit, index, systemDesign.designMode);
-        }),
-        inverters?.map(async (inverter, index) => {
-          const inverterModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.INVERTER,
-            inverter.inverterModelId,
-          );
-
-          systemDesign.setInverter(inverterModelData, index, systemDesign.designMode);
-        }),
-        storage?.map(async (storage, index) => {
-          const storageModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.BATTERY,
-            storage.storageModelId,
-          );
-
-          systemDesign.setStorage(storageModelData, index, systemDesign.designMode);
-        }),
-        balanceOfSystems?.map(async (balanceOfSystem, index) => {
-          const balanceOfSystemModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.BALANCE_OF_SYSTEM,
-            balanceOfSystem.balanceOfSystemId,
-          );
-
-          systemDesign.setBalanceOfSystem(balanceOfSystemModelData, index, systemDesign.designMode);
-        }),
-        ancillaryEquipments?.map(async (ancillary, index) => {
-          const ancillaryModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.ANCILLARY_EQUIPMENT,
-            ancillary.ancillaryId,
-          );
-
-          systemDesign.setAncillaryEquipment(ancillaryModelData, index, systemDesign.designMode);
-        }),
-
-        softCosts?.map(async (softCost, index) => {
-          const softCostModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.SOFT_COST,
-            softCost.softCostId,
-          );
-
-          systemDesign.setSoftCost(softCostModelData, index, systemDesign.designMode);
-        }),
-
-        laborCosts?.map(async (laborCost, index) => {
-          const laborCostModelData = await this.productService.getDetailByIdAndType(
-            PRODUCT_TYPE.LABOR,
-            laborCost.laborCostId,
-          );
-
-          systemDesign.setLaborCost(laborCostModelData, index, systemDesign.designMode);
         }),
       ];
 
@@ -802,7 +741,7 @@ export class SystemDesignService {
 
     assignToModel(foundSystemDesign, removedUndefined);
 
-    await Promise.all([
+    const [, , systemProductionUpdated] = await Promise.all([
       foundSystemDesign.save(),
       systemDesignDto.designMode &&
         this.quoteService.setOutdatedData(
@@ -815,7 +754,12 @@ export class SystemDesignService {
       }),
     ]);
 
-    return OperationResult.ok(strictPlainToClass(SystemDesignDto, foundSystemDesign.toJSON()));
+    const systemDesignUpdated = foundSystemDesign.toJSON();
+    if (systemProductionUpdated.data) {
+      systemDesignUpdated.systemProductionData = systemProductionUpdated.data;
+    }
+
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, systemDesignUpdated));
   }
 
   async recalculateSystemDesign(
@@ -838,7 +782,7 @@ export class SystemDesignService {
     const systemDesign = new SystemDesignModel(pickBy(systemDesignDto, item => typeof item !== 'undefined') as any);
 
     if (id) {
-      const foundSystemDesign = await this.systemDesignModel.findOne({ _id: id });
+      const foundSystemDesign = await this.systemDesignModel.findOne({ _id: id }).lean();
 
       if (!foundSystemDesign) throw ApplicationException.NotFoundStatus('System Design', id.toString());
 
@@ -848,7 +792,7 @@ export class SystemDesignService {
 
       return OperationResult.ok(
         strictPlainToClass(SystemDesignDto, {
-          ...foundSystemDesign.toJSON(),
+          ...foundSystemDesign,
           ...result,
         }),
       );
@@ -1286,5 +1230,41 @@ export class SystemDesignService {
       sunroofPitch: closestSegment.pitchDegrees,
       sunroofAzimuth: closestSegment.azimuthDegrees,
     };
+  }
+
+  private async getAllProductsOfSystemDesign(
+    systemDesignDto: UpdateSystemDesignDto,
+  ): Promise<LeanDocument<IUnknownProduct>[]> {
+    const productIds: string[] = [];
+
+    if (systemDesignDto.roofTopDesignData) {
+      productIds.push(...(systemDesignDto.roofTopDesignData.adders ?? []).map(e => e.adderId));
+      productIds.push(...(systemDesignDto.roofTopDesignData.ancillaryEquipments ?? []).map(e => e.ancillaryId));
+      productIds.push(...(systemDesignDto.roofTopDesignData.balanceOfSystems ?? []).map(e => e.balanceOfSystemId));
+      productIds.push(...(systemDesignDto.roofTopDesignData.inverters ?? []).map(e => e.inverterModelId));
+      productIds.push(...(systemDesignDto.roofTopDesignData.laborCosts ?? []).map(e => e.laborCostId));
+      productIds.push(...(systemDesignDto.roofTopDesignData.panelArray ?? []).map(e => e.panelModelId));
+      productIds.push(...(systemDesignDto.roofTopDesignData.softCosts ?? []).map(e => e.softCostId));
+      productIds.push(...(systemDesignDto.roofTopDesignData.storage ?? []).map(e => e.storageModelId));
+    } else {
+      productIds.push(...(systemDesignDto.capacityProductionDesignData.adders ?? []).map(e => e.adderId));
+      productIds.push(
+        ...(systemDesignDto.capacityProductionDesignData.ancillaryEquipments ?? []).map(e => e.ancillaryId),
+      );
+      productIds.push(
+        ...(systemDesignDto.capacityProductionDesignData.balanceOfSystems ?? []).map(e => e.balanceOfSystemId),
+      );
+      productIds.push(...(systemDesignDto.capacityProductionDesignData.inverters ?? []).map(e => e.inverterModelId));
+      productIds.push(...(systemDesignDto.capacityProductionDesignData.laborCosts ?? []).map(e => e.laborCostId));
+      productIds.push(...(systemDesignDto.capacityProductionDesignData.panelArray ?? []).map(e => e.panelModelId));
+      productIds.push(...(systemDesignDto.capacityProductionDesignData.softCosts ?? []).map(e => e.softCostId));
+      productIds.push(...(systemDesignDto.capacityProductionDesignData.storage ?? []).map(e => e.storageModelId));
+    }
+
+    const products = await this.productService.getDetailByIds(productIds);
+
+    return productIds
+      .map(id => products.find(e => e._id?.toString() === id))
+      .filter((e): e is LeanDocument<IUnknownProduct> => !!e);
   }
 }

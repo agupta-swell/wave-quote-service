@@ -4,6 +4,7 @@ import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
+import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import {
   CalculateSunroofDto,
@@ -31,7 +32,8 @@ import { SystemDesignService } from './system-design.service';
 export class SystemDesignController {
   constructor(private systemDesignService: SystemDesignService) {}
 
-  @Post()
+  @UseAsyncContext
+  @Post('/')
   @ApiOperation({ summary: 'Create system design' })
   @ApiOkResponse({ type: SystemDesignRes })
   @CheckOpportunity()
@@ -40,6 +42,7 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(result);
   }
 
+  @UseAsyncContext
   @Put(':id')
   @ApiOperation({ summary: 'Update system design' })
   @ApiOkResponse({ type: SystemDesignRes })
@@ -52,11 +55,11 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(result);
   }
 
+  @UseAsyncContext
   @Post(':id/calculate')
   @ApiParam({ name: 'id', type: String, description: 'use -1 for uncreated system design' })
   @ApiOperation({ summary: 'Recalculate system design' })
   @ApiOkResponse({ type: SystemDesignRes })
-  @CheckOpportunity()
   async recalculate(
     @Param('id', ParseObjectIdPipe) id: ObjectId | null,
     @Body() systemDesign: UpdateSystemDesignDto,
