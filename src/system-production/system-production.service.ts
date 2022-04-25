@@ -11,8 +11,6 @@ import { ISystemProduction, SYSTEM_PRODUCTION } from './system-production.schema
 
 @Injectable()
 export class SystemProductionService {
-  private ARRAY_HOURLY_PRODUCTION_BUCKET = process.env.AWS_S3_ARRAY_HOURLY_PRODUCTION as string;
-
   constructor(
     @InjectModel(SYSTEM_PRODUCTION) private readonly systemProductionModel: Model<ISystemProduction>,
     private readonly s3Service: S3Service,
@@ -40,5 +38,14 @@ export class SystemProductionService {
       throw ApplicationException.EntityNotFound(`SystemProductionId: ${id.toString()}`);
     }
     return OperationResult.ok(strictPlainToClass(SystemProductionDto, foundSystemProduction.toJSON()));
+  }
+
+  async delete(id: string | ObjectId): Promise<OperationResult<string>> {
+    const foundSystemProduction = await this.systemProductionModel.findById(id);
+    if (!foundSystemProduction) {
+      throw ApplicationException.EntityNotFound(`SystemProductionId: ${id.toString()}`);
+    }
+    foundSystemProduction.deleteOne();
+    return OperationResult.ok(`Deleted SystemProductionId: ${id.toString()}Successfully`);
   }
 }

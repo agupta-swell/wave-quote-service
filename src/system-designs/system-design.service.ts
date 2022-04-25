@@ -8,7 +8,7 @@ import { ContractService } from 'src/contracts/contract.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
-import { IUnknownProduct, IProductDocument } from 'src/products-v2/interfaces';
+import { IProductDocument, IUnknownProduct } from 'src/products-v2/interfaces';
 import { ProductService } from 'src/products-v2/services';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
@@ -804,16 +804,24 @@ export class SystemDesignService {
   }
 
   async delete(id: ObjectId, opportunityId: string): Promise<OperationResult<string>> {
-    const systemDesign = await this.systemDesignModel.findOne({ _id: id, opportunityId });
+    const systemDesignId = id.toString();
+    const systemDesign = await this.systemDesignModel.findOne({ _id: systemDesignId, opportunityId });
     if (!systemDesign) {
-      throw ApplicationException.EntityNotFound(id.toString());
+      throw ApplicationException.EntityNotFound(systemDesignId);
     }
 
-    const isInUsed = await this.checkInUsed(id.toString());
+    const checkUsedByQuote = await this.quoteService.getAllQuotes(1, 0, systemDesignId, opportunityId, '1');
+    if (checkUsedByQuote.data?.total) {
+      throw new BadRequestException('This system design has been used by Quote');
+    }
+
+    const isInUsed = await this.checkInUsed(systemDesignId);
 
     if (isInUsed) {
       throw new BadRequestException(isInUsed);
     }
+
+    this.systemProductionService.delete(systemDesign.systemProductionId);
 
     await systemDesign.deleteOne();
     return OperationResult.ok('Deleted Successfully');
