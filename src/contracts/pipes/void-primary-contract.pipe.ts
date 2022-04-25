@@ -17,7 +17,7 @@ export class VoidPrimaryContractPipe implements PipeTransform<ObjectId, Promise<
   }
 
   private static validate(contract: Contract) {
-    if (contract.contractType !== CONTRACT_TYPE.PRIMARY_CONTRACT) {
+    if (![CONTRACT_TYPE.PRIMARY_CONTRACT, CONTRACT_TYPE.GRID_SERVICES_AGREEMENT].includes(contract.contractType)) {
       throw new BadRequestException('This contract is not allowed to void');
     }
 
