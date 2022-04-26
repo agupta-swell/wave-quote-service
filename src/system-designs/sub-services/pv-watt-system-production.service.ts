@@ -4,12 +4,10 @@ import { roundNumber } from 'src/utils/transformNumber';
 export const getTypicalProduction = (hourlyProduction: number[]) => {
   const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
 
-  let datesInMonths;
+  const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  // leap year
   if (totalDatesOfHourlyProduction === 366) {
-    // leap year
-    datesInMonths = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  } else {
-    datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    datesInMonths[1] = 29;
   }
 
   const monthHours = datesInMonths.map(d => d * 24);

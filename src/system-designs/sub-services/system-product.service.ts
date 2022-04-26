@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
@@ -127,7 +127,7 @@ export class SystemProductService implements OnModuleInit {
     let hourly: number[] = [];
 
     try {
-      const res = await this.s3Service.getObject(this.HOURLY_PRODUCTION_BUCKET, 'hourly-production');
+      const res = await this.s3Service.getObject(this.HOURLY_PRODUCTION_BUCKET, hourlyId);
 
       if (res) hourly = JSON.parse(res) as number[];
     } catch (_) {

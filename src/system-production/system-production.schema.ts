@@ -17,6 +17,7 @@ export interface ISystemProduction extends Document {
   generationMonthlyKWh: number[];
   arrayGenerationKWh: number[];
   pvWattProduction: IPvWattProduction;
+  createdAt: Date;
 }
 
 export const SystemProductionSchema = new Schema<ISystemProduction>({
@@ -34,6 +35,7 @@ export const SystemProductionSchema = new Schema<ISystemProduction>({
     },
     { _id: false },
   ),
+  created_at: { type: Date, default: Date.now },
 });
 
 export class SystemProductionModel {
@@ -54,6 +56,8 @@ export class SystemProductionModel {
   arrayGenerationKWh: number[];
 
   pvWattProduction: IPvWattProduction;
+
+  createdAt: Date;
 
   constructor(systemProduction: CreateSystemProductionDto) {
     this.capacityKW = systemProduction.capacityKW;
