@@ -810,7 +810,7 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(systemDesignId);
     }
 
-    const checkUsedByQuote = await this.quoteService.getAllQuotes(1, 0, systemDesignId, opportunityId, '1');
+    const checkUsedByQuote = await this.quoteService.getAllQuotes(1, 0, systemDesignId, opportunityId);
     if (checkUsedByQuote.data?.total) {
       throw new BadRequestException('This system design has been used by Quote');
     }
