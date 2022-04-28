@@ -4,7 +4,7 @@ import { IsMongoId, IsNotEmpty, IsNumber, Min } from 'class-validator';
 export class AdderDto {
   @ApiProperty()
   @IsNotEmpty()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 0 })
   @Min(1)
   quantity: number;
 
