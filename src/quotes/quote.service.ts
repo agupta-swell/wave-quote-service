@@ -703,6 +703,7 @@ export class QuoteService {
       dealerFeePercentage,
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
+      userInputs: foundQuote.detailedQuote.quoteCostBuildup,
     });
 
     const primaryQuoteType = this.getPrimaryQuoteType(

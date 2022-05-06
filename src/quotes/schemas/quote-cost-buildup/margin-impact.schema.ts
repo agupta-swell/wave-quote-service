@@ -1,4 +1,4 @@
-export const marginImpactSchemaDefination = {
+export const marginImpactSchemaDefinition = {
   margin_allocation: Number,
   margin_amount: Number,
 };
