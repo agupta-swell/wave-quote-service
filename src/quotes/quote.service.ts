@@ -854,7 +854,20 @@ export class QuoteService {
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
     );
 
-    return OperationResult.ok(strictPlainToClass(QuoteDto, { ...model, _id: foundQuote._id } as any));
+    const removedUndefined = pickBy(model, item => typeof item !== 'undefined');
+
+    const savedQuote = await this.quoteModel
+      .findByIdAndUpdate(
+        quoteId,
+        {
+          '@@check-transform': true,
+          ...removedUndefined,
+        },
+        { new: true },
+      )
+      .lean();
+
+    return OperationResult.ok(strictPlainToClass(QuoteDto, savedQuote));
   }
 
   async getAllQuotes(
