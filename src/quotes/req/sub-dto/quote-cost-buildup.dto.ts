@@ -10,6 +10,7 @@ import {
   BaseCostBuildupFeeDto,
   AdditionalFeesDto,
   CashDiscountDto,
+  SalesOriginationSalesFeeDto,
 } from 'src/quotes/res/sub-dto';
 import { ExposeProp } from 'src/shared/decorators';
 import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
@@ -193,8 +194,8 @@ export class QuoteCostBuildupDto implements Partial<IQuoteCostBuildup> {
   @ExposeProp({ type: BaseCostBuildupFeeDto })
   salesOriginationManagerFee: BaseCostBuildupFeeDto;
 
-  @ExposeProp({ type: BaseCostBuildupFeeDto })
-  salesOriginationSalesFee: BaseCostBuildupFeeDto;
+  @ExposeProp({ type: SalesOriginationSalesFeeDto })
+  salesOriginationSalesFee: SalesOriginationSalesFeeDto;
 
   @ExposeProp({ type: BaseCostBuildupFeeDto })
   thirdPartyFinancingDealerFee: BaseCostBuildupFeeDto;

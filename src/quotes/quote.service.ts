@@ -703,6 +703,7 @@ export class QuoteService {
       dealerFeePercentage,
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
+      userInputs: foundQuote.detailedQuote.quoteCostBuildup,
     });
 
     const primaryQuoteType = this.getPrimaryQuoteType(
@@ -788,7 +789,7 @@ export class QuoteService {
       systemProductionId: systemDesign.systemProductionId,
       primaryQuoteType,
       quoteCostBuildup,
-      rebateProgramDetail: rebateProgram,
+      rebateProgram,
       utilityProgram,
       quoteFinanceProduct: {
         financeProduct: {
@@ -806,6 +807,8 @@ export class QuoteService {
         promotionDetails:
           data.quoteFinanceProduct?.promotionDetails ?? promotionDetails.filter(PromotionService.validate),
       },
+      taxCreditSelectedForReinvestment: foundQuote.detailedQuote.taxCreditSelectedForReinvestment,
+      utilityProgramSelectedForReinvestment: foundQuote.detailedQuote.utilityProgramSelectedForReinvestment,
       savingsDetails: [],
       quoteName: foundQuote.detailedQuote.quoteName,
       isSelected: foundQuote.detailedQuote.isSelected,
@@ -859,7 +862,7 @@ export class QuoteService {
     skip: number,
     systemDesignId: string,
     opportunityId: string,
-    isSync: string,
+    isSync?: string,
   ): Promise<OperationResult<Pagination<QuoteDto>>> {
     const condition = omitBy(
       {

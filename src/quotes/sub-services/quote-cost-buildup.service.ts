@@ -17,8 +17,14 @@ import {
   ICreateQuoteCostBuildupParams,
   IBaseQuoteCost,
   ISalesTaxData,
+  SALES_ORIGINATION_SALES_FEE_INPUT_TYPE,
 } from '../interfaces';
-import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
+import {
+  IAdditionalFees,
+  IBaseCostBuildupFee,
+  ICashDiscount,
+  ISalesOriginationSalesFee,
+} from '../interfaces/quote-cost-buildup/ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from '../interfaces/quote-cost-buildup/ITotalPromotionsDiscountsGridrewards';
 import { IIncentiveDetailsSchema } from '../quote.schema';
 import { QuoteFinanceProductService } from './quote-finance-product.service';
@@ -393,7 +399,7 @@ export class QuoteCostBuildUpService {
   public calculateCashDiscount(
     thirdPartyFinancingDealerFee: IBaseCostBuildupFee,
     subtotalWithSalesOriginationManagerFee: number,
-    salesOriginationSalesFee: IBaseCostBuildupFee,
+    salesOriginationSalesFee: ISalesOriginationSalesFee,
     financialProduct: LeanDocument<FinancialProduct>,
     fundingSourceType: FINANCE_PRODUCT_TYPE,
   ): ICashDiscount {
@@ -637,18 +643,42 @@ export class QuoteCostBuildUpService {
       salesOriginationManagerFee,
     );
 
-    const salesOriginationSalesFee: IBaseCostBuildupFee = partnerMarkup.useFixedSalesOriginationSalesFee
+    const salesOriginationSalesFeeInputType = userInputs?.salesOriginationSalesFee?.inputType;
+    // const total = ;
+    // const amount = roundNumber(total.toNumber(), 2);
+
+    const salesOriginationSalesFee: ISalesOriginationSalesFee = partnerMarkup.useFixedSalesOriginationSalesFee
       ? this.calculateCostBuildupFee(
           subtotalWithSalesOriginationManagerFee.netCost,
           partnerMarkup.salesOriginationSalesFee,
         )
       : {
-          total: roundNumber(userInputs?.salesOriginationSalesFee?.total || 0, 2),
-          unitPercentage: userInputs?.salesOriginationSalesFee?.unitPercentage || 0,
+          total:
+            salesOriginationSalesFeeInputType === SALES_ORIGINATION_SALES_FEE_INPUT_TYPE.TOTAL
+              ? roundNumber(userInputs?.salesOriginationSalesFee?.total || 0, 2)
+              : roundNumber(
+                  new BigNumber(subtotalWithSalesOriginationManagerFee.netCost)
+                    .multipliedBy(userInputs?.salesOriginationSalesFee?.unitPercentage || 0)
+                    .dividedBy(100)
+                    .toNumber(),
+                  2,
+                ),
+          unitPercentage:
+            !salesOriginationSalesFeeInputType ||
+            salesOriginationSalesFeeInputType === SALES_ORIGINATION_SALES_FEE_INPUT_TYPE.PERCENTAGE
+              ? roundNumber(userInputs?.salesOriginationSalesFee?.unitPercentage || 0, 2)
+              : roundNumber(
+                  new BigNumber(userInputs?.salesOriginationSalesFee?.total || 0)
+                    .dividedBy(subtotalWithSalesOriginationManagerFee.netCost)
+                    .multipliedBy(100)
+                    .toNumber(),
+                  2,
+                ),
           cogsAllocation: 0,
           marginAllocation: 100,
           cogsAmount: 0,
           marginAmount: roundNumber(userInputs?.salesOriginationSalesFee?.total || 0, 2),
+          inputType: salesOriginationSalesFeeInputType,
         };
 
     const thirdPartyFinancingDealerFee = this.calculateThirdPartyFinancingDealerFee(

@@ -10,7 +10,7 @@ import { IIncentiveDetailsSchema } from 'src/quotes/quote.schema';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
 import { IQuoteCost } from './IQuoteCost';
 import { IBaseQuoteMarginData } from './IBaseQuoteMarginData';
-import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount } from './ICostBuildupFee';
+import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount, ISalesOriginationSalesFee } from './ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
 import { ICreateQuoteCostBuildUpArg } from './ICreateQuoteCostBuildUpArg';
 import { ISalesTaxData } from './ISalesTaxData';
@@ -32,7 +32,7 @@ export interface IQuoteCostBuildup {
   projectSubtotalWithDiscountsPromotionsAndSwellGridrewards: IBaseQuoteMarginData;
   totalPromotionsDiscountsAndSwellGridrewards: ITotalPromotionsDiscountsAndSwellGridrewards;
   salesOriginationManagerFee: IBaseCostBuildupFee;
-  salesOriginationSalesFee: IBaseCostBuildupFee;
+  salesOriginationSalesFee: ISalesOriginationSalesFee;
   thirdPartyFinancingDealerFee: IBaseCostBuildupFee;
   cashDiscount: ICashDiscount;
   subtotalWithSalesOriginationManagerFee: IBaseQuoteMarginData;

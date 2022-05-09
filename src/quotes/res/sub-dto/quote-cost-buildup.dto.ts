@@ -12,6 +12,8 @@ import {
   ITotalPromotionsDiscountsAndSwellGridrewards,
   ICashDiscount,
   ISalesTaxData,
+  ISalesOriginationSalesFee,
+  SALES_ORIGINATION_SALES_FEE_INPUT_TYPE,
 } from 'src/quotes/interfaces';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
@@ -161,6 +163,29 @@ export class BaseCostBuildupFeeDto implements IBaseCostBuildupFee {
   marginAmount: number;
 }
 
+export class SalesOriginationSalesFeeDto implements ISalesOriginationSalesFee {
+  @ExposeProp()
+  unitPercentage: number;
+
+  @ExposeProp()
+  total: number;
+
+  @ExposeProp()
+  cogsAllocation: number;
+
+  @ExposeProp()
+  cogsAmount: number;
+
+  @ExposeProp()
+  marginAllocation: number;
+
+  @ExposeProp()
+  marginAmount: number;
+
+  @ExposeProp()
+  inputType?: SALES_ORIGINATION_SALES_FEE_INPUT_TYPE;
+}
+
 export class CashDiscountDto implements ICashDiscount {
   @ExposeProp()
   name: string;
@@ -204,7 +229,7 @@ export class SalesTaxDataDto implements ISalesTaxData {
 }
 
 export class QuoteCostBuildupUserInputDto {
-  salesOriginationSalesFee?: BaseCostBuildupFeeDto;
+  salesOriginationSalesFee?: SalesOriginationSalesFeeDto;
 }
 
 export class QuoteCostBuildupDto implements IQuoteCostBuildup {
@@ -262,8 +287,8 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   @ExposeProp({ type: BaseCostBuildupFeeDto })
   salesOriginationManagerFee: BaseCostBuildupFeeDto;
 
-  @ExposeProp({ type: BaseCostBuildupFeeDto })
-  salesOriginationSalesFee: BaseCostBuildupFeeDto;
+  @ExposeProp({ type: SalesOriginationSalesFeeDto })
+  salesOriginationSalesFee: SalesOriginationSalesFeeDto;
 
   @ExposeProp({ type: BaseCostBuildupFeeDto })
   thirdPartyFinancingDealerFee: BaseCostBuildupFeeDto;
