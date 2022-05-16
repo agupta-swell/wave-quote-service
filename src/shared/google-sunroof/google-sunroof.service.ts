@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-syntax */
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 import axios from 'axios';
 import * as geotiff from 'geotiff';
@@ -156,7 +157,6 @@ export class GoogleSunroofService {
 
   /**
    * TODO document this
-   * TODO improve debugging
    *
    * @param systemDesign
    */
@@ -419,11 +419,17 @@ export class GoogleSunroofService {
   /**
    * Serialize a PNG into S3 with an `image/png` MIME type.
    *
+   * If debugging is enabled, also dump the image to a local folder.
+   *
    * @param png
    * @param key
    * @private
    */
   private async savePngToS3 (png: PNG, key: string) : Promise<void> {
+    if (DEBUG) {
+      await fs.promises.mkdir(DEBUG_FOLDER, { recursive: true });
+      png.pack().pipe(fs.createWriteStream(path.join(DEBUG_FOLDER, path.basename(key))))
+    }
     await this.s3Service.putObject(
       this.GOOGLE_SUNROOF_S3_BUCKET,
       key,
@@ -433,11 +439,21 @@ export class GoogleSunroofService {
   }
 }
 
+/**
+ * Return the contents of the provided URL as a NodeJS Buffer.
+ *
+ * @param url
+ */
 async function downloadFileAsBuffer (url: string) : Promise<Buffer> {
   const { data } = await axios.get<Buffer>(url, { responseType: 'arraybuffer' })
   return data
 }
 
+/**
+ * Construct a GeoTiff (from Buffer data) and read its rasters (layers).
+ *
+ * @param tiffBuffer
+ */
 async function getLayersFromTiffBuffer (tiffBuffer: Buffer) : Promise<TypedArrayArrayWithDimensions> {
   const tiff = await geotiff.fromBuffer(tiffBuffer);
   // We are casting here to narrow the result, because every Google
