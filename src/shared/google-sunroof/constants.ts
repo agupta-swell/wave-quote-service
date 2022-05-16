@@ -16,3 +16,18 @@ export const fluxGradientStops: Record<number,Color> = {
   50: [222,162,57],
   100: [254,255,63]
 }
+
+export const DAY_COUNT_BY_MONTH_INDEX = {
+  0: 31,
+  1: 28,
+  2: 31,
+  3: 30,
+  4: 31,
+  5: 30,
+  6: 31,
+  7: 31,
+  8: 30,
+  9: 31,
+  10: 30,
+  11: 31,
+}
