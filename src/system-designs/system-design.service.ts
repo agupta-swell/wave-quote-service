@@ -1055,19 +1055,6 @@ export class SystemDesignService {
   ) : Promise<OperationResult<CalculateSunroofOrientationResDto>> {
     const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths, polygons } = req;
 
-    // const sunroofData = await this.googleSunroofService.getClosestBuilding(opportunityId, latitude, longitude)
-    //
-    // if (!sunroofData) {
-    //   return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));
-    // }
-    // const sunroofPitchAndAzimuth = this.getSunroofPitchAndAzimuth(
-    //   sunroofData,
-    //   centerLat,
-    //   centerLng,
-    //   sideAzimuths,
-    //   polygons,
-    // );
-
     const orientationInformation = await this.googleSunroofService.getOrientationInformation(
       opportunityId,
       latitude,
@@ -1098,105 +1085,6 @@ export class SystemDesignService {
   public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
     return this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
   }
-
-  // TODO delete this
-  // private async getSunRoofData(
-  //   lat: number,
-  //   lng: number,
-  //   opportunityId: string,
-  // ): Promise<GoogleSunroof.Building | null> {
-  //   try {
-  //     return await this.googleSunroofService.getClosestBuilding(opportunityId, lat, lng)
-  //
-  //     // TODO fix caching with optimistic read
-  //     // const fileName = `${opportunityId}/closestBuilding.json`;
-  //     // const existed = await this.googleSunroofService.hasS3File(fileName);
-  //     // if (!existed) {
-  //     //   return await this.googleSunroofService.getBuilding(lat, lng, fileName);
-  //     // }
-  //     // return await this.googleSunroofService.getS3FileAsJson<GoogleSunroof.Building>(fileName);
-  //   } catch (_) {
-  //     console.error(_)
-  //     return null;
-  //   }
-  // }
-
-  // TODO delete this
-  // private getSunroofPitchAndAzimuth(
-  //   buildingData: GoogleSunroof.Building,
-  //   centerLat: number,
-  //   centerLng: number,
-  //   sideAzimuths: number[],
-  //   polygons: ICoordinate[],
-  // ): {
-  //   sunroofPrimaryOrientationSide?: number;
-  //   sunroofPitch?: number;
-  //   sunroofAzimuth?: number;
-  // } {
-  //   if (!Array.isArray(buildingData?.solarPotential?.roofSegmentStats)) {
-  //     return {};
-  //   }
-  //
-  //   const segmentsContainPanel = buildingData.solarPotential.roofSegmentStats.filter(segment =>
-  //     isCoordinatesInsideBoundByAtLeast(polygons, {
-  //       ne: {
-  //         lat: segment.boundingBox.ne.latitude,
-  //         lng: segment.boundingBox.ne.longitude,
-  //       },
-  //       sw: {
-  //         lat: segment.boundingBox.sw.latitude,
-  //         lng: segment.boundingBox.sw.longitude,
-  //       },
-  //     }),
-  //   );
-  //
-  //   let closestSegment: GoogleSunroof.Building['solarPotential']['roofSegmentStats'][number];
-  //
-  //   if (segmentsContainPanel.length === 1) {
-  //     const [segment] = segmentsContainPanel;
-  //
-  //     closestSegment = segment;
-  //   } else
-  //     closestSegment = (segmentsContainPanel.length
-  //       ? segmentsContainPanel
-  //       : buildingData.solarPotential.roofSegmentStats
-  //     )
-  //       .map(e => {
-  //         const distance = calcCoordinatesDistance(
-  //           {
-  //             lat: centerLat,
-  //             lng: centerLng,
-  //           },
-  //           {
-  //             lat: e.center.latitude,
-  //             lng: e.center.longitude,
-  //           },
-  //         );
-  //
-  //         return {
-  //           ...e,
-  //           distance,
-  //         };
-  //       })
-  //       .sort((a, b) => a.distance - b.distance)[0];
-  //
-  //   if (!closestSegment.azimuthDegrees) {
-  //     return {};
-  //   }
-  //
-  //   const closestSide = sideAzimuths
-  //     .map((e, idx) => ({
-  //       side: idx + 1,
-  //       val: Math.abs(closestSegment.azimuthDegrees - e),
-  //     }))
-  //     .sort((a, b) => a.val - b.val)[0].side;
-  //
-  //   return {
-  //     sunroofPrimaryOrientationSide: closestSide,
-  //     sunroofPitch: closestSegment.pitchDegrees,
-  //     sunroofAzimuth: closestSegment.azimuthDegrees,
-  //   };
-  // }
 
   private async getAllProductsOfSystemDesign(
     systemDesignDto: UpdateSystemDesignDto,

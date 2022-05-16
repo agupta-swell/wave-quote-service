@@ -40,29 +40,6 @@ export const setPixelColor = (png: PNG, pixel: Pixel, color: Color = magenta): v
   png.data[pixelOffset + 3] = alpha;
 };
 
-// TODO
-export const getHeatmapColor = (fluxValue: number): Color => {
-  const fluxRange = fluxMax - fluxMin;
-  const percentage = (fluxValue - fluxMin) / fluxRange;
- 
-  if ( fluxValue < fluxMin ) {
-    return fluxGradientStops[0];
-  } else if ( fluxValue > fluxMax ) {
-    return fluxGradientStops[100];
-  } else if ( fluxValue === (fluxMax + fluxMin) / 2){
-    return fluxGradientStops[50];
-  } else if (percentage < 0.5) {
-    return lerpColor(fluxGradientStops[0], fluxGradientStops[50], percentage * 2);
-  } else {
-    return lerpColor(fluxGradientStops[50], fluxGradientStops[100], percentage / 2);
-  }
-}
-
-export const writePngToFile = async (png: PNG, filename: string): Promise<void> => {
-  await fs.promises.mkdir(path.dirname(filename), { recursive: true });
-  png.pack().pipe(fs.createWriteStream(filename));
-};
-
 const between = (p: number, a: number, b: number) => (p >= a && p <= b) || (p <= a && p >= b);
 
 const isPixelInPolygon = (pixelToTest: Pixel, polygon: PixelPolygon) => {
@@ -120,10 +97,6 @@ export const getPanelPixels = (polygon: PixelPolygon) => {
         counter++;
       }
     }
-  }
-
-  if ( process.env.DEBUG_SUNROOF ) {
-    console.log(`${counter} pixels added`);
   }
 
   return panelPixels;
@@ -205,3 +178,26 @@ export const drawPolygon = (png: PNG, polygon: PixelPolygon, color: Color = mage
       drawLine(png, a, b, color);
   }
 }
+
+// TODO improve this
+export const getHeatmapColor = (fluxValue: number): Color => {
+  const fluxRange = fluxMax - fluxMin;
+  const percentage = (fluxValue - fluxMin) / fluxRange;
+
+  if ( fluxValue < fluxMin ) {
+    return fluxGradientStops[0];
+  } else if ( fluxValue > fluxMax ) {
+    return fluxGradientStops[100];
+  } else if ( fluxValue === (fluxMax + fluxMin) / 2){
+    return fluxGradientStops[50];
+  } else if (percentage < 0.5) {
+    return lerpColor(fluxGradientStops[0], fluxGradientStops[50], percentage * 2);
+  } else {
+    return lerpColor(fluxGradientStops[50], fluxGradientStops[100], percentage / 2);
+  }
+}
+
+export const writePngToFile = async (png: PNG, filename: string): Promise<void> => {
+  await fs.promises.mkdir(path.dirname(filename), { recursive: true });
+  png.pack().pipe(fs.createWriteStream(filename));
+};
