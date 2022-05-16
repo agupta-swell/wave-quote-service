@@ -366,6 +366,7 @@ export class GoogleSunroofService {
 
   /**
    * TODO document this
+   * TODO improve debugging
    *
    * @param systemDesign
    */
@@ -541,29 +542,44 @@ export class GoogleSunroofService {
     // }));
   }
 
-  public async generateOverlayPng (systemDesign: SystemDesign) : Promise<void> {
-    const annualFluxTiffFilePath = `${systemDesign.opportunityId}/tiff/annualFlux.tiff`;
-    const annualFluxTiff = await this.getS3FileAsBuffer(annualFluxTiffFilePath);
-    const tiffLayers = await getLayersFromTiffBuffer( annualFluxTiff as Buffer );
+  /**
+   * TODO document this
+   *
+   * @param systemDesign
+   */
+  public async generateArrayOverlayPng (systemDesign: SystemDesign) : Promise<void> {
+    const {
+      latitude,
+      longitude,
+      opportunityId,
+      roofTopDesignData: {
+        panelArray: arrays,
+      },
+    } = systemDesign;
 
+    // fetch the annual flux tiff for this opportunity to get the dimensions for the overlay png
+    const annualFluxTiffBuffer = await this.getS3FileAsBuffer(`${opportunityId}/tiff/annualFlux.tiff`);
+    if (!annualFluxTiffBuffer) {
+      throw new Error('Cannot generate array overlay PNG before GeoTIFFs have been downloaded!')
+    }
+    const tiffLayers = await getLayersFromTiffBuffer(annualFluxTiffBuffer);
     const { height, width } = tiffLayers;
+
+    // the annual flux tiff has a resolution of 10 pixels per meter
     const pixelsPerMeter = 10;
 
-    const { latitude, longitude, opportunityId } = systemDesign;
-    const { roofTopDesignData: { panelArray: arrays }} = systemDesign;
+    const arrayPng = PngGenerator.generateArrayOverlayPng(
+      height,
+      width,
+      {
+        lat: latitude,
+        lng: longitude,
+      },
+      pixelsPerMeter,
+      arrays,
+    );
 
-    const origin: LatLng = { lat: latitude, lng: longitude };
-    const filenamePrefix = `${opportunityId}/`;
-    const filename = 'array.overlay'
-
-    const arrayPng = await PngGenerator.generateArrayPng(arrays,  origin, pixelsPerMeter, height, width);
-
-    await this.savePngToS3(arrayPng, `${filenamePrefix}${filename}.png`);
-
-    if (DEBUG) {
-      const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
-      await writePngToFile(arrayPng, pngFilename);
-    }
+    await this.savePngToS3(arrayPng, `${opportunityId}/png/array.overlay.png`);
 
     // placeholder for production calculation WAV-1700
   }
@@ -580,7 +596,7 @@ export class GoogleSunroofService {
    * @private
    * @throws SyntaxError
    */
-  private async getS3FileAsJson<T>(key: string): Promise<T | null> {
+  private async getS3FileAsJson<T> (key: string): Promise<T | null> {
     const buffer = await this.getS3FileAsBuffer(key)
     if (!buffer) return null
     const json = buffer.toString('utf-8')
@@ -594,7 +610,7 @@ export class GoogleSunroofService {
    * @param key
    * @private
    */
-  private async getS3FileAsBuffer<T>(key: string): Promise<Buffer | null> {
+  private async getS3FileAsBuffer (key: string): Promise<Buffer | null> {
     const stream = this.s3Service.getObjectAsReadable(this.GOOGLE_SUNROOF_S3_BUCKET, key)
     const chunks: Buffer[] = []
     try {

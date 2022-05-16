@@ -149,10 +149,10 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(result);
   }
 
-  @Post(':id/generate-overlay-png')
+  @Post(':id/generate-array-overlay-png')
   @ApiParam({ name: 'id', type: String })
-  async generateOverlayPng(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
-    const result = await this.systemDesignService.generateOverlayPng(id);
+  async generateArrayOverlayPng(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
+    const result = await this.systemDesignService.generateArrayOverlayPng(id);
     return ServiceResponse.fromResult(result);
   }
 }
