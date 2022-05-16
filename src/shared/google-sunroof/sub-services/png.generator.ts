@@ -1,4 +1,6 @@
+
 import type { TypedArrayArrayWithDimensions } from 'geotiff';
+
 import { chunk } from 'lodash';
 import { PNG } from 'pngjs';
 
