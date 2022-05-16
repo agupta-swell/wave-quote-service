@@ -30,7 +30,6 @@ type GoogleSunroofOrientationInformation = {
 }
 
 @Injectable()
-// TODO move S3 functions to S3 service?
 export class GoogleSunroofService {
   private readonly GOOGLE_SUNROOF_S3_BUCKET: string;
 
@@ -156,7 +155,13 @@ export class GoogleSunroofService {
   }
 
   /**
-   * TODO document this
+   * This function fetches everything needed from Google Sunroof and generates
+   * all relevant PNGs.
+   *
+   * It is lengthy, but the verbose variable naming should make it readable.
+   *
+   * It relies heavily on Promises for parallelization. There is only one final
+   * `await` statement at the bottom of the function.
    *
    * @param systemDesign
    */
@@ -164,7 +169,7 @@ export class GoogleSunroofService {
     const { latitude, longitude, opportunityId } = systemDesign
 
     // TODO TEMP hardcoding radius meters for now
-    // TODO TEMP this should be calculated from the arrays
+    // TODO TEMP this should be calculated from the arrays, WAV-1720
     const radiusMeters = 25
 
     const solarInfo = await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters)
@@ -303,7 +308,8 @@ export class GoogleSunroofService {
   }
 
   /**
-   * TODO document this
+   * Pull everything into memory necessary for drawing the solar array data
+   * into a PNG.
    *
    * @param systemDesign
    */

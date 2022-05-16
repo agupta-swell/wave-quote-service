@@ -11,11 +11,18 @@ export const black: Color = [0, 0, 0]
 
 export const fluxMin = 550
 export const fluxMax = 3500
-export const fluxGradientStops: Record<number,Color> = {
-  0: [67,23,89],
-  50: [222,162,57],
-  100: [254,255,63]
-}
+// `percent` must be between 0 and 1 inclusive!
+// stops must be defined in `percent` order!
+export const fluxGradient: { percent: number, color: Color }[] = [{
+  percent: 0,
+  color: [67, 23, 89],
+}, {
+  percent: .5,
+  color: [222, 162, 57],
+}, {
+  percent: 1,
+  color: [254, 255, 63],
+}]
 
 export const DAY_COUNT_BY_MONTH_INDEX = {
   0: 31,

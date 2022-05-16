@@ -126,14 +126,23 @@ export class PngGenerator {
    * @param backgroundPng
    * @param mask
    */
-  // TODO more robust dimension detection
   public static applyMaskedOverlay (
     foregroundPng: PNG,
     backgroundPng: PNG,
     mask: number[][],
   ) : PNG {
-    const height = foregroundPng.height;
-    const width = foregroundPng.width;
+    // to avoid some out-of-bounds exceptions,
+    // generate the smallest image for which we have all data
+    const height = Math.min(
+      foregroundPng.height,
+      backgroundPng.height,
+      mask.length,
+    )
+    const width = Math.min(
+      foregroundPng.width,
+      backgroundPng.width,
+      mask[0].length
+    )
 
     const maskedPng = new PNG({ height, width });
     for (let y = 0; y < height; y++) {

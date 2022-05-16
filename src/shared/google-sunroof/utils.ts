@@ -7,7 +7,7 @@ import * as path from 'path';
 import type { Color, LatLng, LatLngPolygon, Vector2 } from './sub-services/types';
 
 import { Pixel, PixelPolygon } from './sub-services/types';
-import { magenta, fluxMin, fluxMax, fluxGradientStops } from './constants';
+import { magenta, fluxMin, fluxMax, fluxGradient } from './constants';
 
 export const getPixelColor = (png: PNG, pixel: Pixel): Color => {
   const [x, y] = pixel;
@@ -111,8 +111,8 @@ export const mapLatLngToVector2 = (
   const metersPerDegreeLatitude = (2 * Math.PI * radiusOfEarthInMeters) / 360;
 
   const metersPerDegreeLongitude =
-      metersPerDegreeLatitude *
-      Math.cos((Math.abs(origin.lat) / 180) * Math.PI);
+    metersPerDegreeLatitude *
+    Math.cos((Math.abs(origin.lat) / 180) * Math.PI);
   const degreesLatitude = location.lat - origin.lat;
   const degreesLongitude = location.lng - origin.lng;
   const x = degreesLongitude * metersPerDegreeLongitude * pixelsPerMeter;
@@ -126,7 +126,7 @@ export const mapLatLngPolygonToPixelPolygon = (
   pixelsPerMeter: number
 ): PixelPolygon => {
   return latLngPolygon.map((latLng) =>
-      mapLatLngToVector2(origin, latLng, pixelsPerMeter)
+    mapLatLngToVector2(origin, latLng, pixelsPerMeter)
   );
 }
 
@@ -157,25 +157,25 @@ export const drawLine = (
   const rangeY = maxY - minY;
 
   if (rangeX > rangeY) {
-      for (let x = minX; x <= maxX; x++) {
-          const percent = (x - minX) / rangeX;
-          const y = x1 < x2 ? lerp(y1, y2, percent) : lerp(y2, y1, percent);
-          setPixelColor(png, [x, y], color);
-      }
+    for (let x = minX; x <= maxX; x++) {
+      const percent = (x - minX) / rangeX;
+      const y = x1 < x2 ? lerp(y1, y2, percent) : lerp(y2, y1, percent);
+      setPixelColor(png, [x, y], color);
+    }
   } else {
-      for (let y = minY; y <= maxY; y++) {
-          const percent = (y - minY) / rangeY;
-          const x = y1 < y2 ? lerp(x1, x2, percent) : lerp(x2, x1, percent);
-          setPixelColor(png, [x, y], color);
-      }
+    for (let y = minY; y <= maxY; y++) {
+      const percent = (y - minY) / rangeY;
+      const x = y1 < y2 ? lerp(x1, x2, percent) : lerp(x2, x1, percent);
+      setPixelColor(png, [x, y], color);
+    }
   }
 }
 
 export const drawPolygon = (png: PNG, polygon: PixelPolygon, color: Color = magenta) => {
   for (let i = 0; i < polygon.length; i++) {
-      const a = i === 0 ? polygon[polygon.length - 1] : polygon[i - 1];
-      const b = polygon[i];
-      drawLine(png, a, b, color);
+    const a = i === 0 ? polygon[polygon.length - 1] : polygon[i - 1];
+    const b = polygon[i];
+    drawLine(png, a, b, color);
   }
 }
 
@@ -184,20 +184,29 @@ export const getHeatmapColor = (fluxValue: number): Color => {
   const fluxRange = fluxMax - fluxMin;
   const percentage = (fluxValue - fluxMin) / fluxRange;
 
-  if ( fluxValue < fluxMin ) {
-    return fluxGradientStops[0];
-  } else if ( fluxValue > fluxMax ) {
-    return fluxGradientStops[100];
-  } else if ( fluxValue === (fluxMax + fluxMin) / 2){
-    return fluxGradientStops[50];
-  } else if (percentage < 0.5) {
-    return lerpColor(fluxGradientStops[0], fluxGradientStops[50], percentage * 2);
-  } else {
-    return lerpColor(fluxGradientStops[50], fluxGradientStops[100], percentage / 2);
+  if ( percentage <= 0 ) {
+    return fluxGradient[0].color
   }
-}
 
-export const writePngToFile = async (png: PNG, filename: string): Promise<void> => {
-  await fs.promises.mkdir(path.dirname(filename), { recursive: true });
-  png.pack().pipe(fs.createWriteStream(filename));
-};
+  if ( percentage >= 1 ) {
+    return fluxGradient[fluxGradient.length - 1].color
+  }
+
+  for ( let i = 1 ; i < fluxGradient.length ; i++ ) {
+    const thisStop = fluxGradient[i]
+
+    if ( percentage === thisStop.percent ) {
+      return thisStop.color
+    }
+
+    if ( percentage < thisStop.percent ) {
+      const previousStop = fluxGradient[i - 1]
+      const stopRange = thisStop.percent - previousStop.percent
+      const lerpAmount = (percentage - previousStop.percent) / stopRange
+      return lerpColor(previousStop.color, thisStop.color, lerpAmount)
+    }
+  }
+
+  // this should never happen
+  return magenta;
+}
