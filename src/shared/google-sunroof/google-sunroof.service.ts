@@ -16,9 +16,20 @@ import type { LatLng, GoogleSunroof } from './sub-services/types'
 import { PngGenerator, GoogleSunroofGateway } from './sub-services'
 import { writePngToFile } from './utils'
 import { DAY_COUNT_BY_MONTH_INDEX } from './constants'
+import {
+  calcCoordinatesDistance,
+  ICoordinate,
+  isCoordinatesInsideBoundByAtLeast,
+} from '../../utils/calculate-coordinates'
 
 const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.GOOGLE_SUNROOF_DEBUG?.toLowerCase() || 'false');
 const DEBUG_FOLDER = path.join(__dirname, 'debug')
+
+type GoogleSunroofOrientationInformation = {
+  sunroofPrimaryOrientationSide?: number;
+  sunroofPitch?: number;
+  sunroofAzimuth?: number;
+}
 
 @Injectable()
 // TODO move S3 functions to S3 service?
@@ -162,6 +173,82 @@ export class GoogleSunroofService {
       await this.saveObjectAsJsonToS3(closestBuilding, key)
     }
     return closestBuilding
+  }
+
+  public async getOrientationInformation (
+    opportunityId: string,
+    latitude: number,
+    longitude: number,
+    centerLat: number,
+    centerLng: number,
+    sideAzimuths: number[],
+    polygons: ICoordinate[],
+  ) : Promise<GoogleSunroofOrientationInformation> {
+    const closestBuilding = await this.getClosestBuilding(opportunityId, latitude, longitude);
+
+    if (!Array.isArray(closestBuilding?.solarPotential?.roofSegmentStats)) {
+      return {};
+    }
+
+    const segmentsContainPanel = closestBuilding.solarPotential.roofSegmentStats.filter(segment =>
+      isCoordinatesInsideBoundByAtLeast(polygons, {
+        ne: {
+          lat: segment.boundingBox.ne.latitude,
+          lng: segment.boundingBox.ne.longitude,
+        },
+        sw: {
+          lat: segment.boundingBox.sw.latitude,
+          lng: segment.boundingBox.sw.longitude,
+        },
+      }),
+    );
+
+    let closestSegment: GoogleSunroof.Building['solarPotential']['roofSegmentStats'][number];
+
+    if (segmentsContainPanel.length === 1) {
+      const [segment] = segmentsContainPanel;
+
+      closestSegment = segment;
+    } else
+      closestSegment = (segmentsContainPanel.length
+          ? segmentsContainPanel
+          : closestBuilding.solarPotential.roofSegmentStats
+      )
+        .map(e => {
+          const distance = calcCoordinatesDistance(
+            {
+              lat: centerLat,
+              lng: centerLng,
+            },
+            {
+              lat: e.center.latitude,
+              lng: e.center.longitude,
+            },
+          );
+
+          return {
+            ...e,
+            distance,
+          };
+        })
+        .sort((a, b) => a.distance - b.distance)[0];
+
+    if (!closestSegment.azimuthDegrees) {
+      return {};
+    }
+
+    const closestSide = sideAzimuths
+      .map((e, idx) => ({
+        side: idx + 1,
+        val: Math.abs(closestSegment.azimuthDegrees - e),
+      }))
+      .sort((a, b) => a.val - b.val)[0].side;
+
+    return {
+      sunroofPrimaryOrientationSide: closestSide,
+      sunroofPitch: closestSegment.pitchDegrees,
+      sunroofAzimuth: closestSegment.azimuthDegrees,
+    };
   }
 
   // TODO Temp check callers of this method. rename method

@@ -7,7 +7,7 @@ import { PreAuthenticate } from 'src/app/securities';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import {
-  CalculateSunroofDto,
+  CalculateSunroofOrientationDto,
   CreateSystemDesignDto,
   GetBoundingBoxesReqDto,
   UpdateAncillaryMasterDtoReq,
@@ -15,7 +15,7 @@ import {
 } from './req';
 import {
   AnciallaryMasterRes,
-  CalculateSunroofResDto,
+  CalculateSunroofOrientationResDto,
   GetBoundingBoxesResDto,
   SystemDesignAncillaryMasterDto,
   SystemDesignAncillaryMasterListRes,
@@ -127,9 +127,12 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(result);
   }
 
+  // TODO change path to `/calculate-sunroof-orientation` ??
   @Post('/calculate-sunroof')
-  async calculateSunroof(@Body() req: CalculateSunroofDto): Promise<ServiceResponse<CalculateSunroofResDto>> {
-    const result = await this.systemDesignService.calculateSunroofData(req);
+  async calculateSunroofOrientation(
+    @Body() req: CalculateSunroofOrientationDto,
+  ): Promise<ServiceResponse<CalculateSunroofOrientationResDto>> {
+    const result = await this.systemDesignService.calculateSunroofOrientation(req);
     return ServiceResponse.fromResult(result);
   }
 

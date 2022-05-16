@@ -11,7 +11,7 @@ export class Coordinate {
   @IsLongitude()
   lng: number;
 }
-export class CalculateSunroofDto {
+export class CalculateSunroofOrientationDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
