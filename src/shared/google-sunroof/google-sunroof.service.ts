@@ -175,6 +175,20 @@ export class GoogleSunroofService {
     return closestBuilding
   }
 
+  /**
+   * For the given system design details, determine the appropriate array polygon azimuth side,
+   * pitch (degrees), and azimuth (degrees) based on the available closestBuilding data.
+   *
+   * Returns an empty object if there is a problem.
+   *
+   * @param opportunityId
+   * @param latitude
+   * @param longitude
+   * @param centerLat
+   * @param centerLng
+   * @param sideAzimuths
+   * @param polygons
+   */
   public async getOrientationInformation (
     opportunityId: string,
     latitude: number,
@@ -373,10 +387,10 @@ export class GoogleSunroofService {
       monthlyFluxUrl,
     } = solarInfo
 
-    const downloadingRgbTiffBuffer = downloadTiffAsBuffer(rgbUrl)
-    const downloadingMaskTiffBuffer = downloadTiffAsBuffer(maskUrl)
-    const downloadingAnnualFluxTiffBuffer = downloadTiffAsBuffer(annualFluxUrl)
-    const downloadingMonthlyFluxTiffBuffer = downloadTiffAsBuffer(monthlyFluxUrl)
+    const downloadingRgbTiffBuffer = downloadFileAsBuffer(rgbUrl)
+    const downloadingMaskTiffBuffer = downloadFileAsBuffer(maskUrl)
+    const downloadingAnnualFluxTiffBuffer = downloadFileAsBuffer(annualFluxUrl)
+    const downloadingMonthlyFluxTiffBuffer = downloadFileAsBuffer(monthlyFluxUrl)
 
     const savingRgbTiffToS3 = downloadingRgbTiffBuffer.then(async rgbTiffBuffer => {
       await this.saveTiffToS3(rgbTiffBuffer, `${opportunityId}/tiff/rgb.tiff`)
@@ -554,6 +568,9 @@ export class GoogleSunroofService {
     // placeholder for production calculation WAV-1700
   }
 
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Private S3 helper functions
+
   /**
    * Reads an S3 object and parse is as JSON.
    * Returns null if the object does not exist.
@@ -591,6 +608,13 @@ export class GoogleSunroofService {
     return Buffer.concat(chunks)
   }
 
+  /**
+   * Stringify the given object into S3 with an `application/json` MIME type.
+   *
+   * @param obj
+   * @param key
+   * @private
+   */
   private async saveObjectAsJsonToS3 (obj: Object, key: string) : Promise<void> {
     await this.s3Service.putObject(
       this.GOOGLE_SUNROOF_S3_BUCKET,
@@ -600,6 +624,13 @@ export class GoogleSunroofService {
     )
   }
 
+  /**
+   * Save the given Buffer to S3 with an `image/tiff` MIME type.
+   *
+   * @param tiffBuffer
+   * @param key
+   * @private
+   */
   private async saveTiffToS3 (tiffBuffer: Buffer, key: string) : Promise<void> {
     await this.s3Service.putObject(
       this.GOOGLE_SUNROOF_S3_BUCKET,
@@ -609,6 +640,13 @@ export class GoogleSunroofService {
     )
   }
 
+  /**
+   * Serialize a PNG into S3 with an `image/png` MIME type.
+   *
+   * @param png
+   * @param key
+   * @private
+   */
   private async savePngToS3 (png: PNG, key: string) : Promise<void> {
     await this.s3Service.putObject(
       this.GOOGLE_SUNROOF_S3_BUCKET,
@@ -654,8 +692,8 @@ export class GoogleSunroofService {
 //   return `${opportunityId}/png/${pngFilename}.png`
 // }
 
-async function downloadTiffAsBuffer (tiffUrl: string) : Promise<Buffer> {
-  const { data } = await axios.get<Buffer>(tiffUrl, { responseType: 'arraybuffer' })
+async function downloadFileAsBuffer (url: string) : Promise<Buffer> {
+  const { data } = await axios.get<Buffer>(url, { responseType: 'arraybuffer' })
   return data
 }
 
