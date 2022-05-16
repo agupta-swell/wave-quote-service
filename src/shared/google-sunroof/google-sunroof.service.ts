@@ -21,6 +21,7 @@ const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.GOOGLE_SUNROOF_DEB
 const DEBUG_FOLDER = path.join(__dirname, 'debug')
 
 @Injectable()
+// TODO move S3 functions to S3 service?
 export class GoogleSunroofService {
   private readonly GOOGLE_SUNROOF_S3_BUCKET: string;
 
@@ -141,43 +142,45 @@ export class GoogleSunroofService {
   //   });
   // }
 
-
+  /**
+   * Check S3 for the cached `closestBuilding.json` file for the given opportunityId.
+   * Fetch, ans cache, it from Google Sunroof if the file does not already exist.
+   *
+   * @param opportunityId
+   * @param latitude
+   * @param longitude
+   */
+  public async getClosestBuilding (
+    opportunityId: string,
+    latitude: number,
+    longitude: number,
+  ) : Promise<GoogleSunroof.Building> {
+    const key = `${opportunityId}/closestBuilding.json`
+    let closestBuilding = await this.getS3FileAsJson<GoogleSunroof.Building>(key)
+    if (!closestBuilding) {
+      closestBuilding = await this.googleSunroofGateway.findClosestBuilding(latitude, longitude)
+      await this.saveObjectAsJsonToS3(closestBuilding, key)
+    }
+    return closestBuilding
+  }
 
   // TODO Temp check callers of this method. rename method
-  public async getBuilding (lat: number, long: number, cacheKey: string): Promise<GoogleSunroof.Building> {
-    const building = await this.googleSunroofGateway.findClosestBuilding(lat, long)
-    // TODO don't cache here?
-    await this.s3Service.putObject(
-      this.GOOGLE_SUNROOF_S3_BUCKET,
-      cacheKey,
-      JSON.stringify(building, null, 2),
-      'application/json; charset=utf-8',
-    )
-    return building
-  }
+  // public async getBuilding (lat: number, long: number, cacheKey: string): Promise<GoogleSunroof.Building> {
+  //   const building = await this.googleSunroofGateway.findClosestBuilding(lat, long)
+  //   // TODO don't cache here?
+  //   await this.s3Service.putObject(
+  //     this.GOOGLE_SUNROOF_S3_BUCKET,
+  //     cacheKey,
+  //     JSON.stringify(building, null, 2),
+  //     'application/json; charset=utf-8',
+  //   )
+  //   return building
+  // }
 
   // TODO Temp remove this. use optimistic fetching.
-  public hasS3File(filePath: string): Promise<boolean> {
-    return this.s3Service.hasFile(this.GOOGLE_SUNROOF_S3_BUCKET, filePath);
-  }
-
-  public async getS3FileAsJson<T>(filePath: string): Promise<T> {
-    const buffer = await this.getS3FileAsBuffer(filePath)
-    const json = buffer.toString('utf-8')
-    return JSON.parse(json);
-  }
-
-  public async getS3FileAsBuffer<T>(filePath: string): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-
-    const stream = this.s3Service.getObjectAsReadable(this.GOOGLE_SUNROOF_S3_BUCKET, filePath);
-
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-
-    return Buffer.concat(chunks);
-  }
+  // public hasS3File(filePath: string): Promise<boolean> {
+  //   return this.s3Service.hasFile(this.GOOGLE_SUNROOF_S3_BUCKET, filePath);
+  // }
 
   // public async processTiff(tiffPayloadResponse: any, opportunityId: string){
   //   const tiffBuffer = tiffPayloadResponse.payload;
@@ -440,7 +443,7 @@ export class GoogleSunroofService {
   public async generateOverlayPng (systemDesign: SystemDesign) : Promise<void> {
     const annualFluxTiffFilePath = `${systemDesign.opportunityId}/tiff/annualFlux.tiff`;
     const annualFluxTiff = await this.getS3FileAsBuffer(annualFluxTiffFilePath);
-    const tiffLayers = await getLayersFromTiffBuffer( annualFluxTiff );
+    const tiffLayers = await getLayersFromTiffBuffer( annualFluxTiff as Buffer );
 
     const { height, width } = tiffLayers;
     const pixelsPerMeter = 10;
@@ -462,6 +465,43 @@ export class GoogleSunroofService {
     }
 
     // placeholder for production calculation WAV-1700
+  }
+
+  /**
+   * Reads an S3 object and parse is as JSON.
+   * Returns null if the object does not exist.
+   * Throws a SyntaxError if the object is not valid JSON.
+   *
+   * @param key
+   * @private
+   * @throws SyntaxError
+   */
+  private async getS3FileAsJson<T>(key: string): Promise<T | null> {
+    const buffer = await this.getS3FileAsBuffer(key)
+    if (!buffer) return null
+    const json = buffer.toString('utf-8')
+    return JSON.parse(json)
+  }
+
+  /**
+   * Reads an S3 object into a NodeJS Buffer.
+   * Returns null if the object does not exist.
+   *
+   * @param key
+   * @private
+   */
+  private async getS3FileAsBuffer<T>(key: string): Promise<Buffer | null> {
+    const stream = this.s3Service.getObjectAsReadable(this.GOOGLE_SUNROOF_S3_BUCKET, key)
+    const chunks: Buffer[] = []
+    try {
+      for await (const chunk of stream) {
+        chunks.push(chunk)
+      }
+    } catch (_) {
+      // any error, such as NoSuchKey (file not found)
+      return null
+    }
+    return Buffer.concat(chunks)
   }
 
   private async saveObjectAsJsonToS3 (obj: Object, key: string) : Promise<void> {

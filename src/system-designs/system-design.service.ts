@@ -1053,7 +1053,7 @@ export class SystemDesignService {
   public async calculateSunroofData(req: CalculateSunroofDto): Promise<OperationResult<CalculateSunroofResDto>> {
     const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths, polygons } = req;
 
-    const sunroofData = await this.getSunRoofData(latitude, longitude, opportunityId);
+    const sunroofData = await this.googleSunroofService.getClosestBuilding(opportunityId, latitude, longitude)
 
     if (!sunroofData) {
       return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));
@@ -1072,7 +1072,7 @@ export class SystemDesignService {
   public async getSunroofBoundingBoxes(req: GetBoundingBoxesReqDto): Promise<OperationResult<GetBoundingBoxesResDto>> {
     const { latitude, longitude, opportunityId } = req;
 
-    const sunroofData = await this.getSunRoofData(latitude, longitude, opportunityId);
+    const sunroofData = await this.googleSunroofService.getClosestBuilding(opportunityId, latitude, longitude);
 
     if (!sunroofData) {
       return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, {}));
@@ -1087,24 +1087,27 @@ export class SystemDesignService {
     return this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
   }
 
-  // TODO this belongs in GoogleSunroofService, i think
-  private async getSunRoofData(
-    lat: number,
-    lng: number,
-    opportunityId: string,
-  ): Promise<GoogleSunroof.Building | undefined> {
-    try {
-      // TODO fix caching with optimistic read
-      const fileName = `${opportunityId}/closestBuilding.json`;
-      const existed = await this.googleSunroofService.hasS3File(fileName);
-      if (!existed) {
-        return await this.googleSunroofService.getBuilding(lat, lng, fileName);
-      }
-      return await this.googleSunroofService.getS3FileAsJson<GoogleSunroof.Building>(fileName);
-    } catch (_) {
-      return undefined;
-    }
-  }
+  // TODO delete this
+  // private async getSunRoofData(
+  //   lat: number,
+  //   lng: number,
+  //   opportunityId: string,
+  // ): Promise<GoogleSunroof.Building | null> {
+  //   try {
+  //     return await this.googleSunroofService.getClosestBuilding(opportunityId, lat, lng)
+  //
+  //     // TODO fix caching with optimistic read
+  //     // const fileName = `${opportunityId}/closestBuilding.json`;
+  //     // const existed = await this.googleSunroofService.hasS3File(fileName);
+  //     // if (!existed) {
+  //     //   return await this.googleSunroofService.getBuilding(lat, lng, fileName);
+  //     // }
+  //     // return await this.googleSunroofService.getS3FileAsJson<GoogleSunroof.Building>(fileName);
+  //   } catch (_) {
+  //     console.error(_)
+  //     return null;
+  //   }
+  // }
 
   // TODO this belongs in GoogleSunroofService, i think
   private getSunroofPitchAndAzimuth(
