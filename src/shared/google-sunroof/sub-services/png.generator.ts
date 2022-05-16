@@ -22,13 +22,13 @@ import {
 // TODO generate PNGs on another thread? e.g. require('worker_threads')
 export class PngGenerator {
   // TODO delete this. contains too much logic. move up to google-sunroof.service
-  public static generateMonthlyHeatmap (monthlyLayers: TypedArrayArrayWithDimensions): Array<PNG> {
-    return (monthlyLayers)
-      .map( x => x.map ( value => value * 12 ))
-      .map( x => chunk(x, monthlyLayers.width))
-      .map(x => PngGenerator.generateHeatmapPng(x))
-      .map(x => PngGenerator.upscalePng(x, 5))
-  }
+  // public static generateMonthlyHeatmap (monthlyLayers: TypedArrayArrayWithDimensions): Array<PNG> {
+  //   return (monthlyLayers)
+  //     .map( x => x.map ( value => value * 12 ))
+  //     .map( x => chunk(x, monthlyLayers.width))
+  //     .map(x => PngGenerator.generateHeatmapPng(x))
+  //     .map(x => PngGenerator.upscalePng(x, 5))
+  // }
 
   /**
    * Expected input is three layers, for red, green, and blue values.

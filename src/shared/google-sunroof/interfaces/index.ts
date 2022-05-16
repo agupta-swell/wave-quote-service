@@ -1,1 +1,1 @@
-export * from './IGetRequestResult';
+// export * from './IGetRequestResult';

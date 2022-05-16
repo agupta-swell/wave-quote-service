@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-syntax */
-import * as https from 'https';
+// import * as https from 'https';
 import * as path from 'path';
-import { Readable, Stream } from 'stream'
+// import { Readable, Stream } from 'stream'
 
 import axios from 'axios';
 import * as geotiff from 'geotiff';
@@ -33,113 +33,115 @@ export class GoogleSunroofService {
     this.GOOGLE_SUNROOF_S3_BUCKET = bucket;
   }
 
-  public getRequest<T>(url: string, cacheKey?: string): Promise<Object> {
-    return new Promise((resolve, reject) => {
-      https.get(url, res => {
-        if (res.statusCode !== 200) reject(new Error(`${res.statusCode}: ${res.statusMessage}`));
+  // public getRequest<T>(url: string, cacheKey?: string): Promise<Object> {
+  //   return new Promise((resolve, reject) => {
+  //     https.get(url, res => {
+  //       if (res.statusCode !== 200) reject(new Error(`${res.statusCode}: ${res.statusMessage}`));
+  //
+  //       const chunks: Buffer[] = [];
+  //
+  //       if (cacheKey) {
+  //         if (cacheKey.slice(-4) === 'json') {
+  //           res
+  //             .pipe(
+  //               new Stream.Transform({
+  //                 transform(chunk, _, cb) {
+  //                   chunks.push(chunk);
+  //                   cb(null, chunk);
+  //                 },
+  //               }),
+  //             )
+  //             .pipe(
+  //               this.s3Service.putStream(
+  //                 cacheKey,
+  //                 this.GOOGLE_SUNROOF_S3_BUCKET,
+  //                 'application/json',
+  //                 'private',
+  //                 false,
+  //                 (err, data) => {
+  //                   if (err) {
+  //                     reject(err);
+  //                     return;
+  //                   }
+  //
+  //                   const payloadStr = Buffer.concat(chunks).toString('utf-8');
+  //
+  //                   try {
+  //                     resolve({
+  //                       s3Result: data,
+  //                       payload: JSON.parse(payloadStr),
+  //                     });
+  //                   } catch (error) {
+  //                     reject(error);
+  //                   }
+  //                 },
+  //               ),
+  //             );
+  //         } else if (cacheKey.slice(-4) === 'tiff') {
+  //           const dataLabel = cacheKey.slice(
+  //             cacheKey.lastIndexOf('/') + 1,
+  //             cacheKey.lastIndexOf('.')
+  //           );
+  //
+  //           res
+  //             .pipe(
+  //               new Stream.Transform({
+  //                 transform(chunk, _, cb) {
+  //                   chunks.push(chunk);
+  //                   cb(null, chunk);
+  //                 },
+  //               }),
+  //             )
+  //             .pipe(
+  //               this.s3Service.putStream(
+  //                 cacheKey,
+  //                 this.GOOGLE_SUNROOF_S3_BUCKET,
+  //                 'image/tiff',
+  //                 'private',
+  //                 false,
+  //                 (err, data) => {
+  //                   if (err) {
+  //                     reject(err);
+  //                     return;
+  //                   }
+  //
+  //                   try {
+  //                     resolve({
+  //                       dataLabel: dataLabel,
+  //                       s3Result: data,
+  //                       payload: Buffer.concat(chunks),
+  //                     });
+  //                   } catch (error) {
+  //                     reject(error);
+  //                   }
+  //                 },
+  //               ),
+  //             );
+  //         }
+  //
+  //         return;
+  //       }
+  //
+  //       res
+  //         .on('data', chunk => {
+  //           chunks.push(chunk);
+  //         })
+  //         .on('error', reject)
+  //         .on('end', () => {
+  //           const payloadStr = Buffer.concat(chunks).toString('utf-8');
+  //           try {
+  //             resolve({
+  //               payload: JSON.parse(payloadStr),
+  //             });
+  //           } catch (error) {
+  //             reject(error);
+  //           }
+  //         });
+  //     });
+  //   });
+  // }
 
-        const chunks: Buffer[] = [];
 
-        if (cacheKey) {
-          if (cacheKey.slice(-4) === 'json') {
-            res
-              .pipe(
-                new Stream.Transform({
-                  transform(chunk, _, cb) {
-                    chunks.push(chunk);
-                    cb(null, chunk);
-                  },
-                }),
-              )
-              .pipe(
-                this.s3Service.putStream(
-                  cacheKey,
-                  this.GOOGLE_SUNROOF_S3_BUCKET,
-                  'application/json',
-                  'private',
-                  false,
-                  (err, data) => {
-                    if (err) {
-                      reject(err);
-                      return;
-                    }
-
-                    const payloadStr = Buffer.concat(chunks).toString('utf-8');
-
-                    try {
-                      resolve({
-                        s3Result: data,
-                        payload: JSON.parse(payloadStr),
-                      });
-                    } catch (error) {
-                      reject(error);
-                    }
-                  },
-                ),
-              );
-          } else if (cacheKey.slice(-4) === 'tiff') {
-            const dataLabel = cacheKey.slice( 
-              cacheKey.lastIndexOf('/') + 1, 
-              cacheKey.lastIndexOf('.')
-            );
-
-            res
-              .pipe(
-                new Stream.Transform({
-                  transform(chunk, _, cb) {
-                    chunks.push(chunk);
-                    cb(null, chunk);
-                  },
-                }),
-              )
-              .pipe(
-                this.s3Service.putStream(
-                  cacheKey,
-                  this.GOOGLE_SUNROOF_S3_BUCKET,
-                  'image/tiff',
-                  'private',
-                  false,
-                  (err, data) => {
-                    if (err) {
-                      reject(err);
-                      return;
-                    }
-
-                    try {
-                      resolve({
-                        dataLabel: dataLabel,
-                        s3Result: data,
-                        payload: Buffer.concat(chunks),
-                      });
-                    } catch (error) {
-                      reject(error);
-                    }
-                  },
-                ),
-              );
-          }
-
-          return;
-        }
-
-        res
-          .on('data', chunk => {
-            chunks.push(chunk);
-          })
-          .on('error', reject)
-          .on('end', () => {
-            const payloadStr = Buffer.concat(chunks).toString('utf-8');
-            try {
-              resolve({
-                payload: JSON.parse(payloadStr),
-              });
-            } catch (error) {
-              reject(error);
-            }
-          });
-      });
-    });
-  }
 
   // TODO Temp check callers of this method. rename method
   public async getBuilding (lat: number, long: number, cacheKey: string): Promise<GoogleSunroof.Building> {
@@ -165,7 +167,6 @@ export class GoogleSunroofService {
     return JSON.parse(json);
   }
 
-  // TODO typed Buffer, e.g. Buffer<SolarInfo> ??
   public async getS3FileAsBuffer<T>(filePath: string): Promise<Buffer> {
     const chunks: Buffer[] = [];
 
@@ -178,86 +179,86 @@ export class GoogleSunroofService {
     return Buffer.concat(chunks);
   }
 
-  public async processTiff(tiffPayloadResponse: any, opportunityId: string){
-    const tiffBuffer = tiffPayloadResponse.payload;
-    const dataLabel = tiffPayloadResponse.dataLabel;
+  // public async processTiff(tiffPayloadResponse: any, opportunityId: string){
+  //   const tiffBuffer = tiffPayloadResponse.payload;
+  //   const dataLabel = tiffPayloadResponse.dataLabel;
+  //
+  //   // TODO don't call this here
+  //   const annualLayers = await getLayersFromTiffBuffer(tiffBuffer);
+  //
+  //   let newPng;
+  //   let filename;
+  //
+  //   switch (dataLabel) {
+  //     case 'mask':
+  //       filename = 'rootop.mask';
+  //       newPng = PngGenerator.generateBlackAndWhitePng(annualLayers);
+  //       break;
+  //     case 'rgb':
+  //       filename = 'satellite';
+  //       newPng = PngGenerator.generateRgbPng(annualLayers);
+  //       break;
+  //     case 'annualFlux':
+  //       filename = 'heatmap.annual';
+  //       const [fluxLayer] = annualLayers;
+  //       newPng = PngGenerator.generateHeatmapPng(chunk(fluxLayer, annualLayers.width));
+  //       break;
+  //     default:
+  //       throw new Error(`unknown data label: ${dataLabel}`)
+  //   }
+  //
+  //   const pngKey = makePngKey(opportunityId, filename);
+  //   await this.oldSavePngToS3(newPng, pngKey)
+  //
+  //   if (DEBUG) {
+  //     console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+  //     const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
+  //     await writePngToFile(newPng, pngFilename);
+  //   }
+  //
+  //   return newPng
+  // }
+  //
+  // public async processMonthlyTiff(tiffPayloadResponse: any, opportunityId: string){
+  //   const tiffBuffer = tiffPayloadResponse.payload;
+  //   const dataLabel = tiffPayloadResponse.dataLabel;
+  //
+  //   const layers = await getLayersFromTiffBuffer(tiffBuffer);
+  //   const layerPngs = PngGenerator.generateMonthlyHeatmap(layers)
+  //
+  //   await Promise.all(layerPngs.map(async (layerPng, layerPngIndex) => {
+  //     const paddedMonthIndex = layerPngIndex < 10 ? `0${layerPngIndex}` : layerPngIndex;
+  //     const filename = `heatmap.month${paddedMonthIndex}`
+  //
+  //     const pngKey = makePngKey(opportunityId, filename);
+  //     await this.oldSavePngToS3(layerPng, pngKey)
+  //
+  //     if (DEBUG) {
+  //       console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
+  //       const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
+  //       await writePngToFile(layerPng, pngFilename);
+  //     }
+  //   }))
+  //
+  //   return layerPngs
+  // }
 
-    // TODO don't call this here
-    const annualLayers = await getLayersFromTiffBuffer(tiffBuffer);
-
-    let newPng;
-    let filename;
-
-    switch (dataLabel) {
-      case 'mask':
-        filename = 'rootop.mask';
-        newPng = PngGenerator.generateBlackAndWhitePng(annualLayers);
-        break;
-      case 'rgb':
-        filename = 'satellite';
-        newPng = PngGenerator.generateRgbPng(annualLayers);
-        break;
-      case 'annualFlux':
-        filename = 'heatmap.annual';
-        const [fluxLayer] = annualLayers;
-        newPng = PngGenerator.generateHeatmapPng(chunk(fluxLayer, annualLayers.width));
-        break;
-      default:
-        throw new Error(`unknown data label: ${dataLabel}`)
-    }
-
-    const pngKey = makePngKey(opportunityId, filename);
-    await this.oldSavePngToS3(newPng, pngKey)
-    
-    if (DEBUG) {
-      console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-      const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
-      await writePngToFile(newPng, pngFilename);
-    }
-
-    return newPng
-  }
-
-  public async processMonthlyTiff(tiffPayloadResponse: any, opportunityId: string){
-    const tiffBuffer = tiffPayloadResponse.payload;
-    const dataLabel = tiffPayloadResponse.dataLabel;
-
-    const layers = await getLayersFromTiffBuffer(tiffBuffer);
-    const layerPngs = PngGenerator.generateMonthlyHeatmap(layers)
-
-    await Promise.all(layerPngs.map(async (layerPng, layerPngIndex) => {
-      const paddedMonthIndex = layerPngIndex < 10 ? `0${layerPngIndex}` : layerPngIndex;
-      const filename = `heatmap.month${paddedMonthIndex}`
-
-      const pngKey = makePngKey(opportunityId, filename);
-      await this.oldSavePngToS3(layerPng, pngKey)
-      
-      if (DEBUG) {
-        console.log( `dataLabel: ${dataLabel} || pngKey: ${pngKey}`);
-        const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
-        await writePngToFile(layerPng, pngFilename);
-      }
-    }))
-
-    return layerPngs
-  }
-
-  public async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, opportunityId: string, maskPng: PNG, maskTiffResponse: any, rgbPng: PNG){
-    const [layer] = await getLayersFromTiffBuffer( maskTiffResponse.payload );
-    const maskLayer = chunk(layer, maskPng.width);
-    const annualFluxMaskedPng = await PngGenerator.applyMaskedOverlay( heatmapPng, rgbPng, maskLayer);
-    const pngKey = makePngKey( opportunityId, filename );
-
-    await this.oldSavePngToS3(annualFluxMaskedPng, pngKey)
-    
-    if (DEBUG) {
-      console.log( `filename: ${filename} || pngKey: ${pngKey}`);
-      const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
-      await writePngToFile( annualFluxMaskedPng, pngFilename );
-    }
-
-    return true;
-  }
+  // public async processMaskedHeatmapPng(filename: string, heatmapPng: PNG, opportunityId: string, maskPng: PNG, maskTiffResponse: any, rgbPng: PNG){
+  //   const [layer] = await getLayersFromTiffBuffer( maskTiffResponse.payload );
+  //   const maskLayer = chunk(layer, maskPng.width);
+  //   const annualFluxMaskedPng = await PngGenerator.applyMaskedOverlay( heatmapPng, rgbPng, maskLayer);
+  //   const pngKey = makePngKey( opportunityId, filename );
+  //
+  //   await this.oldSavePngToS3(annualFluxMaskedPng, pngKey)
+  //
+  //   if (DEBUG) {
+  //     console.log( `filename: ${filename} || pngKey: ${pngKey}`);
+  //     const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
+  //     await writePngToFile( annualFluxMaskedPng, pngFilename );
+  //   }
+  //
+  //   return true;
+  // }
 
   /**
    * TODO document this
@@ -273,7 +274,7 @@ export class GoogleSunroofService {
 
     const solarInfo = await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters)
 
-    const savingSolarInfoJsonToS3 = this.saveJsonToS3(solarInfo, `${opportunityId}/solarInfo.json`)
+    const savingSolarInfoJsonToS3 = this.saveObjectAsJsonToS3(solarInfo, `${opportunityId}/solarInfo.json`)
 
     const {
       rgbUrl,
@@ -453,7 +454,7 @@ export class GoogleSunroofService {
 
     const arrayPng = await PngGenerator.generateArrayPng(arrays,  origin, pixelsPerMeter, height, width);
 
-    await this.oldSavePngToS3(arrayPng, `${filenamePrefix}${filename}.png`);
+    await this.savePngToS3(arrayPng, `${filenamePrefix}${filename}.png`);
 
     if (DEBUG) {
       const pngFilename = path.join(DEBUG_FOLDER, `${filename}.png`);
@@ -463,7 +464,7 @@ export class GoogleSunroofService {
     // placeholder for production calculation WAV-1700
   }
 
-  private async saveJsonToS3 (obj: Object, key: string) : Promise<void> {
+  private async saveObjectAsJsonToS3 (obj: Object, key: string) : Promise<void> {
     await this.s3Service.putObject(
       this.GOOGLE_SUNROOF_S3_BUCKET,
       key,
@@ -491,40 +492,40 @@ export class GoogleSunroofService {
   }
 
   // TODO delete this
-  private async oldSavePngToS3(png: PNG, key: string) {
-    Readable.from(PNG.sync.write(png)).pipe(
-      this.s3Service.putStream(
-        key,
-        this.GOOGLE_SUNROOF_S3_BUCKET,
-        'image/png',
-        'private',
-        false,
-        (err, data) => {
-          if (err) {
-            console.log( err )
-            return err;
-          }
-
-          try {
-            if (DEBUG) console.log(data);
-
-            return({
-              s3Result: data,
-              payload: png
-            });
-          } catch (error) {
-            console.log( err )
-            return (error);
-          }
-        },
-      )
-    );
-  }
+  // private async oldSavePngToS3(png: PNG, key: string) {
+  //   Readable.from(PNG.sync.write(png)).pipe(
+  //     this.s3Service.putStream(
+  //       key,
+  //       this.GOOGLE_SUNROOF_S3_BUCKET,
+  //       'image/png',
+  //       'private',
+  //       false,
+  //       (err, data) => {
+  //         if (err) {
+  //           console.log( err )
+  //           return err;
+  //         }
+  //
+  //         try {
+  //           if (DEBUG) console.log(data);
+  //
+  //           return({
+  //             s3Result: data,
+  //             payload: png
+  //           });
+  //         } catch (error) {
+  //           console.log( err )
+  //           return (error);
+  //         }
+  //       },
+  //     )
+  //   );
+  // }
 }
 
-function makePngKey (opportunityId: string, pngFilename: string) : string {
-  return `${opportunityId}/png/${pngFilename}.png`
-}
+// function makePngKey (opportunityId: string, pngFilename: string) : string {
+//   return `${opportunityId}/png/${pngFilename}.png`
+// }
 
 async function downloadTiffAsBuffer (tiffUrl: string) : Promise<Buffer> {
   const { data } = await axios.get<Buffer>(tiffUrl, { responseType: 'arraybuffer' })
