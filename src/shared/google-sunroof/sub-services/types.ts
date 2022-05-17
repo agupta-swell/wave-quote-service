@@ -11,19 +11,18 @@ export type LatLng = {
 }
 
 export type LatLngPolygon = LatLng[]
-export type Panel = [LatLng, LatLng, LatLng, LatLng]
 
-export type PanelArray = {
-  bound_polygon: LatLngPolygon,
-  panels: Panel[],
+type Production = {
+  annualProduction: number,
+  monthlyProduction: number[],
 }
 
-export type SystemDesign = {
-  latitude: number,
-  longitude: number,
-  roof_top_design_data: {
-    panel_array: PanelArray[],
-  },
+export type ArrayProduction = Production & {
+  arrayId: string,
+}
+
+export type SystemProduction = Production & {
+  byArray: ArrayProduction[],
 }
 
 export namespace GoogleSunroof {

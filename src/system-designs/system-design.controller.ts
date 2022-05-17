@@ -155,4 +155,13 @@ export class SystemDesignController {
     const result = await this.systemDesignService.generateArrayOverlayPng(id);
     return ServiceResponse.fromResult(result);
   }
+
+  // TODO I don't know if this is the final location for this or perhaps
+  //      it will be handled from the recalculate() function in this file.
+  @Post(':id/calculate-sunroof-production')
+  @ApiParam({ name: 'id', type: String })
+  async calculateSunroofProduction (@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
+    const result = await this.systemDesignService.calculateSunroofProduction(id);
+    return ServiceResponse.fromResult(result);
+  }
 }

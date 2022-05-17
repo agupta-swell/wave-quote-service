@@ -1139,4 +1139,14 @@ export class SystemDesignService {
     await this.googleSunroofService.generateArrayOverlayPng(systemDesign)
     return OperationResult.ok();
   }
+
+  public async calculateSunroofProduction (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean()
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId.toString())
+    }
+    const systemProduction = await this.googleSunroofService.calculateProduction(systemDesign)
+    // TODO do something with this `systemProduction`
+    return OperationResult.ok();
+  }
 }

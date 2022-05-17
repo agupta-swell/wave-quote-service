@@ -11,8 +11,15 @@ import { Injectable } from '@nestjs/common';
 
 import { S3Service } from '../aws/services/s3.service';
 import { SystemDesign } from '../../system-designs/system-design.schema';
-import type { GoogleSunroof } from './sub-services/types'
-import { PngGenerator, GoogleSunroofGateway } from './sub-services'
+import type {
+  GoogleSunroof,
+  SystemProduction,
+} from './sub-services/types'
+import {
+  GoogleSunroofGateway,
+  PngGenerator,
+  ProductionCalculator,
+} from './sub-services'
 import { DAY_COUNT_BY_MONTH_INDEX } from './constants'
 import {
   calcCoordinatesDistance,
@@ -156,7 +163,7 @@ export class GoogleSunroofService {
 
   /**
    * This function fetches everything needed from Google Sunroof and generates
-   * all relevant PNGs.
+   * all relevant PNGs for the given system design.
    *
    * It is lengthy, but the verbose variable naming should make it readable.
    *
@@ -309,7 +316,7 @@ export class GoogleSunroofService {
 
   /**
    * Pull everything into memory necessary for drawing the solar array data
-   * into a PNG.
+   * for the given system design into a PNG.
    *
    * @param systemDesign
    */
@@ -331,9 +338,6 @@ export class GoogleSunroofService {
     const tiffLayers = await getLayersFromTiffBuffer(annualFluxTiffBuffer);
     const { height, width } = tiffLayers;
 
-    // the annual flux tiff has a resolution of 10 pixels per meter
-    const pixelsPerMeter = 10;
-
     const arrayPng = PngGenerator.generateArrayOverlayPng(
       height,
       width,
@@ -341,13 +345,50 @@ export class GoogleSunroofService {
         lat: latitude,
         lng: longitude,
       },
-      pixelsPerMeter,
+      10, // the annual flux tiff has a resolution of 10 pixels per meter (10cm per pixel)
       arrays,
     );
 
     await this.savePngToS3(arrayPng, `${opportunityId}/png/array.overlay.png`);
+  }
 
-    // placeholder for production calculation WAV-1700
+  /**
+   * Calculates the annual and monthly production numbers for a given system design.
+   *
+   * Relies on cached flux GeoTIFF files in the expected location in S3.
+   *
+   * The output is an object with annual and monthly kWh production figures,
+   * for the system as a whole and for each array in particular.
+   *
+   * @param systemDesign
+   */
+  public async calculateProduction (systemDesign: SystemDesign) : Promise<SystemProduction> {
+    const { opportunityId } = systemDesign;
+
+    const [
+      annualFluxTiffBuffer,
+      monthlyFluxTiffBuffer,
+    ] = await Promise.all([
+      this.getS3FileAsBuffer(`${opportunityId}/tiff/annualFlux.tiff`),
+      this.getS3FileAsBuffer(`${opportunityId}/tiff/monthlyFlux.tiff`),
+    ]);
+    if (!annualFluxTiffBuffer || !monthlyFluxTiffBuffer) {
+      throw new Error('Cannot calculate system production before GeoTIFFs have been downloaded!')
+    }
+
+    const [
+      annualFluxLayers,
+      monthlyFluxLayers,
+    ] = await Promise.all([
+      getLayersFromTiffBuffer(annualFluxTiffBuffer),
+      getLayersFromTiffBuffer(monthlyFluxTiffBuffer),
+    ]);
+
+    return ProductionCalculator.calculateSystemProduction(
+      systemDesign,
+      annualFluxLayers,
+      monthlyFluxLayers,
+    )
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
