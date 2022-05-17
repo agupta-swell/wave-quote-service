@@ -1069,7 +1069,7 @@ export class SystemDesignService {
   }
 
   public async getSunroofBoundingBoxes(req: GetBoundingBoxesReqDto): Promise<OperationResult<GetBoundingBoxesResDto>> {
-    const { latitude, longitude, opportunityId } = req;
+    const { latitude, longitude, opportunityId, sideAzimuths } = req;
 
     const sunroofData = await this.googleSunroofService.getClosestBuilding(opportunityId, latitude, longitude);
 
@@ -1077,7 +1077,22 @@ export class SystemDesignService {
       return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, {}));
     }
 
-    const boundingBoxes = sunroofData.solarPotential.roofSegmentStats.map(e => e.boundingBox);
+    const boundingBoxes = sunroofData.solarPotential.roofSegmentStats
+      .map(({ azimuthDegrees, boundingBox, pitchDegrees }) => ({
+        ...boundingBox,
+        azimuthDegrees,
+        pitchDegrees,
+      }))
+      .filter(e => e.azimuthDegrees !== undefined && e.pitchDegrees !== undefined)
+      .map(e => ({
+        ...e,
+        sunroofPrimaryOrientationSide: sideAzimuths
+          .map((side, idx) => ({
+            side: idx + 1,
+            val: Math.abs(e.azimuthDegrees - side),
+          }))
+          .sort((a, b) => a.val - b.val)[0].side,
+      }));
 
     return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, { boundingBoxes }));
   }
