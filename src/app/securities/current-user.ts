@@ -4,6 +4,7 @@ export interface ILoggedInUser {
   userId: string;
   userName: string;
   userRoles: string[];
+  userEmails: string[];
 }
 
 export const CurrentUser = createParamDecorator((data: string, ctx: ExecutionContext) => {

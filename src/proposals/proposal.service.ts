@@ -1,11 +1,13 @@
+/* eslint-disable no-plusplus */
 import { forwardRef, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
-import { cloneDeep, identity, pickBy, uniq } from 'lodash';
+import { identity, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
+import { ILoggedInUser } from 'src/app/securities';
 import { ContactService } from 'src/contacts/contact.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
@@ -40,6 +42,7 @@ import {
   ValidateProposalDto,
 } from './req';
 import { SignerDetailDto, TemplateDetailDto } from './req/send-sample-contract.dto';
+import { ProposalAnalyticDto } from './res/proposal-analytic.dto';
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
 import { PROPOSAL_EMAIL_TEMPLATE } from './template-html/proposal-template';
@@ -204,7 +207,10 @@ export class ProposalService {
     );
   }
 
-  async generateLinkByAgent(proposalId: string): Promise<OperationResult<{ proposalLink: string }>> {
+  async generateLinkByAgent(
+    proposalId: string,
+    user: ILoggedInUser,
+  ): Promise<OperationResult<{ proposalLink: string }>> {
     // TODO: need to check role later
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
@@ -217,6 +223,7 @@ export class ProposalService {
         houseNumber: 'need to fix later',
         zipCode: 'need to fix later',
         isAgent: true,
+        user,
       },
       {
         expiresIn: '1d',
@@ -233,25 +240,27 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(proposalId.toString());
     }
 
-    const recipients: IRecipientSchema[] = cloneDeep(foundProposal.detailedProposal.recipients);
+    const recipients = foundProposal.detailedProposal.recipients;
+
+    const sendRecipients: IRecipientSchema[] = [];
 
     recipientEmails
       .filter(recipientEmail => !!recipientEmail)
       .forEach(email => {
         const foundRecipientEmail = recipients.find(recipient => recipient.email === email);
-        if (!foundRecipientEmail) {
-          recipients.push({
+        if (foundRecipientEmail) {
+          sendRecipients.push({
             email,
-            name: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
+            firstName: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
           });
         }
       });
 
-    const tokensByRecipients = recipients.map(item =>
+    const tokensByRecipients = sendRecipients.map(item =>
       this.jwtService.sign(
         {
           proposalId: foundProposal._id,
-          email: item.email,
+          user: { userEmails: [item.email] },
           houseNumber: 'myhouse123', // TO BE REMOVED AFTER MERGED
           zipCode: 7000000, // TO BE REMOVED AFTER MERGED
           isAgent: true, // TODO: SHOULD BE REMOVED AFTER DEMO
@@ -265,25 +274,47 @@ export class ProposalService {
 
     const linksByToken = tokensByRecipients.map(token => (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`));
 
-    foundProposal.detailedProposal.recipients = recipients;
-    await foundProposal.save();
+    // update analytic send
+    const foundAnalytic = await this.proposalAnalyticModel.findOne({
+      proposalId: proposalId.toString(),
+    });
+    const currentDate = new Date();
+    if (!foundAnalytic) {
+      const dataToSave = { sends: recipientEmails.map(e => ({ by: e, at: currentDate })) };
+      const newProposalAnalytic = new this.proposalAnalyticModel({
+        proposalId,
+        viewBy: 'agent',
+        ...dataToSave,
+      });
+      await newProposalAnalytic.save();
+    } else {
+      recipientEmails.forEach(email => {
+        const sendIndex = foundAnalytic.sends.findIndex(e => e.by === email);
+        if (sendIndex > -1) {
+          foundAnalytic.sends[sendIndex].at = currentDate;
+        } else {
+          foundAnalytic.sends.push({ by: email, at: currentDate });
+        }
+      });
+      await foundAnalytic.save();
+    }
 
-    await Promise.all(
-      recipientEmails.map((recipient, index) => {
-        const data = {
-          customerName: recipient.split('@')?.[0] ? recipient.split('@')[0] : 'Customer',
-          proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
-          recipientNotice: recipientEmails.filter(i => i !== recipient).join(', ')
-            ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientEmails
-                .filter(i => i !== recipient)
-                .join(', ')}`
-            : '',
-          proposalLink: linksByToken[index],
-        };
-        this.emailService.sendMailByTemplate(recipient, 'Proposal Invitation', PROPOSAL_EMAIL_TEMPLATE, data);
-        // this.emailService.sendMail(recipient, htmlToSend, 'Proposal Invitation');
-      }),
-    );
+    sendRecipients.forEach((recipient, index) => {
+      const recipientsExcludeSelf = sendRecipients
+        .filter(sendRecipient => sendRecipient.email !== recipient.email)
+        .join(', ');
+      const data = {
+        customerName: recipient?.firstName ?? 'Customer',
+        proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
+        recipientNotice: recipientsExcludeSelf
+          ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsExcludeSelf}`
+          : '',
+        proposalLink: linksByToken[index],
+      };
+      this.emailService
+        .sendMailByTemplate(recipient?.email || '', 'Proposal Invitation', PROPOSAL_EMAIL_TEMPLATE, data)
+        .catch(error => console.error(error));
+    });
 
     return OperationResult.ok(true);
   }
@@ -346,6 +377,34 @@ export class ProposalService {
       });
     }
 
+    // update analytic view
+    const {
+      user: { userEmails },
+    } = tokenPayload;
+
+    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposalId: proposal._id });
+
+    const currentDate = new Date();
+    if (!foundAnalytic) {
+      const dataToSave = { views: userEmails.map(e => ({ by: e, at: currentDate })) };
+      const newProposalAnalytic = new this.proposalAnalyticModel({
+        proposalId: proposal.id,
+        viewBy: 'agent',
+        ...dataToSave,
+      });
+      await newProposalAnalytic.save();
+    } else {
+      userEmails.forEach(email => {
+        const viewIndex = foundAnalytic.views.findIndex(view => email === view.by);
+        if (viewIndex > -1) {
+          foundAnalytic.views[viewIndex].at = currentDate;
+        } else {
+          foundAnalytic.views.push({ by: email, at: currentDate });
+        }
+      });
+      await foundAnalytic.save();
+    }
+
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
       proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
@@ -363,9 +422,22 @@ export class ProposalService {
     return counter;
   }
 
+  async getProposalAnalyticByProposalId(proposalId: ObjectId): Promise<OperationResult<ProposalAnalyticDto>> {
+    const foundProposalAnalytic = await this.proposalAnalyticModel.findOne({ proposalId: proposalId.toString() });
+
+    if (!foundProposalAnalytic) {
+      throw ApplicationException.EntityNotFound(proposalId.toString());
+    }
+
+    return OperationResult.ok(strictPlainToClass(ProposalAnalyticDto, foundProposalAnalytic.toJSON()));
+  }
+
   async saveProposalAnalytic(analyticInfo: SaveProposalAnalyticDto): Promise<OperationResult<boolean>> {
+    const { proposalId, type, viewBy, token } = analyticInfo;
+
+    let parsedPayload;
     try {
-      await this.jwtService.verifyAsync(analyticInfo.token, {
+      parsedPayload = await this.jwtService.verifyAsync(token, {
         secret: process.env.PROPOSAL_JWT_SECRET,
         ignoreExpiration: false,
       });
@@ -373,40 +445,54 @@ export class ProposalService {
       throw new UnauthorizedException();
     }
 
-    const { proposalId, type, viewBy } = analyticInfo;
+    const {
+      user: { userEmails },
+    } = parsedPayload;
+
     const foundProposal = await this.proposalModel.exists({ _id: proposalId });
     if (!foundProposal) {
       throw ApplicationException.EntityNotFound(proposalId);
     }
 
     const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposalId, viewBy });
+
+    const currentDate = new Date();
     if (!foundAnalytic) {
       const dataToSave =
         type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
-          ? { downloads: [new Date()], views: [] }
-          : { views: [new Date()], downloads: [] };
-      const model = new this.proposalAnalyticModel({
+          ? { downloads: userEmails.map(e => ({ by: e, at: currentDate })) }
+          : { views: userEmails.map(e => ({ by: e, at: currentDate })) };
+      const newProposalAnalytic = new this.proposalAnalyticModel({
         proposalId,
         viewBy,
         ...dataToSave,
       });
-      await model.save();
+      await newProposalAnalytic.save();
 
       return OperationResult.ok(true);
     }
 
-    const dataToUpdate =
-      type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
-        ? {
-            downloads: [...foundAnalytic.downloads, new Date()],
-            views: foundAnalytic.views,
-          }
-        : {
-            views: [...foundAnalytic.views, new Date()],
-            downloads: foundAnalytic.downloads,
-          };
+    if (type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD) {
+      userEmails.forEach(email => {
+        const downloadIndex = foundAnalytic.downloads.findIndex(download => email === download.by);
+        if (downloadIndex > -1) {
+          foundAnalytic.downloads[downloadIndex].at = currentDate;
+        } else {
+          foundAnalytic.downloads.push({ by: email, at: currentDate });
+        }
+      });
+    } else {
+      userEmails.forEach(email => {
+        const viewIndex = foundAnalytic.views.findIndex(view => email === view.by);
+        if (viewIndex > -1) {
+          foundAnalytic.views[viewIndex].at = currentDate;
+        } else {
+          foundAnalytic.views.push({ by: email, at: currentDate });
+        }
+      });
+    }
 
-    await this.proposalAnalyticModel.findByIdAndUpdate(foundAnalytic._id, dataToUpdate);
+    await foundAnalytic.save();
     return OperationResult.ok(true);
   }
 

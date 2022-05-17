@@ -1,14 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsBoolean,
-  IsEmail,
-  IsInt,
-  IsMongoId,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
+import { IsArray, IsBoolean, IsEmail, IsInt, IsMongoId, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 export class RecipientDto {
   @ApiProperty()
@@ -16,8 +8,14 @@ export class RecipientDto {
   email: string;
 
   @ApiProperty()
+  @IsOptional()
   @IsString()
-  name: string;
+  firstName: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  lastName: string;
 }
 
 class DetailedProposalDto {
