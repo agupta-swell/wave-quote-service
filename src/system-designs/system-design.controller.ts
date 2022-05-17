@@ -7,7 +7,7 @@ import { PreAuthenticate } from 'src/app/securities';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import {
-  CalculateSunroofDto,
+  CalculateSunroofOrientationDto,
   CreateSystemDesignDto,
   GetBoundingBoxesReqDto,
   UpdateAncillaryMasterDtoReq,
@@ -15,6 +15,7 @@ import {
 } from './req';
 import {
   AnciallaryMasterRes,
+  CalculateSunroofOrientationResDto,
   GetBoundingBoxesResDto,
   SystemDesignAncillaryMasterDto,
   SystemDesignAncillaryMasterListRes,
@@ -22,7 +23,6 @@ import {
   SystemDesignListRes,
   SystemDesignRes,
 } from './res';
-import { CalculateSunroofResDto } from './res/calculate-sunroof-res.dto';
 import { SystemDesignService } from './system-design.service';
 
 @ApiTags('System Design')
@@ -119,10 +119,7 @@ export class SystemDesignController {
   }
 
   @Get(':id')
-  @ApiParam({
-    name: 'id',
-    type: String,
-  })
+  @ApiParam({ name: 'id', type: String })
   @ApiOperation({ summary: 'Get detail' })
   @ApiOkResponse({ type: SystemDesignRes })
   async getDetails(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<SystemDesignDto>> {
@@ -130,17 +127,41 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(result);
   }
 
+  // TODO change path to `/calculate-sunroof-orientation` ??
   @Post('/calculate-sunroof')
-  async calculateSunroof(@Body() req: CalculateSunroofDto): Promise<ServiceResponse<CalculateSunroofResDto>> {
-    const result = await this.systemDesignService.calculateSunroofData(req);
-
+  async calculateSunroofOrientation(
+    @Body() req: CalculateSunroofOrientationDto,
+  ): Promise<ServiceResponse<CalculateSunroofOrientationResDto>> {
+    const result = await this.systemDesignService.calculateSunroofOrientation(req);
     return ServiceResponse.fromResult(result);
   }
 
   @Get('/bounding-boxes')
   async getBoundingBoxes(@Query() req: GetBoundingBoxesReqDto): Promise<ServiceResponse<GetBoundingBoxesResDto>> {
     const result = await this.systemDesignService.getSunroofBoundingBoxes(req);
+    return ServiceResponse.fromResult(result);
+  }
 
+  @Post(':id/generate-heatmap-pngs')
+  @ApiParam({ name: 'id', type: String })
+  async generateHeatmapPngs(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
+    const result = await this.systemDesignService.generateHeatmapPngs(id);
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Post(':id/generate-array-overlay-png')
+  @ApiParam({ name: 'id', type: String })
+  async generateArrayOverlayPng(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
+    const result = await this.systemDesignService.generateArrayOverlayPng(id);
+    return ServiceResponse.fromResult(result);
+  }
+
+  // TODO I don't know if this is the final location for this or perhaps
+  //      it will be handled from the recalculate() function in this file.
+  @Post(':id/calculate-sunroof-production')
+  @ApiParam({ name: 'id', type: String })
+  async calculateSunroofProduction (@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
+    const result = await this.systemDesignService.calculateSunroofProduction(id);
     return ServiceResponse.fromResult(result);
   }
 }

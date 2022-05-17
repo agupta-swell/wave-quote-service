@@ -15,12 +15,6 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
-import {
-  IGetBuildingResult,
-  IGetRequestResultWithS3UploadResult,
-  IGetSolarInfoResult,
-  IRoofSegmentStat,
-} from 'src/shared/google-sunroof/interfaces';
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -34,14 +28,14 @@ import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
 import {
-  CalculateSunroofDto,
+  CalculateSunroofOrientationDto,
   CreateSystemDesignDto,
   ExistingSolarDataDto,
   GetBoundingBoxesReqDto,
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
-import { CalculateSunroofResDto, GetBoundingBoxesResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
+import { CalculateSunroofOrientationResDto, GetBoundingBoxesResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
 import { getTypicalProduction, ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
@@ -51,11 +45,11 @@ import {
   SYSTEM_DESIGN,
 } from './system-design.schema';
 
+import { GoogleSunroof } from '../shared/google-sunroof/types'
+
 @Injectable()
 export class SystemDesignService {
   private SYSTEM_DESIGN_S3_BUCKET = process.env.AWS_S3_BUCKET as string;
-
-  private ARRAY_HOURLY_PRODUCTION_BUCKET = process.env.AWS_S3_ARRAY_HOURLY_PRODUCTION as string;
 
   constructor(
     // @ts-ignore
@@ -1004,11 +998,11 @@ export class SystemDesignService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    const counter = await this.systemDesignModel.countDocuments({ opportunityId }).lean();
-    return counter;
+    return await this.systemDesignModel.countDocuments({ opportunityId }).lean();
   }
 
   async handleUpdateExistingSolar(opportunityId: string, isRetrofit: boolean, existingSolarData: ExistingSolarDataDto) {
+    // TODO doesn't typescript guarantee that this is a boolean?
     if (typeof isRetrofit !== 'boolean') return;
 
     if (isRetrofit) {
@@ -1056,32 +1050,28 @@ export class SystemDesignService {
     return false;
   }
 
-  public async calculateSunroofData(req: CalculateSunroofDto): Promise<OperationResult<CalculateSunroofResDto>> {
+  public async calculateSunroofOrientation (
+    req: CalculateSunroofOrientationDto,
+  ) : Promise<OperationResult<CalculateSunroofOrientationResDto>> {
     const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths, polygons } = req;
 
-    const [sunroofData] = await Promise.all([
-      this.getSunRoofData(latitude, longitude, opportunityId),
-      this.getSunroofSolarInfoData(latitude, longitude, opportunityId),
-    ]);
-
-    if (!sunroofData) {
-      return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, {}));
-    }
-    const sunroofPitchAndAzimuth = this.getSunroofPitchAndAzimuth(
-      sunroofData,
+    const orientationInformation = await this.googleSunroofService.getOrientationInformation(
+      opportunityId,
+      latitude,
+      longitude,
       centerLat,
       centerLng,
       sideAzimuths,
       polygons,
-    );
+    )
 
-    return OperationResult.ok(strictPlainToClass(CalculateSunroofResDto, sunroofPitchAndAzimuth));
+    return OperationResult.ok(strictPlainToClass(CalculateSunroofOrientationResDto, orientationInformation));
   }
 
   public async getSunroofBoundingBoxes(req: GetBoundingBoxesReqDto): Promise<OperationResult<GetBoundingBoxesResDto>> {
     const { latitude, longitude, opportunityId } = req;
 
-    const sunroofData = await this.getSunRoofData(latitude, longitude, opportunityId);
+    const sunroofData = await this.googleSunroofService.getClosestBuilding(opportunityId, latitude, longitude);
 
     if (!sunroofData) {
       return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, {}));
@@ -1094,150 +1084,6 @@ export class SystemDesignService {
 
   public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
     return this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
-  }
-
-  private async getSunRoofData(
-    lat: number,
-    lng: number,
-    opportunityId: string,
-  ): Promise<IGetBuildingResult | undefined> {
-    try {
-      const fileName = `${opportunityId}/closestBuilding.json`;
-
-      const existed = await this.googleSunroofService.hasS3File(fileName);
-
-      if (!existed) {
-        const data = await this.googleSunroofService.getBuilding(lat, lng, fileName);
-
-        return data.payload;
-      }
-
-      const found = await this.googleSunroofService.getS3File<IGetBuildingResult>(fileName);
-      return found;
-    } catch (_) {
-      return undefined;
-    }
-  }
-
-  private async getSunroofSolarInfoData(
-    lat: number,
-    lng: number,
-    opportunityId: string,
-    radiusMeters = 25,
-  ): Promise<IGetSolarInfoResult | undefined> {
-    try {
-      const fileNameToTest = `${opportunityId}/sunroofSolarInfo.json`;
-
-      const existed = await this.googleSunroofService.hasS3File(fileNameToTest);
-
-      if (!existed) {
-        const { payload: solarInfo } = await this.googleSunroofService.getSolarInfo(
-          lat,
-          lng,
-          radiusMeters,
-          fileNameToTest,
-        );
-
-        const promises: Promise<IGetRequestResultWithS3UploadResult<unknown>>[] = [];
-
-        ['rgb', 'mask', 'annualFlux', 'monthlyFlux'].forEach(component => {
-          const url = solarInfo[`${component}Url`];
-          const fileName = `${opportunityId}/tiff/${component}.tiff`;
-          const promise = this.googleSunroofService.getRequest(url, fileName);
-          promises.push(promise);
-        });
-
-        solarInfo.hourlyShadeUrls.forEach((url, index) => {
-          const fileName = `${opportunityId}/tiff/month${index}.tiff`;
-          const promise = this.googleSunroofService.getRequest(url, fileName);
-          promises.push(promise);
-        });
-
-        await Promise.all(promises);
-
-        return solarInfo;
-      }
-
-      return await this.googleSunroofService.getS3File<IGetSolarInfoResult>(fileNameToTest);
-    } catch (_) {
-      return undefined;
-    }
-  }
-
-  private getSunroofPitchAndAzimuth(
-    buildingData: IGetBuildingResult,
-    centerLat: number,
-    centerLng: number,
-    sideAzimuths: number[],
-    polygons: ICoordinate[],
-  ): {
-    sunroofPrimaryOrientationSide?: number;
-    sunroofPitch?: number;
-    sunroofAzimuth?: number;
-  } {
-    if (!Array.isArray(buildingData?.solarPotential?.roofSegmentStats)) {
-      return {};
-    }
-
-    const segmentsContainPanel = buildingData.solarPotential.roofSegmentStats.filter(segment =>
-      isCoordinatesInsideBoundByAtLeast(polygons, {
-        ne: {
-          lat: segment.boundingBox.ne.latitude,
-          lng: segment.boundingBox.ne.longitude,
-        },
-        sw: {
-          lat: segment.boundingBox.sw.latitude,
-          lng: segment.boundingBox.sw.longitude,
-        },
-      }),
-    );
-
-    let closestSegment: IRoofSegmentStat;
-
-    if (segmentsContainPanel.length === 1) {
-      const [segment] = segmentsContainPanel;
-
-      closestSegment = segment;
-    } else
-      closestSegment = (segmentsContainPanel.length
-        ? segmentsContainPanel
-        : buildingData.solarPotential.roofSegmentStats
-      )
-        .map(e => {
-          const distance = calcCoordinatesDistance(
-            {
-              lat: centerLat,
-              lng: centerLng,
-            },
-            {
-              lat: e.center.latitude,
-              lng: e.center.longitude,
-            },
-          );
-
-          return {
-            ...e,
-            distance,
-          };
-        })
-        .sort((a, b) => a.distance - b.distance)[0];
-
-    if (!closestSegment.azimuthDegrees) {
-      return {};
-    }
-
-    const closestSide = sideAzimuths
-      .map((e, idx) => ({
-        side: idx + 1,
-        val: Math.abs(closestSegment.azimuthDegrees - e),
-      }))
-      .sort((a, b) => a.val - b.val)[0].side;
-
-    return {
-      sunroofPrimaryOrientationSide: closestSide,
-      sunroofPitch: closestSegment.pitchDegrees,
-      sunroofAzimuth: closestSegment.azimuthDegrees,
-    };
   }
 
   private async getAllProductsOfSystemDesign(
@@ -1274,5 +1120,33 @@ export class SystemDesignService {
     return productIds
       .map(id => products.find(e => e._id?.toString() === id))
       .filter((e): e is LeanDocument<IUnknownProduct> => !!e);
+  }
+
+  public async generateHeatmapPngs (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId.toString());
+    }
+    await this.googleSunroofService.generateHeatmapPngs(systemDesign)
+    return OperationResult.ok();
+  }
+
+  public async generateArrayOverlayPng (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean()
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId.toString())
+    }
+    await this.googleSunroofService.generateArrayOverlayPng(systemDesign)
+    return OperationResult.ok();
+  }
+
+  public async calculateSunroofProduction (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean()
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId.toString())
+    }
+    const systemProduction = await this.googleSunroofService.calculateProduction(systemDesign)
+    // TODO do something with this `systemProduction`
+    return OperationResult.ok();
   }
 }

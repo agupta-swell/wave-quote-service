@@ -1,6 +1,6 @@
 import { ExposeProp } from 'src/shared/decorators';
 
-export class CalculateSunroofResDto {
+export class CalculateSunroofOrientationResDto {
   @ExposeProp()
   sunroofPrimaryOrientationSide: number;
 
