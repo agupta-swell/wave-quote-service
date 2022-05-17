@@ -1,4 +1,4 @@
-import type { Color } from './sub-services/types'
+import type { Color } from './types'
 
 export const red: Color = [255, 0, 0]
 export const green: Color = [0, 255, 0]

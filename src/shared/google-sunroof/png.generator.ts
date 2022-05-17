@@ -7,7 +7,7 @@ import { PNG } from 'pngjs';
 import { ISolarPanelArraySchema } from 'src/system-designs/system-design.schema';
 
 import type { Pixel, Color, LatLng } from './types';
-import { black, white, blue, red } from '../constants';
+import { black, white, blue, red } from './constants';
 
 import {
   drawPolygon,
@@ -17,7 +17,7 @@ import {
   mapLatLngPolygonToPixelPolygon,
   setPixelColor,
   translatePixelPolygon,
-} from '../utils';
+} from './utils';
 
 // TODO generate PNGs on another thread? e.g. require('worker_threads')
 export class PngGenerator {

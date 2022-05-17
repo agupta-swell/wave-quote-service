@@ -2,11 +2,9 @@
 /* eslint-disable no-plusplus */
 /* eslint-disable no-continue */
 import type { PNG } from 'pngjs';
-import * as fs from 'fs';
-import * as path from 'path';
-import type { Color, LatLng, LatLngPolygon, Vector2 } from './sub-services/types';
 
-import { Pixel, PixelPolygon } from './sub-services/types';
+import type { Color, LatLng, LatLngPolygon, Pixel, PixelPolygon, Vector2 } from './types';
+
 import { magenta, fluxMin, fluxMax, fluxGradient } from './constants';
 
 export const getPixelColor = (png: PNG, pixel: Pixel): Color => {
@@ -179,7 +177,6 @@ export const drawPolygon = (png: PNG, polygon: PixelPolygon, color: Color = mage
   }
 }
 
-// TODO improve this
 export const getHeatmapColor = (fluxValue: number): Color => {
   const fluxRange = fluxMax - fluxMin;
   const percentage = (fluxValue - fluxMin) / fluxRange;

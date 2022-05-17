@@ -45,7 +45,7 @@ import {
   SYSTEM_DESIGN,
 } from './system-design.schema';
 
-import { GoogleSunroof } from '../shared/google-sunroof/sub-services/types'
+import { GoogleSunroof } from '../shared/google-sunroof/types'
 
 @Injectable()
 export class SystemDesignService {

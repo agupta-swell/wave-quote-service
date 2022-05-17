@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AwsModule } from '../aws/aws.module';
 import { GoogleSunroofService } from './google-sunroof.service';
-import { GoogleSunroofGateway } from './sub-services'
+import { GoogleSunroofGateway } from './google-sunroof.gateway'
 
 @Module({
   imports: [AwsModule],

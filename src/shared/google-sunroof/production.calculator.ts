@@ -12,7 +12,7 @@ import type { TypedArrayArrayWithDimensions } from 'geotiff'
 import {
   ISolarPanelArraySchema,
   SystemDesign,
-} from '../../../system-designs/system-design.schema'
+} from '../../system-designs/system-design.schema'
 
 import type {
   ArrayProduction,
@@ -25,7 +25,7 @@ import {
   getPanelPixels,
   mapLatLngPolygonToPixelPolygon,
   translatePixelPolygon,
-} from  '../utils'
+} from './utils'
 
 export class ProductionCalculator {
   /**

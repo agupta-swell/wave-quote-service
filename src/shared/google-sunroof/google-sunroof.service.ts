@@ -14,12 +14,10 @@ import { SystemDesign } from '../../system-designs/system-design.schema';
 import type {
   GoogleSunroof,
   SystemProduction,
-} from './sub-services/types'
-import {
-  GoogleSunroofGateway,
-  PngGenerator,
-  ProductionCalculator,
-} from './sub-services'
+} from './types'
+import { GoogleSunroofGateway } from './google-sunroof.gateway'
+import { PngGenerator } from './png.generator'
+import { ProductionCalculator } from './production.calculator'
 import { DAY_COUNT_BY_MONTH_INDEX } from './constants'
 import {
   calcCoordinatesDistance,
