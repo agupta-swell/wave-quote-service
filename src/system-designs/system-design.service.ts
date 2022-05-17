@@ -19,11 +19,6 @@ import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
-import {
-  calcCoordinatesDistance,
-  ICoordinate,
-  isCoordinatesInsideBoundByAtLeast,
-} from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
@@ -44,8 +39,6 @@ import {
   SystemDesignWithManufacturerMeta,
   SYSTEM_DESIGN,
 } from './system-design.schema';
-
-import { GoogleSunroof } from '../shared/google-sunroof/types'
 
 @Injectable()
 export class SystemDesignService {
