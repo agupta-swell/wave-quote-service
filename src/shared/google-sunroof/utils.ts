@@ -71,28 +71,27 @@ const isPixelInPolygon = (pixelToTest: Pixel, polygon: PixelPolygon) => {
   return isInside;
 };
 
-export const getPanelPixels = (polygon: PixelPolygon) => {
-  const panelPixels = new Array(2);
-  let counter = 0;
+export const getPanelPixels = (polygon: PixelPolygon) : Pixel[] => {
+  const panelPixels: Pixel[] = [];
 
-  // get bounding box coordinates
+  // find the x/y extremes of the polygon
   let minX = polygon[0][0];
   let maxX = polygon[0][0];
   let minY = polygon[0][1];
   let maxY = polygon[0][1];
-
-  for (let i = 1; i < polygon.length; i++) {
+  for ( let i = 1 ; i < polygon.length ; i++ ) {
     minX = Math.min(polygon[i][0], minX);
     maxX = Math.max(polygon[i][0], maxX);
     minY = Math.min(polygon[i][1], minY);
     maxY = Math.max(polygon[i][1], maxY);
   }
 
-  for (let xp = minX; xp <= maxX; xp++) {
-    for (let yp = minY; yp <= maxY; yp++) {
-      if (isPixelInPolygon([xp, yp], polygon)) {
-        panelPixels[counter] = [xp, yp];
-        counter++;
+  // search the bounding box for relevant pixels
+  for ( let x = minX ; x <= maxX ; x++ ) {
+    for ( let y = minY ; y <= maxY ; y++ ) {
+      const thisPixel: Pixel = [x, y]
+      if (isPixelInPolygon(thisPixel, polygon)) {
+        panelPixels.push(thisPixel)
       }
     }
   }
