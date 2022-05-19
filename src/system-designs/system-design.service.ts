@@ -19,6 +19,7 @@ import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
+import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR, HEATMAP_MODE } from './constants';
@@ -1053,14 +1054,43 @@ export class SystemDesignService {
   public async calculateSunroofOrientation(
     req: CalculateSunroofOrientationDto,
   ): Promise<OperationResult<CalculateSunroofOrientationResDto>> {
-    const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths, polygons } = req;
+    const {
+      centerLat: _centerLat,
+      centerLng: _centerLng,
+      opportunityId,
+      sideAzimuths,
+      polygons,
+      arrayId,
+      systemDesignId,
+    } = req;
+
+    let centerLat = _centerLat;
+    let centerLng = _centerLng;
+
+    if (systemDesignId) {
+      const systemDesign = await this.getOneById(systemDesignId);
+
+      if (!systemDesign) throw ApplicationException.EntityNotFound(systemDesignId.toString());
+
+      if (Types.ObjectId.isValid(<string>arrayId)) {
+        const foundPanel =
+          systemDesign.roofTopDesignData &&
+          systemDesign.roofTopDesignData.panelArray.find(item => item.arrayId.toString() === arrayId);
+
+        if (!foundPanel)
+          throw new NotFoundException(`No panel found with id ${arrayId} in system design ${systemDesignId}`);
+
+        const { lat, lng } = getCenterBound(foundPanel.boundPolygon);
+
+        centerLat = lat;
+        centerLng = lng;
+      }
+    }
 
     const orientationInformation = await this.googleSunroofService.getOrientationInformation(
-      opportunityId,
-      latitude,
-      longitude,
-      centerLat,
-      centerLng,
+      GoogleSunroofService.BuildClosestBuildingKey(opportunityId, systemDesignId, arrayId, centerLat, centerLng),
+      centerLat!,
+      centerLng!,
       sideAzimuths,
       polygons,
     );
@@ -1069,9 +1099,26 @@ export class SystemDesignService {
   }
 
   public async getSunroofBoundingBoxes(req: GetBoundingBoxesReqDto): Promise<OperationResult<GetBoundingBoxesResDto>> {
-    const { latitude, longitude, opportunityId, sideAzimuths } = req;
+    const { systemDesignId, arrayId, opportunityId, sideAzimuths } = req;
 
-    const sunroofData = await this.googleSunroofService.getClosestBuilding(opportunityId, latitude, longitude);
+    const systemDesign = await this.getOneById(systemDesignId);
+
+    if (!systemDesign) throw ApplicationException.EntityNotFound(systemDesignId);
+
+    const foundPanel =
+      systemDesign.roofTopDesignData &&
+      systemDesign.roofTopDesignData.panelArray.find(item => item.arrayId.toString() === arrayId);
+
+    if (!foundPanel)
+      throw new NotFoundException(`No panel found with id ${arrayId} in system design ${systemDesignId}`);
+
+    const { lat, lng } = getCenterBound(foundPanel.boundPolygon);
+
+    const sunroofData = await this.googleSunroofService.getClosestBuilding(
+      GoogleSunroofService.BuildClosestBuildingKey(opportunityId, systemDesignId, arrayId),
+      lat,
+      lng,
+    );
 
     if (!sunroofData) {
       return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, {}));

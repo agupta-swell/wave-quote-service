@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus */
 export interface ICoordinate {
   lat: number;
   lng: number;
@@ -91,4 +92,20 @@ export const isCoordinatesInsideBoundByAtLeast = (
   }
 
   return isMatch;
+};
+
+export const getCenterBound = (bounds: ICoordinate[]): ICoordinate => {
+  const lats = bounds.map(b => b.lat);
+  const lngs = bounds.map(b => b.lng);
+
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
+  return {
+    lat: (minLat + maxLat) / 2,
+    lng: (minLng + maxLng) / 2,
+  };
 };

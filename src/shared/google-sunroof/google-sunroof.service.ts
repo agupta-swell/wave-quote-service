@@ -12,7 +12,8 @@ import { Injectable } from '@nestjs/common';
 import type {
   GoogleSunroof,
   GoogleSunroofOrientationInformation,
-  SystemProduction
+  SystemProduction,
+  IClosestBuildingKey,
 } from './types';
 
 import { S3Service } from '../aws/services/s3.service';
@@ -43,20 +44,50 @@ export class GoogleSunroofService {
     this.GOOGLE_SUNROOF_S3_BUCKET = bucket;
   }
 
+   /**
+   * Build a file path for `closestBuilding.json`
+   *
+   * If the `systemDesign` is not created yet or to look up by the opportunity address, use `lat/lng` instead of `systemDesignId/arrayId`
+   *
+   * @param opportunityId
+   * @param systemDesignId
+   * @param arrayId
+   * @param lat
+   * @param lng
+   * @returns
+   */
+    public static BuildClosestBuildingKey(
+      opportunityId: string,
+      systemDesignId?: string,
+      arrayId?: string,
+      lat?: number,
+      lng?: number,
+    ): IClosestBuildingKey {
+      if (arrayId && systemDesignId) {
+        return { key: `${opportunityId}/${systemDesignId}/${arrayId}/closestBuilding.json` };
+      }
+  
+      if (!lat || !lng) throw new TypeError('Either lat/lng or systemDesignId/arrayId must be provided');
+  
+      return {
+        key: `${opportunityId}/${lat}/${lng}/closestBuilding.json`,
+      };
+    }
+
   /**
    * Check S3 for the cached `closestBuilding.json` file for the given opportunityId.
-   * Fetch, ans cache, it from Google Sunroof if the file does not already exist.
+   * Fetch, and cache, it from Google Sunroof if the file does not already exist.
    *
    * @param opportunityId
    * @param latitude
    * @param longitude
    */
   public async getClosestBuilding (
-    opportunityId: string,
+    closestBuildingKey: IClosestBuildingKey,
     latitude: number,
     longitude: number,
   ) : Promise<GoogleSunroof.Building> {
-    const key = `${opportunityId}/closestBuilding.json`
+    const { key } = closestBuildingKey;
     let closestBuilding = await this.getS3FileAsJson<GoogleSunroof.Building>(key)
     if (!closestBuilding) {
       closestBuilding = await this.googleSunroofGateway.findClosestBuilding(latitude, longitude)
@@ -80,15 +111,13 @@ export class GoogleSunroofService {
    * @param polygons
    */
   public async getOrientationInformation (
-    opportunityId: string,
-    latitude: number,
-    longitude: number,
+    closestBuildingKey: IClosestBuildingKey,
     centerLat: number,
     centerLng: number,
     sideAzimuths: number[],
     polygons: ICoordinate[],
   ) : Promise<GoogleSunroofOrientationInformation> {
-    const closestBuilding = await this.getClosestBuilding(opportunityId, latitude, longitude);
+    const closestBuilding = await this.getClosestBuilding(closestBuildingKey, centerLat, centerLng);
 
     if (!Array.isArray(closestBuilding?.solarPotential?.roofSegmentStats)) {
       return {};

@@ -31,6 +31,10 @@ export type GoogleSunroofOrientationInformation = {
   sunroofAzimuth?: number;
 }
 
+export interface IClosestBuildingKey {
+  key: string;
+}
+
 export namespace GoogleSunroof {
   // Helpers
   export interface LatitudeAndLongitude {

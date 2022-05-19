@@ -48,6 +48,7 @@ export const createSystemDesignProvider = (
     const originalObjSym = Symbol('mongoOriginObj');
     const ctxStoreSym = Symbol('asyncContextStore');
     const initSystemDesignSym = Symbol('initSystemDesignSym');
+    const isNewSolarPanel = Symbol('isNewSolarPanel');
 
     const patchedSolarPanelArraySchema = new Schema(SolarPanelArraySchema.obj, { _id: false });
 
@@ -89,9 +90,10 @@ export const createSystemDesignProvider = (
           store!,
           parentSystemDesign,
           previousSystemDesignLatLng,
-          this.get('id')?.toString(),
+          this.get('array_id')?.toString(),
           previousBoundPolygon,
-          this.isNew,
+          store!.cache.get(isNewSolarPanel) as boolean,
+          this.get('bound_polygon'),
         );
         next();
       } catch (err) {
