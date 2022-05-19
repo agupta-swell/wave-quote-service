@@ -27,6 +27,7 @@ import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { roundNumber } from 'src/utils/transformNumber';
+import { CustomerPayment } from '../customer-payments/customer-payment.schema'
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
 import { FastifyFile } from '../shared/fastify';
@@ -43,6 +44,7 @@ import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import { ContractReqDto } from './req/contract-req.dto';
 import {
+  ContractResDto,
   GetContractTemplatesDto,
   GetCurrentContractDto,
   GetDocusignCommunicationDetailsDto,
@@ -50,7 +52,6 @@ import {
   SaveContractDto,
   SendContractDto,
 } from './res';
-import { ContractResDto } from './res/sub-dto';
 
 @Injectable()
 export class ContractService {
@@ -226,10 +227,6 @@ export class ContractService {
         });
       }
 
-      if (contractDetail.contractType === CONTRACT_TYPE.PRIMARY_CONTRACT) {
-        await this.syncWithWav(contractDetail);
-      }
-
       const contractTemplateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
         contractDetail.contractTemplateId,
       );
@@ -245,7 +242,11 @@ export class ContractService {
 
       await newlyUpdatedContract.save();
 
-      await this.customerPaymentService.create(newlyUpdatedContract._id, contractDetail.opportunityId, quoteDetail);
+      const customerPayment = await this.customerPaymentService.create(newlyUpdatedContract._id, contractDetail.opportunityId, quoteDetail);
+
+      if (contractDetail.contractType === CONTRACT_TYPE.PRIMARY_CONTRACT) {
+        await this.syncWithWav(newlyUpdatedContract, customerPayment);
+      }
 
       await this.opportunityService.updateExistingOppDataById(contractDetail.opportunityId, {
         $set: {
@@ -883,14 +884,14 @@ export class ContractService {
     return undefined;
   }
 
-  async syncWithWav(contractDetail: ContractReqDto): Promise<void> {
+  async syncWithWav(contractDetail: Contract, customerPayment: CustomerPayment): Promise<void> {
     const [quoteDetail, utilityData] = await Promise.all([
       this.quoteService.getOneById(contractDetail.associatedQuoteId),
       this.utilityService.getUtilityByOpportunityId(contractDetail.opportunityId),
     ]);
 
     if (!quoteDetail || !utilityData) {
-      throw new BadRequestException({ message: 'Related Opportunity or Utility or Quote is not found!' });
+      throw new BadRequestException({ message: 'Related Opportunity or Utility or Quote or CustomerPayment is not found!' });
     }
 
     const wavUtilityCode = await this.genabilityUtilityMapService.getWavUtilityCodeByGenabilityLseName(
@@ -917,7 +918,7 @@ export class ContractService {
         fundingSourceId: quoteDetail?.quoteFinanceProduct.financeProduct.fundingSourceId,
         utilityId,
         primaryQuoteType: quoteDetail.primaryQuoteType,
-        amount: quoteDetail.quoteCostBuildup.projectGrandTotal.netCost,
+        amount: customerPayment?.amount,
       },
     });
 
