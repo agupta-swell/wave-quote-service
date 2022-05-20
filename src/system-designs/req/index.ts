@@ -1,4 +1,4 @@
-export * from './calculate-sunroof.dto';
+export * from './calculate-sunroof-orientation.dto';
 export * from './create-system-design.dto';
 export * from './get-inverter-clipping-detail.dto';
 export * from './sub-dto';

@@ -1,7 +1,7 @@
-import * as crypto from 'crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
+import * as crypto from 'crypto';
 import { ApplicationException } from 'src/app/app.exception';
 import { UserService } from 'src/users/user.service';
 import { AuthenticationDto } from './res/authentication.dto';
@@ -21,7 +21,12 @@ export class AuthenticationService {
 
     const match = await compare(hashPassword, (user.services as any).password.bcrypt);
     if (!match) throw new UnauthorizedException();
-    const payload = { userName: user.profile.firstName, userRoles: user.roles, userId: user._id };
+    const payload = {
+      userName: user.profile.firstName,
+      userRoles: user.roles,
+      userId: user._id,
+      userEmails: user.emails.filter(email => email.verified),
+    };
     return new AuthenticationDto({ accessToken: this.jwtService.sign(payload, { algorithm: 'HS512' }) });
   }
 }

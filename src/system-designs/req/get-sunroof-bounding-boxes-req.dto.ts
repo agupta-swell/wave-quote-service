@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsLatitude, IsLongitude, IsNotEmpty, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsLatitude, IsLongitude, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class GetBoundingBoxesReqDto {
   @ApiProperty()
@@ -14,4 +15,9 @@ export class GetBoundingBoxesReqDto {
   @ApiProperty()
   @IsLongitude()
   longitude: number;
+
+  @ApiProperty()
+  @Transform(({ value }) => value?.split(',').map(Number))
+  @IsNumber({}, { each: true })
+  sideAzimuths: number[];
 }

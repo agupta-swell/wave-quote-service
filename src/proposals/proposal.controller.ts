@@ -1,30 +1,22 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-  ApiCreatedResponse,
-  ApiParam,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { plainToClass } from 'class-transformer';
+import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
-import { plainToClass } from 'class-transformer';
-import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
-import { ObjectId } from 'mongoose';
-import { UseDocusignContext } from 'src/shared/docusign';
 import { CatchDocusignException } from 'src/docusign-communications/filters';
+import { UseDocusignContext } from 'src/shared/docusign';
+import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { CurrentUser, CustomJWTSecretKey, PreAuthenticate } from '../app/securities';
 import { ILoggedInUser } from '../app/securities/current-user';
 import { ProposalService } from './proposal.service';
 import { CreateProposalDto, SaveProposalAnalyticDto, UpdateProposalDto, ValidateProposalDto } from './req';
-import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
-import { ProposalSendSampleContractDto } from './req/send-sample-contract.dto';
-import { ProposalSendSampleContractRes } from './res/proposal-send-sample-contract.dto';
 import { CreateProposalLinkDto } from './req/create-proposal-link.dto';
-import { GetPresignedUrlDto } from './req/get-presigned-url.dto';
 import { GetPresignedUrlSqtDto } from './req/get-presigned-url-sqt.dto';
+import { GetPresignedUrlDto } from './req/get-presigned-url.dto';
+import { ProposalSendSampleContractDto } from './req/send-sample-contract.dto';
+import { ProposalAnalyticDto } from './res/proposal-analytic.dto';
+import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
 
 @ApiTags('Proposal')
 @Controller('/proposals')
@@ -80,8 +72,11 @@ export class ProposalController {
   @PreAuthenticate()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate Link To Access Proposal Page' })
-  async generateLinkByAgent(@Body() body: CreateProposalLinkDto): Promise<ServiceResponse<{ proposalLink: string }>> {
-    const res = await this.proposalService.generateLinkByAgent(body.proposalId);
+  async generateLinkByAgent(
+    @Body() body: CreateProposalLinkDto,
+    @CurrentUser() user: ILoggedInUser,
+  ): Promise<ServiceResponse<{ proposalLink: string }>> {
+    const res = await this.proposalService.generateLinkByAgent(body.proposalId, user);
     return ServiceResponse.fromResult(res);
   }
 
@@ -117,6 +112,18 @@ export class ProposalController {
     @Body() body: ValidateProposalDto,
   ): Promise<ServiceResponse<{ isAgent: boolean; proposalDetail: ProposalDto }>> {
     const res = await this.proposalService.verifyProposalToken(body);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Get('/get-proposal-analytic/:proposalId')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Get Proposal Analytic by proposalId' })
+  @ApiOkResponse({ type: ProposalAnalyticDto })
+  async getProposalAnalytic(
+    @Param('proposalId', ParseObjectIdPipe) proposalId: ObjectId,
+  ): Promise<ServiceResponse<boolean>> {
+    const res = await this.proposalService.getProposalAnalyticByProposalId(proposalId);
     return ServiceResponse.fromResult(res);
   }
 

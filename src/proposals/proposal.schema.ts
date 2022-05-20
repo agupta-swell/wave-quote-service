@@ -7,14 +7,19 @@ import { PROPOSAL_STATUS } from './constants';
 export const PROPOSAL = Symbol('PROPOSAL').toString();
 
 export interface IRecipientSchema {
-  email: string;
-  name: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 const RecipientSchema = new Schema<Document<IRecipientSchema>>(
   {
-    email: String,
-    name: String,
+    email: {
+      type: String,
+      unique: true,
+    },
+    first_name: String,
+    last_name: String,
   },
   { _id: false },
 );

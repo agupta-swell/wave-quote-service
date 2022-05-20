@@ -14,6 +14,15 @@ export class BoundingBoxResDto {
 
   @ExposeProp({ type: CoordinateResDto })
   ne: CoordinateResDto;
+
+  @ExposeAndMap({}, ({ obj }) => obj?.azimuthDegrees)
+  azimuth: number;
+
+  @ExposeAndMap({}, ({ obj }) => obj?.pitchDegrees)
+  pitch: number;
+
+  @ExposeProp()
+  sunroofPrimaryOrientationSide: number;
 }
 
 export class GetBoundingBoxesResDto {
