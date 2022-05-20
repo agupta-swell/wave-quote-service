@@ -171,7 +171,9 @@ export class GoogleSunroofService {
    * @param systemDesign
    */
   public async generateHeatmapPngs (systemDesign: SystemDesign) : Promise<void> {
-    const { latitude, longitude, opportunityId } = systemDesign
+    const { latitude, longitude, opportunityId, _id } = systemDesign;
+
+    const systemDesignId = _id.toString();
 
     // TODO TEMP hardcoding radius meters for now
     // TODO TEMP this should be calculated from the arrays, WAV-1720
@@ -179,7 +181,7 @@ export class GoogleSunroofService {
 
     const solarInfo = await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters)
 
-    const savingSolarInfoJsonToS3 = this.saveObjectAsJsonToS3(solarInfo, `${opportunityId}/solarInfo.json`)
+    const savingSolarInfoJsonToS3 = this.saveObjectAsJsonToS3(solarInfo, `${opportunityId}/${systemDesignId}/solarInfo.json`)
 
     const {
       rgbUrl,
@@ -194,16 +196,16 @@ export class GoogleSunroofService {
     const downloadingMonthlyFluxTiffBuffer = downloadFileAsBuffer(monthlyFluxUrl)
 
     const savingRgbTiffToS3 = downloadingRgbTiffBuffer.then(async rgbTiffBuffer => {
-      await this.saveTiffToS3(rgbTiffBuffer, `${opportunityId}/tiff/rgb.tiff`)
+      await this.saveTiffToS3(rgbTiffBuffer, `${opportunityId}/${systemDesignId}/tiff/rgb.tiff`)
     })
     const savingMaskTiffToS3 = downloadingMaskTiffBuffer.then(async maskTiffBuffer => {
-      await this.saveTiffToS3(maskTiffBuffer, `${opportunityId}/tiff/mask.tiff`)
+      await this.saveTiffToS3(maskTiffBuffer, `${opportunityId}/${systemDesignId}/tiff/mask.tiff`)
     })
     const savingAnnualFluxTiffToS3 = downloadingAnnualFluxTiffBuffer.then(async annualFluxTiffBuffer => {
-      await this.saveTiffToS3(annualFluxTiffBuffer, `${opportunityId}/tiff/annualFlux.tiff`)
+      await this.saveTiffToS3(annualFluxTiffBuffer, `${opportunityId}/${systemDesignId}/tiff/annualFlux.tiff`)
     })
     const savingMonthlyFluxTiffToS3 = downloadingMonthlyFluxTiffBuffer.then(async monthlyFluxTiffBuffer => {
-      await this.saveTiffToS3(monthlyFluxTiffBuffer, `${opportunityId}/tiff/monthlyFlux.tiff`)
+      await this.saveTiffToS3(monthlyFluxTiffBuffer, `${opportunityId}/${systemDesignId}/tiff/monthlyFlux.tiff`)
     })
 
     const generatingSatellitePng = downloadingRgbTiffBuffer.then(async rgbTiffBuffer => {
@@ -212,7 +214,7 @@ export class GoogleSunroofService {
     })
 
     const savingSatellitePngToS3 = generatingSatellitePng.then(async satellitePng => {
-      await this.savePngToS3(satellitePng, `${opportunityId}/png/satellite.png`)
+      await this.savePngToS3(satellitePng, `${opportunityId}/${systemDesignId}/png/satellite.png`)
     })
 
     const gettingLayersFromMaskTiffBuffer = downloadingMaskTiffBuffer.then(maskTiffBuffer => {
@@ -232,7 +234,7 @@ export class GoogleSunroofService {
     })
 
     const savingMaskPngToS3 = generatingMaskPng.then(async maskPng => {
-      await this.savePngToS3(maskPng, `${opportunityId}/png/mask.png`)
+      await this.savePngToS3(maskPng, `${opportunityId}/${systemDesignId}/png/mask.png`)
     })
 
     const generatingAnnualHeatmapPng = downloadingAnnualFluxTiffBuffer.then(async annualFluxTiffBuffer => {
@@ -245,7 +247,7 @@ export class GoogleSunroofService {
     })
 
     const savingAnnualHeatmapPngToS3 = generatingAnnualHeatmapPng.then(async annualHeatmapPng => {
-      await this.savePngToS3(annualHeatmapPng, `${opportunityId}/png/heatmap.annual.png`)
+      await this.savePngToS3(annualHeatmapPng, `${opportunityId}/${systemDesignId}/png/heatmap.annual.png`)
     })
 
     const generatingAnnualMaskedHeatmapPng = Promise.all([
@@ -261,7 +263,7 @@ export class GoogleSunroofService {
     })
 
     const savingAnnualMaskedHeatmapPngToS3 = generatingAnnualMaskedHeatmapPng.then(async annualMaskedHeatmapPng => {
-      await this.savePngToS3(annualMaskedHeatmapPng, `${opportunityId}/png/heatmap.annual.masked.png`)
+      await this.savePngToS3(annualMaskedHeatmapPng, `${opportunityId}/${systemDesignId}/png/heatmap.annual.masked.png`)
     })
 
     const savingAllMonthlyPngsToS3 = downloadingMonthlyFluxTiffBuffer.then(async monthlyFluxTiffBuffer => {
@@ -275,7 +277,7 @@ export class GoogleSunroofService {
         let heatmapPng = PngGenerator.generateHeatmapPng(flux)
         heatmapPng = PngGenerator.upscalePng(heatmapPng, 5)
 
-        const savingHeatmapPngToS3 = this.savePngToS3(heatmapPng, `${opportunityId}/png/heatmap.month${monthIndex}.png`)
+        const savingHeatmapPngToS3 = this.savePngToS3(heatmapPng, `${opportunityId}/${systemDesignId}/png/heatmap.month${monthIndex}.png`)
 
         const generatingMaskedHeatmapPng = Promise.all([
           generatingSatellitePng,
@@ -288,7 +290,7 @@ export class GoogleSunroofService {
         })
 
         const savingMaskHeatmapPngToS3 = generatingMaskedHeatmapPng.then(async maskedHeatmapPng => {
-          await this.savePngToS3(maskedHeatmapPng, `${opportunityId}/png/heatmap.month${monthIndex}.masked.png`)
+          await this.savePngToS3(maskedHeatmapPng, `${opportunityId}/${systemDesignId}/png/heatmap.month${monthIndex}.masked.png`)
         })
 
         await Promise.all([
@@ -326,10 +328,13 @@ export class GoogleSunroofService {
       roofTopDesignData: {
         panelArray: arrays,
       },
+      _id
     } = systemDesign;
 
+    const systemDesignId = _id.toString();
+
     // fetch the annual flux tiff for this opportunity to get the dimensions for the overlay png
-    const annualFluxTiffBuffer = await this.getS3FileAsBuffer(`${opportunityId}/tiff/annualFlux.tiff`);
+    const annualFluxTiffBuffer = await this.getS3FileAsBuffer(`${opportunityId}/${systemDesignId}/tiff/annualFlux.tiff`);
     if (!annualFluxTiffBuffer) {
       throw new Error('Cannot generate array overlay PNG before GeoTIFFs have been downloaded!')
     }
@@ -347,7 +352,7 @@ export class GoogleSunroofService {
       arrays,
     );
 
-    await this.savePngToS3(arrayPng, `${opportunityId}/png/array.overlay.png`);
+    await this.savePngToS3(arrayPng, `${opportunityId}/${systemDesignId}/png/array.overlay.png`);
   }
 
   /**
@@ -361,14 +366,16 @@ export class GoogleSunroofService {
    * @param systemDesign
    */
   public async calculateProduction (systemDesign: SystemDesign) : Promise<SystemProduction> {
-    const { opportunityId } = systemDesign;
+    const { opportunityId, _id } = systemDesign;
+
+    const systemDesignId = _id.toString();
 
     const [
       annualFluxTiffBuffer,
       monthlyFluxTiffBuffer,
     ] = await Promise.all([
-      this.getS3FileAsBuffer(`${opportunityId}/tiff/annualFlux.tiff`),
-      this.getS3FileAsBuffer(`${opportunityId}/tiff/monthlyFlux.tiff`),
+      this.getS3FileAsBuffer(`${opportunityId}/${systemDesignId}/tiff/annualFlux.tiff`),
+      this.getS3FileAsBuffer(`${opportunityId}/${systemDesignId}/tiff/monthlyFlux.tiff`),
     ]);
     if (!annualFluxTiffBuffer || !monthlyFluxTiffBuffer) {
       throw new Error('Cannot calculate system production before GeoTIFFs have been downloaded!')
