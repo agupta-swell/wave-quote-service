@@ -128,6 +128,7 @@ export class ProposalService {
       {
         proposalId: infoProposalAfterInsert._id,
         isAgent: true,
+        user: { userEmails: [proposalDto.detailedProposal.recipients[0].email] },
       },
       {
         expiresIn: '50m',
@@ -145,6 +146,14 @@ export class ProposalService {
     }
 
     await infoProposalAfterInsert.save();
+
+    // create new ProposalAnalytic
+    const newProposalAnalytic = new this.proposalAnalyticModel({
+      proposalId: infoProposalAfterInsert.id,
+      viewBy: 'agent',
+    });
+    await newProposalAnalytic.save();
+
     return OperationResult.ok(strictPlainToClass(ProposalDto, infoProposalAfterInsert.toJSON()));
   }
 
@@ -223,7 +232,7 @@ export class ProposalService {
         houseNumber: 'need to fix later',
         zipCode: 'need to fix later',
         isAgent: true,
-        user,
+        user: { userEmails: [user.userEmails[0].address] },
       },
       {
         expiresIn: '1d',
@@ -301,7 +310,12 @@ export class ProposalService {
 
     sendRecipients.forEach((recipient, index) => {
       const recipientsExcludeSelf = sendRecipients
-        .filter(sendRecipient => sendRecipient.email !== recipient.email)
+        .reduce((previousValue, currentValue) => {
+          if (recipient.email !== currentValue.email) {
+            previousValue.push(currentValue.email || '');
+          }
+          return previousValue;
+        }, [] as string[])
         .join(', ');
       const data = {
         customerName: recipient?.firstName ?? 'Customer',
