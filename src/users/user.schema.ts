@@ -4,15 +4,11 @@ export const USER = Symbol('USER').toString();
 
 export interface IEmailSchema extends Document {
   address: string;
-  verified?: boolean;
-  customVerified?: boolean;
 }
 
 const EmailSchema = new Schema<IEmailSchema>(
   {
     address: String,
-    verified: Boolean,
-    customVerified: Boolean,
   },
   { _id: false },
 );
@@ -51,6 +47,7 @@ export interface User extends Document {
   profile: IProfileSchema;
   roles: string[];
   hisNumber: string;
+  isActive: boolean;
 }
 
 export const UserSchema = new Schema<User>({
@@ -64,4 +61,5 @@ export const UserSchema = new Schema<User>({
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
+  isActive: Boolean,
 });
