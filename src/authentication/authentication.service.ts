@@ -25,7 +25,7 @@ export class AuthenticationService {
       userName: user.profile.firstName,
       userRoles: user.roles,
       userId: user._id,
-      userEmails: user.emails.filter(email => email.verified),
+      userEmails: user.isActive ? user.emails : [],
     };
     return new AuthenticationDto({ accessToken: this.jwtService.sign(payload, { algorithm: 'HS512' }) });
   }
