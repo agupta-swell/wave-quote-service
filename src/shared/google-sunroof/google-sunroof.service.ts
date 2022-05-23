@@ -9,12 +9,14 @@ import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
 import { Injectable } from '@nestjs/common';
 
-import { S3Service } from '../aws/services/s3.service';
-import { SystemDesign } from '../../system-designs/system-design.schema';
 import type {
   GoogleSunroof,
-  SystemProduction,
-} from './types'
+  GoogleSunroofOrientationInformation,
+  SystemProduction
+} from './types';
+
+import { S3Service } from '../aws/services/s3.service';
+import { SystemDesign } from '../../system-designs/system-design.schema';
 import { GoogleSunroofGateway } from './google-sunroof.gateway'
 import { PngGenerator } from './png.generator'
 import { ProductionCalculator } from './production.calculator'
@@ -27,12 +29,6 @@ import {
 
 const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.GOOGLE_SUNROOF_DEBUG?.toLowerCase() || 'false');
 const DEBUG_FOLDER = path.join(__dirname, 'debug')
-
-type GoogleSunroofOrientationInformation = {
-  sunroofPrimaryOrientationSide?: number;
-  sunroofPitch?: number;
-  sunroofAzimuth?: number;
-}
 
 @Injectable()
 export class GoogleSunroofService {

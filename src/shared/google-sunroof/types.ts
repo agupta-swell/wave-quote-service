@@ -25,6 +25,12 @@ export type SystemProduction = Production & {
   byArray: ArrayProduction[],
 }
 
+export type GoogleSunroofOrientationInformation = {
+  sunroofPrimaryOrientationSide?: number;
+  sunroofPitch?: number;
+  sunroofAzimuth?: number;
+}
+
 export namespace GoogleSunroof {
   // Helpers
   export interface LatitudeAndLongitude {
