@@ -47,7 +47,7 @@ export const createSystemDesignProvider = (
       const store = asyncContext.UNSAFE_getStore();
 
       if (!store) {
-        return next();
+        return;
       }
 
       set(this, ctxStoreSym, store);
@@ -63,7 +63,8 @@ export const createSystemDesignProvider = (
       const store: IQueueStore = get(this, ctxStoreSym);
 
       if (!store) {
-        return next();
+        next();
+        return;
       }
 
       const previousBoundPolygon: ILatLngSchema[] = get(this, originalObjSym)?.bound_polygon;
@@ -102,11 +103,11 @@ export const createSystemDesignProvider = (
       });
     });
 
-    PatchedSystemDesignSchema.pre('save', function (next) {
+    PatchedSystemDesignSchema.pre('save', function () {
       const store = asyncContext.UNSAFE_getStore();
 
       if (!store) {
-        return next();
+        return;
       }
 
       // cache original lat/lng to context store to allow accessible inside current async context
