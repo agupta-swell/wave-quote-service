@@ -10,8 +10,10 @@ import { SystemProductionModule } from 'src/system-production/system-production.
 import { PvWattSystemProductionSchema, PV_WATT_SYSTEM_PRODUCTION } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { SystemDesignController } from './system-design.controller';
-import { SystemDesignSchema, SYSTEM_DESIGN } from './system-design.schema';
+import { SYSTEM_DESIGN } from './system-design.schema';
 import { SystemDesignService } from './system-design.service';
+import { createSystemDesignProvider } from './providers/system-design-model.provider';
+import { SystemDesignHook } from './providers/system-design.hook';
 
 @Global()
 @Module({
@@ -20,7 +22,6 @@ import { SystemDesignService } from './system-design.service';
       useClass: JwtConfigService,
     }),
     MongooseModule.forFeature([
-      { name: SYSTEM_DESIGN, schema: SystemDesignSchema, collection: 'v2_system_designs' },
       {
         name: PV_WATT_SYSTEM_PRODUCTION,
         schema: PvWattSystemProductionSchema,
@@ -34,7 +35,17 @@ import { SystemDesignService } from './system-design.service';
     SystemProductionModule,
   ],
   controllers: [SystemDesignController],
-  providers: [SystemDesignService, SystemProductService, UploadImageService],
+  providers: [
+    SystemDesignService,
+    SystemProductService,
+    UploadImageService,
+    SystemDesignHook,
+    {
+      provide: 'systemDesignHook',
+      useExisting: SystemDesignHook,
+    },
+    createSystemDesignProvider(SYSTEM_DESIGN, 'v2_system_designs', 'systemDesignHook'),
+  ],
   exports: [SystemDesignService, SystemProductService],
 })
 export class SystemDesignModule {}

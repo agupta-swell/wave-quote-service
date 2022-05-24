@@ -166,14 +166,15 @@ export class GoogleSunroofService {
    *
    * @param systemDesign
    */
-  public async generateHeatmapPngs (systemDesign: SystemDesign) : Promise<void> {
+  public async generateHeatmapPngs (
+    systemDesign: SystemDesign,
+    // TODO TEMP hardcoding radius meters for now
+    // TODO TEMP this should be calculated from the arrays, WAV-1720
+    radiusMeters = 25,
+    ) : Promise<void> {
     const { latitude, longitude, opportunityId, _id } = systemDesign;
 
     const systemDesignId = _id.toString();
-
-    // TODO TEMP hardcoding radius meters for now
-    // TODO TEMP this should be calculated from the arrays, WAV-1720
-    const radiusMeters = 25
 
     const solarInfo = await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters)
 

@@ -21,16 +21,23 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
-import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
+import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR, HEATMAP_MODE } from './constants';
 import {
   CalculateSunroofOrientationDto,
   CreateSystemDesignDto,
   ExistingSolarDataDto,
   GetBoundingBoxesReqDto,
+  GetHeatmapSignedUrlsQueryDto,
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
-import { CalculateSunroofOrientationResDto, GetBoundingBoxesResDto, SystemDesignAncillaryMasterDto, SystemDesignDto } from './res';
+import {
+  CalculateSunroofOrientationResDto,
+  GetBoundingBoxesResDto,
+  GetHeatmapSignedUrlsResDto,
+  SystemDesignAncillaryMasterDto,
+  SystemDesignDto,
+} from './res';
 import { getTypicalProduction, ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
@@ -46,7 +53,7 @@ export class SystemDesignService {
 
   constructor(
     // @ts-ignore
-    @InjectModel(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
+    @Inject(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
     private readonly systemProductService: SystemProductService,
     @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
@@ -1043,9 +1050,9 @@ export class SystemDesignService {
     return false;
   }
 
-  public async calculateSunroofOrientation (
+  public async calculateSunroofOrientation(
     req: CalculateSunroofOrientationDto,
-  ) : Promise<OperationResult<CalculateSunroofOrientationResDto>> {
+  ): Promise<OperationResult<CalculateSunroofOrientationResDto>> {
     const { centerLat, centerLng, latitude, longitude, opportunityId, sideAzimuths, polygons } = req;
 
     const orientationInformation = await this.googleSunroofService.getOrientationInformation(
@@ -1056,7 +1063,7 @@ export class SystemDesignService {
       centerLng,
       sideAzimuths,
       polygons,
-    )
+    );
 
     return OperationResult.ok(strictPlainToClass(CalculateSunroofOrientationResDto, orientationInformation));
   }
@@ -1130,30 +1137,85 @@ export class SystemDesignService {
       .filter((e): e is LeanDocument<IUnknownProduct> => !!e);
   }
 
-  public async generateHeatmapPngs (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
+  public async getHeatmapSignedUrls(
+    systemDesignId: ObjectId,
+    query: GetHeatmapSignedUrlsQueryDto,
+  ): Promise<OperationResult<GetHeatmapSignedUrlsResDto>> {
     const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound(systemDesignId.toString());
     }
-    await this.googleSunroofService.generateHeatmapPngs(systemDesign)
+
+    const systemDesignIdStr = systemDesignId.toString();
+    const { opportunityId } = systemDesign;
+
+    const pngs: string[] = [];
+
+    switch (query.mode) {
+      case HEATMAP_MODE.NO:
+        pngs.push(`${opportunityId}/${systemDesignIdStr}/png/satellite.png`);
+        break;
+      case HEATMAP_MODE.FULL_ANNUAL:
+        pngs.push(`${opportunityId}/${systemDesignIdStr}/png/heatmap.annual.png`);
+        break;
+      case HEATMAP_MODE.FULL_MONTHLY:
+        pngs.push(
+          ...Array.from(
+            { length: 12 },
+            (_, monthIndex) => `${opportunityId}/${systemDesignIdStr}/png/heatmap.month${monthIndex}.png`,
+          ),
+        );
+        break;
+      case HEATMAP_MODE.ROOFTOP_ANNUAL:
+        pngs.push(`${opportunityId}/${systemDesignIdStr}/png/heatmap.annual.masked.png`);
+        break;
+      case HEATMAP_MODE.ROOFTOP_MONTHLY:
+        pngs.push(
+          ...Array.from(
+            { length: 12 },
+            (_, monthIndex) => `${opportunityId}/${systemDesignIdStr}/png/heatmap.month${monthIndex}.masked.png`,
+          ),
+        );
+        break;
+      case HEATMAP_MODE.ROOFTOP_MASK:
+        pngs.push(`${opportunityId}/${systemDesignIdStr}/png/mask.png`);
+        break;
+      default:
+    }
+
+    // indicate if old data has no png generated then generate new pngs before signing url
+    const [first] = pngs;
+
+    const firstExist = await this.s3Service.hasFile(process.env.GOOGLE_SUNROOF_S3_BUCKET!, first);
+
+    if (!firstExist) {
+      await this.googleSunroofService.generateHeatmapPngs(systemDesign);
+    }
+
+    const URL_EXPIRE_IN = 3600;
+
+    const signedUrls = await Promise.all(
+      pngs.map(e => this.s3Service.getSignedUrl(process.env.GOOGLE_SUNROOF_S3_BUCKET!, e, URL_EXPIRE_IN, true)),
+    );
+
+    return OperationResult.ok(strictPlainToClass(GetHeatmapSignedUrlsResDto, { urls: signedUrls }));
+  }
+
+  public async generateArrayOverlayPng(systemDesignId: ObjectId): Promise<OperationResult<any>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId.toString());
+    }
+    await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
     return OperationResult.ok();
   }
 
-  public async generateArrayOverlayPng (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
-    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean()
+  public async calculateSunroofProduction(systemDesignId: ObjectId): Promise<OperationResult<any>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
     if (!systemDesign) {
-      throw ApplicationException.EntityNotFound(systemDesignId.toString())
+      throw ApplicationException.EntityNotFound(systemDesignId.toString());
     }
-    await this.googleSunroofService.generateArrayOverlayPng(systemDesign)
-    return OperationResult.ok();
-  }
-
-  public async calculateSunroofProduction (systemDesignId: ObjectId) : Promise<OperationResult<any>> {
-    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean()
-    if (!systemDesign) {
-      throw ApplicationException.EntityNotFound(systemDesignId.toString())
-    }
-    const systemProduction = await this.googleSunroofService.calculateProduction(systemDesign)
+    const systemProduction = await this.googleSunroofService.calculateProduction(systemDesign);
     // TODO do something with this `systemProduction`
     return OperationResult.ok();
   }

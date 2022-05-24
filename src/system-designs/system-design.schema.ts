@@ -85,7 +85,7 @@ export interface ICapacityPanelArraySchema extends ISolarPanelArraySchema {
   systemProductionData: ISystemProductionSchema;
 }
 
-const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
+export const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
   {
     array_id: Schema.Types.ObjectId,
     primary_orientation_side: Number,
@@ -310,6 +310,10 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
   },
   { _id: false },
 );
+
+// RoofTopSchema.pre('save', function (next) {
+//   this.isModified()
+// })
 
 export const CapacityProductionSchema = new Schema<Document<ICapacityProductionSchema>>(
   {
