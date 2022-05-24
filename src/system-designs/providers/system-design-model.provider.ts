@@ -45,6 +45,11 @@ export const createSystemDesignProvider = (
 
     SolarPanelArraySchema.pre('save', function (next) {
       const store = asyncContext.UNSAFE_getStore();
+
+      if (!store) {
+        return next();
+      }
+
       set(this, ctxStoreSym, store);
       next();
     });
@@ -55,8 +60,13 @@ export const createSystemDesignProvider = (
     });
 
     SolarPanelArraySchema.post('save', function (_, next) {
-      const previousBoundPolygon: ILatLngSchema[] = get(this, originalObjSym)?.bound_polygon;
       const store: IQueueStore = get(this, ctxStoreSym);
+
+      if (!store) {
+        return next();
+      }
+
+      const previousBoundPolygon: ILatLngSchema[] = get(this, originalObjSym)?.bound_polygon;
 
       const parentSystemDesign = (this.$parent()?.$parent() as unknown) as SystemDesign;
 
@@ -92,8 +102,12 @@ export const createSystemDesignProvider = (
       });
     });
 
-    PatchedSystemDesignSchema.pre('save', function () {
+    PatchedSystemDesignSchema.pre('save', function (next) {
       const store = asyncContext.UNSAFE_getStore();
+
+      if (!store) {
+        return next();
+      }
 
       // cache original lat/lng to context store to allow accessible inside current async context
       store?.cache.set(initSystemDesignSym, {
