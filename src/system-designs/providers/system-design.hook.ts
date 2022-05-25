@@ -40,13 +40,20 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     // Queue up all relevants task when new system design is created
     if (initSystemDesign.isNew) {
-      this.queueGenerateHeatMap(asyncQueueStore, systemDesign);
+      asyncQueueStore.beforeRes.push(async () => {
+        await this.googleSunroofService.generateHeatmapPngs(systemDesign);
+        await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+      });
       asyncQueueStore.cache.set('onNewSystemDesign', true);
     }
   }
 
   private queueGenerateHeatMap(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): void {
     asyncQueueStore.beforeRes.push(() => this.googleSunroofService.generateHeatmapPngs(systemDesign));
+  }
+
+  private queueGenerateArrayOverlay(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): void {
+    asyncQueueStore.beforeRes.push(() => this.googleSunroofService.generateArrayOverlayPng(systemDesign));
   }
 
   private canDispatchNextSystemDesignEvent(queueStore: IQueueStore): boolean {

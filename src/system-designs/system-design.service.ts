@@ -33,6 +33,7 @@ import {
 } from './req';
 import {
   CalculateSunroofOrientationResDto,
+  GetArrayOverlaySignedUrlResDto,
   GetBoundingBoxesResDto,
   GetHeatmapSignedUrlsResDto,
   SystemDesignAncillaryMasterDto,
@@ -1245,6 +1246,38 @@ export class SystemDesignService {
     );
 
     return OperationResult.ok(strictPlainToClass(GetHeatmapSignedUrlsResDto, { urls: signedUrls }));
+  }
+
+  public async getArrayOverlayPng(
+    systemDesignId: ObjectId,
+  ): Promise<OperationResult<GetArrayOverlaySignedUrlResDto>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId.toString());
+    }
+
+    const { opportunityId } = systemDesign;
+
+    const systemDesignIdStr = systemDesignId.toString();
+
+    const key = `${opportunityId}/${systemDesignIdStr}/png/array.overlay.png`;
+
+    const exist = await this.s3Service.hasFile(process.env.GOOGLE_SUNROOF_S3_BUCKET!, key);
+
+    if (!exist) {
+      await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+    }
+
+    const URL_EXPIRE_IN = 3600;
+
+    const signedUrl = await this.s3Service.getSignedUrl(
+      process.env.GOOGLE_SUNROOF_S3_BUCKET!,
+      key,
+      URL_EXPIRE_IN,
+      true,
+    );
+
+    return OperationResult.ok(strictPlainToClass(GetArrayOverlaySignedUrlResDto, { url: signedUrl }));
   }
 
   public async generateArrayOverlayPng(systemDesignId: ObjectId): Promise<OperationResult<any>> {
