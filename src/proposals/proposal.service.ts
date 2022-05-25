@@ -33,7 +33,7 @@ import { EmailService } from '../emails/email.service';
 import { QuoteService } from '../quotes/quote.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { PROPOSAL_ANALYTIC_TYPE, PROPOSAL_STATUS } from './constants';
-import { IRecipientSchema, Proposal, PROPOSAL } from './proposal.schema';
+import { Proposal, PROPOSAL } from './proposal.schema';
 import {
   CreateProposalDto,
   CustomerInformationDto,
@@ -44,7 +44,7 @@ import {
 import { SignerDetailDto, TemplateDetailDto } from './req/send-sample-contract.dto';
 import { ProposalAnalyticDto } from './res/proposal-analytic.dto';
 import { ProposalDto } from './res/proposal.dto';
-import { ProposalAnalytic, PROPOSAL_ANALYTIC } from './schemas/proposal-analytic.schema';
+import { ProposalAnalytic, PROPOSAL_ANALYTIC, TRACKING_TYPE } from './schemas/proposal-analytic.schema';
 import { PROPOSAL_EMAIL_TEMPLATE } from './template-html/proposal-template';
 
 @Injectable()
@@ -249,21 +249,10 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(proposalId.toString());
     }
 
-    const recipients = foundProposal.detailedProposal.recipients;
-
-    const sendRecipients: IRecipientSchema[] = [];
-
-    recipientEmails
-      .filter(recipientEmail => !!recipientEmail)
-      .forEach(email => {
-        const foundRecipientEmail = recipients.find(recipient => recipient.email === email);
-        if (foundRecipientEmail) {
-          sendRecipients.push({
-            email,
-            firstName: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
-          });
-        }
-      });
+    const sendRecipients = recipientEmails.map(email => ({
+      email,
+      firstName: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
+    }));
 
     const tokensByRecipients = sendRecipients.map(item =>
       this.jwtService.sign(
@@ -289,7 +278,9 @@ export class ProposalService {
     });
     const currentDate = new Date();
     if (!foundAnalytic) {
-      const dataToSave = { sends: recipientEmails.map(e => ({ by: e, at: currentDate })) };
+      const dataToSave = {
+        tracking: recipientEmails.map(email => ({ by: email, at: currentDate, type: TRACKING_TYPE.SENT })),
+      };
       const newProposalAnalytic = new this.proposalAnalyticModel({
         proposalId,
         viewBy: 'agent',
@@ -298,12 +289,7 @@ export class ProposalService {
       await newProposalAnalytic.save();
     } else {
       recipientEmails.forEach(email => {
-        const sendIndex = foundAnalytic.sends.findIndex(e => e.by === email);
-        if (sendIndex > -1) {
-          foundAnalytic.sends[sendIndex].at = currentDate;
-        } else {
-          foundAnalytic.sends.push({ by: email, at: currentDate });
-        }
+        foundAnalytic.tracking.push({ by: email, at: currentDate, type: TRACKING_TYPE.SENT });
       });
       await foundAnalytic.save();
     }
@@ -396,25 +382,12 @@ export class ProposalService {
       user: { userEmails },
     } = tokenPayload;
 
-    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposalId: proposal._id });
+    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId });
 
     const currentDate = new Date();
-    if (!foundAnalytic) {
-      const dataToSave = { views: userEmails.map(e => ({ by: e, at: currentDate })) };
-      const newProposalAnalytic = new this.proposalAnalyticModel({
-        proposalId: proposal.id,
-        viewBy: 'agent',
-        ...dataToSave,
-      });
-      await newProposalAnalytic.save();
-    } else {
+    if (foundAnalytic) {
       userEmails.forEach(email => {
-        const viewIndex = foundAnalytic.views.findIndex(view => email === view.by);
-        if (viewIndex > -1) {
-          foundAnalytic.views[viewIndex].at = currentDate;
-        } else {
-          foundAnalytic.views.push({ by: email, at: currentDate });
-        }
+        foundAnalytic.tracking.push({ by: email, at: currentDate, type: TRACKING_TYPE.VIEWED });
       });
       await foundAnalytic.save();
     }
@@ -474,8 +447,9 @@ export class ProposalService {
     if (!foundAnalytic) {
       const dataToSave =
         type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD
-          ? { downloads: userEmails.map(e => ({ by: e, at: currentDate })) }
-          : { views: userEmails.map(e => ({ by: e, at: currentDate })) };
+          ? { tracking: userEmails.map(email => ({ by: email, at: currentDate, type: TRACKING_TYPE.DOWNLOADED })) }
+          : { tracking: userEmails.map(email => ({ by: email, at: currentDate, type: TRACKING_TYPE.VIEWED })) };
+
       const newProposalAnalytic = new this.proposalAnalyticModel({
         proposalId,
         viewBy,
@@ -488,21 +462,11 @@ export class ProposalService {
 
     if (type === PROPOSAL_ANALYTIC_TYPE.DOWNLOAD) {
       userEmails.forEach(email => {
-        const downloadIndex = foundAnalytic.downloads.findIndex(download => email === download.by);
-        if (downloadIndex > -1) {
-          foundAnalytic.downloads[downloadIndex].at = currentDate;
-        } else {
-          foundAnalytic.downloads.push({ by: email, at: currentDate });
-        }
+        foundAnalytic.tracking.push({ by: email, at: currentDate, type: TRACKING_TYPE.DOWNLOADED });
       });
     } else {
       userEmails.forEach(email => {
-        const viewIndex = foundAnalytic.views.findIndex(view => email === view.by);
-        if (viewIndex > -1) {
-          foundAnalytic.views[viewIndex].at = currentDate;
-        } else {
-          foundAnalytic.views.push({ by: email, at: currentDate });
-        }
+        foundAnalytic.tracking.push({ by: email, at: currentDate, type: TRACKING_TYPE.VIEWED });
       });
     }
 

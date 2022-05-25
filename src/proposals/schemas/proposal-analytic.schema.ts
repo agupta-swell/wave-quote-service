@@ -2,33 +2,38 @@ import { Document, Schema } from 'mongoose';
 
 export const PROPOSAL_ANALYTIC = Symbol('PROPOSAL_ANALYTIC').toString();
 
+export enum TRACKING_TYPE {
+  SENT = 'Sent',
+  VIEWED = 'Viewed',
+  DOWNLOADED = 'Downloaded',
+}
+
 export interface ITracking {
   by: string;
   at: Date;
-}
-export interface ProposalAnalytic extends Document {
-  proposalId: string;
-  viewBy: string;
-  sends: ITracking[];
-  views: ITracking[];
-  downloads: ITracking[];
+  type: TRACKING_TYPE;
 }
 
-const trackingSchema = new Schema(
+const TrackingSchema = new Schema(
   {
     by: String,
     at: { type: Date, default: Date.now },
+    type: String,
   },
   { _id: false },
 );
+
+export interface ProposalAnalytic extends Document {
+  proposalId: string;
+  viewBy: string;
+  tracking: ITracking[];
+}
 
 export const ProposalAnalyticSchema = new Schema<ProposalAnalytic>(
   {
     proposal_id: String,
     view_by: String,
-    sends: { type: [trackingSchema], default: [] },
-    views: { type: [trackingSchema], default: [] },
-    downloads: { type: [trackingSchema], default: [] },
+    tracking: { type: [TrackingSchema], default: [] },
     created_by: String,
     updated_by: String,
   },
