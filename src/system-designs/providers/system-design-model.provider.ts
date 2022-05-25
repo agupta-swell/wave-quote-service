@@ -17,17 +17,23 @@ import { ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
 const patchRoofTopSchema = (patchedSolarPanelArraySchema: Schema): Schema => {
   const roofTopSchemaObj = RoofTopSchema.obj;
 
-  roofTopSchemaObj.panel_array = [patchedSolarPanelArraySchema];
+  const schemaDef = {
+    ...roofTopSchemaObj,
+    panel_array: [patchedSolarPanelArraySchema],
+  };
 
-  return new Schema(roofTopSchemaObj, { _id: false });
+  return new Schema(schemaDef, { _id: false });
 };
 
 const patchSystemDesignSchema = (patchedSolarPanelArraySchema: Schema) => {
   const systemDesignSchemaObj = SystemDesignSchema.obj;
 
-  systemDesignSchemaObj.roof_top_design_data = patchRoofTopSchema(patchedSolarPanelArraySchema);
+  const schemaDef = {
+    ...systemDesignSchemaObj,
+    roof_top_design_data: patchRoofTopSchema(patchedSolarPanelArraySchema),
+  };
 
-  return new Schema(systemDesignSchemaObj);
+  return new Schema(schemaDef);
 };
 
 export const createSystemDesignProvider = (
@@ -43,23 +49,24 @@ export const createSystemDesignProvider = (
     const ctxStoreSym = Symbol('asyncContextStore');
     const initSystemDesignSym = Symbol('initSystemDesignSym');
 
-    SolarPanelArraySchema.pre('save', function (next) {
+    const patchedSolarPanelArraySchema = new Schema(SolarPanelArraySchema.obj, { _id: false });
+
+    patchedSolarPanelArraySchema.pre('save', function (next) {
       const store = asyncContext.UNSAFE_getStore();
 
-      if (!store) {
-        return;
+      if (store) {
+        set(this, ctxStoreSym, store);
       }
 
-      set(this, ctxStoreSym, store);
       next();
     });
 
-    SolarPanelArraySchema.post('init', function () {
+    patchedSolarPanelArraySchema.post('init', function () {
       // cache orignal value to perform later comparison
       set(this, originalObjSym, this.toJSON());
     });
 
-    SolarPanelArraySchema.post('save', function (_, next) {
+    patchedSolarPanelArraySchema.post('save', function (_, next) {
       const store: IQueueStore = get(this, ctxStoreSym);
 
       if (!store) {
