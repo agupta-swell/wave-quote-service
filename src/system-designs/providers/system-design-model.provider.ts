@@ -102,7 +102,7 @@ export const createSystemDesignProvider = (
       }
     });
 
-    const PatchedSystemDesignSchema = patchSystemDesignSchema(SolarPanelArraySchema);
+    const PatchedSystemDesignSchema = patchSystemDesignSchema(patchedSolarPanelArraySchema);
 
     PatchedSystemDesignSchema.post('init', function (res) {
       // cache original lat/lng to internal model object
