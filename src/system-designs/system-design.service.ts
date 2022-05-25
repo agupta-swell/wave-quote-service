@@ -1067,7 +1067,7 @@ export class SystemDesignService {
     let centerLat = _centerLat;
     let centerLng = _centerLng;
 
-    if (systemDesignId) {
+    if (!centerLat && systemDesignId) {
       const systemDesign = await this.getOneById(systemDesignId);
 
       if (!systemDesign) throw ApplicationException.EntityNotFound(systemDesignId.toString());
