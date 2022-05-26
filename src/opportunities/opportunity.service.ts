@@ -74,6 +74,8 @@ export class OpportunityService {
       inverterManufacturer: foundOpportunity.inverterManufacturer,
       inverterModel: foundOpportunity.inverterModel,
       tpoFundingSource: foundOpportunity.tpoFundingSource,
+      existingPVTilt: foundOpportunity.existingPVTilt,
+      existingPVAzimuth: foundOpportunity.existingPVAzimuth,
       assignedMember: foundOpportunity.assignedMember,
     };
     return OperationResult.ok(strictPlainToClass(GetRelatedInformationDto, data));
@@ -108,6 +110,8 @@ export class OpportunityService {
           tpoFundingSource: '',
           inverterManufacturer: '',
           inverterModel: '',
+          existingPVTilt: '',
+          existingPVAzimuth: '',
         },
       };
     }

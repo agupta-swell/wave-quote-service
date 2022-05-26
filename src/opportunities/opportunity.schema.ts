@@ -33,6 +33,8 @@ export interface Opportunity extends Document {
   inverterManufacturer: string;
   inverterModel: string;
   tpoFundingSource: string;
+  existingPVTilt: number;
+  existingPVAzimuth: number;
   assignedMember: string;
   gsTermYears?: string;
   primaryQuoteType: PRIMARY_QUOTE_TYPE;
@@ -67,6 +69,8 @@ export const OpportunitySchema = new Schema<Opportunity>({
   inverterManufacturer: String,
   inverterModel: String,
   tpoFundingSource: String,
+  existingPVTilt: Number,
+  existingPVAzimuth: Number,
   assignedMember: String,
   gsTermYears: String,
   primaryQuoteType: String,

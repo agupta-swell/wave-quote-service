@@ -12,7 +12,7 @@ export class UpdateOpportunityExistingSystemDto {
   hasHadOtherDemandResponseProvider: boolean;
 
   @ExposeProp()
-  interconnectedWithExistingSystem
+  interconnectedWithExistingSystem: boolean;
 
   @ExposeProp()
   originalInstaller: string;
@@ -37,4 +37,10 @@ export class UpdateOpportunityExistingSystemDto {
 
   @ExposeProp()
   tpoFundingSource: string;
+
+  @ExposeProp()
+  existingPVTilt: number;
+
+  @ExposeProp()
+  existingPVAzimuth: number;
 }
