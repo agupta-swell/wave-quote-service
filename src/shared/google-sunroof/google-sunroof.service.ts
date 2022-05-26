@@ -7,6 +7,7 @@ import * as geotiff from 'geotiff';
 import type { TypedArrayArrayWithDimensions } from 'geotiff';
 import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
+import { Types } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 
 import type {
@@ -63,7 +64,7 @@ export class GoogleSunroofService {
       lat?: number,
       lng?: number,
     ): IClosestBuildingKey {
-      if (arrayId && systemDesignId) {
+      if (arrayId && systemDesignId && Types.ObjectId.isValid(arrayId) && Types.ObjectId.isValid(systemDesignId)) {
         return { key: `${opportunityId}/${systemDesignId}/${arrayId}/closestBuilding.json` };
       }
   

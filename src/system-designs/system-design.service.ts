@@ -1,5 +1,4 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { flatten, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -1067,7 +1066,7 @@ export class SystemDesignService {
     let centerLat = _centerLat;
     let centerLng = _centerLng;
 
-    if (!centerLat && systemDesignId) {
+    if (systemDesignId && Types.ObjectId.isValid(systemDesignId)) {
       const systemDesign = await this.getOneById(systemDesignId);
 
       if (!systemDesign) throw ApplicationException.EntityNotFound(systemDesignId.toString());
