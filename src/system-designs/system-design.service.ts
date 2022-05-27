@@ -34,6 +34,7 @@ import {
 import {
   CalculateSunroofOrientationResDto,
   GetArrayOverlaySignedUrlResDto,
+  CalculateSunroofProductionResDto,
   GetBoundingBoxesResDto,
   GetHeatmapSignedUrlsResDto,
   SystemDesignAncillaryMasterDto,
@@ -134,7 +135,7 @@ export class SystemDesignService {
             const capacity = (item.numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
 
             const { useSunroof, sunroofAzimuth, sunroofPitch, azimuth, pitch } = item;
-
+            // TODO: is this duplicated with systemProductionArray
             const acAnnual = await this.systemProductService.pvWatCalculation({
               lat: systemDesign.latitude,
               lon: systemDesign.longitude,
@@ -1289,13 +1290,14 @@ export class SystemDesignService {
     return OperationResult.ok();
   }
 
-  public async calculateSunroofProduction(systemDesignId: ObjectId): Promise<OperationResult<any>> {
+  public async calculateSunroofProduction(
+    systemDesignId: ObjectId,
+  ): Promise<OperationResult<CalculateSunroofProductionResDto>> {
     const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound(systemDesignId.toString());
     }
     const systemProduction = await this.googleSunroofService.calculateProduction(systemDesign);
-    // TODO do something with this `systemProduction`
-    return OperationResult.ok();
+    return OperationResult.ok(strictPlainToClass(CalculateSunroofProductionResDto, systemProduction));
   }
 }
