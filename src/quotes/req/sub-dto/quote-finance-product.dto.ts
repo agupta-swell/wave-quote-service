@@ -15,7 +15,7 @@ import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { PROMOTION_TYPE } from 'src/promotions/promotion.constant';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
-import { FINANCE_PRODUCT_TYPE, REBATE_TYPE } from '../../constants';
+import { FINANCE_PRODUCT_TYPE } from '../../constants';
 import { FinanceProductDetailDto } from './financial-product.dto';
 
 export class GridServiceDetailsDto {
@@ -31,10 +31,10 @@ export class GridServiceDetailsDto {
 }
 
 export class IncentiveDetailsDto {
-  @ApiProperty({ enum: REBATE_TYPE })
+  @ApiProperty()
   @IsNotEmpty()
-  @IsEnum(REBATE_TYPE)
-  type: REBATE_TYPE;
+  @IsString()
+  type: string;
 
   @ApiProperty({ type: GridServiceDetailsDto })
   @IsNotEmpty()
@@ -67,8 +67,7 @@ export class RebateDetailsDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  @IsEnum(REBATE_TYPE)
-  type: REBATE_TYPE;
+  type: string;
 
   @ApiProperty()
   description: string;

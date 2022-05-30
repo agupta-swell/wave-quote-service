@@ -45,4 +45,9 @@ export class RebateProgramService {
 
     return rebateProgram;
   }
+
+  async getManyByTypes(types: string[]): Promise<LeanDocument<RebateProgram>[]> {
+    const rebatePrograms = await this.rebateProgram.find({ name: { $in: types } }).lean();
+    return rebatePrograms;
+  }
 }
