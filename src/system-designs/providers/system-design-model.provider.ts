@@ -1,7 +1,7 @@
 /* eslint-disable func-names */
 import { Provider } from '@nestjs/common';
 import { getConnectionToken } from '@nestjs/mongoose';
-import { Connection, Schema } from 'mongoose';
+import { Connection, LeanDocument, Schema } from 'mongoose';
 import { AsyncContextProvider } from 'src/shared/async-context/providers/async-context.provider';
 import { IQueueStore } from 'src/shared/async-context/interfaces';
 import { get, set } from 'lodash';
@@ -62,11 +62,6 @@ export const createSystemDesignProvider = (
       next();
     });
 
-    patchedSolarPanelArraySchema.post('init', function () {
-      // cache orignal value to perform later comparison
-      set(this, originalObjSym, this.toJSON());
-    });
-
     patchedSolarPanelArraySchema.post('save', function (_, next) {
       const store: IQueueStore = get(this, ctxStoreSym);
 
@@ -75,14 +70,23 @@ export const createSystemDesignProvider = (
         return;
       }
 
-      const previousBoundPolygon: ILatLngSchema[] = get(this, originalObjSym)?.bound_polygon;
+      const { isNew, systemDesign } = store.cache.get(initSystemDesignSym) as {
+        isNew: boolean;
+        systemDesign: LeanDocument<SystemDesign>;
+      };
+
+      const previousBoundPolygon: ILatLngSchema[] =
+        (systemDesign.roofTopDesignData?.panelArray ?? []).find(
+          p => p.arrayId.toString() === this.get('array_id').toString(),
+        )?.boundPolygon ?? [];
 
       const parentSystemDesign = (this.$parent()?.$parent() as unknown) as SystemDesign;
 
-      const previousSystemDesignLatLng = store?.cache.get(initSystemDesignSym) as {
-        latitude: number;
-        longitude: number;
-        isNew: boolean;
+      const previousSystemDesignLatLng = {
+        latitude: systemDesign.latitude,
+        longitude: systemDesign.longitude,
+        isNew,
+        polygons: (systemDesign?.roofTopDesignData?.panelArray?.map(p => p.boundPolygon) ?? []).flat(),
       };
 
       try {
@@ -93,7 +97,7 @@ export const createSystemDesignProvider = (
           this.get('array_id')?.toString(),
           previousBoundPolygon,
           store!.cache.get(isNewSolarPanel) as boolean,
-          this.get('bound_polygon'),
+          (this.toJSON() as any).boundPolygon,
         );
         next();
       } catch (err) {
@@ -104,12 +108,9 @@ export const createSystemDesignProvider = (
 
     const PatchedSystemDesignSchema = patchSystemDesignSchema(patchedSolarPanelArraySchema);
 
-    PatchedSystemDesignSchema.post('init', function (res) {
+    PatchedSystemDesignSchema.post('init', function () {
       // cache original lat/lng to internal model object
-      set(this, originalObjSym, {
-        latitude: res.latitude,
-        longitude: res.longitude,
-      });
+      set(this, originalObjSym, this.toJSON());
     });
 
     PatchedSystemDesignSchema.pre('save', function () {
@@ -123,6 +124,7 @@ export const createSystemDesignProvider = (
       store?.cache.set(initSystemDesignSym, {
         isNew: this.isNew,
         ...get(this, originalObjSym),
+        systemDesign: get(this, originalObjSym),
       });
     });
 

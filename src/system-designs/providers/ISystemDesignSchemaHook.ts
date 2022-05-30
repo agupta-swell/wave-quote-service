@@ -9,6 +9,7 @@ export interface ISystemDesignSchemaHook {
       latitude: number;
       longitude: number;
       isNew: boolean;
+      polygons: ILatLngSchema[];
     },
     targetPanelArrayId: string,
     previousPanelArrayBoundPolygon: ILatLngSchema[],
