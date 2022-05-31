@@ -1,16 +1,22 @@
 import { IQueueStore } from 'src/shared/async-context/interfaces';
 import { ILatLngSchema, SystemDesign } from '../system-design.schema';
 
+export type InitSystemDesign =
+  | {
+      isNew: true;
+    }
+  | {
+      latitude: number;
+      longitude: number;
+      isNew: false;
+      polygons: ILatLngSchema[];
+    };
+
 export interface ISystemDesignSchemaHook {
   dispatch(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
-    initSystemDesign: {
-      latitude: number;
-      longitude: number;
-      isNew: boolean;
-      polygons: ILatLngSchema[];
-    },
+    initSystemDesign: InitSystemDesign,
     targetPanelArrayId: string,
     previousPanelArrayBoundPolygon: ILatLngSchema[],
     isNewPanelArray: boolean,

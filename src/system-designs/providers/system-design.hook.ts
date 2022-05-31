@@ -5,7 +5,7 @@ import { calcCoordinatesDistance, getCenterBound, ICoordinate } from 'src/utils/
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { isEqual } from 'lodash';
 import { SystemDesign, ILatLngSchema } from '../system-design.schema';
-import { ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
+import { InitSystemDesign, ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
 
 @Injectable()
 export class SystemDesignHook implements ISystemDesignSchemaHook {
@@ -18,12 +18,16 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   dispatch(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
-    initSystemDesign: { latitude: number; longitude: number; isNew: boolean; polygons: ILatLngSchema[] },
+    initSystemDesign: InitSystemDesign,
     targetPanelArrayId: string,
     previousPanelArrayBoundPolygon: ILatLngSchema[],
     isNewPanelArray: boolean,
     newPanelArrayBoundPolygon: ILatLngSchema[],
   ): void {
+    if (isNewPanelArray) {
+      this.dispatchNewPanelArray(asyncQueueStore, systemDesign, targetPanelArrayId, newPanelArrayBoundPolygon);
+    }
+
     if (!this.canDispatchNextSystemDesignEvent(asyncQueueStore)) {
       return;
     }
@@ -54,27 +58,34 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     );
   }
 
+  private dispatchNewPanelArray(
+    asyncQueueStore: IQueueStore,
+    systemDesign: SystemDesign,
+    targetPanelArrayId: string,
+    newPanelArrayBoundPolygon: ILatLngSchema[],
+  ) {
+    const newCenterPoint = getCenterBound(newPanelArrayBoundPolygon);
+
+    this.queueResaveClosestBuilding(
+      asyncQueueStore,
+      systemDesign._id.toString(),
+      systemDesign.opportunityId,
+      targetPanelArrayId,
+      newCenterPoint.lat,
+      newCenterPoint.lng,
+    );
+  }
+
   private dispatchPanelArrayChange(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
-    initSystemDesign: { latitude: number; longitude: number; isNew: boolean; polygons: ILatLngSchema[] },
+    initSystemDesign: InitSystemDesign,
     targetPanelArrayId: string,
     previousPanelArrayBoundPolygon: ILatLngSchema[],
     isNewPanelArray: boolean,
     newPanelArrayBoundPolygon: ILatLngSchema[],
   ) {
-    if (isNewPanelArray) {
-      const newCenterPoint = getCenterBound(newPanelArrayBoundPolygon);
-
-      this.queueResaveClosestBuilding(
-        asyncQueueStore,
-        systemDesign._id.toString(),
-        systemDesign.opportunityId,
-        targetPanelArrayId,
-        newCenterPoint.lat,
-        newCenterPoint.lng,
-      );
-    }
+    if (initSystemDesign.isNew) return;
 
     if (
       asyncQueueStore.cache.get(this.WILL_GENERATE_OVERLAY_SYM) ||

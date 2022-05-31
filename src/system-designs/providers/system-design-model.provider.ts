@@ -12,7 +12,7 @@ import {
   SystemDesign,
   ILatLngSchema,
 } from '../system-design.schema';
-import { ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
+import { InitSystemDesign, ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
 
 const patchRoofTopSchema = (patchedSolarPanelArraySchema: Schema): Schema => {
   const roofTopSchemaObj = RoofTopSchema.obj;
@@ -72,28 +72,38 @@ export const createSystemDesignProvider = (
 
       const { isNew, systemDesign } = store.cache.get(initSystemDesignSym) as {
         isNew: boolean;
-        systemDesign: LeanDocument<SystemDesign>;
+        systemDesign?: LeanDocument<SystemDesign>;
       };
 
-      const previousBoundPolygon: ILatLngSchema[] =
-        (systemDesign.roofTopDesignData?.panelArray ?? []).find(
-          p => p.arrayId.toString() === this.get('array_id').toString(),
-        )?.boundPolygon ?? [];
+      let previousBoundPolygon: ILatLngSchema[] = [];
+
+      let previousSystemDesign: InitSystemDesign;
+
+      if (!isNew && systemDesign) {
+        previousBoundPolygon =
+          (systemDesign.roofTopDesignData?.panelArray ?? []).find(
+            p => p.arrayId.toString() === this.get('array_id').toString(),
+          )?.boundPolygon ?? [];
+
+        previousSystemDesign = {
+          latitude: systemDesign.latitude,
+          longitude: systemDesign.longitude,
+          isNew,
+          polygons: ((systemDesign.roofTopDesignData?.panelArray ?? []).map(p => p.boundPolygon) ?? []).flat(),
+        };
+      } else {
+        previousSystemDesign = {
+          isNew: true,
+        };
+      }
 
       const parentSystemDesign = (this.$parent()?.$parent() as unknown) as SystemDesign;
-
-      const previousSystemDesignLatLng = {
-        latitude: systemDesign.latitude,
-        longitude: systemDesign.longitude,
-        isNew,
-        polygons: (systemDesign?.roofTopDesignData?.panelArray?.map(p => p.boundPolygon) ?? []).flat(),
-      };
 
       try {
         systemDesignHook.dispatch(
           store!,
           parentSystemDesign,
-          previousSystemDesignLatLng,
+          previousSystemDesign,
           this.get('array_id')?.toString(),
           previousBoundPolygon,
           store!.cache.get(isNewSolarPanel) as boolean,
@@ -113,10 +123,11 @@ export const createSystemDesignProvider = (
       set(this, originalObjSym, this.toJSON());
     });
 
-    PatchedSystemDesignSchema.pre('save', function () {
+    PatchedSystemDesignSchema.pre('save', function (next) {
       const store = asyncContext.UNSAFE_getStore();
 
       if (!store) {
+        next();
         return;
       }
 
@@ -126,6 +137,7 @@ export const createSystemDesignProvider = (
         ...get(this, originalObjSym),
         systemDesign: get(this, originalObjSym),
       });
+      next();
     });
 
     return connection.model(provideKey, PatchedSystemDesignSchema, collectionName);
