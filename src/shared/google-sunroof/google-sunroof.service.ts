@@ -393,6 +393,9 @@ export class GoogleSunroofService {
    * @param systemDesign
    */
   public async calculateProduction (systemDesign: SystemDesign) : Promise<SystemProduction> {
+    // TODO WAV-1645:
+    //   destructure `sunroofDriftCorrection` out of the `systemDesign` instead of this
+    const sunroofDriftCorrection = { x: 0, y: 0 };
     const { opportunityId, _id } = systemDesign;
 
     const systemDesignId = _id.toString();
@@ -420,6 +423,7 @@ export class GoogleSunroofService {
       systemDesign,
       annualFluxLayers,
       monthlyFluxLayers,
+      sunroofDriftCorrection,
     )
   }
 

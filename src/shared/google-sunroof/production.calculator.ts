@@ -16,6 +16,7 @@ import {
 
 import type {
   ArrayProduction,
+  IDriftCorrection,
   LatLng,
   Pixel,
   SystemProduction,
@@ -34,14 +35,19 @@ export class ProductionCalculator {
    *
    * 'Flux' is the productivity (kWh/kW) of a map pixel.
    *
+   * 'Drift correction' is the number of pixels to shift the array overlay over
+   * the annual heatmap to best align them.
+   *
    * @param systemDesign
    * @param annualFluxLayers
    * @param monthlyFluxLayers
+   * @param annualDriftCorrection
    */
   public static calculateSystemProduction (
     systemDesign: SystemDesign,
     annualFluxLayers: TypedArrayArrayWithDimensions,
-    monthlyFluxLayers: TypedArrayArrayWithDimensions
+    monthlyFluxLayers: TypedArrayArrayWithDimensions,
+    annualDriftCorrection: IDriftCorrection,
   ) : SystemProduction {
     const {
       latitude,
@@ -67,7 +73,7 @@ export class ProductionCalculator {
 
     // calculate the production numbers of each array in the system
     const arrayProductions = arrays.map(array => {
-      return ProductionCalculator.calculateArrayProduction(annualFlux, monthlyFluxes, origin, array)
+      return ProductionCalculator.calculateArrayProduction(annualFlux, monthlyFluxes, origin, array, annualDriftCorrection)
     })
 
     // summarize array production into system level figures
@@ -94,10 +100,14 @@ export class ProductionCalculator {
    * an additional computational step is performed to ensure that the monthly
    * production numbers add up to the calculated annual production number.
    *
+   * Any drift correction is presumed to be in annual 10cm-pixel figures.
+   * Monthly drift correction is computed accordingly.
+   *
    * @param annualFlux
    * @param monthlyFluxes
    * @param origin
    * @param array
+   * @param annualDriftCorrection
    * @private
    */
   private static calculateArrayProduction (
@@ -105,6 +115,7 @@ export class ProductionCalculator {
     monthlyFluxes: number[][][],
     origin: LatLng,
     array: ISolarPanelArraySchema,
+    annualDriftCorrection: IDriftCorrection,
   ) : ArrayProduction {
     const {
       arrayId,
@@ -123,6 +134,7 @@ export class ProductionCalculator {
       10, // the annual flux tiff has a resolution of 10 pixels per meter (10cm per pixel)
       panels,
       watts,
+      annualDriftCorrection,
     )
 
     // calculate the production
@@ -134,6 +146,10 @@ export class ProductionCalculator {
         2, // the monthly flux tiff has a resolution of 2 pixels per meter (50cm per pixel)
         panels,
         watts,
+        {
+          x: Math.round(annualDriftCorrection.x / 5), // TODO WAV-1645: is this the right formula?
+          y: Math.round(annualDriftCorrection.y / 5), // TODO WAV-1645: is this the right formula?
+        },
       )
     })
 
@@ -168,6 +184,12 @@ export class ProductionCalculator {
    * `panelWattage` is the nominal rating of a panel in the array,
    * and it is assumed that all panels in the array have the same rating.
    *
+   * `driftCorrection` is a translation to be applied to the panel pixels
+   * locations before averaging the flux values, to correct for a poorly
+   * aligned system. NB: Since the image are of different resolutions,
+   * the _pixel_ drift should be different between annual and monthly
+   * calculations for the same system design.
+   *
    * TODO As of 2022-05-18, if a panel lies outside of the GeoTIFF flux area,
    *      it is thought that this function will throw an error, because a pixel
    *      coordinate will be calculated outside of the flux data array.
@@ -177,6 +199,7 @@ export class ProductionCalculator {
    * @param pixelsPerMeter
    * @param panels
    * @param panelWattage
+   * @param driftCorrection
    * @private
    */
   private static calculateGenericArrayProduction (
@@ -185,6 +208,7 @@ export class ProductionCalculator {
     pixelsPerMeter: number,
     panels: ISolarPanelArraySchema['panels'],
     panelWattage: number,
+    driftCorrection: IDriftCorrection,
   ) : number {
     const height = flux.length
     const width = flux[0].length
@@ -192,16 +216,26 @@ export class ProductionCalculator {
     const originPixel: Pixel = [ Math.round(height / 2), Math.round(width / 2) ];
 
     const panelProductions = panels.map(panel => {
-      const panelCornerPixels = translatePixelPolygon(
-        mapLatLngPolygonToPixelPolygon(
-          origin,
-          panel,
-          pixelsPerMeter
-        ),
+      const rawPanelPixelPolygon = mapLatLngPolygonToPixelPolygon(
+        origin,
+        panel,
+        pixelsPerMeter
+      );
+
+      const centeredPanelPixelPolygon = translatePixelPolygon(
+        rawPanelPixelPolygon,
         originPixel
       )
 
-      const allPanelPixels = getPanelPixels(panelCornerPixels);
+      const driftCorrectedPanelPixelPolygon = translatePixelPolygon(
+        centeredPanelPixelPolygon,
+        [
+          driftCorrection.x,
+          driftCorrection.y,
+        ],
+      )
+
+      const allPanelPixels = getPanelPixels(driftCorrectedPanelPixelPolygon);
       const allPanelFluxValues = allPanelPixels.map(([x, y]) => flux[y][x])
       const panelProductivity = mean(allPanelFluxValues)
       return panelProductivity * panelWattage / 1000

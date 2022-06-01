@@ -35,6 +35,11 @@ export interface IClosestBuildingKey {
   key: string;
 }
 
+export interface IDriftCorrection {
+  x: number;
+  y: number;
+}
+
 export namespace GoogleSunroof {
   // Helpers
   export interface LatitudeAndLongitude {
