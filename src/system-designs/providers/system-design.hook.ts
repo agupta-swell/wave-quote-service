@@ -226,6 +226,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     if (exist) {
       await this.s3Service.copySource(sunroofBucket!, oldKey.key, sunroofBucket!, newKey.key, 'private');
+      await this.s3Service.deleteObject(sunroofBucket!, oldKey.key);
       return;
     }
 
