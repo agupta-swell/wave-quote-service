@@ -4,12 +4,19 @@ import { IQueueStore } from 'src/shared/async-context/interfaces';
 import { calcCoordinatesDistance, getCenterBound, ICoordinate } from 'src/utils/calculate-coordinates';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { isEqual } from 'lodash';
-import { SystemDesign, ILatLngSchema } from '../system-design.schema';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { SystemDesign, ILatLngSchema, PURE_SYSTEM_DESIGN } from '../system-design.schema';
 import { InitSystemDesign, ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
 
 @Injectable()
 export class SystemDesignHook implements ISystemDesignSchemaHook {
-  constructor(private readonly googleSunroofService: GoogleSunroofService, private readonly s3Service: S3Service) {}
+  constructor(
+    private readonly googleSunroofService: GoogleSunroofService,
+    private readonly s3Service: S3Service,
+    // @ts-ignore
+    @InjectModel(PURE_SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
+  ) {}
 
   private WILL_GENERATE_PNG_SYM = Symbol('willGeneratePng');
 
@@ -98,15 +105,22 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
       return;
     }
 
-    const { latitude, longitude, polygons } = initSystemDesign;
+    let { latitude, longitude, radius: currentRadius } = systemDesign.sunroofTiffMeta$!;
 
-    const currentRadius = this.calculateSystemDesignRadius(
-      {
-        lat: latitude,
-        lng: longitude,
-      },
-      polygons,
-    );
+    if (!latitude || !longitude || !currentRadius) {
+      const { latitude: initLat, longitude: initLng, polygons } = initSystemDesign;
+
+      currentRadius = this.calculateSystemDesignRadius(
+        {
+          lat: latitude,
+          lng: longitude,
+        },
+        polygons,
+      );
+
+      latitude = initLat;
+      longitude = initLng;
+    }
 
     const { latitude: newLat, longitude: newLng } = systemDesign;
 
@@ -145,7 +159,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
       return;
     }
 
-    this.queueGenerateArrayOverlay(asyncQueueStore, systemDesign);
+    this.queueGenerateArrayOverlay(asyncQueueStore, systemDesign, { lat: latitude, lng: longitude });
   }
 
   private queueGeneratePngs(asyncQueueStore: IQueueStore, systemDesign: SystemDesign, radiusMeters: number): void {
@@ -157,25 +171,46 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
       asyncQueueStore.beforeRes[overlayPending - 1] = async () => null;
     }
 
+    const task = async () => {
+      await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
+      await this.systemDesignModel.updateOne(
+        { _id: systemDesign._id },
+        {
+          sunroofTiffMeta$: {
+            latitude: systemDesign.latitude,
+            longitude: systemDesign.longitude,
+            radius: radiusMeters,
+          },
+        },
+      );
+      await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+    };
+
     if (pending) {
-      asyncQueueStore.beforeRes[pending - 1] = async () => {
-        await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
-        await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
-      };
+      asyncQueueStore.beforeRes[pending - 1] = task;
 
       return;
     }
 
-    const count = asyncQueueStore.beforeRes.push(async () => {
-      await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
-      await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
-    });
+    const count = asyncQueueStore.beforeRes.push(task);
 
     asyncQueueStore.cache.set(this.WILL_GENERATE_PNG_SYM, count);
   }
 
-  private queueGenerateArrayOverlay(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): void {
-    const count = asyncQueueStore.beforeRes.push(() => this.googleSunroofService.generateArrayOverlayPng(systemDesign));
+  /**
+   * Pass in `centerBound` to force draw the overlay png on the tiff generated with that given center point
+   * @param asyncQueueStore
+   * @param systemDesign
+   * @param centerBound
+   */
+  private queueGenerateArrayOverlay(
+    asyncQueueStore: IQueueStore,
+    systemDesign: SystemDesign,
+    centerBound?: ILatLngSchema,
+  ): void {
+    const count = asyncQueueStore.beforeRes.push(() =>
+      this.googleSunroofService.generateArrayOverlayPng(systemDesign, centerBound),
+    );
     asyncQueueStore.cache.set(this.WILL_GENERATE_OVERLAY_SYM, count);
   }
 

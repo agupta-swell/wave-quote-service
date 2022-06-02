@@ -7,7 +7,7 @@ import * as geotiff from 'geotiff';
 import type { TypedArrayArrayWithDimensions } from 'geotiff';
 import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
-import { Types } from 'mongoose';
+import { Types, LeanDocument } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 
 import type {
@@ -18,7 +18,7 @@ import type {
 } from './types';
 
 import { S3Service } from '../aws/services/s3.service';
-import { SystemDesign } from '../../system-designs/system-design.schema';
+import { ILatLngSchema, SystemDesign } from '../../system-designs/system-design.schema';
 import { GoogleSunroofGateway } from './google-sunroof.gateway'
 import { PngGenerator } from './png.generator'
 import { ProductionCalculator } from './production.calculator'
@@ -347,16 +347,25 @@ export class GoogleSunroofService {
    *
    * @param systemDesign
    */
-  public async generateArrayOverlayPng (systemDesign: SystemDesign) : Promise<void> {
+  public async generateArrayOverlayPng (systemDesign: SystemDesign | LeanDocument<SystemDesign>, centerBound?: ILatLngSchema) : Promise<void> {
     const {
-      latitude,
-      longitude,
+      latitude: _lat,
+      longitude: _lng,
       opportunityId,
       roofTopDesignData: {
         panelArray: arrays,
       },
       _id
     } = systemDesign;
+
+    let latitude = _lat;
+
+    let longitude = _lng;
+
+    if (centerBound) {
+      latitude = centerBound.lat;
+      longitude = centerBound.lng;
+    }
 
     const systemDesignId = _id.toString();
 

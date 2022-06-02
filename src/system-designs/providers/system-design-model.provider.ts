@@ -57,6 +57,7 @@ export const createSystemDesignProvider = (
 
       if (store) {
         set(this, ctxStoreSym, store);
+        set(this, isNewSolarPanel, this.isNew);
       }
 
       next();
@@ -106,7 +107,7 @@ export const createSystemDesignProvider = (
           previousSystemDesign,
           this.get('array_id')?.toString(),
           previousBoundPolygon,
-          store!.cache.get(isNewSolarPanel) as boolean,
+          get(this, isNewSolarPanel) as boolean,
           (this.toJSON() as any).boundPolygon,
         );
         next();

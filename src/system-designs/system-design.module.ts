@@ -10,7 +10,7 @@ import { SystemProductionModule } from 'src/system-production/system-production.
 import { PvWattSystemProductionSchema, PV_WATT_SYSTEM_PRODUCTION } from './schemas';
 import { SystemProductService, UploadImageService } from './sub-services';
 import { SystemDesignController } from './system-design.controller';
-import { SYSTEM_DESIGN } from './system-design.schema';
+import { PURE_SYSTEM_DESIGN, SystemDesignSchema, SYSTEM_DESIGN } from './system-design.schema';
 import { SystemDesignService } from './system-design.service';
 import { createSystemDesignProvider } from './providers/system-design-model.provider';
 import { SystemDesignHook } from './providers/system-design.hook';
@@ -27,6 +27,7 @@ import { SystemDesignHook } from './providers/system-design.hook';
         schema: PvWattSystemProductionSchema,
         collection: 'v2_pv_watt_system_productions',
       },
+      { name: PURE_SYSTEM_DESIGN, schema: SystemDesignSchema, collection: 'v2_system_designs' },
     ]),
     AwsModule,
     GoogleSunroofModule,
