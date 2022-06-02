@@ -104,7 +104,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     const newTotalArrays = systemDesign.roofTopDesignData?.panelArray?.length ?? 0;
 
     if (
-      newTotalArrays !== initSystemDesign.totalArrays ||
+      newTotalArrays === initSystemDesign.totalArrays &&
       isEqual(previousPanelArrayBoundPolygon, newPanelArrayBoundPolygon)
     ) {
       return;
