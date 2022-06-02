@@ -78,11 +78,14 @@ export const createSystemDesignProvider = (
 
       let previousSystemDesign: InitSystemDesign;
 
+      let previousTotalPanelsInArray = 0;
+
       if (!isNew && systemDesign) {
-        previousBoundPolygon =
-          (systemDesign.roofTopDesignData?.panelArray ?? []).find(
-            p => p.arrayId.toString() === this.get('array_id').toString(),
-          )?.boundPolygon ?? [];
+        const previousPanel = (systemDesign.roofTopDesignData?.panelArray ?? []).find(
+          p => p.arrayId.toString() === this.get('array_id').toString(),
+        );
+
+        previousBoundPolygon = previousPanel?.boundPolygon ?? [];
 
         previousSystemDesign = {
           latitude: systemDesign.latitude,
@@ -91,6 +94,8 @@ export const createSystemDesignProvider = (
           polygons: ((systemDesign.roofTopDesignData?.panelArray ?? []).map(p => p.boundPolygon) ?? []).flat(),
           totalArrays: systemDesign.roofTopDesignData?.panelArray?.length ?? 0,
         };
+
+        previousTotalPanelsInArray = previousPanel?.panels?.length ?? 0;
       } else {
         previousSystemDesign = {
           isNew: true,
@@ -118,8 +123,10 @@ export const createSystemDesignProvider = (
           previousSystemDesign,
           this.get('array_id')?.toString(),
           previousBoundPolygon,
+          previousTotalPanelsInArray,
           isNewPanelArray,
           (this.toJSON() as any).boundPolygon,
+          this.get('panels')?.length ?? 0,
         );
         next();
       } catch (err) {

@@ -28,8 +28,10 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     initSystemDesign: InitSystemDesign,
     targetPanelArrayId: string,
     previousPanelArrayBoundPolygon: ILatLngSchema[],
+    previousTotalPanelsInArray: number,
     isNewPanelArray: boolean,
     newPanelArrayBoundPolygon: ILatLngSchema[],
+    newTotalPanelsInArray: number,
   ): void {
     if (isNewPanelArray) {
       this.dispatchNewPanelArray(asyncQueueStore, systemDesign, targetPanelArrayId, newPanelArrayBoundPolygon);
@@ -60,8 +62,10 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
       initSystemDesign,
       targetPanelArrayId,
       previousPanelArrayBoundPolygon,
+      previousTotalPanelsInArray,
       isNewPanelArray,
       newPanelArrayBoundPolygon,
+      newTotalPanelsInArray,
     );
   }
 
@@ -89,8 +93,10 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     initSystemDesign: InitSystemDesign,
     targetPanelArrayId: string,
     previousPanelArrayBoundPolygon: ILatLngSchema[],
+    previousTotalPanelsInArray: number,
     isNewPanelArray: boolean,
     newPanelArrayBoundPolygon: ILatLngSchema[],
+    newTotalPanelsInArray: number,
   ) {
     if (initSystemDesign.isNew) return;
 
@@ -105,6 +111,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     if (
       newTotalArrays === initSystemDesign.totalArrays &&
+      previousTotalPanelsInArray === newTotalPanelsInArray &&
       isEqual(previousPanelArrayBoundPolygon, newPanelArrayBoundPolygon)
     ) {
       return;

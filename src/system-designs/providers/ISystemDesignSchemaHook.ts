@@ -20,7 +20,9 @@ export interface ISystemDesignSchemaHook {
     initSystemDesign: InitSystemDesign,
     targetPanelArrayId: string,
     previousPanelArrayBoundPolygon: ILatLngSchema[],
+    previousTotalPanelsInArray: number,
     isNewPanelArray: boolean,
     newPanelArrayBoundPolygon: ILatLngSchema[],
+    newTotalPanelsInArray: number,
   ): void;
 }
