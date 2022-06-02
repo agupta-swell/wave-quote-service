@@ -105,10 +105,13 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
       return;
     }
 
-    let { latitude, longitude, radius: currentRadius } = systemDesign.sunroofTiffMeta$!;
+    let { latitude, longitude, radius: currentRadius } = systemDesign.sunroofTiffMeta$ ?? {};
 
     if (!latitude || !longitude || !currentRadius) {
       const { latitude: initLat, longitude: initLng, polygons } = initSystemDesign;
+
+      latitude = initLat;
+      longitude = initLng;
 
       currentRadius = this.calculateSystemDesignRadius(
         {
@@ -117,9 +120,6 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
         },
         polygons,
       );
-
-      latitude = initLat;
-      longitude = initLng;
     }
 
     const { latitude: newLat, longitude: newLng } = systemDesign;
