@@ -101,7 +101,12 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
       return;
     }
 
-    if (isEqual(previousPanelArrayBoundPolygon, newPanelArrayBoundPolygon)) {
+    const newTotalArrays = systemDesign.roofTopDesignData?.panelArray?.length ?? 0;
+
+    if (
+      newTotalArrays !== initSystemDesign.totalArrays ||
+      isEqual(previousPanelArrayBoundPolygon, newPanelArrayBoundPolygon)
+    ) {
       return;
     }
 
@@ -221,7 +226,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   private calculateSystemDesignRadius(systemDesignCenterBound: ICoordinate, polygons: ICoordinate[]): number {
     const longestDistance = Math.max(...polygons.map(p => calcCoordinatesDistance(systemDesignCenterBound, p))) * 1000;
 
-    return Math.min(25, Math.max(100, longestDistance));
+    return Math.min(Math.max(25, longestDistance), 100);
   }
 
   private queueResaveClosestBuilding(

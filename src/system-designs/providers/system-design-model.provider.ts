@@ -48,7 +48,6 @@ export const createSystemDesignProvider = (
     const originalObjSym = Symbol('mongoOriginObj');
     const ctxStoreSym = Symbol('asyncContextStore');
     const initSystemDesignSym = Symbol('initSystemDesignSym');
-    const isNewSolarPanel = Symbol('isNewSolarPanel');
 
     const patchedSolarPanelArraySchema = new Schema(SolarPanelArraySchema.obj, { _id: false });
 
@@ -57,7 +56,6 @@ export const createSystemDesignProvider = (
 
       if (store) {
         set(this, ctxStoreSym, store);
-        set(this, isNewSolarPanel, this.isNew);
       }
 
       next();
@@ -91,6 +89,7 @@ export const createSystemDesignProvider = (
           longitude: systemDesign.longitude,
           isNew,
           polygons: ((systemDesign.roofTopDesignData?.panelArray ?? []).map(p => p.boundPolygon) ?? []).flat(),
+          totalArrays: systemDesign.roofTopDesignData?.panelArray?.length ?? 0,
         };
       } else {
         previousSystemDesign = {
@@ -100,6 +99,18 @@ export const createSystemDesignProvider = (
 
       const parentSystemDesign = (this.$parent()?.$parent() as unknown) as SystemDesign;
 
+      let isNewPanelArray = false;
+
+      if (isNew) {
+        isNewPanelArray = true;
+      } else {
+        const targetPanelArrayId = this.get('array_id');
+
+        isNewPanelArray = !systemDesign?.roofTopDesignData?.panelArray?.find(
+          p => p.arrayId.toString() === targetPanelArrayId.toString(),
+        );
+      }
+
       try {
         systemDesignHook.dispatch(
           store!,
@@ -107,7 +118,7 @@ export const createSystemDesignProvider = (
           previousSystemDesign,
           this.get('array_id')?.toString(),
           previousBoundPolygon,
-          get(this, isNewSolarPanel) as boolean,
+          isNewPanelArray,
           (this.toJSON() as any).boundPolygon,
         );
         next();

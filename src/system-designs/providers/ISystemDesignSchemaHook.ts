@@ -10,6 +10,7 @@ export type InitSystemDesign =
       longitude: number;
       isNew: false;
       polygons: ILatLngSchema[];
+      totalArrays: number;
     };
 
 export interface ISystemDesignSchemaHook {
