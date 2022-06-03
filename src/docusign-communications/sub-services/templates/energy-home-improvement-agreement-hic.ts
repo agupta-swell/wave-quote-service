@@ -184,7 +184,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     if (projectDiscountDetails.length || cashDiscount.total) labels.push('Discounts Total');
 
-    if (incentiveDetails.length) labels.push('Swell GridRewards® Upfront Payment Discount');
+    if (incentiveDetails.length) labels.push('GridRevenue® Upfront Payment Discount');
 
     labels.push(
       `Net Agreement Price (Amount Due from ${

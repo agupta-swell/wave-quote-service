@@ -19,6 +19,7 @@ import { DESIGN_MODE } from './constants';
 import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
+export const PURE_SYSTEM_DESIGN = 'PURE_SYSTEM_DESIGN';
 
 export interface ILatLngSchema {
   lat: number;
@@ -85,7 +86,7 @@ export interface ICapacityPanelArraySchema extends ISolarPanelArraySchema {
   systemProductionData: ISystemProductionSchema;
 }
 
-const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
+export const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>>(
   {
     array_id: Schema.Types.ObjectId,
     primary_orientation_side: Number,
@@ -311,6 +312,10 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
   { _id: false },
 );
 
+// RoofTopSchema.pre('save', function (next) {
+//   this.isModified()
+// })
+
 export const CapacityProductionSchema = new Schema<Document<ICapacityProductionSchema>>(
   {
     panel_array: [CapacityPanelArraySchema],
@@ -338,6 +343,15 @@ export const NetUsagePostInstallationSchema = new Schema<Document<INetUsagePostI
   { _id: false },
 );
 
+/**
+ * Cache the parameters to generate latest Tiff images
+ */
+export interface ICurrentSunroofTiffMeta {
+  latitude: number;
+  longitude: number;
+  radius: number;
+}
+
 // @ts-ignore
 export interface SystemDesign extends Document {
   name: string;
@@ -359,6 +373,7 @@ export interface SystemDesign extends Document {
   createdAt: Date;
   updatedBy: string;
   updatedAt: Date;
+  sunroofTiffMeta$?: ICurrentSunroofTiffMeta;
 }
 
 export type SystemDesignWithManufacturerMeta = WithMetaOfType<
@@ -368,6 +383,17 @@ export type SystemDesignWithManufacturerMeta = WithMetaOfType<
     manufacturer: LeanDocument<Manufacturer>;
   }
 >;
+
+const SunroofTiffMetaSchema = new Schema(
+  {
+    latitude: Number,
+    longitude: Number,
+    radius: Number,
+  },
+  {
+    _id: false,
+  },
+);
 
 // @ts-ignore
 export const SystemDesignSchema = new Schema<SystemDesign>({
@@ -390,6 +416,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
+  sunroof_tiff_meta$: SunroofTiffMetaSchema,
 });
 
 export class SystemDesignModel {

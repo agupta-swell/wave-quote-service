@@ -7,7 +7,7 @@ import { PreAuthenticate } from 'src/app/securities';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { UseSaveQuoteIdToReq } from './interceptors';
-import { ValidateQuoteDiscountPipe, ValidateQuotePromotionsPipe } from './pipes';
+import { ValidateQuoteDiscountPipe, ValidateQuotePromotionsPipe, ValidateQuoteRebatesPipe } from './pipes';
 import { QuoteService } from './quote.service';
 import {
   CalculateQuoteDetailDto,
@@ -85,7 +85,7 @@ export class QuoteController {
   @CheckOpportunity()
   @UseSaveQuoteIdToReq('quoteId', 'body')
   async updateQuote(
-    @Body(ValidateQuoteDiscountPipe, ValidateQuotePromotionsPipe) data: UpdateQuoteDto,
+    @Body(ValidateQuoteDiscountPipe, ValidateQuotePromotionsPipe, ValidateQuoteRebatesPipe) data: UpdateQuoteDto,
     @Param('quoteId', ParseObjectIdPipe) quoteId: ObjectId,
   ): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.updateQuote(quoteId, data);
@@ -98,7 +98,7 @@ export class QuoteController {
   @ApiOkResponse({ type: QuoteRes })
   @UseSaveQuoteIdToReq('quoteId', 'body')
   async updateLatestQuote(
-    @Body(ValidateQuoteDiscountPipe, ValidateQuotePromotionsPipe) data: UpdateLatestQuoteDto,
+    @Body(ValidateQuoteDiscountPipe, ValidateQuotePromotionsPipe, ValidateQuoteRebatesPipe) data: UpdateLatestQuoteDto,
     @Param('quoteId') quoteId: string,
   ): Promise<ServiceResponse<QuoteDto>> {
     const res = await this.quoteService.updateLatestQuote(data, quoteId);

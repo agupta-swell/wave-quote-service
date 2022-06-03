@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from 'async_hooks';
-import { IAsyncContext, QueueItem, QueueTarget } from '../interfaces';
+import { IAsyncContext, IQueueStore, QueueItem, QueueTarget } from '../interfaces';
 
 export class AsyncContextProvider implements IAsyncContext {
-  private _als: AsyncLocalStorage<Array<QueueItem>>;
+  private _als: AsyncLocalStorage<IQueueStore>;
 
   private _sharedCacheStorage: Map<string, unknown>;
 
@@ -11,24 +11,47 @@ export class AsyncContextProvider implements IAsyncContext {
     this._sharedCacheStorage = new Map();
   }
 
-  run(cb: () => void): void {
-    this._als.run([], cb);
+  public UNSAFE_getStore() {
+    return this._als.getStore();
   }
 
-  queue(cb: () => QueueTarget): void {
+  private getStoreOrFail(): IQueueStore {
     const store = this._als.getStore();
 
     if (!store) {
       throw new Error('AsyncContext is not initialized');
     }
 
-    store.push(cb);
+    return store;
+  }
+
+  queueBeforeRes(cb: () => QueueItem): void {
+    const store = this.getStoreOrFail();
+
+    store.beforeRes.push(cb);
+  }
+
+  run(cb: () => void): void {
+    this._als.run(
+      {
+        afterRes: [],
+        beforeRes: [],
+        cache: new Map(),
+      },
+      cb,
+    );
+  }
+
+  queue(cb: () => QueueTarget): void {
+    const store = this.getStoreOrFail();
+
+    store.afterRes.push(cb);
   }
 
   flush(): void {
-    const store = this._als.getStore();
+    const store = this.getStoreOrFail();
 
-    store?.forEach(async cb => {
+    store?.afterRes.forEach(async cb => {
       const item = cb() as any;
       try {
         const res = await item();
@@ -36,6 +59,18 @@ export class AsyncContextProvider implements IAsyncContext {
         this.logError(err);
       }
     });
+  }
+
+  async flushBeforeRes(): Promise<void> {
+    const store = this.getStoreOrFail();
+
+    await Promise.all(store.beforeRes.map(e => e()));
+
+    store.beforeRes = [];
+  }
+
+  public get hasPendingTasks(): boolean {
+    return !!this._als.getStore()?.beforeRes?.length;
   }
 
   private logError(err: unknown) {

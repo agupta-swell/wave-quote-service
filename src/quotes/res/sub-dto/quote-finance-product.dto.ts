@@ -2,7 +2,6 @@ import { ApiExtraModels, getSchemaPath } from '@nestjs/swagger';
 import { DiscountResDto } from 'src/discounts/dto';
 import { GsProgramsDto } from 'src/gs-programs/res/gs-programs.dto';
 import { PromotionResDto } from 'src/promotions/dto';
-import { REBATE_TYPE } from 'src/quotes/constants';
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { CashProductAttributesDto, LeaseProductAttributesDto, LoanProductAttributesDto } from '.';
 import { FinanceProductDetailDto } from './financial-product.dto';
@@ -15,8 +14,8 @@ export class GridServiceDetailsDto {
   gsProgramSnapshot: GsProgramsDto;
 }
 export class IncentiveDetailsDto {
-  @ExposeProp({ enum: REBATE_TYPE })
-  type: REBATE_TYPE;
+  @ExposeProp()
+  type: string;
 
   @ExposeProp({ type: GridServiceDetailsDto })
   detail: GridServiceDetailsDto;

@@ -12,7 +12,11 @@ export class FlushContextInterceptor implements NestInterceptor {
     const res = ctx.switchToHttp().getResponse<FastifyResponse>();
 
     return next.handle().pipe(
-      map(body => {
+      map(async body => {
+        if (this.asyncContext.hasPendingTasks) {
+          await this.asyncContext.flushBeforeRes();
+        }
+
         res.send(body);
         this.asyncContext.flush();
       }),

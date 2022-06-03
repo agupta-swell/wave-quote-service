@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import * as mime from 'mime';
+import { resolve } from 'path';
 import { ApplicationException } from 'src/app/app.exception';
 import { PassThrough, Readable, Stream } from 'stream';
 import { IS3GetLocationFromUrlResult, IS3GetUrlOptions, IS3RootDir } from '../interfaces';
@@ -280,6 +281,39 @@ export class S3Service {
         },
       );
     });
+  }
+
+  /**
+   * Get presigned url for given file and bucket
+   *
+   * Return empty string if `error` occurs
+   * @param bucket
+   * @param key
+   * @param expires
+   * @param logError
+   */
+  public getSignedUrl(bucket: string, key: string, expires: number, logError?: boolean): Promise<string> {
+    return new Promise((resolve, _) =>
+      this.S3.getSignedUrl(
+        'getObject',
+        {
+          Bucket: bucket,
+          Key: key,
+          Expires: expires,
+        },
+        (err, url) => {
+          if (err) {
+            resolve('');
+
+            if (logError) console.error(err);
+
+            return;
+          }
+
+          resolve(url);
+        },
+      ),
+    );
   }
 
   private buildObjectKey(fileNameWithExt: string, rootDir?: string | boolean): string {

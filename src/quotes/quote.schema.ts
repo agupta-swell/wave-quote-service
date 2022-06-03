@@ -11,7 +11,7 @@ import { camelToSnake, deepTransform, snakeToCamel } from 'src/shared/mongoose-s
 import { ISystemProductionSchema, SystemProductionSchema } from 'src/system-designs/system-design.schema';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigSnapshotSchema } from 'src/tax-credit-configs/tax-credit-config.schema';
-import { PRIMARY_QUOTE_TYPE, QUOTE_MODE_TYPE, REBATE_TYPE } from './constants';
+import { PRIMARY_QUOTE_TYPE, QUOTE_MODE_TYPE } from './constants';
 import { ICogsImpact, IMarginImpact, IQuoteCostBuildup } from './interfaces';
 import { UpdateLatestQuoteDto } from './req';
 import { CreateQuoteDto } from './req/create-quote.dto';
@@ -45,7 +45,7 @@ const GridServiceDetailsSchema = new Schema<Document<IGridServiceDetails>>(
 MongooseNamingStrategy.ExcludeOne(GridServiceDetailsSchema);
 
 export interface IIncentiveDetailsSchema extends ICogsImpact, IMarginImpact {
-  type: REBATE_TYPE;
+  type: string;
   detail: IGridServiceDetails;
   amount: number;
 }
@@ -66,7 +66,7 @@ const IncentiveDetailsSchema = new Schema<Document<IIncentiveDetailsSchema>>(
 MongooseNamingStrategy.ExcludeOne(IncentiveDetailsSchema);
 export interface IRebateDetailsSchema {
   amount: number;
-  type: REBATE_TYPE;
+  type: string;
   description: string;
   isFloatRebate?: boolean;
 }

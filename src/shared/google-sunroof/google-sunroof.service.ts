@@ -7,14 +7,18 @@ import * as geotiff from 'geotiff';
 import type { TypedArrayArrayWithDimensions } from 'geotiff';
 import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
+import { Types, LeanDocument } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 
-import { S3Service } from '../aws/services/s3.service';
-import { SystemDesign } from '../../system-designs/system-design.schema';
 import type {
   GoogleSunroof,
+  GoogleSunroofOrientationInformation,
   SystemProduction,
-} from './types'
+  IClosestBuildingKey,
+} from './types';
+
+import { S3Service } from '../aws/services/s3.service';
+import { ILatLngSchema, SystemDesign } from '../../system-designs/system-design.schema';
 import { GoogleSunroofGateway } from './google-sunroof.gateway'
 import { PngGenerator } from './png.generator'
 import { ProductionCalculator } from './production.calculator'
@@ -27,12 +31,6 @@ import {
 
 const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.GOOGLE_SUNROOF_DEBUG?.toLowerCase() || 'false');
 const DEBUG_FOLDER = path.join(__dirname, 'debug')
-
-type GoogleSunroofOrientationInformation = {
-  sunroofPrimaryOrientationSide?: number;
-  sunroofPitch?: number;
-  sunroofAzimuth?: number;
-}
 
 @Injectable()
 export class GoogleSunroofService {
@@ -47,20 +45,50 @@ export class GoogleSunroofService {
     this.GOOGLE_SUNROOF_S3_BUCKET = bucket;
   }
 
+   /**
+   * Build a file path for `closestBuilding.json`
+   *
+   * If the `systemDesign` is not created yet or to look up by the opportunity address, use `lat/lng` instead of `systemDesignId/arrayId`
+   *
+   * @param opportunityId
+   * @param systemDesignId
+   * @param arrayId
+   * @param lat
+   * @param lng
+   * @returns
+   */
+    public static BuildClosestBuildingKey(
+      opportunityId: string,
+      systemDesignId?: string,
+      arrayId?: string,
+      lat?: number,
+      lng?: number,
+    ): IClosestBuildingKey {
+      if (arrayId && systemDesignId && Types.ObjectId.isValid(arrayId) && Types.ObjectId.isValid(systemDesignId)) {
+        return { key: `${opportunityId}/${systemDesignId}/${arrayId}/closestBuilding.json` };
+      }
+  
+      if (!lat || !lng) throw new TypeError('Either lat/lng or systemDesignId/arrayId must be provided');
+  
+      return {
+        key: `${opportunityId}/${lat}/${lng}/closestBuilding.json`,
+      };
+    }
+
   /**
    * Check S3 for the cached `closestBuilding.json` file for the given opportunityId.
-   * Fetch, ans cache, it from Google Sunroof if the file does not already exist.
+   * Fetch, and cache, it from Google Sunroof if the file does not already exist.
    *
    * @param opportunityId
    * @param latitude
    * @param longitude
    */
   public async getClosestBuilding (
-    opportunityId: string,
+    closestBuildingKey: IClosestBuildingKey,
     latitude: number,
     longitude: number,
   ) : Promise<GoogleSunroof.Building> {
-    const key = `${opportunityId}/closestBuilding.json`
+    const { key } = closestBuildingKey;
     let closestBuilding = await this.getS3FileAsJson<GoogleSunroof.Building>(key)
     if (!closestBuilding) {
       closestBuilding = await this.googleSunroofGateway.findClosestBuilding(latitude, longitude)
@@ -84,15 +112,13 @@ export class GoogleSunroofService {
    * @param polygons
    */
   public async getOrientationInformation (
-    opportunityId: string,
-    latitude: number,
-    longitude: number,
+    closestBuildingKey: IClosestBuildingKey,
     centerLat: number,
     centerLng: number,
     sideAzimuths: number[],
     polygons: ICoordinate[],
   ) : Promise<GoogleSunroofOrientationInformation> {
-    const closestBuilding = await this.getClosestBuilding(opportunityId, latitude, longitude);
+    const closestBuilding = await this.getClosestBuilding(closestBuildingKey, centerLat, centerLng);
 
     if (!Array.isArray(closestBuilding?.solarPotential?.roofSegmentStats)) {
       return {};
@@ -170,14 +196,15 @@ export class GoogleSunroofService {
    *
    * @param systemDesign
    */
-  public async generateHeatmapPngs (systemDesign: SystemDesign) : Promise<void> {
+  public async generateHeatmapPngs (
+    systemDesign: SystemDesign,
+    // TODO TEMP hardcoding radius meters for now
+    // TODO TEMP this should be calculated from the arrays, WAV-1720
+    radiusMeters = 25,
+    ) : Promise<void> {
     const { latitude, longitude, opportunityId, _id } = systemDesign;
 
     const systemDesignId = _id.toString();
-
-    // TODO TEMP hardcoding radius meters for now
-    // TODO TEMP this should be calculated from the arrays, WAV-1720
-    const radiusMeters = 25
 
     const solarInfo = await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters)
 
@@ -320,16 +347,25 @@ export class GoogleSunroofService {
    *
    * @param systemDesign
    */
-  public async generateArrayOverlayPng (systemDesign: SystemDesign) : Promise<void> {
+  public async generateArrayOverlayPng (systemDesign: SystemDesign | LeanDocument<SystemDesign>, centerBound?: ILatLngSchema) : Promise<void> {
     const {
-      latitude,
-      longitude,
+      latitude: _lat,
+      longitude: _lng,
       opportunityId,
       roofTopDesignData: {
         panelArray: arrays,
       },
       _id
     } = systemDesign;
+
+    let latitude = _lat;
+
+    let longitude = _lng;
+
+    if (centerBound) {
+      latitude = centerBound.lat;
+      longitude = centerBound.lng;
+    }
 
     const systemDesignId = _id.toString();
 
@@ -366,6 +402,9 @@ export class GoogleSunroofService {
    * @param systemDesign
    */
   public async calculateProduction (systemDesign: SystemDesign) : Promise<SystemProduction> {
+    // TODO WAV-1645:
+    //   destructure `sunroofDriftCorrection` out of the `systemDesign` instead of this
+    const sunroofDriftCorrection = { x: 0, y: 0 };
     const { opportunityId, _id } = systemDesign;
 
     const systemDesignId = _id.toString();
@@ -393,6 +432,7 @@ export class GoogleSunroofService {
       systemDesign,
       annualFluxLayers,
       monthlyFluxLayers,
+      sunroofDriftCorrection,
     )
   }
 

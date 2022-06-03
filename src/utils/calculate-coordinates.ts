@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus */
 export interface ICoordinate {
   lat: number;
   lng: number;
@@ -12,6 +13,12 @@ export interface ILatLngBound {
 
 export const EARTH_R = 6371;
 
+/**
+ * Return distance of 2 coordinates in km
+ * @param c1
+ * @param c2
+ * @returns
+ */
 export const calcCoordinatesDistance = (c1: ICoordinate, c2: ICoordinate): number => {
   const { lat: lat1, lng: lng1 } = c1;
   const { lat: lat2, lng: lng2 } = c2;
@@ -27,6 +34,22 @@ export const calcCoordinatesDistance = (c1: ICoordinate, c2: ICoordinate): numbe
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const d = EARTH_R * c;
   return d;
+};
+
+export const getCenterCoordinate = (bounds: ICoordinate[]): ICoordinate => {
+  const lats = bounds.map(b => b.lat);
+  const lngs = bounds.map(b => b.lng);
+
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
+  return {
+    lat: (minLat + maxLat) / 2,
+    lng: (minLng + maxLng) / 2,
+  };
 };
 
 export const isCoordinateInsideBound = (coord: ICoordinate, bound: ILatLngBound): boolean => {
@@ -69,4 +92,20 @@ export const isCoordinatesInsideBoundByAtLeast = (
   }
 
   return isMatch;
+};
+
+export const getCenterBound = (bounds: ICoordinate[]): ICoordinate => {
+  const lats = bounds.map(b => b.lat);
+  const lngs = bounds.map(b => b.lng);
+
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
+  return {
+    lat: (minLat + maxLat) / 2,
+    lng: (minLng + maxLng) / 2,
+  };
 };

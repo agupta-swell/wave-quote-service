@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNumber, IsOptional, IsString, IsUrl, ValidateNested } from 'class-validator';
+import { ArrayUnique, IsBoolean, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { RecipientDto } from './create-proposal.dto';
 
 export class UpdateProposalDto {
@@ -18,6 +18,7 @@ export class UpdateProposalDto {
   @IsOptional()
   @Type(() => RecipientDto)
   @ValidateNested({ each: true })
+  @ArrayUnique<RecipientDto>(recipient => recipient.email)
   recipients: RecipientDto[];
 
   @ApiProperty()

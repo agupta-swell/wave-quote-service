@@ -39,6 +39,7 @@ export enum REBATE_TYPE {
   SGIP = 'SGIP',
   ERT = 'ERT',
   ER = 'ER',
+  SCE = 'SCE',
 }
 
 export enum PRIMARY_QUOTE_TYPE {

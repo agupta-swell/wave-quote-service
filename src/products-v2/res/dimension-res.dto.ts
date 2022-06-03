@@ -2,8 +2,8 @@ import { ExposeProp } from 'src/shared/decorators';
 
 export class DimensionResDto {
   @ExposeProp()
-  length: Number;
+  length: number;
 
   @ExposeProp()
-  width: Number;
+  width: number;
 }

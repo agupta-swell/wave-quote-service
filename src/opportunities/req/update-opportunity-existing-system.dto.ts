@@ -61,4 +61,14 @@ export class UpdateOpportunityExistingSystemDto {
   @ApiProperty()
   @IsOptional()
   tpoFundingSource: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  existingPVTilt: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  existingPVAzimuth: number;
 }

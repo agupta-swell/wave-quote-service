@@ -80,6 +80,12 @@ export class GetRelatedInformationDto {
 
   @ExposeProp()
   tpoFundingSource: string;
+
+  @ExposeProp()
+  existingPVTilt: number;
+
+  @ExposeProp()
+  existingPVAzimuth: number;
   
   @ExposeProp()
   assignedMember: string;

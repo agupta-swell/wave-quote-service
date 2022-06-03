@@ -1,10 +1,8 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { Injectable } from '@nestjs/common';
 import { BigNumber } from 'bignumber.js';
-import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
-import { PROMOTION_TYPE } from 'src/promotions/promotion.constant';
 import { roundNumber } from 'src/utils/transformNumber';
-import { REBATE_TYPE } from '../constants';
-import { ICalculateQuoteFinanceProductNetAmountArg, ICogsImpact, IMarginImpact, IReductionAmount } from '../interfaces';
+import { ICogsImpact, IMarginImpact, IReductionAmount } from '../interfaces';
 
 @Injectable()
 export class QuoteFinanceProductService {
@@ -23,17 +21,16 @@ export class QuoteFinanceProductService {
   }
 
   public static calculateReduction(
-    reduction: IReductionAmount<'percentage' | 'amount' | REBATE_TYPE>,
+    reduction: IReductionAmount<'percentage' | 'amount' | (string & {})>,
     grossPrice: number,
   ): number {
-    if (reduction.type === 'percentage')
-      return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
+    if (reduction.type === '') return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
 
     return roundNumber(reduction.amount, 2);
   }
 
   public static calculateReductions(
-    reductions: IReductionAmount<'percentage' | 'amount' | REBATE_TYPE>[],
+    reductions: IReductionAmount<'percentage' | 'amount' | (string & {})>[],
     grossPrice: number,
   ): number {
     const total = reductions
@@ -49,7 +46,7 @@ export class QuoteFinanceProductService {
   }
 
   public static attachImpact(
-    reduction: IReductionAmount<'percentage' | 'amount' | REBATE_TYPE> & IMarginImpact & ICogsImpact,
+    reduction: IReductionAmount<'percentage' | 'amount' | (string & {})> & IMarginImpact & ICogsImpact,
     grossPrice: number,
   ) {
     const amount = QuoteFinanceProductService.calculateReduction(reduction, grossPrice);

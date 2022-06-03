@@ -1,4 +1,5 @@
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { TRACKING_TYPE } from '../schemas/proposal-analytic.schema';
 
 export class TrackingDto {
   @ExposeProp()
@@ -6,6 +7,9 @@ export class TrackingDto {
 
   @ExposeProp()
   at: Date;
+
+  @ExposeProp({ enum: TRACKING_TYPE })
+  type: TRACKING_TYPE;
 }
 
 export class ProposalAnalyticDto {
@@ -19,11 +23,5 @@ export class ProposalAnalyticDto {
   viewBy: string;
 
   @ExposeProp()
-  sends: TrackingDto[];
-
-  @ExposeProp()
-  views: TrackingDto[];
-
-  @ExposeProp()
-  downloads: TrackingDto[];
+  tracking: TrackingDto[];
 }

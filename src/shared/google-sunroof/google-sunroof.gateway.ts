@@ -21,7 +21,7 @@ export class GoogleSunroofGateway {
 
   constructor() {
     const sunroofApiKey = process.env.GOOGLE_SUNROOF_API_KEY;
-    if (!sunroofApiKey) throw new Error('Missing SUNROOF_API_KEY environment variable');
+    if (!sunroofApiKey) throw new Error('Missing GOOGLE_SUNROOF_API_KEY environment variable');
 
     this.client = axios.create({
       baseURL: GOOGLE_SUNROOF_BASE_URL,
