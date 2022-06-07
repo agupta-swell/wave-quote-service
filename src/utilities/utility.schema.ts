@@ -96,6 +96,14 @@ export const GenabilityUsageDataSchema = new Schema<GenabilityUsageData>({
   baseline_cost: String,
 });
 
+GenabilityUsageDataSchema.post('save', function (_, next) {
+  if (this.__v === 0) {
+    // mark document __v as 1 to indicate the result from GenabilityAPI without sizingValue
+    this.__v = 1;
+    this.save().then(() => next());
+  } else next();
+});
+
 export interface IActualUsage {
   opportunityId: string;
   sourceType: string;
