@@ -178,12 +178,39 @@ export class GoogleSunroofService {
       }))
       .sort((a, b) => a.val - b.val)[0].side;
 
-    return {
-      sunroofPrimaryOrientationSide: closestSide,
-      sunroofPitch: closestSegment.pitchDegrees,
-      sunroofAzimuth: closestSegment.azimuthDegrees,
-    };
+      return {
+        sunroofPrimaryOrientationSide: closestSide,
+        sunroofPitch: closestSegment.pitchDegrees,
+        sunroofAzimuth: closestSegment.azimuthDegrees,
+        boundingBoxes: this.formatRoofSegmentStats(closestBuilding.solarPotential.roofSegmentStats, sideAzimuths),
+      };
+    }
+  
+  /**
+   *
+   * @param roofSegmentStats
+   * @param sideAzimuths
+   * @returns format return data for bounding boxes
+   */
+  public formatRoofSegmentStats(roofSegmentStats: GoogleSunroof.RoofSegmentStats[], sideAzimuths: number[]) {
+    return roofSegmentStats
+      .map(({ azimuthDegrees, boundingBox, pitchDegrees }) => ({
+        ...boundingBox,
+        azimuthDegrees,
+        pitchDegrees,
+      }))
+      .filter(e => e.azimuthDegrees !== undefined && e.pitchDegrees !== undefined)
+      .map(e => ({
+        ...e,
+        sunroofPrimaryOrientationSide: sideAzimuths
+          .map((side, idx) => ({
+            side: idx + 1,
+            val: Math.abs(e.azimuthDegrees - side),
+          }))
+          .sort((a, b) => a.val - b.val)[0].side,
+      }));
   }
+  
 
   /**
    * This function fetches everything needed from Google Sunroof and generates

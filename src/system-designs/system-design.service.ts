@@ -1125,22 +1125,10 @@ export class SystemDesignService {
       return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, {}));
     }
 
-    const boundingBoxes = sunroofData.solarPotential.roofSegmentStats
-      .map(({ azimuthDegrees, boundingBox, pitchDegrees }) => ({
-        ...boundingBox,
-        azimuthDegrees,
-        pitchDegrees,
-      }))
-      .filter(e => e.azimuthDegrees !== undefined && e.pitchDegrees !== undefined)
-      .map(e => ({
-        ...e,
-        sunroofPrimaryOrientationSide: sideAzimuths
-          .map((side, idx) => ({
-            side: idx + 1,
-            val: Math.abs(e.azimuthDegrees - side),
-          }))
-          .sort((a, b) => a.val - b.val)[0].side,
-      }));
+    const boundingBoxes = this.googleSunroofService.formatRoofSegmentStats(
+      sunroofData.solarPotential.roofSegmentStats,
+      sideAzimuths,
+    );
 
     return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, { boundingBoxes }));
   }
@@ -1249,9 +1237,7 @@ export class SystemDesignService {
     return OperationResult.ok(strictPlainToClass(GetHeatmapSignedUrlsResDto, { urls: signedUrls }));
   }
 
-  public async getArrayOverlayPng(
-    systemDesignId: ObjectId,
-  ): Promise<OperationResult<GetArrayOverlaySignedUrlResDto>> {
+  public async getArrayOverlayPng(systemDesignId: ObjectId): Promise<OperationResult<GetArrayOverlaySignedUrlResDto>> {
     const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound(systemDesignId.toString());

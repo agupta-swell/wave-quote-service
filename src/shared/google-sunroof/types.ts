@@ -25,11 +25,6 @@ export type SystemProduction = Production & {
   byArray: ArrayProduction[],
 }
 
-export type GoogleSunroofOrientationInformation = {
-  sunroofPrimaryOrientationSide?: number;
-  sunroofPitch?: number;
-  sunroofAzimuth?: number;
-}
 
 export interface IClosestBuildingKey {
   key: string;
@@ -55,13 +50,15 @@ export namespace GoogleSunroof {
   //       Only fields that are used by Wave are enumerated here.
   export interface Building {
     solarPotential: {
-      roofSegmentStats: {
-        pitchDegrees: number
-        azimuthDegrees: number;
-        center: LatitudeAndLongitude;
-        boundingBox: BoundingBox;
-      }[]
-    }
+      roofSegmentStats: RoofSegmentStats[];
+    };
+  }
+
+  export interface RoofSegmentStats {
+    pitchDegrees: number;
+    azimuthDegrees: number;
+    center: LatitudeAndLongitude;
+    boundingBox: BoundingBox;
   }
 
   // Note: Google Sunroof returns many more fields than are listed here.
@@ -73,3 +70,18 @@ export namespace GoogleSunroof {
     monthlyFluxUrl: string;
   }
 }
+
+export interface BoundingBox {
+  sw: GoogleSunroof.LatitudeAndLongitude;
+  ne: GoogleSunroof.LatitudeAndLongitude;
+  azimuthDegrees: number;
+  pitchDegrees: number;
+  sunroofPrimaryOrientationSide: number;
+}
+
+export type GoogleSunroofOrientationInformation = {
+  sunroofPrimaryOrientationSide?: number;
+  sunroofPitch?: number;
+  sunroofAzimuth?: number;
+  boundingBoxes?: BoundingBox[];
+};
