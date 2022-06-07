@@ -9,6 +9,7 @@ import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
 import { Types, LeanDocument } from 'mongoose';
 import { Injectable } from '@nestjs/common';
+import { isMongoId } from 'class-validator';
 
 import type {
   GoogleSunroof,
@@ -64,7 +65,7 @@ export class GoogleSunroofService {
       lat?: number,
       lng?: number,
     ): IClosestBuildingKey {
-      if (arrayId && systemDesignId && Types.ObjectId.isValid(arrayId) && Types.ObjectId.isValid(systemDesignId)) {
+      if (arrayId && systemDesignId && isMongoId(arrayId) && isMongoId(systemDesignId)) {
         return { key: `${opportunityId}/${systemDesignId}/${arrayId}/closestBuilding.json` };
       }
   

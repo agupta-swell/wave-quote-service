@@ -1,4 +1,5 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { isMongoId } from 'class-validator';
 import { flatten, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -1068,12 +1069,12 @@ export class SystemDesignService {
     let centerLat = _centerLat;
     let centerLng = _centerLng;
 
-    if (systemDesignId && Types.ObjectId.isValid(systemDesignId)) {
+    if (systemDesignId && isMongoId(systemDesignId)) {
       const systemDesign = await this.getOneById(systemDesignId);
 
       if (!systemDesign) throw ApplicationException.EntityNotFound(systemDesignId.toString());
 
-      if (Types.ObjectId.isValid(<string>arrayId)) {
+      if (isMongoId(arrayId)) {
         const foundPanel =
           systemDesign.roofTopDesignData &&
           systemDesign.roofTopDesignData.panelArray.find(item => item.arrayId.toString() === arrayId);
