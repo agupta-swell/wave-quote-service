@@ -1,6 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsEmail, IsInt, IsMongoId, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsBase64,
+  IsBoolean,
+  IsEmail,
+  IsInt,
+  IsMongoId,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { IsBase64ByMime } from 'src/shared/validations';
 
 export class RecipientDto {
   @ApiProperty()
@@ -63,4 +74,9 @@ export class CreateProposalDto {
   @Type(() => DetailedProposalDto)
   @ValidateNested()
   detailedProposal: DetailedProposalDto;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsBase64ByMime('image/png')
+  systemDesignThumbnail?: string;
 }

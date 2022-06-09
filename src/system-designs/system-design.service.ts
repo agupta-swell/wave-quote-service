@@ -1300,4 +1300,21 @@ export class SystemDesignService {
     const systemProduction = await this.googleSunroofService.calculateProduction(systemDesign);
     return OperationResult.ok(strictPlainToClass(CalculateSunroofProductionResDto, systemProduction));
   }
+
+  public async updateSystemDesignThumbnail(systemDesignId: ObjectId, base64Image: string): Promise<string | undefined> {
+    const url = await this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, base64Image, 'private');
+
+    if (!url) return undefined;
+
+    await this.systemDesignModel.updateOne(
+      {
+        _id: systemDesignId,
+      },
+      {
+        thumbnail: url,
+      },
+    );
+
+    return url;
+  }
 }
