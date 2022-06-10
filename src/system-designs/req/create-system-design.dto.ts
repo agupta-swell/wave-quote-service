@@ -10,6 +10,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
+import { Default } from 'src/shared/decorators';
 import { DESIGN_MODE } from '../constants';
 import { CapacityProductionDataDto, RoofTopDataReqDto, SunroofDriftCorrectionReqDto } from './sub-dto';
 import { ExistingSolarDataDto } from './sub-dto/existing-solar.dto';
@@ -88,8 +89,9 @@ export class CreateSystemDesignDto {
   @Type(() => ExistingSolarDataDto)
   existingSolarData: ExistingSolarDataDto;
 
-  @ApiProperty({ type: SunroofDriftCorrectionReqDto })
+  @ApiPropertyOptional({ type: SunroofDriftCorrectionReqDto })
   @ValidateNested()
   @Type(() => SunroofDriftCorrectionReqDto)
+  @Default({ x: 0, y: 0 })
   sunroofDriftCorrection: SunroofDriftCorrectionReqDto;
 }

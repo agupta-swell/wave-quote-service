@@ -73,8 +73,9 @@ export class UpdateSystemDesignDto {
   @Type(() => ExistingSolarDataDto)
   existingSolarData: ExistingSolarDataDto;
 
-  @ApiProperty({ type: SunroofDriftCorrectionReqDto })
+  @ApiPropertyOptional({ type: SunroofDriftCorrectionReqDto })
+  @IsOptional()
   @ValidateNested()
   @Type(() => SunroofDriftCorrectionReqDto)
-  sunroofDriftCorrection: SunroofDriftCorrectionReqDto;
+  sunroofDriftCorrection?: SunroofDriftCorrectionReqDto;
 }
