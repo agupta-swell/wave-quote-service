@@ -10,7 +10,6 @@ import {
   CalculateSunroofOrientationDto,
   CreateSystemDesignDto,
   GetBoundingBoxesReqDto,
-  GetHeatmapSignedUrlsQueryDto,
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
@@ -148,9 +147,8 @@ export class SystemDesignController {
   @ApiParam({ name: 'id', type: String })
   async generateHeatmapPngs(
     @Param('id', ParseObjectIdPipe) id: ObjectId,
-    @Query() query: GetHeatmapSignedUrlsQueryDto,
   ): Promise<ServiceResponse<GetHeatmapSignedUrlsResDto>> {
-    const result = await this.systemDesignService.getHeatmapSignedUrls(id, query);
+    const result = await this.systemDesignService.getHeatmapSignedUrls(id);
     return ServiceResponse.fromResult(result);
   }
 
