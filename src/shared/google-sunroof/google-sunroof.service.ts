@@ -375,25 +375,16 @@ export class GoogleSunroofService {
    *
    * @param systemDesign
    */
-  public async generateArrayOverlayPng (systemDesign: SystemDesign | LeanDocument<SystemDesign>, centerBound?: ILatLngSchema) : Promise<void> {
+  public async generateArrayOverlayPng (systemDesign: SystemDesign | LeanDocument<SystemDesign>) : Promise<void> {
     const {
-      latitude: _lat,
-      longitude: _lng,
+      latitude,
+      longitude,
       opportunityId,
       roofTopDesignData: {
         panelArray: arrays,
       },
       _id
     } = systemDesign;
-
-    let latitude = _lat;
-
-    let longitude = _lng;
-
-    if (centerBound) {
-      latitude = centerBound.lat;
-      longitude = centerBound.lng;
-    }
 
     const systemDesignId = _id.toString();
 

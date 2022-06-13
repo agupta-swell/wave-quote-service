@@ -343,15 +343,6 @@ export const NetUsagePostInstallationSchema = new Schema<Document<INetUsagePostI
   { _id: false },
 );
 
-/**
- * Cache the parameters to generate latest Tiff images
- */
-export interface ICurrentSunroofTiffMeta {
-  latitude: number;
-  longitude: number;
-  radius: number;
-}
-
 export interface ISunroofDriftCorrection {
   x: number;
   y: number;
@@ -378,7 +369,6 @@ export interface SystemDesign extends Document {
   createdAt: Date;
   updatedBy: string;
   updatedAt: Date;
-  sunroofTiffMeta$?: ICurrentSunroofTiffMeta;
   sunroofDriftCorrection: ISunroofDriftCorrection;
 }
 
@@ -389,17 +379,6 @@ export type SystemDesignWithManufacturerMeta = WithMetaOfType<
     manufacturer: LeanDocument<Manufacturer>;
   }
 >;
-
-const SunroofTiffMetaSchema = new Schema(
-  {
-    latitude: Number,
-    longitude: Number,
-    radius: Number,
-  },
-  {
-    _id: false,
-  },
-);
 
 const SunroofDriftCorrectionSchema = new Schema(
   {
@@ -433,7 +412,6 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
-  sunroof_tiff_meta$: SunroofTiffMetaSchema,
 });
 
 export class SystemDesignModel {
