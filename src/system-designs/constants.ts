@@ -49,3 +49,7 @@ export enum HEATMAP_MODE {
   FULL_MONTHLY = 'FULL_MONTHLY',
   ROOFTOP_MASK = 'ROOFTOP_MASK',
 }
+
+export const KEYS = {
+  REQ_PARAM_ID: Symbol.for('kReq/system-design/:id'),
+};

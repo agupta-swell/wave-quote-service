@@ -93,17 +93,6 @@ export class ProposalService {
       throw new NotFoundException(`No System Design found with id ${proposalDto.systemDesignId}`);
     }
 
-    const { systemDesignThumbnail } = proposalDto;
-
-    let thumbnailUrl: string | undefined;
-
-    if (systemDesignThumbnail) {
-      thumbnailUrl = await this.systemDesignService.updateSystemDesignThumbnail(
-        systemDesign._id,
-        systemDesignThumbnail,
-      );
-    }
-
     const model = new this.proposalModel({
       opportunityId: proposalDto.opportunityId,
       systemDesignId: proposalDto.systemDesignId,
@@ -121,7 +110,7 @@ export class ProposalService {
       },
     });
 
-    const thumbnail = thumbnailUrl ?? systemDesign?.thumbnail;
+    const thumbnail = systemDesign?.thumbnail;
 
     if (thumbnail) {
       const { keyName, bucketName } = this.s3Service.getLocationFromUrl(thumbnail);

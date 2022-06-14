@@ -1,4 +1,11 @@
-import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { isMongoId } from 'class-validator';
 import { flatten, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
@@ -1301,20 +1308,28 @@ export class SystemDesignService {
     return OperationResult.ok(strictPlainToClass(CalculateSunroofProductionResDto, systemProduction));
   }
 
-  public async updateSystemDesignThumbnail(systemDesignId: ObjectId, base64Image: string): Promise<string | undefined> {
-    const url = await this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, base64Image, 'private');
+  public async updateSystemDesignThumbnail(
+    systemDesignId: ObjectId,
+    imageStream: NodeJS.ReadableStream,
+  ): Promise<void> {
+    const key = `${+new Date()}.png`;
+    const url = await this.s3Service.putStreamPromise(
+      imageStream,
+      key,
+      this.SYSTEM_DESIGN_S3_BUCKET,
+      'image/png',
+      'private',
+    );
 
-    if (!url) return undefined;
+    if (!url) throw new InternalServerErrorException();
 
     await this.systemDesignModel.updateOne(
       {
         _id: systemDesignId,
       },
       {
-        thumbnail: url,
+        thumbnail: url.Location,
       },
     );
-
-    return url;
   }
 }

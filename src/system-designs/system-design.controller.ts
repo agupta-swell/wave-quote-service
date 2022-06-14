@@ -6,6 +6,7 @@ import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
+import { BusBoyFileStream, UseUploadThumbnailValidation } from './interceptors';
 import {
   CalculateSunroofOrientationDto,
   CreateSystemDesignDto,
@@ -166,5 +167,12 @@ export class SystemDesignController {
   async calculateSunroofProduction(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
     const result = await this.systemDesignService.calculateSunroofProduction(id);
     return ServiceResponse.fromResult(result);
+  }
+
+  @UseUploadThumbnailValidation('id')
+  @Put(':id/thumbnail')
+  @ApiParam({ name: 'id', type: String })
+  async uploadSystemDesignThumbnail(@Param('id') id: ObjectId, @Body() file: BusBoyFileStream) {
+    await this.systemDesignService.updateSystemDesignThumbnail(id, file);
   }
 }
