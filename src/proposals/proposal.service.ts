@@ -338,6 +338,7 @@ export class ProposalService {
       isAgent: boolean;
       proposalDetail: ProposalDto;
       sumOfUtilityUsageCost?: number;
+      sumOfMonthlyUsageCost?: number;
     }>
   > {
     let tokenPayload: any;
@@ -418,10 +419,15 @@ export class ProposalService {
       utility?.costData.computedCost.cost.reduce((previousValue, currentValue) => previousValue + currentValue.v, 0) ||
       0;
 
+    const sumOfMonthlyUsageCost =
+      utility?.utilityData?.computedUsage?.monthlyUsage?.reduce((previousValue, currentValue) => previousValue + currentValue.v, 0) ||
+      0;
+
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
       proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
       sumOfUtilityUsageCost,
+      sumOfMonthlyUsageCost
     });
   }
 
