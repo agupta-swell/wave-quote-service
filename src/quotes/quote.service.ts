@@ -624,7 +624,6 @@ export class QuoteService {
             type: cashQuoteConfig?.type,
             config: cashQuoteConfig?.config,
           },
-          cashQuoteConfigSnapShotDate: '',
           currentAverageMonthlyBill: 0,
           newAverageMonthlyBill: 0,
           currentPricePerKWh: 0,

@@ -98,7 +98,10 @@ export class ProposalService {
     let thumbnailUrl: string | undefined;
 
     if (systemDesignThumbnail) {
-      thumbnailUrl = await this.systemDesignService.updateSystemDesignThumbnail(systemDesign._id, systemDesignThumbnail);
+      thumbnailUrl = await this.systemDesignService.updateSystemDesignThumbnail(
+        systemDesign._id,
+        systemDesignThumbnail,
+      );
     }
 
     const model = new this.proposalModel({
@@ -333,7 +336,13 @@ export class ProposalService {
 
   async verifyProposalToken(
     data: ValidateProposalDto,
-  ): Promise<OperationResult<{ isAgent: boolean; proposalDetail: ProposalDto }>> {
+  ): Promise<
+    OperationResult<{
+      isAgent: boolean;
+      proposalDetail: ProposalDto;
+      sumOfUtilityUsageCost?: number;
+    }>
+  > {
     let tokenPayload: any;
 
     try {
@@ -363,7 +372,11 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(tokenPayload.proposalId);
     }
 
-    const requiredData = await this.getProposalRequiredData(proposal);
+    const [utility, requiredData] = await Promise.all([
+      this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
+      this.getProposalRequiredData(proposal),
+    ]);
+
     const storages = proposal.detailedProposal.systemDesignData.roofTopDesignData.storage;
     let manufacturer: LeanDocument<Manufacturer> = {
       name: '',
@@ -404,9 +417,14 @@ export class ProposalService {
       await foundAnalytic.save();
     }
 
+    const sumOfUtilityUsageCost =
+      utility?.costData.computedCost.cost.reduce((previousValue, currentValue) => previousValue + currentValue.v, 0) ||
+      0;
+
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
       proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
+      sumOfUtilityUsageCost,
     });
   }
 
