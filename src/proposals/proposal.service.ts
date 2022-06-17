@@ -18,6 +18,7 @@ import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
 import { Manufacturer } from 'src/manufacturers/manufacturer.schema';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
+import { ManufacturerDto } from 'src/manufacturers/res/manufacturer.dto';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
@@ -25,6 +26,8 @@ import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UserService } from 'src/users/user.service';
+import { GenebilityTariffDataDetail } from 'src/utilities/schemas/genebility-tariff-caching.schema';
+import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { ApplicationException } from '../app/app.exception';
@@ -336,6 +339,9 @@ export class ProposalService {
   ): Promise<
     OperationResult<{
       isAgent: boolean;
+      utility?: LeanDocument<UtilityUsageDetails> | null;
+      manufacturers?: ManufacturerDto[];
+      tariffDetails?: { masterTariff: GenebilityTariffDataDetail; postInstallMasterTariff: GenebilityTariffDataDetail };
       proposalDetail: ProposalDto;
       sumOfUtilityUsageCost?: number;
       sumOfMonthlyUsageCost?: number;
@@ -370,11 +376,33 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(tokenPayload.proposalId);
     }
 
-    const [utility, requiredData] = await Promise.all([
+    const [utility, requiredData, manufacturersRes] = await Promise.all([
       this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
       this.getProposalRequiredData(proposal),
+      this.manufacturerService.getList(),
     ]);
 
+    let tariffDetails;
+    if (utility?.utilityData && utility?.costData) {
+      const {
+        costData: { masterTariffId, postInstallMasterTariffId },
+        utilityData: {
+          loadServingEntityData: { zipCode, lseId },
+        },
+      } = utility;
+      const tariffsRes = await this.utilityService.getTariffs(zipCode, Number(lseId));
+
+      tariffDetails = {
+        masterTariff: tariffsRes.data?.tariffDetails.find(
+          tariff => tariff.masterTariffId.toString() === masterTariffId,
+        ),
+        postInstallMasterTariff: tariffsRes.data?.tariffDetails.find(
+          tariff => tariff.masterTariffId.toString() === postInstallMasterTariffId,
+        ),
+      };
+    }
+
+    // TODO: delete start
     const storages = proposal.detailedProposal.systemDesignData.roofTopDesignData.storage;
     let manufacturer: LeanDocument<Manufacturer> = {
       name: '',
@@ -399,6 +427,7 @@ export class ProposalService {
         return item;
       });
     }
+    // TODO: delete end
 
     // update analytic view
     const {
@@ -425,6 +454,9 @@ export class ProposalService {
 
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
+      utility,
+      manufacturers: manufacturersRes?.data?.data,
+      tariffDetails,
       proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
       sumOfUtilityUsageCost,
       sumOfMonthlyUsageCost
