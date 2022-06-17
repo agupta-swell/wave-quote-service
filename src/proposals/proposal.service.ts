@@ -253,10 +253,17 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(proposalId.toString());
     }
 
-    const sendRecipients = recipientEmails.map(email => ({
-      email,
-      firstName: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
-    }));
+    const sendRecipients = recipientEmails.map(email => {
+      const foundRecipient = foundProposal.detailedProposal.recipients.find(recipient => recipient.email === email);
+      if (foundRecipient) {
+        return foundRecipient;
+      }
+      return {
+        // for case send to me
+        email,
+        firstName: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
+      };
+    });
 
     const tokensByRecipients = sendRecipients.map(item =>
       this.jwtService.sign(
@@ -307,8 +314,9 @@ export class ProposalService {
           return previousValue;
         }, [] as string[])
         .join(', ');
+      const customerName = [recipient?.firstName, recipient?.lastName]?.filter(i => !!i).join(' ');
       const data = {
-        customerName: recipient?.firstName ?? 'Customer',
+        customerName: customerName !== '' ? customerName : 'Customer',
         proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
         recipientNotice: recipientsExcludeSelf
           ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsExcludeSelf}`
