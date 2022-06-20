@@ -8,7 +8,7 @@ import { AwsModule } from 'src/shared/aws/aws.module';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import { SystemProductionModule } from 'src/system-production/system-production.module';
 import { PvWattSystemProductionSchema, PV_WATT_SYSTEM_PRODUCTION } from './schemas';
-import { SystemProductService, UploadImageService } from './sub-services';
+import { SystemProductService } from './sub-services';
 import { SystemDesignController } from './system-design.controller';
 import { PURE_SYSTEM_DESIGN, SystemDesignSchema, SYSTEM_DESIGN } from './system-design.schema';
 import { SystemDesignService } from './system-design.service';
@@ -39,7 +39,6 @@ import { SystemDesignHook } from './providers/system-design.hook';
   providers: [
     SystemDesignService,
     SystemProductService,
-    UploadImageService,
     SystemDesignHook,
     {
       provide: 'systemDesignHook',

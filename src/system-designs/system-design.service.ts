@@ -1,4 +1,12 @@
-import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { isMongoId } from 'class-validator';
 import { flatten, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -21,20 +29,19 @@ import { SystemProductionService } from 'src/system-production/system-production
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
-import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR, HEATMAP_MODE } from './constants';
+import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
 import {
   CalculateSunroofOrientationDto,
   CreateSystemDesignDto,
   ExistingSolarDataDto,
   GetBoundingBoxesReqDto,
-  GetHeatmapSignedUrlsQueryDto,
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
 import {
   CalculateSunroofOrientationResDto,
-  GetArrayOverlaySignedUrlResDto,
   CalculateSunroofProductionResDto,
+  GetArrayOverlaySignedUrlResDto,
   GetBoundingBoxesResDto,
   GetHeatmapSignedUrlsResDto,
   SystemDesignAncillaryMasterDto,
@@ -1068,12 +1075,12 @@ export class SystemDesignService {
     let centerLat = _centerLat;
     let centerLng = _centerLng;
 
-    if (systemDesignId && Types.ObjectId.isValid(systemDesignId)) {
+    if (systemDesignId && isMongoId(systemDesignId)) {
       const systemDesign = await this.getOneById(systemDesignId);
 
       if (!systemDesign) throw ApplicationException.EntityNotFound(systemDesignId.toString());
 
-      if (Types.ObjectId.isValid(<string>arrayId)) {
+      if (isMongoId(arrayId)) {
         const foundPanel =
           systemDesign.roofTopDesignData &&
           systemDesign.roofTopDesignData.panelArray.find(item => item.arrayId.toString() === arrayId);
@@ -1125,22 +1132,10 @@ export class SystemDesignService {
       return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, {}));
     }
 
-    const boundingBoxes = sunroofData.solarPotential.roofSegmentStats
-      .map(({ azimuthDegrees, boundingBox, pitchDegrees }) => ({
-        ...boundingBox,
-        azimuthDegrees,
-        pitchDegrees,
-      }))
-      .filter(e => e.azimuthDegrees !== undefined && e.pitchDegrees !== undefined)
-      .map(e => ({
-        ...e,
-        sunroofPrimaryOrientationSide: sideAzimuths
-          .map((side, idx) => ({
-            side: idx + 1,
-            val: Math.abs(e.azimuthDegrees - side),
-          }))
-          .sort((a, b) => a.val - b.val)[0].side,
-      }));
+    const boundingBoxes = this.googleSunroofService.formatRoofSegmentStats(
+      sunroofData.solarPotential.roofSegmentStats,
+      sideAzimuths,
+    );
 
     return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, { boundingBoxes }));
   }
@@ -1185,10 +1180,15 @@ export class SystemDesignService {
       .filter((e): e is LeanDocument<IUnknownProduct> => !!e);
   }
 
-  public async getHeatmapSignedUrls(
-    systemDesignId: ObjectId,
-    query: GetHeatmapSignedUrlsQueryDto,
-  ): Promise<OperationResult<GetHeatmapSignedUrlsResDto>> {
+  private async getSignedUrls(pngs: string[]): Promise<string[]> {
+    const URL_EXPIRE_IN = 3600;
+
+    return Promise.all(
+      pngs.map(e => this.s3Service.getSignedUrl(process.env.GOOGLE_SUNROOF_S3_BUCKET!, e, URL_EXPIRE_IN, true)),
+    );
+  }
+
+  public async getHeatmapSignedUrls(systemDesignId: ObjectId): Promise<OperationResult<GetHeatmapSignedUrlsResDto>> {
     const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound(systemDesignId.toString());
@@ -1197,42 +1197,32 @@ export class SystemDesignService {
     const systemDesignIdStr = systemDesignId.toString();
     const { opportunityId } = systemDesign;
 
-    const pngs: string[] = [];
+    const noHeatmapPngs = [`${opportunityId}/${systemDesignIdStr}/png/satellite.png`];
 
-    switch (query.mode) {
-      case HEATMAP_MODE.NO:
-        pngs.push(`${opportunityId}/${systemDesignIdStr}/png/satellite.png`);
-        break;
-      case HEATMAP_MODE.FULL_ANNUAL:
-        pngs.push(`${opportunityId}/${systemDesignIdStr}/png/heatmap.annual.png`);
-        break;
-      case HEATMAP_MODE.FULL_MONTHLY:
-        pngs.push(
-          ...Array.from(
-            { length: 12 },
-            (_, monthIndex) => `${opportunityId}/${systemDesignIdStr}/png/heatmap.month${monthIndex}.png`,
-          ),
-        );
-        break;
-      case HEATMAP_MODE.ROOFTOP_ANNUAL:
-        pngs.push(`${opportunityId}/${systemDesignIdStr}/png/heatmap.annual.masked.png`);
-        break;
-      case HEATMAP_MODE.ROOFTOP_MONTHLY:
-        pngs.push(
-          ...Array.from(
-            { length: 12 },
-            (_, monthIndex) => `${opportunityId}/${systemDesignIdStr}/png/heatmap.month${monthIndex}.masked.png`,
-          ),
-        );
-        break;
-      case HEATMAP_MODE.ROOFTOP_MASK:
-        pngs.push(`${opportunityId}/${systemDesignIdStr}/png/mask.png`);
-        break;
-      default:
-    }
+    const heatmapAnnualPngs = [`${opportunityId}/${systemDesignIdStr}/png/heatmap.annual.masked.png`];
+
+    const heatmapsMonthlyPngs: string[] = [];
+    heatmapsMonthlyPngs.push(
+      ...Array.from(
+        { length: 12 },
+        (_, monthIndex) => `${opportunityId}/${systemDesignIdStr}/png/heatmap.month${monthIndex}.masked.png`,
+      ),
+    );
+
+    const fullHeatmapAnnualPngs = [`${opportunityId}/${systemDesignIdStr}/png/heatmap.annual.png`];
+
+    const fullHeatmapsMonthlyPngs: string[] = [];
+    fullHeatmapsMonthlyPngs.push(
+      ...Array.from(
+        { length: 12 },
+        (_, monthIndex) => `${opportunityId}/${systemDesignIdStr}/png/heatmap.month${monthIndex}.png`,
+      ),
+    );
+
+    const rooftopMarkPngs = [`${opportunityId}/${systemDesignIdStr}/png/mask.png`];
 
     // indicate if old data has no png generated then generate new pngs before signing url
-    const [first] = pngs;
+    const [first] = heatmapAnnualPngs;
 
     const firstExist = await this.s3Service.hasFile(process.env.GOOGLE_SUNROOF_S3_BUCKET!, first);
 
@@ -1240,18 +1230,35 @@ export class SystemDesignService {
       await this.googleSunroofService.generateHeatmapPngs(systemDesign);
     }
 
-    const URL_EXPIRE_IN = 3600;
+    const [
+      noHeatmapUrls,
+      heatmapAnnualUrls,
+      heatmapsMonthlyUrls,
+      fullHeatmapAnnualUrls,
+      fullHeatmapsMonthlyUrls,
+      rooftopMarkUrls,
+    ] = await Promise.all([
+      this.getSignedUrls(noHeatmapPngs),
+      this.getSignedUrls(heatmapAnnualPngs),
+      this.getSignedUrls(heatmapsMonthlyPngs),
+      this.getSignedUrls(fullHeatmapAnnualPngs),
+      this.getSignedUrls(fullHeatmapsMonthlyPngs),
+      this.getSignedUrls(rooftopMarkPngs),
+    ]);
 
-    const signedUrls = await Promise.all(
-      pngs.map(e => this.s3Service.getSignedUrl(process.env.GOOGLE_SUNROOF_S3_BUCKET!, e, URL_EXPIRE_IN, true)),
+    return OperationResult.ok(
+      strictPlainToClass(GetHeatmapSignedUrlsResDto, {
+        noHeatmapUrls,
+        heatmapAnnualUrls,
+        heatmapsMonthlyUrls,
+        fullHeatmapAnnualUrls,
+        fullHeatmapsMonthlyUrls,
+        rooftopMarkUrls,
+      }),
     );
-
-    return OperationResult.ok(strictPlainToClass(GetHeatmapSignedUrlsResDto, { urls: signedUrls }));
   }
 
-  public async getArrayOverlayPng(
-    systemDesignId: ObjectId,
-  ): Promise<OperationResult<GetArrayOverlaySignedUrlResDto>> {
+  public async getArrayOverlayPng(systemDesignId: ObjectId): Promise<OperationResult<GetArrayOverlaySignedUrlResDto>> {
     const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound(systemDesignId.toString());
@@ -1299,5 +1306,30 @@ export class SystemDesignService {
     }
     const systemProduction = await this.googleSunroofService.calculateProduction(systemDesign);
     return OperationResult.ok(strictPlainToClass(CalculateSunroofProductionResDto, systemProduction));
+  }
+
+  public async updateSystemDesignThumbnail(
+    systemDesignId: ObjectId,
+    imageStream: NodeJS.ReadableStream,
+  ): Promise<void> {
+    const key = `${+new Date()}.png`;
+    const url = await this.s3Service.putStreamPromise(
+      imageStream,
+      key,
+      this.SYSTEM_DESIGN_S3_BUCKET,
+      'image/png',
+      'private',
+    );
+
+    if (!url) throw new InternalServerErrorException();
+
+    await this.systemDesignModel.updateOne(
+      {
+        _id: systemDesignId,
+      },
+      {
+        thumbnail: url.Location,
+      },
+    );
   }
 }

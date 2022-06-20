@@ -89,6 +89,10 @@ export class ProposalService {
       this.proposalTemplateService.getOneById(proposalDto.detailedProposal.templateId),
     ]);
 
+    if (!systemDesign) {
+      throw new NotFoundException(`No System Design found with id ${proposalDto.systemDesignId}`);
+    }
+
     const model = new this.proposalModel({
       opportunityId: proposalDto.opportunityId,
       systemDesignId: proposalDto.systemDesignId,
@@ -249,10 +253,17 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(proposalId.toString());
     }
 
-    const sendRecipients = recipientEmails.map(email => ({
-      email,
-      firstName: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
-    }));
+    const sendRecipients = recipientEmails.map(email => {
+      const foundRecipient = foundProposal.detailedProposal.recipients.find(recipient => recipient.email === email);
+      if (foundRecipient) {
+        return foundRecipient;
+      }
+      return {
+        // for case send to me
+        email,
+        firstName: email.split('@')?.[0] ? email.split('@')[0] : 'Customer',
+      };
+    });
 
     const tokensByRecipients = sendRecipients.map(item =>
       this.jwtService.sign(
@@ -303,8 +314,9 @@ export class ProposalService {
           return previousValue;
         }, [] as string[])
         .join(', ');
+      const customerName = [recipient?.firstName, recipient?.lastName]?.filter(i => !!i).join(' ');
       const data = {
-        customerName: recipient?.firstName ?? 'Customer',
+        customerName: customerName !== '' ? customerName : 'Customer',
         proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
         recipientNotice: recipientsExcludeSelf
           ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsExcludeSelf}`
@@ -321,7 +333,14 @@ export class ProposalService {
 
   async verifyProposalToken(
     data: ValidateProposalDto,
-  ): Promise<OperationResult<{ isAgent: boolean; proposalDetail: ProposalDto }>> {
+  ): Promise<
+    OperationResult<{
+      isAgent: boolean;
+      proposalDetail: ProposalDto;
+      sumOfUtilityUsageCost?: number;
+      sumOfMonthlyUsageCost?: number;
+    }>
+  > {
     let tokenPayload: any;
 
     try {
@@ -351,7 +370,11 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(tokenPayload.proposalId);
     }
 
-    const requiredData = await this.getProposalRequiredData(proposal);
+    const [utility, requiredData] = await Promise.all([
+      this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
+      this.getProposalRequiredData(proposal),
+    ]);
+
     const storages = proposal.detailedProposal.systemDesignData.roofTopDesignData.storage;
     let manufacturer: LeanDocument<Manufacturer> = {
       name: '',
@@ -392,9 +415,19 @@ export class ProposalService {
       await foundAnalytic.save();
     }
 
+    const sumOfUtilityUsageCost =
+      utility?.costData.computedCost.cost.reduce((previousValue, currentValue) => previousValue + currentValue.v, 0) ||
+      0;
+
+    const sumOfMonthlyUsageCost =
+      utility?.utilityData?.computedUsage?.monthlyUsage?.reduce((previousValue, currentValue) => previousValue + currentValue.v, 0) ||
+      0;
+
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
       proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
+      sumOfUtilityUsageCost,
+      sumOfMonthlyUsageCost
     });
   }
 

@@ -1,4 +1,5 @@
-import { ExposeProp } from 'src/shared/decorators';
+import { Default, ExposeProp } from 'src/shared/decorators';
+import { BoundingBoxResDto } from './get-sunroof-bounding-boxes-res.dto';
 
 export class CalculateSunroofOrientationResDto {
   @ExposeProp()
@@ -9,4 +10,8 @@ export class CalculateSunroofOrientationResDto {
 
   @ExposeProp()
   sunroofAzimuth: number;
+
+  @ExposeProp({ type: [BoundingBoxResDto] })
+  @Default([])
+  boundingBoxes: BoundingBoxResDto[];
 }

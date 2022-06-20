@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Default } from 'src/shared/decorators';
 import { DESIGN_MODE } from '../constants';
-import { CapacityProductionDataDto, RoofTopDataReqDto } from './sub-dto';
+import { CapacityProductionDataDto, RoofTopDataReqDto, SunroofDriftCorrectionReqDto } from './sub-dto';
 import { ExistingSolarDataDto } from './sub-dto/existing-solar.dto';
 
 export class UpdateSystemDesignDto {
@@ -72,4 +72,10 @@ export class UpdateSystemDesignDto {
   @ValidateNested({ each: true })
   @Type(() => ExistingSolarDataDto)
   existingSolarData: ExistingSolarDataDto;
+
+  @ApiPropertyOptional({ type: SunroofDriftCorrectionReqDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SunroofDriftCorrectionReqDto)
+  sunroofDriftCorrection?: SunroofDriftCorrectionReqDto;
 }

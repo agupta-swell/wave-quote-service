@@ -1,5 +1,5 @@
 /* eslint-disable consistent-return */
-import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { groupBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
@@ -33,8 +33,10 @@ import {
 } from './utility.schema';
 
 @Injectable()
-export class UtilityService {
+export class UtilityService implements OnModuleInit {
   private GENEBILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
+
+  private readonly logger = new Logger(UtilityService.name);
 
   constructor(
     @InjectModel(GENABILITY_USAGE_DATA)
@@ -53,6 +55,16 @@ export class UtilityService {
     @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
     @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
   ) {}
+
+  async onModuleInit() {
+    try {
+      this.logger.log('Ensure v2_genability_usage_data.zip_code index');
+      await this.ensureGenabilityUsageDataIndex();
+      this.logger.log('Done v2_genability_usage_data.zip_code index');
+    } catch (err) {
+      this.logger.error(err);
+    }
+  }
 
   async getLoadServingEntities(zipCode: number): Promise<OperationResult<LoadServingEntity[]>> {
     const cacheData = await this.genebilityLseDataModel.findOne({ zipCode }).lean();
@@ -89,13 +101,20 @@ export class UtilityService {
   async getTypicalBaseline(zipCode: number, isInternal = false): Promise<OperationResult<UtilityDataDto>> {
     const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zipCode }).lean();
     if (typicalBaseLine) {
-      if (!isInternal) {
-        // @ts-ignore
-        delete typicalBaseLine.typicalBaseline.typicalHourlyUsage;
+      if (
+        typicalBaseLine.typicalBaseline.__v ||
+        Math.round(typicalBaseLine.typicalBaseline.annualConsumption) !== 12000
+      ) {
+        if (!isInternal) {
+          // @ts-ignore
+          delete typicalBaseLine.typicalBaseline.typicalHourlyUsage;
+        }
+
+        const data = { typicalBaselineUsage: typicalBaseLine.typicalBaseline };
+        return OperationResult.ok(strictPlainToClass(UtilityDataDto, data));
       }
 
-      const data = { typicalBaselineUsage: typicalBaseLine.typicalBaseline };
-      return OperationResult.ok(strictPlainToClass(UtilityDataDto, data));
+      await this.genabilityUsageDataModel.deleteOne({ zipCode });
     }
 
     const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
@@ -107,6 +126,7 @@ export class UtilityService {
     };
 
     const createdTypicalBaseLine = new this.genabilityUsageDataModel(genabilityTypicalBaseLine);
+
     await createdTypicalBaseLine.save();
 
     const createdTypicalBaseLineObj = createdTypicalBaseLine.toObject();
@@ -483,5 +503,11 @@ export class UtilityService {
   async getUtilityDetailByName(utilityName: string): Promise<LeanDocument<Utilities> | null> {
     const utility = await this.utilitiesModel.findOne({ name: utilityName }).lean();
     return utility;
+  }
+
+  private async ensureGenabilityUsageDataIndex(): Promise<string> {
+    return this.genabilityUsageDataModel.collection.createIndex({
+      zip_code: 1,
+    });
   }
 }

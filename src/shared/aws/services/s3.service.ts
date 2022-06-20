@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import * as mime from 'mime';
-import { resolve } from 'path';
 import { ApplicationException } from 'src/app/app.exception';
 import { PassThrough, Readable, Stream } from 'stream';
 import { IS3GetLocationFromUrlResult, IS3GetUrlOptions, IS3RootDir } from '../interfaces';
@@ -146,6 +145,27 @@ export class S3Service {
 
     this.S3.upload(params, args[args.length - 1] as any);
     return passthrough;
+  }
+
+  public async putStreamPromise(
+    source: NodeJS.ReadableStream,
+    fileName: string,
+    bucketName: string,
+    mime: string,
+    acl: string,
+  ): Promise<AWS.S3.ManagedUpload.SendData> {
+    return new Promise((resolve, reject) => {
+      source.pipe(
+        this.putStream(fileName, bucketName, mime, acl, true, (err, res) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          resolve(res);
+        }),
+      );
+    });
   }
 
   /**

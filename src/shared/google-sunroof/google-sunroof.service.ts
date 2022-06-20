@@ -9,6 +9,7 @@ import { PNG } from 'pngjs';
 import { chunk } from 'lodash';
 import { Types, LeanDocument } from 'mongoose';
 import { Injectable } from '@nestjs/common';
+import { isMongoId } from 'class-validator';
 
 import type {
   GoogleSunroof,
@@ -64,7 +65,7 @@ export class GoogleSunroofService {
       lat?: number,
       lng?: number,
     ): IClosestBuildingKey {
-      if (arrayId && systemDesignId && Types.ObjectId.isValid(arrayId) && Types.ObjectId.isValid(systemDesignId)) {
+      if (arrayId && systemDesignId && isMongoId(arrayId) && isMongoId(systemDesignId)) {
         return { key: `${opportunityId}/${systemDesignId}/${arrayId}/closestBuilding.json` };
       }
   
@@ -178,12 +179,39 @@ export class GoogleSunroofService {
       }))
       .sort((a, b) => a.val - b.val)[0].side;
 
-    return {
-      sunroofPrimaryOrientationSide: closestSide,
-      sunroofPitch: closestSegment.pitchDegrees,
-      sunroofAzimuth: closestSegment.azimuthDegrees,
-    };
+      return {
+        sunroofPrimaryOrientationSide: closestSide,
+        sunroofPitch: closestSegment.pitchDegrees,
+        sunroofAzimuth: closestSegment.azimuthDegrees,
+        boundingBoxes: this.formatRoofSegmentStats(closestBuilding.solarPotential.roofSegmentStats, sideAzimuths),
+      };
+    }
+  
+  /**
+   *
+   * @param roofSegmentStats
+   * @param sideAzimuths
+   * @returns format return data for bounding boxes
+   */
+  public formatRoofSegmentStats(roofSegmentStats: GoogleSunroof.RoofSegmentStats[], sideAzimuths: number[]) {
+    return roofSegmentStats
+      .map(({ azimuthDegrees, boundingBox, pitchDegrees }) => ({
+        ...boundingBox,
+        azimuthDegrees,
+        pitchDegrees,
+      }))
+      .filter(e => e.azimuthDegrees !== undefined && e.pitchDegrees !== undefined)
+      .map(e => ({
+        ...e,
+        sunroofPrimaryOrientationSide: sideAzimuths
+          .map((side, idx) => ({
+            side: idx + 1,
+            val: Math.abs(e.azimuthDegrees - side),
+          }))
+          .sort((a, b) => a.val - b.val)[0].side,
+      }));
   }
+  
 
   /**
    * This function fetches everything needed from Google Sunroof and generates
@@ -347,25 +375,16 @@ export class GoogleSunroofService {
    *
    * @param systemDesign
    */
-  public async generateArrayOverlayPng (systemDesign: SystemDesign | LeanDocument<SystemDesign>, centerBound?: ILatLngSchema) : Promise<void> {
+  public async generateArrayOverlayPng (systemDesign: SystemDesign | LeanDocument<SystemDesign>) : Promise<void> {
     const {
-      latitude: _lat,
-      longitude: _lng,
+      latitude,
+      longitude,
       opportunityId,
       roofTopDesignData: {
         panelArray: arrays,
       },
       _id
     } = systemDesign;
-
-    let latitude = _lat;
-
-    let longitude = _lng;
-
-    if (centerBound) {
-      latitude = centerBound.lat;
-      longitude = centerBound.lng;
-    }
 
     const systemDesignId = _id.toString();
 
@@ -402,11 +421,8 @@ export class GoogleSunroofService {
    * @param systemDesign
    */
   public async calculateProduction (systemDesign: SystemDesign) : Promise<SystemProduction> {
-    // TODO WAV-1645:
-    //   destructure `sunroofDriftCorrection` out of the `systemDesign` instead of this
-    const sunroofDriftCorrection = { x: 0, y: 0 };
     const { opportunityId, _id } = systemDesign;
-
+    const sunroofDriftCorrection = systemDesign?.sunroofDriftCorrection || { x: 0, y: 0 };
     const systemDesignId = _id.toString();
 
     const [

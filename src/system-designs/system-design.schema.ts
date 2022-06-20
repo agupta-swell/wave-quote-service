@@ -343,13 +343,9 @@ export const NetUsagePostInstallationSchema = new Schema<Document<INetUsagePostI
   { _id: false },
 );
 
-/**
- * Cache the parameters to generate latest Tiff images
- */
-export interface ICurrentSunroofTiffMeta {
-  latitude: number;
-  longitude: number;
-  radius: number;
+export interface ISunroofDriftCorrection {
+  x: number;
+  y: number;
 }
 
 // @ts-ignore
@@ -373,7 +369,7 @@ export interface SystemDesign extends Document {
   createdAt: Date;
   updatedBy: string;
   updatedAt: Date;
-  sunroofTiffMeta$?: ICurrentSunroofTiffMeta;
+  sunroofDriftCorrection: ISunroofDriftCorrection;
 }
 
 export type SystemDesignWithManufacturerMeta = WithMetaOfType<
@@ -384,11 +380,10 @@ export type SystemDesignWithManufacturerMeta = WithMetaOfType<
   }
 >;
 
-const SunroofTiffMetaSchema = new Schema(
+const SunroofDriftCorrectionSchema = new Schema(
   {
-    latitude: Number,
-    longitude: Number,
-    radius: Number,
+    x: Number,
+    y: Number,
   },
   {
     _id: false,
@@ -412,11 +407,11 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   cost_post_installation: UtilityCostDataSchema,
   system_production_data: SystemProductionSchema,
   system_production_id: String,
+  sunroof_drift_correction: SunroofDriftCorrectionSchema,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
-  sunroof_tiff_meta$: SunroofTiffMetaSchema,
 });
 
 export class SystemDesignModel {
@@ -452,6 +447,8 @@ export class SystemDesignModel {
 
   costPostInstallation: IUtilityCostData;
 
+  sunroofDriftCorrection: ISunroofDriftCorrection;
+
   createdBy: string;
 
   createdAt: Date;
@@ -474,6 +471,7 @@ export class SystemDesignModel {
     this.capacityProductionDesignData =
       systemDesign.capacityProductionDesignData &&
       this.transformCapacityProductionData(systemDesign.capacityProductionDesignData);
+    this.sunroofDriftCorrection = systemDesign.sunroofDriftCorrection;
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {
@@ -671,5 +669,9 @@ export class SystemDesignModel {
 
   setCostPostInstallation(data: IUtilityCostData) {
     this.costPostInstallation = data;
+  }
+
+  setSunroofDriftCorrection(data: ISunroofDriftCorrection) {
+    this.sunroofDriftCorrection = data;
   }
 }
