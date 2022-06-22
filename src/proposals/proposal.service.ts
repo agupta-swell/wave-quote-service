@@ -28,6 +28,7 @@ import { SystemProductionService } from 'src/system-production/system-production
 import { UserService } from 'src/users/user.service';
 import { GenebilityTariffDataDetail } from 'src/utilities/schemas/genebility-tariff-caching.schema';
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
+import { SystemProductionDto } from 'src/system-production/res'
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { ApplicationException } from '../app/app.exception';
@@ -340,6 +341,7 @@ export class ProposalService {
     OperationResult<{
       isAgent: boolean;
       utility?: LeanDocument<UtilityUsageDetails> | null;
+      systemProduction?: SystemProductionDto;
       manufacturers?: ManufacturerDto[];
       tariffDetails?: { masterTariff: GenebilityTariffDataDetail; postInstallMasterTariff: GenebilityTariffDataDetail };
       proposalDetail: ProposalDto;
@@ -376,10 +378,11 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(tokenPayload.proposalId);
     }
 
-    const [utility, requiredData, manufacturersRes] = await Promise.all([
+    const [utility, requiredData, manufacturersRes, systemProductionRes] = await Promise.all([
       this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
       this.getProposalRequiredData(proposal),
       this.manufacturerService.getList(),
+      this.systemProductionService.findById(proposal.detailedProposal.systemDesignData.systemProductionId)
     ]);
 
     let tariffDetails;
@@ -456,6 +459,7 @@ export class ProposalService {
       isAgent: !!tokenPayload.isAgent,
       utility,
       manufacturers: manufacturersRes?.data?.data,
+      systemProduction: systemProductionRes?.data,
       tariffDetails,
       proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
       sumOfUtilityUsageCost,
