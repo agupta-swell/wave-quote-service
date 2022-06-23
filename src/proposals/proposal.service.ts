@@ -7,6 +7,8 @@ import axios from 'axios';
 import { IncomingMessage } from 'http';
 import { identity, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
+import { of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { ILoggedInUser } from 'src/app/securities';
 import { ContactService } from 'src/contacts/contact.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
@@ -24,11 +26,18 @@ import { ProposalTemplateService } from 'src/proposal-templates/proposal-templat
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { SystemProductionDto } from 'src/system-production/res';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UserService } from 'src/users/user.service';
+import {
+  calculateElectricVehicle,
+  calculatePlannedUsageIncreasesKwh,
+  calculatePoolUsageKwh,
+  mapToResult,
+} from 'src/utilities/operators';
+import { GetDataSeriesResDto, IHistoricalUsage } from 'src/utilities/res';
 import { GenebilityTariffDataDetail } from 'src/utilities/schemas/genebility-tariff-caching.schema';
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
-import { SystemProductionDto } from 'src/system-production/res'
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { ApplicationException } from '../app/app.exception';
@@ -341,6 +350,7 @@ export class ProposalService {
     OperationResult<{
       isAgent: boolean;
       utility?: LeanDocument<UtilityUsageDetails> | null;
+      historicalUsage?: IHistoricalUsage;
       systemProduction?: SystemProductionDto;
       manufacturers?: ManufacturerDto[];
       tariffDetails?: { masterTariff: GenebilityTariffDataDetail; postInstallMasterTariff: GenebilityTariffDataDetail };
@@ -378,13 +388,48 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(tokenPayload.proposalId);
     }
 
-    const [utility, requiredData, manufacturersRes, systemProductionRes] = await Promise.all([
+    const {
+      user: { userEmails },
+    } = tokenPayload;
+
+    const [
+      foundAnalytic,
+      utility,
+      historicalUsageRes,
+      requiredData,
+      manufacturersRes,
+      systemProductionRes,
+    ] = await Promise.all([
+      this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId }),
       this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
+      this.utilityService
+        .getTypicalUsage$(proposal.opportunityId)
+        .pipe(
+          mergeMap(res =>
+            of(res).pipe(
+              calculatePlannedUsageIncreasesKwh,
+              calculatePoolUsageKwh,
+              calculateElectricVehicle,
+              mapToResult(GetDataSeriesResDto),
+            ),
+          ),
+        )
+        .toPromise(),
       this.getProposalRequiredData(proposal),
       this.manufacturerService.getList(),
-      this.systemProductionService.findById(proposal.detailedProposal.systemDesignData.systemProductionId)
+      this.systemProductionService.findById(proposal.detailedProposal.systemDesignData.systemProductionId),
     ]);
 
+    // update analytic view
+    const currentDate = new Date();
+    if (foundAnalytic) {
+      userEmails.forEach(email => {
+        foundAnalytic.tracking.push({ by: email, at: currentDate, type: TRACKING_TYPE.VIEWED });
+      });
+      await foundAnalytic.save();
+    }
+
+    // get utility tariffDetails
     let tariffDetails;
     if (utility?.utilityData && utility?.costData) {
       const {
@@ -405,7 +450,7 @@ export class ProposalService {
       };
     }
 
-    // TODO: delete start
+    // TODO: remove start
     const storages = proposal.detailedProposal.systemDesignData.roofTopDesignData.storage;
     let manufacturer: LeanDocument<Manufacturer> = {
       name: '',
@@ -430,40 +475,33 @@ export class ProposalService {
         return item;
       });
     }
-    // TODO: delete end
-
-    // update analytic view
-    const {
-      user: { userEmails },
-    } = tokenPayload;
-
-    const foundAnalytic = await this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId });
-
-    const currentDate = new Date();
-    if (foundAnalytic) {
-      userEmails.forEach(email => {
-        foundAnalytic.tracking.push({ by: email, at: currentDate, type: TRACKING_TYPE.VIEWED });
-      });
-      await foundAnalytic.save();
-    }
 
     const sumOfUtilityUsageCost =
       utility?.costData.computedCost.cost.reduce((previousValue, currentValue) => previousValue + currentValue.v, 0) ||
       0;
 
     const sumOfMonthlyUsageCost =
-      utility?.utilityData?.computedUsage?.monthlyUsage?.reduce((previousValue, currentValue) => previousValue + currentValue.v, 0) ||
-      0;
+      utility?.utilityData?.computedUsage?.monthlyUsage?.reduce(
+        (previousValue, currentValue) => previousValue + currentValue.v,
+        0,
+      ) || 0;
+    // TODO: remove end
+
+    const proposalDetail = strictPlainToClass(ProposalDto, { ...proposal, ...requiredData });
+    // add props systemProductionData to systemDesignData
+    if (systemProductionRes?.data) {
+      proposalDetail.systemDesignData.systemProductionData = systemProductionRes?.data;
+    }
 
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
       utility,
+      historicalUsage: historicalUsageRes?.data?.historicalUsage,
       manufacturers: manufacturersRes?.data?.data,
-      systemProduction: systemProductionRes?.data,
       tariffDetails,
-      proposalDetail: strictPlainToClass(ProposalDto, { ...proposal, ...requiredData }),
+      proposalDetail,
       sumOfUtilityUsageCost,
-      sumOfMonthlyUsageCost
+      sumOfMonthlyUsageCost,
     });
   }
 
