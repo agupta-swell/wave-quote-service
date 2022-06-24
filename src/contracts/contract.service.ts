@@ -27,7 +27,7 @@ import { UserService } from 'src/users/user.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { roundNumber } from 'src/utils/transformNumber';
-import { CustomerPayment } from '../customer-payments/customer-payment.schema'
+import { CustomerPayment } from '../customer-payments/customer-payment.schema';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
 import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
 import { FastifyFile } from '../shared/fastify';
@@ -242,7 +242,11 @@ export class ContractService {
 
       await newlyUpdatedContract.save();
 
-      const customerPayment = await this.customerPaymentService.create(newlyUpdatedContract._id, contractDetail.opportunityId, quoteDetail);
+      const customerPayment = await this.customerPaymentService.create(
+        newlyUpdatedContract._id,
+        contractDetail.opportunityId,
+        quoteDetail,
+      );
 
       if (contractDetail.contractType === CONTRACT_TYPE.PRIMARY_CONTRACT) {
         await this.syncWithWav(newlyUpdatedContract, customerPayment);
@@ -857,7 +861,10 @@ export class ContractService {
       );
     }
 
-    await this.contractModel.updateOne({ _id: contract._id }, { $set: { contractStatus: PROCESS_STATUS.VOIDED } });
+    await this.contractModel.updateOne(
+      { _id: contract._id },
+      { $set: { contractStatus: PROCESS_STATUS.VOIDED, updatedAt: new Date() } },
+    );
   }
 
   public async getCOContractsByPrimaryContractId(primaryContractId: string): Promise<LeanDocument<Contract>[]> {
@@ -891,7 +898,9 @@ export class ContractService {
     ]);
 
     if (!quoteDetail || !utilityData) {
-      throw new BadRequestException({ message: 'Related Opportunity or Utility or Quote or CustomerPayment is not found!' });
+      throw new BadRequestException({
+        message: 'Related Opportunity or Utility or Quote or CustomerPayment is not found!',
+      });
     }
 
     const wavUtilityCode = await this.genabilityUtilityMapService.getWavUtilityCodeByGenabilityLseName(
