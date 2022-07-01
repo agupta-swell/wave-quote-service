@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { PRODUCT_COLL, PRODUCT_TYPE } from 'src/products-v2/constants';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -15,8 +15,12 @@ interface IGetManufacturersByTypeResult {
 export class ManufacturerService {
   constructor(@InjectModel(V2_MANUFACTURERS_COLL) private manufacturers: Model<Manufacturer>) {}
 
-  async getList(limit: number, skip: number, by?: PRODUCT_TYPE): Promise<OperationResult<Pagination<ManufacturerDto>>> {
-    if (by) {
+  async getList(
+    limit?: number,
+    skip?: number,
+    by?: PRODUCT_TYPE,
+  ): Promise<OperationResult<Pagination<ManufacturerDto>>> {
+    if (skip && limit && by) {
       const res = await this.getManufacturersByType(skip, limit, by);
 
       return OperationResult.ok(
@@ -27,10 +31,11 @@ export class ManufacturerService {
       );
     }
 
-    const [manufacturers, total] = await Promise.all([
-      this.manufacturers.find().limit(limit).skip(skip).lean(),
-      this.manufacturers.countDocuments(),
-    ]);
+    const getManufacturers = this.manufacturers.find();
+    if (limit) getManufacturers.limit(limit);
+    if (skip) getManufacturers.skip(skip);
+
+    const [manufacturers, total] = await Promise.all([getManufacturers.lean(), this.manufacturers.countDocuments()]);
 
     return OperationResult.ok(
       new Pagination({

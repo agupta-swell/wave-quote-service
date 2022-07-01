@@ -283,6 +283,8 @@ export interface IFinancialProductDetails {
   allowsWetSignedContracts: boolean;
   projectCompletionDateOffset: number;
   processingFee: number;
+  payment1?: number;
+  payment1PayPercent?: boolean;
 }
 
 export interface IQuoteFinanceProductSchema {
@@ -308,14 +310,29 @@ const QuoteFinanceProductSchema = new Schema<Document<IQuoteFinanceProductSchema
 );
 
 export interface IUtilityProgramDataSnapshot {
-  name: string;
-  rebateAmount: number;
+  utilityProgramName: string;
+  programManagerId?: string;
+  gsaDisplayName: string;
+  isActive: boolean;
+  endDate: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
 }
 
 const UtilityProgramDataSnapshot = new Schema<Document<IUtilityProgramDataSnapshot>>(
   {
-    name: String,
-    rebate_amount: Number,
+    utility_program_name: String,
+    gsa_display_name: String,
+    program_manager_id: String,
+    is_active: Boolean,
+    end_date: Date,
+
+    created_at: Date,
+    created_by: String,
+    updated_at: Date,
+    updated_by: String,
   },
   { _id: false },
 );
@@ -323,7 +340,6 @@ const UtilityProgramDataSnapshot = new Schema<Document<IUtilityProgramDataSnapsh
 export interface IUtilityProgramSchema {
   utilityProgramId: string;
   utilityProgramName: string;
-  rebateAmount: number;
   utilityProgramDataSnapshot: IUtilityProgramDataSnapshot;
   utilityProgramDataSnapshotDate: Date;
 }
@@ -332,7 +348,6 @@ const UtilityProgramSchema = new Schema<Document<IUtilityProgramSchema>>(
   {
     utility_program_id: String,
     utility_program_name: String,
-    rebate_amount: Number,
     utility_program_data_snapshot: UtilityProgramDataSnapshot,
     utility_program_data_snapshot_date: Date,
   },

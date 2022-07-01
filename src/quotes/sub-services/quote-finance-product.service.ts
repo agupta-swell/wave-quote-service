@@ -24,7 +24,8 @@ export class QuoteFinanceProductService {
     reduction: IReductionAmount<'percentage' | 'amount' | (string & {})>,
     grossPrice: number,
   ): number {
-    if (reduction.type === '') return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
+    if (reduction.type === '' || reduction.type === 'percentage')
+      return new BigNumber(reduction.amount).times(grossPrice).dividedBy(100).toNumber();
 
     return roundNumber(reduction.amount, 2);
   }

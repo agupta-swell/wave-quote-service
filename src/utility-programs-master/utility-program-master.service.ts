@@ -31,8 +31,8 @@ export class UtilityProgramMasterService {
 
   // ->>>>>>>>> INTERNAL <<<<<<<<<<-
 
-  async getDetailById(id: string): Promise<UtilityProgramMaster | null> {
-    const product = await this.utilityProgramMaster.findById(id);
+  async getDetailById(id: string): Promise<LeanDocument<UtilityProgramMaster> | null> {
+    const product = await this.utilityProgramMaster.findById(id).lean();
     return product;
   }
 
