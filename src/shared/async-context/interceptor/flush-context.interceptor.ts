@@ -17,7 +17,9 @@ export class FlushContextInterceptor implements NestInterceptor {
           await this.asyncContext.flushBeforeRes();
         }
 
-        res.send(body);
+        const transform = this.asyncContext.UNSAFE_getStore()?.transformBody;
+
+        res.send(typeof transform === 'function' ? transform(body) : body);
         this.asyncContext.flush();
       }),
     );

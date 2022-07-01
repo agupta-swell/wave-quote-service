@@ -11,6 +11,10 @@ export type InitSystemDesign =
       isNew: false;
       polygons: ILatLngSchema[];
       totalArrays: number;
+      previousDrift: {
+        x: number;
+        y: number;
+      };
     };
 
 export interface ISystemDesignSchemaHook {

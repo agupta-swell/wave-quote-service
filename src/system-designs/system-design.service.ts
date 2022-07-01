@@ -25,6 +25,7 @@ import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.s
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { SystemProductionDto } from 'src/system-production/res';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
@@ -79,7 +80,6 @@ export class SystemDesignService {
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly productService: ProductService,
     private readonly manufacturerService: ManufacturerService,
-    @Inject(forwardRef(() => SystemProductionService))
     private readonly systemProductionService: SystemProductionService,
   ) {}
 
@@ -744,22 +744,35 @@ export class SystemDesignService {
 
     assignToModel(foundSystemDesign, removedUndefined);
 
-    const [, , systemProductionUpdated] = await Promise.all([
-      foundSystemDesign.save(),
-      systemDesignDto.designMode &&
+    const isNotUseSunroofDriftCorrection =
+      systemDesignDto?.sunroofDriftCorrection?.x === 0 && systemDesignDto?.sunroofDriftCorrection?.y === 0;
+
+    const handlers: Promise<unknown>[] = [foundSystemDesign.save()];
+
+    if (systemDesignDto.designMode) {
+      handlers.push(
         this.quoteService.setOutdatedData(
           systemDesignDto.opportunityId,
           'System Design',
           foundSystemDesign._id.toString(),
         ),
-      this.systemProductionService.update(systemDesign.systemProductionId, {
-        ...newSystemProduction,
-      }),
-    ]);
+      );
+    }
+
+    if (isNotUseSunroofDriftCorrection) {
+      handlers.push(
+        this.systemProductionService.update(systemDesign.systemProductionId, {
+          ...newSystemProduction,
+        }),
+      );
+    }
+
+    const [, , systemProductionUpdated] = await Promise.all(handlers);
 
     const systemDesignUpdated = foundSystemDesign.toJSON();
-    if (systemProductionUpdated.data) {
-      systemDesignUpdated.systemProductionData = systemProductionUpdated.data;
+    // check not use sunroofDriftCorrection add property systemProductionData
+    if (systemProductionUpdated && isNotUseSunroofDriftCorrection) {
+      systemDesignUpdated.systemProductionData = (systemProductionUpdated as OperationResult<SystemProductionDto>)?.data;
     }
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, systemDesignUpdated));
@@ -867,14 +880,15 @@ export class SystemDesignService {
     }
 
     const [systemProduction, isInUsed] = await Promise.all([
-      this.systemProductionService.findById(foundSystemDesign.systemProductionId),
+      this.systemProductionService.findOne(foundSystemDesign.systemProductionId),
       this.checkInUsed(id.toString()),
     ]);
 
     // expose systemProduction's props
-    if (systemProduction.data) {
-      foundSystemDesign.systemProductionData = systemProduction.data;
+    if (!systemProduction) {
+      throw ApplicationException.EntityNotFound(`with systemProduction ${foundSystemDesign.systemProductionId} `);
     }
+    foundSystemDesign.systemProductionData = systemProduction;
 
     return OperationResult.ok(
       strictPlainToClass(SystemDesignDto, {
@@ -990,13 +1004,14 @@ export class SystemDesignService {
     try {
       await Promise.all(
         systemDesigns.map(async item => {
-          const systemProduction = await this.systemProductionService.findById(item.systemProductionId);
-          if (systemProduction.data) {
-            this.systemProductionService.update(item.systemProductionId, {
-              annualUsageKWh,
-              offsetPercentage: annualUsageKWh > 0 ? systemProduction.data.generationKWh / annualUsageKWh : 0,
-            });
+          const systemProduction = await this.systemProductionService.findOne(item.systemProductionId);
+          if (!systemProduction) {
+            throw ApplicationException.EntityNotFound(`with systemProduction ${item.systemProductionId} `);
           }
+          this.systemProductionService.update(item.systemProductionId, {
+            annualUsageKWh,
+            offsetPercentage: annualUsageKWh > 0 ? systemProduction.generationKWh / annualUsageKWh : 0,
+          });
         }),
       );
     } catch (error) {

@@ -16,6 +16,10 @@ export class SystemProductionService {
     private readonly s3Service: S3Service,
   ) {}
 
+  async findOne(id: string): Promise<ISystemProduction | null> {
+    return this.systemProductionModel.findById(id).exec();
+  }
+
   async findById(id: string | ObjectId): Promise<OperationResult<SystemProductionDto>> {
     const foundSystemProduction = await this.systemProductionModel.findById(id).lean();
     if (!foundSystemProduction) {

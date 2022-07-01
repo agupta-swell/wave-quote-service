@@ -19,6 +19,8 @@ export interface IQueueStore {
    */
   afterRes: QueueItem[];
 
+  transformBody?: (o: Record<PropertyKey, any>) => Record<PropertyKey, any>;
+
   /**
    * Cache storage at context level
    */
