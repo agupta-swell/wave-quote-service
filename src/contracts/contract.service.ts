@@ -260,7 +260,7 @@ export class ContractService {
             deposit: quoteDetail.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment, // enter amount from quote
             depositPayPercent: false, // should be false
             payment1: quoteDetail.quoteFinanceProduct.financeProduct.financialProductSnapshot.payment1, // enter amount from financial product settings
-            payment1PayPercent: true, // based on financial product settings
+            payment1PayPercent: quoteDetail.quoteFinanceProduct.financeProduct.financialProductSnapshot.payment1PayPercent, // based on financial product settings
             payment2: 0, // doesn't matter/0
             payment2PayPercent: false, // doesn't matter/false
             payment2PayBalance: true, // always true
