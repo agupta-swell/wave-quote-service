@@ -183,14 +183,9 @@ export class QuoteService {
       quoteCostBuildup,
       rebateProgram,
       utilityProgram: utilityProgram && {
-        utilityProgramId: utilityProgram.id,
+        utilityProgramId: utilityProgram._id.toString(),
         utilityProgramName: utilityProgram.utilityProgramName,
-        rebateAmount: utilityProgram.rebateAmount,
-        utilityProgramDataSnapshot: {
-          id: utilityProgram.id,
-          name: utilityProgram.utilityProgramName,
-          rebateAmount: utilityProgram.rebateAmount,
-        },
+        utilityProgramDataSnapshot: utilityProgram,
         utilityProgramDataSnapshotDate: new Date(),
       },
       quoteFinanceProduct: {

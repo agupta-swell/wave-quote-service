@@ -6,7 +6,19 @@ import { NotesDto, QuoteCostBuildupDto, QuoteFinanceProductDto } from './sub-dto
 
 class UtilityProgramDataSnapshotDto {
   @ExposeProp()
-  name: string;
+  utilityProgramName: string;
+
+  @ExposeProp()
+  programManagerId?: string;
+
+  @ExposeProp()
+  gsaDisplayName: string;
+
+  @ExposeProp()
+  isActive: boolean;
+
+  @ExposeProp()
+  endDate: string;
 }
 class UtilityProgramDto {
   @ExposeMongoId()
