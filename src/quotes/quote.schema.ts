@@ -283,6 +283,8 @@ export interface IFinancialProductDetails {
   allowsWetSignedContracts: boolean;
   projectCompletionDateOffset: number;
   processingFee: number;
+  payment1?: number;
+  payment1PayPercent?: boolean;
 }
 
 export interface IQuoteFinanceProductSchema {
