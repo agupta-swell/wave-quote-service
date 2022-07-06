@@ -8,9 +8,9 @@ export interface IProposalSectionMaster {
   applicableQuoteTypes: string[];
   componentName: string;
   createdAt: Date;
-  createdBy: String;
+  createdBy: string;
   updatedAt: Date;
-  updatedBy: String;
+  updatedBy: string;
 }
 export interface ProposalSectionMaster extends Document, IProposalSectionMaster {}
 
