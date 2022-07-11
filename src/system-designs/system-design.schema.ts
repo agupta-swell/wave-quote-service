@@ -1,4 +1,6 @@
 import { Document, LeanDocument, Schema, Types } from 'mongoose';
+import { ExistingSystemSchema } from 'src/existing-systems/existing-system.schema';
+import { ExistingSystemDocument } from 'src/existing-systems/interfaces';
 import { Manufacturer } from 'src/manufacturers/manufacturer.schema';
 import { BATTERY_TYPE, PRICING_UNIT, PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
@@ -164,7 +166,7 @@ export interface IStorageSchema {
   batteryType: BATTERY_TYPE;
 }
 
-const StorageSchema = new Schema<Document<IStorageSchema>>(
+export const StorageSchema = new Schema<Document<IStorageSchema>>(
   {
     type: String,
     quantity: Number,
@@ -370,6 +372,7 @@ export interface SystemDesign extends Document {
   updatedBy: string;
   updatedAt: Date;
   sunroofDriftCorrection: ISunroofDriftCorrection;
+  existingSystem?: ExistingSystemDocument;
 }
 
 export type SystemDesignWithManufacturerMeta = WithMetaOfType<
@@ -412,6 +415,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
+  existing_system: ExistingSystemSchema,
 });
 
 export class SystemDesignModel {

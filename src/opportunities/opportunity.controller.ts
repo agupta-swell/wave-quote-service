@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ServiceResponse } from 'src/app/common';
+import { Pagination, ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
 import { ContractResDto } from 'src/contracts/res/sub-dto';
+import { ExistingSystemResDto } from 'src/existing-systems/res/existing-system.res.dto';
 import { OpportunityService } from './opportunity.service';
-import { UpdateOpportunityExistingSystemDto } from './req/update-opportunity-existing-system.dto';
+import { GetOppExistingSystemsQuery } from './req/get-opp-existing-systems-query.dto';
 import { UpdateOpportunityRebateProgramDto } from './req/update-opportunity-rebate-program.dto';
 import { UpdateOpportunityUtilityProgramDto } from './req/update-opportunity-utility-program.dto';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
@@ -28,14 +29,14 @@ export class OpportunityController {
     return ServiceResponse.fromResult(result);
   }
 
-  @Put('/:opportunityId/existing-system')
-  @ApiOperation({ summary: "Update Opportunity's Existing System" })
+  @Get('/:opportunityId/existing-systems')
+  @ApiOperation({ summary: "Get All Opportunity's Existing Systems" })
   @ApiOkResponse({ type: GetRelatedInformationDto })
-  async updateOpportunityExistingSystem(
-    @Body() existingSystem: UpdateOpportunityExistingSystemDto,
+  async getAllOpportunityExistingSystems(
     @Param('opportunityId') opportunityId: string,
-  ): Promise<ServiceResponse<GetRelatedInformationDto>> {
-    const res = await this.opportunityService.updateOpportunityExistingSystem(opportunityId, existingSystem);
+    @Query() query: GetOppExistingSystemsQuery,
+  ): Promise<ServiceResponse<Pagination<ExistingSystemResDto>>> {
+    const res = await this.opportunityService.getAllExistingSystems(opportunityId, query.limit, query.skip);
 
     return ServiceResponse.fromResult(res);
   }

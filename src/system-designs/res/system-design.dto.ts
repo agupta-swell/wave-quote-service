@@ -1,5 +1,6 @@
 import { Pagination } from 'src/app/common';
 import { ServiceResponse } from 'src/app/common/service-response';
+import { ExistingSystemResDto } from 'src/existing-systems/res';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { SystemProductionDto } from 'src/system-production/res';
 import { CapacityProductionDataDto, RoofTopDataDto, sunroofDriftCorrectionResDto } from './sub-dto';
@@ -52,6 +53,9 @@ export class SystemDesignDto {
 
   @ExposeProp()
   sunroofDriftCorrection: sunroofDriftCorrectionResDto;
+
+  @ExposeProp({ type: ExistingSystemResDto })
+  existingSystem: ExistingSystemResDto;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {

@@ -1,8 +1,9 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AccountModule } from 'src/accounts/account.module';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { FinancierModule } from 'src/financier/financier.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
@@ -31,6 +32,7 @@ import { OpportunityService } from './opportunity.service';
     FinancierModule,
     QuotePartnerConfigModule,
     QuoteModule,
+    forwardRef(() => ExistingSystemModule),
   ],
   controllers: [OpportunityController],
   providers: [OpportunityService],

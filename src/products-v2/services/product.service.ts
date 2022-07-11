@@ -23,7 +23,7 @@ export class ProductService {
   ) {}
 
   async getAllProductsByType(query: GetAllProductsQueryDto): Promise<OperationResult<Pagination<ProductResDto>>> {
-    const { limit, skip, types, hasRule } = query;
+    const { limit, skip, types, hasRule, manufacturers } = query;
 
     const condition: Record<string, unknown> = {
       type: { $in: types },
@@ -31,6 +31,10 @@ export class ProductService {
 
     if (typeof hasRule === 'boolean') {
       condition.insertionRule = { $exists: hasRule };
+    }
+
+    if (manufacturers && manufacturers.length) {
+      condition.manufacturerId = { $in: manufacturers.map(Types.ObjectId) };
     }
 
     const [panels, total] = await Promise.all([
