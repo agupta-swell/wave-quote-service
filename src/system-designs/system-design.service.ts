@@ -880,15 +880,15 @@ export class SystemDesignService {
     }
 
     const [systemProduction, isInUsed] = await Promise.all([
-      this.systemProductionService.findOne(foundSystemDesign.systemProductionId),
+      this.systemProductionService.findById(foundSystemDesign.systemProductionId),
       this.checkInUsed(id.toString()),
     ]);
 
     // expose systemProduction's props
-    if (!systemProduction) {
+    if (!systemProduction.data) {
       throw ApplicationException.EntityNotFound(`with systemProduction ${foundSystemDesign.systemProductionId} `);
     }
-    foundSystemDesign.systemProductionData = systemProduction;
+    foundSystemDesign.systemProductionData = systemProduction.data;
 
     return OperationResult.ok(
       strictPlainToClass(SystemDesignDto, {
@@ -1004,13 +1004,13 @@ export class SystemDesignService {
     try {
       await Promise.all(
         systemDesigns.map(async item => {
-          const systemProduction = await this.systemProductionService.findOne(item.systemProductionId);
-          if (!systemProduction) {
+          const systemProduction = await this.systemProductionService.findById(item.systemProductionId);
+          if (!systemProduction.data) {
             throw ApplicationException.EntityNotFound(`with systemProduction ${item.systemProductionId} `);
           }
           this.systemProductionService.update(item.systemProductionId, {
             annualUsageKWh,
-            offsetPercentage: annualUsageKWh > 0 ? systemProduction.generationKWh / annualUsageKWh : 0,
+            offsetPercentage: annualUsageKWh > 0 ? systemProduction.data.generationKWh / annualUsageKWh : 0,
           });
         }),
       );

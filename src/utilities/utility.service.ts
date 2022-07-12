@@ -271,6 +271,7 @@ export class UtilityService implements OnModuleInit {
 
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
+    utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
 
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
@@ -306,6 +307,8 @@ export class UtilityService implements OnModuleInit {
   ): Promise<OperationResult<UtilityDetailsDto>> {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
+    utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
+
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
     if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {

@@ -1,4 +1,4 @@
-import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 
 export class LoadServingEntity {
@@ -90,13 +90,8 @@ export class UtilityDataDto {
   @ExposeProp({ type: LoadServingEntity })
   loadServingEntityData: LoadServingEntity;
 
-  @ExposeAndMap({ type: TypicalBaseLine }, ({ obj, value }) => {
-    if (!obj.isInternal && obj?.typicalBaselineUsage) {
-      delete obj.typicalBaselineUsage.typicalHourlyUsage;
-    }
-
-    return obj?.typicalBaselineUsage || value || {};
-  })
+  @ExposeProp({ type: TypicalBaseLine })
+  @Default({} as TypicalBaseLine)
   typicalBaselineUsage: TypicalBaseLine;
 
   @ExposeProp({ type: ActualUsageDto })
