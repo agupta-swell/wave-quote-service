@@ -187,6 +187,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     const task = async () => {
       await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
       await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+      await this.regenerateSunroofProduction(asyncQueueStore, systemDesign);
     };
 
     if (pending) {
