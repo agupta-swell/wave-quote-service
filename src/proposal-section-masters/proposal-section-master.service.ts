@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { identity, pickBy } from 'lodash';
-import { LeanDocument, Model, Types, ObjectId } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
@@ -80,12 +80,22 @@ export class ProposalSectionMasterService {
   }
 
   async getProposalSectionMastersByIds(ids: string[]): Promise<LeanDocument<ProposalSectionMaster>[] | null> {
-    return this.proposalSectionMaster
+    const founds = await this.proposalSectionMaster
       .find({
         _id: {
           $in: ids.map(Types.ObjectId),
         },
       })
       .lean();
+
+    return ids.map(id => {
+      const doc = founds.find(doc => doc._id.toString() === id);
+
+      if (!doc) {
+        throw ApplicationException.EntityNotFound(`with proposalSectionMaster ${id} `);
+      }
+
+      return doc;
+    });
   }
 }

@@ -101,7 +101,18 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
     parseSystemDesignProducts(systemDesign)
-      .systemDesignModules.map(
+      .systemDesignModules.reduce<ISystemDesignProducts['systemDesignModules']>((acc, cur) => {
+        const module = acc.find(e => e.panelModelId === cur.panelModelId);
+
+        if (module) {
+          module.numberOfPanels += cur.numberOfPanels;
+          return acc;
+        }
+
+        acc.push(cur);
+        return acc;
+      }, [])
+      .map(
         item =>
           `${item.numberOfPanels} x ${item.panelModelDataSnapshot.$meta.manufacturer.name} ${item.panelModelDataSnapshot.name}`,
       )
@@ -111,7 +122,18 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
     parseSystemDesignProducts(systemDesign)
-      .systemDesignInverters.map(
+      .systemDesignInverters.reduce<ISystemDesignProducts['systemDesignInverters']>((acc, cur) => {
+        const inverter = acc.find(e => e.inverterModelId === cur.inverterModelId);
+
+        if (inverter) {
+          inverter.quantity += cur.quantity;
+          return acc;
+        }
+
+        acc.push(cur);
+        return acc;
+      }, [])
+      .map(
         item =>
           `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
       )

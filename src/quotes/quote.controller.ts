@@ -113,6 +113,7 @@ export class QuoteController {
     return ServiceResponse.fromResult(res);
   }
 
+  @UseAsyncContext
   @Post('/requote/:quoteId')
   @ApiOperation({ summary: 'Re-quote' })
   @ApiOkResponse({ type: QuoteRes })

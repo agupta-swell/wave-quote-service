@@ -1,19 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
-import { IQueueStore } from 'src/shared/async-context/interfaces';
-import { calcCoordinatesDistance, getCenterBound, ICoordinate } from 'src/utils/calculate-coordinates';
-import { S3Service } from 'src/shared/aws/services/s3.service';
 import { isEqual } from 'lodash';
-import { SystemDesign, ILatLngSchema } from '../system-design.schema';
+import { ServiceResponse } from 'src/app/common';
+import { IQueueStore } from 'src/shared/async-context/interfaces';
+import { S3Service } from 'src/shared/aws/services/s3.service';
+import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { SystemProductionDto } from 'src/system-production/res';
+import { SystemProductionService } from 'src/system-production/system-production.service';
+import { calcCoordinatesDistance, getCenterBound, ICoordinate } from 'src/utils/calculate-coordinates';
+import { SystemDesignDto } from '../res';
+import { ILatLngSchema, SystemDesign } from '../system-design.schema';
 import { InitSystemDesign, ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
 
 @Injectable()
 export class SystemDesignHook implements ISystemDesignSchemaHook {
-  constructor(private readonly googleSunroofService: GoogleSunroofService, private readonly s3Service: S3Service) {}
+  constructor(
+    private readonly googleSunroofService: GoogleSunroofService,
+    private readonly s3Service: S3Service,
+    private readonly systemProductionService: SystemProductionService,
+  ) {}
 
   private WILL_GENERATE_PNG_SYM = Symbol('willGeneratePng');
 
   private WILL_GENERATE_OVERLAY_SYM = Symbol('willGenerateOverlay');
+
+  private WILL_GENERATE_SUNROOF_PRODUCTION_SYM = Symbol('willGenerateSunroofProduction');
 
   dispatch(
     asyncQueueStore: IQueueStore,
@@ -62,6 +73,14 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     );
   }
 
+  private canRegenerateProduction(initSystemDesign: InitSystemDesign, systemDesign: SystemDesign): boolean {
+    if (initSystemDesign.isNew) return false;
+
+    if (systemDesign?.sunroofDriftCorrection?.x === 0 && systemDesign?.sunroofDriftCorrection?.y === 0) return false;
+
+    return true;
+  }
+
   private dispatchNewPanelArray(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
@@ -92,6 +111,10 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     newTotalPanelsInArray: number,
   ) {
     if (initSystemDesign.isNew) return;
+
+    if (this.canRegenerateProduction(initSystemDesign, systemDesign)) {
+      this.queueGenerateSunroofProduction(asyncQueueStore, systemDesign);
+    }
 
     if (
       asyncQueueStore.cache.get(this.WILL_GENERATE_OVERLAY_SYM) ||
@@ -151,13 +174,20 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     const overlayPending = asyncQueueStore.cache.get(this.WILL_GENERATE_OVERLAY_SYM) as number;
 
+    const overlaySunroofPending = asyncQueueStore.cache.get(this.WILL_GENERATE_SUNROOF_PRODUCTION_SYM) as number;
+
     if (overlayPending) {
       asyncQueueStore.beforeRes[overlayPending - 1] = async () => null;
+    }
+
+    if (overlaySunroofPending) {
+      asyncQueueStore.beforeRes[overlaySunroofPending - 1] = async () => null;
     }
 
     const task = async () => {
       await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
       await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+      await this.regenerateSunroofProduction(asyncQueueStore, systemDesign);
     };
 
     if (pending) {
@@ -179,6 +209,41 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     const count = asyncQueueStore.beforeRes.push(() => this.googleSunroofService.generateArrayOverlayPng(systemDesign));
 
     asyncQueueStore.cache.set(this.WILL_GENERATE_OVERLAY_SYM, count);
+  }
+
+  /**
+   * @param asyncQueueStore
+   * @param systemDesign
+   */
+  private queueGenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): void {
+    const count = asyncQueueStore.beforeRes.push(() => this.regenerateSunroofProduction(asyncQueueStore, systemDesign));
+
+    asyncQueueStore.cache.set(this.WILL_GENERATE_SUNROOF_PRODUCTION_SYM, count);
+  }
+
+  private async regenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): Promise<void> {
+    const sunroofProduction = await this.googleSunroofService.calculateProduction(systemDesign);
+
+    const systemProduction = await this.systemProductionService.findOne(systemDesign.systemProductionId);
+
+    if (!systemProduction) return;
+    const cumulativeGenerationKWh = sunroofProduction.annualProduction;
+    const { capacityKW, annualUsageKWh } = systemProduction;
+
+    systemProduction.generationKWh = cumulativeGenerationKWh;
+    systemProduction.productivity = capacityKW === 0 ? 0 : cumulativeGenerationKWh / capacityKW;
+    systemProduction.offsetPercentage = annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0;
+    systemProduction.generationMonthlyKWh = sunroofProduction.monthlyProduction;
+    systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
+
+    await systemProduction.save();
+
+    asyncQueueStore.transformBody = (body: ServiceResponse<SystemDesignDto>) => {
+      if (!body?.data?.id) return body;
+      body.data.systemProductionData = strictPlainToClass(SystemProductionDto, systemProduction.toJSON());
+
+      return body;
+    };
   }
 
   private canDispatchNextSystemDesignEvent(queueStore: IQueueStore): boolean {

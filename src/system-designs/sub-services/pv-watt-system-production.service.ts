@@ -22,7 +22,7 @@ export const getTypicalProduction = (hourlyProduction: number[]) => {
             });
             return acc;
           }, Array(24).fill(0))
-          .map(e => roundNumber(e / datesInMonths[monthIdx] / 1000, 2)), // device by 1000 to convert to KW
+          .map(e => roundNumber(e / datesInMonths[monthIdx] / 1000, 2)), // divide by 1000 to convert to KW
     )
     .map(m => {
       m.push(m[0]);
@@ -36,7 +36,7 @@ export const getTypicalProduction = (hourlyProduction: number[]) => {
       });
       return acc;
     }, Array(24).fill(0))
-    .map(e => roundNumber(e / totalDatesOfHourlyProduction / 1000, 2)); // device by 1000 to convert to KW
+    .map(e => roundNumber(e / totalDatesOfHourlyProduction / 1000, 2)); // divide by 1000 to convert to KW
 
   typicalDailyProductionPerYear.push(typicalDailyProductionPerYear[0]);
 
