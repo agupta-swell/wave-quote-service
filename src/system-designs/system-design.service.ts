@@ -20,17 +20,18 @@ import { ProductService } from 'src/products-v2/services';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
+import { AsyncContextProvider } from 'src/shared/async-context/providers/async-context.provider';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { SystemProductionDto } from 'src/system-production/res';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { DESIGN_MODE, FINANCE_TYPE_EXISTING_SOLAR } from './constants';
+import { SystemDesignHook } from './providers/system-design.hook';
 import {
   CalculateSunroofOrientationDto,
   CreateSystemDesignDto,
@@ -81,6 +82,8 @@ export class SystemDesignService {
     private readonly productService: ProductService,
     private readonly manufacturerService: ManufacturerService,
     private readonly systemProductionService: SystemProductionService,
+    private readonly systemDesignHook: SystemDesignHook,
+    private readonly asyncContext: AsyncContextProvider,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -744,9 +747,6 @@ export class SystemDesignService {
 
     assignToModel(foundSystemDesign, removedUndefined);
 
-    const isNotUseSunroofDriftCorrection =
-      systemDesignDto?.sunroofDriftCorrection?.x === 0 && systemDesignDto?.sunroofDriftCorrection?.y === 0;
-
     const handlers: Promise<unknown>[] = [foundSystemDesign.save()];
 
     if (systemDesignDto.designMode) {
@@ -759,21 +759,21 @@ export class SystemDesignService {
       );
     }
 
-    if (isNotUseSunroofDriftCorrection) {
-      handlers.push(
-        this.systemProductionService.update(systemDesign.systemProductionId, {
-          ...newSystemProduction,
-        }),
-      );
-    }
+    handlers.push(
+      this.systemProductionService.update(systemDesign.systemProductionId, {
+        ...newSystemProduction,
+      }),
+    );
 
-    const [, , systemProductionUpdated] = await Promise.all(handlers);
+    await Promise.all(handlers);
+
+    const useSunroof = (systemDesignDto.roofTopDesignData?.panelArray ?? []).some(p => p.useSunroof);
+
+    if (useSunroof) {
+      this.systemDesignHook.queueGenerateSunroofProduction(this.asyncContext.UNSAFE_getStore()!, foundSystemDesign);
+    }
 
     const systemDesignUpdated = foundSystemDesign.toJSON();
-    // check not use sunroofDriftCorrection add property systemProductionData
-    if (systemProductionUpdated && isNotUseSunroofDriftCorrection) {
-      systemDesignUpdated.systemProductionData = (systemProductionUpdated as OperationResult<SystemProductionDto>)?.data;
-    }
 
     return OperationResult.ok(strictPlainToClass(SystemDesignDto, systemDesignUpdated));
   }

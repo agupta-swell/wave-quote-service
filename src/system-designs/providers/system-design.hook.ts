@@ -174,14 +174,14 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     const overlayPending = asyncQueueStore.cache.get(this.WILL_GENERATE_OVERLAY_SYM) as number;
 
-    const overlaySunroofPending = asyncQueueStore.cache.get(this.WILL_GENERATE_SUNROOF_PRODUCTION_SYM) as number;
+    const sunroofProdPending = asyncQueueStore.cache.get(this.WILL_GENERATE_SUNROOF_PRODUCTION_SYM) as number;
 
     if (overlayPending) {
       asyncQueueStore.beforeRes[overlayPending - 1] = async () => null;
     }
 
-    if (overlaySunroofPending) {
-      asyncQueueStore.beforeRes[overlaySunroofPending - 1] = async () => null;
+    if (sunroofProdPending) {
+      asyncQueueStore.beforeRes[sunroofProdPending - 1] = async () => null;
     }
 
     const task = async () => {
@@ -214,9 +214,21 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   /**
    * @param asyncQueueStore
    * @param systemDesign
+   * @warning When explicitly regenerating sunroof production, make sure flux data has already been generated
    */
-  private queueGenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): void {
-    const count = asyncQueueStore.beforeRes.push(() => this.regenerateSunroofProduction(asyncQueueStore, systemDesign));
+  public queueGenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): void {
+    if (asyncQueueStore.cache.get(this.WILL_GENERATE_PNG_SYM)) return;
+
+    const sunroofProdPending = asyncQueueStore.cache.get(this.WILL_GENERATE_SUNROOF_PRODUCTION_SYM) as number;
+
+    const handler = () => this.regenerateSunroofProduction(asyncQueueStore, systemDesign);
+
+    if (sunroofProdPending) {
+      asyncQueueStore.beforeRes[sunroofProdPending - 1] = handler;
+      return;
+    }
+
+    const count = asyncQueueStore.beforeRes.push(handler);
 
     asyncQueueStore.cache.set(this.WILL_GENERATE_SUNROOF_PRODUCTION_SYM, count);
   }
