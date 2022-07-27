@@ -1,12 +1,12 @@
+import axios, { AxiosInstance } from 'axios';
+import { Injectable } from '@nestjs/common';
 
-import axios, { AxiosInstance } from 'axios'
-import { Injectable } from '@nestjs/common'
+import type { GoogleSunroof } from './types';
+import { GoogleSunroofGatewayAxiosException } from './exceptions';
 
-import type { GoogleSunroof } from './types'
-
-const GOOGLE_SUNROOF_BASE_URL = 'https://earthenginesolar.googleapis.com/v1'
-const BUILDINGS_FIND_CLOSEST = 'buildings:findClosest'
-const SOLAR_INFO_GET = 'solarInfo:get'
+const GOOGLE_SUNROOF_BASE_URL = 'https://earthenginesolar.googleapis.com/v1';
+const BUILDINGS_FIND_CLOSEST = 'buildings:findClosest';
+const SOLAR_INFO_GET = 'solarInfo:get';
 
 /**
  * The Earth Engine Solar API allows users to read details about the solar potential of over 60 million buildings.
@@ -26,9 +26,20 @@ export class GoogleSunroofGateway {
     this.client = axios.create({
       baseURL: GOOGLE_SUNROOF_BASE_URL,
       params: {
-        key: sunroofApiKey
-      }
-    })
+        key: sunroofApiKey,
+      },
+    });
+
+    this.bindError();
+  }
+
+  private bindError() {
+    this.client.interceptors.response.use(
+      response => response,
+      error => {
+        throw new GoogleSunroofGatewayAxiosException(error);
+      },
+    );
   }
 
   /**
@@ -40,19 +51,16 @@ export class GoogleSunroofGateway {
    * @param {number} latitude
    * @param {number} longitude
    */
-  public async findClosestBuilding (
-    latitude: number,
-    longitude: number,
-  ) : Promise<GoogleSunroof.Building> {
+  public async findClosestBuilding(latitude: number, longitude: number): Promise<GoogleSunroof.Building> {
     const { data } = await this.client.request<GoogleSunroof.Building>({
       method: 'GET',
       url: BUILDINGS_FIND_CLOSEST,
       params: {
         'location.latitude': latitude,
         'location.longitude': longitude,
-      }
-    })
-    return data
+      },
+    });
+    return data;
   }
 
   /**
@@ -65,11 +73,11 @@ export class GoogleSunroofGateway {
    * @param {number} longitude
    * @param {number} radiusMeters
    */
-  public async getSolarInfo (
+  public async getSolarInfo(
     latitude: number,
     longitude: number,
     radiusMeters: number,
-  ) : Promise<GoogleSunroof.SolarInfo> {
+  ): Promise<GoogleSunroof.SolarInfo> {
     const { data } = await this.client.request<GoogleSunroof.SolarInfo>({
       method: 'GET',
       url: SOLAR_INFO_GET,
@@ -77,8 +85,8 @@ export class GoogleSunroofGateway {
         'location.latitude': latitude,
         'location.longitude': longitude,
         radiusMeters,
-      }
-    })
-    return data
+      },
+    });
+    return data;
   }
 }

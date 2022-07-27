@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { isEqual } from 'lodash';
 import { ServiceResponse } from 'src/app/common';
 import { IQueueStore } from 'src/shared/async-context/interfaces';
@@ -14,6 +14,8 @@ import { InitSystemDesign, ISystemDesignSchemaHook } from './ISystemDesignSchema
 
 @Injectable()
 export class SystemDesignHook implements ISystemDesignSchemaHook {
+  private logger = new Logger(SystemDesignHook.name);
+
   constructor(
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly s3Service: S3Service,
@@ -185,9 +187,13 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     }
 
     const task = async () => {
-      await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
-      await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
-      await this.regenerateSunroofProduction(asyncQueueStore, systemDesign);
+      try {
+        await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
+        await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+        await this.regenerateSunroofProduction(asyncQueueStore, systemDesign);
+      } catch (e) {
+        this.teardown(e, asyncQueueStore);
+      }
     };
 
     if (pending) {
@@ -206,7 +212,9 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
    * @param systemDesign
    */
   private queueGenerateArrayOverlay(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): void {
-    const count = asyncQueueStore.beforeRes.push(() => this.googleSunroofService.generateArrayOverlayPng(systemDesign));
+    const count = asyncQueueStore.beforeRes.push(() =>
+      this.googleSunroofService.generateArrayOverlayPng(systemDesign).catch(e => this.teardown(e, asyncQueueStore)),
+    );
 
     asyncQueueStore.cache.set(this.WILL_GENERATE_OVERLAY_SYM, count);
   }
@@ -221,7 +229,8 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     const sunroofProdPending = asyncQueueStore.cache.get(this.WILL_GENERATE_SUNROOF_PRODUCTION_SYM) as number;
 
-    const handler = () => this.regenerateSunroofProduction(asyncQueueStore, systemDesign);
+    const handler = () =>
+      this.regenerateSunroofProduction(asyncQueueStore, systemDesign).catch(e => this.teardown(e, asyncQueueStore));
 
     if (sunroofProdPending) {
       asyncQueueStore.beforeRes[sunroofProdPending - 1] = handler;
@@ -277,7 +286,13 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     centerLng: number,
   ) {
     asyncQueueStore.beforeRes.push(() =>
-      this.reSaveClosestBuildingByPanelArrayId(systemDesignId, opportunityId, panelArrayId, centerLat, centerLng),
+      this.reSaveClosestBuildingByPanelArrayId(
+        systemDesignId,
+        opportunityId,
+        panelArrayId,
+        centerLat,
+        centerLng,
+      ).catch(e => this.teardown(e, asyncQueueStore)),
     );
   }
 
@@ -310,6 +325,19 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     }
 
     // Re-fetch and cache
-    await this.googleSunroofService.getClosestBuilding(newKey, centerLat, centerLng);
+    await this.googleSunroofService.getClosestBuilding(newKey, centerLat, centerLng).catch(e => this.teardown(e));
+  }
+
+  /**
+   * Teardown logic for any failures happening in the middle of the process due to unavailable sunroof data or any kind of google sunroof error
+   *
+   * Write the error to stdout
+   */
+  private teardown<Err extends Error>(error: Err, asyncQueueStore?: IQueueStore) {
+    this.logger.error(error, error?.stack);
+
+    if (asyncQueueStore) {
+      asyncQueueStore.transformBody = o => o;
+    }
   }
 }
