@@ -752,7 +752,9 @@ export class SystemDesignService {
 
     const systemDesignUpdated = foundSystemDesign.toJSON();
 
-    return OperationResult.ok(strictPlainToClass(SystemDesignDto, systemDesignUpdated));
+    return OperationResult.ok(
+      strictPlainToClass(SystemDesignDto, { ...systemDesignUpdated, systemProductionData: newSystemProduction }),
+    );
   }
 
   async recalculateSystemDesign(
