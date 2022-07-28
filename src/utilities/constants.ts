@@ -21,3 +21,9 @@ export enum ENTRY_MODE {
 export const TYPICAL_USAGE_METAKEY = Symbol.for('kUtility/typicalUsage');
 
 export const KWH_PER_GALLON = 33.7;
+
+export enum OPERATION_MODE {
+  BACKUP_POWER = 'Backup Power',
+  PV_SELF_CONSUMPTION = 'PV Self Consumption',
+  ADVANCE_TOU = 'Advanced TOU',
+}

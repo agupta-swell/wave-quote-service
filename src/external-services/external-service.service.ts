@@ -178,6 +178,22 @@ export class ExternalService {
     return entity;
   }
 
+  async getTariffsByMasterTariffId(masterTariffId: string) {
+    const url = 'https://api.genability.com/rest/public/tariffs';
+
+    try {
+      const res = await axios.get(`${url}/${masterTariffId}?populateRates=true`, {
+        headers: {
+          Authorization: this.genabilityToken,
+        },
+      });
+      return res.data.results || [];
+    } catch (error) {
+      this.logger.errorAPICalling(url, error.message);
+      throw ApplicationException.ServiceError();
+    }
+  }
+
   async getTariff(zipCode: number, lseId?: number) {
     const url = 'https://api.genability.com/rest/public/tariffs';
     const params = {
@@ -189,6 +205,7 @@ export class ExternalService {
     };
 
     if (lseId) {
+      // eslint-disable-next-line dot-notation
       params['lseId'] = lseId;
     }
     try {

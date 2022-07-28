@@ -1,7 +1,10 @@
 /* eslint-disable consistent-return */
 import { forwardRef, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy, sumBy } from 'lodash';
+import BigNumber from 'bignumber.js';
+import * as dayjs from 'dayjs';
+import * as dayOfYear from 'dayjs/plugin/dayOfYear';
+import { groupBy, inRange, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -9,16 +12,15 @@ import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
-import * as dayjs from 'dayjs';
-import * as dayOfYear from 'dayjs/plugin/dayOfYear';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE } from './constants';
-import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
+import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE, OPERATION_MODE } from './constants';
+import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto } from './req';
 import { UsageValue } from './req/sub-dto';
 import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
+import { PinballSimulatorDto } from './res/pinball-simulator.dto';
 import { UTILITIES, Utilities } from './schemas';
 import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
 import { GenebilityTeriffData, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
@@ -35,7 +37,6 @@ import {
   UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
 } from './utility.schema';
-import BigNumber from 'bignumber.js';
 
 @Injectable()
 export class UtilityService implements OnModuleInit {
@@ -60,7 +61,9 @@ export class UtilityService implements OnModuleInit {
     @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
     @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
     private readonly usageProfileService: UsageProfileService,
-  ) {}
+  ) {
+    dayjs.extend(dayOfYear);
+  }
 
   async onModuleInit() {
     try {
@@ -357,6 +360,276 @@ export class UtilityService implements OnModuleInit {
     );
   }
 
+  private isHourInDay(hourInDay: number, fromHour: number, toHour: number): boolean {
+    if (fromHour < toHour) {
+      return inRange(hourInDay, fromHour, toHour + 1);
+    }
+
+    return inRange(hourInDay, 0, fromHour + 1) || inRange(hourInDay, toHour, 24);
+  }
+
+  private checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay = (
+    fromDayOfWeek: number,
+    toDayOfWeek: number,
+    dayOfWeek: number,
+    fromHour: number,
+    toHour: number,
+    hourInDay: number,
+  ): boolean => {
+    if (fromDayOfWeek < toDayOfWeek) {
+      return inRange(dayOfWeek, fromDayOfWeek, toDayOfWeek + 1) && this.isHourInDay(hourInDay, fromHour, toHour);
+    }
+
+    return (
+      (inRange(dayOfWeek, 0, fromDayOfWeek + 1) || inRange(dayOfWeek, toDayOfWeek, 6 + 1)) &&
+      this.isHourInDay(hourInDay, fromHour, toHour)
+    );
+  };
+
+  private filterTariffs = async (postInstallMasterTariffId: string) => {
+    const filterTariffs = await this.externalService.getTariffsByMasterTariffId(postInstallMasterTariffId);
+
+    // Filter the tariff rates to ones where applicabilityKey is blank, variableRateKey is blank, and timeOfUse is NOT blank.
+    return filterTariffs[0].rates
+      .filter(e => !e?.applicabilityKey && !e?.variableRateKey && e?.timeOfUse)
+      .map(filterTariff => ({
+        ...filterTariff,
+        // if rateBands had multiple rateAmount sum up the rateAmount.
+        rateBands:
+          filterTariff.rateBands.length > 1
+            ? filterTariff.rateBands.reduce((previousValue, currentValue) => {
+                const currentRateAmount = currentValue.rateAmount;
+                delete currentValue.rateAmount;
+                return [
+                  {
+                    ...currentValue,
+                    rateAmount: (previousValue[0]?.rateAmount || 0) + currentRateAmount,
+                  },
+                ];
+              }, [])
+            : filterTariff.rateBands,
+      }));
+  };
+
+  private async simulatePinball(
+    data: GetPinballSimulatorDto,
+  ): Promise<{
+    batteryStoredEnergySeries: number[];
+    batteryChargingSeries: number[];
+    batteryDischargingSeries: number[];
+    postInstallSiteDemandSeries: number[];
+  }> {
+    const {
+      hourlyPostInstallLoad,
+      hourlySeriesForExistingPV,
+      hourlySeriesForNewPV,
+      postInstallMasterTariffId,
+      batterySystemSpecs,
+    } = data;
+
+    let filterTariffs: any[] = [];
+    if (batterySystemSpecs.operationMode === OPERATION_MODE.ADVANCE_TOU) {
+      filterTariffs = await this.filterTariffs(postInstallMasterTariffId);
+    }
+
+    // generate 8760 charge or discharge the battery.
+    const rateAmountHourly: { rate: number; charge: boolean }[] = [];
+
+    const currentYear = new Date().getFullYear();
+
+    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
+      let totalRateAmountHourly = new BigNumber(0);
+
+      filterTariffs.forEach(filterTariff => {
+        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = filterTariff?.timeOfUse.season;
+        const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[0];
+        const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
+
+        const fromHourIndex = dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() * 24;
+        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
+
+        const dayOfWeek = dayjs()
+          .dayOfYear(Math.floor(hourIndex / 24) + 1)
+          .day();
+
+        const hourInDay = hourIndex % 24;
+
+        const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
+          fromDayOfWeek,
+          toDayOfWeek,
+          dayOfWeek,
+          fromHour,
+          toHour,
+          hourInDay,
+        );
+
+        if (fromHourIndex < toHourIndex) {
+          if (inRange(hourIndex, fromHourIndex, toHourIndex + 1) && isValidHourDay) {
+            totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
+          }
+
+          return;
+        }
+
+        if ((inRange(hourIndex, 0, fromHourIndex + 1) || inRange(hourIndex, toHourIndex, 8760)) && isValidHourDay) {
+          totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
+        }
+      });
+      rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), charge: true });
+    }
+
+    // update periods charge or discharge in day
+    for (let i = 0; i < 365; i += 1) {
+      const currentHour = i * 24;
+      // init the periodsInDay
+      const periodsInDay: {
+        rate: number;
+        index: number;
+        charge: boolean;
+      }[] = [{ rate: rateAmountHourly[currentHour].rate, index: currentHour, charge: true }];
+
+      // find the periods in day
+      for (let j = 1; j < 24; j += 1) {
+        // push the next period into periodsInDay
+        if (
+          rateAmountHourly[periodsInDay[periodsInDay.length - 1].index].rate !== rateAmountHourly[currentHour + j].rate
+        ) {
+          periodsInDay.push({
+            rate: rateAmountHourly[currentHour + j].rate,
+            index: currentHour + j,
+            // the previous period is > the next period => next period charge
+            charge:
+              rateAmountHourly[periodsInDay[periodsInDay.length - 1].index].rate >
+              rateAmountHourly[currentHour + j].rate,
+          });
+        }
+      }
+
+      // update the frist period if it is < the 2nd period => charge
+      if (periodsInDay.length > 1) {
+        periodsInDay[0].charge = periodsInDay[0].rate < periodsInDay[1].rate;
+
+        // if the first period.rate === the final period.rate maybe it is the same period.charge (e.g. the hour from 9pm - 5am)
+        if (
+          rateAmountHourly[periodsInDay[0].index].rate ===
+          rateAmountHourly[periodsInDay[periodsInDay.length - 1].index].rate
+        ) {
+          periodsInDay[periodsInDay.length - 1].charge = periodsInDay[0].charge;
+        }
+      }
+
+      for (let k = 0; k < periodsInDay.length; k += 1) {
+        if (!periodsInDay[k].charge) {
+          for (let h = periodsInDay[k].index; h < (periodsInDay[k + 1]?.index || 24); h += 1) {
+            rateAmountHourly[h].charge = false;
+          }
+        }
+      }
+    }
+
+    // This is the sum of the generation of all PV systems, both new and existing.
+    const pvGeneration: number[] = [];
+    // The difference between house usage and PV generation
+    const netLoad: number[] = [];
+
+    const plannedBatteryAC: number[] = [];
+    const plannedBatteryDC: number[] = [];
+    const batteryStoredEnergySeries: number[] = [];
+    const actualBatteryDC: number[] = [];
+    const actualBatteryAC: number[] = [];
+    const batteryChargingSeries: number[] = [];
+    const batteryDischargingSeries: number[] = [];
+    const postInstallSiteDemandSeries: number[] = [];
+
+    const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
+    const minimumReserveInKW = ratingInKW * batterySystemSpecs.minimumReserve;
+    const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency);
+
+    for (let i = 0; i < 8760; i += 1) {
+      pvGeneration.push(new BigNumber(hourlySeriesForExistingPV[i] || 0).plus(hourlySeriesForNewPV[i] || 0).toNumber());
+      netLoad.push(new BigNumber(hourlyPostInstallLoad[i] || 0).minus(pvGeneration[i]).toNumber());
+
+      // Planned Battery AC
+      switch (batterySystemSpecs.operationMode) {
+        case OPERATION_MODE.BACKUP_POWER:
+          plannedBatteryAC.push(Math.min(pvGeneration[i], ratingInKW));
+          break;
+        case OPERATION_MODE.PV_SELF_CONSUMPTION:
+          plannedBatteryAC.push(
+            Math.min(pvGeneration[i], ratingInKW),
+            -Math.min(Math.max(netLoad[i], -ratingInKW), ratingInKW),
+          );
+          break;
+        case OPERATION_MODE.ADVANCE_TOU:
+          plannedBatteryAC.push(
+            rateAmountHourly[i].charge
+              ? Math.min(pvGeneration[i], ratingInKW)
+              : -Math.min(Math.max(netLoad[i], -ratingInKW), ratingInKW),
+          );
+          break;
+        default:
+      }
+
+      // Planned Battery DC
+      if (plannedBatteryAC[i] > 0) {
+        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber());
+      } else {
+        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber());
+      }
+
+      // Battery Stored Energy
+      if (plannedBatteryDC[i] > 0) {
+        batteryStoredEnergySeries.push(
+          Math.max(
+            minimumReserveInKW,
+            Math.min((batteryStoredEnergySeries[i - 1] || minimumReserveInKW) + plannedBatteryDC[i], ratingInKW),
+          ),
+        );
+      } else {
+        batteryStoredEnergySeries.push(
+          Math.max(
+            minimumReserveInKW,
+            Math.min((batteryStoredEnergySeries[i - 1] || minimumReserveInKW) - plannedBatteryDC[i], ratingInKW),
+          ),
+        );
+      }
+
+      // Actual Battery DC
+      actualBatteryDC.push(
+        new BigNumber(batteryStoredEnergySeries[i])
+          .minus(batteryStoredEnergySeries[i - 1] || minimumReserveInKW)
+          .toNumber(),
+      );
+
+      // Actual Battery AC
+      actualBatteryAC.push(
+        actualBatteryDC[i] > 0
+          ? new BigNumber(actualBatteryDC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber()
+          : new BigNumber(actualBatteryDC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber(),
+      );
+
+      // battery charging
+      batteryChargingSeries.push(actualBatteryAC[i] > 0 ? actualBatteryAC[i] : 0);
+
+      // battery discharging
+      batteryDischargingSeries.push(actualBatteryAC[i] < 0 ? -actualBatteryAC[i] : 0);
+
+      // site demand
+      postInstallSiteDemandSeries.push(new BigNumber(netLoad[i]).plus(actualBatteryAC[i]).toNumber());
+    }
+
+    return {
+      batteryStoredEnergySeries,
+      batteryChargingSeries,
+      batteryDischargingSeries,
+      postInstallSiteDemandSeries,
+    };
+  }
+
+  async pinballSimulator(data: GetPinballSimulatorDto): Promise<OperationResult<PinballSimulatorDto>> {
+    return OperationResult.ok(strictPlainToClass(PinballSimulatorDto, await this.simulatePinball(data)));
+  }
+
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----
 
   getMonth(hour: number): number {
@@ -522,8 +795,6 @@ export class UtilityService implements OnModuleInit {
     actualMonthlyUsage: UsageValue[],
     usageProfile?: IUsageProfile,
   ): IUsageValue[] {
-    dayjs.extend(dayOfYear);
-
     const typical8760Usage = typicalBaseLine.typicalBaseline.typicalHourlyUsage;
 
     const typicalUsageByMonth = Array.from({ length: 12 }, () => 0);
