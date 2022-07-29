@@ -6,6 +6,5 @@ export interface Manufacturer extends Document {
 }
 
 export const ManufacturerSchema = new Schema<Manufacturer>({
-  _id: Schema.Types.Mixed,
   name: String,
 });

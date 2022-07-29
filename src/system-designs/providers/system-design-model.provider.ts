@@ -94,6 +94,7 @@ export const createSystemDesignProvider = (
           polygons: ((systemDesign.roofTopDesignData?.panelArray ?? []).map(p => p.boundPolygon) ?? []).flat(),
           totalArrays: systemDesign.roofTopDesignData?.panelArray?.length ?? 0,
           previousDrift: systemDesign.sunroofDriftCorrection,
+          previousSystemDesign: systemDesign,
         };
 
         previousTotalPanelsInArray = previousPanel?.panels?.length ?? 0;

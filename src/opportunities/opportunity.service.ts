@@ -3,10 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, UpdateQuery } from 'mongoose';
 import { Account } from 'src/accounts/account.schema';
 import { ApplicationException } from 'src/app/app.exception';
-import { OperationResult } from 'src/app/common';
+import { OperationResult, Pagination } from 'src/app/common';
 import { ContactService } from 'src/contacts/contact.service';
 import { ContractService } from 'src/contracts/contract.service';
 import { ContractResDto } from 'src/contracts/res/sub-dto';
+import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
+import { ExistingSystemResDto } from 'src/existing-systems/res/existing-system.res.dto';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FinancierService } from 'src/financier/financier.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -15,11 +17,9 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
-import { UpdateOpportunityExistingSystemDto } from './req/update-opportunity-existing-system.dto';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
 import { QuoteDetailResDto } from './res/quote-detail.dto';
-import { UpdateOpportunityExistingSystemDto as UpdateOpportunityExistingSystemDtoRes } from './res/update-opportunity-existing-system.dto';
 import { UpdateOpportunityRebateProgramDto as UpdateOpportunityRebateProgramDtoRes } from './res/update-opportunity-rebate-program.dto';
 import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } from './res/update-opportunity-utility-program.dto';
 
@@ -37,6 +37,7 @@ export class OpportunityService {
     private readonly fundingSourceService: FundingSourceService,
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
+    private readonly existingSystemService: ExistingSystemService,
   ) {}
 
   async getRelatedInformation(opportunityId: string): Promise<OperationResult<GetRelatedInformationDto>> {
@@ -81,48 +82,25 @@ export class OpportunityService {
     return OperationResult.ok(strictPlainToClass(GetRelatedInformationDto, data));
   }
 
-  async updateOpportunityExistingSystem(
+  async getAllExistingSystems(
     opportunityId: string,
-    existingSystem: UpdateOpportunityExistingSystemDto,
-  ): Promise<OperationResult<UpdateOpportunityExistingSystemDtoRes>> {
-    const foundOpportunity = await this.opportunityModel.findById(opportunityId);
+    limit?: number,
+    skip?: number,
+  ): Promise<OperationResult<Pagination<ExistingSystemResDto>>> {
+    const [res, count] = await this.existingSystemService.getAllAndCount(
+      {
+        opportunityId,
+      },
+      limit,
+      skip,
+    );
 
-    if (!foundOpportunity) {
-      throw ApplicationException.EntityNotFound(opportunityId);
-    }
-
-    let updateOpportunityQuery: any = existingSystem;
-
-    if (!existingSystem.existingPV) {
-      updateOpportunityQuery = {
-        $set: {
-          existingPV: false,
-          interconnectedWithExistingSystem: false,
-          hasHadOtherDemandResponseProvider: existingSystem.hasHadOtherDemandResponseProvider,
-          hasGrantedHomeBatterySystemRights: existingSystem.hasGrantedHomeBatterySystemRights,
-        },
-        $unset: {
-          existingPVSize: '',
-          yearSystemInstalled: '',
-          originalInstaller: '',
-          inverter: '',
-          financeType: '',
-          tpoFundingSource: '',
-          inverterManufacturer: '',
-          inverterModel: '',
-          existingPVTilt: '',
-          existingPVAzimuth: '',
-        },
-      };
-    }
-
-    const savedOpportunity = await this.opportunityModel
-      .findByIdAndUpdate(opportunityId, updateOpportunityQuery, { new: true })
-      .lean();
-
-    const updatedOpportunity = strictPlainToClass(UpdateOpportunityExistingSystemDtoRes, savedOpportunity);
-
-    return OperationResult.ok(updatedOpportunity);
+    return OperationResult.ok(
+      new Pagination({
+        data: strictPlainToClass(ExistingSystemResDto, res),
+        total: count,
+      }),
+    );
   }
 
   async updateOpportunityUtilityProgram(

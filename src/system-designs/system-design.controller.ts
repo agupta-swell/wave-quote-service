@@ -5,6 +5,7 @@ import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
+import { OnSunroofGatewayFail } from 'src/shared/google-sunroof/interceptors';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { BusBoyFileStream, UseUploadThumbnailValidation } from './interceptors';
 import {
@@ -17,6 +18,7 @@ import {
 import {
   AnciallaryMasterRes,
   CalculateSunroofOrientationResDto,
+  GetArrayOverlaySignedUrlResDto,
   GetBoundingBoxesResDto,
   GetHeatmapSignedUrlsResDto,
   SystemDesignAncillaryMasterDto,
@@ -131,6 +133,7 @@ export class SystemDesignController {
 
   // TODO change path to `/calculate-sunroof-orientation` ??
   @Post('/calculate-sunroof')
+  @OnSunroofGatewayFail(CalculateSunroofOrientationResDto)
   async calculateSunroofOrientation(
     @Body() req: CalculateSunroofOrientationDto,
   ): Promise<ServiceResponse<CalculateSunroofOrientationResDto>> {
@@ -139,6 +142,7 @@ export class SystemDesignController {
   }
 
   @Get('/bounding-boxes')
+  @OnSunroofGatewayFail(CalculateSunroofOrientationResDto)
   async getBoundingBoxes(@Query() req: GetBoundingBoxesReqDto): Promise<ServiceResponse<GetBoundingBoxesResDto>> {
     const result = await this.systemDesignService.getSunroofBoundingBoxes(req);
     return ServiceResponse.fromResult(result);
@@ -146,6 +150,7 @@ export class SystemDesignController {
 
   @Get(':id/heatmap-pngs')
   @ApiParam({ name: 'id', type: String })
+  @OnSunroofGatewayFail(GetHeatmapSignedUrlsResDto)
   async generateHeatmapPngs(
     @Param('id', ParseObjectIdPipe) id: ObjectId,
   ): Promise<ServiceResponse<GetHeatmapSignedUrlsResDto>> {
@@ -155,7 +160,10 @@ export class SystemDesignController {
 
   @Get(':id/array-overlay-png')
   @ApiParam({ name: 'id', type: String })
-  async generateArrayOverlayPng(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse> {
+  @OnSunroofGatewayFail(GetHeatmapSignedUrlsResDto)
+  async generateArrayOverlayPng(
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
+  ): Promise<ServiceResponse<GetArrayOverlaySignedUrlResDto>> {
     const result = await this.systemDesignService.getArrayOverlayPng(id);
     return ServiceResponse.fromResult(result);
   }

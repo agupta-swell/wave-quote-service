@@ -8,6 +8,7 @@ import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { ContractService } from 'src/contracts/contract.service';
 import { DiscountService } from 'src/discounts/discount.service';
+import { IExistingSystem } from 'src/existing-systems/interfaces';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -154,12 +155,7 @@ export class QuoteService {
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
 
-    const primaryQuoteType = this.getPrimaryQuoteType(
-      quoteCostBuildup,
-      !!opportunityRelatedInformation?.data?.existingPV,
-      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
-      opportunityRelatedInformation?.data?.financeType,
-    );
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
@@ -393,12 +389,7 @@ export class QuoteService {
 
     model.detailedQuote.quoteCostBuildup = quoteCostBuildup;
 
-    const primaryQuoteType = this.getPrimaryQuoteType(
-      quoteCostBuildup,
-      !!opportunityRelatedInformation?.data?.existingPV,
-      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
-      opportunityRelatedInformation?.data?.financeType,
-    );
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, foundSystemDesign.existingSystem);
 
     model.detailedQuote.primaryQuoteType = primaryQuoteType;
 
@@ -700,12 +691,7 @@ export class QuoteService {
       userInputs: foundQuote.detailedQuote.quoteCostBuildup,
     });
 
-    const primaryQuoteType = this.getPrimaryQuoteType(
-      quoteCostBuildup,
-      !!opportunityRelatedInformation?.data?.existingPV,
-      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
-      opportunityRelatedInformation?.data?.financeType,
-    );
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
     const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
 
@@ -999,12 +985,7 @@ export class QuoteService {
       },
     });
 
-    const primaryQuoteType = this.getPrimaryQuoteType(
-      quoteCostBuildUp,
-      !!opportunityRelatedInformation?.data?.existingPV,
-      !!opportunityRelatedInformation?.data?.interconnectedWithExistingSystem,
-      opportunityRelatedInformation?.data?.financeType,
-    );
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildUp, systemDesign.existingSystem);
 
     detailedQuote.primaryQuoteType = primaryQuoteType;
 
@@ -1505,36 +1486,25 @@ export class QuoteService {
     return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
   }
 
-  getPrimaryQuoteType(
-    quoteCostBuildup: IQuoteCostBuildup,
-    existingPV: boolean,
-    interconnectedWithExistingSystem: boolean,
-    financeType: FINANCE_TYPE_EXISTING_SOLAR | undefined,
-  ): PRIMARY_QUOTE_TYPE {
+  getPrimaryQuoteType(quoteCostBuildup: IQuoteCostBuildup, existingSystem?: IExistingSystem): PRIMARY_QUOTE_TYPE {
     const { storageQuoteDetails, panelQuoteDetails } = quoteCostBuildup;
 
     const isSolar = !!panelQuoteDetails?.length;
 
     const isHasBattery = !!storageQuoteDetails?.length;
 
-    if (
-      isHasBattery &&
-      existingPV &&
-      interconnectedWithExistingSystem &&
-      financeType &&
-      financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO
-    ) {
-      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_TPO_EXISTING_SOLAR;
+    if (isHasBattery && existingSystem) {
+      const hasTPOExistingSystem = existingSystem?.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO;
+
+      if (hasTPOExistingSystem) {
+        return PRIMARY_QUOTE_TYPE.BATTERY_WITH_TPO_EXISTING_SOLAR;
+      }
+
+      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR;
     }
 
-    if (
-      isHasBattery &&
-      existingPV &&
-      interconnectedWithExistingSystem &&
-      financeType &&
-      financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO
-    ) {
-      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR;
+    if (isHasBattery && isSolar) {
+      return PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR;
     }
 
     if (!isHasBattery && isSolar) {
@@ -1545,7 +1515,7 @@ export class QuoteService {
       return PRIMARY_QUOTE_TYPE.BATTERY_ONLY;
     }
 
-    return PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR;
+    throw new Error('Invalid quote type');
   }
 
   calculateUpfrontPayment(

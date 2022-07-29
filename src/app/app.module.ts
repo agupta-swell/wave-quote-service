@@ -15,6 +15,7 @@ import { ECommerceModule } from 'src/e-commerces/e-commerce.module';
 import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
 import { EmailModule } from 'src/emails/email.module';
 import { EnergyProfileModule } from 'src/energy-profiles/energy-profile.module';
+import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
 import { ExternalServiceModule } from 'src/external-services/external-service.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
@@ -73,7 +74,12 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
         .addCustomMapping('array_generationKWh', 'arrayGenerationKWh')
         .addCustomMapping('arrayGenerationKWh', 'array_generationKWh')
         .addCustomMapping('generationMonthlyKWh', 'generation_monthlyKWh')
-        .addCustomMapping('generation_monthlyKWh', 'generationMonthlyKWh'),
+        .addCustomMapping('existing_pv_azimuth', 'existingPVAzimuth')
+        .addCustomMapping('existingPVAzimuth', 'existing_pv_azimuth')
+        .addCustomMapping('existing_pv_pitch', 'existingPVPitch')
+        .addCustomMapping('existingPVPitch', 'existing_pv_pitch')
+        .addCustomMapping('existingPVSize', 'existing_pv_size')
+        .addCustomMapping('existing_pv_size', 'existingPVSize'),
     ),
     AwsModule,
     GoogleSunroofModule,
@@ -122,6 +128,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UsageProfileModule,
     ElectricVehicleModule,
     EnergyProfileModule,
+    ExistingSystemModule,
   ],
 })
 export class AppModule {}

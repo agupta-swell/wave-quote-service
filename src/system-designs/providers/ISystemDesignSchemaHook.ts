@@ -1,3 +1,4 @@
+import { LeanDocument } from 'mongoose';
 import { IQueueStore } from 'src/shared/async-context/interfaces';
 import { ILatLngSchema, SystemDesign } from '../system-design.schema';
 
@@ -15,6 +16,7 @@ export type InitSystemDesign =
         x: number;
         y: number;
       };
+      previousSystemDesign: LeanDocument<SystemDesign>;
     };
 
 export interface ISystemDesignSchemaHook {

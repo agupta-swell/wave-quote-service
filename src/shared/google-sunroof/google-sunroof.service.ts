@@ -222,8 +222,6 @@ export class GoogleSunroofService {
    */
   public async generateHeatmapPngs(
     systemDesign: SystemDesign,
-    // TODO TEMP hardcoding radius meters for now
-    // TODO TEMP this should be calculated from the arrays, WAV-1720
     radiusMeters = 25,
   ): Promise<void> {
     const { latitude, longitude, opportunityId, _id } = systemDesign;

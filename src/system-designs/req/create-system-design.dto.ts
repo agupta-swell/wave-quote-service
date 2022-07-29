@@ -1,19 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  ValidateIf,
-  ValidateNested,
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Default } from 'src/shared/decorators';
 import { DESIGN_MODE } from '../constants';
 import { CapacityProductionDataDto, RoofTopDataReqDto, SunroofDriftCorrectionReqDto } from './sub-dto';
-import { ExistingSolarDataDto } from './sub-dto/existing-solar.dto';
 
 export class CreateSystemDesignDto {
   @ApiProperty()
@@ -72,22 +62,6 @@ export class CreateSystemDesignDto {
   @IsNotEmpty()
   @IsBoolean()
   isRetrofit: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  hasHadOtherDemandResponseProvider: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  hasGrantedHomeBatterySystemRights: boolean;
-
-  @ApiPropertyOptional({ type: ExistingSolarDataDto })
-  @ValidateIf(o => o.isRetrofit)
-  @ValidateNested({ each: true })
-  @Type(() => ExistingSolarDataDto)
-  existingSolarData: ExistingSolarDataDto;
 
   @ApiPropertyOptional({ type: SunroofDriftCorrectionReqDto })
   @ValidateNested()
