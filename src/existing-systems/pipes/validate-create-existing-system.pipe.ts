@@ -1,4 +1,4 @@
-import { PipeTransform, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, PipeTransform } from '@nestjs/common';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { BigNumberUtils } from 'src/utils';
@@ -28,7 +28,12 @@ export class ValidateCreateExistingSystemPipe implements PipeTransform {
         }),
       );
     } else {
-      delete res.inverterManufacturerName;
+      res.inverterManufacturerName = undefined;
+      res.inverterManufacturerId = undefined;
+    }
+
+    if (!res.inverterType) {
+      res.inverterType = undefined;
     }
 
     if (storages) {
@@ -63,7 +68,7 @@ export class ValidateCreateExistingSystemPipe implements PipeTransform {
   }
 
   protected async validateStorage(storage: ModifyExistingSystemStorageReqDto): Promise<CreateExistingSystemStorages> {
-    if (!storage.manufacturerId)
+    if (!storage?.manufacturerId)
       return {
         ...storage,
         manufacturerId: undefined,

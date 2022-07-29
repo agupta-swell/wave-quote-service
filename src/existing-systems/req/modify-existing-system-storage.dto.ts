@@ -14,19 +14,18 @@ import {
 } from 'class-validator';
 import { BATTERY_TYPE } from 'src/products-v2/constants';
 import { IBatteryRating } from 'src/products-v2/interfaces';
-import { Default } from 'src/shared/decorators';
 import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 
-export class RatingsDto implements IBatteryRating {
-  @ApiProperty()
+export class RatingsDto {
+  @ApiPropertyOptional()
   @IsNumber()
-  @Default(0, { ignoreNull: true })
-  kilowatts: number;
+  @IsOptional()
+  kilowatts?: number;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   @IsNumber()
-  @Default(0, { ignoreNull: true })
-  kilowattHours: number;
+  @IsOptional()
+  kilowattHours?: number;
 }
 
 export class ModifyExistingSystemStorageReqDto {
@@ -41,7 +40,8 @@ export class ModifyExistingSystemStorageReqDto {
 
   @ApiProperty()
   @IsString()
-  name: string;
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  name?: string;
 
   @ApiProperty()
   @IsMongoId()

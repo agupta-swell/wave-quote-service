@@ -33,6 +33,8 @@ export class UpdateExistingSystemDto {
 
   @ApiProperty()
   @IsEnum(INVERTER_TYPE)
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
   inverterType: INVERTER_TYPE;
 
   @ApiProperty()

@@ -33,15 +33,17 @@ export class CreateExistingSystemDto {
 
   @ApiProperty()
   @IsInt()
-  yearSystemInstalled: number; //
+  yearSystemInstalled: number;
 
   @ApiProperty()
   @IsEnum(INVERTER_TYPE)
-  inverterType: INVERTER_TYPE;
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  inverterType?: INVERTER_TYPE;
 
   @ApiProperty()
   @IsEnum(FINANCE_TYPE_EXISTING_SOLAR)
-  financeType: FINANCE_TYPE_EXISTING_SOLAR; //
+  financeType: FINANCE_TYPE_EXISTING_SOLAR;
 
   @ApiProperty()
   @IsMongoId()

@@ -6,11 +6,10 @@ import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 type WithId<T> = T & { readonly _id: ObjectId };
 
 export interface IExistingSystemStorage
-  extends Pick<IProduct<PRODUCT_TYPE.BATTERY>, 'batteryType' | 'name' | 'ratings'>,
-    Partial<Pick<IProduct<PRODUCT_TYPE.BATTERY>, 'roundTripEfficiency'>> {
+  extends Pick<IProduct<PRODUCT_TYPE.BATTERY>, 'batteryType' | 'ratings'>,
+    Partial<Pick<IProduct<PRODUCT_TYPE.BATTERY>, 'name' | 'roundTripEfficiency'>> {
   yearInstalled: number;
   purpose: string;
-
   manufacturerId?: ObjectId;
   readonly manufacturerName?: string;
   readonly createdAt: Date;
