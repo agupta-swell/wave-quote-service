@@ -7,6 +7,10 @@ import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { IUsageProfile } from 'src/usage-profiles/interfaces';
+import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
+import * as dayjs from 'dayjs';
+import * as dayOfYear from 'dayjs/plugin/dayOfYear';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
@@ -31,6 +35,7 @@ import {
   UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
 } from './utility.schema';
+import BigNumber from 'bignumber.js';
 
 @Injectable()
 export class UtilityService implements OnModuleInit {
@@ -54,6 +59,7 @@ export class UtilityService implements OnModuleInit {
     private readonly quoteService: QuoteService,
     @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
     @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
+    private readonly usageProfileService: UsageProfileService,
   ) {}
 
   async onModuleInit() {
@@ -209,27 +215,24 @@ export class UtilityService implements OnModuleInit {
   }
 
   async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostDataDto>> {
-    const { zipCode, masterTariffId, utilityData } = data;
-    const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
-    const deltaValues = {} as { i: number };
+    const { zipCode, masterTariffId, utilityData, usageProfileId } = data;
+    let hourlyDataForTheYear: UsageValue[] = [];
 
-    utilityData.computedUsage.monthlyUsage.map((monthly, index) => {
-      const typicalUsageValue = utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v;
-      const actualUsageValue = monthly.v;
-      deltaValues[monthly.i] = (actualUsageValue - typicalUsageValue) / typicalUsageValue;
-    });
+    if (utilityData.computedUsage?.hourlyUsage?.length) {
+      hourlyDataForTheYear = utilityData.computedUsage.hourlyUsage;
+    } else {
+      const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
+      const usageProfile = (usageProfileId && (await this.usageProfileService.getOne(usageProfileId))) || undefined;
 
-    let i = 0;
-    const { typicalHourlyUsage = [] } = typicalBaseLine.typicalBaseline;
-    const len = typicalHourlyUsage.length;
-    while (i < len) {
-      // eslint-disable-next-line operator-assignment
-      typicalHourlyUsage[i].v = (deltaValues[this.getMonth(i)] + 1) * typicalHourlyUsage[i].v;
-      i += 1;
+      hourlyDataForTheYear = this.calculate8760LoadShapping(
+        typicalBaseLine,
+        utilityData.computedUsage.monthlyUsage,
+        usageProfile,
+      );
     }
 
     const monthlyCost = await this.calculateCost(
-      typicalHourlyUsage.map(item => item.v),
+      hourlyDataForTheYear.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       new Date().getFullYear(),
@@ -512,5 +515,89 @@ export class UtilityService implements OnModuleInit {
     return this.genabilityUsageDataModel.collection.createIndex({
       zip_code: 1,
     });
+  }
+
+  private calculate8760LoadShapping(
+    typicalBaseLine: LeanDocument<GenabilityUsageData>,
+    actualMonthlyUsage: UsageValue[],
+    usageProfile?: IUsageProfile,
+  ): IUsageValue[] {
+    dayjs.extend(dayOfYear);
+
+    const typical8760Usage = typicalBaseLine.typicalBaseline.typicalHourlyUsage;
+
+    const typicalUsageByMonth = Array.from({ length: 12 }, () => 0);
+
+    typical8760Usage.forEach(({ i: hourIndex, v }) => {
+      const dayOfYear = dayjs().dayOfYear(Math.ceil(hourIndex / 24));
+      const monthIndex = dayOfYear.get('month');
+      typicalUsageByMonth[monthIndex] = new BigNumber(typicalUsageByMonth[monthIndex]).plus(v).toNumber();
+    });
+
+    const scalingFactorByMonth = typicalUsageByMonth.map((monthlyUsage, index) =>
+      new BigNumber(actualMonthlyUsage[index].v).dividedBy(monthlyUsage).toNumber(),
+    );
+
+    const hourlyAllocationByMonth = Array.from({ length: 12 }, () => Array.from({ length: 24 }, () => 0));
+    const targetMonthlyKwh = Array.from({ length: 12 }, () => 0);
+
+    const scaledArray = typical8760Usage.map(({ i: hourIndex, v }) => {
+      const dayOfYear = dayjs().dayOfYear(Math.floor(hourIndex / 24) + 1);
+      const monthIndex = dayOfYear.get('month');
+
+      const scaledValue = new BigNumber(v).multipliedBy(scalingFactorByMonth[monthIndex]).toNumber();
+
+      hourlyAllocationByMonth[monthIndex][(hourIndex - 1) % 24] = new BigNumber(
+        hourlyAllocationByMonth[monthIndex][(hourIndex - 1) % 24],
+      )
+        .plus(scaledValue)
+        .toNumber();
+
+      targetMonthlyKwh[monthIndex] = new BigNumber(targetMonthlyKwh[monthIndex]).plus(scaledValue).toNumber();
+
+      return {
+        i: hourIndex,
+        v: scaledValue,
+      };
+    });
+
+    if (!usageProfile) {
+      return scaledArray;
+    }
+
+    const { seasons } = usageProfile;
+
+    const flattenUsageProfile: number[][] = Array.from({ length: 12 });
+
+    seasons.forEach(season => {
+      season.applicableMonths.forEach(month => {
+        flattenUsageProfile[month - 1] = season.hourlyAllocation;
+      });
+    });
+
+    const scalingFactorForShaping = hourlyAllocationByMonth.map((hourlyAllocation, monthIndex) =>
+      hourlyAllocation.map((hourValue, hourIndex) => {
+        const proportion = new BigNumber(hourValue).dividedBy(targetMonthlyKwh[monthIndex]).toNumber();
+
+        const usageProfileHourValue = flattenUsageProfile[monthIndex][hourIndex];
+
+        return usageProfileHourValue ? new BigNumber(usageProfileHourValue).dividedBy(proportion).toNumber() : 0;
+      }),
+    );
+
+    const shapedArray = scaledArray.map(({ i: hourIndex, v }) => {
+      const dayOfYear = dayjs().dayOfYear(Math.floor(hourIndex / 24) + 1);
+      const monthIndex = dayOfYear.get('month');
+
+      return {
+        i: hourIndex,
+        v: new BigNumber(v)
+          .multipliedBy(scalingFactorForShaping[monthIndex][(hourIndex - 1) % 24])
+          .dividedBy(100)
+          .toNumber(),
+      };
+    });
+
+    return shapedArray;
   }
 }

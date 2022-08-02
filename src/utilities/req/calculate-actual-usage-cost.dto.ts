@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsNumberString, IsOptional, ValidateIf, ValidateNested } from 'class-validator';
-import { ActualUsageDto, TypicalBaselineUsageDto, ComputedUsageDto } from './sub-dto';
+import { IsMongoId, IsNotEmpty, IsNumberString, IsOptional, ValidateNested } from 'class-validator';
+import { TypicalBaselineUsageDto, ComputedUsageDto } from './sub-dto';
 
 class UtilityData {
   @ApiProperty({ type: TypicalBaselineUsageDto })
@@ -24,6 +24,11 @@ export class CalculateActualUsageCostDto {
   @ApiProperty()
   @IsNumberString()
   zipCode: number;
+  
+  @ApiProperty()
+  @IsOptional()
+  @IsMongoId()
+  usageProfileId?: string;
 
   @ApiProperty({ type: UtilityData })
   @Type(() => UtilityData)

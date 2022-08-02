@@ -24,4 +24,10 @@ export class ComputedUsageDto {
   @Type(() => UsageValue)
   @ValidateNested({ each: true })
   monthlyUsage: UsageValue[];
+  
+  @ApiProperty({ type: UsageValue, isArray: true })
+  @IsArray()
+  @Type(() => UsageValue)
+  @ValidateNested({ each: true })
+  hourlyUsage?: UsageValue[];
 }
