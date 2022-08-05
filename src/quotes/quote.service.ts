@@ -417,7 +417,9 @@ export class QuoteService {
 
     const { productAttribute: product_attribute } = financeProduct as any;
 
-    const avgMonthlySavings = await this.calculateAvgMonthlySavings(foundSystemDesign.opportunityId, foundSystemDesign);
+    // WAV-2148 disable due to validation failure
+    // const avgMonthlySavings = await this.calculateAvgMonthlySavings(foundSystemDesign.opportunityId, foundSystemDesign);
+    const avgMonthlySavings = 0;
 
     switch (financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE: {
@@ -693,7 +695,9 @@ export class QuoteService {
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
-    const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
+    // WAV-2148 disable due to validation failure
+    // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
+    const avgMonthlySavings = 0;
 
     let productAttribute = await this.createProductAttribute(
       financeProduct.productType,
