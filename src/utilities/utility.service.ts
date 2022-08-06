@@ -4,6 +4,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
+import * as utc from 'dayjs/plugin/utc';
+import * as timezone from 'dayjs/plugin/timezone';
+import * as fs from 'fs';
 import { groupBy, inRange, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
@@ -63,6 +66,9 @@ export class UtilityService implements OnModuleInit {
     private readonly usageProfileService: UsageProfileService,
   ) {
     dayjs.extend(dayOfYear);
+    dayjs.extend(utc);
+    dayjs.extend(timezone);
+    dayjs.tz.setDefault('America/New_York');
   }
 
   async onModuleInit() {
@@ -362,10 +368,10 @@ export class UtilityService implements OnModuleInit {
 
   private isHourInDay(hourInDay: number, fromHour: number, toHour: number): boolean {
     if (fromHour < toHour) {
-      return inRange(hourInDay, fromHour, toHour + 1);
+      return inRange(hourInDay, fromHour, toHour);
     }
 
-    return inRange(hourInDay, 0, fromHour + 1) || inRange(hourInDay, toHour, 24);
+    return inRange(hourInDay, 0, toHour) || inRange(hourInDay, fromHour, 24);
   }
 
   private checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay = (
@@ -436,8 +442,10 @@ export class UtilityService implements OnModuleInit {
     const rateAmountHourly: { rate: number; charge: boolean }[] = [];
 
     const currentYear = new Date().getFullYear();
+    const startOfTime = dayjs().tz().startOf('year')
 
-    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
+    // Build rateAmountHourly
+    for (let hourIndex = 1681; hourIndex < 8760; hourIndex += 1) {
       let totalRateAmountHourly = new BigNumber(0);
 
       filterTariffs.forEach(filterTariff => {
@@ -445,14 +453,24 @@ export class UtilityService implements OnModuleInit {
         const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[0];
         const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
 
-        const fromHourIndex = dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() * 24;
-        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
+        const fromHourIndex = dayjs.tz(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() * 24;
+        const toHourIndex = dayjs.tz(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
+
+        const isValidSeason =
+          fromHourIndex < toHourIndex
+            ? inRange(hourIndex, fromHourIndex, toHourIndex)
+            : inRange(hourIndex, 0, toHourIndex) || inRange(hourIndex, fromHourIndex, 8760);
+
+        if (!isValidSeason) {
+          return;
+        }
 
         const dayOfWeek = dayjs()
+          .tz()
           .dayOfYear(Math.floor(hourIndex / 24) + 1)
           .day();
 
-        const hourInDay = hourIndex % 24;
+        const hourInDay = startOfTime.add(hourIndex, 'h').hour();
 
         const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
           fromDayOfWeek,
@@ -463,52 +481,41 @@ export class UtilityService implements OnModuleInit {
           hourInDay,
         );
 
-        if (fromHourIndex < toHourIndex) {
-          if (inRange(hourIndex, fromHourIndex, toHourIndex + 1) && isValidHourDay) {
-            totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
-          }
+        if (!isValidHourDay) return;
 
-          return;
-        }
-
-        if ((inRange(hourIndex, 0, fromHourIndex + 1) || inRange(hourIndex, toHourIndex, 8760)) && isValidHourDay) {
-          totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
-        }
+        totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
       });
       rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), charge: true });
     }
 
     // update periods charge or discharge in day
     for (let i = 0; i < 365; i += 1) {
-      const currentHour = i * 24;
+      const firstHourOfDayIndex = i * 24;
       // init the periodsInDay
       const periodsInDay: {
         rate: number;
         index: number;
         charge: boolean;
-      }[] = [{ rate: rateAmountHourly[currentHour].rate, index: currentHour, charge: true }];
+      }[] = [{ rate: rateAmountHourly[firstHourOfDayIndex].rate, index: firstHourOfDayIndex, charge: true }];
 
       // find the periods in day
+
       for (let j = 1; j < 24; j += 1) {
         // push the next period into periodsInDay
-        if (
-          rateAmountHourly[periodsInDay[periodsInDay.length - 1].index].rate !== rateAmountHourly[currentHour + j].rate
-        ) {
+        const currentPeriodInDayIndex = periodsInDay[periodsInDay.length - 1].index;
+        if (rateAmountHourly[currentPeriodInDayIndex].rate !== rateAmountHourly[firstHourOfDayIndex + j].rate) {
           periodsInDay.push({
-            rate: rateAmountHourly[currentHour + j].rate,
-            index: currentHour + j,
+            rate: rateAmountHourly[firstHourOfDayIndex + j].rate,
+            index: firstHourOfDayIndex + j,
             // the previous period is > the next period => next period charge
-            charge:
-              rateAmountHourly[periodsInDay[periodsInDay.length - 1].index].rate >
-              rateAmountHourly[currentHour + j].rate,
+            charge: rateAmountHourly[currentPeriodInDayIndex].rate > rateAmountHourly[firstHourOfDayIndex + j].rate,
           });
         }
       }
 
       // update the frist period if it is < the 2nd period => charge
       if (periodsInDay.length > 1) {
-        periodsInDay[0].charge = periodsInDay[0].rate < periodsInDay[1].rate;
-
+        periodsInDay[0].charge = !periodsInDay[1].charge;
         // if the first period.rate === the final period.rate maybe it is the same period.charge (e.g. the hour from 9pm - 5am)
         if (
           rateAmountHourly[periodsInDay[0].index].rate ===
@@ -519,14 +526,12 @@ export class UtilityService implements OnModuleInit {
       }
 
       for (let k = 0; k < periodsInDay.length; k += 1) {
-        if (!periodsInDay[k].charge) {
-          for (let h = periodsInDay[k].index; h < (periodsInDay[k + 1]?.index || 24); h += 1) {
-            rateAmountHourly[h].charge = false;
-          }
+        for (let h = periodsInDay[k].index; h < (periodsInDay[k + 1]?.index || periodsInDay[0].index + 24); h += 1) {
+          rateAmountHourly[h].charge = periodsInDay[k].charge;
         }
       }
     }
-
+    fs.writeFileSync('post_rate.txt', JSON.stringify(rateAmountHourly));
     // This is the sum of the generation of all PV systems, both new and existing.
     const pvGeneration: number[] = [];
     // The difference between house usage and PV generation
@@ -542,11 +547,13 @@ export class UtilityService implements OnModuleInit {
     const postInstallSiteDemandSeries: number[] = [];
 
     const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
-    const minimumReserveInKW = ratingInKW * batterySystemSpecs.minimumReserve;
+    const minimumReserveInKW = batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve;
     const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency);
 
     for (let i = 0; i < 8760; i += 1) {
-      pvGeneration.push(new BigNumber(hourlySeriesForExistingPV[i] || 0).plus(hourlySeriesForNewPV[i] || 0).toNumber());
+      pvGeneration.push(
+        new BigNumber(hourlySeriesForExistingPV?.[i] || 0).plus(hourlySeriesForNewPV[i] || 0).toNumber(),
+      );
       netLoad.push(new BigNumber(hourlyPostInstallLoad[i] || 0).minus(pvGeneration[i]).toNumber());
 
       // Planned Battery AC

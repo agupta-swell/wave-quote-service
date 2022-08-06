@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { OPERATION_MODE } from '../constants';
 
 export class BatterySystemSpecsDto {
@@ -37,6 +37,7 @@ export class GetPinballSimulatorDto {
   hourlyPostInstallLoad: number[];
 
   @ApiProperty()
+  @IsOptional()
   @IsNotEmpty()
   @IsNumber({}, { each: true })
   hourlySeriesForExistingPV: number[];
