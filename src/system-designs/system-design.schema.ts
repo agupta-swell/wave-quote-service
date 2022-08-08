@@ -3,7 +3,7 @@ import { ExistingSystemSchema } from 'src/existing-systems/existing-system.schem
 import { ExistingSystemDocument } from 'src/existing-systems/interfaces';
 import { Manufacturer } from 'src/manufacturers/manufacturer.schema';
 import { BATTERY_TYPE, PRICING_UNIT, PRODUCT_TYPE } from 'src/products-v2/constants';
-import { ISnapshotProduct } from 'src/products-v2/interfaces';
+import { IBatteryRating, ISnapshotProduct } from 'src/products-v2/interfaces';
 import {
   AdderSnapshotSchema,
   AncillaryEquipmentSnapshotSchema,
@@ -17,7 +17,7 @@ import {
 import { WithMetaOfType } from 'src/shared/mongo';
 import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
-import { DESIGN_MODE } from './constants';
+import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
 import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
 export const SYSTEM_DESIGN = Symbol('SystemDesign').toString();
@@ -162,8 +162,9 @@ export interface IStorageSchema {
   storageModelSnapshotDate: Date;
   reservePercentage: number;
   roundTripEfficiency: number;
-  purpose: string;
+  purpose: BATTERY_PURPOSE;
   batteryType: BATTERY_TYPE;
+  ratings: IBatteryRating;
 }
 
 export const StorageSchema = new Schema<Document<IStorageSchema>>(
@@ -373,6 +374,7 @@ export interface SystemDesign extends Document {
   updatedAt: Date;
   sunroofDriftCorrection: ISunroofDriftCorrection;
   existingSystem?: ExistingSystemDocument;
+  pinballSimulatorId?: string;
 }
 
 export type SystemDesignWithManufacturerMeta = WithMetaOfType<
@@ -416,6 +418,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
   existing_system: ExistingSystemSchema,
+  pinball_simulator_id: String,
 });
 
 export class SystemDesignModel {

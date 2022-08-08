@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus */
 /* eslint-disable consistent-return */
 import { forwardRef, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,14 +11,17 @@ import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
 import { firstSundayOfTheMonth } from 'src/utils/datetime';
+import { roundNumber } from 'src/utils/transformNumber';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE, OPERATION_MODE } from './constants';
+import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE, KWH_PER_GALLON } from './constants';
+import { roundUpNumber } from './operators';
 import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto } from './req';
 import { UsageValue } from './req/sub-dto';
 import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
@@ -228,11 +232,11 @@ export class UtilityService implements OnModuleInit {
       const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
       const usageProfile = (usageProfileId && (await this.usageProfileService.getOne(usageProfileId))) || undefined;
 
-      hourlyDataForTheYear = this.calculate8760LoadShapping(
-        typicalBaseLine,
+      hourlyDataForTheYear = this.calculate8760OnActualMonthlyUsage(
+        typicalBaseLine.typicalBaseline.typicalHourlyUsage,
         utilityData.computedUsage.monthlyUsage,
         usageProfile,
-      );
+      ) as UsageValue[];
     }
 
     const monthlyCost = await this.calculateCost(
@@ -361,6 +365,105 @@ export class UtilityService implements OnModuleInit {
     );
   }
 
+  async getHourlyEstimatedUsage(utility: LeanDocument<UtilityUsageDetails>): Promise<number[]> {
+    const {
+      utilityData: {
+        computedUsage: { annualConsumption, monthlyUsage, hourlyUsage },
+      },
+      usageProfileSnapshot,
+      increaseAmount,
+      increasePercentage,
+      poolValue,
+      electricVehicles = [],
+    } = utility;
+
+    let poolUsageKwh = 0;
+    if (poolValue) {
+      poolUsageKwh = poolValue / hourlyUsage.length;
+    }
+
+    const hourlyUsageLoadShapping = this.calculate8760OnActualMonthlyUsage(
+      hourlyUsage,
+      monthlyUsage,
+      usageProfileSnapshot,
+    ) as IUsageValue[];
+
+    const sumSingleElectricVehicleKwh: number[] = [];
+    if (electricVehicles.length) {
+      const everyElectricVehicleKwh: number[][] = [];
+      electricVehicles.forEach(e => {
+        const {
+          chargerType,
+          milesDrivenPerDay,
+          startChargingHour,
+          electricVehicleSnapshot: { mpge },
+        } = e;
+
+        const _hourlyUsage = Array(24).fill(0);
+
+        const chargingRate = chargerType.rating;
+
+        const kwhRequiredPerDay = roundNumber((milesDrivenPerDay * KWH_PER_GALLON) / mpge, 2);
+
+        if (kwhRequiredPerDay < chargingRate) {
+          _hourlyUsage[startChargingHour] = kwhRequiredPerDay;
+        } else {
+          let kwhRequiredPerDayRemaining = kwhRequiredPerDay;
+          const hoursAmount = roundUpNumber(kwhRequiredPerDay / chargingRate);
+          const hoursLength = 24 + hoursAmount;
+          for (let i = startChargingHour; i < hoursLength; ++i) {
+            const index = i % 24;
+            _hourlyUsage[index] = roundNumber(
+              _hourlyUsage[index] + kwhRequiredPerDayRemaining > chargingRate
+                ? chargingRate
+                : kwhRequiredPerDayRemaining,
+              2,
+            );
+            if (kwhRequiredPerDayRemaining > chargingRate) {
+              kwhRequiredPerDayRemaining = roundNumber(kwhRequiredPerDayRemaining - chargingRate, 2);
+            } else {
+              break;
+            }
+          }
+        }
+        everyElectricVehicleKwh.push(_hourlyUsage);
+      });
+
+      const singleElectricVehicleKwh = everyElectricVehicleKwh.reduce((acc, cur) => acc.concat(cur), []);
+      const singleElectricVehicleKwhLength = singleElectricVehicleKwh.length;
+
+      for (let i = 0; i < singleElectricVehicleKwhLength; ++i) {
+        const index = i % 24;
+        sumSingleElectricVehicleKwh[index] = (sumSingleElectricVehicleKwh[index] || 0) + singleElectricVehicleKwh[i];
+      }
+    }
+
+    const result: number[] = [];
+
+    for (let hourIndex = 0; hourIndex < hourlyUsageLoadShapping.length; ++hourIndex) {
+      // calculate Planned Usage Increases Kwh
+      hourlyUsageLoadShapping[hourIndex].v += roundNumber(
+        hourlyUsageLoadShapping[hourIndex].v *
+          (increaseAmount ? increaseAmount / annualConsumption : increasePercentage / 100),
+        2,
+      );
+
+      // calculate Pool Usage Kwh
+      if (poolUsageKwh) {
+        hourlyUsageLoadShapping[hourIndex].v += poolUsageKwh;
+      }
+
+      // calculate Electric Vehicle
+      if (electricVehicles.length) {
+        hourlyUsageLoadShapping[hourIndex].v += sumSingleElectricVehicleKwh[hourIndex % 24];
+      }
+
+      result.push(hourlyUsageLoadShapping[hourIndex].v);
+    }
+
+    return result;
+  }
+
   private isHourInDay(hourInDay: number, fromHour: number, toHour: number): boolean {
     if (fromHour < toHour) {
       return inRange(hourInDay, fromHour, toHour);
@@ -412,7 +515,7 @@ export class UtilityService implements OnModuleInit {
       }));
   };
 
-  private async simulatePinball(
+  async simulatePinball(
     data: GetPinballSimulatorDto,
   ): Promise<{
     batteryStoredEnergySeries: number[];
@@ -430,7 +533,7 @@ export class UtilityService implements OnModuleInit {
     } = data;
 
     let filterTariffs: any[] = [];
-    if (batterySystemSpecs.operationMode === OPERATION_MODE.ADVANCE_TOU) {
+    if (batterySystemSpecs.operationMode === BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION) {
       filterTariffs = await this.filterTariffs(postInstallMasterTariffId);
     }
 
@@ -570,16 +673,16 @@ export class UtilityService implements OnModuleInit {
 
       // Planned Battery AC
       switch (batterySystemSpecs.operationMode) {
-        case OPERATION_MODE.BACKUP_POWER:
+        case BATTERY_PURPOSE.BACKUP_POWER:
           plannedBatteryAC.push(Math.min(pvGeneration[i], ratingInKW));
           break;
-        case OPERATION_MODE.PV_SELF_CONSUMPTION:
+        case BATTERY_PURPOSE.PV_SELF_CONSUMPTION:
           plannedBatteryAC.push(
             Math.min(pvGeneration[i], ratingInKW),
             -Math.min(Math.max(netLoad[i], -ratingInKW), ratingInKW),
           );
           break;
-        case OPERATION_MODE.ADVANCE_TOU:
+        case BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION:
           plannedBatteryAC.push(
             rateAmountHourly[i].charge
               ? Math.min(pvGeneration[i], ratingInKW)
@@ -803,29 +906,35 @@ export class UtilityService implements OnModuleInit {
     });
   }
 
-  private calculate8760LoadShapping(
-    typicalBaseLine: LeanDocument<GenabilityUsageData>,
-    actualMonthlyUsage: UsageValue[],
+  calculate8760OnActualMonthlyUsage(
+    hourlyUsage: (UsageValue | number)[], // 8760
+    actualMonthlyUsage: (UsageValue | number)[], // MonthlyUsage
     usageProfile?: IUsageProfile,
-  ): IUsageValue[] {
-    const typical8760Usage = typicalBaseLine.typicalBaseline.typicalHourlyUsage;
+  ): (IUsageValue | number)[] {
+    let typical8760Usage = hourlyUsage;
+    let actualMonthlyUsageTemp = actualMonthlyUsage;
 
     const typicalUsageByMonth = Array.from({ length: 12 }, () => 0);
 
-    typical8760Usage.forEach(({ i: hourIndex, v }) => {
+    if (typeof hourlyUsage[0] !== 'number') {
+      typical8760Usage = (hourlyUsage as UsageValue[]).map(e => e.v);
+      actualMonthlyUsageTemp = (actualMonthlyUsage as UsageValue[]).map(e => e.v);
+    }
+
+    (typical8760Usage as number[]).forEach((v, hourIndex) => {
       const dayOfYear = dayjs().dayOfYear(Math.ceil(hourIndex / 24));
       const monthIndex = dayOfYear.get('month');
       typicalUsageByMonth[monthIndex] = new BigNumber(typicalUsageByMonth[monthIndex]).plus(v).toNumber();
     });
 
-    const scalingFactorByMonth = typicalUsageByMonth.map((monthlyUsage, index) =>
-      new BigNumber(actualMonthlyUsage[index].v).dividedBy(monthlyUsage).toNumber(),
+    const scalingFactorByMonth = (typicalUsageByMonth as number[]).map((monthlyUsage, index) =>
+      new BigNumber((actualMonthlyUsageTemp as number[])[index]).dividedBy(monthlyUsage).toNumber(),
     );
 
     const hourlyAllocationByMonth = Array.from({ length: 12 }, () => Array.from({ length: 24 }, () => 0));
     const targetMonthlyKwh = Array.from({ length: 12 }, () => 0);
 
-    const scaledArray = typical8760Usage.map(({ i: hourIndex, v }) => {
+    const scaledArray = (typical8760Usage as number[]).map((v, hourIndex) => {
       const dayOfYear = dayjs().dayOfYear(Math.floor(hourIndex / 24) + 1);
       const monthIndex = dayOfYear.get('month');
 
@@ -839,13 +948,16 @@ export class UtilityService implements OnModuleInit {
 
       targetMonthlyKwh[monthIndex] = new BigNumber(targetMonthlyKwh[monthIndex]).plus(scaledValue).toNumber();
 
-      return {
-        i: hourIndex,
-        v: scaledValue,
-      };
+      return scaledValue;
     });
 
     if (!usageProfile) {
+      if (typeof hourlyUsage[0] !== 'number') {
+        return scaledArray.map((e, i) => ({
+          i,
+          v: e,
+        }));
+      }
       return scaledArray;
     }
 
@@ -869,7 +981,7 @@ export class UtilityService implements OnModuleInit {
       }),
     );
 
-    const shapedArray = scaledArray.map(({ i: hourIndex, v }) => {
+    const shapedArray = scaledArray.map((v, hourIndex) => {
       const dayOfYear = dayjs().dayOfYear(Math.floor(hourIndex / 24) + 1);
       const monthIndex = dayOfYear.get('month');
 
@@ -882,6 +994,12 @@ export class UtilityService implements OnModuleInit {
       };
     });
 
+    if (typeof hourlyUsage[0] !== 'number') {
+      return scaledArray.map((e, i) => ({
+        i,
+        v: e,
+      }));
+    }
     return shapedArray;
   }
 }

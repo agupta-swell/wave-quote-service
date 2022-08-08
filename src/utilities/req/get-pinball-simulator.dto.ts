@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { OPERATION_MODE } from '../constants';
+import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 
 export class BatterySystemSpecsDto {
   @ApiProperty()
@@ -26,8 +26,8 @@ export class BatterySystemSpecsDto {
 
   @ApiProperty()
   @IsNotEmpty()
-  @IsEnum(OPERATION_MODE)
-  operationMode: OPERATION_MODE;
+  @IsEnum(BATTERY_PURPOSE)
+  operationMode: BATTERY_PURPOSE;
 }
 
 export class GetPinballSimulatorDto {

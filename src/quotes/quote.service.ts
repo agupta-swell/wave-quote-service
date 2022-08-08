@@ -1462,7 +1462,7 @@ export class QuoteService {
   ): Promise<number> {
     const utilityUsage = await this.utilityService.getUtilityUsageDetail(opportunityId);
 
-    const productionByHour = await this.systemDesignService.calculateSystemProductionByHour(systemDesign as any);
+    const productionByHour = await this.systemDesignService.calculateSystemProductionByHour(systemDesign);
 
     const oppData = await this.opportunityService.getRelatedInformation(opportunityId);
 

@@ -3,6 +3,7 @@ import { ServiceResponse } from 'src/app/common/service-response';
 import { ExistingSystemResDto } from 'src/existing-systems/res';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { SystemProductionDto } from 'src/system-production/res';
+import { PinballSimulatorDto } from 'src/utilities/res/pinball-simulator.dto';
 import { CapacityProductionDataDto, RoofTopDataDto, sunroofDriftCorrectionResDto } from './sub-dto';
 
 export class SystemDesignDto {
@@ -56,6 +57,12 @@ export class SystemDesignDto {
 
   @ExposeProp({ type: ExistingSystemResDto })
   existingSystem: ExistingSystemResDto;
+
+  @ExposeProp()
+  pinballSimulatorId: string;
+
+  @ExposeProp({ type: PinballSimulatorDto })
+  pinballSimulator: PinballSimulatorDto;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {

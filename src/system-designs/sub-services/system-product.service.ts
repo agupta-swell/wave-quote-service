@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ExternalService } from '../../external-services/external-service.service';
 import { UpdateSystemDesignDto } from '../req';
 import { PvWattSystemProduction, PV_WATT_SYSTEM_PRODUCTION } from '../schemas/pv-watt-system-production.schema';
-import { INetUsagePostInstallationSchema } from '../system-design.schema';
+import { INetUsagePostInstallationSchema, SystemDesign } from '../system-design.schema';
 
 interface IPvWatCalculation {
   lat: number;
@@ -245,7 +245,7 @@ export class SystemProductService implements OnModuleInit {
   }
 
   async calculateSystemProductionByHour(
-    systemDesignDto: UpdateSystemDesignDto,
+    systemDesignDto: UpdateSystemDesignDto | SystemDesign | LeanDocument<SystemDesign>,
     cachedProducts?: LeanDocument<IUnknownProduct>[],
   ): Promise<ISystemProduction> {
     const { latitude, longitude } = systemDesignDto;

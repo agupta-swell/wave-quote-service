@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { isMongoId } from 'class-validator';
-import { flatten, pickBy, uniq } from 'lodash';
+import { flatten, pickBy, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
@@ -27,12 +27,13 @@ import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.s
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { ISystemProduction as ISystemProduction_v2 } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
-import { DESIGN_MODE } from './constants';
+import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
 import { SystemDesignHook } from './providers/system-design.hook';
 import {
   CalculateSunroofOrientationDto,
@@ -62,6 +63,8 @@ import {
 @Injectable()
 export class SystemDesignService {
   private SYSTEM_DESIGN_S3_BUCKET = process.env.AWS_S3_BUCKET as string;
+
+  private PINBALL_SIMULATE_BUCKET = process.env.AWS_S3_PINBALL_SIMULATE as string;
 
   constructor(
     // @ts-ignore
@@ -1102,7 +1105,9 @@ export class SystemDesignService {
     return OperationResult.ok(strictPlainToClass(GetBoundingBoxesResDto, { boundingBoxes }));
   }
 
-  public calculateSystemProductionByHour(systemDesignDto: UpdateSystemDesignDto): Promise<ISystemProduction> {
+  public calculateSystemProductionByHour(
+    systemDesignDto: UpdateSystemDesignDto | SystemDesign | LeanDocument<SystemDesign>,
+  ): Promise<ISystemProduction> {
     return this.systemProductService.calculateSystemProductionByHour(systemDesignDto);
   }
 
@@ -1292,6 +1297,65 @@ export class SystemDesignService {
       {
         thumbnail: url.Location,
       },
+    );
+  }
+
+  public async invokePINBALLSimulator(systemDesign: SystemDesign, systemProduction: ISystemProduction_v2) {
+    const utility = await this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId);
+
+    if (!utility) {
+      throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
+    }
+
+    const [hourlyPostInstallLoad, systemProductionArray] = await Promise.all([
+      this.utilityService.getHourlyEstimatedUsage(utility),
+      this.systemProductService.calculateSystemProductionByHour(systemDesign),
+    ]);
+
+    const hourlySeriesForNewPV = this.utilityService.calculate8760OnActualMonthlyUsage(
+      systemProductionArray.hourly,
+      systemProduction.generationMonthlyKWh,
+    ) as number[];
+
+    const simulatePinballData = await this.utilityService.simulatePinball({
+      hourlyPostInstallLoad,
+      hourlySeriesForExistingPV: [],
+      hourlySeriesForNewPV,
+      postInstallMasterTariffId: utility.costData.masterTariffId,
+      batterySystemSpecs: {
+        totalRatingInKW: sumBy(
+          systemDesign.roofTopDesignData.storage,
+          item => item.storageModelDataSnapshot.ratings.kilowatts || 0,
+        ),
+        totalCapacityInKWh: sumBy(
+          systemDesign.roofTopDesignData.storage,
+          item => item.storageModelDataSnapshot.ratings.kilowattHours || 0,
+        ),
+        roundTripEfficiency: systemDesign.roofTopDesignData.storage[0].roundTripEfficiency,
+        minimumReserve:
+          systemDesign.roofTopDesignData.storage[0].purpose === BATTERY_PURPOSE.BACKUP_POWER
+            ? systemDesign.roofTopDesignData.storage[0].reservePercentage
+            : sumBy(systemDesign.roofTopDesignData.storage, item => item.reservePercentage || 0) /
+              systemDesign.roofTopDesignData.storage.length,
+        operationMode: systemDesign.roofTopDesignData.storage[0].purpose,
+      },
+    });
+
+    // save simulatePinballData to s3
+    await Promise.all(
+      [
+        'postInstallSiteDemandSeries',
+        'batteryStoredEnergySeries',
+        'batteryChargingSeries',
+        'batteryDischargingSeries',
+      ].map(series =>
+        this.s3Service.putObject(
+          this.PINBALL_SIMULATE_BUCKET,
+          `${systemDesign.id}/${series}`,
+          JSON.stringify(simulatePinballData[series]),
+          'application/json; charset=utf-8',
+        ),
+      ),
     );
   }
 }

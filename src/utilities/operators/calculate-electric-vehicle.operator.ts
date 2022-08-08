@@ -1,10 +1,10 @@
 /* eslint-disable no-plusplus */
 import { map } from 'rxjs/operators';
 import { roundNumber } from 'src/utils/transformNumber';
-import { IGetTypicalUsageKwh, TypicalUsageKwh } from '../sub-services';
 import { KWH_PER_GALLON } from '../constants';
+import { IGetTypicalUsageKwh, TypicalUsageKwh } from '../sub-services';
 
-const roundUpNumber = (num: number) => {
+export const roundUpNumber = (num: number) => {
   const integerValue = Math.floor(num);
   const decimalValue = roundNumber(num - integerValue, 2);
   if (decimalValue >= 0.5) return integerValue + 1;
