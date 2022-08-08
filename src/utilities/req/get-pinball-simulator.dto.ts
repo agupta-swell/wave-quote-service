@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { OPERATION_MODE } from '../constants';
@@ -36,11 +36,10 @@ export class GetPinballSimulatorDto {
   @IsNumber({}, { each: true })
   hourlyPostInstallLoad: number[];
 
-  @ApiProperty()
+  @ApiPropertyOptional()
   @IsOptional()
-  @IsNotEmpty()
   @IsNumber({}, { each: true })
-  hourlySeriesForExistingPV: number[];
+  hourlySeriesForExistingPV?: number[];
 
   @ApiProperty()
   @IsNotEmpty()
@@ -57,4 +56,9 @@ export class GetPinballSimulatorDto {
   @IsNotEmpty()
   @ValidateNested()
   batterySystemSpecs: BatterySystemSpecsDto;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  year?: number;
 }

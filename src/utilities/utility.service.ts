@@ -4,9 +4,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
-import * as utc from 'dayjs/plugin/utc';
-import * as timezone from 'dayjs/plugin/timezone';
-import * as fs from 'fs';
 import { groupBy, inRange, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
@@ -15,6 +12,7 @@ import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
+import { firstSundayOfTheMonth } from 'src/utils/datetime';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
@@ -66,9 +64,6 @@ export class UtilityService implements OnModuleInit {
     private readonly usageProfileService: UsageProfileService,
   ) {
     dayjs.extend(dayOfYear);
-    dayjs.extend(utc);
-    dayjs.extend(timezone);
-    dayjs.tz.setDefault('America/New_York');
   }
 
   async onModuleInit() {
@@ -424,6 +419,7 @@ export class UtilityService implements OnModuleInit {
     batteryChargingSeries: number[];
     batteryDischargingSeries: number[];
     postInstallSiteDemandSeries: number[];
+    year?: number;
   }> {
     const {
       hourlyPostInstallLoad,
@@ -441,11 +437,23 @@ export class UtilityService implements OnModuleInit {
     // generate 8760 charge or discharge the battery.
     const rateAmountHourly: { rate: number; charge: boolean }[] = [];
 
-    const currentYear = new Date().getFullYear();
-    const startOfTime = dayjs().tz().startOf('year')
+    const currentYear = data?.year ?? new Date().getFullYear() - 1;
+
+    // DST is second Sunday in March to the first Sunday in November of year
+    const secondSundayInMarch = dayjs(
+      new Date(currentYear, 3 - 1, firstSundayOfTheMonth(currentYear, 3) + 7),
+    ).dayOfYear();
+
+    const firstSundayInNovember = dayjs(
+      new Date(currentYear, 11 - 1, firstSundayOfTheMonth(currentYear, 11)),
+    ).dayOfYear();
+
+    const fromDST = (secondSundayInMarch - 1) * 24;
+
+    const toDST = (firstSundayInNovember - 1) * 24 + 1;
 
     // Build rateAmountHourly
-    for (let hourIndex = 1681; hourIndex < 8760; hourIndex += 1) {
+    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
       let totalRateAmountHourly = new BigNumber(0);
 
       filterTariffs.forEach(filterTariff => {
@@ -453,24 +461,25 @@ export class UtilityService implements OnModuleInit {
         const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[0];
         const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
 
-        const fromHourIndex = dayjs.tz(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() * 24;
-        const toHourIndex = dayjs.tz(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
+        const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
+        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
+
+        const hourIndexWithDST = fromDST < hourIndex && hourIndex < toDST ? hourIndex + 1 : hourIndex;
 
         const isValidSeason =
           fromHourIndex < toHourIndex
-            ? inRange(hourIndex, fromHourIndex, toHourIndex)
-            : inRange(hourIndex, 0, toHourIndex) || inRange(hourIndex, fromHourIndex, 8760);
+            ? inRange(hourIndexWithDST, fromHourIndex, toHourIndex)
+            : inRange(hourIndexWithDST, 0, toHourIndex) || inRange(hourIndexWithDST, fromHourIndex, 8760);
 
         if (!isValidSeason) {
           return;
         }
 
         const dayOfWeek = dayjs()
-          .tz()
-          .dayOfYear(Math.floor(hourIndex / 24) + 1)
+          .dayOfYear(Math.floor(hourIndexWithDST / 24) + 1)
           .day();
 
-        const hourInDay = startOfTime.add(hourIndex, 'h').hour();
+        const hourInDay = hourIndexWithDST % 24;
 
         const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
           fromDayOfWeek,
@@ -525,13 +534,16 @@ export class UtilityService implements OnModuleInit {
         }
       }
 
+      // only update rateAmountHourly when periodsInDay[i].charge false
       for (let k = 0; k < periodsInDay.length; k += 1) {
-        for (let h = periodsInDay[k].index; h < (periodsInDay[k + 1]?.index || periodsInDay[0].index + 24); h += 1) {
-          rateAmountHourly[h].charge = periodsInDay[k].charge;
+        if (!periodsInDay[k].charge) {
+          for (let h = periodsInDay[k].index; h < (periodsInDay[k + 1]?.index || periodsInDay[0].index + 24); h += 1) {
+            rateAmountHourly[h].charge = periodsInDay[k].charge;
+          }
         }
       }
     }
-    fs.writeFileSync('post_rate.txt', JSON.stringify(rateAmountHourly));
+
     // This is the sum of the generation of all PV systems, both new and existing.
     const pvGeneration: number[] = [];
     // The difference between house usage and PV generation
@@ -547,8 +559,8 @@ export class UtilityService implements OnModuleInit {
     const postInstallSiteDemandSeries: number[] = [];
 
     const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
-    const minimumReserveInKW = batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve;
-    const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency);
+    const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
+    const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency / 100);
 
     for (let i = 0; i < 8760; i += 1) {
       pvGeneration.push(
@@ -585,21 +597,15 @@ export class UtilityService implements OnModuleInit {
       }
 
       // Battery Stored Energy
-      if (plannedBatteryDC[i] > 0) {
-        batteryStoredEnergySeries.push(
-          Math.max(
-            minimumReserveInKW,
-            Math.min((batteryStoredEnergySeries[i - 1] || minimumReserveInKW) + plannedBatteryDC[i], ratingInKW),
+      batteryStoredEnergySeries.push(
+        Math.max(
+          minimumReserveInKW,
+          Math.min(
+            (batteryStoredEnergySeries[i - 1] || minimumReserveInKW) + plannedBatteryDC[i],
+            batterySystemSpecs.totalCapacityInKWh * 1000,
           ),
-        );
-      } else {
-        batteryStoredEnergySeries.push(
-          Math.max(
-            minimumReserveInKW,
-            Math.min((batteryStoredEnergySeries[i - 1] || minimumReserveInKW) - plannedBatteryDC[i], ratingInKW),
-          ),
-        );
-      }
+        ),
+      );
 
       // Actual Battery DC
       actualBatteryDC.push(
@@ -611,8 +617,8 @@ export class UtilityService implements OnModuleInit {
       // Actual Battery AC
       actualBatteryAC.push(
         actualBatteryDC[i] > 0
-          ? new BigNumber(actualBatteryDC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber()
-          : new BigNumber(actualBatteryDC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber(),
+          ? new BigNumber(actualBatteryDC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber()
+          : new BigNumber(actualBatteryDC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber(),
       );
 
       // battery charging
