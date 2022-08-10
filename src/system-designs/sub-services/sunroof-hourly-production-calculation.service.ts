@@ -4,11 +4,10 @@ import { sum, sumBy } from 'lodash';
 import { LeanDocument, ObjectId } from 'mongoose';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { SystemProduction } from 'src/shared/google-sunroof/types';
-import { ISystemProduction } from 'src/system-production/system-production.schema';
+import { IEnergyProfileProduction, ISystemProduction } from 'src/system-production/system-production.schema';
 import { getDaysInMonth } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { IInverterSchema, ISolarPanelArraySchema, SystemDesign } from '../system-design.schema';
-import { ISunroofHourlyProduction } from './types';
 
 @Injectable()
 export class SunroofHourlyProductionCalculation {
@@ -25,7 +24,7 @@ export class SunroofHourlyProductionCalculation {
   public async getS3HourlyProduction(
     opportunityId: string,
     systemDesignId: string | ObjectId,
-  ): Promise<ISunroofHourlyProduction | undefined> {
+  ): Promise<IEnergyProfileProduction | undefined> {
     const filenames = [
       this.getClippingHourlyProductionS3Name(opportunityId, systemDesignId),
       this.getNonClippingHourlyProductionS3Name(opportunityId, systemDesignId),
@@ -50,7 +49,7 @@ export class SunroofHourlyProductionCalculation {
     systemDesign: SystemDesign | LeanDocument<SystemDesign>,
     systemProduction: ISystemProduction | LeanDocument<ISystemProduction>,
     sunroofProduction?: SystemProduction,
-  ): Promise<ISunroofHourlyProduction> {
+  ): Promise<IEnergyProfileProduction> {
     const maxInverterPower = this.calculateMaxInverterPower(systemDesign);
 
     const sunroofHourlyProduction = this.calculateSunroofHourlyProduction(systemProduction, sunroofProduction);
@@ -63,7 +62,7 @@ export class SunroofHourlyProductionCalculation {
     ];
 
     if (maxInverterPower) {
-      const clippedProduction: ISunroofHourlyProduction = {
+      const clippedProduction: IEnergyProfileProduction = {
         annualAverage: this.clipArrayByInverterPower(sunroofHourlyProduction.annualAverage, maxInverterPower),
         monthlyAverage: sunroofHourlyProduction.monthlyAverage.map(monthly =>
           this.clipArrayByInverterPower(monthly, maxInverterPower),
@@ -111,7 +110,7 @@ export class SunroofHourlyProductionCalculation {
   private calculateSunroofHourlyProduction(
     systemProduction: ISystemProduction | LeanDocument<ISystemProduction>,
     sunroofProduction?: SystemProduction,
-  ): ISunroofHourlyProduction {
+  ): IEnergyProfileProduction {
     const monthlyProduction = sunroofProduction?.monthlyProduction ?? systemProduction.generationMonthlyKWh;
     const annualProduction = sunroofProduction?.annualProduction ?? sum(systemProduction.arrayGenerationKWh);
 
@@ -160,7 +159,7 @@ export class SunroofHourlyProductionCalculation {
     return (inverter.inverterModelDataSnapshot.ratings.watts * numberOfPanels) / 1000;
   }
 
-  private async saveToS3(key: string, sunroofHourlyProduction: ISunroofHourlyProduction): Promise<void> {
+  private async saveToS3(key: string, sunroofHourlyProduction: IEnergyProfileProduction): Promise<void> {
     const payload = JSON.stringify(sunroofHourlyProduction);
 
     const contentType = 'application/json';

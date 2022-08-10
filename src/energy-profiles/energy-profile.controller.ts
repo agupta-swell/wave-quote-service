@@ -40,7 +40,16 @@ export class EnergyProfileController {
     const result = zip(
       this.utilityService.getTypicalUsage$(opportunityId),
       this.energyProfileService.getSunroofHourlyProduction(systemDesignId),
-    ).pipe(map(([usage, solarProduction]) => ({ ...usage, solarProduction })));
+      this.energyProfileService.getBatteryChargingSeries(systemDesignId),
+      this.energyProfileService.getBatteryDischargingSeries(systemDesignId),
+    ).pipe(
+      map(([usage, solarProduction, batteryChargingSeries, batteryDischargingSeries]) => ({
+        ...usage,
+        solarProduction,
+        batteryChargingSeries,
+        batteryDischargingSeries,
+      })),
+    );
     return result;
   }
 }

@@ -29,6 +29,7 @@ import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
+import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { DESIGN_MODE } from './constants';
@@ -49,7 +50,7 @@ import {
   SystemDesignAncillaryMasterDto,
   SystemDesignDto,
 } from './res';
-import { getTypicalProduction, ISystemProduction, SystemProductService } from './sub-services';
+import { ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
   SystemDesign,
@@ -341,7 +342,7 @@ export class SystemDesignService {
       offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
       generationMonthlyKWh: systemProductionArray.monthly,
       arrayGenerationKWh,
-      pvWattProduction: getTypicalProduction(systemProductionArray.hourly), // calculate pv watt production typical
+      pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt production typical
     });
 
     if (newSystemProduction.data) {
@@ -509,7 +510,7 @@ export class SystemDesignService {
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
-        pvWattProduction: getTypicalProduction(systemProductionArray.hourly), // calculate pv watt typical production
+        pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
@@ -614,7 +615,7 @@ export class SystemDesignService {
         offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
-        pvWattProduction: getTypicalProduction(systemProductionArray.hourly), // calculate pv watt typical production
+        pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
       });
 
       const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(

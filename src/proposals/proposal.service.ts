@@ -29,6 +29,7 @@ import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { ISunroofHourlyProduction } from 'src/system-designs/sub-services/types';
 import { SystemProductionDto } from 'src/system-production/res';
+import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UserService } from 'src/users/user.service';
 import {
@@ -360,7 +361,9 @@ export class ProposalService {
       proposalDetail: ProposalDto;
       sumOfUtilityUsageCost?: number;
       sumOfMonthlyUsageCost?: number;
-      solarProduction?: ISunroofHourlyProduction;
+      solarProduction?: IEnergyProfileProduction;
+      batteryDischargingSeries?: IEnergyProfileProduction;
+      batteryChargingSeries?: IEnergyProfileProduction;
     }>
   > {
     let tokenPayload: any;
@@ -404,6 +407,8 @@ export class ProposalService {
       manufacturersRes,
       systemProductionRes,
       solarProduction,
+      batteryChargingSeries,
+      batteryDischargingSeries,
     ] = await Promise.all([
       this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId }),
       this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
@@ -424,6 +429,8 @@ export class ProposalService {
       this.manufacturerService.getList(),
       this.systemProductionService.findById(proposal.detailedProposal.systemDesignData.systemProductionId),
       this.energyProfileService.getSunroofHourlyProduction(proposal.systemDesignId),
+      this.energyProfileService.getBatteryChargingSeries(proposal.systemDesignId),
+      this.energyProfileService.getBatteryDischargingSeries(proposal.systemDesignId),
     ]);
 
     // update analytic view
@@ -509,6 +516,8 @@ export class ProposalService {
       sumOfUtilityUsageCost,
       sumOfMonthlyUsageCost,
       solarProduction,
+      batteryChargingSeries,
+      batteryDischargingSeries,
     });
   }
 

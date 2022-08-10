@@ -1,10 +1,12 @@
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ObjectId } from 'mongoose';
 import { SunroofHourlyProductionCalculation } from 'src/system-designs/sub-services';
-import { ISunroofHourlyProduction } from 'src/system-designs/sub-services/types';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { PvWattProductionDto } from 'src/system-production/res';
+import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
+import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
+import { batteryChargingSeries, batteryDischargingSeries } from './mockData';
 
 @Injectable()
 export class EnergyProfileService {
@@ -15,12 +17,12 @@ export class EnergyProfileService {
     private readonly systemProductionService: SystemProductionService,
   ) {}
 
-  async findBySystemDesignId(systemDesignId: ObjectId): Promise<PvWattProductionDto | undefined> {
+  async getPvWattProduction(systemDesignId: ObjectId): Promise<PvWattProductionDto | undefined> {
     const systemDesign = await this.systemDesignService.getDetails(systemDesignId);
     return systemDesign.data?.systemProductionData.pvWattProduction;
   }
 
-  async getSunroofHourlyProduction(systemDesignId: ObjectId | string): Promise<ISunroofHourlyProduction> {
+  async getSunroofHourlyProduction(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
     const foundSystemDesign = await this.systemDesignService.getOneById(systemDesignId);
 
     if (!foundSystemDesign) {
@@ -45,5 +47,17 @@ export class EnergyProfileService {
     );
 
     return sunroofHourlyProduction;
+  }
+
+  async getBatteryChargingSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
+    // TODO: waiting for wav-1728, this data should get from S3
+
+    return buildMonthlyAndAnnuallyDataFrom8760(batteryChargingSeries);
+  }
+
+  async getBatteryDischargingSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
+    // TODO: waiting for wav-1728, this data should get from S3
+
+    return buildMonthlyAndAnnuallyDataFrom8760(batteryDischargingSeries);
   }
 }

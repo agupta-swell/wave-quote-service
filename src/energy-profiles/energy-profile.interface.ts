@@ -1,7 +1,9 @@
-import { ISunroofHourlyProduction } from 'src/system-designs/sub-services/types';
+import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { TypicalUsageKwh } from 'src/utilities/sub-services';
 
 export interface IGetEnergyProfile {
   usage: TypicalUsageKwh;
-  solarProduction: ISunroofHourlyProduction;
+  solarProduction: IEnergyProfileProduction;
+  batteryChargingSeries: IEnergyProfileProduction;
+  batteryDischargingSeries: IEnergyProfileProduction;
 }

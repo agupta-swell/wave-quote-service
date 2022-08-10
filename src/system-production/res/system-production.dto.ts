@@ -1,7 +1,7 @@
 import { ExposeMongoId, ExposeProp } from '../../shared/decorators';
-import { IPvWattProduction } from '../system-production.schema';
+import { IEnergyProfileProduction } from '../system-production.schema';
 
-export class PvWattProductionDto implements IPvWattProduction {
+export class PvWattProductionDto implements IEnergyProfileProduction {
   @ExposeProp()
   annualAverage: number[];
 

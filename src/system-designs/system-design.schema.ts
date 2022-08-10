@@ -15,7 +15,7 @@ import {
   SoftCostSnapshotSchema,
 } from 'src/products-v2/schemas';
 import { WithMetaOfType } from 'src/shared/mongo';
-import { IPvWattProduction } from 'src/system-production/system-production.schema';
+import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { DESIGN_MODE } from './constants';
 import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
@@ -44,7 +44,7 @@ export interface ISystemProductionSchema {
   offsetPercentage: number;
   generationMonthlyKWh: number[];
   arrayGenerationKWh: number[];
-  pvWattProduction?: IPvWattProduction;
+  pvWattProduction?: IEnergyProfileProduction;
 }
 
 export const SystemProductionSchema = new Schema<Document<ISystemProductionSchema>>(
