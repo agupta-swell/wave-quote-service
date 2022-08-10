@@ -9,6 +9,7 @@ import { SystemProductionDto } from 'src/system-production/res';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { calcCoordinatesDistance, getCenterBound, ICoordinate } from 'src/utils/calculate-coordinates';
 import { SystemDesignDto } from '../res';
+import { SunroofHourlyProductionCalculation } from '../sub-services';
 import { ILatLngSchema, SystemDesign } from '../system-design.schema';
 import { InitSystemDesign, ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
 
@@ -20,6 +21,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly s3Service: S3Service,
     private readonly systemProductionService: SystemProductionService,
+    private readonly sunroofHourlyProductionCalculation: SunroofHourlyProductionCalculation,
   ) {}
 
   private WILL_GENERATE_PNG_SYM = Symbol('willGeneratePng');
@@ -257,7 +259,14 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     systemProduction.generationMonthlyKWh = sunroofProduction.monthlyProduction;
     systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
 
-    await systemProduction.save();
+    await Promise.all([
+      systemProduction.save,
+      this.sunroofHourlyProductionCalculation.calculateClippingSunroofProduction(
+        systemDesign,
+        systemProduction,
+        sunroofProduction,
+      ),
+    ]);
 
     asyncQueueStore.transformBody = (body: ServiceResponse<SystemDesignDto>) => {
       if (!body?.data?.id) return body;

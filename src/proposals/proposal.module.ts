@@ -1,7 +1,8 @@
-import { Global, Module } from '@nestjs/common';
+import { forwardRef, Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { EnergyProfileModule } from 'src/energy-profiles/energy-profile.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
@@ -38,6 +39,7 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
     ManufacturerModule,
     DocusignApiModule.forContext(),
     SystemProductionModule,
+    EnergyProfileModule,
   ],
   controllers: [ProposalController],
   providers: [ProposalService],

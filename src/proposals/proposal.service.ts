@@ -15,6 +15,7 @@ import { CustomerPaymentService } from 'src/customer-payments/customer-payment.s
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { IGenericObject } from 'src/docusign-communications/typing';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
+import { EnergyProfileService } from 'src/energy-profiles/energy-profile.service';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
@@ -26,6 +27,7 @@ import { ProposalTemplateService } from 'src/proposal-templates/proposal-templat
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { ISunroofHourlyProduction } from 'src/system-designs/sub-services/types';
 import { SystemProductionDto } from 'src/system-production/res';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UserService } from 'src/users/user.service';
@@ -93,6 +95,7 @@ export class ProposalService {
     private readonly financialProductService: FinancialProductsService,
     private readonly manufacturerService: ManufacturerService,
     private readonly systemProductionService: SystemProductionService,
+    private readonly energyProfileService: EnergyProfileService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -357,6 +360,7 @@ export class ProposalService {
       proposalDetail: ProposalDto;
       sumOfUtilityUsageCost?: number;
       sumOfMonthlyUsageCost?: number;
+      solarProduction?: ISunroofHourlyProduction;
     }>
   > {
     let tokenPayload: any;
@@ -399,6 +403,7 @@ export class ProposalService {
       requiredData,
       manufacturersRes,
       systemProductionRes,
+      solarProduction,
     ] = await Promise.all([
       this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId }),
       this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
@@ -418,6 +423,7 @@ export class ProposalService {
       this.getProposalRequiredData(proposal),
       this.manufacturerService.getList(),
       this.systemProductionService.findById(proposal.detailedProposal.systemDesignData.systemProductionId),
+      this.energyProfileService.getSunroofHourlyProduction(proposal.systemDesignId),
     ]);
 
     // update analytic view
@@ -502,6 +508,7 @@ export class ProposalService {
       proposalDetail,
       sumOfUtilityUsageCost,
       sumOfMonthlyUsageCost,
+      solarProduction,
     });
   }
 
