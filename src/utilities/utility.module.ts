@@ -3,10 +3,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
+import { ExternalServiceModule } from 'src/external-services/external-service.module';
 import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { PipeTypicalUsageInterceptor } from './interceptors/pipe-typical-usage.interceptor';
 import { UTILITIES, UtilitiesSchema } from './schemas';
-import { GENEBILITY_LSE_DATA, GenebilityLseDataSchema } from './schemas/genebility-lse-caching.schema';
+import { GenebilityLseDataSchema, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
 import { GenebilityTariffDataSchema, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
 import { UtilityController } from './utility.controller';
 import {
@@ -59,6 +60,7 @@ import { UtilityService } from './utility.service';
     ]),
     UsageProfileModule,
     ElectricVehicleModule,
+    ExternalServiceModule,
   ],
   controllers: [UtilityController],
   providers: [UtilityService, PipeTypicalUsageInterceptor],

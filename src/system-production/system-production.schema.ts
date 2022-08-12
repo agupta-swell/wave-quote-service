@@ -3,7 +3,7 @@ import { CreateSystemProductionDto } from './req';
 
 export const SYSTEM_PRODUCTION = Symbol('SYSTEM_PRODUCTION').toString();
 
-export interface IPvWattProduction {
+export interface IEnergyProfileProduction {
   annualAverage: number[];
   monthlyAverage: number[][];
 }
@@ -16,7 +16,7 @@ export interface ISystemProduction extends Document {
   offsetPercentage: number;
   generationMonthlyKWh: number[];
   arrayGenerationKWh: number[];
-  pvWattProduction: IPvWattProduction;
+  pvWattProduction: IEnergyProfileProduction;
   createdAt: Date;
 }
 
@@ -55,7 +55,7 @@ export class SystemProductionModel {
 
   arrayGenerationKWh: number[];
 
-  pvWattProduction: IPvWattProduction;
+  pvWattProduction: IEnergyProfileProduction;
 
   createdAt: Date;
 
@@ -98,7 +98,7 @@ export class SystemProductionModel {
     this.arrayGenerationKWh = data;
   }
 
-  setHourlyProduction(data: IPvWattProduction) {
+  setHourlyProduction(data: IEnergyProfileProduction) {
     this.pvWattProduction = data;
   }
 }

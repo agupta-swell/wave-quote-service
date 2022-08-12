@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { isEqual } from 'lodash';
 import { ServiceResponse } from 'src/app/common';
 import { IQueueStore } from 'src/shared/async-context/interfaces';
@@ -9,7 +9,9 @@ import { SystemProductionDto } from 'src/system-production/res';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { calcCoordinatesDistance, getCenterBound, ICoordinate } from 'src/utils/calculate-coordinates';
 import { SystemDesignDto } from '../res';
+import { SunroofHourlyProductionCalculation } from '../sub-services';
 import { ILatLngSchema, SystemDesign } from '../system-design.schema';
+import { SystemDesignService } from '../system-design.service';
 import { InitSystemDesign, ISystemDesignSchemaHook } from './ISystemDesignSchemaHook';
 
 @Injectable()
@@ -17,9 +19,12 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   private logger = new Logger(SystemDesignHook.name);
 
   constructor(
-    private readonly googleSunroofService: GoogleSunroofService,
+    @Inject(forwardRef(() => SystemDesignService))
+    private readonly systemDesignService: SystemDesignService,
     private readonly s3Service: S3Service,
+    private readonly googleSunroofService: GoogleSunroofService,
     private readonly systemProductionService: SystemProductionService,
+    private readonly sunroofHourlyProductionCalculation: SunroofHourlyProductionCalculation,
   ) {}
 
   private WILL_GENERATE_PNG_SYM = Symbol('willGeneratePng');
@@ -257,7 +262,16 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     systemProduction.generationMonthlyKWh = sunroofProduction.monthlyProduction;
     systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
 
-    await systemProduction.save();
+    await Promise.all([
+      systemProduction.save,
+      this.sunroofHourlyProductionCalculation.calculateClippingSunroofProduction(
+        systemDesign,
+        systemProduction,
+        sunroofProduction,
+      ),
+    ]);
+
+    await this.systemDesignService.invokePINBALLSimulator(systemDesign, systemProduction);
 
     asyncQueueStore.transformBody = (body: ServiceResponse<SystemDesignDto>) => {
       if (!body?.data?.id) return body;

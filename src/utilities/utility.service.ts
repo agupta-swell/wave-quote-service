@@ -1,20 +1,31 @@
+/* eslint-disable no-plusplus */
 /* eslint-disable consistent-return */
 import { forwardRef, Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { groupBy, sumBy } from 'lodash';
+import BigNumber from 'bignumber.js';
+import * as dayjs from 'dayjs';
+import * as dayOfYear from 'dayjs/plugin/dayOfYear';
+import { groupBy, inRange, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { BATTERY_PURPOSE } from 'src/system-designs/constants';
+import { IUsageProfile } from 'src/usage-profiles/interfaces';
+import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
+import { firstSundayOfTheMonth } from 'src/utils/datetime';
+import { roundNumber } from 'src/utils/transformNumber';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE } from './constants';
-import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
+import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE, KWH_PER_GALLON } from './constants';
+import { roundUpNumber } from './operators';
+import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto } from './req';
 import { UsageValue } from './req/sub-dto';
 import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
+import { PinballSimulatorDto } from './res/pinball-simulator.dto';
 import { UTILITIES, Utilities } from './schemas';
 import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
 import { GenebilityTeriffData, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
@@ -54,7 +65,10 @@ export class UtilityService implements OnModuleInit {
     private readonly quoteService: QuoteService,
     @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
     @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
-  ) {}
+    private readonly usageProfileService: UsageProfileService,
+  ) {
+    dayjs.extend(dayOfYear);
+  }
 
   async onModuleInit() {
     try {
@@ -209,27 +223,24 @@ export class UtilityService implements OnModuleInit {
   }
 
   async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostDataDto>> {
-    const { zipCode, masterTariffId, utilityData } = data;
-    const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
-    const deltaValues = {} as { i: number };
+    const { zipCode, masterTariffId, utilityData, usageProfileId } = data;
+    let hourlyDataForTheYear: UsageValue[] = [];
 
-    utilityData.computedUsage.monthlyUsage.map((monthly, index) => {
-      const typicalUsageValue = utilityData.typicalBaselineUsage.typicalMonthlyUsage[index].v;
-      const actualUsageValue = monthly.v;
-      deltaValues[monthly.i] = (actualUsageValue - typicalUsageValue) / typicalUsageValue;
-    });
+    if (utilityData.computedUsage?.hourlyUsage?.length) {
+      hourlyDataForTheYear = utilityData.computedUsage.hourlyUsage;
+    } else {
+      const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
+      const usageProfile = (usageProfileId && (await this.usageProfileService.getOne(usageProfileId))) || undefined;
 
-    let i = 0;
-    const { typicalHourlyUsage = [] } = typicalBaseLine.typicalBaseline;
-    const len = typicalHourlyUsage.length;
-    while (i < len) {
-      // eslint-disable-next-line operator-assignment
-      typicalHourlyUsage[i].v = (deltaValues[this.getMonth(i)] + 1) * typicalHourlyUsage[i].v;
-      i += 1;
+      hourlyDataForTheYear = this.calculate8760OnActualMonthlyUsage(
+        typicalBaseLine.typicalBaseline.typicalHourlyUsage,
+        utilityData.computedUsage.monthlyUsage,
+        usageProfile,
+      ) as UsageValue[];
     }
 
     const monthlyCost = await this.calculateCost(
-      typicalHourlyUsage.map(item => item.v),
+      hourlyDataForTheYear.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       new Date().getFullYear(),
@@ -352,6 +363,387 @@ export class UtilityService implements OnModuleInit {
         return getTypicalUsage(v);
       }),
     );
+  }
+
+  async getHourlyEstimatedUsage(utility: LeanDocument<UtilityUsageDetails>): Promise<number[]> {
+    const {
+      utilityData: {
+        computedUsage: { annualConsumption, monthlyUsage, hourlyUsage },
+      },
+      usageProfileSnapshot,
+      increaseAmount,
+      increasePercentage,
+      poolValue,
+      electricVehicles = [],
+    } = utility;
+
+    let poolUsageKwh = 0;
+    if (poolValue) {
+      poolUsageKwh = poolValue / hourlyUsage.length;
+    }
+
+    const hourlyUsageLoadShapping = this.calculate8760OnActualMonthlyUsage(
+      hourlyUsage,
+      monthlyUsage,
+      usageProfileSnapshot,
+    ) as IUsageValue[];
+
+    const sumSingleElectricVehicleKwh: number[] = [];
+    if (electricVehicles.length) {
+      const everyElectricVehicleKwh: number[][] = [];
+      electricVehicles.forEach(e => {
+        const {
+          chargerType,
+          milesDrivenPerDay,
+          startChargingHour,
+          electricVehicleSnapshot: { mpge },
+        } = e;
+
+        const _hourlyUsage = Array(24).fill(0);
+
+        const chargingRate = chargerType.rating;
+
+        const kwhRequiredPerDay = roundNumber((milesDrivenPerDay * KWH_PER_GALLON) / mpge, 2);
+
+        if (kwhRequiredPerDay < chargingRate) {
+          _hourlyUsage[startChargingHour] = kwhRequiredPerDay;
+        } else {
+          let kwhRequiredPerDayRemaining = kwhRequiredPerDay;
+          const hoursAmount = roundUpNumber(kwhRequiredPerDay / chargingRate);
+          const hoursLength = 24 + hoursAmount;
+          for (let i = startChargingHour; i < hoursLength; ++i) {
+            const index = i % 24;
+            _hourlyUsage[index] = roundNumber(
+              _hourlyUsage[index] + kwhRequiredPerDayRemaining > chargingRate
+                ? chargingRate
+                : kwhRequiredPerDayRemaining,
+              2,
+            );
+            if (kwhRequiredPerDayRemaining > chargingRate) {
+              kwhRequiredPerDayRemaining = roundNumber(kwhRequiredPerDayRemaining - chargingRate, 2);
+            } else {
+              break;
+            }
+          }
+        }
+        everyElectricVehicleKwh.push(_hourlyUsage);
+      });
+
+      const singleElectricVehicleKwh = everyElectricVehicleKwh.reduce((acc, cur) => acc.concat(cur), []);
+      const singleElectricVehicleKwhLength = singleElectricVehicleKwh.length;
+
+      for (let i = 0; i < singleElectricVehicleKwhLength; ++i) {
+        const index = i % 24;
+        sumSingleElectricVehicleKwh[index] = (sumSingleElectricVehicleKwh[index] || 0) + singleElectricVehicleKwh[i];
+      }
+    }
+
+    const result: number[] = [];
+
+    for (let hourIndex = 0; hourIndex < hourlyUsageLoadShapping.length; ++hourIndex) {
+      // calculate Planned Usage Increases Kwh
+      hourlyUsageLoadShapping[hourIndex].v += roundNumber(
+        hourlyUsageLoadShapping[hourIndex].v *
+          (increaseAmount ? increaseAmount / annualConsumption : increasePercentage / 100),
+        2,
+      );
+
+      // calculate Pool Usage Kwh
+      if (poolUsageKwh) {
+        hourlyUsageLoadShapping[hourIndex].v += poolUsageKwh;
+      }
+
+      // calculate Electric Vehicle
+      if (electricVehicles.length) {
+        hourlyUsageLoadShapping[hourIndex].v += sumSingleElectricVehicleKwh[hourIndex % 24];
+      }
+
+      result.push(hourlyUsageLoadShapping[hourIndex].v);
+    }
+
+    return result;
+  }
+
+  private isHourInDay(hourInDay: number, fromHour: number, toHour: number): boolean {
+    if (fromHour < toHour) {
+      return inRange(hourInDay, fromHour, toHour);
+    }
+
+    return inRange(hourInDay, 0, toHour) || inRange(hourInDay, fromHour, 24);
+  }
+
+  private checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay = (
+    fromDayOfWeek: number,
+    toDayOfWeek: number,
+    dayOfWeek: number,
+    fromHour: number,
+    toHour: number,
+    hourInDay: number,
+  ): boolean => {
+    if (fromDayOfWeek < toDayOfWeek) {
+      return inRange(dayOfWeek, fromDayOfWeek, toDayOfWeek + 1) && this.isHourInDay(hourInDay, fromHour, toHour);
+    }
+
+    return (
+      (inRange(dayOfWeek, 0, fromDayOfWeek + 1) || inRange(dayOfWeek, toDayOfWeek, 6 + 1)) &&
+      this.isHourInDay(hourInDay, fromHour, toHour)
+    );
+  };
+
+  private filterTariffs = async (postInstallMasterTariffId: string) => {
+    const filterTariffs = await this.externalService.getTariffsByMasterTariffId(postInstallMasterTariffId);
+
+    // Filter the tariff rates to ones where applicabilityKey is blank, variableRateKey is blank, and timeOfUse is NOT blank.
+    return filterTariffs[0].rates
+      .filter(e => !e?.applicabilityKey && !e?.variableRateKey && e?.timeOfUse)
+      .map(filterTariff => ({
+        ...filterTariff,
+        // if rateBands had multiple rateAmount sum up the rateAmount.
+        rateBands:
+          filterTariff.rateBands.length > 1
+            ? filterTariff.rateBands.reduce((previousValue, currentValue) => {
+                const currentRateAmount = currentValue.rateAmount;
+                delete currentValue.rateAmount;
+                return [
+                  {
+                    ...currentValue,
+                    rateAmount: (previousValue[0]?.rateAmount || 0) + currentRateAmount,
+                  },
+                ];
+              }, [])
+            : filterTariff.rateBands,
+      }));
+  };
+
+  async simulatePinball(
+    data: GetPinballSimulatorDto,
+  ): Promise<{
+    batteryStoredEnergySeries: number[];
+    batteryChargingSeries: number[];
+    batteryDischargingSeries: number[];
+    postInstallSiteDemandSeries: number[];
+    year?: number;
+  }> {
+    const {
+      hourlyPostInstallLoad,
+      hourlySeriesForExistingPV,
+      hourlySeriesForNewPV,
+      postInstallMasterTariffId,
+      batterySystemSpecs,
+    } = data;
+
+    let filterTariffs: any[] = [];
+    if (batterySystemSpecs.operationMode === BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION) {
+      filterTariffs = await this.filterTariffs(postInstallMasterTariffId);
+    }
+
+    // generate 8760 charge or discharge the battery.
+    const rateAmountHourly: { rate: number; charge: boolean }[] = [];
+
+    const currentYear = data?.year ?? new Date().getFullYear() - 1;
+
+    // DST is second Sunday in March to the first Sunday in November of year
+    const secondSundayInMarch = dayjs(
+      new Date(currentYear, 3 - 1, firstSundayOfTheMonth(currentYear, 3) + 7),
+    ).dayOfYear();
+
+    const firstSundayInNovember = dayjs(
+      new Date(currentYear, 11 - 1, firstSundayOfTheMonth(currentYear, 11)),
+    ).dayOfYear();
+
+    const fromDST = (secondSundayInMarch - 1) * 24;
+
+    const toDST = (firstSundayInNovember - 1) * 24 + 1;
+
+    // Build rateAmountHourly
+    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
+      let totalRateAmountHourly = new BigNumber(0);
+
+      filterTariffs.forEach(filterTariff => {
+        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = filterTariff?.timeOfUse.season;
+        const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[0];
+        const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
+
+        const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
+        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
+
+        const hourIndexWithDST = fromDST < hourIndex && hourIndex < toDST ? hourIndex + 1 : hourIndex;
+
+        const isValidSeason =
+          fromHourIndex < toHourIndex
+            ? inRange(hourIndexWithDST, fromHourIndex, toHourIndex)
+            : inRange(hourIndexWithDST, 0, toHourIndex) || inRange(hourIndexWithDST, fromHourIndex, 8760);
+
+        if (!isValidSeason) {
+          return;
+        }
+
+        const dayOfWeek = dayjs()
+          .dayOfYear(Math.floor(hourIndexWithDST / 24) + 1)
+          .day();
+
+        const hourInDay = hourIndexWithDST % 24;
+
+        const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
+          fromDayOfWeek,
+          toDayOfWeek,
+          dayOfWeek,
+          fromHour,
+          toHour,
+          hourInDay,
+        );
+
+        if (!isValidHourDay) return;
+
+        totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
+      });
+      rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), charge: true });
+    }
+
+    // update periods charge or discharge in day
+    for (let i = 0; i < 365; i += 1) {
+      const firstHourOfDayIndex = i * 24;
+      // init the periodsInDay
+      const periodsInDay: {
+        rate: number;
+        index: number;
+        charge: boolean;
+      }[] = [{ rate: rateAmountHourly[firstHourOfDayIndex].rate, index: firstHourOfDayIndex, charge: true }];
+
+      // find the periods in day
+
+      for (let j = 1; j < 24; j += 1) {
+        // push the next period into periodsInDay
+        const currentPeriodInDayIndex = periodsInDay[periodsInDay.length - 1].index;
+        if (rateAmountHourly[currentPeriodInDayIndex].rate !== rateAmountHourly[firstHourOfDayIndex + j].rate) {
+          periodsInDay.push({
+            rate: rateAmountHourly[firstHourOfDayIndex + j].rate,
+            index: firstHourOfDayIndex + j,
+            // the previous period is > the next period => next period charge
+            charge: rateAmountHourly[currentPeriodInDayIndex].rate > rateAmountHourly[firstHourOfDayIndex + j].rate,
+          });
+        }
+      }
+
+      // update the frist period if it is < the 2nd period => charge
+      if (periodsInDay.length > 1) {
+        periodsInDay[0].charge = !periodsInDay[1].charge;
+        // if the first period.rate === the final period.rate maybe it is the same period.charge (e.g. the hour from 9pm - 5am)
+        if (
+          rateAmountHourly[periodsInDay[0].index].rate ===
+          rateAmountHourly[periodsInDay[periodsInDay.length - 1].index].rate
+        ) {
+          periodsInDay[periodsInDay.length - 1].charge = periodsInDay[0].charge;
+        }
+      }
+
+      // only update rateAmountHourly when periodsInDay[i].charge false
+      for (let k = 0; k < periodsInDay.length; k += 1) {
+        if (!periodsInDay[k].charge) {
+          for (let h = periodsInDay[k].index; h < (periodsInDay[k + 1]?.index || periodsInDay[0].index + 24); h += 1) {
+            rateAmountHourly[h].charge = periodsInDay[k].charge;
+          }
+        }
+      }
+    }
+
+    // This is the sum of the generation of all PV systems, both new and existing.
+    const pvGeneration: number[] = [];
+    // The difference between house usage and PV generation
+    const netLoad: number[] = [];
+
+    const plannedBatteryAC: number[] = [];
+    const plannedBatteryDC: number[] = [];
+    const batteryStoredEnergySeries: number[] = [];
+    const actualBatteryDC: number[] = [];
+    const actualBatteryAC: number[] = [];
+    const batteryChargingSeries: number[] = [];
+    const batteryDischargingSeries: number[] = [];
+    const postInstallSiteDemandSeries: number[] = [];
+
+    const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
+    const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
+    const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency / 100);
+
+    for (let i = 0; i < 8760; i += 1) {
+      pvGeneration.push(
+        new BigNumber(hourlySeriesForExistingPV?.[i] || 0).plus(hourlySeriesForNewPV[i] || 0).toNumber(),
+      );
+      netLoad.push(new BigNumber(hourlyPostInstallLoad[i] || 0).minus(pvGeneration[i]).toNumber());
+
+      // Planned Battery AC
+      switch (batterySystemSpecs.operationMode) {
+        case BATTERY_PURPOSE.BACKUP_POWER:
+          plannedBatteryAC.push(Math.min(pvGeneration[i], ratingInKW));
+          break;
+        case BATTERY_PURPOSE.PV_SELF_CONSUMPTION:
+          plannedBatteryAC.push(
+            Math.min(pvGeneration[i], ratingInKW),
+            -Math.min(Math.max(netLoad[i], -ratingInKW), ratingInKW),
+          );
+          break;
+        case BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION:
+          plannedBatteryAC.push(
+            rateAmountHourly[i].charge
+              ? Math.min(pvGeneration[i], ratingInKW)
+              : -Math.min(Math.max(netLoad[i], -ratingInKW), ratingInKW),
+          );
+          break;
+        default:
+      }
+
+      // Planned Battery DC
+      if (plannedBatteryAC[i] > 0) {
+        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber());
+      } else {
+        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber());
+      }
+
+      // Battery Stored Energy
+      batteryStoredEnergySeries.push(
+        Math.max(
+          minimumReserveInKW,
+          Math.min(
+            (batteryStoredEnergySeries[i - 1] || minimumReserveInKW) + plannedBatteryDC[i],
+            batterySystemSpecs.totalCapacityInKWh * 1000,
+          ),
+        ),
+      );
+
+      // Actual Battery DC
+      actualBatteryDC.push(
+        new BigNumber(batteryStoredEnergySeries[i])
+          .minus(batteryStoredEnergySeries[i - 1] || minimumReserveInKW)
+          .toNumber(),
+      );
+
+      // Actual Battery AC
+      actualBatteryAC.push(
+        actualBatteryDC[i] > 0
+          ? new BigNumber(actualBatteryDC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber()
+          : new BigNumber(actualBatteryDC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber(),
+      );
+
+      // battery charging
+      batteryChargingSeries.push(actualBatteryAC[i] > 0 ? actualBatteryAC[i] : 0);
+
+      // battery discharging
+      batteryDischargingSeries.push(actualBatteryAC[i] < 0 ? -actualBatteryAC[i] : 0);
+
+      // site demand
+      postInstallSiteDemandSeries.push(new BigNumber(netLoad[i]).plus(actualBatteryAC[i]).toNumber());
+    }
+
+    return {
+      batteryStoredEnergySeries,
+      batteryChargingSeries,
+      batteryDischargingSeries,
+      postInstallSiteDemandSeries,
+    };
+  }
+
+  async pinballSimulator(data: GetPinballSimulatorDto): Promise<OperationResult<PinballSimulatorDto>> {
+    return OperationResult.ok(strictPlainToClass(PinballSimulatorDto, await this.simulatePinball(data)));
   }
 
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----
@@ -512,5 +904,102 @@ export class UtilityService implements OnModuleInit {
     return this.genabilityUsageDataModel.collection.createIndex({
       zip_code: 1,
     });
+  }
+
+  calculate8760OnActualMonthlyUsage(
+    hourlyUsage: (UsageValue | number)[], // 8760
+    actualMonthlyUsage: (UsageValue | number)[], // MonthlyUsage
+    usageProfile?: IUsageProfile,
+  ): (IUsageValue | number)[] {
+    let typical8760Usage = hourlyUsage;
+    let actualMonthlyUsageTemp = actualMonthlyUsage;
+
+    const typicalUsageByMonth = Array.from({ length: 12 }, () => 0);
+
+    if (typeof hourlyUsage[0] !== 'number') {
+      typical8760Usage = (hourlyUsage as UsageValue[]).map(e => e.v);
+      actualMonthlyUsageTemp = (actualMonthlyUsage as UsageValue[]).map(e => e.v);
+    }
+
+    (typical8760Usage as number[]).forEach((v, hourIndex) => {
+      const dayOfYear = dayjs().dayOfYear(Math.ceil(hourIndex / 24));
+      const monthIndex = dayOfYear.get('month');
+      typicalUsageByMonth[monthIndex] = new BigNumber(typicalUsageByMonth[monthIndex]).plus(v).toNumber();
+    });
+
+    const scalingFactorByMonth = (typicalUsageByMonth as number[]).map((monthlyUsage, index) =>
+      new BigNumber((actualMonthlyUsageTemp as number[])[index]).dividedBy(monthlyUsage).toNumber(),
+    );
+
+    const hourlyAllocationByMonth = Array.from({ length: 12 }, () => Array.from({ length: 24 }, () => 0));
+    const targetMonthlyKwh = Array.from({ length: 12 }, () => 0);
+
+    const scaledArray = (typical8760Usage as number[]).map((v, hourIndex) => {
+      const dayOfYear = dayjs().dayOfYear(Math.floor(hourIndex / 24) + 1);
+      const monthIndex = dayOfYear.get('month');
+
+      const scaledValue = new BigNumber(v).multipliedBy(scalingFactorByMonth[monthIndex]).toNumber();
+
+      hourlyAllocationByMonth[monthIndex][(hourIndex - 1) % 24] = new BigNumber(
+        hourlyAllocationByMonth[monthIndex][(hourIndex - 1) % 24],
+      )
+        .plus(scaledValue)
+        .toNumber();
+
+      targetMonthlyKwh[monthIndex] = new BigNumber(targetMonthlyKwh[monthIndex]).plus(scaledValue).toNumber();
+
+      return scaledValue;
+    });
+
+    if (!usageProfile) {
+      if (typeof hourlyUsage[0] !== 'number') {
+        return scaledArray.map((e, i) => ({
+          i,
+          v: e,
+        }));
+      }
+      return scaledArray;
+    }
+
+    const { seasons } = usageProfile;
+
+    const flattenUsageProfile: number[][] = Array.from({ length: 12 });
+
+    seasons.forEach(season => {
+      season.applicableMonths.forEach(month => {
+        flattenUsageProfile[month - 1] = season.hourlyAllocation;
+      });
+    });
+
+    const scalingFactorForShaping = hourlyAllocationByMonth.map((hourlyAllocation, monthIndex) =>
+      hourlyAllocation.map((hourValue, hourIndex) => {
+        const proportion = new BigNumber(hourValue).dividedBy(targetMonthlyKwh[monthIndex]).toNumber();
+
+        const usageProfileHourValue = flattenUsageProfile[monthIndex][hourIndex];
+
+        return usageProfileHourValue ? new BigNumber(usageProfileHourValue).dividedBy(proportion).toNumber() : 0;
+      }),
+    );
+
+    const shapedArray = scaledArray.map((v, hourIndex) => {
+      const dayOfYear = dayjs().dayOfYear(Math.floor(hourIndex / 24) + 1);
+      const monthIndex = dayOfYear.get('month');
+
+      return {
+        i: hourIndex,
+        v: new BigNumber(v)
+          .multipliedBy(scalingFactorForShaping[monthIndex][(hourIndex - 1) % 24])
+          .dividedBy(100)
+          .toNumber(),
+      };
+    });
+
+    if (typeof hourlyUsage[0] !== 'number') {
+      return scaledArray.map((e, i) => ({
+        i,
+        v: e,
+      }));
+    }
+    return shapedArray;
   }
 }

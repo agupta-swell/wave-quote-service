@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { Observable, zip } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { TransformTypicalUsage } from 'src/utilities/interceptors';
 import {
@@ -16,6 +17,7 @@ import { EnergyProfileService } from './energy-profile.service';
 import { GetEnergyProfileResDto } from './res/energy-profile.dto';
 
 @Controller('energy-profiles')
+@PreAuthenticate()
 export class EnergyProfileController {
   constructor(
     private readonly energyProfileService: EnergyProfileService,
@@ -36,9 +38,18 @@ export class EnergyProfileController {
     @Param('opportunityId') opportunityId: string,
   ): Observable<any> {
     const result = zip(
-      this.energyProfileService.findBySystemDesignId(systemDesignId),
       this.utilityService.getTypicalUsage$(opportunityId),
-    ).pipe(map(([systemProduction, usage]) => ({ ...usage, systemProduction })));
+      this.energyProfileService.getSunroofHourlyProduction(systemDesignId),
+      this.energyProfileService.getBatteryChargingSeries(systemDesignId),
+      this.energyProfileService.getBatteryDischargingSeries(systemDesignId),
+    ).pipe(
+      map(([usage, solarProduction, batteryChargingSeries, batteryDischargingSeries]) => ({
+        ...usage,
+        solarProduction,
+        batteryChargingSeries,
+        batteryDischargingSeries,
+      })),
+    );
     return result;
   }
 }

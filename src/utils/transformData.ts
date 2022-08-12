@@ -1,7 +1,8 @@
-import { sliceBySize, sliceBySizesMap } from 'src/utils/array';
-import { roundNumber } from 'src/utils/transformNumber';
+import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
+import { sliceBySize, sliceBySizesMap } from './array';
+import { roundNumber } from './transformNumber';
 
-export const getTypicalProduction = (hourlyProduction: number[]) => {
+export const buildMonthlyAndAnnuallyDataFrom8760 = (hourlyProduction: number[]): IEnergyProfileProduction => {
   const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
 
   const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];

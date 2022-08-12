@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber } from 'class-validator';
-import { IPvWattProduction } from '../system-production.schema';
+import { IEnergyProfileProduction } from '../system-production.schema';
 
 export class CreateSystemProductionDto {
   @ApiProperty()
@@ -37,5 +37,5 @@ export class CreateSystemProductionDto {
   arrayGenerationKWh: number[];
 
   @ApiProperty()
-  pvWattProduction: IPvWattProduction;
+  pvWattProduction: IEnergyProfileProduction;
 }

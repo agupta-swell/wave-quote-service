@@ -7,18 +7,6 @@ import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { ValidateAndSnapshotElectricVehiclesPipe } from 'src/electric-vehicles/pipes';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
-import { ValidateAndSnapshotUsageProfilePipe } from './pipes';
-import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto } from './req';
-import {
-  CostDataDto,
-  LoadServingEntity,
-  TariffDto,
-  UtilityDataDto,
-  UtilityDetailsDto,
-  GetDataSeriesResDto,
-} from './res';
-import { UtilityService } from './utility.service';
-import { IGetTypicalUsageKwh } from './sub-services';
 import { TransformTypicalUsage } from './interceptors';
 import {
   calculateElectricVehicle,
@@ -26,6 +14,19 @@ import {
   calculatePoolUsageKwh,
   mapToResult,
 } from './operators';
+import { ValidateAndSnapshotUsageProfilePipe } from './pipes';
+import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto } from './req';
+import {
+  CostDataDto,
+  GetDataSeriesResDto,
+  LoadServingEntity,
+  TariffDto,
+  UtilityDataDto,
+  UtilityDetailsDto,
+} from './res';
+import { PinballSimulatorDto } from './res/pinball-simulator.dto';
+import { IGetTypicalUsageKwh } from './sub-services';
+import { UtilityService } from './utility.service';
 
 @ApiTags('Utilities')
 @ApiBearerAuth()
@@ -137,5 +138,13 @@ export class UtilityController {
   @ApiOkResponse({ type: GetDataSeriesResDto })
   getRenderDataSeries(@Param('opportunityId') opportunityId: string): Observable<IGetTypicalUsageKwh> {
     return this.utilityService.getTypicalUsage$(opportunityId);
+  }
+
+  @Post('/pinball-simulator')
+  @ApiOperation({ summary: 'Post-Install Battery Level And Net Load (PINBALL) Simulator' })
+  @ApiOkResponse({ type: GetDataSeriesResDto })
+  async pinballSimulator(@Body() data: GetPinballSimulatorDto): Promise<ServiceResponse<PinballSimulatorDto>> {
+    const res = await this.utilityService.pinballSimulator(data);
+    return ServiceResponse.fromResult(res);
   }
 }

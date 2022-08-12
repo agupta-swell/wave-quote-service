@@ -9,7 +9,7 @@ import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.mo
 import { SystemProductionModule } from 'src/system-production/system-production.module';
 import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
 import { PvWattSystemProductionSchema, PV_WATT_SYSTEM_PRODUCTION } from './schemas';
-import { SystemProductService } from './sub-services';
+import { SunroofHourlyProductionCalculation, SystemProductService } from './sub-services';
 import { SystemDesignController } from './system-design.controller';
 import { PURE_SYSTEM_DESIGN, SystemDesignSchema, SYSTEM_DESIGN } from './system-design.schema';
 import { SystemDesignService } from './system-design.service';
@@ -47,7 +47,8 @@ import { SystemDesignHook } from './providers/system-design.hook';
       useExisting: SystemDesignHook,
     },
     createSystemDesignProvider(SYSTEM_DESIGN, 'v2_system_designs', 'systemDesignHook'),
+    SunroofHourlyProductionCalculation,
   ],
-  exports: [SystemDesignService, SystemProductService],
+  exports: [SystemDesignService, SystemProductService, SunroofHourlyProductionCalculation],
 })
 export class SystemDesignModule {}

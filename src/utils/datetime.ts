@@ -30,3 +30,12 @@ export const getMonthDatesOfYear = (year: number): number[] => [
 ];
 
 export const getDatesOfYear = (year: number) => (isLeapYear(year) ? 366 : 365);
+
+export const firstSundayOfTheMonth = (year: number, month: number): number => {
+  const firstDayOfMonth = new Date(year, month - 1, 1);
+  // the day of week (0 = Sunday, 6 = Saturday)
+  const firstDayOfMonthDayOfWeek = firstDayOfMonth.getDay();
+  const daysUntilFirstSunday = (7 - firstDayOfMonthDayOfWeek) % 7;
+  const firstSunday = firstDayOfMonth.getDate() + daysUntilFirstSunday;
+  return firstSunday;
+};
