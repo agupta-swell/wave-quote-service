@@ -1307,20 +1307,24 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
-    const [hourlyPostInstallLoad, systemProductionArray] = await Promise.all([
+    const [hourlyPostInstallLoadInKWh, systemProductionArray] = await Promise.all([
       this.utilityService.getHourlyEstimatedUsage(utility),
       this.systemProductService.calculateSystemProductionByHour(systemDesign),
     ]);
 
-    const hourlySeriesForNewPV = this.utilityService.calculate8760OnActualMonthlyUsage(
+    const hourlySeriesForNewPVInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
       systemProductionArray.hourly,
       systemProduction.generationMonthlyKWh,
     ) as number[];
 
+    const hourlySeriesForNewPVInWh = hourlySeriesForNewPVInKWh.map(e => e * 1000);
+
+    const hourlyPostInstallLoadInWh = hourlyPostInstallLoadInKWh.map(e => e * 1000);
+
     const simulatePinballData = await this.utilityService.simulatePinball({
-      hourlyPostInstallLoad,
+      hourlyPostInstallLoad: hourlyPostInstallLoadInWh,
       hourlySeriesForExistingPV: [],
-      hourlySeriesForNewPV,
+      hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
       postInstallMasterTariffId: utility.costData.masterTariffId,
       batterySystemSpecs: {
         totalRatingInKW: sumBy(
@@ -1331,7 +1335,7 @@ export class SystemDesignService {
           systemDesign.roofTopDesignData.storage,
           item => item.storageModelDataSnapshot.ratings.kilowattHours || 0,
         ),
-        roundTripEfficiency: systemDesign.roofTopDesignData.storage[0].roundTripEfficiency,
+        roundTripEfficiency: systemDesign.roofTopDesignData.storage[0]?.roundTripEfficiency || 0,
         minimumReserve:
           systemDesign.roofTopDesignData.storage[0].purpose === BATTERY_PURPOSE.BACKUP_POWER
             ? systemDesign.roofTopDesignData.storage[0].reservePercentage
