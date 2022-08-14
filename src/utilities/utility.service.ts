@@ -696,7 +696,7 @@ export class UtilityService implements OnModuleInit {
       if (plannedBatteryAC[i] > 0) {
         plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber());
       } else {
-        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber());
+        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber() || 0);
       }
 
       // Battery Stored Energy

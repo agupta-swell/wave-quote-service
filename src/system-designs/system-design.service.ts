@@ -1321,27 +1321,22 @@ export class SystemDesignService {
 
     const hourlyPostInstallLoadInWh = hourlyPostInstallLoadInKWh.map(e => e * 1000);
 
+    const { storage } = systemDesign.roofTopDesignData;
+
     const simulatePinballData = await this.utilityService.simulatePinball({
       hourlyPostInstallLoad: hourlyPostInstallLoadInWh,
       hourlySeriesForExistingPV: [],
       hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
       postInstallMasterTariffId: utility.costData.masterTariffId,
       batterySystemSpecs: {
-        totalRatingInKW: sumBy(
-          systemDesign.roofTopDesignData.storage,
-          item => item.storageModelDataSnapshot.ratings.kilowatts || 0,
-        ),
-        totalCapacityInKWh: sumBy(
-          systemDesign.roofTopDesignData.storage,
-          item => item.storageModelDataSnapshot.ratings.kilowattHours || 0,
-        ),
-        roundTripEfficiency: systemDesign.roofTopDesignData.storage[0]?.roundTripEfficiency || 0,
+        totalRatingInKW: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowatts || 0),
+        totalCapacityInKWh: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowattHours || 0),
+        roundTripEfficiency: storage[0]?.roundTripEfficiency || 0,
         minimumReserve:
-          systemDesign.roofTopDesignData.storage[0].purpose === BATTERY_PURPOSE.BACKUP_POWER
-            ? systemDesign.roofTopDesignData.storage[0].reservePercentage
-            : sumBy(systemDesign.roofTopDesignData.storage, item => item.reservePercentage || 0) /
-              systemDesign.roofTopDesignData.storage.length,
-        operationMode: systemDesign.roofTopDesignData.storage[0].purpose,
+          storage[0]?.purpose === BATTERY_PURPOSE.BACKUP_POWER
+            ? storage[0]?.reservePercentage
+            : sumBy(storage, item => item.reservePercentage || 0) / storage.length || 0,
+        operationMode: storage[0]?.purpose || BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
       },
     });
 
