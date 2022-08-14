@@ -10,7 +10,7 @@ import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
 
 @Injectable()
 export class EnergyProfileService {
-  private PINBALL_SIMULATE_BUCKET = process.env.AWS_S3_PINBALL_SIMULATE as string;
+  private PINBALL_SIMULATION_BUCKET = process.env.AWS_S3_PINBALL_SIMULATION as string;
 
   constructor(
     @Inject(forwardRef(() => SystemDesignService))
@@ -53,7 +53,7 @@ export class EnergyProfileService {
   }
 
   async getBatteryChargingSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
-    const res = await this.s3Service.getObject(this.PINBALL_SIMULATE_BUCKET, `${systemDesignId}/batteryChargingSeries`);
+    const res = await this.s3Service.getObject(this.PINBALL_SIMULATION_BUCKET, `${systemDesignId}/batteryChargingSeries`);
 
     if (!res) {
       throw new NotFoundException(
@@ -67,7 +67,7 @@ export class EnergyProfileService {
 
   async getBatteryDischargingSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
     const res = await this.s3Service.getObject(
-      this.PINBALL_SIMULATE_BUCKET,
+      this.PINBALL_SIMULATION_BUCKET,
       `${systemDesignId}/batteryDischargingSeries`,
     );
     if (!res) {

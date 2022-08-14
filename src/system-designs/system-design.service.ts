@@ -64,7 +64,7 @@ import {
 export class SystemDesignService {
   private SYSTEM_DESIGN_S3_BUCKET = process.env.AWS_S3_BUCKET as string;
 
-  private PINBALL_SIMULATE_BUCKET = process.env.AWS_S3_PINBALL_SIMULATE as string;
+  private PINBALL_SIMULATION_BUCKET = process.env.AWS_S3_PINBALL_SIMULATION as string;
 
   constructor(
     // @ts-ignore
@@ -1354,7 +1354,7 @@ export class SystemDesignService {
         'batteryDischargingSeries',
       ].map(series =>
         this.s3Service.putObject(
-          this.PINBALL_SIMULATE_BUCKET,
+          this.PINBALL_SIMULATION_BUCKET,
           `${systemDesign.id}/${series}`,
           JSON.stringify(simulatePinballData[series]),
           'application/json; charset=utf-8',
