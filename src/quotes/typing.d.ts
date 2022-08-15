@@ -35,5 +35,15 @@ export interface IPayPeriodData {
 }
 
 export interface ILaborCost extends Omit<ILaborCostSchema, 'laborCostType'> {
-  laborCostType: string | ELaborCostType
+  laborCostType: string | ELaborCostType;
+}
+
+export interface ICreateProductAttribute {
+  productType: string;
+  netAmount: number;
+  financialProductSnapshot: LeanDocument<FinancialProduct>;
+  currentPricePerKWh: number;
+  newPricePerKWh: number;
+  currentAverageMonthlyBill: number;
+  newAverageMonthlyBill: number;
 }

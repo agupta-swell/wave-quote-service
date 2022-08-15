@@ -1315,9 +1315,8 @@ export class SystemDesignService {
       ...savePinballToS3Requests,
     ]);
 
-    this.systemDesignModel.findOneAndUpdate(
-      { _id: systemDesign.id },
-      { costPostInstallation: monthlyCost as IUtilityCostData },
-    );
+    this.systemDesignModel
+      .updateOne({ _id: systemDesign.id }, { costPostInstallation: monthlyCost as IUtilityCostData })
+      .catch(error => console.error(error));
   }
 }
