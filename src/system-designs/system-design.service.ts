@@ -1307,10 +1307,8 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
-    const [hourlyPostInstallLoadInKWh, systemProductionArray] = await Promise.all([
-      this.utilityService.getHourlyEstimatedUsage(utility),
-      this.systemProductService.calculateSystemProductionByHour(systemDesign),
-    ]);
+    const hourlyPostInstallLoadInKWh = this.utilityService.getHourlyEstimatedUsage(utility);
+    const systemProductionArray = await this.systemProductService.calculateSystemProductionByHour(systemDesign);
 
     const hourlySeriesForNewPVInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
       systemProductionArray.hourly,
