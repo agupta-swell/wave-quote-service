@@ -29,6 +29,7 @@ import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { ISystemProduction as ISystemProduction_v2 } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
+import { IUtilityCostData } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
 import { CALCULATION_MODE } from '../utilities/constants';
@@ -352,22 +353,6 @@ export class SystemDesignService {
       systemDesign.systemProductionId = newSystemProduction.data.id;
     }
 
-    const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-      (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
-      systemProductionArray.hourly,
-    );
-
-    const costPostInstallation = await this.utilityService.calculateCost(
-      netUsagePostInstallation.hourlyNetUsage,
-      utilityAndUsage?.costData?.masterTariffId || '',
-      CALCULATION_MODE.TYPICAL,
-      new Date().getFullYear(),
-      utilityAndUsage?.utilityData?.typicalBaselineUsage?.zipCode,
-    );
-
-    systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
-    systemDesign.setCostPostInstallation(costPostInstallation);
-
     const createdSystemDesign = new this.systemDesignModel(systemDesign);
 
     const newSystemDesign = (await createdSystemDesign.save()).toJSON();
@@ -516,22 +501,6 @@ export class SystemDesignService {
         pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
       });
 
-      const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-        (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
-        systemProductionArray.hourly,
-      );
-
-      const costPostInstallation = await this.utilityService.calculateCost(
-        netUsagePostInstallation.hourlyNetUsage,
-        utilityAndUsage?.costData?.masterTariffId || '',
-        CALCULATION_MODE.TYPICAL,
-        new Date().getFullYear(),
-        utilityAndUsage?.utilityData?.typicalBaselineUsage?.zipCode,
-      );
-
-      systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
-      systemDesign.setCostPostInstallation(costPostInstallation);
-
       if (dispatch) {
         await dispatch(systemDesign);
       }
@@ -620,22 +589,6 @@ export class SystemDesignService {
         arrayGenerationKWh,
         pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
       });
-
-      const netUsagePostInstallation = this.systemProductService.calculateNetUsagePostSystemInstallation(
-        (utilityAndUsage?.utilityData?.computedUsage?.hourlyUsage || []).map(item => item.v),
-        systemProductionArray.hourly,
-      );
-
-      const costPostInstallation = await this.utilityService.calculateCost(
-        netUsagePostInstallation.hourlyNetUsage,
-        utilityAndUsage?.costData?.masterTariffId || '',
-        CALCULATION_MODE.TYPICAL,
-        new Date().getFullYear(),
-        utilityAndUsage?.utilityData?.typicalBaselineUsage?.zipCode,
-      );
-
-      systemDesign.setNetUsagePostInstallation(netUsagePostInstallation);
-      systemDesign.setCostPostInstallation(costPostInstallation);
 
       if (dispatch) {
         await dispatch(systemDesign);
@@ -1339,20 +1292,32 @@ export class SystemDesignService {
     });
 
     // save simulatePinballData to s3
-    await Promise.all(
-      [
-        'postInstallSiteDemandSeries',
-        'batteryStoredEnergySeries',
-        'batteryChargingSeries',
-        'batteryDischargingSeries',
-      ].map(series =>
-        this.s3Service.putObject(
-          this.PINBALL_SIMULATION_BUCKET,
-          `${systemDesign.id}/${series}`,
-          JSON.stringify(simulatePinballData[series]),
-          'application/json; charset=utf-8',
-        ),
+    const savePinballToS3Requests = [
+      'postInstallSiteDemandSeries',
+      'batteryStoredEnergySeries',
+      'batteryChargingSeries',
+      'batteryDischargingSeries',
+    ].map(series =>
+      this.s3Service.putObject(
+        this.PINBALL_SIMULATION_BUCKET,
+        `${systemDesign.id}/${series}`,
+        JSON.stringify(simulatePinballData[series]),
+        'application/json; charset=utf-8',
       ),
+    );
+
+    const [monthlyCost] = await Promise.all([
+      this.utilityService.calculateCost(
+        simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
+        utility.costData.postInstallMasterTariffId,
+        CALCULATION_MODE.ACTUAL,
+      ),
+      ...savePinballToS3Requests,
+    ]);
+
+    this.systemDesignModel.findOneAndUpdate(
+      { _id: systemDesign.id },
+      { costPostInstallation: monthlyCost as IUtilityCostData },
     );
   }
 }
