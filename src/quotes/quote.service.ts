@@ -173,13 +173,11 @@ export class QuoteService {
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
     const postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
 
-    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2);
-    const currentPricePerKWh = roundNumber(
-      currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption,
-      2,
-    );
-    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2);
-    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2);
+    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
+    const currentPricePerKWh =
+      roundNumber(currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption, 2) || 0;
+    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
+    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
     const productAttribute = await this.createProductAttribute({
       productType: fundingSource.type,
@@ -443,13 +441,11 @@ export class QuoteService {
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
     const postInstallAnnualCost = sumBy(foundSystemDesign.costPostInstallation.cost, item => item.v);
 
-    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2);
-    const currentPricePerKWh = roundNumber(
-      currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption,
-      2,
-    );
-    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2);
-    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2);
+    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
+    const currentPricePerKWh =
+      roundNumber(currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption, 2) || 0;
+    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
+    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
     let productAttribute = await this.createProductAttribute({
       productType: financeProduct.productType,
@@ -759,13 +755,11 @@ export class QuoteService {
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
     const postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
 
-    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2);
-    const currentPricePerKWh = roundNumber(
-      currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption,
-      2,
-    );
-    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2);
-    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2);
+    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
+    const currentPricePerKWh =
+      roundNumber(currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption, 2) || 0;
+    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
+    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
     let productAttribute = await this.createProductAttribute({
       productType: financeProduct.productType,
