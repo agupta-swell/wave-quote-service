@@ -295,6 +295,9 @@ export class UtilityService implements OnModuleInit {
       utilityModel.setComputedHourlyUsage(computedHourlyUsage);
     }
 
+    const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
+    utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
+
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
 
     await createdUtility.save();
