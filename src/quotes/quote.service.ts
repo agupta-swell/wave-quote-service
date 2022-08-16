@@ -9,7 +9,6 @@ import { ApplicationException } from 'src/app/app.exception';
 import { ContractService } from 'src/contracts/contract.service';
 import { DiscountService } from 'src/discounts/discount.service';
 import { IExistingSystem } from 'src/existing-systems/interfaces';
-import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
@@ -65,6 +64,7 @@ import { QuoteDto } from './res';
 import { QuoteCostBuildupUserInputDto } from './res/sub-dto';
 import { ITC, I_T_C } from './schemas';
 import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
+import { ICreateProductAttribute } from './typing';
 
 @Injectable()
 export class QuoteService {
@@ -103,15 +103,26 @@ export class QuoteService {
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
-    const [systemDesign, quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
+    const [
+      systemDesign,
+      quoteConfigData,
+      taxCreditData,
+      opportunityRelatedInformation,
+      utilityData,
+    ] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
       this.opportunityService.getRelatedInformation(data.opportunityId),
+      this.utilityService.getUtilityByOpportunityId(data.opportunityId),
     ]);
 
     if (!systemDesign) {
-      throw ApplicationException.EntityNotFound('system Design');
+      throw ApplicationException.EntityNotFound('System Design');
+    }
+
+    if (!utilityData) {
+      throw ApplicationException.EntityNotFound('Utility Data');
     }
 
     if (
@@ -159,11 +170,26 @@ export class QuoteService {
 
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
-    const productAttribute = await this.createProductAttribute(
-      fundingSource.type,
-      quoteCostBuildup.projectGrandTotal.netCost,
-      financialProduct,
+    const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
+    const postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
+
+    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2);
+    const currentPricePerKWh = roundNumber(
+      currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption,
+      2,
     );
+    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2);
+    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2);
+
+    const productAttribute = await this.createProductAttribute({
+      productType: fundingSource.type,
+      netAmount: quoteCostBuildup.projectGrandTotal.netCost,
+      financialProductSnapshot: financialProduct,
+      currentPricePerKWh,
+      newPricePerKWh,
+      currentAverageMonthlyBill,
+      newAverageMonthlyBill,
+    });
 
     productAttribute.upfrontPayment = this.calculateUpfrontPayment(
       minDownPayment,
@@ -304,11 +330,16 @@ export class QuoteService {
       }
     }
 
-    const [markupConfig, taxCreditData, opportunityRelatedInformation] = await Promise.all([
+    const [markupConfig, taxCreditData, opportunityRelatedInformation, utilityData] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
       this.opportunityService.getRelatedInformation(foundQuote.opportunityId),
+      this.utilityService.getUtilityByOpportunityId(foundQuote.opportunityId),
     ]);
+
+    if (!utilityData) {
+      throw ApplicationException.EntityNotFound('Utility Data');
+    }
 
     const newDoc = omit(foundQuote, ['_id', 'createdAt', 'updatedAt']);
 
@@ -409,11 +440,26 @@ export class QuoteService {
         currentProjectPrice = 0;
     }
 
-    let productAttribute = await this.createProductAttribute(
-      financeProduct.productType,
-      currentProjectPrice,
-      financialProductSnapshot,
+    const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
+    const postInstallAnnualCost = sumBy(foundSystemDesign.costPostInstallation.cost, item => item.v);
+
+    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2);
+    const currentPricePerKWh = roundNumber(
+      currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption,
+      2,
     );
+    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2);
+    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2);
+
+    let productAttribute = await this.createProductAttribute({
+      productType: financeProduct.productType,
+      netAmount: currentProjectPrice,
+      financialProductSnapshot,
+      currentPricePerKWh,
+      newPricePerKWh,
+      currentAverageMonthlyBill,
+      newAverageMonthlyBill,
+    });
 
     const { productAttribute: product_attribute } = financeProduct as any;
 
@@ -446,7 +492,6 @@ export class QuoteService {
         productAttribute = {
           ...productAttribute,
           upfrontPayment: product_attribute.upfrontPayment,
-          newAverageMonthlyBill: productAttribute.currentAverageMonthlyBill - avgMonthlySavings,
         } as CashProductAttributesDto;
         break;
       }
@@ -545,15 +590,19 @@ export class QuoteService {
     return OperationResult.ok(strictPlainToClass(QuoteDto, model.toJSON()));
   }
 
-  async createProductAttribute(
-    productType: string,
-    netAmount: number,
-    financeProductSnapshot: LeanDocument<FinancialProduct>,
-  ): Promise<any> {
+  async createProductAttribute({
+    productType,
+    netAmount,
+    financialProductSnapshot,
+    currentPricePerKWh = 0,
+    newPricePerKWh = 0,
+    currentAverageMonthlyBill = 0,
+    newAverageMonthlyBill = 0,
+  }: ICreateProductAttribute): Promise<any> {
     // TODO: Refactor this function with correct params and default value.
     let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
 
-    const { defaultDownPayment, interestRate, terms, termMonths } = financeProductSnapshot;
+    const { defaultDownPayment, interestRate, terms, termMonths } = financialProductSnapshot;
 
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
@@ -573,10 +622,12 @@ export class QuoteService {
           netCustomerEnergySpend: 0,
           returnOnInvestment: 0,
           payBackPeriod: 0,
-          currentPricePerKWh: 0,
-          newPricePerKWh: 0,
+          currentPricePerKWh,
+          newPricePerKWh,
           yearlyLoanPaymentDetails: [],
           reinvestment: [],
+          currentAverageMonthlyBill,
+          newAverageMonthlyBill,
         } as ILoanProductAttributes;
         return template;
 
@@ -592,8 +643,8 @@ export class QuoteService {
           gridServicePayment: 0,
           netCustomerEnergySpend: 0,
           rateEscalator: 0,
-          currentPricePerKWh: 0,
-          newPricePerKWh: 0,
+          currentPricePerKWh,
+          newPricePerKWh,
           yearlyLeasePaymentDetails: [],
           ratePerKWh: 0,
         } as ILeaseProductAttributes;
@@ -612,10 +663,10 @@ export class QuoteService {
             type: cashQuoteConfig?.type,
             config: cashQuoteConfig?.config,
           },
-          currentAverageMonthlyBill: 0,
-          newAverageMonthlyBill: 0,
-          currentPricePerKWh: 0,
-          newPricePerKWh: 0,
+          currentAverageMonthlyBill,
+          newAverageMonthlyBill,
+          currentPricePerKWh,
+          newPricePerKWh,
           cashQuoteConfigSnapshotDate: new Date(),
         } as ICashProductAttributes;
         return template;
@@ -636,12 +687,14 @@ export class QuoteService {
       quotePartnerConfig,
       taxCreditData,
       opportunityRelatedInformation,
+      utilityData,
     ] = await Promise.all([
       this.quoteModel.findById(quoteId).lean(),
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
       this.opportunityService.getRelatedInformation(data.opportunityId),
+      this.utilityService.getUtilityByOpportunityId(data.opportunityId),
     ]);
 
     if (!foundQuote) {
@@ -654,6 +707,10 @@ export class QuoteService {
 
     if (!quotePartnerConfig) {
       throw new NotFoundException('No quote partner config');
+    }
+
+    if (!utilityData) {
+      throw ApplicationException.EntityNotFound('Utility Data');
     }
 
     const opportunityState = opportunityRelatedInformation?.data?.state;
@@ -699,11 +756,27 @@ export class QuoteService {
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
     const avgMonthlySavings = 0;
 
-    let productAttribute = await this.createProductAttribute(
-      financeProduct.productType,
-      quoteCostBuildup.projectGrandTotal.netCost,
-      financialProductSnapshot,
+    const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
+    const postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
+
+    const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2);
+    const currentPricePerKWh = roundNumber(
+      currentAnnualCost / utilityData.utilityData.computedUsage.annualConsumption,
+      2,
     );
+    const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2);
+    const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2);
+
+    let productAttribute = await this.createProductAttribute({
+      productType: financeProduct.productType,
+      netAmount: quoteCostBuildup.projectGrandTotal.netCost,
+      financialProductSnapshot,
+      currentPricePerKWh,
+      newPricePerKWh,
+      currentAverageMonthlyBill,
+      newAverageMonthlyBill,
+    });
+
     const { productAttribute: product_attribute } = financeProduct as any;
     switch (financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE: {
@@ -730,7 +803,6 @@ export class QuoteService {
         productAttribute = {
           ...productAttribute,
           upfrontPayment: product_attribute.upfrontPayment,
-          newAverageMonthlyBill: productAttribute.currentAverageMonthlyBill - avgMonthlySavings,
         } as CashProductAttributesDto;
         break;
       }
@@ -1035,10 +1107,7 @@ export class QuoteService {
       }
 
       default: {
-        (detailedQuote.quoteFinanceProduct.financeProduct
-          .productAttribute as CashProductAttributesDto).newAverageMonthlyBill =
-          (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as CashProductAttributesDto)
-            .currentAverageMonthlyBill - avgMonthlySavings;
+        // do nothing
       }
     }
 
@@ -1460,20 +1529,20 @@ export class QuoteService {
     opportunityId: string,
     systemDesign: SystemDesign | LeanDocument<SystemDesign>,
   ): Promise<number> {
-    const utilityUsage = await this.utilityService.getUtilityUsageDetail(opportunityId);
+    const utilityUsage = await this.utilityService.getUtilityByOpportunityId(opportunityId);
 
     const productionByHour = await this.systemDesignService.calculateSystemProductionByHour(systemDesign);
 
     const oppData = await this.opportunityService.getRelatedInformation(opportunityId);
 
     const savings = await this.savingCalculatorService.getSavings({
-      historicalUsageByHour: utilityUsage.data?.utilityData.computedUsage.hourlyUsage.map(e => e.v),
-      historicalBillsByMonth: utilityUsage.data?.costData.computedCost?.cost.map(e => e.v),
+      historicalUsageByHour: utilityUsage?.utilityData.computedUsage.hourlyUsage.map(e => e.v),
+      historicalBillsByMonth: utilityUsage?.costData.computedCost?.cost.map(e => e.v),
       historicalProductionByHour: productionByHour.hourly, //
       existingBatteryKwh: undefined, // TODO
       additionalBatteryKwh: undefined, // TODO
-      preInstallTariff: utilityUsage.data?.costData.masterTariffId,
-      postInstallTariff: utilityUsage.data?.costData.postInstallMasterTariffId,
+      preInstallTariff: utilityUsage?.costData.masterTariffId,
+      postInstallTariff: utilityUsage?.costData.postInstallMasterTariffId,
       batteryReservePercentage: undefined, // TODO,
       usageProfile: undefined, // TODO
       version: 0, // TODO add env to lambda,

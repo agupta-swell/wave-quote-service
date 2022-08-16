@@ -5,7 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
-import { groupBy, inRange, sumBy } from 'lodash';
+import { groupBy, inRange, sum, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -331,6 +331,9 @@ export class UtilityService implements OnModuleInit {
       utilityModel.setComputedHourlyUsage(hourlyUsage);
     }
 
+    const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
+    utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
+
     const updatedUtility = await this.utilityUsageDetailsModel
       .findOneAndUpdate({ _id: utilityId }, utilityModel, {
         new: true,
@@ -365,7 +368,7 @@ export class UtilityService implements OnModuleInit {
     );
   }
 
-  async getHourlyEstimatedUsage(utility: LeanDocument<UtilityUsageDetails>): Promise<number[]> {
+  getHourlyEstimatedUsage(utility: UtilityUsageDetailsModel | LeanDocument<UtilityUsageDetails>): number[] {
     const {
       utilityData: {
         computedUsage: { annualConsumption, monthlyUsage, hourlyUsage },
@@ -696,7 +699,7 @@ export class UtilityService implements OnModuleInit {
       if (plannedBatteryAC[i] > 0) {
         plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber());
       } else {
-        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber());
+        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber() || 0);
       }
 
       // Battery Stored Energy

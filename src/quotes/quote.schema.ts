@@ -126,6 +126,8 @@ export interface ILoanProductAttributes {
   payBackPeriod: number;
   currentPricePerKWh: number;
   newPricePerKWh: number;
+  currentAverageMonthlyBill: number;
+  newAverageMonthlyBill: number;
   yearlyLoanPaymentDetails: IYearlyLoanPaymentDetails[];
 }
 

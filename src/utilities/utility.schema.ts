@@ -238,6 +238,7 @@ export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   increaseAmount: number;
   increasePercentage: number;
   electricVehicles: IElectricVehicleSnapshot[];
+  totalPlannedUsageIncreases: number;
 }
 
 export type UtilityUsageDetails = Document & IUtilityUsageDetails;
@@ -256,6 +257,7 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   increase_amount: Number,
   increase_percentage: Number,
   electric_vehicles: [ElectricVehicleSnapshotSchema],
+  total_planned_usage_increases: Number,
 });
 
 export interface GenabilityCostData extends Document {
@@ -293,6 +295,8 @@ export class UtilityUsageDetailsModel {
 
   poolValue: number;
 
+  totalPlannedUsageIncreases: number;
+
   constructor(props: CreateUtilityReqDto | any) {
     this.opportunityId = props.opportunityId;
     this.utilityData = props.utilityData;
@@ -313,5 +317,9 @@ export class UtilityUsageDetailsModel {
 
   setComputedHourlyUsage(data: IUsageValue[]) {
     this.utilityData.computedUsage.hourlyUsage = data;
+  }
+
+  setTotalPlannedUsageIncreases(data: number) {
+    this.totalPlannedUsageIncreases = data;
   }
 }
