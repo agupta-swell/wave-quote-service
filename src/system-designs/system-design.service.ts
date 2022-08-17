@@ -1278,7 +1278,7 @@ export class SystemDesignService {
       hourlyPostInstallLoad: hourlyPostInstallLoadInWh,
       hourlySeriesForExistingPV: [],
       hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
-      postInstallMasterTariffId: utility.costData.masterTariffId,
+      postInstallMasterTariffId: utility.costData.postInstallMasterTariffId,
       batterySystemSpecs: {
         totalRatingInKW: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowatts || 0),
         totalCapacityInKWh: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowattHours || 0),
