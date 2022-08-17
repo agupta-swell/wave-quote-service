@@ -171,7 +171,11 @@ export class QuoteService {
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    const postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
+    let postInstallAnnualCost = 0;
+
+    if (systemDesign.costPostInstallation) {
+      postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
+    }
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
