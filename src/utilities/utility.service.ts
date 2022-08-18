@@ -447,10 +447,8 @@ export class UtilityService implements OnModuleInit {
 
     for (let hourIndex = 0; hourIndex < hourlyUsageLoadShapping.length; ++hourIndex) {
       // calculate Planned Usage Increases Kwh
-      hourlyUsageLoadShapping[hourIndex].v += roundNumber(
-        hourlyUsageLoadShapping[hourIndex].v * (increaseAmount / annualConsumption),
-        2,
-      );
+      hourlyUsageLoadShapping[hourIndex].v +=
+        (hourlyUsageLoadShapping[hourIndex].v * increaseAmount) / annualConsumption;
 
       // calculate Pool Usage Kwh
       if (poolUsageKwh) {
