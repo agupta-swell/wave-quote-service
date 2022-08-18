@@ -90,7 +90,6 @@ export const getTypicalUsage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
     },
     usageProfileSnapshot,
     increaseAmount,
-    increasePercentage,
     poolValue,
     electricVehicles = [],
   } = doc;
@@ -101,7 +100,6 @@ export const getTypicalUsage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
       annualConsumption,
       usage: getCSVTypicalUsage(hourlyUsage, currentYear),
       increaseAmount,
-      increasePercentage,
       poolUsageKwh: poolValue / _hourlyUsage.length,
       electricVehicles,
     };
@@ -157,7 +155,6 @@ export const getTypicalUsage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
     annualConsumption,
     usage: [annualTypicalUsageKwh, ...monthlyTypicalUsage] as TypicalUsageKwh,
     increaseAmount,
-    increasePercentage,
     poolUsageKwh: poolValue / (datesOfCurrentYear * 24),
     electricVehicles,
   };

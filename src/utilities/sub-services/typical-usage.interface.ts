@@ -24,7 +24,6 @@ export type WithSeason<T extends IBaseUsage> = T & { typicalUsages: number[] };
 export interface IGetTypicalUsageKwh {
   annualConsumption: number;
   usage: TypicalUsageKwh;
-  increasePercentage: number;
   increaseAmount: number;
   poolUsageKwh: number;
   electricVehicles: IElectricVehicleSnapshot[];

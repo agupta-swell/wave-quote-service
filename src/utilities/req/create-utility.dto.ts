@@ -1,17 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Default, ExposeProp } from 'src/shared/decorators';
 import { Transform, Type } from 'class-transformer';
 import {
+  IsArray,
   IsEnum,
+  IsMongoId,
   IsNotEmpty,
+  IsNumber,
+  IsOptional,
   IsString,
   ValidateNested,
-  IsMongoId,
-  IsOptional,
-  IsArray,
-  IsNumber,
 } from 'class-validator';
 import { ElectricVehicleSnapshotReqDto } from 'src/electric-vehicles/req';
+import { Default, ExposeProp } from 'src/shared/decorators';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto, UtilityDataReqDto } from './sub-dto';
@@ -66,8 +66,4 @@ export class CreateUtilityReqDto {
   @IsNumber()
   @Default()
   increaseAmount: number;
-
-  @IsNumber()
-  @Default()
-  increasePercentage: number;
 }
