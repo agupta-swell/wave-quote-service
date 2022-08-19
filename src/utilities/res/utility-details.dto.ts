@@ -38,10 +38,6 @@ export class UtilityDetailsDto {
   @Default()
   increaseAmount: number;
 
-  @ExposeProp()
-  @Default()
-  increasePercentage: number;
-
   @ExposeProp({ type: [ElectricVehicleSnapshotResDto] })
   electricVehicles: ElectricVehicleSnapshotResDto[];
 

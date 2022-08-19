@@ -236,7 +236,6 @@ export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   poolValue: number;
   entryMode: ENTRY_MODE;
   increaseAmount: number;
-  increasePercentage: number;
   electricVehicles: IElectricVehicleSnapshot[];
   totalPlannedUsageIncreases: number;
 }
@@ -255,7 +254,6 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   updated_by: String,
   ...UsageProfileSnapshotSchema.obj,
   increase_amount: Number,
-  increase_percentage: Number,
   electric_vehicles: [ElectricVehicleSnapshotSchema],
   total_planned_usage_increases: Number,
 });
@@ -289,8 +287,6 @@ export class UtilityUsageDetailsModel {
 
   increaseAmount: number;
 
-  increasePercentage: number;
-
   electricVehicles: IElectricVehicleSnapshot[];
 
   poolValue: number;
@@ -306,7 +302,6 @@ export class UtilityUsageDetailsModel {
     this.usageProfileSnapshotDate = props.usageProfileSnapshotDate;
     this.usageProfileSnapshot = props.usageProfileSnapshot;
     this.increaseAmount = props.increaseAmount;
-    this.increasePercentage = props.increasePercentage;
     this.poolValue = props.poolValue;
     this.electricVehicles = props.electricVehicles ?? [];
   }
