@@ -175,7 +175,7 @@ export class QuoteService {
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    let postInstallAnnualCost = 0;
+    let postInstallAnnualCost = currentAnnualCost;
 
     if (systemDesign.costPostInstallation) {
       postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
@@ -451,7 +451,11 @@ export class QuoteService {
     }
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    const postInstallAnnualCost = sumBy(foundSystemDesign.costPostInstallation.cost, item => item.v);
+    let postInstallAnnualCost = currentAnnualCost;
+
+    if (foundSystemDesign.costPostInstallation) {
+      postInstallAnnualCost = sumBy(foundSystemDesign.costPostInstallation.cost, item => item.v);
+    }
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
@@ -769,7 +773,11 @@ export class QuoteService {
     const avgMonthlySavings = 0;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    const postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
+    let postInstallAnnualCost = currentAnnualCost;
+
+    if (systemDesign.costPostInstallation) {
+      postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
+    }
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
