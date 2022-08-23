@@ -121,6 +121,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('System Design');
     }
 
+    if (systemDesign.isSolar && !systemDesign.roofTopDesignData.inverters.length) {
+      throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
+    }
+
     if (!utilityData) {
       throw ApplicationException.EntityNotFound('Utility Data');
     }
@@ -299,6 +303,10 @@ export class QuoteService {
 
     if (!foundSystemDesign || foundSystemDesign.opportunityId !== foundQuote.opportunityId) {
       throw new NotFoundException('System design not found');
+    }
+
+    if (foundSystemDesign.isSolar && !foundSystemDesign.roofTopDesignData.inverters.length) {
+      throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
     }
 
     let gsPrograms;
@@ -703,6 +711,10 @@ export class QuoteService {
 
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound('system Design');
+    }
+
+    if (systemDesign.isSolar && !systemDesign.roofTopDesignData.inverters.length) {
+      throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
     }
 
     if (!quotePartnerConfig) {
