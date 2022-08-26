@@ -121,6 +121,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('System Design');
     }
 
+    if (systemDesign.isSolar && !systemDesign.roofTopDesignData.inverters.length) {
+      throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
+    }
+
     if (!utilityData) {
       throw ApplicationException.EntityNotFound('Utility Data');
     }
@@ -171,7 +175,7 @@ export class QuoteService {
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    let postInstallAnnualCost = 0;
+    let postInstallAnnualCost = currentAnnualCost;
 
     if (systemDesign.costPostInstallation) {
       postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
@@ -299,6 +303,10 @@ export class QuoteService {
 
     if (!foundSystemDesign || foundSystemDesign.opportunityId !== foundQuote.opportunityId) {
       throw new NotFoundException('System design not found');
+    }
+
+    if (foundSystemDesign.isSolar && !foundSystemDesign.roofTopDesignData.inverters.length) {
+      throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
     }
 
     let gsPrograms;
@@ -443,7 +451,11 @@ export class QuoteService {
     }
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    const postInstallAnnualCost = sumBy(foundSystemDesign.costPostInstallation.cost, item => item.v);
+    let postInstallAnnualCost = currentAnnualCost;
+
+    if (foundSystemDesign.costPostInstallation) {
+      postInstallAnnualCost = sumBy(foundSystemDesign.costPostInstallation.cost, item => item.v);
+    }
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
@@ -705,6 +717,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
+    if (systemDesign.isSolar && !systemDesign.roofTopDesignData.inverters.length) {
+      throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
+    }
+
     if (!quotePartnerConfig) {
       throw new NotFoundException('No quote partner config');
     }
@@ -757,7 +773,11 @@ export class QuoteService {
     const avgMonthlySavings = 0;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    const postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
+    let postInstallAnnualCost = currentAnnualCost;
+
+    if (systemDesign.costPostInstallation) {
+      postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
+    }
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
