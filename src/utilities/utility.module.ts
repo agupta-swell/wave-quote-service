@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
+import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
 import { ExternalServiceModule } from 'src/external-services/external-service.module';
 import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { PipeTypicalUsageInterceptor } from './interceptors/pipe-typical-usage.interceptor';
@@ -61,6 +62,7 @@ import { UtilityService } from './utility.service';
     UsageProfileModule,
     ElectricVehicleModule,
     ExternalServiceModule,
+    ExistingSystemModule
   ],
   controllers: [UtilityController],
   providers: [UtilityService, PipeTypicalUsageInterceptor],

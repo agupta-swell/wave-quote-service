@@ -9,9 +9,13 @@ import { groupBy, inRange, sum, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { ContactService } from 'src/contacts/contact.service';
+import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
+import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { BATTERY_PURPOSE } from 'src/system-designs/constants';
+import { SystemProductService } from 'src/system-designs/sub-services';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
 import { firstSundayOfTheMonth } from 'src/utils/datetime';
@@ -24,7 +28,16 @@ import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE, KWH_PER_GALLON } from './
 import { roundUpNumber } from './operators';
 import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto } from './req';
 import { UsageValue } from './req/sub-dto';
-import { CostDataDto, LoadServingEntity, TariffDto, UtilityDataDto, UtilityDetailsDto } from './res';
+import {
+  ComputedUsageDto,
+  CostDataDto,
+  ExistingSystemProductionDto,
+  LoadServingEntity,
+  TariffDto,
+  UsageValueDto,
+  UtilityDataDto,
+  UtilityDetailsDto,
+} from './res';
 import { PinballSimulatorDto } from './res/pinball-simulator.dto';
 import { UTILITIES, Utilities } from './schemas';
 import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
@@ -36,6 +49,7 @@ import {
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
+  IExistingSystemProduction,
   IUsageValue,
   IUtilityCostData,
   UtilityUsageDetails,
@@ -66,6 +80,12 @@ export class UtilityService implements OnModuleInit {
     @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
     @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
     private readonly usageProfileService: UsageProfileService,
+    private readonly existingSystemService: ExistingSystemService,
+    private readonly systemProductService: SystemProductService,
+    @Inject(forwardRef(() => ContactService))
+    private readonly contactService: ContactService,
+    @Inject(forwardRef(() => OpportunityService))
+    private readonly opportunityService: OpportunityService,
   ) {
     dayjs.extend(dayOfYear);
   }
@@ -746,6 +766,72 @@ export class UtilityService implements OnModuleInit {
 
   async pinballSimulator(data: GetPinballSimulatorDto): Promise<OperationResult<PinballSimulatorDto>> {
     return OperationResult.ok(strictPlainToClass(PinballSimulatorDto, await this.simulatePinball(data)));
+  }
+
+  async getExistingSystemProductionByOpportunityId(opportunityId: string, shouldGetHourlyProduction = false) {
+    const foundOpportunity = await this.opportunityService.getDetailById(opportunityId);
+
+    if (!foundOpportunity) {
+      throw new NotFoundException(`No opportunity found with id: ${opportunityId}`);
+    }
+
+    const [foundContact, existingSystems] = await Promise.all([
+      this.contactService.getContactById(foundOpportunity.contactId),
+      this.existingSystemService.getAll({ opportunityId }),
+    ]);
+
+    if (!foundContact) {
+      throw new NotFoundException(`No contact found with id: ${foundOpportunity.contactId}`);
+    }
+
+    const { lat, lng } = foundContact;
+
+    const existingSystemProductions = await Promise.all(
+      existingSystems.reduce(
+        (prev, current) => [
+          ...prev,
+          ...current.array.map(({ existingPVSize, existingPVAzimuth, existingPVPitch }) =>
+            this.systemProductService.calculatePVProduction({
+              latitude: lat,
+              longitude: lng,
+              systemCapacityInkWh: existingPVSize,
+              azimuth: existingPVAzimuth ?? 180,
+              pitch: existingPVPitch ?? lat,
+              losses: 14,
+              shouldGetHourlyProduction,
+            }),
+          ),
+        ],
+        [],
+      ),
+    );
+
+    const monthlyProduction = existingSystemProductions.reduce(
+      (prev, current) =>
+        current.monthly.map((value, monthIdx) => ({
+          i: monthIdx + 1,
+          v: value + (prev[monthIdx]?.v || 0),
+        })),
+      [] as IUsageValue[],
+    );
+
+    const hourlyProduction = !shouldGetHourlyProduction
+      ? []
+      : existingSystemProductions.reduce(
+          (prev, current) => current.hourly.map((value, hourIndex) => value / 1000 + (prev[hourIndex] || 0)),
+          [],
+        );
+
+    return {
+      monthlyProduction,
+      annualProduction: sumBy(monthlyProduction, 'v'),
+      hourlyProduction,
+    };
+  }
+
+  async getExistingSystemProduction(opportunityId: string): Promise<OperationResult<ExistingSystemProductionDto>> {
+    const res = await this.getExistingSystemProductionByOpportunityId(opportunityId, true);
+    return OperationResult.ok(strictPlainToClass(ExistingSystemProductionDto, res));
   }
 
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----

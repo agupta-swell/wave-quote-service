@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { ValidateAndSnapshotElectricVehiclesPipe } from 'src/electric-vehicles/pipes';
+import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { TransformTypicalUsage } from './interceptors';
@@ -17,6 +18,7 @@ import {
 import { ValidateAndSnapshotUsageProfilePipe } from './pipes';
 import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto } from './req';
 import {
+  ComputedUsageDto,
   CostDataDto,
   GetDataSeriesResDto,
   LoadServingEntity,
@@ -145,6 +147,17 @@ export class UtilityController {
   @ApiOkResponse({ type: GetDataSeriesResDto })
   async pinballSimulator(@Body() data: GetPinballSimulatorDto): Promise<ServiceResponse<PinballSimulatorDto>> {
     const res = await this.utilityService.pinballSimulator(data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @UseAsyncContext
+  @Get('/:opportunityId/existing-system-production')
+  @ApiOperation({ summary: 'Get existing system production data' })
+  @ApiOkResponse({ type: ComputedUsageDto })
+  async getExisingSystemProduction(
+    @Param('opportunityId') opportunityId: string,
+  ): Promise<ServiceResponse<ComputedUsageDto>> {
+    const res = await this.utilityService.getExistingSystemProduction(opportunityId);
     return ServiceResponse.fromResult(res);
   }
 }

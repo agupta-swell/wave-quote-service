@@ -36,6 +36,11 @@ export interface IGenabilityTypicalBaseLine extends Document {
   typicalMonthlyUsage: IUsageValue[];
 }
 
+export interface IExistingSystemProduction {
+  annualProduction: number;
+  monthlyProduction: IUsageValue[];
+}
+
 const GenabilityTypicalBaseLineSchema = new Schema<IGenabilityTypicalBaseLine>({
   zip_code: Number,
   building_type: String,

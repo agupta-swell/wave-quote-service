@@ -1,5 +1,6 @@
 import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { IHistoricalUsage } from 'src/utilities/res';
+import { IExistingSystemProduction } from 'src/utilities/utility.schema';
 import { IGetEnergyProfile } from '../energy-profile.interface';
 
 export class GetEnergyProfile {
@@ -11,8 +12,10 @@ export class GetEnergyProfile {
 
   public batteryDischargingSeries: IEnergyProfileProduction;
 
+  public existingSystemProduction: IExistingSystemProduction;
+
   constructor(props: IGetEnergyProfile) {
-    const { usage, solarProduction, batteryChargingSeries, batteryDischargingSeries } = props;
+    const { usage, solarProduction, batteryChargingSeries, batteryDischargingSeries, existingSystemProduction } = props;
 
     const [annualUsage, ...monthlyUsage] = usage;
 
@@ -24,6 +27,7 @@ export class GetEnergyProfile {
     this.solarProduction = solarProduction;
     this.batteryChargingSeries = batteryChargingSeries;
     this.batteryDischargingSeries = batteryDischargingSeries;
+    this.existingSystemProduction = existingSystemProduction;
   }
 }
 
