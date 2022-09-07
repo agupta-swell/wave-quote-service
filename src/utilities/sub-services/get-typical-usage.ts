@@ -87,6 +87,7 @@ export const getTypicalUsage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
   const {
     utilityData: {
       computedUsage: { monthlyUsage, annualConsumption, hourlyUsage: _hourlyUsage },
+      typicalBaselineUsage: { typicalMonthlyUsage, typicalHourlyUsage },
     },
     usageProfileSnapshot,
     increaseAmount,
@@ -104,8 +105,65 @@ export const getTypicalUsage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
       electricVehicles,
     };
   }
+  if (!usageProfileSnapshot) {
+    const daysOfYear = 365;
+    const typicalHourlyAllocation: number[] = [];
 
-  if (!usageProfileSnapshot?.seasons) {
+    const typicalHourlyUsageLength = typicalHourlyUsage.length;
+    const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const typicalMonthlyUsageResult = typicalMonthlyUsage.map((usage, monthIndex) => {
+      const _typicalHourlyAllocation: number[] = [];
+      const numberOfDays = datesInMonths[monthIndex];
+      const baselineRate = monthlyUsage[monthIndex].v / usage.v;
+
+      let start = 0;
+      let end = 0;
+
+      for (let i = 0; i < monthIndex + 1; ++i) {
+        start = end;
+        end += datesInMonths[i] * 24;
+      }
+
+      for (let i = start; i < end; ++i) {
+        const hourIndex = i % 24;
+        _typicalHourlyAllocation[hourIndex] = (_typicalHourlyAllocation[hourIndex] || 0) + typicalHourlyUsage[i].v;
+      }
+
+      for (let i = 0; i < 24; ++i) {
+        _typicalHourlyAllocation[i] = (_typicalHourlyAllocation[i] / numberOfDays) * baselineRate;
+      }
+
+      const typicalUsageKwh = _typicalHourlyAllocation;
+      typicalUsageKwh.push(typicalUsageKwh[0]);
+      return typicalUsageKwh;
+    });
+    const annualUsage = typicalMonthlyUsage.reduce((prev, cur) => prev + cur.v, 0);
+    const start = 0;
+    const end = Math.min(typicalHourlyUsageLength, daysOfYear * 24);
+    const baselineRate = annualConsumption / annualUsage;
+
+    for (let i = start; i < end; ++i) {
+      const hourIndex = i % 24;
+      typicalHourlyAllocation[hourIndex] = (typicalHourlyAllocation[hourIndex] || 0) + typicalHourlyUsage[i].v;
+    }
+
+    for (let i = 0; i < 24; ++i) {
+      typicalHourlyAllocation[i] = (typicalHourlyAllocation[i] / daysOfYear) * baselineRate;
+    }
+
+    const typicalUsageKwh = typicalHourlyAllocation;
+    typicalUsageKwh.push(typicalUsageKwh[0]);
+    const annualTypicalUsageKwh = typicalUsageKwh;
+
+    return {
+      annualConsumption,
+      usage: [annualTypicalUsageKwh, ...typicalMonthlyUsageResult] as TypicalUsageKwh,
+      increaseAmount,
+      poolUsageKwh: poolValue / (daysOfYear * 24),
+      electricVehicles,
+    };
+  }
+  if (!usageProfileSnapshot.seasons) {
     throw new Error('Missing seasons');
   }
 
