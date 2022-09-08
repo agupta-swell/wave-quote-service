@@ -19,6 +19,7 @@ export class EnergyProfileService {
     private readonly sunroofHourlyProductionCalculationService: SunroofHourlyProductionCalculation,
     private readonly systemProductionService: SystemProductionService,
     private readonly s3Service: S3Service,
+    @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
   ) {}
 

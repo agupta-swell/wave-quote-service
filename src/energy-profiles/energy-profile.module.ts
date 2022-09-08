@@ -14,7 +14,6 @@ import { EnergyProfileService } from './energy-profile.service';
       useClass: JwtConfigService,
     }),
     SystemDesignModule,
-    UtilityModule,
     SystemProductionModule,
     AwsModule,
   ],
