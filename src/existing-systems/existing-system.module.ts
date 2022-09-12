@@ -1,9 +1,8 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
-import { OpportunityModule } from 'src/opportunities/opportunity.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { EXISTING_SYSTEM_COLL } from './constants';
 import { ExistingSystemController } from './existing-system.controller';
@@ -23,7 +22,6 @@ import { ValidateCreateExistingSystemPipe } from './pipes';
         collection: EXISTING_SYSTEM_COLL,
       },
     ]),
-    forwardRef(() => OpportunityModule),
     ManufacturerModule,
     ProductModuleV2,
   ],

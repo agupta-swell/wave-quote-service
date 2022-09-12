@@ -6,6 +6,7 @@ import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { PvWattProductionDto } from 'src/system-production/res';
 import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
+import { UtilityService } from 'src/utilities/utility.service';
 import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
 
 @Injectable()
@@ -18,6 +19,8 @@ export class EnergyProfileService {
     private readonly sunroofHourlyProductionCalculationService: SunroofHourlyProductionCalculation,
     private readonly systemProductionService: SystemProductionService,
     private readonly s3Service: S3Service,
+    @Inject(forwardRef(() => UtilityService))
+    private readonly utilityService: UtilityService,
   ) {}
 
   async getPvWattProduction(systemDesignId: ObjectId): Promise<PvWattProductionDto | undefined> {
@@ -87,5 +90,14 @@ export class EnergyProfileService {
     }
 
     return buildMonthlyAndAnnuallyDataFrom8760(result);
+  }
+
+  async getExistingSystemProductionSeries(opportunityId: string): Promise<IEnergyProfileProduction> {
+    const existingSystemProduction = await this.utilityService.getExistingSystemProductionByOpportunityId(
+      opportunityId,
+      true,
+    );
+
+    return buildMonthlyAndAnnuallyDataFrom8760(existingSystemProduction.hourlyProduction);
   }
 }

@@ -28,7 +28,7 @@ interface ICalculatePVProduction {
   azimuth: number;
   pitch: number;
   losses: number;
-  shouldGetHourlyProduction: boolean;
+  shouldGetHourlyProduction?: boolean;
 }
 export interface ISystemProduction {
   hourly: number[];

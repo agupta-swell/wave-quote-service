@@ -29,10 +29,12 @@ export class CreateExistingSystemDto {
 
   @ApiProperty()
   @IsString()
+  @IsOptional()
   originalInstaller: string;
 
   @ApiProperty()
   @IsInt()
+  @IsOptional()
   yearSystemInstalled: number;
 
   @ApiProperty()
@@ -42,17 +44,26 @@ export class CreateExistingSystemDto {
   inverterType?: INVERTER_TYPE;
 
   @ApiProperty()
-  @IsEnum(FINANCE_TYPE_EXISTING_SOLAR)
-  financeType: FINANCE_TYPE_EXISTING_SOLAR;
-
-  @ApiProperty()
   @IsMongoId()
   @ValidateIf((_, value) => value !== null && value !== undefined)
+  @IsOptional()
   inverterManufacturerId?: string;
 
   @ApiProperty()
   @IsString()
+  @IsOptional()
   inverterModel: string;
+
+  @ApiProperty()
+  @IsEnum(FINANCE_TYPE_EXISTING_SOLAR)
+  @IsOptional()
+  financeType: FINANCE_TYPE_EXISTING_SOLAR;
+
+  @ApiProperty()
+  @IsString()
+  @ValidateIf(o => o?.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO)
+  @IsOptional()
+  tpoFundingSource?: string;
 
   @ApiProperty({
     type: [ModifyExistingSystemArrayDto],
@@ -69,9 +80,4 @@ export class CreateExistingSystemDto {
   @IsOptional()
   @ValidateNested({ each: true })
   storages?: ModifyExistingSystemStorageReqDto[];
-
-  @ApiProperty()
-  @IsString()
-  @ValidateIf(o => o?.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO)
-  tpoFundingSource?: string;
 }

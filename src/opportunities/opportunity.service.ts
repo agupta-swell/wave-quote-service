@@ -37,6 +37,7 @@ export class OpportunityService {
     private readonly fundingSourceService: FundingSourceService,
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
+    @Inject(forwardRef(() => ExistingSystemService))
     private readonly existingSystemService: ExistingSystemService,
   ) {}
 

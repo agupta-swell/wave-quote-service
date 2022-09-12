@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@
 import { ObjectId } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
 import { PreAuthenticate } from 'src/app/securities';
+import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { ExistingSystemService } from './existing-system.service';
 import { ICreateExistingSystem } from './interfaces/create-existing-system.interface';
@@ -12,7 +13,7 @@ import { ExistingSystemResDto } from './res';
 
 @ApiTags('Existing Systems')
 @ApiBearerAuth()
-@Controller('existing-systems')
+@Controller('/existing-systems')
 @PreAuthenticate()
 export class ExistingSystemController {
   constructor(private readonly existingSystemService: ExistingSystemService) {}
@@ -35,6 +36,7 @@ export class ExistingSystemController {
     return ServiceResponse.fromResult(res);
   }
 
+  @UseAsyncContext
   @Put('/:id')
   @ApiOperation({ summary: 'Update existing system' })
   async update(

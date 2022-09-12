@@ -263,7 +263,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
 
     await Promise.all([
-      systemProduction.save,
+      systemProduction.save(),
       this.sunroofHourlyProductionCalculation.calculateClippingSunroofProduction(
         systemDesign,
         systemProduction,

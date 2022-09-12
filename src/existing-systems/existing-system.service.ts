@@ -1,10 +1,13 @@
-import { Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { forwardRef, Inject, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, LeanDocument, Model, ObjectId } from 'mongoose';
 import { OperationResult } from 'src/app/common';
+import { ContactService } from 'src/contacts/contact.service';
+import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { SystemProductService } from 'src/system-designs/sub-services';
 import { EXISTING_SYSTEM_COLL } from './constants';
-import { ExistingSystemDocument, UpdateExistingSystem } from './interfaces';
+import { ExistingSystemDocument, IExistingSystem, UpdateExistingSystem } from './interfaces';
 import { ICreateExistingSystem } from './interfaces/create-existing-system.interface';
 import { ExistingSystemResDto } from './res/existing-system.res.dto';
 
@@ -14,6 +17,11 @@ export class ExistingSystemService implements OnModuleInit {
   constructor(
     @InjectModel(EXISTING_SYSTEM_COLL)
     private readonly existingSystemModel: Model<ExistingSystemDocument>,
+    @Inject(forwardRef(() => OpportunityService))
+    private readonly opportunityService: OpportunityService,
+    @Inject(forwardRef(() => ContactService))
+    private readonly contactService: ContactService,
+    private readonly systemProductService: SystemProductService,
   ) {}
 
   async onModuleInit() {
@@ -93,6 +101,7 @@ export class ExistingSystemService implements OnModuleInit {
     this.patchExistingSystem(found, body);
 
     await found.save();
+    await this.calculatePVWattProductions(found);
 
     return OperationResult.ok(strictPlainToClass(ExistingSystemResDto, found.toJSON()));
   }
@@ -117,5 +126,43 @@ export class ExistingSystemService implements OnModuleInit {
     Object.entries(p).forEach(([key, value]) => {
       existingSystem[key] = value;
     });
+  }
+
+  private async calculatePVWattProductions(existingSystem: IExistingSystem) {
+    const { array: arrays, opportunityId } = existingSystem;
+
+    if (!arrays?.length) {
+      return;
+    }
+
+    const foundOpportunity = await this.opportunityService.getDetailById(opportunityId);
+
+    if (!foundOpportunity) {
+      throw new NotFoundException(`No opportunity found with id: ${opportunityId}`);
+    }
+
+    const foundContact = await this.contactService.getContactById(foundOpportunity.contactId);
+
+    if (!foundContact) {
+      throw new NotFoundException(`No contact found with id: ${foundOpportunity.contactId}`);
+    }
+
+    const { lat, lng } = foundContact;
+
+    // Because we cache PVWatt data by lat, lng, and PV Size
+    const uniqueExistingArraysByPVSize = [...new Map(arrays.map(array => [array.existingPVSize, array])).values()];
+ 
+    await Promise.all(
+      uniqueExistingArraysByPVSize.map(({ existingPVSize, existingPVAzimuth, existingPVPitch }) =>
+        this.systemProductService.calculatePVProduction({
+          latitude: lat,
+          longitude: lng,
+          systemCapacityInkWh: existingPVSize,
+          azimuth: existingPVAzimuth ?? 180,
+          pitch: existingPVPitch ?? lat,
+          losses: 14,
+        }),
+      ),
+    );
   }
 }

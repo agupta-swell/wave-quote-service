@@ -25,11 +25,13 @@ export class UpdateExistingSystemDto {
 
   @ApiProperty()
   @IsString()
+  @IsOptional()
   originalInstaller: string;
 
   @ApiProperty()
   @IsInt()
-  yearSystemInstalled: number; //
+  @IsOptional()
+  yearSystemInstalled: number;
 
   @ApiProperty()
   @IsEnum(INVERTER_TYPE)
@@ -38,17 +40,26 @@ export class UpdateExistingSystemDto {
   inverterType: INVERTER_TYPE;
 
   @ApiProperty()
-  @IsEnum(FINANCE_TYPE_EXISTING_SOLAR)
-  financeType: FINANCE_TYPE_EXISTING_SOLAR; //
-
-  @ApiProperty()
   @IsMongoId()
   @ValidateIf((_, value) => value !== null && value !== undefined)
-  inverterManufacturerId?: string; //
+  @IsOptional()
+  inverterManufacturerId?: string;
 
   @ApiProperty()
   @IsString()
-  inverterModel: string; //
+  @IsOptional()
+  inverterModel: string;
+
+  @ApiProperty()
+  @IsEnum(FINANCE_TYPE_EXISTING_SOLAR)
+  @IsOptional()
+  financeType: FINANCE_TYPE_EXISTING_SOLAR;
+
+  @ApiProperty()
+  @IsString()
+  @ValidateIf(o => o?.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO)
+  @IsOptional()
+  tpoFundingSource?: string;
 
   @ApiProperty({
     type: [ModifyExistingSystemArrayDto],

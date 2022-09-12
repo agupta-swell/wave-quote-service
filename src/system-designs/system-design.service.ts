@@ -1254,29 +1254,52 @@ export class SystemDesignService {
   }
 
   public async invokePINBALLSimulator(systemDesign: SystemDesign, systemProduction: ISystemProduction_v2) {
-    const utility = await this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId);
+    const [utility, existingSystemProduction, systemProductionArray] = await Promise.all([
+      this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
+      this.utilityService.getExistingSystemProductionByOpportunityId(systemDesign.opportunityId, true),
+      this.systemProductService.calculateSystemProductionByHour(systemDesign),
+    ]);
 
     if (!utility) {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
     const hourlyPostInstallLoadInKWh = this.utilityService.getHourlyEstimatedUsage(utility);
-    const systemProductionArray = await this.systemProductService.calculateSystemProductionByHour(systemDesign);
 
     const hourlySeriesForNewPVInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
       systemProductionArray.hourly,
       systemProduction.generationMonthlyKWh,
     ) as number[];
 
-    const hourlySeriesForNewPVInWh = hourlySeriesForNewPVInKWh.map(e => e * 1000);
+    const hourlySeriesForNewPVInWh: number[] = [];
+    const hourlyPostInstallLoadInWh: number[] = [];
+    const hourlySeriesForExistingPVInWh: number[] = [];
 
-    const hourlyPostInstallLoadInWh = hourlyPostInstallLoadInKWh.map(e => e * 1000);
+    const maxLength = Math.max(
+      hourlySeriesForNewPVInKWh.length,
+      hourlyPostInstallLoadInKWh.length,
+      existingSystemProduction.hourlyProduction.length,
+    );
+
+    for (let i = 0; i < maxLength; i += 1) {
+      if (hourlySeriesForNewPVInKWh[i]) {
+        hourlySeriesForNewPVInWh[i] = hourlySeriesForNewPVInKWh[i] * 1000;
+      }
+
+      if (hourlyPostInstallLoadInKWh[i]) {
+        hourlyPostInstallLoadInWh[i] = hourlyPostInstallLoadInKWh[i] * 1000;
+      }
+
+      if (existingSystemProduction.hourlyProduction[i]) {
+        hourlySeriesForExistingPVInWh[i] = existingSystemProduction.hourlyProduction[i] * 1000;
+      }
+    }
 
     const { storage } = systemDesign.roofTopDesignData;
 
     const simulatePinballData = await this.utilityService.simulatePinball({
       hourlyPostInstallLoad: hourlyPostInstallLoadInWh,
-      hourlySeriesForExistingPV: [],
+      hourlySeriesForExistingPV: hourlySeriesForExistingPVInWh,
       hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
       postInstallMasterTariffId: utility.costData.postInstallMasterTariffId,
       batterySystemSpecs: {

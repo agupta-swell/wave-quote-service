@@ -42,12 +42,14 @@ export class EnergyProfileController {
       this.energyProfileService.getSunroofHourlyProduction(systemDesignId),
       this.energyProfileService.getBatteryChargingSeries(systemDesignId),
       this.energyProfileService.getBatteryDischargingSeries(systemDesignId),
+      this.energyProfileService.getExistingSystemProductionSeries(opportunityId),
     ).pipe(
-      map(([usage, solarProduction, batteryChargingSeries, batteryDischargingSeries]) => ({
+      map(([usage, solarProduction, batteryChargingSeries, batteryDischargingSeries, existingSystemProduction]) => ({
         ...usage,
         solarProduction,
         batteryChargingSeries,
         batteryDischargingSeries,
+        existingSystemProduction,
       })),
     );
     return result;

@@ -1,5 +1,6 @@
 import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { IExistingSystemProduction } from '../utility.schema';
 
 export class LoadServingEntity {
   @ExposeProp()
@@ -84,6 +85,17 @@ export class ComputedUsageDto {
 
   @ExposeProp({ type: UsageValueDto, isArray: true })
   hourlyUsage: UsageValueDto[];
+}
+
+export class ExistingSystemProductionDto implements IExistingSystemProduction {
+  @ExposeProp()
+  annualProduction: number;
+
+  @ExposeProp({ type: UsageValueDto, isArray: true })
+  monthlyProduction: UsageValueDto[];
+
+  @ExposeProp()
+  hourlyProduction: number[];
 }
 
 export class UtilityDataDto {
