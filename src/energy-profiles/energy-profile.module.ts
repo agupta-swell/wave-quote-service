@@ -7,6 +7,7 @@ import { SystemProductionModule } from 'src/system-production/system-production.
 import { UtilityModule } from 'src/utilities/utility.module';
 import { EnergyProfileController } from './energy-profile.controller';
 import { EnergyProfileService } from './energy-profile.service';
+import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { EnergyProfileService } from './energy-profile.service';
     SystemDesignModule,
     SystemProductionModule,
     AwsModule,
+    GoogleSunroofModule,
   ],
   providers: [EnergyProfileService],
   controllers: [EnergyProfileController],

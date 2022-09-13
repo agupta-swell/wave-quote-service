@@ -43,13 +43,15 @@ export class EnergyProfileController {
       this.energyProfileService.getBatteryChargingSeries(systemDesignId),
       this.energyProfileService.getBatteryDischargingSeries(systemDesignId),
       this.energyProfileService.getExistingSystemProductionSeries(opportunityId),
+      this.energyProfileService.getBatteryDataSeriesForTypicalDay(systemDesignId),
     ).pipe(
-      map(([usage, solarProduction, batteryChargingSeries, batteryDischargingSeries, existingSystemProduction]) => ({
+      map(([usage, solarProduction, batteryChargingSeries, batteryDischargingSeries, existingSystemProduction, batteryDataSeriesForTypicalDay]) => ({
         ...usage,
         solarProduction,
         batteryChargingSeries,
         batteryDischargingSeries,
         existingSystemProduction,
+        batteryDataSeriesForTypicalDay,
       })),
     );
     return result;

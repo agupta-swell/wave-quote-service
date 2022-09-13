@@ -1320,6 +1320,7 @@ export class SystemDesignService {
       'batteryStoredEnergySeries',
       'batteryChargingSeries',
       'batteryDischargingSeries',
+      'rateAmountHourly',
     ].map(series =>
       this.s3Service.putObject(
         this.PINBALL_SIMULATION_BUCKET,
