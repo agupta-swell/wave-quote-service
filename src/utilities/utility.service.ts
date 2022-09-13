@@ -647,7 +647,7 @@ export class UtilityService implements OnModuleInit {
         }
       }
 
-      // update the frist period if it is < the 2nd period => charge
+      // update the first period if it is < the 2nd period => charge
       if (periodsInDay.length > 1) {
         periodsInDay[0].charge = !periodsInDay[1].charge;
         // if the first period.rate === the final period.rate maybe it is the same period.charge (e.g. the hour from 9pm - 5am)
