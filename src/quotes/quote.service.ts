@@ -20,11 +20,9 @@ import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { RebateProgram } from 'src/rebate-programs/rebate-programs.schema';
 import { RebateProgramService } from 'src/rebate-programs/rebate-programs.service';
-import { SavingsCalculatorService } from 'src/savings-calculator/saving-calculator.service';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
-import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
@@ -87,7 +85,6 @@ export class QuoteService {
     private readonly proposalService: ProposalService,
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
-    private readonly savingCalculatorService: SavingsCalculatorService,
     @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
     @Inject(forwardRef(() => OpportunityService))
@@ -1541,40 +1538,6 @@ export class QuoteService {
       reinvestmentMonth: 18,
       description: 'description',
     };
-  }
-
-  private async calculateAvgMonthlySavings(
-    opportunityId: string,
-    systemDesign: SystemDesign | LeanDocument<SystemDesign>,
-  ): Promise<number> {
-    const utilityUsage = await this.utilityService.getUtilityByOpportunityId(opportunityId);
-
-    const productionByHour = await this.systemDesignService.calculateSystemProductionByHour(systemDesign);
-
-    const oppData = await this.opportunityService.getRelatedInformation(opportunityId);
-
-    const savings = await this.savingCalculatorService.getSavings({
-      historicalUsageByHour: utilityUsage?.utilityData.computedUsage.hourlyUsage.map(e => e.v),
-      historicalBillsByMonth: utilityUsage?.costData.computedCost?.cost.map(e => e.v),
-      historicalProductionByHour: productionByHour.hourly, //
-      existingBatteryKwh: undefined, // TODO
-      additionalBatteryKwh: undefined, // TODO
-      preInstallTariff: utilityUsage?.costData.masterTariffId,
-      postInstallTariff: utilityUsage?.costData.postInstallMasterTariffId,
-      batteryReservePercentage: undefined, // TODO,
-      usageProfile: undefined, // TODO
-      version: 0, // TODO add env to lambda,
-      address: {
-        city: oppData.data?.city,
-        latitude: +(oppData.data?.latitude || 0),
-        longitude: +(oppData.data?.longitude || 0),
-        line1: oppData.data?.address,
-        state: oppData.data?.state,
-        zip: oppData.data?.zipCode,
-      },
-    });
-
-    return sum(savings.expectedBillSavingsByMonth) / savings.expectedBillSavingsByMonth.length;
   }
 
   getPrimaryQuoteType(quoteCostBuildup: IQuoteCostBuildup, existingSystem?: IExistingSystem): PRIMARY_QUOTE_TYPE {
