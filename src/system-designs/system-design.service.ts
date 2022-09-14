@@ -1273,7 +1273,7 @@ export class SystemDesignService {
 
     const hourlySeriesForNewPVInWh: number[] = [];
     const hourlyPostInstallLoadInWh: number[] = [];
-    const hourlySeriesForExistingPVInWh: number[] = [];
+    const hourlySeriesForExistingPVInWh = existingSystemProduction.hourlyProduction;
 
     const maxLength = Math.max(
       hourlySeriesForNewPVInKWh.length,
@@ -1288,10 +1288,6 @@ export class SystemDesignService {
 
       if (hourlyPostInstallLoadInKWh[i]) {
         hourlyPostInstallLoadInWh[i] = hourlyPostInstallLoadInKWh[i] * 1000;
-      }
-
-      if (existingSystemProduction.hourlyProduction[i]) {
-        hourlySeriesForExistingPVInWh[i] = existingSystemProduction.hourlyProduction[i] * 1000;
       }
     }
 

@@ -877,7 +877,7 @@ export class UtilityService implements OnModuleInit {
     const hourlyProduction = !shouldGetHourlyProduction
       ? []
       : existingSystemProductions.reduce(
-          (prev, current) => current.hourly.map((value, hourIndex) => value / 1000 + (prev[hourIndex] || 0)),
+          (prev, current) => current.hourly.map((value, hourIndex) => value + (prev[hourIndex] || 0)),
           [],
         );
 

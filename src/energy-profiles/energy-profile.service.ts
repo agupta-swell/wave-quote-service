@@ -7,7 +7,7 @@ import { PvWattProductionDto } from 'src/system-production/res';
 import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UtilityService } from 'src/utilities/utility.service';
-import { 
+import {
   buildMonthlyAndAnnuallyDataFrom8760,
   getMonthlyAndAnnualWeekdayAverageFrom8760,
   getMonthlyAndAnnualAverageFrom8760,
@@ -36,7 +36,6 @@ export class EnergyProfileService {
     private readonly utilityService: UtilityService,
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly systemProductService: SystemProductService,
-
   ) {}
 
   async getPvWattProduction(systemDesignId: ObjectId): Promise<PvWattProductionDto | undefined> {
@@ -108,16 +107,15 @@ export class EnergyProfileService {
     return buildMonthlyAndAnnuallyDataFrom8760(result);
   }
 
-  async getBatteryDataSeriesForTypicalDay(systemDesignId: ObjectId | string): Promise<{
-    batteryChargingSeries: IEnergyProfileProduction,
-    batteryDischargingSeries: IEnergyProfileProduction
+  async getBatteryDataSeriesForTypicalDay(
+    systemDesignId: ObjectId | string,
+  ): Promise<{
+    batteryChargingSeries: IEnergyProfileProduction;
+    batteryDischargingSeries: IEnergyProfileProduction;
   }> {
     let rateAmountHourly: IPinballRateAmount[] = new Array(8760).fill({ rate: 0, charge: false });
     try {
-      const res = await this.s3Service.getObject(
-        this.PINBALL_SIMULATION_BUCKET,
-        `${systemDesignId}/rateAmountHourly`,
-      );
+      const res = await this.s3Service.getObject(this.PINBALL_SIMULATION_BUCKET, `${systemDesignId}/rateAmountHourly`);
 
       if (res) {
         rateAmountHourly = JSON.parse(res);
@@ -130,11 +128,15 @@ export class EnergyProfileService {
       hourlyPostInstallLoadInWh,
       hourlySeriesForExistingPVInWh,
       hourlySeriesForNewPVInWh,
-      batterySystemSpecs
+      batterySystemSpecs,
     } = await this.prepareProductionDataForPinballSimulation(systemDesignId);
 
-    const monthlyAndAnnualPostInstallLoadInWhIn24Hours = getMonthlyAndAnnualWeekdayAverageFrom8760(hourlyPostInstallLoadInWh);
-    const monthlyAndAnnualSeriesForExistingPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(hourlySeriesForExistingPVInWh);
+    const monthlyAndAnnualPostInstallLoadInWhIn24Hours = getMonthlyAndAnnualWeekdayAverageFrom8760(
+      hourlyPostInstallLoadInWh,
+    );
+    const monthlyAndAnnualSeriesForExistingPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(
+      hourlySeriesForExistingPVInWh,
+    );
     const monthlyAndAnnualSeriesForNewPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(hourlySeriesForNewPVInWh);
     const monthlyAndAnnualRateAmountIn24Hours = getMonthlyAndAnnualRateAmountFrom8760(rateAmountHourly);
 
@@ -144,13 +146,13 @@ export class EnergyProfileService {
 
     let batteryChargingSeries: IEnergyProfileProduction = {
       annualAverage: [],
-      monthlyAverage: []
-    }
+      monthlyAverage: [],
+    };
 
     let batteryDischargingSeries: IEnergyProfileProduction = {
       annualAverage: [],
-      monthlyAverage: []
-    }
+      monthlyAverage: [],
+    };
 
     const annualPinballData = this.utilityService.caculatePinballDataIn24Hours(
       monthlyAndAnnualPostInstallLoadInWhIn24Hours.annualAverage,
@@ -161,12 +163,12 @@ export class EnergyProfileService {
       ratingInKW,
       minimumReserveInKW,
       sqrtRoundTripEfficiency,
-    )
+    );
 
     batteryChargingSeries.annualAverage = annualPinballData.batteryChargingSeriesIn24Hours;
     batteryDischargingSeries.annualAverage = annualPinballData.batteryDischargingSeriesIn24Hours;
 
-    for(let i = 0; i < 12; i++) {
+    for (let i = 0; i < 12; i++) {
       const monthlyPinballData = this.utilityService.caculatePinballDataIn24Hours(
         monthlyAndAnnualPostInstallLoadInWhIn24Hours.monthlyAverage[i],
         monthlyAndAnnualSeriesForExistingPVInWhIn24Hours.monthlyAverage[i],
@@ -176,18 +178,18 @@ export class EnergyProfileService {
         ratingInKW,
         minimumReserveInKW,
         sqrtRoundTripEfficiency,
-      )
+      );
       batteryChargingSeries.monthlyAverage.push(monthlyPinballData.batteryChargingSeriesIn24Hours);
       batteryDischargingSeries.monthlyAverage.push(monthlyPinballData.batteryDischargingSeriesIn24Hours);
     }
 
     batteryChargingSeries = buildMonthlyAndAnnuallyDataFrom24HoursData(batteryChargingSeries);
-    batteryDischargingSeries = buildMonthlyAndAnnuallyDataFrom24HoursData(batteryDischargingSeries); 
+    batteryDischargingSeries = buildMonthlyAndAnnuallyDataFrom24HoursData(batteryDischargingSeries);
 
     return {
       batteryChargingSeries,
-      batteryDischargingSeries
-    }
+      batteryDischargingSeries,
+    };
   }
 
   async getExistingSystemProductionSeries(opportunityId: string): Promise<IEnergyProfileProduction> {
@@ -199,11 +201,13 @@ export class EnergyProfileService {
     return buildMonthlyAndAnnuallyDataFrom8760(existingSystemProduction.hourlyProduction);
   }
 
-  async prepareProductionDataForPinballSimulation(systemDesignId: ObjectId | string): Promise<{
-    hourlyPostInstallLoadInWh: number[],
-    hourlySeriesForExistingPVInWh: number[],
-    hourlySeriesForNewPVInWh: number[],
-    batterySystemSpecs: BatterySystemSpecsDto,
+  async prepareProductionDataForPinballSimulation(
+    systemDesignId: ObjectId | string,
+  ): Promise<{
+    hourlyPostInstallLoadInWh: number[];
+    hourlySeriesForExistingPVInWh: number[];
+    hourlySeriesForNewPVInWh: number[];
+    batterySystemSpecs: BatterySystemSpecsDto;
   }> {
     const systemDesign = await this.systemDesignService.getOneById(systemDesignId);
 
@@ -213,7 +217,7 @@ export class EnergyProfileService {
 
     const [sunroofProduction, systemProduction] = await Promise.all([
       this.googleSunroofService.calculateProduction(systemDesign),
-      this.systemProductionService.findOne(systemDesign.systemProductionId)
+      this.systemProductionService.findOne(systemDesign.systemProductionId),
     ]);
 
     if (!systemProduction) {
@@ -248,13 +252,9 @@ export class EnergyProfileService {
 
     const hourlySeriesForNewPVInWh: number[] = [];
     const hourlyPostInstallLoadInWh: number[] = [];
-    const hourlySeriesForExistingPVInWh: number[] = [];
+    const hourlySeriesForExistingPVInWh = existingSystemProduction.hourlyProduction;
 
-    const maxLength = Math.max(
-      hourlySeriesForNewPVInKWh.length,
-      hourlyPostInstallLoadInKWh.length,
-      existingSystemProduction.hourlyProduction.length,
-    );
+    const maxLength = Math.max(hourlySeriesForNewPVInKWh.length, hourlyPostInstallLoadInKWh.length);
 
     for (let i = 0; i < maxLength; i += 1) {
       if (hourlySeriesForNewPVInKWh[i]) {
@@ -263,10 +263,6 @@ export class EnergyProfileService {
 
       if (hourlyPostInstallLoadInKWh[i]) {
         hourlyPostInstallLoadInWh[i] = hourlyPostInstallLoadInKWh[i] * 1000;
-      }
-
-      if (existingSystemProduction.hourlyProduction[i]) {
-        hourlySeriesForExistingPVInWh[i] = existingSystemProduction.hourlyProduction[i] * 1000;
       }
     }
 
@@ -287,7 +283,7 @@ export class EnergyProfileService {
       hourlyPostInstallLoadInWh,
       hourlySeriesForExistingPVInWh,
       hourlySeriesForNewPVInWh,
-      batterySystemSpecs
-    }
+      batterySystemSpecs,
+    };
   }
 }
