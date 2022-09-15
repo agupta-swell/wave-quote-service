@@ -1,7 +1,7 @@
 /* eslint-disable no-plusplus */
 export const sliceBySizesMap = <T>(arr: T[], sizes: number[]): T[][] => {
   const res: T[][] = [];
-  let nextStartIdx = 0
+  let nextStartIdx = 0;
   for (let i = 0; i < sizes.length; i++) {
     const size = sizes[i];
     const from = nextStartIdx;

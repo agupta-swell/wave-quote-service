@@ -26,15 +26,19 @@ import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE, KWH_PER_GALLON } from './constants';
 import { roundUpNumber } from './operators';
-import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto, BatterySystemSpecsDto } from './req';
+import {
+  BatterySystemSpecsDto,
+  CalculateActualUsageCostDto,
+  CreateUtilityReqDto,
+  GetActualUsageDto,
+  GetPinballSimulatorDto,
+} from './req';
 import { UsageValue } from './req/sub-dto';
 import {
-  ComputedUsageDto,
   CostDataDto,
   ExistingSystemProductionDto,
   LoadServingEntity,
   TariffDto,
-  UsageValueDto,
   UtilityDataDto,
   UtilityDetailsDto,
 } from './res';
@@ -43,20 +47,19 @@ import { UTILITIES, Utilities } from './schemas';
 import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
 import { GenebilityTeriffData, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
 import { getTypicalUsage, IGetTypicalUsageKwh } from './sub-services';
+import { IPinballRateAmount } from './utility.interface';
 import {
   GenabilityCostData,
   GenabilityTypicalBaseLineModel,
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
-  IExistingSystemProduction,
   IUsageValue,
   IUtilityCostData,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
 } from './utility.schema';
-import { IPinballRateAmount } from './utility.interface';
 
 @Injectable()
 export class UtilityService implements OnModuleInit {
@@ -548,10 +551,10 @@ export class UtilityService implements OnModuleInit {
     minimumReserveInKW: number,
     sqrtRoundTripEfficiency: number,
   ): {
-    batteryStoredEnergySeriesIn24Hours: number[],
-    batteryChargingSeriesIn24Hours: number[],
-    batteryDischargingSeriesIn24Hours: number[],
-    postInstallSiteDemandSeriesIn24Hours: number[],
+    batteryStoredEnergySeriesIn24Hours: number[];
+    batteryChargingSeriesIn24Hours: number[];
+    batteryDischargingSeriesIn24Hours: number[];
+    postInstallSiteDemandSeriesIn24Hours: number[];
   } {
     const pvGenerationIn24Hours: number[] = [];
     // The difference between house usage and PV generation
@@ -567,9 +570,13 @@ export class UtilityService implements OnModuleInit {
     const postInstallSiteDemandSeriesIn24Hours: number[] = [];
     for (let i = 0; i < 24; i += 1) {
       pvGenerationIn24Hours.push(
-        new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0).plus(hourlySeriesForNewPVIn24Hours[i] || 0).toNumber(),
+        new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
+          .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
+          .toNumber(),
       );
-      netLoadIn24Hours.push(new BigNumber(hourlyPostInstallLoadIn24Hours[i] || 0).minus(pvGenerationIn24Hours[i]).toNumber());
+      netLoadIn24Hours.push(
+        new BigNumber(hourlyPostInstallLoadIn24Hours[i] || 0).minus(pvGenerationIn24Hours[i]).toNumber(),
+      );
 
       // Planned Battery AC
       switch (batterySystemSpecs.operationMode) {
@@ -594,9 +601,13 @@ export class UtilityService implements OnModuleInit {
 
       // Planned Battery DC
       if (plannedBatteryACIn24Hours[i] > 0) {
-        plannedBatteryDCIn24Hours.push(new BigNumber(plannedBatteryACIn24Hours[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber());
+        plannedBatteryDCIn24Hours.push(
+          new BigNumber(plannedBatteryACIn24Hours[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber(),
+        );
       } else {
-        plannedBatteryDCIn24Hours.push(new BigNumber(plannedBatteryACIn24Hours[i]).dividedBy(sqrtRoundTripEfficiency).toNumber() || 0);
+        plannedBatteryDCIn24Hours.push(
+          new BigNumber(plannedBatteryACIn24Hours[i]).dividedBy(sqrtRoundTripEfficiency).toNumber() || 0,
+        );
       }
 
       // Battery Stored Energy
@@ -631,7 +642,9 @@ export class UtilityService implements OnModuleInit {
       batteryDischargingSeriesIn24Hours.push(actualBatteryACIn24Hours[i] < 0 ? -actualBatteryACIn24Hours[i] : 0);
 
       // site demand
-      postInstallSiteDemandSeriesIn24Hours.push(new BigNumber(netLoadIn24Hours[i]).plus(actualBatteryACIn24Hours[i]).toNumber());
+      postInstallSiteDemandSeriesIn24Hours.push(
+        new BigNumber(netLoadIn24Hours[i]).plus(actualBatteryACIn24Hours[i]).toNumber(),
+      );
     }
 
     return {
@@ -639,7 +652,7 @@ export class UtilityService implements OnModuleInit {
       batteryChargingSeriesIn24Hours,
       batteryDischargingSeriesIn24Hours,
       postInstallSiteDemandSeriesIn24Hours,
-    }
+    };
   }
 
   async simulatePinball(
@@ -788,7 +801,10 @@ export class UtilityService implements OnModuleInit {
       const startIdx = i * 24;
       const endIdx = startIdx + 24;
       const hourlyPostInstallLoadIn24Hours: number[] = hourlyPostInstallLoad.slice(startIdx, endIdx);
-      const hourlySeriesForExistingPVIn24Hours: number[] | undefined = hourlySeriesForExistingPV?.slice(startIdx, endIdx);
+      const hourlySeriesForExistingPVIn24Hours: number[] | undefined = hourlySeriesForExistingPV?.slice(
+        startIdx,
+        endIdx,
+      );
       const hourlySeriesForNewPVIn24Hours: number[] = hourlySeriesForNewPV.slice(startIdx, endIdx);
       const rateAmountHourlyIn24Hours: IPinballRateAmount[] = rateAmountHourly.slice(startIdx, endIdx);
 
@@ -806,8 +822,8 @@ export class UtilityService implements OnModuleInit {
         ratingInKW,
         minimumReserveInKW,
         sqrtRoundTripEfficiency,
-      )
-      
+      );
+
       batteryStoredEnergySeries.push(...batteryStoredEnergySeriesIn24Hours);
       batteryChargingSeries.push(...batteryChargingSeriesIn24Hours);
       batteryDischargingSeries.push(...batteryDischargingSeriesIn24Hours);

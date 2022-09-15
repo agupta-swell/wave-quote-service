@@ -4,7 +4,7 @@ import { IExistingSystemProduction } from 'src/utilities/utility.schema';
 
 export interface IBatteryDataSeries {
   average: IEnergyProfileProduction;
-  typical: IEnergyProfileProduction
+  typical: IEnergyProfileProduction;
 }
 
 export interface IGetEnergyProfile {
@@ -14,7 +14,7 @@ export interface IGetEnergyProfile {
   batteryDischargingSeries: IEnergyProfileProduction;
   existingSystemProduction: IExistingSystemProduction;
   batteryDataSeriesForTypicalDay: {
-    batteryChargingSeries: IEnergyProfileProduction,
-    batteryDischargingSeries: IEnergyProfileProduction
+    batteryChargingSeries: IEnergyProfileProduction;
+    batteryDischargingSeries: IEnergyProfileProduction;
   };
 }

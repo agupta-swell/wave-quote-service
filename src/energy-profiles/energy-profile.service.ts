@@ -1,26 +1,27 @@
+/* eslint-disable no-plusplus */
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { sumBy } from 'lodash';
 import { ObjectId } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
 import { S3Service } from 'src/shared/aws/services/s3.service';
+import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
+import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SunroofHourlyProductionCalculation } from 'src/system-designs/sub-services';
+import { SystemProductService } from 'src/system-designs/sub-services/system-product.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { PvWattProductionDto } from 'src/system-production/res';
 import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
-import { UtilityService } from 'src/utilities/utility.service';
-import {
-  buildMonthlyAndAnnuallyDataFrom8760,
-  getMonthlyAndAnnualWeekdayAverageFrom8760,
-  getMonthlyAndAnnualAverageFrom8760,
-  getMonthlyAndAnnualRateAmountFrom8760,
-  buildMonthlyAndAnnuallyDataFrom24HoursData,
-} from 'src/utils/transformData';
-import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
-import { SystemProductService } from 'src/system-designs/sub-services/system-product.service';
-import { ApplicationException } from 'src/app/app.exception';
-import { sumBy } from 'lodash';
-import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { BatterySystemSpecsDto } from 'src/utilities/req';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
+import { UtilityService } from 'src/utilities/utility.service';
+import {
+  buildMonthlyAndAnnuallyDataFrom24HoursData,
+  buildMonthlyAndAnnuallyDataFrom8760,
+  getMonthlyAndAnnualAverageFrom8760,
+  getMonthlyAndAnnualRateAmountFrom8760,
+  getMonthlyAndAnnualWeekdayAverageFrom8760,
+} from 'src/utils/transformData';
 
 @Injectable()
 export class EnergyProfileService {
