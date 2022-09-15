@@ -18,6 +18,16 @@ export enum ENTRY_MODE {
   MONTHLY_USAGE = 'MONTHLY_USAGE',
 }
 
+export enum PROPOSAL_VIEW_MODE {
+  TYPICAL = 'TYPICAL',
+  AVERAGE = 'AVERAGE',
+}
+
+export enum PROPOSAL_PERIOD_MODE {
+  ANNUAL = 'ANNUAL',
+  MONTHLY = 'MONTHLY',
+}
+
 export const TYPICAL_USAGE_METAKEY = Symbol.for('kUtility/typicalUsage');
 
 export const KWH_PER_GALLON = 33.7;

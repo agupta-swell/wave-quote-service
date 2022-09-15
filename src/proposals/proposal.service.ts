@@ -43,6 +43,8 @@ import { GenebilityTariffDataDetail } from 'src/utilities/schemas/genebility-tar
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
+import { PROPOSAL_VIEW_MODE, PROPOSAL_PERIOD_MODE } from 'src/utilities/constants';
+import { IBatteryDataSeries } from 'src/energy-profiles/energy-profile.interface';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { EmailService } from '../emails/email.service';
@@ -125,6 +127,9 @@ export class ProposalService {
         quoteData: detailedQuote,
         systemDesignData: systemDesign,
       },
+      proposalView: proposalDto.proposalView,
+      proposalPeriod: proposalDto.proposalPeriod,
+      proposalMonthIndex: proposalDto.proposalMonthIndex,
     });
 
     const thumbnail = systemDesign?.thumbnail;
@@ -362,8 +367,12 @@ export class ProposalService {
       sumOfUtilityUsageCost?: number;
       sumOfMonthlyUsageCost?: number;
       solarProduction?: IEnergyProfileProduction;
-      batteryDischargingSeries?: IEnergyProfileProduction;
-      batteryChargingSeries?: IEnergyProfileProduction;
+      batteryDischargingSeries?: IBatteryDataSeries;
+      batteryChargingSeries?: IBatteryDataSeries;
+      existingSystemProduction?: IEnergyProfileProduction;
+      proposalView?: PROPOSAL_VIEW_MODE;
+      proposalPeriod?: PROPOSAL_PERIOD_MODE;
+      proposalMonthIndex?: number;
     }>
   > {
     let tokenPayload: any;
@@ -399,8 +408,13 @@ export class ProposalService {
       user: { userEmails },
     } = tokenPayload;
 
+    const { proposalView, proposalPeriod, proposalMonthIndex } = proposal;
+
+    const foundAnalyticTemp = this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId });
+
+    // need to upgrade typescript to version 4.5 to allow over 10 elements in Promise.all
     const [
-      foundAnalytic,
+      existingSystemProduction,
       utility,
       historicalUsageRes,
       requiredData,
@@ -409,8 +423,9 @@ export class ProposalService {
       solarProduction,
       batteryChargingSeries,
       batteryDischargingSeries,
+      batteryDataSeriesForTypicalDay,
     ] = await Promise.all([
-      this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId }),
+      this.energyProfileService.getExistingSystemProductionSeries(proposal.opportunityId),
       this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
       this.utilityService
         .getTypicalUsage$(proposal.opportunityId)
@@ -431,9 +446,11 @@ export class ProposalService {
       this.energyProfileService.getSunroofHourlyProduction(proposal.systemDesignId),
       this.energyProfileService.getBatteryChargingSeries(proposal.systemDesignId),
       this.energyProfileService.getBatteryDischargingSeries(proposal.systemDesignId),
+      this.energyProfileService.getBatteryDataSeriesForTypicalDay(proposal.systemDesignId),
     ]);
+    const foundAnalytic = await foundAnalyticTemp;
 
-    // update analytic view
+    // update analytic proposalView
     const currentDate = new Date();
     if (foundAnalytic) {
       userEmails.forEach(email => {
@@ -505,7 +522,6 @@ export class ProposalService {
     if (systemProductionRes?.data) {
       proposalDetail.systemDesignData.systemProductionData = systemProductionRes?.data;
     }
-
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
       utility,
@@ -516,8 +532,18 @@ export class ProposalService {
       sumOfUtilityUsageCost,
       sumOfMonthlyUsageCost,
       solarProduction,
-      batteryChargingSeries,
-      batteryDischargingSeries,
+      batteryChargingSeries: {
+        average: batteryChargingSeries,
+        typical: batteryDataSeriesForTypicalDay.batteryChargingSeries,
+      },
+      batteryDischargingSeries: {
+        average: batteryDischargingSeries,
+        typical: batteryDataSeriesForTypicalDay.batteryDischargingSeries,
+      },
+      existingSystemProduction,
+      proposalView,
+      proposalPeriod,
+      proposalMonthIndex,
     });
   }
 

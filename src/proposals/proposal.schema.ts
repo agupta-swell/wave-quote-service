@@ -1,5 +1,6 @@
 import { Document, Schema } from 'mongoose';
 import { IProposalTemplate, ProposalTemplateSchema } from 'src/proposal-templates/proposal-template.schema';
+import { PROPOSAL_VIEW_MODE, PROPOSAL_PERIOD_MODE } from 'src/utilities/constants';
 import { DetailedQuoteSchema, IDetailedQuoteSchema } from '../quotes/quote.schema';
 import { SystemDesign, SystemDesignSchema } from '../system-designs/system-design.schema';
 import { PROPOSAL_STATUS } from './constants';
@@ -81,6 +82,9 @@ export interface Proposal extends Document {
   quoteId: string;
   detailedProposal: IDetailedProposalSchema;
   validTill: Date;
+  proposalView: PROPOSAL_VIEW_MODE;
+  proposalPeriod: PROPOSAL_PERIOD_MODE;
+  proposalMonthIndex?: number;
 }
 
 export const ProposalSchema = new Schema<Proposal>({
@@ -90,6 +94,9 @@ export const ProposalSchema = new Schema<Proposal>({
   quote_id: String,
   detailed_proposal: DetailedProposalSchema,
   valid_till: Date,
+  proposalView: String,
+  proposalPeriod: String,
+  proposalMonthIndex: { type: Number },
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
