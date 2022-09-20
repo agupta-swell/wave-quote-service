@@ -84,7 +84,7 @@ export class ComputedUsageDto {
   monthlyUsage: UsageValueDto[];
 
   @ExposeProp({ type: UsageValueDto, isArray: true })
-  hourlyUsage: UsageValueDto[];
+  hourlyUsage?: UsageValueDto[];
 }
 
 export class ExistingSystemProductionDto implements IExistingSystemProduction {

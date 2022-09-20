@@ -40,7 +40,7 @@ export class CreateUtilityReqDto {
 
   @ApiProperty()
   @IsOptional()
-  hasPoolValue: boolean;
+  hasPoolValue?: boolean;
 
   @Transform(({ obj }) => (obj.hasPoolValue ? 2500 : 0))
   poolValue: number;

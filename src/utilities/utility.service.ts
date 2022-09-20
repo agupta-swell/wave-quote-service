@@ -84,6 +84,7 @@ export class UtilityService implements OnModuleInit {
     @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
     @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
     private readonly usageProfileService: UsageProfileService,
+    @Inject(forwardRef(() => ExistingSystemService))
     private readonly existingSystemService: ExistingSystemService,
     private readonly systemProductService: SystemProductService,
     @Inject(forwardRef(() => ContactService))
@@ -246,7 +247,7 @@ export class UtilityService implements OnModuleInit {
     return OperationResult.ok(strictPlainToClass(CostDataDto, costData));
   }
 
-  async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostDataDto>> {
+  async calculateActualUsageCostUtil(data: CalculateActualUsageCostDto): Promise<any> {
     const { zipCode, masterTariffId, utilityData, usageProfileId } = data;
     let hourlyDataForTheYear: UsageValue[] = [];
 
@@ -275,6 +276,12 @@ export class UtilityService implements OnModuleInit {
       actualUsageCost: null as any,
       computedCost: monthlyCost,
     };
+
+    return costData;
+  }
+
+  async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostDataDto>> {
+    const costData = await this.calculateActualUsageCostUtil(data);
 
     return OperationResult.ok(strictPlainToClass(CostDataDto, costData));
   }
@@ -330,7 +337,7 @@ export class UtilityService implements OnModuleInit {
   }
 
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
-    const res = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
+    const res = await this.getUtilityByOpportunityId(opportunityId);
     if (!res) {
       return OperationResult.ok(null as any);
     }
@@ -339,10 +346,10 @@ export class UtilityService implements OnModuleInit {
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, res));
   }
 
-  async updateUtilityUsageDetail(
+  async updateUtilityUsageDetailUtil(
     utilityId: ObjectId,
     utilityDto: CreateUtilityReqDto,
-  ): Promise<OperationResult<UtilityDetailsDto>> {
+  ): Promise<LeanDocument<UtilityUsageDetails> | null> {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
     utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
@@ -378,6 +385,15 @@ export class UtilityService implements OnModuleInit {
     if (!isUpdated) {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
     }
+
+    return updatedUtility;
+  }
+
+  async updateUtilityUsageDetail(
+    utilityId: ObjectId,
+    utilityDto: CreateUtilityReqDto,
+  ): Promise<OperationResult<UtilityDetailsDto>> {
+    const updatedUtility = await this.updateUtilityUsageDetailUtil(utilityId, utilityDto);
 
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, updatedUtility));
   }
