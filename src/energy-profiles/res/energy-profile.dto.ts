@@ -14,6 +14,8 @@ export class GetEnergyProfile {
 
   public existingSystemProduction: IExistingSystemProduction;
 
+  public postInstallSiteDemandSeries: IEnergyProfileProduction;
+
   constructor(props: IGetEnergyProfile) {
     const {
       usage,
@@ -22,6 +24,7 @@ export class GetEnergyProfile {
       batteryDischargingSeries,
       existingSystemProduction,
       batteryDataSeriesForTypicalDay,
+      postInstallSiteDemandSeries,
     } = props;
 
     const [annualUsage, ...monthlyUsage] = usage;
@@ -43,6 +46,8 @@ export class GetEnergyProfile {
     };
 
     this.existingSystemProduction = existingSystemProduction;
+
+    this.postInstallSiteDemandSeries = postInstallSiteDemandSeries;
   }
 }
 

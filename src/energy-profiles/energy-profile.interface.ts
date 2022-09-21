@@ -17,4 +17,5 @@ export interface IGetEnergyProfile {
     batteryChargingSeries: IEnergyProfileProduction;
     batteryDischargingSeries: IEnergyProfileProduction;
   };
+  postInstallSiteDemandSeries: IEnergyProfileProduction;
 }

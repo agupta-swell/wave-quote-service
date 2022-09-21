@@ -287,4 +287,23 @@ export class EnergyProfileService {
       batterySystemSpecs,
     };
   }
+
+  async getPostInstallSiteDemandSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
+    let result: number[] = new Array(8760).fill(0);
+
+    try {
+      const res = await this.s3Service.getObject(
+        this.PINBALL_SIMULATION_BUCKET,
+        `${systemDesignId}/postInstallSiteDemandSeries`,
+      );
+
+      if (res) {
+        result = JSON.parse(res);
+      }
+    } catch (_) {
+      // Do not thing, any error, such as NoSuchKey (file not found)
+    }
+
+    return buildMonthlyAndAnnuallyDataFrom8760(result);
+  }
 }

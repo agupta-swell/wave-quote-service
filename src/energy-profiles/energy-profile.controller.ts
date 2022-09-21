@@ -44,6 +44,7 @@ export class EnergyProfileController {
       this.energyProfileService.getBatteryDischargingSeries(systemDesignId),
       this.energyProfileService.getExistingSystemProductionSeries(opportunityId),
       this.energyProfileService.getBatteryDataSeriesForTypicalDay(systemDesignId),
+      this.energyProfileService.getPostInstallSiteDemandSeries(systemDesignId),
     ).pipe(
       map(
         ([
@@ -53,6 +54,7 @@ export class EnergyProfileController {
           batteryDischargingSeries,
           existingSystemProduction,
           batteryDataSeriesForTypicalDay,
+          postInstallSiteDemandSeries,
         ]) => ({
           ...usage,
           solarProduction,
@@ -60,6 +62,7 @@ export class EnergyProfileController {
           batteryDischargingSeries,
           existingSystemProduction,
           batteryDataSeriesForTypicalDay,
+          postInstallSiteDemandSeries,
         }),
       ),
     );

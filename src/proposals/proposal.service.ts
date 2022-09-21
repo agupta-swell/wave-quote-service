@@ -370,6 +370,7 @@ export class ProposalService {
       batteryDischargingSeries?: IBatteryDataSeries;
       batteryChargingSeries?: IBatteryDataSeries;
       existingSystemProduction?: IEnergyProfileProduction;
+      postInstallSiteDemandSeries?: IEnergyProfileProduction;
       proposalView?: PROPOSAL_VIEW_MODE;
       proposalPeriod?: PROPOSAL_PERIOD_MODE;
       proposalMonthIndex?: number;
@@ -411,6 +412,9 @@ export class ProposalService {
     const { proposalView, proposalPeriod, proposalMonthIndex } = proposal;
 
     const foundAnalyticTemp = this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId });
+    const postInstallSiteDemandSeriesTemp = this.energyProfileService.getPostInstallSiteDemandSeries(
+      proposal.systemDesignId,
+    );
 
     // need to upgrade typescript to version 4.5 to allow over 10 elements in Promise.all
     const [
@@ -449,6 +453,7 @@ export class ProposalService {
       this.energyProfileService.getBatteryDataSeriesForTypicalDay(proposal.systemDesignId),
     ]);
     const foundAnalytic = await foundAnalyticTemp;
+    const postInstallSiteDemandSeries = await postInstallSiteDemandSeriesTemp;
 
     // update analytic proposalView
     const currentDate = new Date();
@@ -541,6 +546,7 @@ export class ProposalService {
         typical: batteryDataSeriesForTypicalDay.batteryDischargingSeries,
       },
       existingSystemProduction,
+      postInstallSiteDemandSeries,
       proposalView,
       proposalPeriod,
       proposalMonthIndex,
