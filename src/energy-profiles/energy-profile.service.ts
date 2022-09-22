@@ -288,7 +288,7 @@ export class EnergyProfileService {
     };
   }
 
-  async getPostInstallSiteDemandSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
+  async getNetLoadAverage(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
     let result: number[] = new Array(8760).fill(0);
 
     try {

@@ -44,7 +44,8 @@ import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { PROPOSAL_VIEW_MODE, PROPOSAL_PERIOD_MODE } from 'src/utilities/constants';
-import { IBatteryDataSeries } from 'src/energy-profiles/energy-profile.interface';
+import { IBatteryDataSeries, INetLoad } from 'src/energy-profiles/energy-profile.interface';
+import { getNetLoadTypical } from 'src/energy-profiles/utils';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { EmailService } from '../emails/email.service';
@@ -370,7 +371,7 @@ export class ProposalService {
       batteryDischargingSeries?: IBatteryDataSeries;
       batteryChargingSeries?: IBatteryDataSeries;
       existingSystemProduction?: IEnergyProfileProduction;
-      postInstallSiteDemandSeries?: IEnergyProfileProduction;
+      netLoad?: INetLoad;
       proposalView?: PROPOSAL_VIEW_MODE;
       proposalPeriod?: PROPOSAL_PERIOD_MODE;
       proposalMonthIndex?: number;
@@ -412,9 +413,7 @@ export class ProposalService {
     const { proposalView, proposalPeriod, proposalMonthIndex } = proposal;
 
     const foundAnalyticTemp = this.proposalAnalyticModel.findOne({ proposalId: tokenPayload.proposalId });
-    const postInstallSiteDemandSeriesTemp = this.energyProfileService.getPostInstallSiteDemandSeries(
-      proposal.systemDesignId,
-    );
+    const getNetLoadAverageTemp = this.energyProfileService.getNetLoadAverage(proposal.systemDesignId);
 
     // need to upgrade typescript to version 4.5 to allow over 10 elements in Promise.all
     const [
@@ -453,8 +452,18 @@ export class ProposalService {
       this.energyProfileService.getBatteryDataSeriesForTypicalDay(proposal.systemDesignId),
     ]);
     const foundAnalytic = await foundAnalyticTemp;
-    const postInstallSiteDemandSeries = await postInstallSiteDemandSeriesTemp;
+    const netLoadAverage = await getNetLoadAverageTemp;
 
+    const netLoad: INetLoad = {
+      average: netLoadAverage,
+      typical: getNetLoadTypical(
+        historicalUsageRes?.data?.historicalUsage,
+        existingSystemProduction,
+        solarProduction,
+        batteryDataSeriesForTypicalDay.batteryChargingSeries,
+        batteryDataSeriesForTypicalDay.batteryDischargingSeries,
+      ),
+    };
     // update analytic proposalView
     const currentDate = new Date();
     if (foundAnalytic) {
@@ -546,7 +555,7 @@ export class ProposalService {
         typical: batteryDataSeriesForTypicalDay.batteryDischargingSeries,
       },
       existingSystemProduction,
-      postInstallSiteDemandSeries,
+      netLoad,
       proposalView,
       proposalPeriod,
       proposalMonthIndex,
