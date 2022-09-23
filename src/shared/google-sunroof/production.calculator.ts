@@ -9,6 +9,8 @@ import {
 
 import type { TypedArrayArrayWithDimensions } from 'geotiff'
 
+import { LeanDocument } from 'mongoose';
+
 import {
   ISolarPanelArraySchema,
   SystemDesign,
@@ -44,7 +46,7 @@ export class ProductionCalculator {
    * @param annualDriftCorrection
    */
   public static calculateSystemProduction (
-    systemDesign: SystemDesign,
+    systemDesign: SystemDesign | LeanDocument<SystemDesign>,
     annualFluxLayers: TypedArrayArrayWithDimensions,
     monthlyFluxLayers: TypedArrayArrayWithDimensions,
     annualDriftCorrection: IDriftCorrection,

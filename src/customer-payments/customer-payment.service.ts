@@ -1,11 +1,11 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { BigNumber } from 'bignumber.js';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { QuoteCostBuildUpService, QuoteFinanceProductService } from 'src/quotes/sub-services';
-import { roundNumber } from 'src/utils/transformNumber';
 import { BigNumberUtils } from 'src/utils';
+import { roundNumber } from 'src/utils/transformNumber';
 import { CustomerPayment, CUSTOMER_PAYMENT } from './customer-payment.schema';
 
 @Injectable()
@@ -35,7 +35,28 @@ export class CustomerPaymentService {
     opportunityId: string,
     detailedQuote: IDetailedQuoteSchema,
   ): Promise<CustomerPayment> {
-    const customerPayment = new this.customerPaymentModel();
+    const latestCustomerPayment = await this.customerPaymentModel
+      .find({ opportunityId })
+      .limit(1)
+      .sort({ modifiedAt: -1 })
+      .lean();
+
+    let customerPayment = new this.customerPaymentModel();
+
+    const { actualDepositMade = 0, actualPayment1Made = 0 } = latestCustomerPayment[0] || {};
+
+    const now = new Date();
+
+    if (latestCustomerPayment.length) {
+      delete latestCustomerPayment[0]._id;
+      delete latestCustomerPayment[0].__v;
+      latestCustomerPayment[0].createdAt = now;
+      latestCustomerPayment[0].updatedAt = now;
+      const latestCustomerPaymentKeys = Object.keys(latestCustomerPayment[0]);
+      latestCustomerPaymentKeys.forEach(key => {
+        customerPayment[key] = latestCustomerPayment[0][key];
+      });
+    }
 
     const { quoteCostBuildup, quoteFinanceProduct } = detailedQuote;
 
@@ -75,19 +96,23 @@ export class CustomerPaymentService {
           .toNumber();
       }
 
-      customerPayment.deposit = deposit;
+      customerPayment.actualDepositMade = actualDepositMade || 0;
+      // if customer paid the deposit
+      customerPayment.deposit = actualDepositMade || deposit;
 
-      customerPayment.payment1 = roundNumber(
-        Math.min(
-          new BigNumber(quoteCostBuildup.projectGrandTotal.netCost).minus(deposit).toNumber(),
-          milestonePayment1Value,
-        ),
-        2,
-      );
+      customerPayment.payment1 =
+        actualPayment1Made ||
+        roundNumber(
+          Math.min(
+            new BigNumber(quoteCostBuildup.projectGrandTotal.netCost).minus(customerPayment.deposit).toNumber(),
+            milestonePayment1Value,
+          ),
+          2,
+        );
 
       customerPayment.payment2 = roundNumber(
         new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
-          .minus(deposit)
+          .minus(customerPayment.deposit)
           .minus(customerPayment.payment1)
           .toNumber(),
         2,

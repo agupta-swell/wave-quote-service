@@ -26,15 +26,19 @@ import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
 import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE, KWH_PER_GALLON } from './constants';
 import { roundUpNumber } from './operators';
-import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto } from './req';
+import {
+  BatterySystemSpecsDto,
+  CalculateActualUsageCostDto,
+  CreateUtilityReqDto,
+  GetActualUsageDto,
+  GetPinballSimulatorDto,
+} from './req';
 import { UsageValue } from './req/sub-dto';
 import {
-  ComputedUsageDto,
   CostDataDto,
   ExistingSystemProductionDto,
   LoadServingEntity,
   TariffDto,
-  UsageValueDto,
   UtilityDataDto,
   UtilityDetailsDto,
 } from './res';
@@ -43,13 +47,13 @@ import { UTILITIES, Utilities } from './schemas';
 import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
 import { GenebilityTeriffData, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
 import { getTypicalUsage, IGetTypicalUsageKwh } from './sub-services';
+import { IPinballRateAmount } from './utility.interface';
 import {
   GenabilityCostData,
   GenabilityTypicalBaseLineModel,
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
-  IExistingSystemProduction,
   IUsageValue,
   IUtilityCostData,
   UtilityUsageDetails,
@@ -80,6 +84,7 @@ export class UtilityService implements OnModuleInit {
     @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
     @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
     private readonly usageProfileService: UsageProfileService,
+    @Inject(forwardRef(() => ExistingSystemService))
     private readonly existingSystemService: ExistingSystemService,
     private readonly systemProductService: SystemProductService,
     @Inject(forwardRef(() => ContactService))
@@ -242,7 +247,7 @@ export class UtilityService implements OnModuleInit {
     return OperationResult.ok(strictPlainToClass(CostDataDto, costData));
   }
 
-  async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostDataDto>> {
+  async calculateActualUsageCostUtil(data: CalculateActualUsageCostDto): Promise<any> {
     const { zipCode, masterTariffId, utilityData, usageProfileId } = data;
     let hourlyDataForTheYear: UsageValue[] = [];
 
@@ -271,6 +276,12 @@ export class UtilityService implements OnModuleInit {
       actualUsageCost: null as any,
       computedCost: monthlyCost,
     };
+
+    return costData;
+  }
+
+  async calculateActualUsageCost(data: CalculateActualUsageCostDto): Promise<OperationResult<CostDataDto>> {
+    const costData = await this.calculateActualUsageCostUtil(data);
 
     return OperationResult.ok(strictPlainToClass(CostDataDto, costData));
   }
@@ -326,7 +337,7 @@ export class UtilityService implements OnModuleInit {
   }
 
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
-    const res = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
+    const res = await this.getUtilityByOpportunityId(opportunityId);
     if (!res) {
       return OperationResult.ok(null as any);
     }
@@ -335,10 +346,10 @@ export class UtilityService implements OnModuleInit {
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, res));
   }
 
-  async updateUtilityUsageDetail(
+  async updateUtilityUsageDetailUtil(
     utilityId: ObjectId,
     utilityDto: CreateUtilityReqDto,
-  ): Promise<OperationResult<UtilityDetailsDto>> {
+  ): Promise<LeanDocument<UtilityUsageDetails> | null> {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
     utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
@@ -374,6 +385,15 @@ export class UtilityService implements OnModuleInit {
     if (!isUpdated) {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
     }
+
+    return updatedUtility;
+  }
+
+  async updateUtilityUsageDetail(
+    utilityId: ObjectId,
+    utilityDto: CreateUtilityReqDto,
+  ): Promise<OperationResult<UtilityDetailsDto>> {
+    const updatedUtility = await this.updateUtilityUsageDetailUtil(utilityId, utilityDto);
 
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, updatedUtility));
   }
@@ -537,6 +557,120 @@ export class UtilityService implements OnModuleInit {
       }));
   };
 
+  caculatePinballDataIn24Hours(
+    hourlyPostInstallLoadIn24Hours: number[],
+    hourlySeriesForExistingPVIn24Hours: number[] | undefined,
+    hourlySeriesForNewPVIn24Hours: number[],
+    rateAmountHourlyIn24Hours: IPinballRateAmount[],
+    batterySystemSpecs: BatterySystemSpecsDto,
+    ratingInKW: number,
+    minimumReserveInKW: number,
+    sqrtRoundTripEfficiency: number,
+  ): {
+    batteryStoredEnergySeriesIn24Hours: number[];
+    batteryChargingSeriesIn24Hours: number[];
+    batteryDischargingSeriesIn24Hours: number[];
+    postInstallSiteDemandSeriesIn24Hours: number[];
+  } {
+    const pvGenerationIn24Hours: number[] = [];
+    // The difference between house usage and PV generation
+    const netLoadIn24Hours: number[] = [];
+
+    const plannedBatteryACIn24Hours: number[] = [];
+    const plannedBatteryDCIn24Hours: number[] = [];
+    const batteryStoredEnergySeriesIn24Hours: number[] = [];
+    const actualBatteryDCIn24Hours: number[] = [];
+    const actualBatteryACIn24Hours: number[] = [];
+    const batteryChargingSeriesIn24Hours: number[] = [];
+    const batteryDischargingSeriesIn24Hours: number[] = [];
+    const postInstallSiteDemandSeriesIn24Hours: number[] = [];
+    for (let i = 0; i < 24; i += 1) {
+      pvGenerationIn24Hours.push(
+        new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
+          .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
+          .toNumber(),
+      );
+      netLoadIn24Hours.push(
+        new BigNumber(hourlyPostInstallLoadIn24Hours[i] || 0).minus(pvGenerationIn24Hours[i]).toNumber(),
+      );
+
+      // Planned Battery AC
+      switch (batterySystemSpecs.operationMode) {
+        case BATTERY_PURPOSE.BACKUP_POWER:
+          plannedBatteryACIn24Hours.push(Math.min(pvGenerationIn24Hours[i], ratingInKW));
+          break;
+        case BATTERY_PURPOSE.PV_SELF_CONSUMPTION:
+          plannedBatteryACIn24Hours.push(
+            Math.min(pvGenerationIn24Hours[i], ratingInKW),
+            -Math.min(Math.max(netLoadIn24Hours[i], -ratingInKW), ratingInKW),
+          );
+          break;
+        case BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION:
+          plannedBatteryACIn24Hours.push(
+            rateAmountHourlyIn24Hours[i].charge
+              ? Math.min(pvGenerationIn24Hours[i], ratingInKW)
+              : -Math.min(Math.max(netLoadIn24Hours[i], -ratingInKW), ratingInKW),
+          );
+          break;
+        default:
+      }
+
+      // Planned Battery DC
+      if (plannedBatteryACIn24Hours[i] > 0) {
+        plannedBatteryDCIn24Hours.push(
+          new BigNumber(plannedBatteryACIn24Hours[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber(),
+        );
+      } else {
+        plannedBatteryDCIn24Hours.push(
+          new BigNumber(plannedBatteryACIn24Hours[i]).dividedBy(sqrtRoundTripEfficiency).toNumber() || 0,
+        );
+      }
+
+      // Battery Stored Energy
+      batteryStoredEnergySeriesIn24Hours.push(
+        Math.max(
+          minimumReserveInKW,
+          Math.min(
+            (batteryStoredEnergySeriesIn24Hours[i - 1] || minimumReserveInKW) + plannedBatteryDCIn24Hours[i],
+            batterySystemSpecs.totalCapacityInKWh * 1000,
+          ),
+        ),
+      );
+
+      // Actual Battery DC
+      actualBatteryDCIn24Hours.push(
+        new BigNumber(batteryStoredEnergySeriesIn24Hours[i])
+          .minus(batteryStoredEnergySeriesIn24Hours[i - 1] || minimumReserveInKW)
+          .toNumber(),
+      );
+
+      // Actual Battery AC
+      actualBatteryACIn24Hours.push(
+        actualBatteryDCIn24Hours[i] > 0
+          ? new BigNumber(actualBatteryDCIn24Hours[i]).dividedBy(sqrtRoundTripEfficiency).toNumber()
+          : new BigNumber(actualBatteryDCIn24Hours[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber(),
+      );
+
+      // battery charging
+      batteryChargingSeriesIn24Hours.push(actualBatteryACIn24Hours[i] > 0 ? actualBatteryACIn24Hours[i] : 0);
+
+      // battery discharging
+      batteryDischargingSeriesIn24Hours.push(actualBatteryACIn24Hours[i] < 0 ? -actualBatteryACIn24Hours[i] : 0);
+
+      // site demand
+      postInstallSiteDemandSeriesIn24Hours.push(
+        new BigNumber(netLoadIn24Hours[i]).plus(actualBatteryACIn24Hours[i]).toNumber(),
+      );
+    }
+
+    return {
+      batteryStoredEnergySeriesIn24Hours,
+      batteryChargingSeriesIn24Hours,
+      batteryDischargingSeriesIn24Hours,
+      postInstallSiteDemandSeriesIn24Hours,
+    };
+  }
+
   async simulatePinball(
     data: GetPinballSimulatorDto,
   ): Promise<{
@@ -544,6 +678,7 @@ export class UtilityService implements OnModuleInit {
     batteryChargingSeries: number[];
     batteryDischargingSeries: number[];
     postInstallSiteDemandSeries: number[];
+    rateAmountHourly: IPinballRateAmount[];
     year?: number;
   }> {
     const {
@@ -560,7 +695,7 @@ export class UtilityService implements OnModuleInit {
     }
 
     // generate 8760 charge or discharge the battery.
-    const rateAmountHourly: { rate: number; charge: boolean }[] = [];
+    const rateAmountHourly: IPinballRateAmount[] = [];
 
     const currentYear = data?.year ?? new Date().getFullYear() - 1;
 
@@ -647,7 +782,7 @@ export class UtilityService implements OnModuleInit {
         }
       }
 
-      // update the frist period if it is < the 2nd period => charge
+      // update the first period if it is < the 2nd period => charge
       if (periodsInDay.length > 1) {
         periodsInDay[0].charge = !periodsInDay[1].charge;
         // if the first period.rate === the final period.rate maybe it is the same period.charge (e.g. the hour from 9pm - 5am)
@@ -669,16 +804,7 @@ export class UtilityService implements OnModuleInit {
       }
     }
 
-    // This is the sum of the generation of all PV systems, both new and existing.
-    const pvGeneration: number[] = [];
-    // The difference between house usage and PV generation
-    const netLoad: number[] = [];
-
-    const plannedBatteryAC: number[] = [];
-    const plannedBatteryDC: number[] = [];
     const batteryStoredEnergySeries: number[] = [];
-    const actualBatteryDC: number[] = [];
-    const actualBatteryAC: number[] = [];
     const batteryChargingSeries: number[] = [];
     const batteryDischargingSeries: number[] = [];
     const postInstallSiteDemandSeries: number[] = [];
@@ -687,73 +813,37 @@ export class UtilityService implements OnModuleInit {
     const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
     const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency / 100);
 
-    for (let i = 0; i < 8760; i += 1) {
-      pvGeneration.push(
-        new BigNumber(hourlySeriesForExistingPV?.[i] || 0).plus(hourlySeriesForNewPV[i] || 0).toNumber(),
+    for (let i = 0; i < 365; i += 1) {
+      const startIdx = i * 24;
+      const endIdx = startIdx + 24;
+      const hourlyPostInstallLoadIn24Hours: number[] = hourlyPostInstallLoad.slice(startIdx, endIdx);
+      const hourlySeriesForExistingPVIn24Hours: number[] | undefined = hourlySeriesForExistingPV?.slice(
+        startIdx,
+        endIdx,
       );
-      netLoad.push(new BigNumber(hourlyPostInstallLoad[i] || 0).minus(pvGeneration[i]).toNumber());
+      const hourlySeriesForNewPVIn24Hours: number[] = hourlySeriesForNewPV.slice(startIdx, endIdx);
+      const rateAmountHourlyIn24Hours: IPinballRateAmount[] = rateAmountHourly.slice(startIdx, endIdx);
 
-      // Planned Battery AC
-      switch (batterySystemSpecs.operationMode) {
-        case BATTERY_PURPOSE.BACKUP_POWER:
-          plannedBatteryAC.push(Math.min(pvGeneration[i], ratingInKW));
-          break;
-        case BATTERY_PURPOSE.PV_SELF_CONSUMPTION:
-          plannedBatteryAC.push(
-            Math.min(pvGeneration[i], ratingInKW),
-            -Math.min(Math.max(netLoad[i], -ratingInKW), ratingInKW),
-          );
-          break;
-        case BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION:
-          plannedBatteryAC.push(
-            rateAmountHourly[i].charge
-              ? Math.min(pvGeneration[i], ratingInKW)
-              : -Math.min(Math.max(netLoad[i], -ratingInKW), ratingInKW),
-          );
-          break;
-        default:
-      }
-
-      // Planned Battery DC
-      if (plannedBatteryAC[i] > 0) {
-        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber());
-      } else {
-        plannedBatteryDC.push(new BigNumber(plannedBatteryAC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber() || 0);
-      }
-
-      // Battery Stored Energy
-      batteryStoredEnergySeries.push(
-        Math.max(
-          minimumReserveInKW,
-          Math.min(
-            (batteryStoredEnergySeries[i - 1] || minimumReserveInKW) + plannedBatteryDC[i],
-            batterySystemSpecs.totalCapacityInKWh * 1000,
-          ),
-        ),
+      const {
+        batteryStoredEnergySeriesIn24Hours,
+        batteryChargingSeriesIn24Hours,
+        batteryDischargingSeriesIn24Hours,
+        postInstallSiteDemandSeriesIn24Hours,
+      } = this.caculatePinballDataIn24Hours(
+        hourlyPostInstallLoadIn24Hours,
+        hourlySeriesForExistingPVIn24Hours,
+        hourlySeriesForNewPVIn24Hours,
+        rateAmountHourlyIn24Hours,
+        batterySystemSpecs,
+        ratingInKW,
+        minimumReserveInKW,
+        sqrtRoundTripEfficiency,
       );
 
-      // Actual Battery DC
-      actualBatteryDC.push(
-        new BigNumber(batteryStoredEnergySeries[i])
-          .minus(batteryStoredEnergySeries[i - 1] || minimumReserveInKW)
-          .toNumber(),
-      );
-
-      // Actual Battery AC
-      actualBatteryAC.push(
-        actualBatteryDC[i] > 0
-          ? new BigNumber(actualBatteryDC[i]).dividedBy(sqrtRoundTripEfficiency).toNumber()
-          : new BigNumber(actualBatteryDC[i]).multipliedBy(sqrtRoundTripEfficiency).toNumber(),
-      );
-
-      // battery charging
-      batteryChargingSeries.push(actualBatteryAC[i] > 0 ? actualBatteryAC[i] : 0);
-
-      // battery discharging
-      batteryDischargingSeries.push(actualBatteryAC[i] < 0 ? -actualBatteryAC[i] : 0);
-
-      // site demand
-      postInstallSiteDemandSeries.push(new BigNumber(netLoad[i]).plus(actualBatteryAC[i]).toNumber());
+      batteryStoredEnergySeries.push(...batteryStoredEnergySeriesIn24Hours);
+      batteryChargingSeries.push(...batteryChargingSeriesIn24Hours);
+      batteryDischargingSeries.push(...batteryDischargingSeriesIn24Hours);
+      postInstallSiteDemandSeries.push(...postInstallSiteDemandSeriesIn24Hours);
     }
 
     return {
@@ -761,6 +851,7 @@ export class UtilityService implements OnModuleInit {
       batteryChargingSeries,
       batteryDischargingSeries,
       postInstallSiteDemandSeries,
+      rateAmountHourly,
     };
   }
 
@@ -818,7 +909,7 @@ export class UtilityService implements OnModuleInit {
     const hourlyProduction = !shouldGetHourlyProduction
       ? []
       : existingSystemProductions.reduce(
-          (prev, current) => current.hourly.map((value, hourIndex) => value / 1000 + (prev[hourIndex] || 0)),
+          (prev, current) => current.hourly.map((value, hourIndex) => value + (prev[hourIndex] || 0)),
           [],
         );
 

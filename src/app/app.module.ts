@@ -36,7 +36,6 @@ import { QualificationModule } from 'src/qualifications/qualification.module';
 import { QuotePartnerConfigModule } from 'src/quote-partner-configs/quote-partner-config.module';
 import { QuoteModule } from 'src/quotes/quote.module';
 import { RebateProgramModule } from 'src/rebate-programs/rebate-programs.module';
-import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { AsyncContextModule } from 'src/shared/async-context';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { DocusignApiModule } from 'src/shared/docusign';
@@ -50,7 +49,6 @@ import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
-import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()
@@ -105,7 +103,6 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     ProposalSectionMasterModule,
     ProposalTemplateModule,
     QualificationModule,
-    SavingsCalculatorModule,
     QuoteModule,
     QuotePartnerConfigModule,
     RebateProgramModule,
@@ -116,7 +113,6 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UtilityProgramMasterModule,
     GsProgramsModule,
     FinancialProductsModule,
-    SavingCalculationModule,
     ProductModuleV2,
     InstalledProductModule,
     HealthcheckModule,

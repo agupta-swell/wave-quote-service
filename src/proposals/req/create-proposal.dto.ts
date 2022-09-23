@@ -1,6 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsEmail, IsInt, IsMongoId, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsInt,
+  IsMongoId,
+  IsOptional,
+  IsString,
+  ValidateNested,
+  IsNumber,
+} from 'class-validator';
 
 export class RecipientDto {
   @ApiProperty()
@@ -63,4 +73,17 @@ export class CreateProposalDto {
   @Type(() => DetailedProposalDto)
   @ValidateNested()
   detailedProposal: DetailedProposalDto;
+
+  @ApiProperty()
+  @IsString()
+  proposalView: string;
+
+  @ApiProperty()
+  @IsString()
+  proposalPeriod: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  proposalMonthIndex: number;
 }

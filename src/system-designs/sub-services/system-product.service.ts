@@ -262,7 +262,9 @@ export class SystemProductService implements OnModuleInit {
                 IProductDocument<PRODUCT_TYPE.MODULE>
               >)
             : await this.productService.getDetailById(item.panelModelId);
-          const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.ratings?.watts ?? 0)) / 1000;
+          const systemCapacityInkWh =
+            (item.numberOfPanels * (panelModelData?.ratings?.wattsPtc || panelModelData?.ratings?.watts || 0)) / 1000;
+          panelModelData?.ratings;
           return this.calculatePVProduction({
             latitude,
             longitude,

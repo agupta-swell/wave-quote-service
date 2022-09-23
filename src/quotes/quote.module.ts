@@ -7,7 +7,6 @@ import { FinancialProductsModule } from 'src/financial-products/financial-produc
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { PromotionModule } from 'src/promotions/promotion.module';
-import { SavingsCalculatorModule } from 'src/savings-calculator/saving-calculator.module';
 import { SystemProductionModule } from 'src/system-production/system-production.module';
 import { TaxCreditConfigModule } from 'src/tax-credit-configs/tax-credit-config.module';
 import { QuoteController } from './quote.controller';
@@ -27,7 +26,6 @@ import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService
       { name: I_T_C, schema: ITCSchema, collection: 'v2_itc' },
     ]),
     FinancialProductsModule,
-    SavingsCalculatorModule,
     ManufacturerModule,
     DiscountModule,
     PromotionModule,

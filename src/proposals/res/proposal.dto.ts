@@ -104,6 +104,15 @@ export class ProposalDto {
 
   @ExposeProp({ type: UserInformationDto })
   customer: UserInformationDto;
+
+  @ExposeProp()
+  proposalView: string;
+
+  @ExposeProp()
+  proposalPeriod: string;
+
+  @ExposeProp()
+  proposalMonthIndex: number;
 }
 
 class ProposalPaginationRes implements Pagination<ProposalDto> {

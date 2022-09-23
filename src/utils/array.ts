@@ -1,10 +1,12 @@
 /* eslint-disable no-plusplus */
 export const sliceBySizesMap = <T>(arr: T[], sizes: number[]): T[][] => {
   const res: T[][] = [];
+  let nextStartIdx = 0;
   for (let i = 0; i < sizes.length; i++) {
     const size = sizes[i];
-    const from = i * size;
+    const from = nextStartIdx;
     const to = from + size;
+    nextStartIdx = to;
 
     const chunk = arr.slice(from, to);
 

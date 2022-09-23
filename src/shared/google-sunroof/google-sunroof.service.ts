@@ -412,7 +412,7 @@ export class GoogleSunroofService {
    *
    * @param systemDesign
    */
-  public async calculateProduction(systemDesign: SystemDesign): Promise<SystemProduction> {
+  public async calculateProduction(systemDesign: SystemDesign | LeanDocument<SystemDesign>): Promise<SystemProduction> {
     const { opportunityId, _id } = systemDesign;
     const sunroofDriftCorrection = systemDesign?.sunroofDriftCorrection || { x: 0, y: 0 };
     const systemDesignId = _id.toString();

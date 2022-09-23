@@ -14,7 +14,8 @@ class UsageValue {
 
 export class ComputedUsageDto {
   @ApiProperty()
-  sourceType: string;
+  @IsOptional()
+  sourceType?: string;
 
   @ApiProperty()
   annualConsumption: number;
@@ -24,7 +25,7 @@ export class ComputedUsageDto {
   @Type(() => UsageValue)
   @ValidateNested({ each: true })
   monthlyUsage: UsageValue[];
-  
+
   @ApiProperty({ type: UsageValue, isArray: true })
   @IsOptional()
   @IsArray()
