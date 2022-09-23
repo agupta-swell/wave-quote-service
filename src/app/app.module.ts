@@ -49,7 +49,6 @@ import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
-import { SavingCalculationModule } from '../saving-calculations/saving-calculation.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()
@@ -114,7 +113,6 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     UtilityProgramMasterModule,
     GsProgramsModule,
     FinancialProductsModule,
-    SavingCalculationModule,
     ProductModuleV2,
     InstalledProductModule,
     HealthcheckModule,
