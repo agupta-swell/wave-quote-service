@@ -1,5 +1,6 @@
 import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { IHistoricalUsage } from 'src/utilities/res';
+import { roundNumber } from 'src/utils/transformNumber';
 
 export const getNetLoadTypical24Hours = (
   expectedUsage: number[],
@@ -15,11 +16,13 @@ export const getNetLoadTypical24Hours = (
     const newPVAnnual = newPV?.[i] || 0;
     const batteryChargingSeriesTypicalAnnual = batteryChargingSeriesTypical?.[i] || 0;
     const batteryDischargingSeriesTypicalAnnual = batteryDischargingSeriesTypical?.[i] || 0;
-    const result =
+    const result = roundNumber(
       expectedUsageAnnual -
-      (existingPVAnnual + newPVAnnual) +
-      Math.abs(batteryChargingSeriesTypicalAnnual) -
-      Math.abs(batteryDischargingSeriesTypicalAnnual);
+        (existingPVAnnual + newPVAnnual) +
+        Math.abs(batteryChargingSeriesTypicalAnnual) -
+        Math.abs(batteryDischargingSeriesTypicalAnnual),
+      2,
+    );
     netLoadTypical24Hours.push(result);
   }
   return netLoadTypical24Hours;
