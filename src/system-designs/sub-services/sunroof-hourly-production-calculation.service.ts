@@ -38,7 +38,7 @@ export class SunroofHourlyProductionCalculation {
       .filter((res): res is PromiseFulfilledResult<string | undefined> => res.status === 'fulfilled')
       .map(res => res.value);
 
-    const hourlyProduction = data[1] || data[0];
+    const hourlyProduction = data[0] || data[1];
 
     if (!hourlyProduction) return undefined;
 
@@ -62,10 +62,20 @@ export class SunroofHourlyProductionCalculation {
     ];
 
     if (maxInverterPower) {
+      const {
+        roofTopDesignData: { inverters },
+      } = systemDesign;
+
+      const [inverter] = inverters;
+
+      const inverterEfficiency = (inverter.inverterModelDataSnapshot.inverterEfficiency ?? 100) / 100;
+
       const clippedProduction: IEnergyProfileProduction = {
-        annualAverage: this.clipArrayByInverterPower(sunroofHourlyProduction.annualAverage, maxInverterPower),
+        annualAverage: this.clipArrayByInverterPower(sunroofHourlyProduction.annualAverage, maxInverterPower).map(v =>
+          roundNumber(v * inverterEfficiency, 2),
+        ),
         monthlyAverage: sunroofHourlyProduction.monthlyAverage.map(monthly =>
-          this.clipArrayByInverterPower(monthly, maxInverterPower),
+          this.clipArrayByInverterPower(monthly, maxInverterPower).map(v => roundNumber(v * inverterEfficiency, 2)),
         ),
       };
 
