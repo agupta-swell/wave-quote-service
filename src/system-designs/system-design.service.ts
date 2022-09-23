@@ -135,7 +135,8 @@ export class SystemDesignService {
 
             systemDesign.setPanelModelDataSnapshot(panelModelData, index);
 
-            const capacity = (item.numberOfPanels * (panelModelData.ratings.wattsPtc ?? 0)) / 1000;
+            const capacity =
+              (item.numberOfPanels * (panelModelData.ratings.wattsPtc || panelModelData.ratings.watts)) / 1000;
 
             const { useSunroof, sunroofAzimuth, sunroofPitch, azimuth, pitch } = item;
             // TODO: is this duplicated with systemProductionArray
@@ -461,7 +462,8 @@ export class SystemDesignService {
 
           systemDesign.setPanelModelDataSnapshot(panelModelData, index);
 
-          const capacity = (item.numberOfPanels * (panelModelData.ratings.wattsPtc ?? 0)) / 1000;
+          const capacity =
+            (item.numberOfPanels * (panelModelData.ratings.wattsPtc || panelModelData.ratings.watts)) / 1000;
 
           const { azimuth, pitch, useSunroof, sunroofPitch, sunroofAzimuth } = item;
 
