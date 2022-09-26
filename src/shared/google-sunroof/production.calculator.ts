@@ -124,7 +124,7 @@ export class ProductionCalculator {
       panels,
       panelModelDataSnapshot: {
         ratings: {
-          watts
+          wattsPtc: watts,
         }
       }
     } = array
