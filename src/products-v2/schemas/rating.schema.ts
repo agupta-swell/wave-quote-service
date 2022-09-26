@@ -12,6 +12,7 @@ export const RatingSchema = new Schema(
 export const WattRatingSchema = new Schema(
   {
     watts: Number,
+    wattsPtc: Number,
   },
   { _id: false },
 );
