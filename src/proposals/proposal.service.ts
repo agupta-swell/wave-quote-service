@@ -15,7 +15,9 @@ import { CustomerPaymentService } from 'src/customer-payments/customer-payment.s
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { IGenericObject } from 'src/docusign-communications/typing';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
+import { IBatteryDataSeries, INetLoad } from 'src/energy-profiles/energy-profile.interface';
 import { EnergyProfileService } from 'src/energy-profiles/energy-profile.service';
+import { getNetLoadTypical } from 'src/energy-profiles/utils';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { LeaseSolverConfigService } from 'src/lease-solver-configs/lease-solver-config.service';
@@ -27,11 +29,11 @@ import { ProposalTemplateService } from 'src/proposal-templates/proposal-templat
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { ISunroofHourlyProduction } from 'src/system-designs/sub-services/types';
 import { SystemProductionDto } from 'src/system-production/res';
 import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { UserService } from 'src/users/user.service';
+import { PROPOSAL_PERIOD_MODE, PROPOSAL_VIEW_MODE } from 'src/utilities/constants';
 import {
   calculateElectricVehicle,
   calculatePlannedUsageIncreasesKwh,
@@ -43,9 +45,6 @@ import { GenebilityTariffDataDetail } from 'src/utilities/schemas/genebility-tar
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
-import { PROPOSAL_VIEW_MODE, PROPOSAL_PERIOD_MODE } from 'src/utilities/constants';
-import { IBatteryDataSeries, INetLoad } from 'src/energy-profiles/energy-profile.interface';
-import { getNetLoadTypical } from 'src/energy-profiles/utils';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { EmailService } from '../emails/email.service';
@@ -749,9 +748,8 @@ export class ProposalService {
         systemDesign.systemProductionData = systemProduction.data;
       }
     }
-
     const genericObject: IGenericObject = {
-      signerDetails: [],
+      signerDetails,
       opportunity,
       quote,
       recordOwner: recordOwner || ({} as any),
@@ -764,7 +762,7 @@ export class ProposalService {
       gsProgram,
       utilityProgramMaster,
       leaseSolverConfig,
-      financialProduct: quote.quoteFinanceProduct.financialProductSnapshot,
+      financialProduct: quote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
       contract: {} as any,
       systemDesign: systemDesign!,
     };
