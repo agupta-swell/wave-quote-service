@@ -155,10 +155,10 @@ export class ContractService {
     const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id?.toString() || '';
 
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
-      [fundingSourceId],
-      [utilityId],
-      [utilityProgramIdTemp],
-      applicableSystemTypes,
+      [fundingSourceId, 'ALL'],
+      [utilityId, 'ALL'],
+      [utilityProgramIdTemp, 'ALL'],
+      [...applicableSystemTypes, SYSTEM_TYPE.ALL],
     );
 
     return OperationResult.ok(strictPlainToClass(GetContractTemplatesDto, { templates: templateMasterRecords }));

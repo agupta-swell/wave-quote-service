@@ -125,12 +125,24 @@ export class EnergyProfileService {
       // Do not thing, any error, such as NoSuchKey (file not found)
     }
 
+    const pinballPrepareData = await this.prepareProductionDataForPinballSimulation(systemDesignId);
+
+    if (!pinballPrepareData) {
+      const noneSolarBatteryDataSeries: IEnergyProfileProduction = buildMonthlyAndAnnuallyDataFrom8760(
+        Array(8760).fill(0),
+      );
+      return {
+        batteryChargingSeries: noneSolarBatteryDataSeries,
+        batteryDischargingSeries: noneSolarBatteryDataSeries,
+      };
+    }
+
     const {
       hourlyPostInstallLoadInWh,
       hourlySeriesForExistingPVInWh,
       hourlySeriesForNewPVInWh,
       batterySystemSpecs,
-    } = await this.prepareProductionDataForPinballSimulation(systemDesignId);
+    } = pinballPrepareData;
 
     const monthlyAndAnnualPostInstallLoadInWhIn24Hours = getMonthlyAndAnnualWeekdayAverageFrom8760(
       hourlyPostInstallLoadInWh,
@@ -209,11 +221,16 @@ export class EnergyProfileService {
     hourlySeriesForExistingPVInWh: number[];
     hourlySeriesForNewPVInWh: number[];
     batterySystemSpecs: BatterySystemSpecsDto;
-  }> {
+  } | null> {
     const systemDesign = await this.systemDesignService.getOneById(systemDesignId);
 
     if (!systemDesign) {
       throw new NotFoundException(`System design with id ${systemDesignId} not found`);
+    }
+
+    // check if system design does not have panel array, so does not need SIMULATE PINBALL
+    if (!systemDesign.roofTopDesignData.panelArray.length) {
+      return null;
     }
 
     const [sunroofProduction, systemProduction] = await Promise.all([
