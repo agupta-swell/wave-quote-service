@@ -4,7 +4,7 @@ export const ElectricVehicleSchema = new Schema({
   manufacturer: String,
   model: String,
   battery_kwh: Number,
-  mpge: Number,
+  kwh_per_100_miles: Number,
   created_at: Date,
   updated_at: Date,
   created_by: String,

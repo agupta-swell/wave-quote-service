@@ -1,7 +1,6 @@
 /* eslint-disable no-plusplus */
 import { map } from 'rxjs/operators';
 import { roundNumber } from 'src/utils/transformNumber';
-import { KWH_PER_GALLON } from '../constants';
 import { IGetTypicalUsageKwh, TypicalUsageKwh } from '../sub-services';
 
 export const roundUpNumber = (num: number) => {
@@ -23,14 +22,14 @@ export const calculateElectricVehicle = map<IGetTypicalUsageKwh, IGetTypicalUsag
       chargerType,
       milesDrivenPerDay,
       startChargingHour,
-      electricVehicleSnapshot: { mpge },
+      electricVehicleSnapshot: { kwhPer100Miles },
     } = e;
 
     const hourlyUsage = Array(24).fill(0);
 
     const chargingRate = chargerType.rating;
 
-    const kwhRequiredPerDay = roundNumber((milesDrivenPerDay * KWH_PER_GALLON) / mpge, 2);
+    const kwhRequiredPerDay = roundNumber(milesDrivenPerDay * (kwhPer100Miles / 100), 2);
 
     if (kwhRequiredPerDay < chargingRate) {
       hourlyUsage[startChargingHour] = kwhRequiredPerDay;
