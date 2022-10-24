@@ -4,7 +4,7 @@ export interface IElectricVehicle {
   manufacturer: string;
   model: string;
   batteryKwh: number;
-  mpge: number;
+  kwhPer100Miles: number;
   createdAt: Date;
   updatedAt: Date;
   createdBy: string;

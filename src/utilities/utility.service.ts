@@ -24,7 +24,7 @@ import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE, KWH_PER_GALLON } from './constants';
+import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE } from './constants';
 import { roundUpNumber } from './operators';
 import {
   BatterySystemSpecsDto,
@@ -441,14 +441,14 @@ export class UtilityService implements OnModuleInit {
           chargerType,
           milesDrivenPerDay,
           startChargingHour,
-          electricVehicleSnapshot: { mpge },
+          electricVehicleSnapshot: { kwhPer100Miles },
         } = e;
 
         const _hourlyUsage = Array(24).fill(0);
 
         const chargingRate = chargerType.rating;
 
-        const kwhRequiredPerDay = roundNumber((milesDrivenPerDay * KWH_PER_GALLON) / mpge, 2);
+        const kwhRequiredPerDay = roundNumber(milesDrivenPerDay * (kwhPer100Miles / 100), 2);
 
         if (kwhRequiredPerDay < chargingRate) {
           _hourlyUsage[startChargingHour] = kwhRequiredPerDay;

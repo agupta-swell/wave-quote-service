@@ -77,7 +77,9 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
         .addCustomMapping('existing_pv_pitch', 'existingPVPitch')
         .addCustomMapping('existingPVPitch', 'existing_pv_pitch')
         .addCustomMapping('existingPVSize', 'existing_pv_size')
-        .addCustomMapping('existing_pv_size', 'existingPVSize'),
+        .addCustomMapping('existing_pv_size', 'existingPVSize')
+        .addCustomMapping('kwh_per_100_miles', 'kwhPer100Miles')
+        .addCustomMapping('kwhPer100Miles', 'kwh_per_100_miles'),
     ),
     AwsModule,
     GoogleSunroofModule,

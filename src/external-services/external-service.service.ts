@@ -259,6 +259,7 @@ export class ExternalService {
       groupBy: 'DAY',
       detailLevel: 'RATE',
       billingPeriod: true,
+      minimums: true,
       propertyInputs: [
         {
           keyName: 'consumption',

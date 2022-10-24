@@ -15,7 +15,7 @@ export class ElectricVehicleResDto implements IElectricVehicle {
   batteryKwh: number;
 
   @ExposeProp()
-  mpge: number;
+  kwhPer100Miles: number;
 
   @ExposeProp()
   createdAt: Date;
