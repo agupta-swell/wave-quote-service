@@ -50,9 +50,23 @@ export class SunroofHourlyProductionCalculation {
     systemProduction: ISystemProduction | LeanDocument<ISystemProduction>,
     sunroofProduction?: SystemProduction,
   ): Promise<IEnergyProfileProduction> {
+    const {
+      roofTopDesignData: { inverters, panelArray },
+    } = systemDesign;
+
     const maxInverterPower = this.calculateMaxInverterPower(systemDesign);
 
-    const sunroofHourlyProduction = this.calculateSunroofHourlyProduction(systemProduction, sunroofProduction);
+    let sunroofHourlyProduction = this.calculateSunroofHourlyProduction(systemProduction, sunroofProduction);
+
+    // apply first year degradation
+    const [firstPanelArray] = panelArray;
+
+    const firstYearDegradation = (firstPanelArray.panelModelDataSnapshot.firstYearDegradation ?? 0) / 100;
+
+    sunroofHourlyProduction = {
+      annualAverage: sunroofHourlyProduction.annualAverage.map(v => roundNumber(v * (1 - firstYearDegradation), 2)),
+      monthlyAverage: sunroofHourlyProduction.monthlyAverage.map(monthly => monthly.map(v => roundNumber(v * (1 - firstYearDegradation), 2))),
+    }
 
     const s3Actions = [
       this.saveToS3(
@@ -62,10 +76,6 @@ export class SunroofHourlyProductionCalculation {
     ];
 
     if (maxInverterPower) {
-      const {
-        roofTopDesignData: { inverters },
-      } = systemDesign;
-
       const [inverter] = inverters;
 
       const inverterEfficiency = (inverter.inverterModelDataSnapshot.inverterEfficiency ?? 100) / 100;

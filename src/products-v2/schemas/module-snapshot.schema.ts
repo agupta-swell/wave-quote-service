@@ -9,6 +9,7 @@ export const ModuleSnapshotSchema = new Schema(
     dimensions: DimensionSchema,
     manufacturer_id: Schema.Types.ObjectId,
     ratings: WattRatingSchema,
+    first_year_degradation: Number,
   },
   { _id: false },
 );
