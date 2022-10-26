@@ -8,6 +8,7 @@ import { AwsModule } from 'src/shared/aws/aws.module';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import { SystemProductionModule } from 'src/system-production/system-production.module';
 import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
+import { ProductionDeratesModule } from 'src/production-derates-v2/production-derates-v2.module';
 import { PvWattSystemProductionSchema, PV_WATT_SYSTEM_PRODUCTION } from './schemas';
 import { SunroofHourlyProductionCalculation, SystemProductService } from './sub-services';
 import { SystemDesignController } from './system-design.controller';
@@ -36,6 +37,7 @@ import { SystemDesignHook } from './providers/system-design.hook';
     ManufacturerModule,
     SystemProductionModule,
     ExistingSystemModule,
+    ProductionDeratesModule,
   ],
   controllers: [SystemDesignController],
   providers: [
