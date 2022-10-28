@@ -61,7 +61,7 @@ export class SunroofHourlyProductionCalculation {
     // apply first year degradation
     const [firstPanelArray] = panelArray;
 
-    const firstYearDegradation = (firstPanelArray.panelModelDataSnapshot.firstYearDegradation ?? 0) / 100;
+    const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
 
     sunroofHourlyProduction = {
       annualAverage: sunroofHourlyProduction.annualAverage.map(v => roundNumber(v * (1 - firstYearDegradation), 2)),
