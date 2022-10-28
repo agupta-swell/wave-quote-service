@@ -7,13 +7,18 @@ import { SystemProduction } from 'src/shared/google-sunroof/types';
 import { IEnergyProfileProduction, ISystemProduction } from 'src/system-production/system-production.schema';
 import { getDaysInMonth } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
+import { ProductionDeratesService } from 'src/production-derates-v2/production-derates-v2.service';
+import { PRODUCTION_DERATES_NAME } from 'src/production-derates-v2/constants';
 import { IInverterSchema, ISolarPanelArraySchema, SystemDesign } from '../system-design.schema';
 
 @Injectable()
 export class SunroofHourlyProductionCalculation {
   private readonly GOOGLE_SUNROOF_S3_BUCKET: string;
 
-  constructor(private readonly s3Service: S3Service) {
+  constructor(
+    private readonly s3Service: S3Service,
+    private readonly productionDeratesService: ProductionDeratesService,
+  ) {
     const bucket = process.env.GOOGLE_SUNROOF_S3_BUCKET;
 
     if (!bucket) throw new Error('Missing GOOGLE_SUNROOF_S3_BUCKET environment variable');
@@ -61,12 +66,14 @@ export class SunroofHourlyProductionCalculation {
     // apply first year degradation
     const [firstPanelArray] = panelArray;
 
-    const firstYearDegradation = (firstPanelArray.panelModelDataSnapshot.firstYearDegradation ?? 0) / 100;
+    const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
 
     sunroofHourlyProduction = {
       annualAverage: sunroofHourlyProduction.annualAverage.map(v => roundNumber(v * (1 - firstYearDegradation), 2)),
-      monthlyAverage: sunroofHourlyProduction.monthlyAverage.map(monthly => monthly.map(v => roundNumber(v * (1 - firstYearDegradation), 2))),
-    }
+      monthlyAverage: sunroofHourlyProduction.monthlyAverage.map(monthly =>
+        monthly.map(v => roundNumber(v * (1 - firstYearDegradation), 2)),
+      ),
+    };
 
     const s3Actions = [
       this.saveToS3(
@@ -98,7 +105,7 @@ export class SunroofHourlyProductionCalculation {
 
       await Promise.all(s3Actions);
 
-      return clippedProduction;
+      return this.calculateFinalSunroofProduction(clippedProduction);
     }
 
     s3Actions.push(
@@ -110,7 +117,25 @@ export class SunroofHourlyProductionCalculation {
 
     await Promise.all(s3Actions);
 
-    return sunroofHourlyProduction;
+    return this.calculateFinalSunroofProduction(sunroofHourlyProduction);
+  }
+
+  private async calculateFinalSunroofProduction(
+    production: IEnergyProfileProduction,
+  ): Promise<IEnergyProfileProduction> {
+    const productionDerates = await this.productionDeratesService.getAllProductionDerates();
+
+    let ratio = 1;
+
+    productionDerates.data?.forEach(item => {
+      ratio *= 1 - (item.amount || 0) / 100;
+    });
+
+    const finalSunroofHourlyProduction = {
+      annualAverage: production.annualAverage.map(v => roundNumber(v * ratio, 2)),
+      monthlyAverage: production.monthlyAverage.map(monthly => monthly.map(v => roundNumber(v * ratio, 2))),
+    };
+    return finalSunroofHourlyProduction;
   }
 
   private calculateMaxInverterPower(systemDesign: SystemDesign | LeanDocument<SystemDesign>): number | undefined {
