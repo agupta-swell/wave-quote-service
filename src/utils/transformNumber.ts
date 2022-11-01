@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
-export const roundNumber = (value: number, digits: number) => {
+export const roundNumber = (value: number, digits = 2) => {
   // digits: number of decimal number, ie: toFixed(digits)
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;

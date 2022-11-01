@@ -1,25 +1,27 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model } from 'mongoose';
 import { Cache } from 'cache-manager';
+import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { EmailService } from 'src/emails/email.service';
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
 import { CalculateQuoteDetailDto } from 'src/quotes/req/calculate-quote-detail.dto';
 import { LoanProductAttributesDto } from 'src/quotes/req/sub-dto/loan-product-attributes.dto';
 import { CalculationService } from 'src/quotes/sub-services/calculation.service';
+import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { CALCULATION_MODE } from 'src/utilities/constants';
 import { CostDataDto, UtilityDataDto } from 'src/utilities/res';
 import { IUsageValue } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
-import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
 import { GeneratedSolarSystem } from './models/generated-solar-system';
 import { TypicalUsage } from './models/typical-usage';
+import { GetEcomStorageOnlyQuoteReq } from './req/get-ecom-storage-only-quote.dto';
 import { GetEcomSystemDesignAndQuoteReq } from './req/get-ecom-system-design-and-quote.dto';
 import { GetGeneratedSystemStorageQuoteDto } from './res/get-generated-system-storage-quote.dto';
+import { GetStorageOnlyQuoteDto } from './res/get-storage-only-quote.dto';
 import { CostDetailDataDto, PaymentOptionDataDto, SolarStorageQuoteDto, StorageQuoteDto } from './res/sub-dto';
 import {
   ECommerceConfig,
@@ -30,15 +32,17 @@ import {
   E_COMMERCE_SYSTEM_DESIGN,
   REGION,
   Region,
+  REGION_PURPOSE,
+  SoilingDerate,
+  SOILING_DERATE,
   ZipCodeRegionMap,
   ZIP_CODE_REGION_MAP,
 } from './schemas';
-import { GetEcomStorageOnlyQuoteReq } from './req/get-ecom-storage-only-quote.dto';
-import { GetStorageOnlyQuoteDto } from './res/get-storage-only-quote.dto';
 
 @Injectable()
 export class ECommerceService {
   constructor(
+    @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
     private readonly systemProductService: SystemProductService,
     private readonly calculationService: CalculationService,
@@ -47,6 +51,7 @@ export class ECommerceService {
     @InjectModel(E_COMMERCE_CONFIG) private readonly eCommerceConfigModel: Model<ECommerceConfig>,
     @InjectModel(REGION) private readonly regionModel: Model<Region>,
     @InjectModel(ZIP_CODE_REGION_MAP) private readonly zipCodeRegionMapModel: Model<ZipCodeRegionMap>,
+    @InjectModel(SOILING_DERATE) private readonly SoilingDerateModel: Model<SoilingDerate>,
     @InjectModel(E_COMMERCE_PRODUCT) private readonly eCommerceProductModel: Model<ECommerceProduct>,
     @InjectModel(E_COMMERCE_SYSTEM_DESIGN) private readonly eCommerceSystemDesignModel: Model<ECommerceSystemDesign>,
   ) {}
@@ -174,6 +179,32 @@ export class ECommerceService {
     };
 
     return OperationResult.ok(result);
+  }
+
+  public async getSoilingLossesByOpportunityId(opportunityId): Promise<number> {
+    const utilityService = await this.utilityService.getUtilityByOpportunityId(opportunityId);
+
+    if (!utilityService) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
+
+    const foundZipCodeRegionMaps = await this.zipCodeRegionMapModel
+      .find({
+        zipCodes: utilityService?.utilityData.typicalBaselineUsage.zipCode,
+      })
+      .lean();
+    if (!foundZipCodeRegionMaps.length) return 0;
+
+    const foundRegion = await this.regionModel
+      .findOne({
+        _id: { $in: foundZipCodeRegionMaps.map(foundZipCodeRegionMap => foundZipCodeRegionMap.regionId) },
+        regionPurpose: REGION_PURPOSE.SOILING,
+      })
+      .lean();
+
+    if (!foundRegion) return 0;
+    const soilingDerate = await this.SoilingDerateModel.findOne({ regionId: foundRegion._id }).lean();
+
+    if (!soilingDerate) return 0;
+    return soilingDerate.amount;
   }
 
   private async getTypicalUsage(zipCode: number, monthlyUtilityBill: number): Promise<TypicalUsage> {
@@ -527,10 +558,8 @@ export class ECommerceService {
 
       return totalCost;
     }
-    
-    const retrofitLookup = foundECommerceConfig.retrofitStoragePrices?.find(
-      p => p.batteryCount === numberOfBatteries,
-    );
+
+    const retrofitLookup = foundECommerceConfig.retrofitStoragePrices?.find(p => p.batteryCount === numberOfBatteries);
 
     if (!retrofitLookup) {
       const subject = `E Commerce Config does not have retrofit storage price ${numberOfBatteries}`;

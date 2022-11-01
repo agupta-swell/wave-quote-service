@@ -30,6 +30,7 @@ export class EnergyProfileService {
   constructor(
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
+    @Inject(forwardRef(() => SunroofHourlyProductionCalculation))
     private readonly sunroofHourlyProductionCalculationService: SunroofHourlyProductionCalculation,
     private readonly systemProductionService: SystemProductionService,
     private readonly s3Service: S3Service,

@@ -13,6 +13,8 @@ import {
   E_COMMERCE_SYSTEM_DESIGN,
   REGION,
   RegionSchema,
+  SoilingDerateSchema,
+  SOILING_DERATE,
   ZipCodeRegionMapSchema,
   ZIP_CODE_REGION_MAP,
 } from './schemas';
@@ -27,6 +29,7 @@ import {
       { name: E_COMMERCE_SYSTEM_DESIGN, schema: ECommerceSystemDesignSchema, collection: 'v2_ecom_system_designs' },
       { name: E_COMMERCE_CONFIG, schema: ECommerceConfigSchema, collection: 'v2_ecom_configs' },
       { name: REGION, schema: RegionSchema, collection: 'v2_regions' },
+      { name: SOILING_DERATE, schema: SoilingDerateSchema, collection: 'v2_soiling_derates' },
       { name: ZIP_CODE_REGION_MAP, schema: ZipCodeRegionMapSchema, collection: 'v2_zipcode_region_maps' },
       { name: E_COMMERCE_PRODUCT, schema: ECommerceProductSchema, collection: 'v2_ecom_products' },
     ]),
