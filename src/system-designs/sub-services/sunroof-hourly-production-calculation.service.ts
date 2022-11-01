@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import BigNumber from 'bignumber.js';
 import { sum, sumBy } from 'lodash';
 import { LeanDocument, ObjectId } from 'mongoose';
+import { ECommerceService } from 'src/e-commerces/e-commerce.service';
+import { ProductionDeratesService } from 'src/production-derates-v2/production-derates-v2.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { SystemProduction } from 'src/shared/google-sunroof/types';
 import { IEnergyProfileProduction, ISystemProduction } from 'src/system-production/system-production.schema';
 import { getDaysInMonth } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
-import { ProductionDeratesService } from 'src/production-derates-v2/production-derates-v2.service';
-import { PRODUCTION_DERATES_NAME } from 'src/production-derates-v2/constants';
 import { IInverterSchema, ISolarPanelArraySchema, SystemDesign } from '../system-design.schema';
 
 @Injectable()
@@ -18,6 +18,8 @@ export class SunroofHourlyProductionCalculation {
   constructor(
     private readonly s3Service: S3Service,
     private readonly productionDeratesService: ProductionDeratesService,
+    @Inject(forwardRef(() => ECommerceService))
+    private readonly eCommerceService: ECommerceService,
   ) {
     const bucket = process.env.GOOGLE_SUNROOF_S3_BUCKET;
 
@@ -68,11 +70,13 @@ export class SunroofHourlyProductionCalculation {
 
     const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
 
+    const soilingLosses = await this.eCommerceService.getSoilingLossesByOpportunityId(systemDesign.opportunityId);
+
+    const multipliedByDegrade = v => roundNumber(v * (1 - firstYearDegradation) * (1 - soilingLosses / 100));
+
     sunroofHourlyProduction = {
-      annualAverage: sunroofHourlyProduction.annualAverage.map(v => roundNumber(v * (1 - firstYearDegradation), 2)),
-      monthlyAverage: sunroofHourlyProduction.monthlyAverage.map(monthly =>
-        monthly.map(v => roundNumber(v * (1 - firstYearDegradation), 2)),
-      ),
+      annualAverage: sunroofHourlyProduction.annualAverage.map(v => multipliedByDegrade(v)),
+      monthlyAverage: sunroofHourlyProduction.monthlyAverage.map(monthly => monthly.map(v => multipliedByDegrade(v))),
     };
 
     const s3Actions = [
