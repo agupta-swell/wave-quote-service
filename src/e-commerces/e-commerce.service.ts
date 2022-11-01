@@ -1,4 +1,4 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cache } from 'cache-manager';
 import { LeanDocument, Model } from 'mongoose';
@@ -42,6 +42,7 @@ import {
 @Injectable()
 export class ECommerceService {
   constructor(
+    @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
     private readonly systemProductService: SystemProductService,
     private readonly calculationService: CalculationService,
