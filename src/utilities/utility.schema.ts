@@ -323,3 +323,8 @@ export class UtilityUsageDetailsModel {
     this.totalPlannedUsageIncreases = data;
   }
 }
+
+export interface IMonthSeasonTariff {
+  seasonName: string;
+  hourlyTariffRate: number[]; 
+}

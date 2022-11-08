@@ -116,3 +116,11 @@ export class UtilityDataDto {
     return strictPlainToClass(UtilityDataDto, props);
   }
 }
+
+export class MonthSeasonTariffDto {
+  @ExposeProp()
+  seasonName: string;
+
+  @ExposeProp()
+  hourlyTariffRate: number[]; 
+}

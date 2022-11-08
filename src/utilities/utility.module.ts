@@ -5,6 +5,7 @@ import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
 import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
 import { ExternalServiceModule } from 'src/external-services/external-service.module';
+import { AwsModule } from 'src/shared/aws/aws.module';
 import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { PipeTypicalUsageInterceptor } from './interceptors/pipe-typical-usage.interceptor';
 import { UTILITIES, UtilitiesSchema } from './schemas';
@@ -17,7 +18,7 @@ import {
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
   UtilityUsageDetailsSchema,
-  UTILITY_USAGE_DETAILS,
+  UTILITY_USAGE_DETAILS
 } from './utility.schema';
 import { UtilityService } from './utility.service';
 
@@ -62,7 +63,8 @@ import { UtilityService } from './utility.service';
     UsageProfileModule,
     ElectricVehicleModule,
     ExternalServiceModule,
-    ExistingSystemModule
+    ExistingSystemModule,
+    AwsModule,
   ],
   controllers: [UtilityController],
   providers: [UtilityService, PipeTypicalUsageInterceptor],
