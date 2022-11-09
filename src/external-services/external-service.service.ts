@@ -4,7 +4,10 @@ import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
 import { IApplyRequest } from '../qualifications/typing';
 import {
+  EGenabilityDetailLevel,
+  EGenabilityGroupBy,
   ICalculateSystemProduction,
+  IGenabilityCalculateUtilityCost,
   ILoadServingEntity,
   IPvWattV6Responses,
   ITypicalBaseLine,
@@ -249,16 +252,22 @@ export class ExternalService {
     }
   }
 
-  async calculateCost(hourlyDataForTheYear: number[], masterTariffId: string): Promise<any> {
+  async calculateCost({
+    hourlyDataForTheYear,
+    masterTariffId,
+    groupBy,
+    detailLevel,
+    billingPeriod,
+  }: IGenabilityCalculateUtilityCost): Promise<any> {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
     const currentYear = new Date().getFullYear();
     const payload = {
       fromDateTime: `${currentYear - 1}-01-01T00:00:00`,
       toDateTime: `${currentYear}-01-01T00:00:00`,
       masterTariffId,
-      groupBy: 'DAY',
-      detailLevel: 'RATE',
-      billingPeriod: true,
+      groupBy: groupBy || EGenabilityGroupBy.DAY,
+      detailLevel: detailLevel || EGenabilityDetailLevel.RATE,
+      billingPeriod: billingPeriod ?? true,
       minimums: true,
       propertyInputs: [
         {

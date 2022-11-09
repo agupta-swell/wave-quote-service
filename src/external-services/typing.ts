@@ -49,3 +49,28 @@ export interface IPvWattV6Responses {
   tcell: number[];
   wspd: number[];
 }
+
+export enum EGenabilityGroupBy {
+  ALL = 'ALL', //	One group for the entire calculation period.
+  YEAR = 'YEAR', //	Groups the calculation details by year.
+  MONTH = 'MONTH', //	Groups the calculation details by month. When billingPeriod=true, groups by the billing period instead of the month.
+  DAY = 'DAY', //	Groups the calculation details by day.
+  HOUR = 'HOUR', //	Groups the calculation details by hour.
+  QTRHOUR = 'QTRHOUR', //	Groups the calculation details by 15 minute intervals.
+}
+
+export enum EGenabilityDetailLevel {
+  TOTAL = 'TOTAL', //	Return only the overall total, without any item breakdown.
+  CHARGE_TYPE = 'CHARGE_TYPE', //	Group the rates by charge type, such as FIXED, CONSUMPTION, QUANTITY.
+  CHARGE_TYPE_AND_TOU = 'CHARGE_TYPE_AND_TOU', //	Group the rates by charge type, quantity type, season, tariff version, time of use, and tiers.
+  RATE = 'RATE', //	Group the items by rates.
+  ALL = 'ALL', //	Group the calculation results by distinct calculation interval (full details).
+}
+
+export interface IGenabilityCalculateUtilityCost {
+  hourlyDataForTheYear: number[];
+  masterTariffId: string;
+  groupBy?: EGenabilityGroupBy;
+  detailLevel?: EGenabilityDetailLevel;
+  billingPeriod?: boolean;
+}

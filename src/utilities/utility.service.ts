@@ -5,12 +5,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
-import { groupBy, inRange, sum, sumBy } from 'lodash';
+import { inRange, sum, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContactService } from 'src/contacts/contact.service';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
+import { EGenabilityGroupBy, EGenabilityDetailLevel } from 'src/external-services/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -54,6 +55,7 @@ import {
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
+  ICostDetailData,
   IUsageValue,
   IUtilityCostData,
   UtilityUsageDetails,
@@ -981,19 +983,46 @@ export class UtilityService implements OnModuleInit {
       }
     }
 
-    const data = await this.externalService.calculateCost(hourlyDataForTheYear, masterTariffId);
-    const groupByMonth = groupBy(data[0].items, item => item.fromDateTime.substring(0, 7));
-    const monthlyCosts = Object.keys(groupByMonth).reduce((acc, item) => {
-      const [year, month] = item.split('-');
-      const lastDay = this.getLastDay(Number(month), Number(year));
-      const data = {
-        startDate: new Date(`${month}/1/${year}`),
-        endDate: new Date(`${month}/${lastDay}/${year}`),
-        i: Number(month),
-        v: sumBy(groupByMonth[item], 'cost'),
+    const data = await this.externalService.calculateCost({
+      hourlyDataForTheYear,
+      masterTariffId,
+      groupBy: EGenabilityGroupBy.MONTH,
+      detailLevel: EGenabilityDetailLevel.CHARGE_TYPE,
+      billingPeriod: false,
+    });
+
+    const monthlyMinumumCosts: ICostDetailData[] = [];
+    const monthlyCosts: ICostDetailData[] = [];
+
+    let minimumTotalCost = 0;
+    let totalCost = 0;
+
+    data[0].items.forEach(item => {
+      const month = new Date(item.fromDateTime).getMonth();
+
+      const costDetail = {
+        startDate: new Date(item.fromDateTime),
+        endDate: new Date(item.toDateTime),
+        i: month,
+        v: item.cost,
       };
-      return [...acc, data];
-    }, []);
+
+      if (item.chargeType === 'MINIMUM') {
+        monthlyMinumumCosts.push(costDetail);
+        minimumTotalCost += item.cost;
+      } else {
+        totalCost += item.cost;
+        const foundIndex = monthlyCosts.findIndex(monthlyCost => monthlyCost.i === month);
+
+        if (foundIndex === -1) {
+          monthlyCosts.push(costDetail);
+        } else {
+          monthlyCosts[foundIndex].v += costDetail.v;
+        }
+      }
+    });
+
+    const monthCostToBeUsed = totalCost >= minimumTotalCost ? monthlyCosts : monthlyMinumumCosts;
 
     const currentYear = new Date().getFullYear();
 
@@ -1001,7 +1030,7 @@ export class UtilityService implements OnModuleInit {
       startDate: new Date(`${currentYear - 1}-01-01`),
       endDate: new Date(`${currentYear}-01-01`),
       interval: INTERVAL_VALUE.MONTH,
-      cost: monthlyCosts,
+      cost: monthCostToBeUsed,
     } as IUtilityCostData;
 
     if (mode === CALCULATION_MODE.TYPICAL) {
