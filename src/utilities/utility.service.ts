@@ -33,7 +33,7 @@ import {
   CalculateActualUsageCostDto,
   CreateUtilityReqDto,
   GetActualUsageDto,
-  GetPinballSimulatorDto
+  GetPinballSimulatorDto,
 } from './req';
 import { UsageValue } from './req/sub-dto';
 import {
@@ -42,7 +42,7 @@ import {
   LoadServingEntity,
   TariffDto,
   UtilityDataDto,
-  UtilityDetailsDto
+  UtilityDetailsDto,
 } from './res';
 import { PinballSimulatorDto } from './res/pinball-simulator.dto';
 import { UTILITIES, Utilities } from './schemas';
@@ -62,7 +62,7 @@ import {
   IUtilityCostData,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
-  UTILITY_USAGE_DETAILS
+  UTILITY_USAGE_DETAILS,
 } from './utility.schema';
 
 @Injectable()
@@ -771,7 +771,7 @@ export class UtilityService implements OnModuleInit {
 
         let checkIsValidHourDay = false;
 
-        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++ ) {
+        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
           const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
           const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
             fromDayOfWeek,
@@ -1029,9 +1029,6 @@ export class UtilityService implements OnModuleInit {
     const monthlyMinumumCosts: ICostDetailData[] = [];
     const monthlyCosts: ICostDetailData[] = [];
 
-    let minimumTotalCost = 0;
-    let totalCost = 0;
-
     data[0].items.forEach(item => {
       const month = new Date(item.fromDateTime).getMonth();
 
@@ -1044,9 +1041,7 @@ export class UtilityService implements OnModuleInit {
 
       if (item.chargeType === 'MINIMUM') {
         monthlyMinumumCosts.push(costDetail);
-        minimumTotalCost += item.cost;
       } else {
-        totalCost += item.cost;
         const foundIndex = monthlyCosts.findIndex(monthlyCost => monthlyCost.i === month);
 
         if (foundIndex === -1) {
@@ -1057,7 +1052,10 @@ export class UtilityService implements OnModuleInit {
       }
     });
 
-    const monthCostToBeUsed = totalCost >= minimumTotalCost ? monthlyCosts : monthlyMinumumCosts;
+    const monthCostToBeUsed = monthlyCosts.map((cost, index) => ({
+      ...cost,
+      v: Math.max(cost.v, monthlyMinumumCosts[index].v),
+    }));
 
     const currentYear = new Date().getFullYear();
 
@@ -1246,7 +1244,7 @@ export class UtilityService implements OnModuleInit {
     return shapedArray;
   }
 
-  public async getTariffInfoByOpportunityId(opportunityId): Promise<IMonthSeasonTariff[][]> {    
+  public async getTariffInfoByOpportunityId(opportunityId): Promise<IMonthSeasonTariff[][]> {
     let monthlyTariffData: IMonthSeasonTariff[][] = [];
     let res;
 
@@ -1280,7 +1278,7 @@ export class UtilityService implements OnModuleInit {
 
       if (!seasons.length) seasons.push(season);
       else if (seasons.findIndex(s => s?.seasonId === season.seasonId) === -1) seasons.push(season);
-    })
+    });
 
     const currentYear = dayjs().year() - 1;
 
@@ -1296,23 +1294,23 @@ export class UtilityService implements OnModuleInit {
       seasons.forEach(season => {
         const { seasonFromMonth, seasonToMonth, seasonName } = season;
 
-        if ((seasonFromMonth < seasonToMonth) && (seasonFromMonth <= curMonth && curMonth <= seasonToMonth)) {
-          seasonsInMonth.push(seasonName)
+        if (seasonFromMonth < seasonToMonth && seasonFromMonth <= curMonth && curMonth <= seasonToMonth) {
+          seasonsInMonth.push(seasonName);
         }
 
-        if ((seasonFromMonth > seasonToMonth) && (seasonFromMonth <= curMonth || curMonth <= seasonToMonth)) {
-          seasonsInMonth.push(seasonName)
+        if (seasonFromMonth > seasonToMonth && (seasonFromMonth <= curMonth || curMonth <= seasonToMonth)) {
+          seasonsInMonth.push(seasonName);
         }
-      })
+      });
       seasonsInMonths.push(seasonsInMonth);
     }
 
     const monthlyTariffRawData: any[] = [];
 
-    for(let i = 0; i < 12; i++) {
+    for (let i = 0; i < 12; i++) {
       const seasonsInMonth = seasonsInMonths[i];
       const rates = {};
-      seasonsInMonth.forEach(seasonName => rates[seasonName] = [...Array(24)].map(() => []));
+      seasonsInMonth.forEach(seasonName => (rates[seasonName] = [...Array(24)].map(() => [])));
       monthlyTariffRawData.push(rates);
     }
 
@@ -1332,7 +1330,13 @@ export class UtilityService implements OnModuleInit {
     // Build monthlyTariffRawData
     for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
       filterTariffs.forEach(filterTariff => {
-        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay, seasonName } = filterTariff?.timeOfUse.season;
+        const {
+          seasonFromMonth,
+          seasonToMonth,
+          seasonFromDay,
+          seasonToDay,
+          seasonName,
+        } = filterTariff?.timeOfUse.season;
         const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
 
         const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
@@ -1357,7 +1361,7 @@ export class UtilityService implements OnModuleInit {
 
         let checkIsValidHourDay = false;
 
-        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++ ) {
+        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
           const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
           const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
             fromDayOfWeek,
@@ -1385,29 +1389,32 @@ export class UtilityService implements OnModuleInit {
           if (dayIndexWithDST <= totalDays) break;
           totalDays += datesInMonths[monthIndexWithDST + 1];
         }
-        
-        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay].push(rateAmountTotal)
+
+        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay].push(rateAmountTotal);
       });
     }
-    
+
     const monthlyTariffData: IMonthSeasonTariff[][] = [];
 
-    for(let i = 0; i < 12; i++) {
+    for (let i = 0; i < 12; i++) {
       const seasonsInMonth = seasonsInMonths[i];
       const tariffDataOfSeasonsInMonth: IMonthSeasonTariff[] = [];
 
       seasonsInMonth.forEach(seasonName => {
         const rawTariffRateOfSeasonInMonth = monthlyTariffRawData[i][seasonName];
         const hourlyTariffRateOfSeasonInMonth: any[] = [];
-        
+
         rawTariffRateOfSeasonInMonth.forEach(hourlyRawData => {
-          const hourRate = roundNumber(hourlyRawData.reduce((a, b) => a + b, 0)/hourlyRawData.length, 3) || 0;
+          const hourRate = roundNumber(hourlyRawData.reduce((a, b) => a + b, 0) / hourlyRawData.length, 3) || 0;
           hourlyTariffRateOfSeasonInMonth.push(hourRate);
-        })
+        });
 
         hourlyTariffRateOfSeasonInMonth.push(hourlyTariffRateOfSeasonInMonth[0]);
 
-        const seasonInMonthTariffData: IMonthSeasonTariff = { seasonName, hourlyTariffRate: hourlyTariffRateOfSeasonInMonth };
+        const seasonInMonthTariffData: IMonthSeasonTariff = {
+          seasonName,
+          hourlyTariffRate: hourlyTariffRateOfSeasonInMonth,
+        };
 
         tariffDataOfSeasonsInMonth.push(seasonInMonthTariffData);
       });
