@@ -1248,8 +1248,13 @@ export class UtilityService implements OnModuleInit {
 
   public async getTariffInfoByOpportunityId(opportunityId): Promise<IMonthSeasonTariff[][]> {    
     let monthlyTariffData: IMonthSeasonTariff[][] = [];
-    
-    const res = await this.s3Service.getObject(this.AWS_S3_UTILITY_DATA, `${opportunityId}/monthlyTariffData`);
+    let res;
+
+    try {
+      res = await this.s3Service.getObject(this.AWS_S3_UTILITY_DATA, `${opportunityId}/monthlyTariffData`);
+    } catch (_) {
+      // do nothing
+    }
 
     if (res) {
       monthlyTariffData = JSON.parse(res);
