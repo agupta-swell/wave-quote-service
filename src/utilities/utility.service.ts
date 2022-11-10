@@ -994,9 +994,6 @@ export class UtilityService implements OnModuleInit {
     const monthlyMinumumCosts: ICostDetailData[] = [];
     const monthlyCosts: ICostDetailData[] = [];
 
-    let minimumTotalCost = 0;
-    let totalCost = 0;
-
     data[0].items.forEach(item => {
       const month = new Date(item.fromDateTime).getMonth();
 
@@ -1009,9 +1006,7 @@ export class UtilityService implements OnModuleInit {
 
       if (item.chargeType === 'MINIMUM') {
         monthlyMinumumCosts.push(costDetail);
-        minimumTotalCost += item.cost;
       } else {
-        totalCost += item.cost;
         const foundIndex = monthlyCosts.findIndex(monthlyCost => monthlyCost.i === month);
 
         if (foundIndex === -1) {
@@ -1022,7 +1017,10 @@ export class UtilityService implements OnModuleInit {
       }
     });
 
-    const monthCostToBeUsed = totalCost >= minimumTotalCost ? monthlyCosts : monthlyMinumumCosts;
+    const monthCostToBeUsed = monthlyCosts.map((cost, index) => ({
+      ...cost,
+      v: Math.max(cost.v, monthlyMinumumCosts[index].v),
+    }));
 
     const currentYear = new Date().getFullYear();
 
