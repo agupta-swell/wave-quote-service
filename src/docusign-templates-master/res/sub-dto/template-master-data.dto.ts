@@ -1,4 +1,4 @@
-import { TEMPLATE_STATUS } from 'src/docusign-templates-master/constants';
+import { TEMPLATE_STATUS, DOCUSIGN_CONTRACT_TYPE } from 'src/docusign-templates-master/constants';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { SignerRoleDataResDto } from './signer-role-data.dto';
 
@@ -20,6 +20,9 @@ export class TemplateMasterDataResDto {
 
   @ExposeProp({ isArray: true, type: SignerRoleDataResDto })
   recipientRoles: SignerRoleDataResDto[];
+
+  @ExposeProp({ enum: DOCUSIGN_CONTRACT_TYPE })
+  contractType: DOCUSIGN_CONTRACT_TYPE;
 
   @ExposeProp()
   createdAt: Date;

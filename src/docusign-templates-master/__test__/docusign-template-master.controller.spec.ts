@@ -14,7 +14,7 @@ import { QuoteModule } from 'src/quotes/quote.module';
 import { SystemDesignModule } from 'src/system-designs/system-design.module';
 import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
-import { SAVE_TEMPLATE_MODE, SYSTEM_TYPE, TEMPLATE_STATUS } from '../constants';
+import { SAVE_TEMPLATE_MODE, SYSTEM_TYPE, TEMPLATE_STATUS, DOCUSIGN_CONTRACT_TYPE } from '../constants';
 import { DocusignTemplateMasterController } from '../docusign-template-master.controller';
 import { DocusignTemplateMasterModule } from '../docusign-template-master.module';
 import { DOCUSIGN_TEMPLATE_MASTER } from '../docusign-template-master.schema';
@@ -189,6 +189,7 @@ describe('Docusign Template Master Controller', () => {
         docusignTemplateId: 'string',
         templateStatus: TEMPLATE_STATUS.ACTIVE,
         recipientRoles: ['string'],
+        contractType: DOCUSIGN_CONTRACT_TYPE.SALES_DOCUMENT,
       },
     };
     const res = await docusignTemplateMasterController.saveTemplate(req);
