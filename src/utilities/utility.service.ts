@@ -33,7 +33,7 @@ import {
   CalculateActualUsageCostDto,
   CreateUtilityReqDto,
   GetActualUsageDto,
-  GetPinballSimulatorDto,
+  GetPinballSimulatorDto
 } from './req';
 import { UsageValue } from './req/sub-dto';
 import {
@@ -42,7 +42,7 @@ import {
   LoadServingEntity,
   TariffDto,
   UtilityDataDto,
-  UtilityDetailsDto,
+  UtilityDetailsDto
 } from './res';
 import { PinballSimulatorDto } from './res/pinball-simulator.dto';
 import { UTILITIES, Utilities } from './schemas';
@@ -62,7 +62,7 @@ import {
   IUtilityCostData,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
-  UTILITY_USAGE_DETAILS,
+  UTILITY_USAGE_DETAILS
 } from './utility.schema';
 
 @Injectable()
@@ -189,9 +189,9 @@ export class UtilityService implements OnModuleInit {
   async getTariffs(zipCode: number, lseId?: number): Promise<OperationResult<TariffDto>> {
     const query = lseId
       ? {
-          zipCode,
-          lseId,
-        }
+        zipCode,
+        lseId,
+      }
       : { zipCode };
     const cacheData = await this.genebilityTeriffDataModel.findOne(<any>query).lean();
 
@@ -517,7 +517,7 @@ export class UtilityService implements OnModuleInit {
     for (let hourIndex = 0; hourIndex < hourlyUsageLoadShapping.length; ++hourIndex) {
       // calculate Planned Usage Increases Kwh
       hourlyUsageLoadShapping[hourIndex].v +=
-        (hourlyUsageLoadShapping[hourIndex].v * increaseAmount) / annualConsumption;
+        annualConsumption && ((hourlyUsageLoadShapping[hourIndex].v * increaseAmount) / annualConsumption);
 
       // calculate Pool Usage Kwh
       if (poolUsageKwh) {
@@ -573,15 +573,15 @@ export class UtilityService implements OnModuleInit {
         rateBands:
           filterTariff.rateBands.length > 1
             ? filterTariff.rateBands.reduce((previousValue, currentValue) => {
-                const currentRateAmount = currentValue.rateAmount;
-                delete currentValue.rateAmount;
-                return [
-                  {
-                    ...currentValue,
-                    rateAmount: (previousValue[0]?.rateAmount || 0) + currentRateAmount,
-                  },
-                ];
-              }, [])
+              const currentRateAmount = currentValue.rateAmount;
+              delete currentValue.rateAmount;
+              return [
+                {
+                  ...currentValue,
+                  rateAmount: (previousValue[0]?.rateAmount || 0) + currentRateAmount,
+                },
+              ];
+            }, [])
             : filterTariff.rateBands,
       }));
   };
@@ -946,9 +946,9 @@ export class UtilityService implements OnModuleInit {
     const hourlyProduction = !shouldGetHourlyProduction
       ? []
       : existingSystemProductions.reduce(
-          (prev, current) => current.hourly.map((value, hourIndex) => value + (prev[hourIndex] || 0)),
-          [],
-        );
+        (prev, current) => current.hourly.map((value, hourIndex) => value + (prev[hourIndex] || 0)),
+        [],
+      );
 
     return {
       monthlyProduction,
@@ -1098,20 +1098,7 @@ export class UtilityService implements OnModuleInit {
     const deltaValue: any[] = [];
     const hourlyUsage: any[] = [];
 
-    const condition = {
-      1: 744,
-      2: 1416,
-      3: 2160,
-      4: 2880,
-      5: 3624,
-      6: 4344,
-      7: 5088,
-      8: 5832,
-      9: 6552,
-      10: 7296,
-      11: 8016,
-      12: 8760,
-    };
+    const condition = [744, 1416, 2160, 2880, 3624, 4344, 5088, 5832, 6552, 7296, 8016, 8760];
 
     monthlyUsage.forEach((item, index) => {
       const typicalUsageValue = typicalMonthlyUsage[index].v;
@@ -1163,13 +1150,13 @@ export class UtilityService implements OnModuleInit {
     }
 
     (typical8760Usage as number[]).forEach((v, hourIndex) => {
-      const dayOfYear = dayjs().dayOfYear(Math.ceil(hourIndex / 24));
+      const dayOfYear = dayjs().dayOfYear(Math.ceil((hourIndex + 1) / 24));
       const monthIndex = dayOfYear.get('month');
       typicalUsageByMonth[monthIndex] = new BigNumber(typicalUsageByMonth[monthIndex]).plus(v).toNumber();
     });
 
     const scalingFactorByMonth = (typicalUsageByMonth as number[]).map((monthlyUsage, index) =>
-      new BigNumber((actualMonthlyUsageTemp as number[])[index]).dividedBy(monthlyUsage).toNumber(),
+      monthlyUsage && new BigNumber((actualMonthlyUsageTemp as number[])[index]).dividedBy(monthlyUsage).toNumber(),
     );
 
     const hourlyAllocationByMonth = Array.from({ length: 12 }, () => Array.from({ length: 24 }, () => 0));
