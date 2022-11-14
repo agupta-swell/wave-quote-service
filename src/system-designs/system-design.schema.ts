@@ -80,6 +80,7 @@ export interface ISolarPanelArraySchema {
   sunroofPrimaryOrientationSide?: number;
   sunroofPitch?: number;
   sunroofAzimuth?: number;
+  overrideRooftopDetails: boolean
 }
 
 export interface ICapacityPanelArraySchema extends ISolarPanelArraySchema {
@@ -112,6 +113,10 @@ export const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>
       type: Boolean,
       default: false,
     },
+    override_rooftop_details: {
+      type: Boolean,
+      default: false,
+    }
   },
   { _id: false },
 );

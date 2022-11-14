@@ -83,4 +83,7 @@ export class SolarPanelArrayDto {
 
   @ExposeProp()
   sunroofAzimuth?: number;
+  
+  @ExposeProp()
+  overrideRooftopDetails?: boolean;
 }
