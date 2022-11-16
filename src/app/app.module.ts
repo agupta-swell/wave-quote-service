@@ -25,6 +25,7 @@ import { HealthcheckModule } from 'src/health-checks/health-check.module';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 import { LeaseSolverConfigModule } from 'src/lease-solver-configs/lease-solver-config.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
+import { MountTypesModule } from 'src/mount-types-v2/mount-types-v2.module';
 import { OpportunityModule } from 'src/opportunities/opportunity.module';
 import { ProductionDeratesModule } from 'src/production-derates-v2/production-derates-v2.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
@@ -131,6 +132,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     ExistingSystemModule,
     ProductionDeratesModule,
     ToolTipModule,
+    MountTypesModule,
   ],
 })
 export class AppModule {}

@@ -2,33 +2,34 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import axios from 'axios';
-import * as geotiff from 'geotiff';
-import type { TypedArrayArrayWithDimensions } from 'geotiff';
-import { PNG } from 'pngjs';
-import { chunk } from 'lodash';
-import { Types, LeanDocument } from 'mongoose';
 import { Injectable } from '@nestjs/common';
+import axios from 'axios';
 import { isMongoId } from 'class-validator';
+import type { TypedArrayArrayWithDimensions } from 'geotiff';
+import * as geotiff from 'geotiff';
+import { chunk } from 'lodash';
+import { LeanDocument } from 'mongoose';
+import { PNG } from 'pngjs';
 
+import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
 import type {
   GoogleSunroof,
   GoogleSunroofOrientationInformation,
-  SystemProduction,
   IClosestBuildingKey,
+  SystemProduction,
 } from './types';
 
-import { S3Service } from '../aws/services/s3.service';
-import { ILatLngSchema, SystemDesign } from '../../system-designs/system-design.schema';
-import { GoogleSunroofGateway } from './google-sunroof.gateway';
-import { PngGenerator } from './png.generator';
-import { ProductionCalculator } from './production.calculator';
-import { DAY_COUNT_BY_MONTH_INDEX } from './constants';
+import { SystemDesign } from '../../system-designs/system-design.schema';
 import {
   calcCoordinatesDistance,
   ICoordinate,
   isCoordinatesInsideBoundByAtLeast,
 } from '../../utils/calculate-coordinates';
+import { S3Service } from '../aws/services/s3.service';
+import { DAY_COUNT_BY_MONTH_INDEX } from './constants';
+import { GoogleSunroofGateway } from './google-sunroof.gateway';
+import { PngGenerator } from './png.generator';
+import { ProductionCalculator } from './production.calculator';
 
 const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.GOOGLE_SUNROOF_DEBUG?.toLowerCase() || 'false');
 const DEBUG_FOLDER = path.join(__dirname, 'debug');
@@ -37,7 +38,11 @@ const DEBUG_FOLDER = path.join(__dirname, 'debug');
 export class GoogleSunroofService {
   private readonly GOOGLE_SUNROOF_S3_BUCKET: string;
 
-  constructor(private readonly googleSunroofGateway: GoogleSunroofGateway, private readonly s3Service: S3Service) {
+  constructor(
+    private readonly googleSunroofGateway: GoogleSunroofGateway,
+    private readonly s3Service: S3Service,
+    private readonly mountTypesService: MountTypesService,
+  ) {
     const bucket = process.env.GOOGLE_SUNROOF_S3_BUCKET;
     if (!bucket) throw new Error('Missing GOOGLE_SUNROOF_S3_BUCKET environment variable');
     this.GOOGLE_SUNROOF_S3_BUCKET = bucket;
@@ -220,10 +225,7 @@ export class GoogleSunroofService {
    *
    * @param systemDesign
    */
-  public async generateHeatmapPngs(
-    systemDesign: SystemDesign,
-    radiusMeters = 25,
-  ): Promise<void> {
+  public async generateHeatmapPngs(systemDesign: SystemDesign, radiusMeters = 25): Promise<void> {
     const { latitude, longitude, opportunityId, _id } = systemDesign;
 
     const systemDesignId = _id.toString();
@@ -264,9 +266,9 @@ export class GoogleSunroofService {
       await this.savePngToS3(satellitePng, `${opportunityId}/${systemDesignId}/png/satellite.png`);
     });
 
-    const gettingLayersFromMaskTiffBuffer = downloadingMaskTiffBuffer.then(maskTiffBuffer => {
-      return getLayersFromTiffBuffer(maskTiffBuffer);
-    });
+    const gettingLayersFromMaskTiffBuffer = downloadingMaskTiffBuffer.then(maskTiffBuffer =>
+      getLayersFromTiffBuffer(maskTiffBuffer),
+    );
 
     const gettingMask = gettingLayersFromMaskTiffBuffer.then(maskLayers => {
       const {
@@ -276,9 +278,9 @@ export class GoogleSunroofService {
       return chunk(maskLayer, width);
     });
 
-    const generatingMaskPng = gettingLayersFromMaskTiffBuffer.then(maskLayers => {
-      return PngGenerator.generateBlackAndWhitePng(maskLayers);
-    });
+    const generatingMaskPng = gettingLayersFromMaskTiffBuffer.then(maskLayers =>
+      PngGenerator.generateBlackAndWhitePng(maskLayers),
+    );
 
     const savingMaskPngToS3 = generatingMaskPng.then(async maskPng => {
       await this.savePngToS3(maskPng, `${opportunityId}/${systemDesignId}/png/mask.png`);
@@ -301,9 +303,9 @@ export class GoogleSunroofService {
       generatingAnnualHeatmapPng,
       generatingSatellitePng,
       gettingMask,
-    ]).then(([annualHeatmapPng, satellitePng, mask]) => {
-      return PngGenerator.applyMaskedOverlay(annualHeatmapPng, satellitePng, mask);
-    });
+    ]).then(([annualHeatmapPng, satellitePng, mask]) =>
+      PngGenerator.applyMaskedOverlay(annualHeatmapPng, satellitePng, mask),
+    );
 
     const savingAnnualMaskedHeatmapPngToS3 = generatingAnnualMaskedHeatmapPng.then(async annualMaskedHeatmapPng => {
       await this.savePngToS3(
@@ -329,11 +331,10 @@ export class GoogleSunroofService {
             `${opportunityId}/${systemDesignId}/png/heatmap.month${monthIndex}.png`,
           );
 
-          const generatingMaskedHeatmapPng = Promise.all([generatingSatellitePng, gettingMask]).then(
-            ([satellitePng, mask]) => {
-              return PngGenerator.applyMaskedOverlay(heatmapPng, satellitePng, mask);
-            },
-          );
+          const generatingMaskedHeatmapPng = Promise.all([
+            generatingSatellitePng,
+            gettingMask,
+          ]).then(([satellitePng, mask]) => PngGenerator.applyMaskedOverlay(heatmapPng, satellitePng, mask));
 
           const savingMaskHeatmapPngToS3 = generatingMaskedHeatmapPng.then(async maskedHeatmapPng => {
             await this.savePngToS3(
@@ -430,15 +431,18 @@ export class GoogleSunroofService {
       getLayersFromTiffBuffer(monthlyFluxTiffBuffer),
     ]);
 
+    const allMountTypes = await this.mountTypesService.findAllMountTypes();
+
     return ProductionCalculator.calculateSystemProduction(
       systemDesign,
       annualFluxLayers,
       monthlyFluxLayers,
       sunroofDriftCorrection,
+      allMountTypes,
     );
   }
 
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Private S3 helper functions
 
   /**

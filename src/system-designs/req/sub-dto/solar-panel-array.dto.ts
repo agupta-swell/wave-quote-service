@@ -125,4 +125,10 @@ export class SolarPanelArrayDto1 {
   @IsBoolean()
   @IsOptional()
   overrideRooftopDetails: boolean;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  @IsMongoId()
+  mountTypeId: string;
 }
