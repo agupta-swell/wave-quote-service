@@ -19,6 +19,8 @@ export const ProductSchema = new Schema<IUnknownProduct>({
   round_trip_efficiency: Number,
 
   inverter_type: String,
+  inverter_efficiency: Number,
+  is_default_inverter: Boolean,
 
   manufacturer_id: Types.ObjectId,
 

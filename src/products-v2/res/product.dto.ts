@@ -52,6 +52,12 @@ export class ProductResDto {
   @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.INVERTER)
   inverterType?: INVERTER_TYPE;
 
+  @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.INVERTER)
+  inverterEfficiency?: number;
+  
+  @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.INVERTER)
+  isDefaultInverter?: boolean;
+
   @ExposeAndMap({ type: DimensionResDto }, ({ obj, value }) => {
     if (obj.type === PRODUCT_TYPE.MODULE) return value;
   })
