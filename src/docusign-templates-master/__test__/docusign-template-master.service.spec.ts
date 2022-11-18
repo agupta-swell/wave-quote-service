@@ -1,5 +1,5 @@
 import { OperationResult } from 'src/app/common';
-import { SAVE_TEMPLATE_MODE, SYSTEM_TYPE, TEMPLATE_STATUS } from '../constants';
+import { SAVE_TEMPLATE_MODE, SYSTEM_TYPE, TEMPLATE_STATUS, DOCUSIGN_CONTRACT_TYPE } from '../constants';
 import { DocusignTemplateMasterService } from '../docusign-template-master.service';
 import { SaveContractCompositeTemplateDto, SaveTemplateDto } from '../res';
 
@@ -34,6 +34,7 @@ describe('Docusign Template Master Service', () => {
           docusignTemplateId: 'string',
           templateStatus: TEMPLATE_STATUS.ACTIVE,
           recipientRoles: ['string'],
+          contractType: DOCUSIGN_CONTRACT_TYPE.SALES_DOCUMENT,
         },
       };
 
@@ -83,6 +84,7 @@ describe('Docusign Template Master Service', () => {
           docusignTemplateId: 'string',
           templateStatus: TEMPLATE_STATUS.ACTIVE,
           recipientRoles: ['string'],
+          contractType: DOCUSIGN_CONTRACT_TYPE.SALES_DOCUMENT,
         },
       };
 

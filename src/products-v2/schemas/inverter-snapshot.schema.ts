@@ -9,6 +9,7 @@ export const InverterSnapshotSchema = new Schema(
     manufacturer_id: Schema.Types.ObjectId,
     ratings: WattRatingSchema,
     inverter_efficiency: Number,
+    is_default_inverter: Boolean,
   },
   { _id: false },
 );

@@ -14,3 +14,8 @@ export enum SAVE_TEMPLATE_MODE {
   NEW = 'NEW',
   UPDATE = 'UPDATE',
 }
+
+export enum DOCUSIGN_CONTRACT_TYPE {
+  SALES_DOCUMENT = 'Sales Document',
+  GS_DOCUMENT = 'Gs Document',
+}

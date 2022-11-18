@@ -25,7 +25,9 @@ import { HealthcheckModule } from 'src/health-checks/health-check.module';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
 import { LeaseSolverConfigModule } from 'src/lease-solver-configs/lease-solver-config.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
+import { MountTypesModule } from 'src/mount-types-v2/mount-types-v2.module';
 import { OpportunityModule } from 'src/opportunities/opportunity.module';
+import { ProductionDeratesModule } from 'src/production-derates-v2/production-derates-v2.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { ProgressModule } from 'src/progresses/progress.module';
 import { PromotionModule } from 'src/promotions/promotion.module';
@@ -45,11 +47,11 @@ import { MongooseNamingStrategyLoader } from 'src/shared/plugins/mongoose/naming
 import { SystemAttributeModule } from 'src/system-attribute/system-attribute.module';
 import { SystemDesignModule } from 'src/system-designs/system-design.module';
 import { SystemProductionModule } from 'src/system-production/system-production.module';
+import { ToolTipModule } from 'src/tool-tips/tool-tip.module';
 import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
-import { ProductionDeratesModule } from 'src/production-derates-v2/production-derates-v2.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()
@@ -129,6 +131,8 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     EnergyProfileModule,
     ExistingSystemModule,
     ProductionDeratesModule,
+    ToolTipModule,
+    MountTypesModule,
   ],
 })
 export class AppModule {}

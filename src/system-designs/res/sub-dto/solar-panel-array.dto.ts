@@ -1,6 +1,6 @@
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
-import { ORIENTATION } from '../../constants';
 import { ProductResDto } from '../../../products-v2/res/product.dto';
+import { ORIENTATION } from '../../constants';
 
 export class LatLng {
   @ExposeProp()
@@ -83,4 +83,10 @@ export class SolarPanelArrayDto {
 
   @ExposeProp()
   sunroofAzimuth?: number;
+
+  @ExposeProp()
+  overrideRooftopDetails?: boolean;
+
+  @ExposeProp()
+  mountTypeId: string;
 }

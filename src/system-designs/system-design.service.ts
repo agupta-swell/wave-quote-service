@@ -672,13 +672,18 @@ export class SystemDesignService {
     assignToModel(foundSystemDesign, removedUndefined);
 
     if (
-      systemDesignDto.existingSystemId &&
-      foundSystemDesign.existingSystem?.id.toString() !== systemDesignDto.existingSystemId
+      (systemDesignDto.existingSystemId && !foundSystemDesign.existingSystem) ||
+      (systemDesignDto.existingSystemId &&
+        foundSystemDesign.existingSystem?.id.toString() !== systemDesignDto.existingSystemId)
     ) {
       const existingSystem = await this.existingSystem.findOrFail(
         (Types.ObjectId(systemDesignDto.existingSystemId) as unknown) as ObjectId,
       );
       foundSystemDesign.existingSystem = existingSystem;
+    }
+
+    if (!systemDesignDto.existingSystemId && foundSystemDesign.existingSystem) {
+      foundSystemDesign.existingSystem = undefined;
     }
 
     const handlers: Promise<unknown>[] = [foundSystemDesign.save()];

@@ -5,16 +5,17 @@ import {
   range,
   sum,
   sumBy,
-} from 'lodash'
+} from 'lodash';
 
-import type { TypedArrayArrayWithDimensions } from 'geotiff'
+import type { TypedArrayArrayWithDimensions } from 'geotiff';
 
 import { LeanDocument } from 'mongoose';
 
+import { MountTypesDocument } from 'src/mount-types-v2/mount-types-v2.schema';
 import {
   ISolarPanelArraySchema,
   SystemDesign,
-} from '../../system-designs/system-design.schema'
+} from '../../system-designs/system-design.schema';
 
 import type {
   ArrayProduction,
@@ -22,13 +23,13 @@ import type {
   LatLng,
   Pixel,
   SystemProduction,
-} from './types'
+} from './types';
 
 import {
   getPanelPixels,
   mapLatLngPolygonToPixelPolygon,
   translatePixelPolygon,
-} from './utils'
+} from './utils';
 
 export class ProductionCalculator {
   /**
@@ -45,12 +46,13 @@ export class ProductionCalculator {
    * @param monthlyFluxLayers
    * @param annualDriftCorrection
    */
-  public static calculateSystemProduction (
+  public static calculateSystemProduction(
     systemDesign: SystemDesign | LeanDocument<SystemDesign>,
     annualFluxLayers: TypedArrayArrayWithDimensions,
     monthlyFluxLayers: TypedArrayArrayWithDimensions,
     annualDriftCorrection: IDriftCorrection,
-  ) : SystemProduction {
+    allMountTypes: LeanDocument<MountTypesDocument>[],
+  ): SystemProduction {
     const {
       latitude,
       longitude,
@@ -75,7 +77,7 @@ export class ProductionCalculator {
 
     // calculate the production numbers of each array in the system
     const arrayProductions = arrays.map(array => {
-      return ProductionCalculator.calculateArrayProduction(annualFlux, monthlyFluxes, origin, array, annualDriftCorrection)
+      return ProductionCalculator.calculateArrayProduction(annualFlux, monthlyFluxes, origin, array, annualDriftCorrection, allMountTypes)
     })
 
     // summarize array production into system level figures
@@ -112,13 +114,14 @@ export class ProductionCalculator {
    * @param annualDriftCorrection
    * @private
    */
-  private static calculateArrayProduction (
+  private static calculateArrayProduction(
     annualFlux: number[][],
     monthlyFluxes: number[][][],
     origin: LatLng,
     array: ISolarPanelArraySchema,
     annualDriftCorrection: IDriftCorrection,
-  ) : ArrayProduction {
+    allMountTypes: LeanDocument<MountTypesDocument>[],
+  ): ArrayProduction {
     const {
       arrayId,
       panels,
@@ -126,7 +129,8 @@ export class ProductionCalculator {
         ratings: {
           wattsPtc: watts,
         }
-      }
+      },
+      mountTypeId,
     } = array
 
     // calculate the total production for the year
@@ -156,13 +160,26 @@ export class ProductionCalculator {
     })
 
     // we need to correct the monthly numbers to ensure they sum up to the annual number
-    const scalingFactor = annualProduction / sum(rawMonthlyProduction)
-    const correctedMonthlyProduction = rawMonthlyProduction.map(x => x * scalingFactor)
+    const scalingFactor = annualProduction / sum(rawMonthlyProduction);
+    const correctedMonthlyProduction = rawMonthlyProduction.map(x => x * scalingFactor);
+
+    // apply mount type derate
+    let mountTypeDeratePercentage;
+
+    if (mountTypeId) {
+      const mountType = allMountTypes.find((mountType) => mountType._id.toString() === mountTypeId);
+      mountTypeDeratePercentage = (mountType?.deratePercentage || 0) / 100;
+    } else {
+      mountTypeDeratePercentage = 0;
+    }
+
+    const annualProductionAfterDerate = annualProduction * (1 - mountTypeDeratePercentage);
+    const monthlyProductionAfterDerate = correctedMonthlyProduction.map((month) => month * (1 - mountTypeDeratePercentage));
 
     return {
       arrayId: arrayId.toString(),
-      annualProduction,
-      monthlyProduction: correctedMonthlyProduction,
+      annualProduction: annualProductionAfterDerate,
+      monthlyProduction: monthlyProductionAfterDerate,
     }
   }
 
@@ -204,18 +221,18 @@ export class ProductionCalculator {
    * @param driftCorrection
    * @private
    */
-  private static calculateGenericArrayProduction (
+  private static calculateGenericArrayProduction(
     flux: number[][],
     origin: LatLng,
     pixelsPerMeter: number,
     panels: ISolarPanelArraySchema['panels'],
     panelWattage: number,
     driftCorrection: IDriftCorrection,
-  ) : number {
+  ): number {
     const height = flux.length
     const width = flux[0].length
 
-    const originPixel: Pixel = [ Math.round(height / 2), Math.round(width / 2) ];
+    const originPixel: Pixel = [Math.round(height / 2), Math.round(width / 2)];
 
     const panelProductions = panels.map(panel => {
       const rawPanelPixelPolygon = mapLatLngPolygonToPixelPolygon(

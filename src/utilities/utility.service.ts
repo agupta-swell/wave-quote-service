@@ -11,15 +11,16 @@ import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContactService } from 'src/contacts/contact.service';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
-import { EGenabilityGroupBy, EGenabilityDetailLevel } from 'src/external-services/typing';
+import { EGenabilityDetailLevel, EGenabilityGroupBy } from 'src/external-services/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
+import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
-import { firstSundayOfTheMonth } from 'src/utils/datetime';
+import { firstSundayOfTheMonth, getMonthDatesOfYear } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
@@ -32,7 +33,7 @@ import {
   CalculateActualUsageCostDto,
   CreateUtilityReqDto,
   GetActualUsageDto,
-  GetPinballSimulatorDto,
+  GetPinballSimulatorDto
 } from './req';
 import { UsageValue } from './req/sub-dto';
 import {
@@ -41,7 +42,7 @@ import {
   LoadServingEntity,
   TariffDto,
   UtilityDataDto,
-  UtilityDetailsDto,
+  UtilityDetailsDto
 } from './res';
 import { PinballSimulatorDto } from './res/pinball-simulator.dto';
 import { UTILITIES, Utilities } from './schemas';
@@ -56,15 +57,17 @@ import {
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
   ICostDetailData,
+  IMonthSeasonTariff,
   IUsageValue,
   IUtilityCostData,
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
-  UTILITY_USAGE_DETAILS,
+  UTILITY_USAGE_DETAILS
 } from './utility.schema';
 
 @Injectable()
 export class UtilityService implements OnModuleInit {
+  private AWS_S3_UTILITY_DATA = process.env.AWS_S3_UTILITY_DATA as string;
   private GENEBILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
 
   private readonly logger = new Logger(UtilityService.name);
@@ -93,8 +96,12 @@ export class UtilityService implements OnModuleInit {
     private readonly contactService: ContactService,
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
+    private readonly s3Service: S3Service,
   ) {
     dayjs.extend(dayOfYear);
+    if (!this.AWS_S3_UTILITY_DATA) {
+      throw new Error('Missing AWS_S3_UTILITY_DATA');
+    }
   }
 
   async onModuleInit() {
@@ -182,9 +189,9 @@ export class UtilityService implements OnModuleInit {
   async getTariffs(zipCode: number, lseId?: number): Promise<OperationResult<TariffDto>> {
     const query = lseId
       ? {
-          zipCode,
-          lseId,
-        }
+        zipCode,
+        lseId,
+      }
       : { zipCode };
     const cacheData = await this.genebilityTeriffDataModel.findOne(<any>query).lean();
 
@@ -310,7 +317,14 @@ export class UtilityService implements OnModuleInit {
     const found = await this.utilityUsageDetailsModel.findOne({ opportunityId: utilityDto.opportunityId }).lean();
     if (found) {
       delete found.utilityData.typicalBaselineUsage._id;
-      return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, found));
+      let monthlyTariffData: IMonthSeasonTariff[][] = [];
+      if (utilityDto.costData.postInstallMasterTariffId !== found.costData.postInstallMasterTariffId) {
+        monthlyTariffData = await this.calculateTariffInfoByOpportunityId(utilityDto.opportunityId);
+      } else {
+        monthlyTariffData = await this.getTariffInfoByOpportunityId(utilityDto.opportunityId);
+      }
+      const result = { ...found, monthlyTariffData };
+      return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, result));
     }
 
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
@@ -335,7 +349,9 @@ export class UtilityService implements OnModuleInit {
 
     await createdUtility.save();
     const createdUtilityObj = createdUtility.toObject();
-    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, createdUtilityObj));
+    const monthlyTariffData = await this.calculateTariffInfoByOpportunityId(utilityDto.opportunityId);
+    const result = { ...createdUtilityObj, monthlyTariffData };
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, result));
   }
 
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
@@ -343,9 +359,10 @@ export class UtilityService implements OnModuleInit {
     if (!res) {
       return OperationResult.ok(null as any);
     }
-
     delete res.utilityData.typicalBaselineUsage._id;
-    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, res));
+    const monthlyTariffData = await this.getTariffInfoByOpportunityId(opportunityId);
+    const result = { ...res, monthlyTariffData };
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, result));
   }
 
   async updateUtilityUsageDetailUtil(
@@ -395,9 +412,19 @@ export class UtilityService implements OnModuleInit {
     utilityId: ObjectId,
     utilityDto: CreateUtilityReqDto,
   ): Promise<OperationResult<UtilityDetailsDto>> {
-    const updatedUtility = await this.updateUtilityUsageDetailUtil(utilityId, utilityDto);
+    const found = await this.utilityUsageDetailsModel.findOne({ opportunityId: utilityDto.opportunityId }).lean();
 
-    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, updatedUtility));
+    const updatedUtility = await this.updateUtilityUsageDetailUtil(utilityId, utilityDto);
+    let monthlyTariffData: IMonthSeasonTariff[][] = [];
+    if (updatedUtility?.costData.postInstallMasterTariffId !== found?.costData.postInstallMasterTariffId) {
+      monthlyTariffData = await this.calculateTariffInfoByOpportunityId(utilityDto.opportunityId);
+    } else {
+      monthlyTariffData = await this.getTariffInfoByOpportunityId(utilityDto.opportunityId);
+    }
+
+    const result = { ...updatedUtility, monthlyTariffData };
+
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, result));
   }
 
   getTypicalUsage$(opportunityId: string): Observable<IGetTypicalUsageKwh> {
@@ -490,7 +517,7 @@ export class UtilityService implements OnModuleInit {
     for (let hourIndex = 0; hourIndex < hourlyUsageLoadShapping.length; ++hourIndex) {
       // calculate Planned Usage Increases Kwh
       hourlyUsageLoadShapping[hourIndex].v +=
-        (hourlyUsageLoadShapping[hourIndex].v * increaseAmount) / annualConsumption;
+        annualConsumption && ((hourlyUsageLoadShapping[hourIndex].v * increaseAmount) / annualConsumption);
 
       // calculate Pool Usage Kwh
       if (poolUsageKwh) {
@@ -546,15 +573,15 @@ export class UtilityService implements OnModuleInit {
         rateBands:
           filterTariff.rateBands.length > 1
             ? filterTariff.rateBands.reduce((previousValue, currentValue) => {
-                const currentRateAmount = currentValue.rateAmount;
-                delete currentValue.rateAmount;
-                return [
-                  {
-                    ...currentValue,
-                    rateAmount: (previousValue[0]?.rateAmount || 0) + currentRateAmount,
-                  },
-                ];
-              }, [])
+              const currentRateAmount = currentValue.rateAmount;
+              delete currentValue.rateAmount;
+              return [
+                {
+                  ...currentValue,
+                  rateAmount: (previousValue[0]?.rateAmount || 0) + currentRateAmount,
+                },
+              ];
+            }, [])
             : filterTariff.rateBands,
       }));
   };
@@ -720,7 +747,6 @@ export class UtilityService implements OnModuleInit {
 
       filterTariffs.forEach(filterTariff => {
         const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = filterTariff?.timeOfUse.season;
-        const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[0];
         const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
 
         const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
@@ -743,16 +769,25 @@ export class UtilityService implements OnModuleInit {
 
         const hourInDay = hourIndexWithDST % 24;
 
-        const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
-          fromDayOfWeek,
-          toDayOfWeek,
-          dayOfWeek,
-          fromHour,
-          toHour,
-          hourInDay,
-        );
+        let checkIsValidHourDay = false;
 
-        if (!isValidHourDay) return;
+        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
+          const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
+          const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
+            fromDayOfWeek,
+            toDayOfWeek,
+            dayOfWeek,
+            fromHour,
+            toHour,
+            hourInDay,
+          );
+          if (isValidHourDay) {
+            checkIsValidHourDay = true;
+            break;
+          }
+        }
+
+        if (!checkIsValidHourDay) return;
 
         totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
       });
@@ -911,9 +946,9 @@ export class UtilityService implements OnModuleInit {
     const hourlyProduction = !shouldGetHourlyProduction
       ? []
       : existingSystemProductions.reduce(
-          (prev, current) => current.hourly.map((value, hourIndex) => value + (prev[hourIndex] || 0)),
-          [],
-        );
+        (prev, current) => current.hourly.map((value, hourIndex) => value + (prev[hourIndex] || 0)),
+        [],
+      );
 
     return {
       monthlyProduction,
@@ -1063,20 +1098,7 @@ export class UtilityService implements OnModuleInit {
     const deltaValue: any[] = [];
     const hourlyUsage: any[] = [];
 
-    const condition = {
-      1: 744,
-      2: 1416,
-      3: 2160,
-      4: 2880,
-      5: 3624,
-      6: 4344,
-      7: 5088,
-      8: 5832,
-      9: 6552,
-      10: 7296,
-      11: 8016,
-      12: 8760,
-    };
+    const condition = [744, 1416, 2160, 2880, 3624, 4344, 5088, 5832, 6552, 7296, 8016, 8760];
 
     monthlyUsage.forEach((item, index) => {
       const typicalUsageValue = typicalMonthlyUsage[index].v;
@@ -1128,13 +1150,13 @@ export class UtilityService implements OnModuleInit {
     }
 
     (typical8760Usage as number[]).forEach((v, hourIndex) => {
-      const dayOfYear = dayjs().dayOfYear(Math.ceil(hourIndex / 24));
+      const dayOfYear = dayjs().dayOfYear(Math.ceil((hourIndex + 1) / 24));
       const monthIndex = dayOfYear.get('month');
       typicalUsageByMonth[monthIndex] = new BigNumber(typicalUsageByMonth[monthIndex]).plus(v).toNumber();
     });
 
     const scalingFactorByMonth = (typicalUsageByMonth as number[]).map((monthlyUsage, index) =>
-      new BigNumber((actualMonthlyUsageTemp as number[])[index]).dividedBy(monthlyUsage).toNumber(),
+      monthlyUsage && new BigNumber((actualMonthlyUsageTemp as number[])[index]).dividedBy(monthlyUsage).toNumber(),
     );
 
     const hourlyAllocationByMonth = Array.from({ length: 12 }, () => Array.from({ length: 24 }, () => 0));
@@ -1207,5 +1229,193 @@ export class UtilityService implements OnModuleInit {
       }));
     }
     return shapedArray;
+  }
+
+  public async getTariffInfoByOpportunityId(opportunityId): Promise<IMonthSeasonTariff[][]> {
+    let monthlyTariffData: IMonthSeasonTariff[][] = [];
+    let res;
+
+    try {
+      res = await this.s3Service.getObject(this.AWS_S3_UTILITY_DATA, `${opportunityId}/monthlyTariffData`);
+    } catch (_) {
+      // do nothing
+    }
+
+    if (res) {
+      monthlyTariffData = JSON.parse(res);
+    } else {
+      monthlyTariffData = await this.calculateTariffInfoByOpportunityId(opportunityId);
+    }
+
+    return monthlyTariffData;
+  }
+
+  public async calculateTariffInfoByOpportunityId(opportunityId): Promise<IMonthSeasonTariff[][]> {
+    const utilityService = await this.getUtilityByOpportunityId(opportunityId);
+
+    if (!utilityService) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
+
+    const filterTariffs = await this.filterTariffs(utilityService.costData.postInstallMasterTariffId);
+
+    // Get seasons
+    const seasons: any[] = [];
+
+    filterTariffs.forEach(filterTariff => {
+      const { season } = filterTariff.timeOfUse;
+
+      if (!seasons.length) seasons.push(season);
+      else if (seasons.findIndex(s => s?.seasonId === season.seasonId) === -1) seasons.push(season);
+    });
+
+    const currentYear = dayjs().year() - 1;
+
+    const datesInMonths = getMonthDatesOfYear(currentYear);
+
+    // find seasons in month
+    const seasonsInMonths: any[] = [];
+
+    for (let i = 0; i < 12; i++) {
+      const seasonsInMonth: any[] = [];
+      const curMonth = i + 1;
+
+      seasons.forEach(season => {
+        const { seasonFromMonth, seasonToMonth, seasonName } = season;
+
+        if (seasonFromMonth < seasonToMonth && seasonFromMonth <= curMonth && curMonth <= seasonToMonth) {
+          seasonsInMonth.push(seasonName);
+        }
+
+        if (seasonFromMonth > seasonToMonth && (seasonFromMonth <= curMonth || curMonth <= seasonToMonth)) {
+          seasonsInMonth.push(seasonName);
+        }
+      });
+      seasonsInMonths.push(seasonsInMonth);
+    }
+
+    const monthlyTariffRawData: any[] = [];
+
+    for (let i = 0; i < 12; i++) {
+      const seasonsInMonth = seasonsInMonths[i];
+      const rates = {};
+      seasonsInMonth.forEach(seasonName => (rates[seasonName] = [...Array(24)].map(() => [])));
+      monthlyTariffRawData.push(rates);
+    }
+
+    // DST is second Sunday in March to the first Sunday in November of year
+    const secondSundayInMarch = dayjs(
+      new Date(currentYear, 3 - 1, firstSundayOfTheMonth(currentYear, 3) + 7),
+    ).dayOfYear();
+
+    const firstSundayInNovember = dayjs(
+      new Date(currentYear, 11 - 1, firstSundayOfTheMonth(currentYear, 11)),
+    ).dayOfYear();
+
+    const fromDST = (secondSundayInMarch - 1) * 24;
+
+    const toDST = (firstSundayInNovember - 1) * 24 + 1;
+
+    // Build monthlyTariffRawData
+    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
+      filterTariffs.forEach(filterTariff => {
+        const {
+          seasonFromMonth,
+          seasonToMonth,
+          seasonFromDay,
+          seasonToDay,
+          seasonName,
+        } = filterTariff?.timeOfUse.season;
+        const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
+
+        const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
+        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
+
+        const hourIndexWithDST = fromDST < hourIndex && hourIndex < toDST ? hourIndex + 1 : hourIndex;
+
+        const isValidSeason =
+          fromHourIndex < toHourIndex
+            ? inRange(hourIndexWithDST, fromHourIndex, toHourIndex)
+            : inRange(hourIndexWithDST, 0, toHourIndex) || inRange(hourIndexWithDST, fromHourIndex, 8760);
+
+        if (!isValidSeason) {
+          return;
+        }
+
+        const dayOfWeek = dayjs()
+          .dayOfYear(Math.floor(hourIndexWithDST / 24) + 1)
+          .day();
+
+        const hourInDay = hourIndexWithDST % 24;
+
+        let checkIsValidHourDay = false;
+
+        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
+          const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
+          const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
+            fromDayOfWeek,
+            toDayOfWeek,
+            dayOfWeek,
+            fromHour,
+            toHour,
+            hourInDay,
+          );
+          if (isValidHourDay) {
+            checkIsValidHourDay = true;
+            break;
+          }
+        }
+
+        if (!checkIsValidHourDay) return;
+
+        const dayIndexWithDST = Math.floor(hourIndexWithDST / 24) + 1;
+
+        let monthIndexWithDST = 0;
+        let totalDays = datesInMonths[monthIndexWithDST];
+
+        for (monthIndexWithDST; monthIndexWithDST < 12; monthIndexWithDST++) {
+          // check day in month
+          if (dayIndexWithDST <= totalDays) break;
+          totalDays += datesInMonths[monthIndexWithDST + 1];
+        }
+
+        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay].push(rateAmountTotal);
+      });
+    }
+
+    const monthlyTariffData: IMonthSeasonTariff[][] = [];
+
+    for (let i = 0; i < 12; i++) {
+      const seasonsInMonth = seasonsInMonths[i];
+      const tariffDataOfSeasonsInMonth: IMonthSeasonTariff[] = [];
+
+      seasonsInMonth.forEach(seasonName => {
+        const rawTariffRateOfSeasonInMonth = monthlyTariffRawData[i][seasonName];
+        const hourlyTariffRateOfSeasonInMonth: any[] = [];
+
+        rawTariffRateOfSeasonInMonth.forEach(hourlyRawData => {
+          const hourRate = roundNumber(hourlyRawData.reduce((a, b) => a + b, 0) / hourlyRawData.length, 3) || 0;
+          hourlyTariffRateOfSeasonInMonth.push(hourRate);
+        });
+
+        hourlyTariffRateOfSeasonInMonth.push(hourlyTariffRateOfSeasonInMonth[0]);
+
+        const seasonInMonthTariffData: IMonthSeasonTariff = {
+          seasonName,
+          hourlyTariffRate: hourlyTariffRateOfSeasonInMonth,
+        };
+
+        tariffDataOfSeasonsInMonth.push(seasonInMonthTariffData);
+      });
+
+      monthlyTariffData.push(tariffDataOfSeasonsInMonth);
+    }
+
+    await this.s3Service.putObject(
+      this.AWS_S3_UTILITY_DATA,
+      `${opportunityId}/monthlyTariffData`,
+      JSON.stringify(monthlyTariffData),
+      'application/json; charset=utf-8',
+    );
+
+    return monthlyTariffData;
   }
 }

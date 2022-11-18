@@ -1,6 +1,6 @@
 import { ServiceResponse } from 'src/app/common';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
-import { TEMPLATE_STATUS } from '../constants';
+import { TEMPLATE_STATUS, DOCUSIGN_CONTRACT_TYPE } from '../constants';
 import { SignerRoleDataResDto } from './sub-dto';
 
 class TemplateDataResDto {
@@ -21,6 +21,9 @@ class TemplateDataResDto {
 
   @ExposeProp({ type: SignerRoleDataResDto, isArray: true })
   recipientRoles: SignerRoleDataResDto[];
+
+  @ExposeProp({ enum: DOCUSIGN_CONTRACT_TYPE })
+  contractType: DOCUSIGN_CONTRACT_TYPE;
 
   @ExposeProp()
   createdAt: string;

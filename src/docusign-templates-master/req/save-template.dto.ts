@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { SAVE_TEMPLATE_MODE, TEMPLATE_STATUS } from '../constants';
+import { SAVE_TEMPLATE_MODE, TEMPLATE_STATUS, DOCUSIGN_CONTRACT_TYPE } from '../constants';
 
 class TemplateDataReqDto {
   @ApiPropertyOptional()
@@ -32,6 +32,10 @@ class TemplateDataReqDto {
   @IsNotEmpty()
   @IsArray()
   recipientRoles: string[];
+
+  @ApiProperty({ enum: DOCUSIGN_CONTRACT_TYPE })
+  @IsNotEmpty()
+  contractType: DOCUSIGN_CONTRACT_TYPE;
 }
 
 export class SaveTemplateReqDto {

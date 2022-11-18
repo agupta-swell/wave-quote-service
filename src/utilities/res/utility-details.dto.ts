@@ -3,7 +3,7 @@ import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { UsageProfileResDto } from 'src/usage-profiles/res';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto } from './cost-data.dto';
-import { UtilityDataDto } from './utility-data.dto';
+import { MonthSeasonTariffDto, UtilityDataDto } from './utility-data.dto';
 
 export class UtilityDetailsDto {
   @ExposeMongoId()
@@ -43,4 +43,7 @@ export class UtilityDetailsDto {
 
   @ExposeProp()
   totalPlannedUsageIncreases: number;
+
+  @ExposeProp()
+  monthlyTariffData: MonthSeasonTariffDto[][];
 }

@@ -120,4 +120,15 @@ export class SolarPanelArrayDto1 {
   @IsNumber()
   @IsOptional()
   sunroofAzimuth: number;
+
+  @ApiProperty()
+  @IsBoolean()
+  @IsOptional()
+  overrideRooftopDetails: boolean;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional()
+  @IsMongoId()
+  mountTypeId: string;
 }
