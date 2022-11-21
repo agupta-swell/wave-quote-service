@@ -29,6 +29,7 @@ import './exhibit-b-change-order-form-hic';
 import './exhibit-c-notice-of-cancellation-hic';
 import './exhibit-d-limited-warranty-hic';
 import './grid-services-agreement';
+import './grid-services-agreement-standby';
 import './home-energy-sub-agt-esa';
 import './participation-prp2-aces-cash';
 import './participation-prp2-aces-esa';
