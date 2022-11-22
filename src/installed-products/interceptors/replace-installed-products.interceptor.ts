@@ -1,4 +1,4 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { LeanDocument } from 'mongoose';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -33,7 +33,7 @@ export class ReplaceInstalledProductsInterceptor implements NestInterceptor {
 
         if (!data || !data.newlyUpdatedContract) return res;
 
-        if (data.newlyUpdatedContract.contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) return res;
+        if (data.newlyUpdatedContract.contractType === CONTRACT_TYPE.GRID_SERVICES_PACKET) return res;
 
         const { opportunityId } = data.newlyUpdatedContract;
 

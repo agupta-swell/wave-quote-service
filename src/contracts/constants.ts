@@ -1,6 +1,6 @@
 export enum CONTRACT_TYPE {
   PRIMARY_CONTRACT = 'PRIMARY_CONTRACT',
-  GRID_SERVICES_AGREEMENT = 'GRID_SERVICES_AGREEMENT',
+  GRID_SERVICES_PACKET = 'GRID_SERVICES_PACKET',
   CHANGE_ORDER = 'CHANGE_ORDER',
   NO_COST_CHANGE_ORDER = 'NO_COST_CHANGE_ORDER',
 }
@@ -8,7 +8,7 @@ export enum CONTRACT_TYPE {
 export enum SIGN_STATUS {
   SENT = 'SENT',
   SIGNED = 'SIGNED',
-  WET_SIGNED = 'WET_SIGNED'
+  WET_SIGNED = 'WET_SIGNED',
 }
 
 export enum PROCESS_STATUS {
@@ -17,7 +17,7 @@ export enum PROCESS_STATUS {
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
   DRAFT = 'DRAFT',
-  VOIDED = 'VOIDED'
+  VOIDED = 'VOIDED',
 }
 
 export enum REQUEST_MODE {
@@ -28,7 +28,7 @@ export enum REQUEST_MODE {
 export enum CONTRACT_ROLE {
   PRIMARY_OWNER = 'Primary Owner',
   CO_OWNER = 'Co Owner',
-  FINANCIER = 'Financier'
+  FINANCIER = 'Financier',
 }
 
 export const KEYS = {

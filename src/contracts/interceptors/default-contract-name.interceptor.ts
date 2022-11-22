@@ -1,7 +1,6 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, BadRequestException } from '@nestjs/common';
+import { BadRequestException, CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { CONTRACT_TYPE, KEYS, REQUEST_MODE } from '../constants';
 import { ContractService } from '../contract.service';
@@ -37,7 +36,7 @@ export class DefaultContractNameInterceptor implements NestInterceptor {
     let name: string | undefined;
 
     switch (contractType) {
-      case CONTRACT_TYPE.GRID_SERVICES_AGREEMENT:
+      case CONTRACT_TYPE.GRID_SERVICES_PACKET:
       case CONTRACT_TYPE.PRIMARY_CONTRACT:
         name = await this.getPrimaryContractName(body.contractDetail.contractTemplateId);
         break;

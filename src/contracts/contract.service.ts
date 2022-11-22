@@ -83,8 +83,7 @@ export class ContractService {
 
     const contracts = contractRecords
       .filter(
-        e =>
-          e.contractType === CONTRACT_TYPE.PRIMARY_CONTRACT || e.contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
+        e => e.contractType === CONTRACT_TYPE.PRIMARY_CONTRACT || e.contractType === CONTRACT_TYPE.GRID_SERVICES_PACKET,
       )
       .map(e => ({
         contractData: e,
@@ -124,7 +123,7 @@ export class ContractService {
 
     const rebateProgramIdTemp = quoteDetail?.rebateProgram?._id || null;
 
-    if (contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
+    if (contractType === CONTRACT_TYPE.GRID_SERVICES_PACKET) {
       const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMasterForGSA(
         [utilityProgramIdTemp, 'ALL'],
         [rebateProgramIdTemp, 'ALL'],
@@ -206,7 +205,7 @@ export class ContractService {
         throw new NotFoundException(`No quote found with id ${contractDetail.associatedQuoteId}`);
       }
 
-      if (contractDetail.contractType === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) {
+      if (contractDetail.contractType === CONTRACT_TYPE.GRID_SERVICES_PACKET) {
         const isValid = await this.validateNewGridServiceContract(contractDetail);
         if (!isValid) {
           throw new BadRequestException({ message: 'Not qualified for new GS Contract' });
@@ -260,7 +259,8 @@ export class ContractService {
             deposit: quoteDetail.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment, // enter amount from quote
             depositPayPercent: false, // should be false
             payment1: quoteDetail.quoteFinanceProduct.financeProduct.financialProductSnapshot.payment1, // enter amount from financial product settings
-            payment1PayPercent: quoteDetail.quoteFinanceProduct.financeProduct.financialProductSnapshot.payment1PayPercent, // based on financial product settings
+            payment1PayPercent:
+              quoteDetail.quoteFinanceProduct.financeProduct.financialProductSnapshot.payment1PayPercent, // based on financial product settings
             payment2: 0, // doesn't matter/0
             payment2PayPercent: false, // doesn't matter/false
             payment2PayBalance: true, // always true
@@ -880,7 +880,7 @@ export class ContractService {
     const contracts = await this.contractModel.find({
       primaryContractId,
       contractType: {
-        $ne: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
+        $ne: CONTRACT_TYPE.GRID_SERVICES_PACKET,
       },
     });
 

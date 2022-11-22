@@ -4,7 +4,7 @@ import { Contract, ISignerDetailDataSchema } from 'src/contracts/contract.schema
 import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
-import { IDetailedQuoteSchema, IGsProgramSnapshot, IFinancialProductDetails } from 'src/quotes/quote.schema';
+import { IDetailedQuoteSchema, IFinancialProductDetails, IGsProgramSnapshot } from 'src/quotes/quote.schema';
 import { IRoofTopSchema, SystemDesignWithManufacturerMeta } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
@@ -154,7 +154,7 @@ export interface IDocusignTemplateMapping {
   PARTICIPATION_PRP2_ACES_CASH: string;
   PARTICIPATION_PRP2_ACES_ESA: string;
   SOLAR_ENERGY_SYSTEM_ESTIMATED_X7: string;
-  GRID_SERVICES_AGREEMENT: string;
+  GRID_SERVICES_PACKET: string;
   HOME_ENERGY_SUB_AGT_ESA: string;
   PAYMENT_SCHEDULE_X10: string;
   DUMMY_PRIMARY_CONTRACT: string;

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsMongoId, IsNotEmpty, IsOptional, IsString, ValidateIf } from 'class-validator';
+import { IsDateString, IsEnum, IsMongoId, IsOptional, IsString, ValidateIf } from 'class-validator';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 import { IsStringOrNull } from 'src/shared/validations';
@@ -31,7 +31,7 @@ export class DocusignCompositeTemplateMasterDataReqDto {
   @ValidateIf(
     obj =>
       obj?.compositeTemplateData.type === CONTRACT_TYPE.PRIMARY_CONTRACT ||
-      obj?.compositeTemplateData.type === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
+      obj?.compositeTemplateData.type === CONTRACT_TYPE.GRID_SERVICES_PACKET,
   )
   filenameForDownloads: string;
 
