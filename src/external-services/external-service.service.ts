@@ -203,7 +203,7 @@ export class ExternalService {
       zipCode,
       populateProperties: true,
       isActive: true,
-      customerClasses: 'RESIDENTIAL',
+      customerClasses: 'RESIDENTIAL,SPECIAL_USE',
       pageCount: 100,
     };
 
