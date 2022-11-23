@@ -21,6 +21,12 @@ export class UtilityProgramMasterDto {
   isActive: boolean;
 
   @ExposeProp()
+  sendToGridAmp: boolean;
+
+  @ExposeProp()
+  automaticallyApproveControl: boolean;
+
+  @ExposeProp()
   endDate: string;
 }
 

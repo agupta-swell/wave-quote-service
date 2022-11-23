@@ -8,6 +8,8 @@ export interface UtilityProgramMaster extends Document {
   programManagerId?: string;
   gsaDisplayName: string;
   isActive: boolean;
+  sendToGridAmp: boolean;
+  automaticallyApproveControl: boolean;
   endDate: string;
   createdAt: string;
   createdBy: string;
@@ -21,6 +23,8 @@ export const UtilityProgramMasterSchema = new Schema<UtilityProgramMaster>({
   gsa_display_name: String,
   program_manager_id: String,
   is_active: Boolean,
+  send_to_grid_amp: Boolean,
+  automatically_approve_control: Boolean,
   end_date: Date,
 
   created_at: { type: Date, default: Date.now },
