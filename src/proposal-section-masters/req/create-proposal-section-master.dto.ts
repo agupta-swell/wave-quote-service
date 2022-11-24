@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { PRIMARY_QUOTE_TYPE } from 'src/quotes/constants';
 
 export class CreateProposalSectionMasterDto {
   @ApiProperty()
@@ -12,10 +13,11 @@ export class CreateProposalSectionMasterDto {
   @IsNotEmpty()
   applicableFundingSources: string[];
 
-  @ApiProperty({ type: String, isArray: true })
+  @ApiProperty({ enum: PRIMARY_QUOTE_TYPE, isArray: true })
   @IsArray()
+  @IsEnum(PRIMARY_QUOTE_TYPE, { each: true })
   @IsNotEmpty()
-  applicableQuoteTypes: string[];
+  applicableQuoteTypes: PRIMARY_QUOTE_TYPE[];
 
   @ApiProperty()
   @IsString()

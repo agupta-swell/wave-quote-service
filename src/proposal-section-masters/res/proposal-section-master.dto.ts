@@ -1,4 +1,5 @@
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { PRIMARY_QUOTE_TYPE } from 'src/quotes/constants';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class ProposalSectionMasterDto {
@@ -12,7 +13,7 @@ export class ProposalSectionMasterDto {
   applicableFundingSources: string[];
 
   @ExposeProp()
-  applicableQuoteTypes: string[];
+  applicableQuoteTypes: PRIMARY_QUOTE_TYPE[];
 
   @ExposeProp()
   componentName: string;
