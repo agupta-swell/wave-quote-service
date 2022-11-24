@@ -700,7 +700,11 @@ export class ProposalService {
 
     if (!proposal) throw ApplicationException.EntityNotFound(`ProposalId: ${proposalId}`);
 
-    const quote = proposal.detailedProposal.quoteData;
+    const quote = await this.quoteService.getOneById(proposal.quoteId);
+
+    if (!quote) {
+      throw new NotFoundException(`No quote found with id ${proposal.quoteId}`);
+    }
 
     const opportunity = await this.opportunityService.getDetailById(proposal.opportunityId);
     if (!opportunity) {
@@ -715,7 +719,7 @@ export class ProposalService {
     const fundingSourceType = proposal.detailedProposal.quoteData.quoteFinanceProduct.financeProduct.productType;
 
     const [customerPayment, utilityName, roofTopDesign, systemDesign] = await Promise.all([
-      this.customerPaymentService.getCustomerPaymentByOpportunityId(proposal.opportunityId),
+      this.customerPaymentService.calculateContractCustomPayment('', proposal.opportunityId, quote),
       this.utilityService.getUtilityName(opportunity.utilityId),
       this.systemDesignService.getRoofTopDesignById(proposal.systemDesignId),
       this.systemDesignService.getOneById(proposal.systemDesignId, true),
