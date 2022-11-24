@@ -90,7 +90,7 @@ export class SystemDesignService {
     private readonly systemDesignHook: SystemDesignHook,
     private readonly asyncContext: AsyncContextProvider,
     private readonly existingSystem: ExistingSystemService,
-  ) { }
+  ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
@@ -1237,13 +1237,19 @@ export class SystemDesignService {
     systemDesignId: ObjectId,
     imageStream: NodeJS.ReadableStream,
   ): Promise<void> {
-    const key = `${+new Date()}.png`;
+    const foundSystemDesign = await this.systemDesignModel.findById(systemDesignId);
+
+    if (!foundSystemDesign) {
+      throw new NotFoundException(`No system design found with id ${systemDesignId}`);
+    }
+
+    const key = `${foundSystemDesign.opportunityId}/${foundSystemDesign._id.toString()}.png`;
     const url = await this.s3Service.putStreamPromise(
       imageStream,
       key,
       this.SYSTEM_DESIGN_S3_BUCKET,
       'image/png',
-      'private',
+      'public-read',
     );
 
     if (!url) throw new InternalServerErrorException();

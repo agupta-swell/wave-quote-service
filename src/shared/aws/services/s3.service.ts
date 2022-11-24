@@ -156,7 +156,7 @@ export class S3Service {
   ): Promise<AWS.S3.ManagedUpload.SendData> {
     return new Promise((resolve, reject) => {
       source.pipe(
-        this.putStream(fileName, bucketName, mime, acl, true, (err, res) => {
+        this.putStream(fileName, bucketName, mime, acl, false, (err, res) => {
           if (err) {
             reject(err);
             return;
