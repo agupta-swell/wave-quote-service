@@ -1,8 +1,7 @@
-import axios, { AxiosInstance } from 'axios';
 import { Injectable } from '@nestjs/common';
-
-import type { GoogleSunroof } from './types';
+import axios, { AxiosInstance } from 'axios';
 import { GoogleSunroofGatewayAxiosException } from './exceptions';
+import type { GoogleSunroof } from './types';
 
 const GOOGLE_SUNROOF_BASE_URL = 'https://earthenginesolar.googleapis.com/v1';
 const BUILDINGS_FIND_CLOSEST = 'buildings:findClosest';

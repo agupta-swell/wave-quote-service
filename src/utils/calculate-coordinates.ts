@@ -36,22 +36,6 @@ export const calcCoordinatesDistance = (c1: ICoordinate, c2: ICoordinate): numbe
   return d;
 };
 
-export const getCenterCoordinate = (bounds: ICoordinate[]): ICoordinate => {
-  const lats = bounds.map(b => b.lat);
-  const lngs = bounds.map(b => b.lng);
-
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-
-  return {
-    lat: (minLat + maxLat) / 2,
-    lng: (minLng + maxLng) / 2,
-  };
-};
-
 export const isCoordinateInsideBound = (coord: ICoordinate, bound: ILatLngBound): boolean => {
   const {
     ne: { lat: neLat, lng: neLng },

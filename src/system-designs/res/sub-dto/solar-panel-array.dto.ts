@@ -89,4 +89,10 @@ export class SolarPanelArrayDto {
 
   @ExposeProp()
   mountTypeId: string;
+
+  @ExposeProp()
+  hasSunroofRooftop: boolean;
+
+  @ExposeProp()
+  hasSunroofIrradiance: boolean;
 }

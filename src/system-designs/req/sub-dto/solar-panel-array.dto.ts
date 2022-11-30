@@ -131,4 +131,14 @@ export class SolarPanelArrayDto1 {
   @IsOptional()
   @IsMongoId()
   mountTypeId: string;
+
+  @ApiProperty()
+  @IsBoolean()
+  @IsOptional()
+  hasSunroofIrradiance: boolean;
+
+  @ApiProperty()
+  @IsBoolean()
+  @IsOptional()
+  hasSunroofRooftop: boolean;
 }
