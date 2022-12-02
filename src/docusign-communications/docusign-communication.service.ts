@@ -15,6 +15,7 @@ import {
   IContractSignerDetails,
   IDocusignPayload,
   IGenericObject,
+  IGenericObjectForGSP,
   IInlineTemplate,
   ISendDocusignToContractResponse,
   IServerTemplate,
@@ -33,6 +34,7 @@ export class DocusignCommunicationService {
     @Inject(forwardRef(() => ContractService))
     private readonly contractService: ContractService,
     private readonly docusignApiService: DocusignApiService<IGenericObject>,
+    private readonly docusignGSPApiService: DocusignApiService<IGenericObjectForGSP>,
   ) {}
 
   // =====================> INTERNAL <=====================
@@ -76,6 +78,59 @@ export class DocusignCommunicationService {
       contractId: isDraft ? undefined : contractId,
       requestType: REQUEST_TYPE.OUTBOUND,
       docusignAccountDetail: { accountName: 'docusign', accountReferenceId: this.docusignApiService.email },
+      payloadFromDocusign: JSON.stringify(resDocusign),
+      envelopId: resDocusign?.envelopeId,
+      proposalId: isDraft ? contractId : undefined,
+    });
+
+    await model.save();
+
+    if (resDocusign?.errorDetails?.errorCode) {
+      return { status: 'FAILURE' };
+    }
+
+    return { status: 'SUCCESS', contractingSystemReferenceId: resDocusign?.envelopeId };
+  }
+
+  async sendGSPContractToDocusign(
+    contractId: string,
+    templateDetails: ITemplateDetailSchema[],
+    signerDetails: ISignerDetailDataSchema[],
+    genericObject: IGenericObjectForGSP,
+    pageFromTemplateId: string,
+    contractName: string,
+    isDraft = false,
+  ): Promise<ISendDocusignToContractResponse> {
+    const docusignPayload: any = {
+      emailSubject: `${'Contract'} - Agreement for ${contractName}`,
+      emailBlurb: 'Please review and sign the contract for your energy project!',
+      compositeTemplates: [],
+    };
+
+    const maxSignerRoutingOrders = this.getMaxSignerRoutingOrders(templateDetails);
+
+    templateDetails.map(template => {
+      const compositeTemplateDataPayload = this.getCompositeTemplatePayloadData(
+        template,
+        signerDetails,
+        maxSignerRoutingOrders,
+      );
+      docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
+    });
+
+    const resDocusign = await this.docusignGSPApiService
+      .useContext(genericObject)
+      .sendContract(
+        docusignPayload,
+        templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '',
+        isDraft,
+      );
+
+    const model = new this.docusignCommunicationModel({
+      dateTime: new Date(),
+      contractId: isDraft ? undefined : contractId,
+      requestType: REQUEST_TYPE.OUTBOUND,
+      docusignAccountDetail: { accountName: 'docusign', accountReferenceId: this.docusignGSPApiService.email },
       payloadFromDocusign: JSON.stringify(resDocusign),
       envelopId: resDocusign?.envelopeId,
       proposalId: isDraft ? contractId : undefined,
@@ -226,6 +281,18 @@ export class DocusignCommunicationService {
     return this.docusignApiService.sendDraftEnvelop(envelopeId);
   }
 
+  downloadGSPContract(envelopeId: string, showChanges: boolean): Promise<IncomingMessage> {
+    return this.docusignGSPApiService.getEnvelopeDocumentById(envelopeId, showChanges);
+  }
+
+  resendGSPContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
+    return this.docusignGSPApiService.resendEnvelop(envelopeId);
+  }
+
+  sendGSPDraftContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
+    return this.docusignGSPApiService.sendDraftEnvelop(envelopeId);
+  }
+
   validateSignerDetails(
     templateDetails: (Omit<LeanDocument<DocusignTemplateMaster>, 'recipientRoles'> & {
       recipientRoles: LeanDocument<SignerRoleMaster>[];
@@ -273,6 +340,10 @@ export class DocusignCommunicationService {
 
   voidEnvelope(envelopeId: string): Promise<EnvelopeUpdateSummary> {
     return this.docusignApiService.voidEnvelope(envelopeId);
+  }
+
+  voidGSPEnvelope(envelopeId: string): Promise<EnvelopeUpdateSummary> {
+    return this.docusignGSPApiService.voidEnvelope(envelopeId);
   }
 
   private getMaxSignerRoutingOrders(templateDetails: ITemplateDetailSchema[]): string[] {

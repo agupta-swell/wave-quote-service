@@ -21,7 +21,14 @@ export class ContractReqDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsOptional()
   opportunityId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  @IsOptional()
+  gsOpportunityId: string;
 
   @ApiProperty()
   name: string;
@@ -29,6 +36,7 @@ export class ContractReqDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsOptional()
   associatedQuoteId: string;
 
   @ApiProperty()

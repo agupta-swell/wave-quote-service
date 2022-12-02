@@ -29,7 +29,12 @@ import { UtilityProgramMasterService } from 'src/utility-programs-master/utility
 import { roundNumber } from 'src/utils/transformNumber';
 import { CustomerPayment } from '../customer-payments/customer-payment.schema';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
-import { CONTRACTING_SYSTEM_STATUS, IContractSignerDetails, IGenericObject } from '../docusign-communications/typing';
+import {
+  CONTRACTING_SYSTEM_STATUS,
+  IContractSignerDetails,
+  IGenericObject,
+  IGenericObjectForGSP,
+} from '../docusign-communications/typing';
 import { FastifyFile } from '../shared/fastify';
 import {
   CONTRACT_ROLE,
@@ -37,9 +42,11 @@ import {
   CONTRACT_TYPE,
   DEFAULT_PROJECT_COMPLETION_DATE_OFFSET,
   PROCESS_STATUS,
+  STATUS,
   REQUEST_MODE,
   SIGN_STATUS,
 } from './constants';
+
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import { ContractReqDto } from './req/contract-req.dto';
@@ -565,6 +572,11 @@ export class ContractService {
     return this.docusignCommunicationService.downloadContract(envelopeId, showChanges);
   }
 
+  async downloadGSPDocusignContract(envelopeId: string, showChanges: boolean): Promise<IncomingMessage | undefined> {
+    // eslint-disable-next-line consistent-return
+    return this.docusignCommunicationService.downloadGSPContract(envelopeId, showChanges);
+  }
+
   async getContractDownloadData(id: ObjectId, user: ILoggedInUser): Promise<[string, string]> {
     const foundContract = await this.getOneByContractId(id);
     if (foundContract.contractingSystem !== 'DOCUSIGN' || !foundContract.contractingSystemReferenceId)
@@ -731,6 +743,20 @@ export class ContractService {
     return fileName;
   }
 
+  private getGSPPrimaryContractDownloadName(contract: Contract | LeanDocument<Contract>, fullName: string): string {
+    let fileName: string;
+
+    switch (contract.contractStatus) {
+      case PROCESS_STATUS.COMPLETED:
+        fileName = `${fullName} - ${contract.name} - Signed.pdf`;
+        break;
+      default:
+        fileName = `${fullName} - ${contract.name}.pdf`;
+    }
+
+    return fileName;
+  }
+
   private getChangeOrderDownloadName(
     contract: Contract | LeanDocument<Contract>,
     oppData: OperationResult<GetRelatedInformationDto>,
@@ -876,6 +902,27 @@ export class ContractService {
     );
   }
 
+  public async voidGSPContract(contract: Pick<Contract, '_id' | 'contractingSystemReferenceId'>): Promise<void> {
+    try {
+      if (contract?.contractingSystemReferenceId) {
+        await this.docusignCommunicationService.voidGSPEnvelope(contract.contractingSystemReferenceId);
+      }
+    } catch (error) {
+      console.error(
+        'Failed to void contract',
+        contract._id.toString(),
+        'envelope id',
+        contract.contractingSystemReferenceId,
+        error,
+      );
+    }
+
+    await this.contractModel.updateOne(
+      { _id: contract._id },
+      { $set: { contractStatus: PROCESS_STATUS.VOIDED, updatedAt: new Date() } },
+    );
+  }
+
   public async getCOContractsByPrimaryContractId(primaryContractId: string): Promise<LeanDocument<Contract>[]> {
     const contracts = await this.contractModel.find({
       primaryContractId,
@@ -976,6 +1023,134 @@ export class ContractService {
           batteryKwh,
         },
       },
+    );
+  }
+
+  async getGSPContractDownloadData(id: ObjectId, user: ILoggedInUser, fullName: string): Promise<[string, string]> {
+    const foundContract = await this.getOneByContractId(id);
+    if (foundContract.contractingSystem !== 'DOCUSIGN' || !foundContract.contractingSystemReferenceId)
+      throw ApplicationException.InvalidContract();
+
+    const fileName = this.getGSPPrimaryContractDownloadName(foundContract, fullName);
+
+    const token = await this.generateDownloadToken(id, fileName, user);
+
+    return [fileName, token];
+  }
+
+  async saveAndSendGSPContract(req: SaveContractReqDto, isDraft = false): Promise<OperationResult<SendContractDto>> {
+    const { mode, contractDetail } = req;
+
+    if (mode === REQUEST_MODE.ADD) {
+      const contractTemplateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
+        contractDetail.contractTemplateId,
+      );
+
+      const newlyUpdatedContract = new this.contractModel({
+        ...contractDetail,
+        contractTemplateDetail,
+        contractingSystem: 'DOCUSIGN',
+        contractStatus: PROCESS_STATUS.NOT_STARTED,
+        status: STATUS.NEW,
+      });
+
+      const newContract = await newlyUpdatedContract.save();
+
+      return this.sendGSPContract(newContract._id, isDraft);
+    }
+
+    return OperationResult.ok(
+      strictPlainToClass(SendContractDto, { status: false, statusDescription: 'Unexpected Operation Mode' }),
+    );
+  }
+
+  async sendGSPContract(contractId: string, isDraft = false): Promise<OperationResult<SendContractDto>> {
+    const contract = await this.contractModel.findById(contractId);
+
+    if (!contract) {
+      throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
+    }
+
+    const contractName = contract.name;
+
+    if (contract.contractStatus === PROCESS_STATUS.VOIDED) {
+      throw new BadRequestException('This contract has been voided');
+    }
+
+    if (contract.status === STATUS.AGREEMENT_GENERATED) {
+      if (isDraft) throw new BadRequestException('This contract preview has already been generated');
+
+      // send from draft document
+      await this.docusignCommunicationService.sendGSPDraftContract(contract.contractingSystemReferenceId);
+
+      contract.signerDetails[0].sentOn = new Date();
+      contract.signerDetails[0].signStatus = SIGN_STATUS.SENT;
+      contract.contractStatus = PROCESS_STATUS.IN_PROGRESS;
+      contract.status = STATUS.SENT_TO_PRIMARY_OWNER;
+
+      await contract.save();
+
+      return OperationResult.ok(
+        strictPlainToClass(SendContractDto, { status: 'SUCCESS', newlyUpdatedContract: contract.toJSON() }),
+      );
+    }
+
+    let status: string;
+    let statusDescription = '';
+
+    const genericObject: IGenericObjectForGSP = {
+      signerDetails: contract.signerDetails,
+      contract,
+    };
+
+    const sentOn = new Date();
+
+    const docusignResponse = await this.docusignCommunicationService.sendGSPContractToDocusign(
+      contractId,
+      contract.contractTemplateDetail.templateDetails,
+      contract.signerDetails,
+      genericObject,
+      contract.contractTemplateDetail.compositeTemplateData.beginPageNumberingTemplateId,
+      contractName,
+      isDraft,
+    );
+
+    if (isDraft) {
+      if (docusignResponse.status === 'SUCCESS' && docusignResponse.contractingSystemReferenceId) {
+        status = 'SUCCESS';
+        contract.contractStatus = PROCESS_STATUS.NOT_STARTED;
+        contract.status = STATUS.AGREEMENT_GENERATED;
+        contract.contractingSystemReferenceId = docusignResponse.contractingSystemReferenceId;
+      } else {
+        status = 'ERROR';
+        statusDescription = 'ERROR';
+        contract.contractStatus = PROCESS_STATUS.ERROR;
+      }
+
+      await contract.save();
+
+      return OperationResult.ok(
+        strictPlainToClass(SendContractDto, { status, statusDescription, newlyUpdatedContract: contract.toJSON() }),
+      );
+    }
+
+    if (docusignResponse.status === 'SUCCESS') {
+      status = 'SUCCESS';
+      contract.contractStatus = PROCESS_STATUS.IN_PROGRESS;
+      contract.status = STATUS.SENT_TO_PRIMARY_OWNER;
+      contract.signerDetails[0].signStatus = SIGN_STATUS.SENT;
+      contract.signerDetails[0].sentOn = sentOn;
+      contract.contractingSystemReferenceId = docusignResponse.contractingSystemReferenceId ?? '';
+    } else {
+      status = 'ERROR';
+      statusDescription = 'ERROR';
+      contract.contractStatus = PROCESS_STATUS.ERROR;
+    }
+
+    await contract.save();
+
+    return OperationResult.ok(
+      strictPlainToClass(SendContractDto, { status, statusDescription, newlyUpdatedContract: contract.toJSON() }),
     );
   }
 }

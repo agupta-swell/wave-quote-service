@@ -113,6 +113,32 @@ export class ContractController {
     return ServiceResponse.fromResult(res);
   }
 
+  @Post('/generate-gsp-contract')
+  @UsePipes(ValidationPipe)
+  @UseDocusignContext()
+  @ApiOperation({ summary: 'Generate GSP Contract' })
+  @ApiOkResponse({ type: SendContractRes })
+  async generateGSPContract(
+    @Body(SignerValidationPipe)
+    contractReq: SaveContractReqDto,
+  ): Promise<ServiceResponse<SendContractDto>> {
+    const res = await this.contractService.saveAndSendGSPContract(contractReq, true);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/save-and-send-gsp-contract')
+  @UsePipes(ValidationPipe)
+  @UseDocusignContext()
+  @ApiOperation({ summary: 'Save and send GSP Contract' })
+  @ApiOkResponse({ type: SendContractRes })
+  async saveAndSendGSPContract(
+    @Body(SignerValidationPipe)
+    contractReq: SaveContractReqDto,
+  ): Promise<ServiceResponse<SendContractDto>> {
+    const res = await this.contractService.saveAndSendGSPContract(contractReq);
+    return ServiceResponse.fromResult(res);
+  }
+
   @Post('/send-contract')
   @UseDocusignContext()
   @ApiOperation({ summary: 'Send Contract' })
@@ -120,6 +146,16 @@ export class ContractController {
   async sendContract(@Body() sendContractReq: SendContractReq): Promise<ServiceResponse<SendContractDto>> {
     const { contractId } = sendContractReq;
     const res = await this.contractService.sendContract(contractId);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Post('/send-gsp-contract')
+  @UseDocusignContext()
+  @ApiOperation({ summary: 'Send GSP Contract' })
+  @ApiOkResponse({ type: SendContractRes })
+  async sendGSPContract(@Body() sendContractReq: SendContractReq): Promise<ServiceResponse<SendContractDto>> {
+    const { contractId } = sendContractReq;
+    const res = await this.contractService.sendGSPContract(contractId);
     return ServiceResponse.fromResult(res);
   }
 
@@ -159,6 +195,29 @@ export class ContractController {
     res.code(200).header('Content-Type', contractReq.contentType).type('application/pdf').send(contract);
   }
 
+  @ResourceGuard(CONTRACT_SECRET_PREFIX)
+  @Get('/GSPdownload/:name')
+  @ApiParam({ name: 'contractId' })
+  @ApiOperation({ summary: 'Download Contract envelope' })
+  async downloadGSPContract(
+    @CurrentUser(DownloadContractPipe) contractReq: IContractDownloadReqPayload,
+    @Query('viewOnly') viewOnly: string | undefined,
+    @Res() res: any,
+  ) {
+    const contract = await this.contractService.downloadGSPDocusignContract(
+      contractReq.envelopeId,
+      contractReq.showChanges,
+    );
+
+    if (viewOnly) {
+      res.header('Content-Disposition', `inline; filename="${contractReq.filename}"`);
+    } else {
+      res.header('Content-Disposition', `attachment; filename="${contractReq.filename}"`);
+    }
+
+    res.code(200).header('Content-Type', contractReq.contentType).type('application/pdf').send(contract);
+  }
+
   @Head('/:contractId/envelope')
   @ApiParam({ name: 'contractId' })
   @ApiOperation({ summary: 'Head Contract envelope download data' })
@@ -168,6 +227,25 @@ export class ContractController {
     @Res() res: any,
   ) {
     const [filename, token] = await this.contractService.getContractDownloadData(id, user);
+    res
+      .code(200)
+      .header('Access-Control-Expose-Headers', ['X-Wave-Download-Token', 'X-Wave-Download-Filename'])
+      .header('X-Wave-Download-Filename', filename)
+      .header('X-Wave-Download-Token', token)
+      .type('application/pdf')
+      .send();
+  }
+
+  @Head('/:contractId/GSPenvelope')
+  @ApiParam({ name: 'contractId' })
+  @ApiOperation({ summary: 'Head Contract envelope download data' })
+  async streamGSPContract(
+    @Param('contractId', ParseObjectIdPipe) id: ObjectId,
+    @Query('fullName') fullName: string,
+    @CurrentUser() user: ILoggedInUser,
+    @Res() res: any,
+  ) {
+    const [filename, token] = await this.contractService.getGSPContractDownloadData(id, user, fullName);
     res
       .code(200)
       .header('Access-Control-Expose-Headers', ['X-Wave-Download-Token', 'X-Wave-Download-Filename'])
@@ -202,10 +280,21 @@ export class ContractController {
   @VoidRelatedContracts()
   @ApiOperation({ summary: 'Resend Contract' })
   @ApiOkResponse({ type: SaveContractRes })
-  async voidContact(
+  async voidContract(
     @Param('contractId', ParseObjectIdPipe, VoidPrimaryContractPipe) contract: Contract,
   ): Promise<Contract> {
     await this.contractService.voidContract(contract);
+    return contract;
+  }
+
+  @Post('/:contractId/voidGSP')
+  @VoidRelatedContracts()
+  @ApiOperation({ summary: 'Void Contract' })
+  @ApiOkResponse({ type: SaveContractRes })
+  async voidGSPContract(
+    @Param('contractId', ParseObjectIdPipe, VoidPrimaryContractPipe) contract: Contract,
+  ): Promise<Contract> {
+    await this.contractService.voidGSPContract(contract);
     return contract;
   }
 
