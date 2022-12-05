@@ -285,7 +285,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     return !queueStore.cache.get('onNewSystemDesign');
   }
 
-  private calculateSystemDesignRadius(systemDesignCenterBound: ICoordinate, polygons: ICoordinate[]): number {
+  public calculateSystemDesignRadius(systemDesignCenterBound: ICoordinate, polygons: ICoordinate[]): number {
     const longestDistance = Math.max(...polygons.map(p => calcCoordinatesDistance(systemDesignCenterBound, p))) * 1000;
 
     return Math.min(Math.max(25, longestDistance), 100);

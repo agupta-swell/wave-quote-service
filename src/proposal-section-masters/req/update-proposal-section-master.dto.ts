@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
+import { PRIMARY_QUOTE_TYPE } from 'src/quotes/constants';
 
 export class UpdateProposalSectionMasterDto {
   @ApiPropertyOptional()
@@ -12,10 +13,11 @@ export class UpdateProposalSectionMasterDto {
   @IsOptional()
   applicableFundingSources: string[];
 
-  @ApiPropertyOptional({ type: String, isArray: true })
+  @ApiPropertyOptional({ enum: PRIMARY_QUOTE_TYPE, isArray: true })
   @IsArray()
+  @IsEnum(PRIMARY_QUOTE_TYPE, { each: true })
   @IsOptional()
-  applicableQuoteTypes: string[];
+  applicableQuoteTypes: PRIMARY_QUOTE_TYPE[];
 
   @ApiPropertyOptional()
   @IsString()

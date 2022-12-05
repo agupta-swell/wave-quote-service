@@ -1,7 +1,5 @@
+/* eslint-disable no-use-before-define */
 /* eslint-disable no-restricted-syntax */
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { isMongoId } from 'class-validator';
@@ -9,16 +7,10 @@ import type { TypedArrayArrayWithDimensions } from 'geotiff';
 import * as geotiff from 'geotiff';
 import { chunk } from 'lodash';
 import { LeanDocument } from 'mongoose';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { PNG } from 'pngjs';
-
 import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
-import type {
-  GoogleSunroof,
-  GoogleSunroofOrientationInformation,
-  IClosestBuildingKey,
-  SystemProduction,
-} from './types';
-
 import { SystemDesign } from '../../system-designs/system-design.schema';
 import {
   calcCoordinatesDistance,
@@ -30,6 +22,12 @@ import { DAY_COUNT_BY_MONTH_INDEX } from './constants';
 import { GoogleSunroofGateway } from './google-sunroof.gateway';
 import { PngGenerator } from './png.generator';
 import { ProductionCalculator } from './production.calculator';
+import type {
+  GoogleSunroof,
+  GoogleSunroofOrientationInformation,
+  IClosestBuildingKey,
+  SystemProduction,
+} from './types';
 
 const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.GOOGLE_SUNROOF_DEBUG?.toLowerCase() || 'false');
 const DEBUG_FOLDER = path.join(__dirname, 'debug');
@@ -427,9 +425,9 @@ export class GoogleSunroofService {
     }
 
     const [annualFluxLayers, monthlyFluxLayers] = await Promise.all([
-      getLayersFromTiffBuffer(annualFluxTiffBuffer),
-      getLayersFromTiffBuffer(monthlyFluxTiffBuffer),
-    ]);
+        getLayersFromTiffBuffer(annualFluxTiffBuffer),
+        getLayersFromTiffBuffer(monthlyFluxTiffBuffer),
+      ]);
 
     const allMountTypes = await this.mountTypesService.findAllMountTypes();
 
@@ -524,6 +522,15 @@ export class GoogleSunroofService {
       png.pack().pipe(fs.createWriteStream(path.join(DEBUG_FOLDER, path.basename(key))));
     }
     await this.s3Service.putObject(this.GOOGLE_SUNROOF_S3_BUCKET, key, PNG.sync.write(png), 'image/png');
+  }
+
+  public async isExistedGeotiff(latitude, longitude, radiusMeters = 25): Promise<boolean> {
+    try {
+      await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters);
+    } catch (error) {
+      return false;
+    }
+    return true;
   }
 }
 

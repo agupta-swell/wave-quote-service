@@ -1,17 +1,7 @@
 import { Document, Schema } from 'mongoose';
-import {
-  IProposalSectionMaster,
-  ProposalSectionMaster,
-  ProposalSectionMasterSchema,
-} from 'src/proposal-section-masters/proposal-section-master.schema';
+import { IProposalSectionMaster } from 'src/proposal-section-masters/proposal-section-master.schema';
 
 export const PROPOSAL_TEMPLATE = Symbol('PROPOSAL_TEMPLATE').toString();
-
-export enum EApplicableProducts {
-  PV = 'pv',
-  STORAGE = 'storage',
-  PV_AND_STORAGE = 'pv-storage',
-}
 
 export interface ISectionSchema {
   id: string;

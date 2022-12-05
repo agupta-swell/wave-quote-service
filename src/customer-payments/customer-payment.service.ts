@@ -30,7 +30,7 @@ export class CustomerPaymentService {
     return res;
   }
 
-  async create(
+  async calculateContractCustomPayment(
     contractId: string | ObjectId,
     opportunityId: string,
     detailedQuote: IDetailedQuoteSchema,
@@ -41,7 +41,7 @@ export class CustomerPaymentService {
       .sort({ modifiedAt: -1 })
       .lean();
 
-    let customerPayment = new this.customerPaymentModel();
+    const customerPayment = new this.customerPaymentModel();
 
     const { actualDepositMade = 0, actualPayment1Made = 0 } = latestCustomerPayment[0] || {};
 
@@ -122,6 +122,16 @@ export class CustomerPaymentService {
       customerPayment.payment1 = 0;
       customerPayment.payment2 = quoteCostBuildup.projectGrandTotal.netCost;
     }
+
+    return customerPayment;
+  }
+
+  async create(
+    contractId: string | ObjectId,
+    opportunityId: string,
+    detailedQuote: IDetailedQuoteSchema,
+  ): Promise<CustomerPayment> {
+    const customerPayment = await this.calculateContractCustomPayment(contractId, opportunityId, detailedQuote);
 
     await customerPayment.save();
 

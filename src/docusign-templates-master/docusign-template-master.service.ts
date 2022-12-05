@@ -7,7 +7,6 @@ import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { ITemplateDetailSchema } from 'src/contracts/contract.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { SAVE_TEMPLATE_MODE, SYSTEM_TYPE } from './constants';
 import { DocusignTemplateMaster, DOCUSIGN_TEMPLATE_MASTER } from './docusign-template-master.schema';
@@ -237,7 +236,7 @@ export class DocusignTemplateMasterService {
 
     if (
       (req.compositeTemplateData.type === CONTRACT_TYPE.PRIMARY_CONTRACT ||
-        req.compositeTemplateData.type === CONTRACT_TYPE.GRID_SERVICES_AGREEMENT) &&
+        req.compositeTemplateData.type === CONTRACT_TYPE.GRID_SERVICES_PACKET) &&
       !req.compositeTemplateData.filenameForDownloads
     ) {
       throw new BadRequestException('Filename for Downloads is required');
@@ -315,7 +314,7 @@ export class DocusignTemplateMasterService {
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({
-        type: { $ne: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT },
+        type: { $ne: CONTRACT_TYPE.GRID_SERVICES_PACKET },
         applicableFundingSources: { $in: fundingSources },
         applicableUtilities: { $in: utilities },
         applicableUtilityPrograms: { $in: utilityPrograms },
@@ -332,7 +331,7 @@ export class DocusignTemplateMasterService {
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
       .find({
-        type: CONTRACT_TYPE.GRID_SERVICES_AGREEMENT,
+        type: CONTRACT_TYPE.GRID_SERVICES_PACKET,
         applicableUtilityPrograms: { $in: utilityPrograms },
         applicableRebatePrograms: { $in: rebatePrograms },
       })

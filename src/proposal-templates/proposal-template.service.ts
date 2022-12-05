@@ -9,7 +9,7 @@ import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult, Pagination } from '../app/common';
 import { ProposalSectionMasterService } from '../proposal-section-masters/proposal-section-master.service';
-import { EApplicableProducts, ProposalTemplate, PROPOSAL_TEMPLATE } from './proposal-template.schema';
+import { ProposalTemplate, PROPOSAL_TEMPLATE } from './proposal-template.schema';
 import { CreateProposalTemplateDto } from './req/create-proposal-template.dto';
 import { UpdateProposalTemplateDto } from './req/update-proposal-template.dto';
 import { ProposalTemplateDto } from './res/proposal-template.dto';
@@ -72,34 +72,18 @@ export class ProposalTemplateService {
     skip: number,
     quoteId?: string,
   ): Promise<OperationResult<Pagination<ProposalTemplateDto>>> {
-    let foundQuote: LeanDocument<Quote> | null;
-    const query = {
-      'proposal_section_master.applicable_funding_sources': {
-        $in: [] as string[],
-      },
-      'proposal_section_master.applicable_quote_types': {
-        $in: [] as string[],
-      },
-    };
+    const query = {};
 
     if (quoteId) {
-      foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
-      const foundSystemDesign = await this.systemDesignService.getOneById(foundQuote!!.systemDesignId);
+      const foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
 
-      query['proposal_section_master.applicable_funding_sources'].$in = [
-        foundQuote!!.detailedQuote.quoteFinanceProduct.financeProduct.fundingSourceId,
-      ];
-
-      if (
-        foundSystemDesign?.roofTopDesignData.panelArray?.length &&
-        foundSystemDesign?.roofTopDesignData.storage?.length
-      ) {
-        query['proposal_section_master.applicable_quote_types'].$in = [EApplicableProducts.PV_AND_STORAGE];
-      } else if (foundSystemDesign?.roofTopDesignData.panelArray?.length) {
-        query['proposal_section_master.applicable_quote_types'].$in = [EApplicableProducts.PV];
-      } else if (foundSystemDesign?.roofTopDesignData.storage?.length) {
-        query['proposal_section_master.applicable_quote_types'].$in = [EApplicableProducts.STORAGE];
+      if (!foundQuote) {
+        throw new NotFoundException(`No quote found with id ${quoteId}`);
       }
+
+      query['proposal_section_master.applicable_funding_sources'] =
+        foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.fundingSourceId;
+      query['proposal_section_master.applicable_quote_types'] = foundQuote.detailedQuote.primaryQuoteType;
     }
 
     const [proposalTemplates, total] = await Promise.all([

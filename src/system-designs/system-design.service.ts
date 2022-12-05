@@ -90,7 +90,7 @@ export class SystemDesignService {
     private readonly systemDesignHook: SystemDesignHook,
     private readonly asyncContext: AsyncContextProvider,
     private readonly existingSystem: ExistingSystemService,
-  ) { }
+  ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (!systemDesignDto.roofTopDesignData && !systemDesignDto.capacityProductionDesignData) {
@@ -121,36 +121,62 @@ export class SystemDesignService {
     let cumulativeCapacityKW = 0;
 
     if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
+      // a system has only one module
+      const panelModelData = await this.productService.getDetailByIdAndType(
+        PRODUCT_TYPE.MODULE,
+        systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
+      );
+
       const [thumbnail] = await Promise.all(
         flatten([
           this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
           systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
             item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
 
-            const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
+            const {
+              numberOfPanels,
+              boundPolygon = [],
+              azimuth,
+              pitch,
+              overrideRooftopDetails,
+              useSunroof,
+              sunroofAzimuth,
+              sunroofPitch,
+              sunroofPrimaryOrientationSide,
+            } = item;
 
-            item.panelModelId = panelModelId;
+            const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
 
-            const panelModelData = await this.productService.getDetailByIdAndType(PRODUCT_TYPE.MODULE, panelModelId);
+            const { lat, lng } = getCenterBound(boundPolygon);
+            const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius({ lat, lng }, boundPolygon);
 
-            systemDesign.setPanelModelDataSnapshot(panelModelData, index);
-
-            const capacity = (item.numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
-
-            const { useSunroof, sunroofAzimuth, sunroofPitch, azimuth, pitch } = item;
             // TODO: is this duplicated with systemProductionArray
-            const acAnnual = await this.systemProductService.pvWatCalculation({
-              lat: systemDesign.latitude,
-              lon: systemDesign.longitude,
-              azimuth: useSunroof && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
-              systemCapacity: capacity,
-              tilt: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
-              losses: item.losses,
-            });
+            const [acAnnual, hasSunroofIrradiance] = await Promise.all([
+              this.systemProductService.pvWatCalculation({
+                lat: systemDesign.latitude,
+                lon: systemDesign.longitude,
+                azimuth:
+                  useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
+                systemCapacity: capacity,
+                tilt: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
+                losses: item.losses,
+              }),
+              this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters),
+            ]);
 
             arrayGenerationKWh[index] = acAnnual;
             cumulativeGenerationKWh += acAnnual;
             cumulativeCapacityKW += capacity;
+
+            systemDesign.roofTopDesignData.panelArray[index].hasSunroofIrradiance = hasSunroofIrradiance;
+
+            systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop = [
+              sunroofAzimuth,
+              sunroofPitch,
+              sunroofPrimaryOrientationSide,
+            ].every(e => e !== undefined);
+
+            systemDesign.setPanelModelDataSnapshot(panelModelData, index);
           }),
 
           systemDesign.roofTopDesignData.adders.map(async (item, index) => {
@@ -447,36 +473,63 @@ export class SystemDesignService {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
+      // a system has only one module
+      const panelModelData = products.find(
+        p => p._id?.toString() === systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
+      ) as LeanDocument<IProductDocument<PRODUCT_TYPE.MODULE>>;
+
       const handlers = [
         systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
           item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
 
-          const { panelModelId } = systemDesignDto.roofTopDesignData.panelArray[index];
+          const {
+            numberOfPanels,
+            boundPolygon = [],
+            azimuth,
+            pitch,
+            overrideRooftopDetails,
+            useSunroof,
+            sunroofPitch,
+            sunroofAzimuth,
+            sunroofPrimaryOrientationSide,
+          } = item;
 
-          item.panelModelId = panelModelId;
+          const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
 
-          const panelModelData = products.find(p => p._id?.toString() === panelModelId) as LeanDocument<
-            IProductDocument<PRODUCT_TYPE.MODULE>
-          >;
+          const { lat, lng } = getCenterBound(boundPolygon);
+          const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius(
+            {
+              lat,
+              lng,
+            },
+            boundPolygon,
+          );
 
-          systemDesign.setPanelModelDataSnapshot(panelModelData, index);
-
-          const capacity = (item.numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
-
-          const { azimuth, pitch, useSunroof, sunroofPitch, sunroofAzimuth } = item;
-
-          const acAnnual = await this.systemProductService.pvWatCalculation({
-            lat: systemDesign.latitude,
-            lon: systemDesign.longitude,
-            azimuth: useSunroof && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
-            systemCapacity: capacity,
-            tilt: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
-            losses: item.losses,
-          });
+          const [acAnnual, hasSunroofIrradiance] = await Promise.all([
+            this.systemProductService.pvWatCalculation({
+              lat: systemDesign.latitude,
+              lon: systemDesign.longitude,
+              azimuth: useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
+              systemCapacity: capacity,
+              tilt: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
+              losses: item.losses,
+            }),
+            this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters),
+          ]);
 
           arrayGenerationKWh[index] = acAnnual;
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
+
+          systemDesign.roofTopDesignData.panelArray[index].hasSunroofIrradiance = hasSunroofIrradiance;
+
+          systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop = [
+            sunroofAzimuth,
+            sunroofPitch,
+            sunroofPrimaryOrientationSide,
+          ].every(e => e !== undefined);
+
+          systemDesign.setPanelModelDataSnapshot(panelModelData, index);
         }),
       ];
 
@@ -1237,13 +1290,19 @@ export class SystemDesignService {
     systemDesignId: ObjectId,
     imageStream: NodeJS.ReadableStream,
   ): Promise<void> {
-    const key = `${+new Date()}.png`;
+    const foundSystemDesign = await this.systemDesignModel.findById(systemDesignId);
+
+    if (!foundSystemDesign) {
+      throw new NotFoundException(`No system design found with id ${systemDesignId}`);
+    }
+
+    const key = `${foundSystemDesign.opportunityId}/${foundSystemDesign._id.toString()}.png`;
     const url = await this.s3Service.putStreamPromise(
       imageStream,
       key,
       this.SYSTEM_DESIGN_S3_BUCKET,
       'image/png',
-      'private',
+      'public-read',
     );
 
     if (!url) throw new InternalServerErrorException();

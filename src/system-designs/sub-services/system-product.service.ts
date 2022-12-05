@@ -256,20 +256,19 @@ export class SystemProductService implements OnModuleInit {
     if (systemDesignDto?.roofTopDesignData?.panelArray?.length) {
       pvProductionArray = await Promise.all(
         systemDesignDto.roofTopDesignData.panelArray.map(async item => {
-          const { azimuth, losses, pitch, useSunroof, sunroofPitch, sunroofAzimuth } = item;
+          const { azimuth, losses, pitch, useSunroof, sunroofPitch, sunroofAzimuth, overrideRooftopDetails } = item;
           const panelModelData = cachedProducts
             ? (cachedProducts.find(p => p._id?.toString() === item.panelModelId) as LeanDocument<
                 IProductDocument<PRODUCT_TYPE.MODULE>
               >)
             : await this.productService.getDetailById(item.panelModelId);
           const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.ratings?.watts ?? 0)) / 1000;
-          panelModelData?.ratings;
           return this.calculatePVProduction({
             latitude,
             longitude,
             systemCapacityInkWh,
-            azimuth: useSunroof && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
-            pitch: useSunroof && sunroofPitch !== undefined ? sunroofPitch : pitch,
+            azimuth: useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
+            pitch: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
             losses,
             shouldGetHourlyProduction: true,
           });

@@ -1,11 +1,12 @@
 import { Document, Schema } from 'mongoose';
+import { PRIMARY_QUOTE_TYPE } from 'src/quotes/constants';
 
 export const PROPOSAL_SECTIONS_MASTER_COLL = 'v2_proposal_sections_master';
 
 export interface IProposalSectionMaster {
   name: string;
   applicableFundingSources: string[];
-  applicableQuoteTypes: string[];
+  applicableQuoteTypes: PRIMARY_QUOTE_TYPE[];
   componentName: string;
   createdAt: Date;
   createdBy: string;
