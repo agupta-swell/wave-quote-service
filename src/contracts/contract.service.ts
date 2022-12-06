@@ -42,9 +42,9 @@ import {
   CONTRACT_TYPE,
   DEFAULT_PROJECT_COMPLETION_DATE_OFFSET,
   PROCESS_STATUS,
-  STATUS,
   REQUEST_MODE,
   SIGN_STATUS,
+  STATUS,
 } from './constants';
 
 import { Contract, CONTRACT } from './contract.schema';
@@ -1042,9 +1042,17 @@ export class ContractService {
     const { mode, contractDetail } = req;
 
     if (mode === REQUEST_MODE.ADD) {
-      const contractTemplateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
-        contractDetail.contractTemplateId,
-      );
+      let contractTemplateDetail;
+      if (contractDetail.contractTemplateId) {
+        contractTemplateDetail = await this.docusignTemplateMasterService.getCompositeTemplateById(
+          contractDetail.contractTemplateId,
+        );
+      } else {
+        contractTemplateDetail = await this.docusignTemplateMasterService.getCustomGSPTemplates(
+          contractDetail.customGSPTemplateIds,
+          contractDetail.customGSPBeginPageNumberingTemplateId,
+        );
+      }
 
       const newlyUpdatedContract = new this.contractModel({
         ...contractDetail,

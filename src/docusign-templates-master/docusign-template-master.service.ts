@@ -389,6 +389,56 @@ export class DocusignTemplateMasterService {
     };
   }
 
+  async getCustomGSPTemplates(
+    customGSPTemplates: string[],
+    customGSPBeginPageNumberingTemplateId: string,
+  ): Promise<{
+    templateDetails: (Omit<LeanDocument<DocusignTemplateMaster>, 'recipientRoles'> & {
+      recipientRoles: LeanDocument<SignerRoleMaster>[];
+    })[];
+    compositeTemplateData: {
+      docusignTemplateIds: string[];
+      beginPageNumberingTemplateId: string;
+    };
+  }> {
+    const docusignTemplates = await Promise.all(
+      customGSPTemplates.map(async templateId => {
+        const template = await this.docusignTemplateMasterModel.findById(templateId);
+        if (!template) {
+          console.error('Can not find templateId', templateId);
+          throw new HttpException('Some Individual Templates are missing', HttpStatus.NOT_FOUND);
+        }
+
+        const roles = await Promise.all(
+          template.recipientRoles.map(async roleId => {
+            const role = await this.signerRoleMasterModel.findById(roleId);
+            if (!role) {
+              console.error('Can not find roleId', roleId);
+              throw new HttpException('Some roles are missing', HttpStatus.NOT_FOUND);
+            }
+            return role;
+          }),
+        );
+
+        const templateObj = template.toJSON();
+
+        return {
+          ...templateObj,
+          id: template._id.toString(),
+          recipientRoles: roles.map(role => role.toJSON({ versionKey: false })),
+        };
+      }),
+    );
+
+    return {
+      templateDetails: docusignTemplates,
+      compositeTemplateData: {
+        docusignTemplateIds: customGSPTemplates,
+        beginPageNumberingTemplateId: customGSPBeginPageNumberingTemplateId,
+      },
+    };
+  }
+
   public async getSignerRoleMasterByRoleName(roleName: string): Promise<LeanDocument<SignerRoleMaster> | null> {
     const found = await this.signerRoleMasterModel
       .findOne({

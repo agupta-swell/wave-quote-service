@@ -48,6 +48,7 @@ export class ContractReqDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @ValidateIf(obj => !(obj.gsOpportunityId && obj.customGSPTemplateIds?.length))
   contractTemplateId: string;
 
   @ApiProperty({ type: SignerDetailDto, isArray: true })
@@ -72,4 +73,13 @@ export class ContractReqDto {
   @IsNotEmpty()
   @IsEnum(CONTRACT_TYPE)
   contractType: CONTRACT_TYPE;
+
+  @ApiProperty()
+  @IsArray()
+  @IsOptional()
+  customGSPTemplateIds: string[];
+
+  @ApiProperty()
+  @IsOptional()
+  customGSPBeginPageNumberingTemplateId: string;
 }
