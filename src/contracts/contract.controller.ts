@@ -113,29 +113,26 @@ export class ContractController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Post('/generate-gsp-contract')
+  @Post(':contractId/generate-gsp-contract')
   @UsePipes(ValidationPipe)
   @UseDocusignContext()
   @ApiOperation({ summary: 'Generate GSP Contract' })
   @ApiOkResponse({ type: SendContractRes })
-  async generateGSPContract(
-    @Body(SignerValidationPipe)
-    contractReq: SaveContractReqDto,
-  ): Promise<ServiceResponse<SendContractDto>> {
-    const res = await this.contractService.saveAndSendGSPContract(contractReq, true);
+  async generateGSPContract(@Param('contractId') contractId: string): Promise<ServiceResponse<SendContractDto>> {
+    const res = await this.contractService.sendGSPContract(contractId, true);
     return ServiceResponse.fromResult(res);
   }
 
-  @Post('/save-and-send-gsp-contract')
+  @Post('/save-gsp-contract')
   @UsePipes(ValidationPipe)
   @UseDocusignContext()
-  @ApiOperation({ summary: 'Save and send GSP Contract' })
-  @ApiOkResponse({ type: SendContractRes })
-  async saveAndSendGSPContract(
+  @ApiOperation({ summary: 'Save GSP Contract' })
+  @ApiOkResponse({ type: SaveContractRes })
+  async saveGSPContract(
     @Body(SignerValidationPipe)
     contractReq: SaveContractReqDto,
-  ): Promise<ServiceResponse<SendContractDto>> {
-    const res = await this.contractService.saveAndSendGSPContract(contractReq);
+  ): Promise<ServiceResponse<SaveContractDto>> {
+    const res = await this.contractService.saveGSPContract(contractReq);
     return ServiceResponse.fromResult(res);
   }
 
@@ -149,12 +146,11 @@ export class ContractController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Post('/send-gsp-contract')
+  @Post(':contractId/send-gsp-contract')
   @UseDocusignContext()
   @ApiOperation({ summary: 'Send GSP Contract' })
   @ApiOkResponse({ type: SendContractRes })
-  async sendGSPContract(@Body() sendContractReq: SendContractReq): Promise<ServiceResponse<SendContractDto>> {
-    const { contractId } = sendContractReq;
+  async sendGSPContract(@Param('contractId') contractId: string): Promise<ServiceResponse<SendContractDto>> {
     const res = await this.contractService.sendGSPContract(contractId);
     return ServiceResponse.fromResult(res);
   }

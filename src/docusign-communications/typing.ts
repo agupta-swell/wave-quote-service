@@ -80,6 +80,7 @@ export interface IGenericObject {
 export interface IGenericObjectForGSP {
   signerDetails: ISignerDetailDataSchema[];
   contract?: LeanDocument<Contract>;
+  contact: Contact;
 }
 
 // ==================== DOCUSIGN PAYLOAD ====================

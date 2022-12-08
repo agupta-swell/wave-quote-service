@@ -69,6 +69,9 @@ export class ContractResDto {
 
   @ExposeProp()
   systemDesignId: string;
+
+  @ExposeProp()
+  primaryOwnerContactId: string;
 }
 
 export class ContractResDetailDto {

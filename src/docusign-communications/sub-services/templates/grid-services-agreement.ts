@@ -1,4 +1,4 @@
-import { IGenericObject } from 'src/docusign-communications/typing';
+import { IGenericObject, IGenericObjectForGSP } from 'src/docusign-communications/typing';
 import {
   DefaultTabTransformation,
   DefaultTabType,
@@ -23,16 +23,22 @@ export class GridServiceAgreementTemplate {
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
   coOwnerFullName: string;
 
-  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)
+  @TabValue<IGenericObject | IGenericObjectForGSP>(ctx => {
+    if ('financialProduct' in ctx) return ctx.financialProduct?.countersignerName;
+    return 'financier full name';
+  })
   financierFullName: string;
 
-  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerTitle)
+  @TabValue<IGenericObject | IGenericObjectForGSP>(ctx => {
+    if ('financialProduct' in ctx) return ctx.financialProduct?.countersignerTitle;
+    return 'financier title';
+  })
   financierTitle: string;
 
   @TabLabel('Home_Address_1&2_City_State_ZIP')
   @TabValue<IGenericObject>(
     ({ contact }) =>
-      `${contact.address1}${contact.address2 ? ', ' + contact.address2 : ''}, ${contact.city}, ${contact.state} ${
+      `${contact.address1}${contact.address2 ? `, ${contact.address2}` : ''}, ${contact.city}, ${contact.state} ${
         contact.zip
       }`,
   )

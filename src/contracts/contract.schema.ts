@@ -98,6 +98,7 @@ export interface Contract extends Document {
   updatedBy: string;
   updatedAt: Date;
   projectCompletionDate: Date;
+  primaryOwnerContactId: string;
 }
 
 export const ContractSchema = new Schema<Contract>({
@@ -117,6 +118,7 @@ export const ContractSchema = new Schema<Contract>({
   project_completion_date: Date,
   contracting_system_reference_id: String,
   system_design_id: String,
+  primary_owner_contact_id: String,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,

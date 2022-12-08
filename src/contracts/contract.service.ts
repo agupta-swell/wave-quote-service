@@ -748,10 +748,10 @@ export class ContractService {
 
     switch (contract.contractStatus) {
       case PROCESS_STATUS.COMPLETED:
-        fileName = `${fullName} - ${contract.name} - Signed.pdf`;
+        fileName = `${fullName || ''} - ${contract.name} - Signed.pdf`;
         break;
       default:
-        fileName = `${fullName} - ${contract.name}.pdf`;
+        fileName = `${fullName || ''} - ${contract.name}.pdf`;
     }
 
     return fileName;
@@ -1038,7 +1038,7 @@ export class ContractService {
     return [fileName, token];
   }
 
-  async saveAndSendGSPContract(req: SaveContractReqDto, isDraft = false): Promise<OperationResult<SendContractDto>> {
+  async saveGSPContract(req: SaveContractReqDto): Promise<OperationResult<SaveContractDto>> {
     const { mode, contractDetail } = req;
 
     if (mode === REQUEST_MODE.ADD) {
@@ -1062,13 +1062,13 @@ export class ContractService {
         status: STATUS.NEW,
       });
 
-      const newContract = await newlyUpdatedContract.save();
+      await newlyUpdatedContract.save();
 
-      return this.sendGSPContract(newContract._id, isDraft);
+      return OperationResult.ok(strictPlainToClass(SaveContractDto, { status: true, newlyUpdatedContract }));
     }
 
     return OperationResult.ok(
-      strictPlainToClass(SendContractDto, { status: false, statusDescription: 'Unexpected Operation Mode' }),
+      strictPlainToClass(SaveContractDto, { status: false, statusDescription: 'Unexpected Operation Mode' }),
     );
   }
 
@@ -1106,9 +1106,12 @@ export class ContractService {
     let status: string;
     let statusDescription = '';
 
+    const contact = await this.contactService.getContactById(contract.primaryOwnerContactId);
+
     const genericObject: IGenericObjectForGSP = {
       signerDetails: contract.signerDetails,
       contract,
+      contact: contact || ({} as any),
     };
 
     const sentOn = new Date();

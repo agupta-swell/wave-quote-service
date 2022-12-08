@@ -82,4 +82,9 @@ export class ContractReqDto {
   @ApiProperty()
   @IsOptional()
   customGSPBeginPageNumberingTemplateId: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  primaryOwnerContactId: string;
 }
