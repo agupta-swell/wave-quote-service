@@ -82,7 +82,6 @@ export interface ISolarPanelArraySchema {
   sunroofAzimuth?: number;
   overrideRooftopDetails: boolean;
   mountTypeId: string;
-  hasSunroofIrradiance?: boolean;
   hasSunroofRooftop?: boolean;
 }
 
@@ -124,7 +123,6 @@ export const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>
       type: String,
       default: null,
     },
-    has_sunroof_irradiance: Boolean,
     has_sunroof_rooftop: Boolean,
   },
   { _id: false },
@@ -301,6 +299,7 @@ export interface IRoofTopSchema {
   ancillaryEquipments: IAncillaryEquipmentSchema[];
   softCosts: ISoftCostSchema[];
   laborCosts: ILaborCostSchema[];
+  hasSunroofIrradiance?: boolean;
 }
 
 export interface ICapacityProductionSchema {
@@ -325,6 +324,7 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
     ancillary_equipments: [AncillaryEquipmentSchema],
     soft_costs: [SoftCostSchema],
     labor_costs: [LaborCostSchema],
+    has_sunroof_irradiance: Boolean,
   },
   { _id: false },
 );
