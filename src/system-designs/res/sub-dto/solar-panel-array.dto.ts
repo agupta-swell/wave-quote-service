@@ -92,7 +92,4 @@ export class SolarPanelArrayDto {
 
   @ExposeProp()
   hasSunroofRooftop: boolean;
-
-  @ExposeProp()
-  hasSunroofIrradiance: boolean;
 }

@@ -3,10 +3,10 @@ import { AdderDto } from './adder.dto';
 import { AncillaryEquipmentDto } from './ancillary-equipment.dto';
 import { BalanceOfSystemDto } from './balance-of-system.dto';
 import { InverterDto } from './inverter.dto';
+import { LaborCostDto } from './labor-cost.dto';
+import { SoftCostDto } from './soft-cost.dto';
 import { LatLng, SolarPanelArrayDto } from './solar-panel-array.dto';
 import { StorageDto } from './storage.dto';
-import { SoftCostDto } from './soft-cost.dto';
-import { LaborCostDto } from './labor-cost.dto';
 
 export class RoofTopDataDto {
   @ExposeProp({
@@ -75,4 +75,7 @@ export class RoofTopDataDto {
     isArray: true,
   })
   laborCosts: LaborCostDto[];
+
+  @ExposeProp()
+  hasSunroofIrradiance: boolean;
 }

@@ -121,11 +121,20 @@ export class SystemDesignService {
     let cumulativeCapacityKW = 0;
 
     if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
+      const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
+      const { lat, lng } = getCenterBound(newPolygons);
+      const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius({ lat, lng }, newPolygons);
+
       // a system has only one module
-      const panelModelData = await this.productService.getDetailByIdAndType(
-        PRODUCT_TYPE.MODULE,
-        systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
-      );
+      const [panelModelData, hasSunroofIrradiance] = await Promise.all([
+        this.productService.getDetailByIdAndType(
+          PRODUCT_TYPE.MODULE,
+          systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
+        ),
+        this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters),
+      ]);
+
+      systemDesign.roofTopDesignData.hasSunroofIrradiance = hasSunroofIrradiance;
 
       const [thumbnail] = await Promise.all(
         flatten([
@@ -135,7 +144,6 @@ export class SystemDesignService {
 
             const {
               numberOfPanels,
-              boundPolygon = [],
               azimuth,
               pitch,
               overrideRooftopDetails,
@@ -146,29 +154,19 @@ export class SystemDesignService {
             } = item;
 
             const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
-
-            const { lat, lng } = getCenterBound(boundPolygon);
-            const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius({ lat, lng }, boundPolygon);
-
             // TODO: is this duplicated with systemProductionArray
-            const [acAnnual, hasSunroofIrradiance] = await Promise.all([
-              this.systemProductService.pvWatCalculation({
-                lat: systemDesign.latitude,
-                lon: systemDesign.longitude,
-                azimuth:
-                  useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
-                systemCapacity: capacity,
-                tilt: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
-                losses: item.losses,
-              }),
-              this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters),
-            ]);
+            const acAnnual = await this.systemProductService.pvWatCalculation({
+              lat: systemDesign.latitude,
+              lon: systemDesign.longitude,
+              azimuth: useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
+              systemCapacity: capacity,
+              tilt: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
+              losses: item.losses,
+            });
 
             arrayGenerationKWh[index] = acAnnual;
             cumulativeGenerationKWh += acAnnual;
             cumulativeCapacityKW += capacity;
-
-            systemDesign.roofTopDesignData.panelArray[index].hasSunroofIrradiance = hasSunroofIrradiance;
 
             systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop = [
               sunroofAzimuth,
@@ -473,10 +471,20 @@ export class SystemDesignService {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
+      const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
+      const { lat, lng } = getCenterBound(newPolygons);
+      const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius({ lat, lng }, newPolygons);
+
       // a system has only one module
-      const panelModelData = products.find(
-        p => p._id?.toString() === systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
-      ) as LeanDocument<IProductDocument<PRODUCT_TYPE.MODULE>>;
+      const [panelModelData, hasSunroofIrradiance] = await Promise.all([
+        this.productService.getDetailByIdAndType(
+          PRODUCT_TYPE.MODULE,
+          systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
+        ),
+        this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters),
+      ]);
+
+      systemDesign.roofTopDesignData.hasSunroofIrradiance = hasSunroofIrradiance;
 
       const handlers = [
         systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
@@ -484,7 +492,6 @@ export class SystemDesignService {
 
           const {
             numberOfPanels,
-            boundPolygon = [],
             azimuth,
             pitch,
             overrideRooftopDetails,
@@ -496,32 +503,18 @@ export class SystemDesignService {
 
           const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
 
-          const { lat, lng } = getCenterBound(boundPolygon);
-          const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius(
-            {
-              lat,
-              lng,
-            },
-            boundPolygon,
-          );
-
-          const [acAnnual, hasSunroofIrradiance] = await Promise.all([
-            this.systemProductService.pvWatCalculation({
-              lat: systemDesign.latitude,
-              lon: systemDesign.longitude,
-              azimuth: useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
-              systemCapacity: capacity,
-              tilt: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
-              losses: item.losses,
-            }),
-            this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters),
-          ]);
+          const acAnnual = await this.systemProductService.pvWatCalculation({
+            lat: systemDesign.latitude,
+            lon: systemDesign.longitude,
+            azimuth: useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
+            systemCapacity: capacity,
+            tilt: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
+            losses: item.losses,
+          });
 
           arrayGenerationKWh[index] = acAnnual;
           cumulativeGenerationKWh += acAnnual;
           cumulativeCapacityKW += capacity;
-
-          systemDesign.roofTopDesignData.panelArray[index].hasSunroofIrradiance = hasSunroofIrradiance;
 
           systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop = [
             sunroofAzimuth,
