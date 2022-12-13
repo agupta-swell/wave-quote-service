@@ -125,14 +125,19 @@ export class SystemDesignService {
       const { lat, lng } = getCenterBound(newPolygons);
       const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius({ lat, lng }, newPolygons);
 
+      const handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters)];
       // a system has only one module
-      const [panelModelData, hasSunroofIrradiance] = await Promise.all([
-        this.productService.getDetailByIdAndType(
-          PRODUCT_TYPE.MODULE,
-          systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
-        ),
-        this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters),
-      ]);
+      if (systemDesign.roofTopDesignData.panelArray.length) {
+        handlers.push(
+          this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.MODULE,
+            systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
+          ),
+        );
+      }
+      const [hasSunroofIrradiance, panelModelData] = <[boolean, LeanDocument<IProductDocument<PRODUCT_TYPE.MODULE>>]>(
+        await Promise.all(handlers)
+      );
 
       systemDesign.roofTopDesignData.hasSunroofIrradiance = hasSunroofIrradiance;
 
@@ -475,14 +480,19 @@ export class SystemDesignService {
       const { lat, lng } = getCenterBound(newPolygons);
       const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius({ lat, lng }, newPolygons);
 
+      let _handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters)];
       // a system has only one module
-      const [panelModelData, hasSunroofIrradiance] = await Promise.all([
-        this.productService.getDetailByIdAndType(
-          PRODUCT_TYPE.MODULE,
-          systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
-        ),
-        this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters),
-      ]);
+      if (systemDesign.roofTopDesignData.panelArray.length) {
+        _handlers.push(
+          this.productService.getDetailByIdAndType(
+            PRODUCT_TYPE.MODULE,
+            systemDesign.roofTopDesignData.panelArray[0]?.panelModelId,
+          ),
+        );
+      }
+      const [hasSunroofIrradiance, panelModelData] = <[boolean, LeanDocument<IProductDocument<PRODUCT_TYPE.MODULE>>]>(
+        await Promise.all(_handlers)
+      );
 
       systemDesign.roofTopDesignData.hasSunroofIrradiance = hasSunroofIrradiance;
 
