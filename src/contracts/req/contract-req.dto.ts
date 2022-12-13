@@ -31,6 +31,8 @@ export class ContractReqDto {
   gsOpportunityId: string;
 
   @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
   @ApiProperty()
