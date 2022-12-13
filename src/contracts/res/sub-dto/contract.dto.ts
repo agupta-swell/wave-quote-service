@@ -72,6 +72,9 @@ export class ContractResDto {
 
   @ExposeProp()
   primaryOwnerContactId: string;
+
+  @ExposeProp()
+  utilityProgramId: string;
 }
 
 export class ContractResDetailDto {

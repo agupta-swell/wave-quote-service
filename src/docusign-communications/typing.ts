@@ -81,6 +81,7 @@ export interface IGenericObjectForGSP {
   signerDetails: ISignerDetailDataSchema[];
   contract?: LeanDocument<Contract>;
   contact: Contact;
+  utilityProgramMaster: LeanDocument<UtilityProgramMaster> | null;
 }
 
 // ==================== DOCUSIGN PAYLOAD ====================

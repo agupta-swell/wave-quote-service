@@ -89,4 +89,9 @@ export class ContractReqDto {
   @IsOptional()
   @IsString()
   primaryOwnerContactId: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  utilityProgramId: string;
 }

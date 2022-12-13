@@ -1106,12 +1106,17 @@ export class ContractService {
     let status: string;
     let statusDescription = '';
 
+    const utilityProgramMaster = contract.utilityProgramId
+      ? await this.utilityProgramMasterService.getLeanById(contract.utilityProgramId)
+      : null;
+
     const contact = await this.contactService.getContactById(contract.primaryOwnerContactId);
 
     const genericObject: IGenericObjectForGSP = {
       signerDetails: contract.signerDetails,
       contract,
       contact: contact || ({} as any),
+      utilityProgramMaster,
     };
 
     const sentOn = new Date();

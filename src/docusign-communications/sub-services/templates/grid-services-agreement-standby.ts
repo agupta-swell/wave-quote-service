@@ -20,12 +20,16 @@ export class GridServiceAgreementStandbyTemplate {
 
   @TabValue<IGenericObject | IGenericObjectForGSP>(ctx => {
     if ('financialProduct' in ctx) return ctx.financialProduct?.countersignerName;
+    const financier = ctx.signerDetails.find(e => e.role === 'Financier');
+    if (financier) return financier.fullName;
     return 'financier full name';
   })
   financierFullName: string;
 
   @TabValue<IGenericObject | IGenericObjectForGSP>(ctx => {
     if ('financialProduct' in ctx) return ctx.financialProduct?.countersignerTitle;
+    if (ctx.utilityProgramMaster?.utilityProgramName)
+      return `${ctx.utilityProgramMaster?.utilityProgramName} Program Manager`;
     return 'financier title';
   })
   financierTitle: string;
