@@ -1134,7 +1134,7 @@ export class ContractService {
     if (isDraft) {
       if (docusignResponse.status === 'SUCCESS' && docusignResponse.contractingSystemReferenceId) {
         status = 'SUCCESS';
-        contract.contractStatus = PROCESS_STATUS.NOT_STARTED;
+        contract.contractStatus = PROCESS_STATUS.IN_PROGRESS;
         contract.status = STATUS.AGREEMENT_GENERATED;
         contract.contractingSystemReferenceId = docusignResponse.contractingSystemReferenceId;
       } else {
