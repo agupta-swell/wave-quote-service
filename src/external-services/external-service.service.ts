@@ -260,10 +260,13 @@ export class ExternalService {
     billingPeriod,
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
+
     const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    
     const payload = {
-      fromDateTime: `${currentYear - 1}-01-01T00:00:00`,
-      toDateTime: `${currentYear}-01-01T00:00:00`,
+      fromDateTime: `${currentYear}-01-01T00:00:00`,
+      toDateTime: `${nextYear}-01-01T00:00:00`,
       masterTariffId,
       groupBy: groupBy || EGenabilityGroupBy.DAY,
       detailLevel: detailLevel || EGenabilityDetailLevel.RATE,
@@ -272,7 +275,7 @@ export class ExternalService {
       propertyInputs: [
         {
           keyName: 'consumption',
-          fromDateTime: `${currentYear - 1}-01-01T00:00:00`,
+          fromDateTime: `${currentYear}-01-01T00:00:00`,
           duration: 3600000,
           dataSeries: hourlyDataForTheYear,
           unit: 'kWh',
