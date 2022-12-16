@@ -5,16 +5,19 @@ import { ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
+import { SystemProduction } from 'src/shared/google-sunroof/types';
 import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SunroofHourlyProductionCalculation } from 'src/system-designs/sub-services';
 import { SystemProductService } from 'src/system-designs/sub-services/system-product.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { PvWattProductionDto } from 'src/system-production/res';
-import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
+import { IEnergyProfileProduction, ISystemProduction } from 'src/system-production/system-production.schema';
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { BatterySystemSpecsDto } from 'src/utilities/req';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
 import { UtilityService } from 'src/utilities/utility.service';
+import { getCenterBound } from 'src/utils/calculate-coordinates';
+import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
 import {
   buildMonthlyAndAnnuallyDataFrom24HoursData,
   buildMonthlyAndAnnuallyDataFrom8760,
@@ -229,28 +232,42 @@ export class EnergyProfileService {
       throw new NotFoundException(`System design with id ${systemDesignId} not found`);
     }
 
+    const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
+    const { lat, lng } = getCenterBound(newPolygons);
+    const radiusMeters = calculateSystemDesignRadius({ lat, lng }, newPolygons);
+    const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters);
+
     // check if system design does not have panel array, so does not need SIMULATE PINBALL
     if (!systemDesign.roofTopDesignData.panelArray.length) {
       return null;
     }
 
-    const [sunroofProduction, systemProduction] = await Promise.all([
-      this.googleSunroofService.calculateProduction(systemDesign),
-      this.systemProductionService.findOne(systemDesign.systemProductionId),
-    ]);
+    const _handlers: Promise<unknown>[] = [this.systemProductionService.findOne(systemDesign.systemProductionId)];
+
+    if (isExistedGeotiff) {
+      _handlers.push(this.googleSunroofService.calculateProduction(systemDesign));
+    }
+
+    const [systemProduction, sunroofProduction] = <[ISystemProduction, SystemProduction]>await Promise.all(_handlers);
 
     if (!systemProduction) {
       throw new NotFoundException(`System production with id ${systemDesign.systemProductionId} not found`);
     }
 
-    const cumulativeGenerationKWh = sunroofProduction.annualProduction;
+    const cumulativeGenerationKWh = sunroofProduction
+      ? sunroofProduction.annualProduction
+      : systemProduction.generationKWh;
+
     const { capacityKW, annualUsageKWh } = systemProduction;
 
     systemProduction.generationKWh = cumulativeGenerationKWh;
     systemProduction.productivity = capacityKW === 0 ? 0 : cumulativeGenerationKWh / capacityKW;
     systemProduction.offsetPercentage = annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0;
-    systemProduction.generationMonthlyKWh = sunroofProduction.monthlyProduction;
-    systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
+
+    if (sunroofProduction) {
+      systemProduction.generationMonthlyKWh = sunroofProduction.monthlyProduction;
+      systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
+    }
 
     const [utility, existingSystemProduction, systemProductionArray] = await Promise.all([
       this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),

@@ -31,6 +31,7 @@ import { ISystemProduction as ISystemProduction_v2 } from 'src/system-production
 import { SystemProductionService } from 'src/system-production/system-production.service';
 import { IUtilityCostData } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
+import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
 import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
@@ -123,7 +124,7 @@ export class SystemDesignService {
     if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
       const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
       const { lat, lng } = getCenterBound(newPolygons);
-      const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius({ lat, lng }, newPolygons);
+      const radiusMeters = calculateSystemDesignRadius({ lat, lng }, newPolygons);
 
       const handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters)];
       // a system has only one module
@@ -478,9 +479,9 @@ export class SystemDesignService {
 
       const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
       const { lat, lng } = getCenterBound(newPolygons);
-      const radiusMeters = this.systemDesignHook.calculateSystemDesignRadius({ lat, lng }, newPolygons);
+      const radiusMeters = calculateSystemDesignRadius({ lat, lng }, newPolygons);
 
-      let _handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters)];
+      const _handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters)];
       // a system has only one module
       if (systemDesign.roofTopDesignData.panelArray.length) {
         _handlers.push(
@@ -1019,7 +1020,7 @@ export class SystemDesignService {
   }
 
   async countByOpportunityId(opportunityId: string): Promise<number> {
-    return await this.systemDesignModel.countDocuments({ opportunityId }).lean();
+    return this.systemDesignModel.countDocuments({ opportunityId }).lean();
   }
 
   async checkInUsed(systemDesignId: string): Promise<boolean | string> {
