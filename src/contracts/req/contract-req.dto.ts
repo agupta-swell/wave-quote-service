@@ -21,14 +21,24 @@ export class ContractReqDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsOptional()
   opportunityId: string;
 
   @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  @IsOptional()
+  gsOpportunityId: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @IsOptional()
   associatedQuoteId: string;
 
   @ApiProperty()
@@ -40,6 +50,7 @@ export class ContractReqDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
+  @ValidateIf(obj => !(obj.gsOpportunityId && obj.customGSPTemplateIds?.length))
   contractTemplateId: string;
 
   @ApiProperty({ type: SignerDetailDto, isArray: true })
@@ -64,4 +75,23 @@ export class ContractReqDto {
   @IsNotEmpty()
   @IsEnum(CONTRACT_TYPE)
   contractType: CONTRACT_TYPE;
+
+  @ApiProperty()
+  @IsArray()
+  @IsOptional()
+  customGSPTemplateIds: string[];
+
+  @ApiProperty()
+  @IsOptional()
+  customGSPBeginPageNumberingTemplateId: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  primaryOwnerContactId: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString()
+  utilityProgramId: string;
 }

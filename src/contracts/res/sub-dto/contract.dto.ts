@@ -22,6 +22,9 @@ export class ContractResDto {
   @ExposeProp()
   opportunityId: string;
 
+  @ExposeProp()
+  gsOpportunityId: string;
+
   @ExposeProp({ enum: CONTRACT_TYPE })
   contractType: CONTRACT_TYPE;
 
@@ -66,6 +69,12 @@ export class ContractResDto {
 
   @ExposeProp()
   systemDesignId: string;
+
+  @ExposeProp()
+  primaryOwnerContactId: string;
+
+  @ExposeProp()
+  utilityProgramId: string;
 }
 
 export class ContractResDetailDto {

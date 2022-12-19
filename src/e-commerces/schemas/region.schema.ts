@@ -8,7 +8,7 @@ export enum REGION_PURPOSE {
 }
 
 export interface Region extends Document {
-  regionDescription: string;
+  name: string;
   regionPurpose: REGION_PURPOSE;
   createdBy: string;
   createdAt: Date;
@@ -17,7 +17,7 @@ export interface Region extends Document {
 }
 
 export const RegionSchema = new Schema<Region>({
-  region_description: String,
+  name: String,
   region_purpose: String,
   created_at: { type: Date, default: Date.now },
   created_by: String,

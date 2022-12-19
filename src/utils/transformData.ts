@@ -87,7 +87,7 @@ export const getMonthlyAndAnnualAverageFrom8760 = (hourlyProduction: number[]): 
 };
 
 export const getMonthlyAndAnnualWeekdayAverageFrom8760 = (hourlyProduction: number[]): IEnergyProfileProduction => {
-  const currentYear = dayjs().year() - 1;
+  const currentYear = dayjs().year();
 
   const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
 

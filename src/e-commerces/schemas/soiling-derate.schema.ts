@@ -7,6 +7,8 @@ export interface SoilingDerate extends Document {
   amount: number;
   createdBy: string;
   createdAt: Date;
+  updatedBy: string;
+  updatedAt: Date;
 }
 
 export const SoilingDerateSchema = new Schema<SoilingDerate>({
@@ -14,4 +16,6 @@ export const SoilingDerateSchema = new Schema<SoilingDerate>({
   amount: Number,
   created_at: { type: Date, default: Date.now },
   created_by: String,
+  updated_at: { type: Date, default: Date.now },
+  updated_by: String,
 });

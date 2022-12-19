@@ -6,7 +6,7 @@ import {
   SignerRoleMasterSchema,
 } from '../docusign-templates-master/schemas';
 
-import { CONTRACT_TYPE, PROCESS_STATUS, SIGN_STATUS } from './constants';
+import { CONTRACT_TYPE, PROCESS_STATUS, SIGN_STATUS, STATUS } from './constants';
 
 export const CONTRACT = Symbol('CONTRACT').toString();
 
@@ -78,6 +78,7 @@ const CompositeTemplateSchema = new Schema<Document<ICompositeTemplateSchema>>(
 );
 
 export interface Contract extends Document {
+  gsOpportunityId: string;
   opportunityId: string;
   contractType: CONTRACT_TYPE;
   name: string;
@@ -87,6 +88,7 @@ export interface Contract extends Document {
   contractTemplateDetail: ICompositeTemplateSchema;
   contractingSystem: string;
   primaryContractId: string;
+  status: STATUS;
   contractStatus: PROCESS_STATUS;
   changeOrderDescription: string;
   contractingSystemReferenceId: string;
@@ -96,9 +98,12 @@ export interface Contract extends Document {
   updatedBy: string;
   updatedAt: Date;
   projectCompletionDate: Date;
+  primaryOwnerContactId: string;
+  utilityProgramId: string;
 }
 
 export const ContractSchema = new Schema<Contract>({
+  gs_opportunity_id: String,
   opportunity_id: String,
   contract_type: String,
   name: String,
@@ -109,10 +114,13 @@ export const ContractSchema = new Schema<Contract>({
   contracting_system: String,
   primary_contract_id: String,
   contract_status: String,
+  status: String,
   change_order_description: String,
   project_completion_date: Date,
   contracting_system_reference_id: String,
   system_design_id: String,
+  primary_owner_contact_id: String,
+  utility_program_id: String,
 
   created_at: { type: Date, default: Date.now },
   created_by: String,

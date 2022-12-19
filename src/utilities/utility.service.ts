@@ -726,7 +726,7 @@ export class UtilityService implements OnModuleInit {
     // generate 8760 charge or discharge the battery.
     const rateAmountHourly: IPinballRateAmount[] = [];
 
-    const currentYear = data?.year ?? new Date().getFullYear() - 1;
+    const currentYear = data?.year ?? new Date().getFullYear();
 
     // DST is second Sunday in March to the first Sunday in November of year
     const secondSundayInMarch = dayjs(
@@ -1058,10 +1058,11 @@ export class UtilityService implements OnModuleInit {
     }));
 
     const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
 
     const costData = {
-      startDate: new Date(`${currentYear - 1}-01-01`),
-      endDate: new Date(`${currentYear}-01-01`),
+      startDate: new Date(`${currentYear}-01-01`),
+      endDate: new Date(`${nextYear}-01-01`),
       interval: INTERVAL_VALUE.MONTH,
       cost: monthCostToBeUsed,
     } as IUtilityCostData;
@@ -1268,7 +1269,7 @@ export class UtilityService implements OnModuleInit {
       else if (seasons.findIndex(s => s?.seasonId === season.seasonId) === -1) seasons.push(season);
     });
 
-    const currentYear = dayjs().year() - 1;
+    const currentYear = dayjs().year();
 
     const datesInMonths = getMonthDatesOfYear(currentYear);
 

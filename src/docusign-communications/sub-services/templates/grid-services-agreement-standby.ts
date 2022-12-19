@@ -1,4 +1,4 @@
-import { IGenericObject } from 'src/docusign-communications/typing';
+import { IGenericObject, IGenericObjectForGSP } from 'src/docusign-communications/typing';
 import {
   DefaultTabTransformation,
   DefaultTabType,
@@ -18,9 +18,19 @@ export class GridServiceAgreementStandbyTemplate {
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
   coOwnerFullName: string;
 
-  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)
+  @TabValue<IGenericObject | IGenericObjectForGSP>(ctx => {
+    if ('financialProduct' in ctx) return ctx.financialProduct?.countersignerName;
+    const financier = ctx.signerDetails.find(e => e.role === 'Financier');
+    if (financier) return financier.fullName;
+    return 'financier full name';
+  })
   financierFullName: string;
 
-  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerTitle)
+  @TabValue<IGenericObject | IGenericObjectForGSP>(ctx => {
+    if ('financialProduct' in ctx) return ctx.financialProduct?.countersignerTitle;
+    if (ctx.utilityProgramMaster?.utilityProgramName)
+      return `${ctx.utilityProgramMaster?.utilityProgramName} Program Manager`;
+    return 'financier title';
+  })
   financierTitle: string;
 }

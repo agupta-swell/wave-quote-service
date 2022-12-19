@@ -77,6 +77,13 @@ export interface IGenericObject {
   primaryContract?: LeanDocument<Contract>;
 }
 
+export interface IGenericObjectForGSP {
+  signerDetails: ISignerDetailDataSchema[];
+  contract?: LeanDocument<Contract>;
+  contact: Contact;
+  utilityProgramMaster: LeanDocument<UtilityProgramMaster> | null;
+}
+
 // ==================== DOCUSIGN PAYLOAD ====================
 
 export interface IRecipientStatus {
