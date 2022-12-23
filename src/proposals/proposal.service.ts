@@ -346,7 +346,12 @@ export class ProposalService {
         proposalLink: linksByToken[index],
       };
       this.emailService
-        .sendMailByTemplate(recipient?.email || '', 'Proposal Invitation', PROPOSAL_EMAIL_TEMPLATE, data)
+        .sendMailByTemplate(
+          recipient?.email || '',
+          `${foundProposal.detailedProposal.proposalName}`,
+          PROPOSAL_EMAIL_TEMPLATE,
+          data,
+        )
         .catch(error => console.error(error));
     });
 
