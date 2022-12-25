@@ -1398,8 +1398,6 @@ export class UtilityService implements OnModuleInit {
           hourlyTariffRateOfSeasonInMonth.push(hourRate);
         });
 
-        hourlyTariffRateOfSeasonInMonth.push(hourlyTariffRateOfSeasonInMonth[0]);
-
         const seasonInMonthTariffData: IMonthSeasonTariff = {
           seasonName,
           hourlyTariffRate: hourlyTariffRateOfSeasonInMonth,
