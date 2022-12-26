@@ -275,6 +275,18 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(proposalId.toString());
     }
 
+    const opportunity = await this.opportunityService.getDetailById(foundProposal.opportunityId);
+
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(foundProposal.opportunityId);
+    }
+
+    const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
+
+    if (!assignedMember) {
+      throw ApplicationException.EntityNotFound(opportunity.assignedMember);
+    }
+
     const sendRecipients = recipientEmails.map(email => {
       const foundRecipient = foundProposal.detailedProposal.recipients.find(recipient => recipient.email === email);
       if (foundRecipient) {
@@ -345,12 +357,19 @@ export class ProposalService {
           : '',
         proposalLink: linksByToken[index],
       };
+
+      const replyTo = {
+        fullName: `${assignedMember.profile.firstName} ${assignedMember.profile.lastName}`,
+        email: assignedMember.emails[0].address,
+      };
+
       this.emailService
         .sendMailByTemplate(
           recipient?.email || '',
           `${foundProposal.detailedProposal.proposalName}`,
           PROPOSAL_EMAIL_TEMPLATE,
           data,
+          replyTo,
         )
         .catch(error => console.error(error));
     });
