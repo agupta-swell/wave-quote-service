@@ -1028,43 +1028,55 @@ export class UtilityService implements OnModuleInit {
 
     const monthlyMinumumCosts: ICostDetailData[] = [];
     const monthlyCosts: ICostDetailData[] = [];
-
-    data[0].items.forEach(item => {
-      const month = new Date(item.fromDateTime).getMonth();
-
-      const costDetail = {
-        startDate: new Date(item.fromDateTime),
-        endDate: new Date(item.toDateTime),
-        i: month,
-        v: item.cost,
-      };
-
-      if (item.chargeType === 'MINIMUM') {
-        monthlyMinumumCosts[costDetail.i] = costDetail;
-      } else {
-        const foundIndex = monthlyCosts.findIndex(monthlyCost => monthlyCost.i === month);
-
-        if (foundIndex === -1) {
-          monthlyCosts.push(costDetail);
-        } else {
-          monthlyCosts[foundIndex].v += costDetail.v;
-        }
-      }
-    });
-
-    const monthCostToBeUsed = monthlyCosts.map((cost, index) => ({
-      ...cost,
-      v: Math.max(cost?.v || 0, monthlyMinumumCosts[index]?.v || 0),
-    }));
+    let monthlyCostToBeUsed: ICostDetailData[] = [];
 
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
+
+    if (!data[0].items.length) {
+      for (let i = 0; i < 12; i++) {
+        monthlyCostToBeUsed.push({
+          startDate: new Date(`${currentYear}-0${i + 1}-01T00:00:00.000+00:00`),
+          endDate: new Date(`${currentYear}-0${i + 2}-01T00:00:00.000+00:00`),
+          i,
+          v: 0,
+        });
+      }
+    } else {
+      data[0].items.forEach(item => {
+        const month = new Date(item.fromDateTime).getMonth();
+
+        const costDetail = {
+          startDate: new Date(item.fromDateTime),
+          endDate: new Date(item.toDateTime),
+          i: month,
+          v: item.cost,
+        };
+
+        if (item.chargeType === 'MINIMUM') {
+          monthlyMinumumCosts[costDetail.i] = costDetail;
+        } else {
+          const foundIndex = monthlyCosts.findIndex(monthlyCost => monthlyCost.i === month);
+
+          if (foundIndex === -1) {
+            monthlyCosts.push(costDetail);
+          } else {
+            monthlyCosts[foundIndex].v += costDetail.v;
+          }
+        }
+      });
+
+      monthlyCostToBeUsed = monthlyCosts.map((cost, index) => ({
+        ...cost,
+        v: Math.max(cost?.v || 0, monthlyMinumumCosts[index]?.v || 0),
+      }));
+    }
 
     const costData = {
       startDate: new Date(`${currentYear}-01-01`),
       endDate: new Date(`${nextYear}-01-01`),
       interval: INTERVAL_VALUE.MONTH,
-      cost: monthCostToBeUsed,
+      cost: monthlyCostToBeUsed,
     } as IUtilityCostData;
 
     if (mode === CALCULATION_MODE.TYPICAL) {
