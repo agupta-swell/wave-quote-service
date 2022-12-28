@@ -63,7 +63,6 @@ import { SignerDetailDto, TemplateDetailDto } from './req/send-sample-contract.d
 import { ProposalAnalyticDto } from './res/proposal-analytic.dto';
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC, TRACKING_TYPE } from './schemas/proposal-analytic.schema';
-import { PROPOSAL_EMAIL_TEMPLATE } from './template-html/proposal-template';
 
 @Injectable()
 export class ProposalService {
@@ -350,12 +349,12 @@ export class ProposalService {
         .join(', ');
       const customerName = [recipient?.firstName, recipient?.lastName]?.filter(i => !!i).join(' ');
       const data = {
-        customerName: customerName !== '' ? customerName : 'Customer',
+        contactFullName: customerName !== '' ? customerName : 'Customer',
         proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
         recipientNotice: recipientsExcludeSelf
           ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsExcludeSelf}`
           : '',
-        proposalLink: linksByToken[index],
+        link: linksByToken[index],
       };
 
       const replyTo = {
@@ -367,7 +366,7 @@ export class ProposalService {
         .sendMailByTemplate(
           recipient?.email || '',
           `${foundProposal.detailedProposal.proposalName}`,
-          PROPOSAL_EMAIL_TEMPLATE,
+          'Proposal Email',
           data,
           replyTo,
         )

@@ -3,7 +3,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
-import { isNil, omit, omitBy, pickBy, sum, sumBy } from 'lodash';
+import { isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { ContractService } from 'src/contracts/contract.service';

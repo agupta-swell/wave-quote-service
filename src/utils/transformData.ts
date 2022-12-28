@@ -1,8 +1,8 @@
 import * as dayjs from 'dayjs';
 import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
-import { roundNumber } from './transformNumber';
 import { sliceBySize, sliceBySizesMap } from './array';
+import { roundNumber } from './transformNumber';
 
 export const buildMonthlyAndAnnuallyDataFrom8760 = (hourlyProduction: number[]): IEnergyProfileProduction => {
   const totalDatesOfHourlyProduction = hourlyProduction.length / 24;

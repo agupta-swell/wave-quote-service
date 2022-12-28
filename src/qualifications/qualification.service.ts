@@ -35,7 +35,6 @@ import {
 } from './res';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import { FniEngineService } from './sub-services/fni-engine.service';
-import { QUALIFICATION_TEMPLATE } from './template-html/qualification-template';
 import { IFniApplyReq } from './typing.d';
 
 @Injectable()
@@ -172,13 +171,13 @@ export class QualificationService {
     const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER);
 
     const data = {
-      customerName: 'Customer',
+      contactFullName: 'Customer',
       qualificationValidityPeriod: '48h',
       recipientNotice: 'No Content',
-      qualificationLink: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
+      link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
     };
 
-    await this.emailService.sendMailByTemplate(email || '', 'Qualification Invitation', QUALIFICATION_TEMPLATE, data);
+    await this.emailService.sendMailByTemplate(email || '', 'Qualification Invitation', 'Qualification Email', data);
 
     const now = new Date();
 

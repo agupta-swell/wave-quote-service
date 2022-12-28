@@ -13,6 +13,7 @@ import { DocusignCommunicationModule } from 'src/docusign-communications/docusig
 import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docusign-template-master.module';
 import { ECommerceModule } from 'src/e-commerces/e-commerce.module';
 import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
+import { EmailTemplateModule } from 'src/email-templates/email-template.module';
 import { EmailModule } from 'src/emails/email.module';
 import { EnergyProfileModule } from 'src/energy-profiles/energy-profile.module';
 import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
@@ -97,6 +98,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     DocusignTemplateMasterModule,
     ECommerceModule,
     EmailModule,
+    EmailTemplateModule,
     ExternalServiceModule,
     FundingSourceModule,
     LeaseSolverConfigModule,
