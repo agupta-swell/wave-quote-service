@@ -481,7 +481,6 @@ export class ProposalService {
       average: netLoadAverage,
       typical: getNetLoadTypical(
         historicalUsageRes?.data?.historicalUsage,
-        existingSystemProduction,
         solarProduction,
         batteryDataSeriesForTypicalDay.batteryChargingSeries,
         batteryDataSeriesForTypicalDay.batteryDischargingSeries,
