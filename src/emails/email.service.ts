@@ -24,11 +24,6 @@ export class EmailService {
   private async getTemplate(eventType: string): Promise<HandlebarsTemplateDelegate> {
     const handler = await this.emailTemplateService.getEmailTemplateByEventType(eventType);
     if (!handler) {
-      console.log(
-        '🚀 ~ file: email.service.ts ~ line 29 ~ EmailService ~ getTemplate ~ handler',
-        'No registered email template found with eventType',
-        eventType,
-      );
       throw ApplicationException.ServiceError();
     }
 

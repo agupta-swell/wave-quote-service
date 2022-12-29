@@ -1,4 +1,4 @@
-import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
+import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
 import { TypicalUsageKwh } from 'src/utilities/sub-services';
 
 export interface IBatteryDataSeries {

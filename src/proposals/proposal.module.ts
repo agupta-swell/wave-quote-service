@@ -8,7 +8,7 @@ import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { DocusignApiModule } from 'src/shared/docusign';
-import { SystemProductionModule } from 'src/system-production/system-production.module';
+import { SystemProductionModule } from 'src/system-productions/system-production.module';
 import { ProposalController } from './proposal.controller';
 import { PROPOSAL, ProposalSchema } from './proposal.schema';
 import { ProposalService } from './proposal.service';

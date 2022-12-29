@@ -1,8 +1,8 @@
 import { Document, Schema } from 'mongoose';
 
-export const GENEBILITY_LSE_DATA = 'v2_genability_lse_data';
+export const GENABILITY_LSE_DATA = 'v2_genability_lse_data';
 
-export const GenebilityLseDataDetailSchema = new Schema(
+export const GenabilityLseDataDetailSchema = new Schema(
   {
     lse_name: String,
     lse_code: String,
@@ -14,16 +14,16 @@ export const GenebilityLseDataDetailSchema = new Schema(
   },
 );
 
-export const GenebilityLseDataSchema = new Schema({
+export const GenabilityLseDataSchema = new Schema({
   zip_code: Number,
-  data: [GenebilityLseDataDetailSchema],
+  data: [GenabilityLseDataDetailSchema],
   created_at: {
     type: Date,
     default: Date.now,
   },
 });
 
-export interface GenebilityLseDataDetail extends Document {
+export interface GenabilityLseDataDetail extends Document {
   zipCode: number;
   lseName: string;
   lseCode: string;
@@ -31,7 +31,7 @@ export interface GenebilityLseDataDetail extends Document {
   lseId: string;
 }
 
-export interface GenebilityLseData extends Document {
+export interface GenabilityLseData extends Document {
   zipData: number;
-  data: GenebilityLseDataDetail[];
+  data: GenabilityLseDataDetail[];
 }

@@ -8,7 +8,7 @@ import { ProductionDeratesModule } from 'src/production-derates-v2/production-de
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
-import { SystemProductionModule } from 'src/system-production/system-production.module';
+import { SystemProductionModule } from 'src/system-productions/system-production.module';
 import { createSystemDesignProvider } from './providers/system-design-model.provider';
 import { SystemDesignHook } from './providers/system-design.hook';
 import { PvWattSystemProductionSchema, PV_WATT_SYSTEM_PRODUCTION } from './schemas';

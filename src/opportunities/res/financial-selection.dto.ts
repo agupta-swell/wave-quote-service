@@ -1,4 +1,4 @@
-import { FinancierDto } from 'src/financier/res/financier.dto';
+import { FinancierDto } from 'src/financiers/res/financier.dto';
 import { FundingSourceDto } from 'src/funding-sources/res/funding-source.dto';
 import { ExposeProp } from 'src/shared/decorators';
 

@@ -9,7 +9,7 @@ import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
-import { SystemProductionService } from 'src/system-production/system-production.service';
+import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { FinancialProduct, FINANCIAL_PRODUCT } from './financial-product.schema';
 import { FinancialProductDto } from './res/financial-product.dto';
 

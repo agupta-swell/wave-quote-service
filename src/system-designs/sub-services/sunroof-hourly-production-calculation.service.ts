@@ -6,7 +6,7 @@ import { ECommerceService } from 'src/e-commerces/e-commerce.service';
 import { ProductionDeratesService } from 'src/production-derates-v2/production-derates-v2.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { SystemProduction } from 'src/shared/google-sunroof/types';
-import { IEnergyProfileProduction, ISystemProduction } from 'src/system-production/system-production.schema';
+import { IEnergyProfileProduction, ISystemProduction } from 'src/system-productions/system-production.schema';
 import { getDaysInMonth } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { IInverterSchema, ISolarPanelArraySchema, SystemDesign } from '../system-design.schema';

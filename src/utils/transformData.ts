@@ -1,5 +1,5 @@
 import * as dayjs from 'dayjs';
-import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
+import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
 import { sliceBySize, sliceBySizesMap } from './array';
 import { roundNumber } from './transformNumber';

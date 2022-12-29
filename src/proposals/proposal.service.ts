@@ -29,9 +29,9 @@ import { ProposalTemplateService } from 'src/proposal-templates/proposal-templat
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { SystemProductionDto } from 'src/system-production/res';
-import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
-import { SystemProductionService } from 'src/system-production/system-production.service';
+import { SystemProductionDto } from 'src/system-productions/res';
+import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
+import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { UserService } from 'src/users/user.service';
 import { PROPOSAL_PERIOD_MODE, PROPOSAL_VIEW_MODE } from 'src/utilities/constants';
 import {
@@ -41,7 +41,7 @@ import {
   mapToResult,
 } from 'src/utilities/operators';
 import { GetDataSeriesResDto, IHistoricalUsage } from 'src/utilities/res';
-import { GenebilityTariffDataDetail } from 'src/utilities/schemas/genebility-tariff-caching.schema';
+import { GenabilityTariffDataDetail } from 'src/utilities/schemas/genability-tariff-caching.schema';
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -385,7 +385,7 @@ export class ProposalService {
       historicalUsage?: IHistoricalUsage;
       systemProduction?: SystemProductionDto;
       manufacturers?: ManufacturerDto[];
-      tariffDetails?: { masterTariff: GenebilityTariffDataDetail; postInstallMasterTariff: GenebilityTariffDataDetail };
+      tariffDetails?: { masterTariff: GenabilityTariffDataDetail; postInstallMasterTariff: GenabilityTariffDataDetail };
       proposalDetail: ProposalDto;
       sumOfUtilityUsageCost?: number;
       sumOfMonthlyUsageCost?: number;
