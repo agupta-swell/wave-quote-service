@@ -69,7 +69,7 @@ import {
 export class UtilityService implements OnModuleInit {
   private AWS_S3_UTILITY_DATA = process.env.AWS_S3_UTILITY_DATA as string;
 
-  private GENABILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
+  private GENEBILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
 
   private readonly logger = new Logger(UtilityService.name);
 
@@ -552,13 +552,21 @@ export class UtilityService implements OnModuleInit {
     toHour: number,
     hourInDay: number,
   ): boolean => {
+    let isAllDay = false;
+    if (fromHour === toHour) {
+      isAllDay = true;
+    }
+
     if (fromDayOfWeek < toDayOfWeek) {
-      return inRange(dayOfWeek, fromDayOfWeek, toDayOfWeek + 1) && this.isHourInDay(hourInDay, fromHour, toHour);
+      return (
+        inRange(dayOfWeek, fromDayOfWeek, toDayOfWeek + 1) &&
+        (isAllDay || this.isHourInDay(hourInDay, fromHour, toHour))
+      );
     }
 
     return (
       (inRange(dayOfWeek, 0, fromDayOfWeek + 1) || inRange(dayOfWeek, toDayOfWeek, 6 + 1)) &&
-      this.isHourInDay(hourInDay, fromHour, toHour)
+      (isAllDay || this.isHourInDay(hourInDay, fromHour, toHour))
     );
   };
 
@@ -587,7 +595,7 @@ export class UtilityService implements OnModuleInit {
       }));
   };
 
-  caculatePinballDataIn24Hours(
+  calculatePinballDataIn24Hours(
     hourlyPostInstallLoadIn24Hours: number[],
     hourlySeriesForExistingPVIn24Hours: number[] | undefined,
     hourlySeriesForNewPVIn24Hours: number[],
@@ -883,7 +891,7 @@ export class UtilityService implements OnModuleInit {
         batteryChargingSeriesIn24Hours,
         batteryDischargingSeriesIn24Hours,
         postInstallSiteDemandSeriesIn24Hours,
-      } = this.caculatePinballDataIn24Hours(
+      } = this.calculatePinballDataIn24Hours(
         hourlyPostInstallLoadIn24Hours,
         hourlySeriesForExistingPVIn24Hours,
         hourlySeriesForNewPVIn24Hours,
@@ -1046,7 +1054,7 @@ export class UtilityService implements OnModuleInit {
       billingPeriod: false,
     });
 
-    const monthlyMinumumCosts: ICostDetailData[] = [];
+    const monthlyMinimumCosts: ICostDetailData[] = [];
     const monthlyCosts: ICostDetailData[] = [];
     let monthlyCostToBeUsed: ICostDetailData[] = [];
 
@@ -1076,7 +1084,7 @@ export class UtilityService implements OnModuleInit {
         };
 
         if (item.chargeType === 'MINIMUM') {
-          monthlyMinumumCosts[costDetail.i] = costDetail;
+          monthlyMinimumCosts[costDetail.i] = costDetail;
         } else {
           const foundIndex = monthlyCosts.findIndex(monthlyCost => monthlyCost.i === month);
 
@@ -1090,7 +1098,7 @@ export class UtilityService implements OnModuleInit {
 
       monthlyCostToBeUsed = monthlyCosts.map((cost, index) => ({
         ...cost,
-        v: Math.max(cost?.v || 0, monthlyMinumumCosts[index]?.v || 0),
+        v: Math.max(cost?.v || 0, monthlyMinimumCosts[index]?.v || 0),
       }));
     }
 

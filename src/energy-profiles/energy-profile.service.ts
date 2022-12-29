@@ -171,7 +171,7 @@ export class EnergyProfileService {
       monthlyAverage: [],
     };
 
-    const annualPinballData = this.utilityService.caculatePinballDataIn24Hours(
+    const annualPinballData = this.utilityService.calculatePinballDataIn24Hours(
       monthlyAndAnnualPostInstallLoadInWhIn24Hours.annualAverage,
       monthlyAndAnnualSeriesForExistingPVInWhIn24Hours.annualAverage,
       monthlyAndAnnualSeriesForNewPVInWhIn24Hours.annualAverage,
@@ -187,7 +187,7 @@ export class EnergyProfileService {
     batteryDischargingSeries.annualAverage = annualPinballData.batteryDischargingSeriesIn24Hours;
 
     for (let i = 0; i < 12; i++) {
-      const monthlyPinballData = this.utilityService.caculatePinballDataIn24Hours(
+      const monthlyPinballData = this.utilityService.calculatePinballDataIn24Hours(
         monthlyAndAnnualPostInstallLoadInWhIn24Hours.monthlyAverage[i],
         monthlyAndAnnualSeriesForExistingPVInWhIn24Hours.monthlyAverage[i],
         monthlyAndAnnualSeriesForNewPVInWhIn24Hours.monthlyAverage[i],
