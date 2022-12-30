@@ -68,6 +68,7 @@ import {
 @Injectable()
 export class UtilityService implements OnModuleInit {
   private AWS_S3_UTILITY_DATA = process.env.AWS_S3_UTILITY_DATA as string;
+
   private GENEBILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
 
   private readonly logger = new Logger(UtilityService.name);
@@ -1275,11 +1276,26 @@ export class UtilityService implements OnModuleInit {
     const seasons: any[] = [];
 
     filterTariffs.forEach(filterTariff => {
-      const { season } = filterTariff.timeOfUse;
+      const season = filterTariff.timeOfUse.season || filterTariff.season;
+
+      if (!season) return;
 
       if (!seasons.length) seasons.push(season);
-      else if (seasons.findIndex(s => s?.seasonId === season.seasonId) === -1) seasons.push(season);
+      else if (seasons.findIndex(s => s.seasonId === season.seasonId) === -1) seasons.push(season);
     });
+
+    if (!seasons.length) {
+      const noSeasonsMonthlyTariffData: IMonthSeasonTariff[][] = [...Array(12)].map(() => []);
+
+      await this.s3Service.putObject(
+        this.AWS_S3_UTILITY_DATA,
+        `${opportunityId}/monthlyTariffData`,
+        JSON.stringify(noSeasonsMonthlyTariffData),
+        'application/json; charset=utf-8',
+      );
+
+      return noSeasonsMonthlyTariffData;
+    }
 
     const currentYear = dayjs().year();
 
@@ -1294,6 +1310,10 @@ export class UtilityService implements OnModuleInit {
 
       seasons.forEach(season => {
         const { seasonFromMonth, seasonToMonth, seasonName } = season;
+
+        if (seasonFromMonth === seasonToMonth && seasonFromMonth === curMonth) {
+          seasonsInMonth.push(seasonName);
+        }
 
         if (seasonFromMonth < seasonToMonth && seasonFromMonth <= curMonth && curMonth <= seasonToMonth) {
           seasonsInMonth.push(seasonName);
@@ -1331,13 +1351,10 @@ export class UtilityService implements OnModuleInit {
     // Build monthlyTariffRawData
     for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
       filterTariffs.forEach(filterTariff => {
-        const {
-          seasonFromMonth,
-          seasonToMonth,
-          seasonFromDay,
-          seasonToDay,
-          seasonName,
-        } = filterTariff?.timeOfUse.season;
+        const season = filterTariff.timeOfUse.season || filterTariff.season;
+        if (!season) return;
+
+        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay, seasonName } = season;
         const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
 
         const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
