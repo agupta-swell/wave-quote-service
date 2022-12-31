@@ -20,7 +20,7 @@ import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
-import { firstSundayOfTheMonth, getMonthDatesOfYear } from 'src/utils/datetime';
+import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRage } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
@@ -1046,6 +1046,8 @@ export class UtilityService implements OnModuleInit {
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
 
+    const { fromDateTime, toDateTime } = getNextYearDateRage();
+
     if (!data[0].items.length) {
       for (let i = 0; i < 12; i++) {
         monthlyCostToBeUsed.push({
@@ -1086,8 +1088,8 @@ export class UtilityService implements OnModuleInit {
     }
 
     const costData = {
-      startDate: new Date(`${currentYear}-01-01`),
-      endDate: new Date(`${nextYear}-01-01`),
+      startDate: new Date(fromDateTime),
+      endDate: new Date(toDateTime),
       interval: INTERVAL_VALUE.MONTH,
       cost: monthlyCostToBeUsed,
     } as IUtilityCostData;

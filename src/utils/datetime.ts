@@ -39,3 +39,15 @@ export const firstSundayOfTheMonth = (year: number, month: number): number => {
   const firstSunday = firstDayOfMonth.getDate() + daysUntilFirstSunday;
   return firstSunday;
 };
+
+export const getNextYearDateRage = (): { fromDateTime: string; toDateTime: string } => {
+  const start = dayjs().add(1, 'month').startOf('month').startOf('date');
+  const end = start.add(1, 'year');
+
+  const [fromDateTime] = start.format().split('+');
+  const [toDateTime] = end.format().split('+');
+  return {
+    fromDateTime,
+    toDateTime,
+  };
+};
