@@ -596,6 +596,7 @@ export class UtilityService implements OnModuleInit {
     ratingInKW: number,
     minimumReserveInKW: number,
     sqrtRoundTripEfficiency: number,
+    batteryStoredEnergySeriesInPrevious24Hours: number[],
   ): {
     batteryStoredEnergySeriesIn24Hours: number[];
     batteryChargingSeriesIn24Hours: number[];
@@ -661,7 +662,9 @@ export class UtilityService implements OnModuleInit {
         Math.max(
           minimumReserveInKW,
           Math.min(
-            (batteryStoredEnergySeriesIn24Hours[i - 1] || minimumReserveInKW) + plannedBatteryDCIn24Hours[i],
+            ((i === 0
+              ? batteryStoredEnergySeriesInPrevious24Hours[batteryStoredEnergySeriesInPrevious24Hours.length - 1]
+              : batteryStoredEnergySeriesIn24Hours[i - 1]) || minimumReserveInKW) + plannedBatteryDCIn24Hours[i],
             batterySystemSpecs.totalCapacityInKWh * 1000,
           ),
         ),
@@ -670,7 +673,11 @@ export class UtilityService implements OnModuleInit {
       // Actual Battery DC
       actualBatteryDCIn24Hours.push(
         new BigNumber(batteryStoredEnergySeriesIn24Hours[i])
-          .minus(batteryStoredEnergySeriesIn24Hours[i - 1] || minimumReserveInKW)
+          .minus(
+            (i === 0
+              ? batteryStoredEnergySeriesInPrevious24Hours[batteryStoredEnergySeriesInPrevious24Hours.length - 1]
+              : batteryStoredEnergySeriesIn24Hours[i - 1]) || minimumReserveInKW,
+          )
           .toNumber(),
       );
 
@@ -851,6 +858,8 @@ export class UtilityService implements OnModuleInit {
     const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
     const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency / 100);
 
+    let batteryStoredEnergySeriesInPrevious24Hours: number[] = [];
+
     for (let i = 0; i < 365; i += 1) {
       const startIdx = i * 24;
       const endIdx = startIdx + 24;
@@ -876,7 +885,10 @@ export class UtilityService implements OnModuleInit {
         ratingInKW,
         minimumReserveInKW,
         sqrtRoundTripEfficiency,
+        batteryStoredEnergySeriesInPrevious24Hours,
       );
+
+      batteryStoredEnergySeriesInPrevious24Hours = batteryStoredEnergySeriesIn24Hours;
 
       batteryStoredEnergySeries.push(...batteryStoredEnergySeriesIn24Hours);
       batteryChargingSeries.push(...batteryChargingSeriesIn24Hours);
