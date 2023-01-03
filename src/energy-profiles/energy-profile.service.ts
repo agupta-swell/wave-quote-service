@@ -186,8 +186,6 @@ export class EnergyProfileService {
     batteryChargingSeries.annualAverage = annualPinballData.batteryChargingSeriesIn24Hours;
     batteryDischargingSeries.annualAverage = annualPinballData.batteryDischargingSeriesIn24Hours;
 
-    let batteryStoredEnergySeriesInPrevious24Hours: number[] = [];
-
     for (let i = 0; i < 12; i++) {
       const monthlyPinballData = this.utilityService.caculatePinballDataIn24Hours(
         monthlyAndAnnualPostInstallLoadInWhIn24Hours.monthlyAverage[i],
@@ -198,11 +196,10 @@ export class EnergyProfileService {
         ratingInKW,
         minimumReserveInKW,
         sqrtRoundTripEfficiency,
-        batteryStoredEnergySeriesInPrevious24Hours,
+        [],
       );
       batteryChargingSeries.monthlyAverage.push(monthlyPinballData.batteryChargingSeriesIn24Hours);
       batteryDischargingSeries.monthlyAverage.push(monthlyPinballData.batteryDischargingSeriesIn24Hours);
-      batteryStoredEnergySeriesInPrevious24Hours = monthlyPinballData.batteryStoredEnergySeriesIn24Hours;
     }
 
     batteryChargingSeries = buildMonthlyAndAnnuallyDataFrom24HoursData(batteryChargingSeries);
