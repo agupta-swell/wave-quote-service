@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
+import * as dayjs from 'dayjs';
+import { getNextYearDateRage } from 'src/utils/datetime';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
 import { IApplyRequest } from '../qualifications/typing';
@@ -261,12 +263,18 @@ export class ExternalService {
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
 
-    const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
-    
+    const { fromDateTime, toDateTime } = getNextYearDateRage();
+
+    const today8760sIdx = dayjs(fromDateTime).diff(dayjs().startOf('year'), 'day') * 24;
+
+    const dataSeries: number[] = [
+      ...hourlyDataForTheYear.slice(today8760sIdx, 8760),
+      ...hourlyDataForTheYear.slice(0, today8760sIdx),
+    ];
+
     const payload = {
-      fromDateTime: `${currentYear}-01-01T00:00:00`,
-      toDateTime: `${nextYear}-01-01T00:00:00`,
+      fromDateTime,
+      toDateTime,
       masterTariffId,
       groupBy: groupBy || EGenabilityGroupBy.DAY,
       detailLevel: detailLevel || EGenabilityDetailLevel.RATE,
@@ -275,9 +283,9 @@ export class ExternalService {
       propertyInputs: [
         {
           keyName: 'consumption',
-          fromDateTime: `${currentYear}-01-01T00:00:00`,
+          fromDateTime,
           duration: 3600000,
-          dataSeries: hourlyDataForTheYear,
+          dataSeries,
           unit: 'kWh',
         },
       ],

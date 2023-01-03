@@ -7,7 +7,8 @@ import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.s
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionDto } from 'src/system-production/res';
 import { SystemProductionService } from 'src/system-production/system-production.service';
-import { calcCoordinatesDistance, getCenterBound, ICoordinate } from 'src/utils/calculate-coordinates';
+import { getCenterBound } from 'src/utils/calculate-coordinates';
+import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
 import { SystemDesignDto } from '../res';
 import { SunroofHourlyProductionCalculation } from '../sub-services';
 import { ILatLngSchema, SystemDesign } from '../system-design.schema';
@@ -54,7 +55,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     // Queue up all relevants task when new system design is created
     if (initSystemDesign.isNew) {
-      const radiusMeters = this.calculateSystemDesignRadius(
+      const radiusMeters = calculateSystemDesignRadius(
         {
           lat: systemDesign.latitude,
           lng: systemDesign.longitude,
@@ -142,7 +143,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     const { latitude, longitude, polygons } = initSystemDesign;
 
-    const currentRadius = this.calculateSystemDesignRadius(
+    const currentRadius = calculateSystemDesignRadius(
       {
         lat: latitude,
         lng: longitude,
@@ -154,7 +155,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
 
-    const newRadius = this.calculateSystemDesignRadius(
+    const newRadius = calculateSystemDesignRadius(
       {
         lat: newLat,
         lng: newLng,
@@ -283,12 +284,6 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
   private canDispatchNextSystemDesignEvent(queueStore: IQueueStore): boolean {
     return !queueStore.cache.get('onNewSystemDesign');
-  }
-
-  public calculateSystemDesignRadius(systemDesignCenterBound: ICoordinate, polygons: ICoordinate[]): number {
-    const longestDistance = Math.max(...polygons.map(p => calcCoordinatesDistance(systemDesignCenterBound, p))) * 1000;
-
-    return Math.min(Math.max(25, longestDistance), 100);
   }
 
   private queueResaveClosestBuilding(

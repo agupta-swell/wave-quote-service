@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import * as mailgun from 'mailgun-js';
 import * as Handlebars from 'handlebars';
+import * as mailgun from 'mailgun-js';
 import { ApplicationException } from 'src/app/app.exception';
 
 @Injectable()
@@ -40,17 +40,30 @@ export class EmailService {
     subject: string,
     templateName: string | symbol,
     templatePayload: Record<string, unknown>,
+    replyTo?: {
+      fullName: string;
+      email: string;
+    },
   ): Promise<mailgun.messages.SendResponse> {
     const html = this.getTemplate(templateName)(templatePayload);
-    return this.sendMail(recipient, html, subject);
+    return this.sendMail(recipient, html, subject, replyTo);
   }
 
-  async sendMail(recipient: string, message: string, subject: string): Promise<mailgun.messages.SendResponse> {
+  async sendMail(
+    recipient: string,
+    message: string,
+    subject: string,
+    replyTo?: {
+      fullName: string;
+      email: string;
+    },
+  ): Promise<mailgun.messages.SendResponse> {
     const mailOptions = {
-      from: process.env.MAILGUN_SENDER_EMAIL,
+      from: `Swell Energy <${replyTo ? replyTo.email : process.env.MAILGUN_SENDER_EMAIL}>`,
       to: recipient,
       subject,
       html: message,
+      'h:Reply-To': replyTo && `${replyTo.fullName} <${replyTo.email}>`,
     };
 
     return this.mailgunInstance.messages().send(mailOptions, (error, _) => {

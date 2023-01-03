@@ -20,7 +20,7 @@ import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
-import { firstSundayOfTheMonth, getMonthDatesOfYear } from 'src/utils/datetime';
+import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRage } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
@@ -68,6 +68,7 @@ import {
 @Injectable()
 export class UtilityService implements OnModuleInit {
   private AWS_S3_UTILITY_DATA = process.env.AWS_S3_UTILITY_DATA as string;
+
   private GENEBILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
 
   private readonly logger = new Logger(UtilityService.name);
@@ -595,6 +596,7 @@ export class UtilityService implements OnModuleInit {
     ratingInKW: number,
     minimumReserveInKW: number,
     sqrtRoundTripEfficiency: number,
+    batteryStoredEnergySeriesInPrevious24Hours: number[],
   ): {
     batteryStoredEnergySeriesIn24Hours: number[];
     batteryChargingSeriesIn24Hours: number[];
@@ -660,7 +662,9 @@ export class UtilityService implements OnModuleInit {
         Math.max(
           minimumReserveInKW,
           Math.min(
-            (batteryStoredEnergySeriesIn24Hours[i - 1] || minimumReserveInKW) + plannedBatteryDCIn24Hours[i],
+            ((i === 0
+              ? batteryStoredEnergySeriesInPrevious24Hours[batteryStoredEnergySeriesInPrevious24Hours.length - 1]
+              : batteryStoredEnergySeriesIn24Hours[i - 1]) || minimumReserveInKW) + plannedBatteryDCIn24Hours[i],
             batterySystemSpecs.totalCapacityInKWh * 1000,
           ),
         ),
@@ -669,7 +673,11 @@ export class UtilityService implements OnModuleInit {
       // Actual Battery DC
       actualBatteryDCIn24Hours.push(
         new BigNumber(batteryStoredEnergySeriesIn24Hours[i])
-          .minus(batteryStoredEnergySeriesIn24Hours[i - 1] || minimumReserveInKW)
+          .minus(
+            (i === 0
+              ? batteryStoredEnergySeriesInPrevious24Hours[batteryStoredEnergySeriesInPrevious24Hours.length - 1]
+              : batteryStoredEnergySeriesIn24Hours[i - 1]) || minimumReserveInKW,
+          )
           .toNumber(),
       );
 
@@ -850,6 +858,8 @@ export class UtilityService implements OnModuleInit {
     const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
     const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency / 100);
 
+    let batteryStoredEnergySeriesInPrevious24Hours: number[] = [];
+
     for (let i = 0; i < 365; i += 1) {
       const startIdx = i * 24;
       const endIdx = startIdx + 24;
@@ -875,7 +885,10 @@ export class UtilityService implements OnModuleInit {
         ratingInKW,
         minimumReserveInKW,
         sqrtRoundTripEfficiency,
+        batteryStoredEnergySeriesInPrevious24Hours,
       );
+
+      batteryStoredEnergySeriesInPrevious24Hours = batteryStoredEnergySeriesIn24Hours;
 
       batteryStoredEnergySeries.push(...batteryStoredEnergySeriesIn24Hours);
       batteryChargingSeries.push(...batteryChargingSeriesIn24Hours);
@@ -1028,43 +1041,57 @@ export class UtilityService implements OnModuleInit {
 
     const monthlyMinumumCosts: ICostDetailData[] = [];
     const monthlyCosts: ICostDetailData[] = [];
-
-    data[0].items.forEach(item => {
-      const month = new Date(item.fromDateTime).getMonth();
-
-      const costDetail = {
-        startDate: new Date(item.fromDateTime),
-        endDate: new Date(item.toDateTime),
-        i: month,
-        v: item.cost,
-      };
-
-      if (item.chargeType === 'MINIMUM') {
-        monthlyMinumumCosts[costDetail.i] = costDetail;
-      } else {
-        const foundIndex = monthlyCosts.findIndex(monthlyCost => monthlyCost.i === month);
-
-        if (foundIndex === -1) {
-          monthlyCosts.push(costDetail);
-        } else {
-          monthlyCosts[foundIndex].v += costDetail.v;
-        }
-      }
-    });
-
-    const monthCostToBeUsed = monthlyCosts.map((cost, index) => ({
-      ...cost,
-      v: Math.max(cost?.v || 0, monthlyMinumumCosts[index]?.v || 0),
-    }));
+    let monthlyCostToBeUsed: ICostDetailData[] = [];
 
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
 
+    const { fromDateTime, toDateTime } = getNextYearDateRage();
+
+    if (!data[0].items.length) {
+      for (let i = 0; i < 12; i++) {
+        monthlyCostToBeUsed.push({
+          startDate: new Date(`${currentYear}-0${i + 1}-01T00:00:00.000+00:00`),
+          endDate: new Date(`${currentYear}-0${i + 2}-01T00:00:00.000+00:00`),
+          i,
+          v: 0,
+        });
+      }
+    } else {
+      data[0].items.forEach(item => {
+        const month = new Date(item.fromDateTime).getMonth();
+
+        const costDetail = {
+          startDate: new Date(item.fromDateTime),
+          endDate: new Date(item.toDateTime),
+          i: month,
+          v: item.cost,
+        };
+
+        if (item.chargeType === 'MINIMUM') {
+          monthlyMinumumCosts[costDetail.i] = costDetail;
+        } else {
+          const foundIndex = monthlyCosts.findIndex(monthlyCost => monthlyCost.i === month);
+
+          if (foundIndex === -1) {
+            monthlyCosts.push(costDetail);
+          } else {
+            monthlyCosts[foundIndex].v += costDetail.v;
+          }
+        }
+      });
+
+      monthlyCostToBeUsed = monthlyCosts.map((cost, index) => ({
+        ...cost,
+        v: Math.max(cost?.v || 0, monthlyMinumumCosts[index]?.v || 0),
+      }));
+    }
+
     const costData = {
-      startDate: new Date(`${currentYear}-01-01`),
-      endDate: new Date(`${nextYear}-01-01`),
+      startDate: new Date(fromDateTime),
+      endDate: new Date(toDateTime),
       interval: INTERVAL_VALUE.MONTH,
-      cost: monthCostToBeUsed,
+      cost: monthlyCostToBeUsed,
     } as IUtilityCostData;
 
     if (mode === CALCULATION_MODE.TYPICAL) {
@@ -1263,11 +1290,26 @@ export class UtilityService implements OnModuleInit {
     const seasons: any[] = [];
 
     filterTariffs.forEach(filterTariff => {
-      const { season } = filterTariff.timeOfUse;
+      const season = filterTariff.timeOfUse.season || filterTariff.season;
+
+      if (!season) return;
 
       if (!seasons.length) seasons.push(season);
-      else if (seasons.findIndex(s => s?.seasonId === season.seasonId) === -1) seasons.push(season);
+      else if (seasons.findIndex(s => s.seasonId === season.seasonId) === -1) seasons.push(season);
     });
+
+    if (!seasons.length) {
+      const noSeasonsMonthlyTariffData: IMonthSeasonTariff[][] = [...Array(12)].map(() => []);
+
+      await this.s3Service.putObject(
+        this.AWS_S3_UTILITY_DATA,
+        `${opportunityId}/monthlyTariffData`,
+        JSON.stringify(noSeasonsMonthlyTariffData),
+        'application/json; charset=utf-8',
+      );
+
+      return noSeasonsMonthlyTariffData;
+    }
 
     const currentYear = dayjs().year();
 
@@ -1282,6 +1324,10 @@ export class UtilityService implements OnModuleInit {
 
       seasons.forEach(season => {
         const { seasonFromMonth, seasonToMonth, seasonName } = season;
+
+        if (seasonFromMonth === seasonToMonth && seasonFromMonth === curMonth) {
+          seasonsInMonth.push(seasonName);
+        }
 
         if (seasonFromMonth < seasonToMonth && seasonFromMonth <= curMonth && curMonth <= seasonToMonth) {
           seasonsInMonth.push(seasonName);
@@ -1319,13 +1365,10 @@ export class UtilityService implements OnModuleInit {
     // Build monthlyTariffRawData
     for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
       filterTariffs.forEach(filterTariff => {
-        const {
-          seasonFromMonth,
-          seasonToMonth,
-          seasonFromDay,
-          seasonToDay,
-          seasonName,
-        } = filterTariff?.timeOfUse.season;
+        const season = filterTariff.timeOfUse.season || filterTariff.season;
+        if (!season) return;
+
+        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay, seasonName } = season;
         const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
 
         const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
@@ -1397,8 +1440,6 @@ export class UtilityService implements OnModuleInit {
           const hourRate = roundNumber(hourlyRawData.reduce((a, b) => a + b, 0) / hourlyRawData.length, 3) || 0;
           hourlyTariffRateOfSeasonInMonth.push(hourRate);
         });
-
-        hourlyTariffRateOfSeasonInMonth.push(hourlyTariffRateOfSeasonInMonth[0]);
 
         const seasonInMonthTariffData: IMonthSeasonTariff = {
           seasonName,

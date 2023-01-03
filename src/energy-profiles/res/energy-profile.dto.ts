@@ -51,7 +51,6 @@ export class GetEnergyProfile {
       average: netLoadAverage,
       typical: getNetLoadTypical(
         { annualUsage, monthlyUsage },
-        existingSystemProduction,
         solarProduction,
         batteryDataSeriesForTypicalDay.batteryChargingSeries,
         batteryDataSeriesForTypicalDay.batteryDischargingSeries,

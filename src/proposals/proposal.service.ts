@@ -275,6 +275,18 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(proposalId.toString());
     }
 
+    const opportunity = await this.opportunityService.getDetailById(foundProposal.opportunityId);
+
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(foundProposal.opportunityId);
+    }
+
+    const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
+
+    if (!assignedMember) {
+      throw ApplicationException.EntityNotFound(opportunity.assignedMember);
+    }
+
     const sendRecipients = recipientEmails.map(email => {
       const foundRecipient = foundProposal.detailedProposal.recipients.find(recipient => recipient.email === email);
       if (foundRecipient) {
@@ -345,8 +357,20 @@ export class ProposalService {
           : '',
         proposalLink: linksByToken[index],
       };
+
+      const replyTo = {
+        fullName: `${assignedMember.profile.firstName} ${assignedMember.profile.lastName}`,
+        email: assignedMember.emails[0].address,
+      };
+
       this.emailService
-        .sendMailByTemplate(recipient?.email || '', 'Proposal Invitation', PROPOSAL_EMAIL_TEMPLATE, data)
+        .sendMailByTemplate(
+          recipient?.email || '',
+          `${foundProposal.detailedProposal.proposalName}`,
+          PROPOSAL_EMAIL_TEMPLATE,
+          data,
+          replyTo,
+        )
         .catch(error => console.error(error));
     });
 
@@ -457,7 +481,6 @@ export class ProposalService {
       average: netLoadAverage,
       typical: getNetLoadTypical(
         historicalUsageRes?.data?.historicalUsage,
-        existingSystemProduction,
         solarProduction,
         batteryDataSeriesForTypicalDay.batteryChargingSeries,
         batteryDataSeriesForTypicalDay.batteryDischargingSeries,
@@ -748,7 +771,7 @@ export class ProposalService {
     // add props systemProductionData to systemDesign
     if (systemDesign) {
       const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
-      if (systemDesign?.systemProductionData && systemProduction.data) {
+      if (systemProduction?.data) {
         systemDesign.systemProductionData = systemProduction.data;
       }
     }
