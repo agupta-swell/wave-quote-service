@@ -616,11 +616,15 @@ export class UtilityService implements OnModuleInit {
     const batteryDischargingSeriesIn24Hours: number[] = [];
     const postInstallSiteDemandSeriesIn24Hours: number[] = [];
     for (let i = 0; i < 24; i += 1) {
-      pvGenerationIn24Hours.push(
-        new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
-          .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
-          .toNumber(),
-      );
+      // Temporary exclude existingPV from PINBALL calculation due to incorrect Net Load value. Ref wav-2640
+      //
+      // pvGenerationIn24Hours.push(
+      //   new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
+      //     .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
+      //     .toNumber(),
+      // );
+
+      pvGenerationIn24Hours.push(hourlySeriesForNewPVIn24Hours[i] || 0);
       netLoadIn24Hours.push(
         new BigNumber(hourlyPostInstallLoadIn24Hours[i] || 0).minus(pvGenerationIn24Hours[i]).toNumber(),
       );
