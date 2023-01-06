@@ -758,7 +758,10 @@ export class UtilityService implements OnModuleInit {
       let totalRateAmountHourly = new BigNumber(0);
 
       filterTariffs.forEach(filterTariff => {
-        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = filterTariff?.timeOfUse.season;
+        const season = filterTariff.timeOfUse.season || filterTariff.season;
+        if (!season) return;
+
+        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = season;
         const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
 
         const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
