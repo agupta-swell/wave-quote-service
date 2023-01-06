@@ -348,6 +348,12 @@ export class ProposalService {
         }, [] as string[])
         .join(', ');
       const customerName = [recipient?.firstName, recipient?.lastName]?.filter(i => !!i).join(' ');
+
+      const replyTo = {
+        fullName: `${assignedMember.profile.firstName} ${assignedMember.profile.lastName}`,
+        email: assignedMember.emails[0].address,
+      };
+
       const data = {
         contactFullName: customerName !== '' ? customerName : 'Customer',
         proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
@@ -355,11 +361,9 @@ export class ProposalService {
           ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsExcludeSelf}`
           : '',
         link: linksByToken[index],
-      };
-
-      const replyTo = {
-        fullName: `${assignedMember.profile.firstName} ${assignedMember.profile.lastName}`,
-        email: assignedMember.emails[0].address,
+        salesAgentFullName: replyTo.fullName,
+        salesAgentEmail: replyTo.email,
+        salesAgentPhoneNumber: assignedMember.profile.cellPhone,
       };
 
       this.emailService
