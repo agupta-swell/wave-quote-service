@@ -1,4 +1,4 @@
-import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
+import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
 import { IHistoricalUsage } from 'src/utilities/res';
 import { roundNumber } from 'src/utils/transformNumber';
 

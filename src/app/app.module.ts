@@ -13,6 +13,7 @@ import { DocusignCommunicationModule } from 'src/docusign-communications/docusig
 import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docusign-template-master.module';
 import { ECommerceModule } from 'src/e-commerces/e-commerce.module';
 import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
+import { EmailTemplateModule } from 'src/email-templates/email-template.module';
 import { EmailModule } from 'src/emails/email.module';
 import { EnergyProfileModule } from 'src/energy-profiles/energy-profile.module';
 import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
@@ -44,9 +45,9 @@ import { DocusignApiModule } from 'src/shared/docusign';
 import { GoogleSunroofModule } from 'src/shared/google-sunroof/google-sunroof.module';
 import { ENaming, MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
 import { MongooseNamingStrategyLoader } from 'src/shared/plugins/mongoose/naming-strategy.plugin';
-import { SystemAttributeModule } from 'src/system-attribute/system-attribute.module';
+import { SystemAttributeModule } from 'src/system-attributes/system-attribute.module';
 import { SystemDesignModule } from 'src/system-designs/system-design.module';
-import { SystemProductionModule } from 'src/system-production/system-production.module';
+import { SystemProductionModule } from 'src/system-productions/system-production.module';
 import { ToolTipModule } from 'src/tool-tips/tool-tip.module';
 import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { UserModule } from 'src/users/user.module';
@@ -97,6 +98,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     DocusignTemplateMasterModule,
     ECommerceModule,
     EmailModule,
+    EmailTemplateModule,
     ExternalServiceModule,
     FundingSourceModule,
     LeaseSolverConfigModule,

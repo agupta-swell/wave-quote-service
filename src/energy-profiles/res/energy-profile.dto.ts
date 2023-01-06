@@ -1,6 +1,6 @@
-import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
-import { IHistoricalUsage } from 'src/utilities/res';
 import { getNetLoadTypical } from 'src/energy-profiles/utils';
+import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
+import { IHistoricalUsage } from 'src/utilities/res';
 import { IBatteryDataSeries, IGetEnergyProfile, INetLoad } from '../energy-profile.interface';
 
 export class GetEnergyProfile {

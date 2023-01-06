@@ -1,8 +1,8 @@
 import { Document, Schema } from 'mongoose';
 
-export const GENEBILITY_TARIFF_DATA = 'v2_genability_tariff_data';
+export const GENABILITY_TARIFF_DATA = 'v2_genability_tariff_data';
 
-export const GenebilityTariffDataDetailSchema = new Schema(
+export const GenabilityTariffDataDetailSchema = new Schema(
   {
     tariff_code: String,
     master_tariff_id: String,
@@ -14,26 +14,26 @@ export const GenebilityTariffDataDetailSchema = new Schema(
   },
 );
 
-export const GenebilityTariffDataSchema = new Schema({
+export const GenabilityTariffDataSchema = new Schema({
   zip_code: Number,
   lse_id: String,
   lse_name: String,
-  tariff_details: [GenebilityTariffDataDetailSchema],
+  tariff_details: [GenabilityTariffDataDetailSchema],
   created_at: {
     type: Date,
     default: Date.now,
   },
 });
 
-export interface GenebilityTariffDataDetail extends Document {
+export interface GenabilityTariffDataDetail extends Document {
   tariffCode: string;
   masterTariffId: string;
   tariffName: string;
 }
 
-export interface GenebilityTeriffData extends Document {
+export interface GenabilityTeriffData extends Document {
   zipCode: number;
   lseId: string;
   lseName: string;
-  tariffDetails: GenebilityTariffDataDetail[];
+  tariffDetails: GenabilityTariffDataDetail[];
 }

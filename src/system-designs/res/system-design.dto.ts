@@ -2,7 +2,7 @@ import { Pagination } from 'src/app/common';
 import { ServiceResponse } from 'src/app/common/service-response';
 import { ExistingSystemResDto } from 'src/existing-systems/res';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
-import { SystemProductionDto } from 'src/system-production/res';
+import { SystemProductionDto } from 'src/system-productions/res';
 import { PinballSimulatorDto } from 'src/utilities/res/pinball-simulator.dto';
 import { CapacityProductionDataDto, RoofTopDataDto, sunroofDriftCorrectionResDto } from './sub-dto';
 

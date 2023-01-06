@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as Handlebars from 'handlebars';
 import * as mailgun from 'mailgun-js';
 import { ApplicationException } from 'src/app/app.exception';
+import { EmailTemplateService } from 'src/email-templates/email-template.service';
 
 @Injectable()
 export class EmailService {
@@ -13,39 +14,34 @@ export class EmailService {
     this._templates.set(name, Handlebars.compile(source));
   }
 
-  constructor() {
+  constructor(private readonly emailTemplateService: EmailTemplateService) {
     this.mailgunInstance = mailgun({
       apiKey: process.env.MAILGUN_KEY || '',
       domain: process.env.MAILGUN_DOMAIN || '',
     });
   }
 
-  private getTemplate(name: string | symbol): HandlebarsTemplateDelegate {
-    const handler = EmailService._templates.get(name);
-
+  private async getTemplate(eventType: string): Promise<HandlebarsTemplateDelegate> {
+    const handler = await this.emailTemplateService.getEmailTemplateByEventType(eventType);
     if (!handler) {
-      console.log(
-        '🚀 ~ file: email.service.ts ~ line 26 ~ EmailService ~ getTemplate ~ handler',
-        'No registered email template found with name',
-        name,
-      );
       throw ApplicationException.ServiceError();
     }
 
-    return handler;
+    return Handlebars.compile(handler.content);
   }
 
   async sendMailByTemplate(
     recipient: string,
     subject: string,
-    templateName: string | symbol,
+    eventType: string,
     templatePayload: Record<string, unknown>,
     replyTo?: {
       fullName: string;
       email: string;
     },
   ): Promise<mailgun.messages.SendResponse> {
-    const html = this.getTemplate(templateName)(templatePayload);
+    const html = (await this.getTemplate(eventType))(templatePayload);
+
     return this.sendMail(recipient, html, subject, replyTo);
   }
 

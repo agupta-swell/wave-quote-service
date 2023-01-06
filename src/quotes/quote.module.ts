@@ -7,7 +7,7 @@ import { FinancialProductsModule } from 'src/financial-products/financial-produc
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { PromotionModule } from 'src/promotions/promotion.module';
-import { SystemProductionModule } from 'src/system-production/system-production.module';
+import { SystemProductionModule } from 'src/system-productions/system-production.module';
 import { TaxCreditConfigModule } from 'src/tax-credit-configs/tax-credit-config.module';
 import { QuoteController } from './quote.controller';
 import { QUOTE, QuoteSchema } from './quote.schema';

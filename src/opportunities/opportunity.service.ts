@@ -10,7 +10,7 @@ import { ContractResDto } from 'src/contracts/res/sub-dto';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
 import { ExistingSystemResDto } from 'src/existing-systems/res/existing-system.res.dto';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
-import { FinancierService } from 'src/financier/financier.service';
+import { FinancierService } from 'src/financiers/financier.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';

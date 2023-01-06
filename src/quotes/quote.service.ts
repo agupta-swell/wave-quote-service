@@ -3,7 +3,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
-import { isNil, omit, omitBy, pickBy, sum, sumBy } from 'lodash';
+import { isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { ContractService } from 'src/contracts/contract.service';
@@ -23,7 +23,7 @@ import { RebateProgramService } from 'src/rebate-programs/rebate-programs.servic
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
-import { SystemProductionService } from 'src/system-production/system-production.service';
+import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
 import { UtilityService } from 'src/utilities/utility.service';

@@ -46,8 +46,8 @@ import {
 } from './res';
 import { PinballSimulatorDto } from './res/pinball-simulator.dto';
 import { UTILITIES, Utilities } from './schemas';
-import { GenebilityLseData, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
-import { GenebilityTeriffData, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
+import { GenabilityLseData, GENABILITY_LSE_DATA } from './schemas/genability-lse-caching.schema';
+import { GenabilityTeriffData, GENABILITY_TARIFF_DATA } from './schemas/genability-tariff-caching.schema';
 import { getTypicalUsage, IGetTypicalUsageKwh } from './sub-services';
 import { IPinballRateAmount } from './utility.interface';
 import {
@@ -69,7 +69,7 @@ import {
 export class UtilityService implements OnModuleInit {
   private AWS_S3_UTILITY_DATA = process.env.AWS_S3_UTILITY_DATA as string;
 
-  private GENEBILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
+  private GENABILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
 
   private readonly logger = new Logger(UtilityService.name);
 
@@ -87,8 +87,8 @@ export class UtilityService implements OnModuleInit {
     private readonly systemDesignService: SystemDesignService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
-    @InjectModel(GENEBILITY_LSE_DATA) private readonly genebilityLseDataModel: Model<GenebilityLseData>,
-    @InjectModel(GENEBILITY_TARIFF_DATA) private readonly genebilityTeriffDataModel: Model<GenebilityTeriffData>,
+    @InjectModel(GENABILITY_LSE_DATA) private readonly genabilityLseDataModel: Model<GenabilityLseData>,
+    @InjectModel(GENABILITY_TARIFF_DATA) private readonly genabilityTeriffDataModel: Model<GenabilityTeriffData>,
     private readonly usageProfileService: UsageProfileService,
     @Inject(forwardRef(() => ExistingSystemService))
     private readonly existingSystemService: ExistingSystemService,
@@ -116,10 +116,10 @@ export class UtilityService implements OnModuleInit {
   }
 
   async getLoadServingEntities(zipCode: number): Promise<OperationResult<LoadServingEntity[]>> {
-    const cacheData = await this.genebilityLseDataModel.findOne({ zipCode }).lean();
+    const cacheData = await this.genabilityLseDataModel.findOne({ zipCode }).lean();
 
     if (cacheData) {
-      const expiredAt = +new Date((<any>cacheData).createdAt) + this.GENEBILITY_CACHING_TIME;
+      const expiredAt = +new Date((<any>cacheData).createdAt) + this.GENABILITY_CACHING_TIME;
       const now = +new Date();
 
       const remain = expiredAt - now;
@@ -134,12 +134,12 @@ export class UtilityService implements OnModuleInit {
           })),
         );
 
-      await this.genebilityLseDataModel.deleteOne({ zipCode });
+      await this.genabilityLseDataModel.deleteOne({ zipCode });
     }
 
     const lseList = await this.externalService.getLoadServingEntities(zipCode);
 
-    await this.genebilityLseDataModel.create({
+    await this.genabilityLseDataModel.create({
       zipCode,
       data: lseList,
     });
@@ -194,10 +194,10 @@ export class UtilityService implements OnModuleInit {
           lseId,
         }
       : { zipCode };
-    const cacheData = await this.genebilityTeriffDataModel.findOne(<any>query).lean();
+    const cacheData = await this.genabilityTeriffDataModel.findOne(<any>query).lean();
 
     if (cacheData) {
-      const expiredAt = +new Date((<any>cacheData).createdAt) + this.GENEBILITY_CACHING_TIME;
+      const expiredAt = +new Date((<any>cacheData).createdAt) + this.GENABILITY_CACHING_TIME;
       const now = +new Date();
 
       const remain = expiredAt - now;
@@ -213,7 +213,7 @@ export class UtilityService implements OnModuleInit {
         );
       }
 
-      await this.genebilityTeriffDataModel.deleteOne({
+      await this.genabilityTeriffDataModel.deleteOne({
         zipCode,
         lseId: `${lseId}`,
       });
@@ -233,7 +233,7 @@ export class UtilityService implements OnModuleInit {
       tariffDetails: result,
     };
 
-    await this.genebilityTeriffDataModel.create(newResult);
+    await this.genabilityTeriffDataModel.create(newResult);
 
     return OperationResult.ok(strictPlainToClass(TariffDto, newResult));
   }
@@ -616,11 +616,15 @@ export class UtilityService implements OnModuleInit {
     const batteryDischargingSeriesIn24Hours: number[] = [];
     const postInstallSiteDemandSeriesIn24Hours: number[] = [];
     for (let i = 0; i < 24; i += 1) {
-      pvGenerationIn24Hours.push(
-        new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
-          .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
-          .toNumber(),
-      );
+      // Temporary exclude existingPV from PINBALL calculation due to incorrect Net Load value. Ref wav-2640
+      //
+      // pvGenerationIn24Hours.push(
+      //   new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
+      //     .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
+      //     .toNumber(),
+      // );
+
+      pvGenerationIn24Hours.push(hourlySeriesForNewPVIn24Hours[i] || 0);
       netLoadIn24Hours.push(
         new BigNumber(hourlyPostInstallLoadIn24Hours[i] || 0).minus(pvGenerationIn24Hours[i]).toNumber(),
       );
@@ -754,7 +758,10 @@ export class UtilityService implements OnModuleInit {
       let totalRateAmountHourly = new BigNumber(0);
 
       filterTariffs.forEach(filterTariff => {
-        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = filterTariff?.timeOfUse.season;
+        const season = filterTariff.timeOfUse.season || filterTariff.season;
+        if (!season) return;
+
+        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = season;
         const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
 
         const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;

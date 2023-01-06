@@ -15,7 +15,7 @@ import {
   SoftCostSnapshotSchema,
 } from 'src/products-v2/schemas';
 import { WithMetaOfType } from 'src/shared/mongo';
-import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
+import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
 import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
 import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';

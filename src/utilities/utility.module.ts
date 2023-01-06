@@ -9,8 +9,8 @@ import { AwsModule } from 'src/shared/aws/aws.module';
 import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { PipeTypicalUsageInterceptor } from './interceptors/pipe-typical-usage.interceptor';
 import { UTILITIES, UtilitiesSchema } from './schemas';
-import { GenebilityLseDataSchema, GENEBILITY_LSE_DATA } from './schemas/genebility-lse-caching.schema';
-import { GenebilityTariffDataSchema, GENEBILITY_TARIFF_DATA } from './schemas/genebility-tariff-caching.schema';
+import { GenabilityLseDataSchema, GENABILITY_LSE_DATA } from './schemas/genability-lse-caching.schema';
+import { GenabilityTariffDataSchema, GENABILITY_TARIFF_DATA } from './schemas/genability-tariff-caching.schema';
 import { UtilityController } from './utility.controller';
 import {
   GenabilityCostDataSchema,
@@ -18,7 +18,7 @@ import {
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
   UtilityUsageDetailsSchema,
-  UTILITY_USAGE_DETAILS
+  UTILITY_USAGE_DETAILS,
 } from './utility.schema';
 import { UtilityService } from './utility.service';
 
@@ -50,14 +50,14 @@ import { UtilityService } from './utility.service';
         collection: 'utilities',
       },
       {
-        name: GENEBILITY_LSE_DATA,
-        schema: GenebilityLseDataSchema,
-        collection: GENEBILITY_LSE_DATA,
+        name: GENABILITY_LSE_DATA,
+        schema: GenabilityLseDataSchema,
+        collection: GENABILITY_LSE_DATA,
       },
       {
-        name: GENEBILITY_TARIFF_DATA,
-        schema: GenebilityTariffDataSchema,
-        collection: GENEBILITY_TARIFF_DATA,
+        name: GENABILITY_TARIFF_DATA,
+        schema: GenabilityTariffDataSchema,
+        collection: GENABILITY_TARIFF_DATA,
       },
     ]),
     UsageProfileModule,

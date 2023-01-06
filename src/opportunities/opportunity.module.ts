@@ -1,11 +1,11 @@
-import { Global, Module, forwardRef } from '@nestjs/common';
+import { forwardRef, Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AccountModule } from 'src/accounts/account.module';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
-import { FinancierModule } from 'src/financier/financier.module';
+import { FinancierModule } from 'src/financiers/financier.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { QuotePartnerConfigModule } from 'src/quote-partner-configs/quote-partner-config.module';
 import { QuoteModule } from 'src/quotes/quote.module';

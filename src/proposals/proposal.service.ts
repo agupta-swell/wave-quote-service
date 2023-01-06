@@ -29,9 +29,9 @@ import { ProposalTemplateService } from 'src/proposal-templates/proposal-templat
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { SystemProductionDto } from 'src/system-production/res';
-import { IEnergyProfileProduction } from 'src/system-production/system-production.schema';
-import { SystemProductionService } from 'src/system-production/system-production.service';
+import { SystemProductionDto } from 'src/system-productions/res';
+import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
+import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { UserService } from 'src/users/user.service';
 import { PROPOSAL_PERIOD_MODE, PROPOSAL_VIEW_MODE } from 'src/utilities/constants';
 import {
@@ -41,7 +41,7 @@ import {
   mapToResult,
 } from 'src/utilities/operators';
 import { GetDataSeriesResDto, IHistoricalUsage } from 'src/utilities/res';
-import { GenebilityTariffDataDetail } from 'src/utilities/schemas/genebility-tariff-caching.schema';
+import { GenabilityTariffDataDetail } from 'src/utilities/schemas/genability-tariff-caching.schema';
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
@@ -63,7 +63,6 @@ import { SignerDetailDto, TemplateDetailDto } from './req/send-sample-contract.d
 import { ProposalAnalyticDto } from './res/proposal-analytic.dto';
 import { ProposalDto } from './res/proposal.dto';
 import { ProposalAnalytic, PROPOSAL_ANALYTIC, TRACKING_TYPE } from './schemas/proposal-analytic.schema';
-import { PROPOSAL_EMAIL_TEMPLATE } from './template-html/proposal-template';
 
 @Injectable()
 export class ProposalService {
@@ -349,25 +348,29 @@ export class ProposalService {
         }, [] as string[])
         .join(', ');
       const customerName = [recipient?.firstName, recipient?.lastName]?.filter(i => !!i).join(' ');
-      const data = {
-        customerName: customerName !== '' ? customerName : 'Customer',
-        proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
-        recipientNotice: recipientsExcludeSelf
-          ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsExcludeSelf}`
-          : '',
-        proposalLink: linksByToken[index],
-      };
 
       const replyTo = {
         fullName: `${assignedMember.profile.firstName} ${assignedMember.profile.lastName}`,
         email: assignedMember.emails[0].address,
       };
 
+      const data = {
+        contactFullName: customerName !== '' ? customerName : 'Customer',
+        proposalValidityPeriod: foundProposal.detailedProposal.proposalValidityPeriod,
+        recipientNotice: recipientsExcludeSelf
+          ? `Please note, this proposal has been shared with additional email IDs as per your request: ${recipientsExcludeSelf}`
+          : '',
+        link: linksByToken[index],
+        salesAgentFullName: replyTo.fullName,
+        salesAgentEmail: replyTo.email,
+        salesAgentPhoneNumber: assignedMember.profile.cellPhone,
+      };
+
       this.emailService
         .sendMailByTemplate(
           recipient?.email || '',
           `${foundProposal.detailedProposal.proposalName}`,
-          PROPOSAL_EMAIL_TEMPLATE,
+          'Proposal Email',
           data,
           replyTo,
         )
@@ -386,7 +389,7 @@ export class ProposalService {
       historicalUsage?: IHistoricalUsage;
       systemProduction?: SystemProductionDto;
       manufacturers?: ManufacturerDto[];
-      tariffDetails?: { masterTariff: GenebilityTariffDataDetail; postInstallMasterTariff: GenebilityTariffDataDetail };
+      tariffDetails?: { masterTariff: GenabilityTariffDataDetail; postInstallMasterTariff: GenabilityTariffDataDetail };
       proposalDetail: ProposalDto;
       sumOfUtilityUsageCost?: number;
       sumOfMonthlyUsageCost?: number;

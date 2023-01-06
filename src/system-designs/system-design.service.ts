@@ -27,8 +27,8 @@ import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.s
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { ISystemProduction as ISystemProduction_v2 } from 'src/system-production/system-production.schema';
-import { SystemProductionService } from 'src/system-production/system-production.service';
+import { ISystemProduction as ISystemProduction_v2 } from 'src/system-productions/system-production.schema';
+import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { IUtilityCostData } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
