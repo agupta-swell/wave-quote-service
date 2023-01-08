@@ -116,6 +116,7 @@ export class SystemDesignService {
       this.systemProductService.calculateSystemProductionByHour(systemDesignDto),
     ]);
     const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
+    const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
     const arrayGenerationKWh: number[] = [];
     let cumulativeGenerationKWh = 0;
@@ -302,7 +303,7 @@ export class SystemDesignService {
                 generationKWh: generation,
                 productivity: capacity === 0 ? 0 : generation / capacity,
                 annualUsageKWh,
-                offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
+                offsetPercentage: totalPlannedUsageIncreases > 0 ? generation / totalPlannedUsageIncreases : 0,
                 generationMonthlyKWh: systemProductionArray.monthly,
                 arrayGenerationKWh,
               },
@@ -373,7 +374,7 @@ export class SystemDesignService {
       generationKWh: cumulativeGenerationKWh,
       productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
       annualUsageKWh,
-      offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+      offsetPercentage: totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0,
       generationMonthlyKWh: systemProductionArray.monthly,
       arrayGenerationKWh,
       pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt production typical
@@ -425,6 +426,7 @@ export class SystemDesignService {
     );
 
     const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
+    const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
     const adders = products.filter(item => item.type === PRODUCT_TYPE.ADDER) as LeanDocument<
       IProductDocument<PRODUCT_TYPE.ADDER>
@@ -552,7 +554,7 @@ export class SystemDesignService {
         generationKWh: cumulativeGenerationKWh,
         productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
         annualUsageKWh,
-        offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+        offsetPercentage: totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
         pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
@@ -617,7 +619,7 @@ export class SystemDesignService {
               generationKWh: generation,
               productivity: capacity === 0 ? 0 : generation / capacity,
               annualUsageKWh,
-              offsetPercentage: annualUsageKWh > 0 ? generation / annualUsageKWh : 0,
+              offsetPercentage: totalPlannedUsageIncreases > 0 ? generation / totalPlannedUsageIncreases : 0,
               generationMonthlyKWh: systemProductionArray.monthly,
               arrayGenerationKWh,
             },
@@ -641,7 +643,7 @@ export class SystemDesignService {
         generationKWh: cumulativeGenerationKWh,
         productivity: cumulativeCapacityKW === 0 ? 0 : cumulativeGenerationKWh / cumulativeCapacityKW,
         annualUsageKWh,
-        offsetPercentage: annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0,
+        offsetPercentage: totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
         pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
@@ -997,7 +999,12 @@ export class SystemDesignService {
   }
 
   async updateListSystemDesign(opportunityId: string, annualUsageKWh: number): Promise<boolean> {
-    const systemDesigns = await this.systemDesignModel.find({ opportunityId });
+    const [systemDesigns, utilityAndUsage] = await Promise.all([
+      this.systemDesignModel.find({ opportunityId }),
+      this.utilityService.getUtilityByOpportunityId(opportunityId),
+    ]);
+
+    const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
     try {
       await Promise.all(
@@ -1008,7 +1015,8 @@ export class SystemDesignService {
           }
           this.systemProductionService.update(item.systemProductionId, {
             annualUsageKWh,
-            offsetPercentage: annualUsageKWh > 0 ? systemProduction.data.generationKWh / annualUsageKWh : 0,
+            offsetPercentage:
+              totalPlannedUsageIncreases > 0 ? systemProduction.data.generationKWh / totalPlannedUsageIncreases : 0,
           });
         }),
       );
