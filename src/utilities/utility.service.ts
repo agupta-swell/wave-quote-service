@@ -69,7 +69,7 @@ import {
 export class UtilityService implements OnModuleInit {
   private AWS_S3_UTILITY_DATA = process.env.AWS_S3_UTILITY_DATA as string;
 
-  private GENEBILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
+  private GENABILITY_CACHING_TIME = 24 * 60 * 60 * 1000;
 
   private readonly logger = new Logger(UtilityService.name);
 
