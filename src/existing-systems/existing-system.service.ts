@@ -106,6 +106,7 @@ export class ExistingSystemService implements OnModuleInit {
     const { typicalBaselineUsage } = utilityData;
 
     const computedUsage = {
+      ...utilityData.computedUsage,
       monthlyUsage: typicalBaselineUsage.typicalMonthlyUsage.map(({ i, v }, idx) => ({
         i,
         v: v - (existingSystemProduction?.monthlyProduction[idx]?.v || 0),
@@ -113,9 +114,11 @@ export class ExistingSystemService implements OnModuleInit {
       annualConsumption: typicalBaselineUsage.annualConsumption - (existingSystemProduction?.annualProduction || 0),
     };
 
+    const { monthlyUsage, annualConsumption } = computedUsage;
+
     const newUtilityData = {
       ...utilityData,
-      computedUsage,
+      computedUsage: { monthlyUsage, annualConsumption },
     };
 
     const posData = {
@@ -131,6 +134,8 @@ export class ExistingSystemService implements OnModuleInit {
       ...costData,
       computedCost: actualUsageCost.computedCost,
     };
+
+    newUtilityData.computedUsage = computedUsage;
 
     const updateData = {
       ...utilities,
