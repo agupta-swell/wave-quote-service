@@ -8,6 +8,7 @@ import {
 import { IGenericObject } from '../../typing';
 
 @DocusignTemplate('demo', 'f3e2597c-af8e-4718-8d7b-44cf63f19ea5')
+@DocusignTemplate('live', 'f44b8049-d160-4f35-9f98-1574b28996e2')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
 export class CaConsumerGuideTemplate {
