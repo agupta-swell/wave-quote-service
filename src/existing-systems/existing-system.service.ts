@@ -123,9 +123,9 @@ export class ExistingSystemService implements OnModuleInit {
 
     const posData = {
       utilityData: newUtilityData,
-      zipCode: typicalBaselineUsage.zipCode,
       masterTariffId: costData.masterTariffId,
       usageProfileId: utilities.usageProfileId,
+      opportunityId,
     };
 
     const actualUsageCost = await this.utilityService.calculateActualUsageCostUtil(posData);

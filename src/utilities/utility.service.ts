@@ -6,7 +6,7 @@ import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
 import { inRange, sum, sumBy } from 'lodash';
-import { LeanDocument, Model, ObjectId } from 'mongoose';
+import { Model, ObjectId, LeanDocument } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContactService } from 'src/contacts/contact.service';
@@ -22,6 +22,8 @@ import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
 import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRage } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
+import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
+import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
@@ -147,8 +149,13 @@ export class UtilityService implements OnModuleInit {
     return OperationResult.ok(lseList);
   }
 
-  async getTypicalBaseline(zipCode: number, isInternal = false): Promise<OperationResult<UtilityDataDto>> {
-    const typicalBaseLine = await this.genabilityUsageDataModel.findOne({ zipCode }).lean();
+  async getTypicalBaseline(
+    typicalBaselineParams: TypicalBaselineParamsDto,
+    isInternal = false,
+  ): Promise<OperationResult<UtilityDataDto>> {
+    const typicalBaseLine = await this.genabilityUsageDataModel
+      .findOne({ zipCode: typicalBaselineParams.zipCode })
+      .lean();
     if (typicalBaseLine) {
       if (
         typicalBaseLine.typicalBaseline.__v ||
@@ -163,10 +170,10 @@ export class UtilityService implements OnModuleInit {
         return OperationResult.ok(strictPlainToClass(UtilityDataDto, data));
       }
 
-      await this.genabilityUsageDataModel.deleteOne({ zipCode });
+      await this.genabilityUsageDataModel.deleteOne({ zipCode: typicalBaselineParams.zipCode });
     }
 
-    const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
+    const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(typicalBaselineParams);
     const genabilityTypicalBaseLine = {
       zipCode: typicalBaseLineAPI.zipCode,
       lseId: typicalBaseLineAPI.lseId,
@@ -238,8 +245,11 @@ export class UtilityService implements OnModuleInit {
     return OperationResult.ok(strictPlainToClass(TariffDto, newResult));
   }
 
-  async calculateTypicalUsageCost(zipCode: number, masterTariffId: string): Promise<OperationResult<CostDataDto>> {
-    const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
+  async calculateTypicalUsageCost(
+    opportunityId: string,
+    masterTariffId: string,
+  ): Promise<OperationResult<CostDataDto>> {
+    const typicalBaseLine = await this.getTypicalBaselineData(opportunityId);
 
     const monthlyCost = await this.calculateCost(
       typicalBaseLine.typicalBaseline.typicalHourlyUsage.map(item => item.v),
@@ -258,14 +268,17 @@ export class UtilityService implements OnModuleInit {
   }
 
   async calculateActualUsageCostUtil(data: CalculateActualUsageCostDto): Promise<any> {
-    const { zipCode, masterTariffId, utilityData, usageProfileId } = data;
+    const { masterTariffId, utilityData, usageProfileId } = data;
     let hourlyDataForTheYear: UsageValue[] = [];
 
     if (utilityData.computedUsage?.hourlyUsage?.length) {
       hourlyDataForTheYear = utilityData.computedUsage.hourlyUsage;
     } else {
-      const typicalBaseLine = await this.getTypicalBaselineData(zipCode);
-      const usageProfile = (usageProfileId && (await this.usageProfileService.getOne(usageProfileId))) || undefined;
+      const handlers: Promise<unknown>[] = [this.getTypicalBaselineData(data.opportunityId)];
+      if (usageProfileId) handlers.push(this.usageProfileService.getOne(usageProfileId));
+      const [typicalBaseLine, usageProfile] = <[LeanDocument<GenabilityUsageData>, LeanDocument<UsageProfileDocument>]>(
+        await Promise.all(handlers)
+      );
 
       hourlyDataForTheYear = this.calculate8760OnActualMonthlyUsage(
         typicalBaseLine.typicalBaseline.typicalHourlyUsage,
@@ -328,7 +341,7 @@ export class UtilityService implements OnModuleInit {
       return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, result));
     }
 
-    const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
+    const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.opportunityId);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
     utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
 
@@ -370,7 +383,7 @@ export class UtilityService implements OnModuleInit {
     utilityId: ObjectId,
     utilityDto: CreateUtilityReqDto,
   ): Promise<LeanDocument<UtilityUsageDetails> | null> {
-    const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.utilityData.typicalBaselineUsage.zipCode);
+    const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.opportunityId);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
     utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
 
@@ -1012,13 +1025,16 @@ export class UtilityService implements OnModuleInit {
     return new Date(year, month, 0).getDate();
   }
 
-  async getTypicalBaselineData(zipCode: number): Promise<LeanDocument<GenabilityUsageData>> {
-    let typicalBaseLine: any = await this.genabilityUsageDataModel.findOne({ zipCode }).lean();
+  async getTypicalBaselineData(opportunityId: string): Promise<LeanDocument<GenabilityUsageData>> {
+    const typicalBaselineParams = await this.opportunityService.getTypicalBaselineContactById(opportunityId);
+    let typicalBaseLine: any = await this.genabilityUsageDataModel
+      .findOne({ zipCode: typicalBaselineParams.zipCode })
+      .lean();
     if (typicalBaseLine) {
       return typicalBaseLine;
     }
 
-    const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(zipCode);
+    const typicalBaseLineAPI = await this.externalService.getTypicalBaseLine(typicalBaselineParams);
     const genabilityTypicalBaseLine = {
       zipCode: typicalBaseLineAPI.zipCode,
       lseId: typicalBaseLineAPI.lseId,

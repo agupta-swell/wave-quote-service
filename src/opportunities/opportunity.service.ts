@@ -16,6 +16,7 @@ import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-conf
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { Opportunity, OPPORTUNITY } from './opportunity.schema';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
@@ -223,6 +224,25 @@ export class OpportunityService {
   async getContactIdById(opportunityId: string): Promise<string | undefined> {
     const res = await this.opportunityModel.findById(opportunityId);
     return res?.contactId;
+  }
+
+  async getTypicalBaselineContactById(opportunityId: string): Promise<TypicalBaselineParamsDto> {
+    const opportunity = await this.opportunityModel.findById(opportunityId).lean();
+    if (!opportunity) {
+      throw new NotFoundException('Opportunity not found');
+    }
+    const contact = await this.contactService.getContactById(opportunity.contactId);
+    if (!contact) {
+      throw new NotFoundException('Contact not found');
+    }
+    return {
+      zipCode: Number(contact.zip),
+      addressString: contact.address1,
+      lat: contact.lat,
+      lng: contact.lng,
+      buildingType: 'singleFamilyDetached',
+      excludeMeasures: false,
+    };
   }
 
   async getDetailById(opportunityId: string): Promise<LeanDocument<Opportunity> | null> {

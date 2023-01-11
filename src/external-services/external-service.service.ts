@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import * as dayjs from 'dayjs';
 import { getNextYearDateRage } from 'src/utils/datetime';
+import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
 import { IApplyRequest } from '../qualifications/typing';
@@ -143,7 +144,7 @@ export class ExternalService {
     return typicalMonthlyUsage as ITypicalUsage[];
   };
 
-  async getTypicalBaseLine(zipCode: number): Promise<ITypicalBaseLine> {
+  async getTypicalBaseLine(typicalBaselineParams: TypicalBaselineParamsDto): Promise<ITypicalBaseLine> {
     // Docs: https://developer.genability.com/api-reference/shared-api/typical-baseline/#get-best-baseline
 
     const URL = 'https://api.genability.com/rest/v1/typicals/baselines/best';
@@ -154,11 +155,7 @@ export class ExternalService {
         headers: {
           Authorization: this.genabilityToken,
         },
-        params: {
-          addressString: zipCode,
-          buildingType: 'singleFamilyDetached',
-          excludeMeasures: false,
-        },
+        params: typicalBaselineParams,
       });
     } catch (error) {
       this.logger.errorAPICalling(URL, error.message);
@@ -169,7 +166,7 @@ export class ExternalService {
     const typicalMonthlyUsage = this.calculateMonthlyUsage(result.measures);
 
     const entity = {
-      zipCode,
+      zipCode: typicalBaselineParams.zipCode,
       buildingType: result.buildingType.id,
       customerClass: result.buildingType.customerClass,
       lseName: result.climateZone.lseName,
