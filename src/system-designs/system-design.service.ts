@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus */
 import {
   BadRequestException,
   forwardRef,
@@ -33,6 +34,7 @@ import { IUtilityCostData } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
 import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
+import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
@@ -53,6 +55,7 @@ import {
   SystemDesignAncillaryMasterDto,
   SystemDesignDto,
 } from './res';
+import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
 import { ISystemProduction, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
@@ -1414,5 +1417,98 @@ export class SystemDesignService {
     this.systemDesignModel
       .updateOne({ _id: systemDesign.id }, { costPostInstallation: monthlyCost as IUtilityCostData })
       .catch(error => console.error(error));
+  }
+
+  public async create8760CSVData(systemDesignId: ObjectId | string) {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
+
+    if (!systemDesign) {
+      throw new NotFoundException(`No system design found with id ${systemDesignId}`);
+    }
+
+    const [utility, systemProduction, systemProductionArray] = await Promise.all([
+      this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
+      this.systemProductionService.findOne(systemDesign.systemProductionId),
+      this.systemProductService.calculateSystemProductionByHour(systemDesign),
+    ]);
+
+    if (!utility) {
+      throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
+    }
+
+    if (!systemProduction) {
+      throw new NotFoundException(`System production with id ${systemDesign.systemProductionId} not found`);
+    }
+
+    const hourlySeriesForNewPVInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
+      systemProductionArray.hourly,
+      systemProduction.generationMonthlyKWh,
+    ) as number[];
+
+    const pinballDataSeriesKeys = [
+      'postInstallSiteDemandSeries',
+      'batteryStoredEnergySeries',
+      'batteryChargingSeries',
+      'batteryDischargingSeries',
+      'rateAmountHourly',
+    ];
+
+    const getPinballData = pinballDataSeriesKeys.map(series =>
+      this.s3Service.getObject(this.PINBALL_SIMULATION_BUCKET, `${systemDesignId}/${series}`),
+    );
+
+    const pinballData: any = {};
+
+    try {
+      const res = await Promise.all([...getPinballData]);
+
+      for (let i = 0; i < res.length; i++) {
+        const series = res[i];
+        if (series) {
+          pinballData[pinballDataSeriesKeys[i]] = JSON.parse(series);
+        }
+      }
+    } catch (_) {
+      // Do not thing, any error, such as NoSuchKey (file not found)
+    }
+
+    // prepare header and data in the right order
+    const csvFields = [
+      'Hour',
+      'typical_hourly_usage',
+      'actual_usage',
+      'computed_usage',
+      'new_pv', // TODO: update this field if more than one solar array
+      'batteryChargingSeries',
+      'batteryDischargingSeries',
+      'batteryStoredEnergySeries',
+      'postInstallSiteDemandSeries',
+      'rateAmountHourly',
+      'isCharging',
+    ];
+
+    const csvData: any = {
+      Hour: Array.from({ length: 8760 }, (_, i) => i + 1),
+      typical_hourly_usage: utility.utilityData.typicalBaselineUsage?.typicalHourlyUsage?.map(hourly => hourly.v),
+      actual_usage: utility.utilityData.actualUsage?.hourlyUsage?.map(hourly => hourly.v),
+      computed_usage: utility.utilityData.computedUsage?.hourlyUsage?.map(hourly => hourly.v),
+      new_pv: hourlySeriesForNewPVInKWh, // TODO: update this field if more than one solar array
+      batteryChargingSeries: pinballData.batteryChargingSeries?.map(e => e / 1000),
+      batteryDischargingSeries: pinballData.batteryDischargingSeries?.map(e => e / 1000),
+      batteryStoredEnergySeries: pinballData.batteryStoredEnergySeries?.map(e => e / 1000),
+      postInstallSiteDemandSeries: pinballData.postInstallSiteDemandSeries?.map(e => e / 1000),
+      rateAmountHourly: pinballData.rateAmountHourly?.map(hourly => hourly.rate),
+      isCharging: pinballData.rateAmountHourly?.map(hourly => hourly.charge),
+    };
+
+    return [csvFields, csvData];
+  }
+
+  public async generate8760DataSeriesCSV(systemDesignId: ObjectId | string) {
+    const [csvFields, csvData] = await this.create8760CSVData(systemDesignId);
+
+    const csv = transformDataToCSVFormat(csvFields, csvData);
+
+    return OperationResult.ok(strictPlainToClass(CsvExportResDto, { csv }));
   }
 }
