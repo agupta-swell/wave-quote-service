@@ -21,7 +21,7 @@ export const transformDataToCSVFormat = (csvFields: string[], csvData: any): str
   // add rows data to csv
   for (let rowIdx = 0; rowIdx < totalRows; rowIdx++) {
     for (let i = 0; i < csvFields.length; i++) {
-      csv += (csvData[csvFields[i]]?.[rowIdx] ?? '') + (i === csvFields.length - 1 ? '\r\n' : ',');
+      csv += (csvData[csvFields[i]]?.[rowIdx] ?? 'N/A') + (i === csvFields.length - 1 ? '\r\n' : ',');
     }
   }
 
