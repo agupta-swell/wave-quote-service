@@ -1081,9 +1081,11 @@ export class UtilityService implements OnModuleInit {
 
     if (!data[0].items.length) {
       for (let i = 0; i < 12; i++) {
+        const thisMonth = String(i + 1).padStart(2, '0');
+        const nextMonth = i === 11 ? String(1).padStart(2, '0') : String(i + 2).padStart(2, '0');
         monthlyCostToBeUsed.push({
-          startDate: new Date(`${currentYear}-0${i + 1}-01T00:00:00.000+00:00`),
-          endDate: new Date(`${currentYear}-0${i + 2}-01T00:00:00.000+00:00`),
+          startDate: new Date(`${currentYear}-${thisMonth}-01T00:00:00.000+00:00`),
+          endDate: new Date(`${i === 11 ? nextYear : currentYear}-${nextMonth}-01T00:00:00.000+00:00`),
           i,
           v: 0,
         });
