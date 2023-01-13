@@ -9,6 +9,13 @@ interface IExposeMongoIdOpt {
   eitherId?: boolean;
 }
 
+interface IExposeObjectIdOpt {
+  /**
+   * Return props[fieldName]
+   */
+  fieldName?: string;
+}
+
 /**
  * Compose `@ApiProperty`, `@Expose`, `@Type`, `@Transform`
  * 
@@ -23,4 +30,13 @@ export const ExposeMongoId = (apiPropertyOptions?: ApiPropertyOptions & IExposeM
   ApiProperty(apiPropertyOptions)(target, propertyKey);
   Expose()(target, propertyKey);
   Transform(e => (apiPropertyOptions?.eitherId ? e.obj._id || e.obj.id : e.obj._id))(target, propertyKey);
+};
+
+export const ExposeObjectId = (apiPropertyOptions?: ApiPropertyOptions & IExposeObjectIdOpt): PropertyDecorator => (
+  target,
+  propertyKey,
+) => {
+  ApiProperty(apiPropertyOptions)(target, propertyKey);
+  Expose()(target, propertyKey);
+  Transform(e => (apiPropertyOptions?.fieldName ? e.obj[apiPropertyOptions.fieldName] : e.obj._id))(target, propertyKey);
 };

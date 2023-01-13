@@ -1,4 +1,4 @@
-import { Document, Schema } from 'mongoose';
+import { Document, Schema, Types } from 'mongoose';
 import { MongooseNamingStrategy } from 'src/shared/mongoose-schema-mapper';
 
 export const QUOTE_PARTNER_CONFIG = Symbol('QUOTE_PARTNER_CONFIG').toString();
@@ -28,6 +28,7 @@ export interface QuotePartnerConfig extends Document {
   softCostMarkup: number;
   solarMarkup: number;
   storageMarkup: number;
+  defaultInverterId: Types.ObjectId;
 }
 
 export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
@@ -55,6 +56,7 @@ export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
   softCostMarkup: Number,
   solarMarkup: Number,
   storageMarkup: Number,
+  defaultInverterId: Types.ObjectId
 });
 
 MongooseNamingStrategy.ExcludeOne(QuotePartnerConfigSchema);

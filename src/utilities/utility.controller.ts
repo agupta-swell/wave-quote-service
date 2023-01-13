@@ -7,6 +7,7 @@ import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { ValidateAndSnapshotElectricVehiclesPipe } from 'src/electric-vehicles/pipes';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
+import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PreAuthenticate } from '../app/securities';
 import { TransformTypicalUsage } from './interceptors';
 import {
@@ -35,7 +36,10 @@ import { UtilityService } from './utility.service';
 @Controller('/utilities')
 @PreAuthenticate()
 export class UtilityController {
-  constructor(private readonly utilityService: UtilityService) {}
+  constructor(
+    private readonly utilityService: UtilityService,
+    private readonly opportunityService: OpportunityService,
+  ) {}
 
   @Get('/load-serving-entities')
   @ApiOperation({ summary: 'Get Load Serving Entity' })
@@ -50,8 +54,9 @@ export class UtilityController {
   @Get('/typical-baselines')
   @ApiOperation({ summary: 'Get Typical Baselines' })
   @ApiOkResponse({ type: UtilityDataDto })
-  async getTypicalBaseline(@Query('zipCode') zipCode: string): Promise<ServiceResponse<UtilityDataDto>> {
-    const res = await this.utilityService.getTypicalBaseline(Number(zipCode));
+  async getTypicalBaseline(@Query('opportunityId') opportunityId: string): Promise<ServiceResponse<UtilityDataDto>> {
+    const typicalBaselineParams = await this.opportunityService.getTypicalBaselineContactById(opportunityId);
+    const res = await this.utilityService.getTypicalBaseline(typicalBaselineParams);
     return ServiceResponse.fromResult(res);
   }
 
@@ -72,10 +77,10 @@ export class UtilityController {
   @ApiQuery({ name: 'masterTariffId', required: true })
   @ApiOkResponse({ type: CostDataDto })
   async calculateTypicalUsageCost(
-    @Query('zipCode', ParseIntPipe) zipCode: number,
+    @Query('opportunityId') opportunityId: string,
     @Query('masterTariffId') masterTariffId: string,
   ): Promise<ServiceResponse<CostDataDto>> {
-    const res = await this.utilityService.calculateTypicalUsageCost(zipCode, masterTariffId);
+    const res = await this.utilityService.calculateTypicalUsageCost(opportunityId, masterTariffId);
     return ServiceResponse.fromResult(res);
   }
 

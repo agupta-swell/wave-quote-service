@@ -22,10 +22,6 @@ export class CalculateActualUsageCostDto {
   masterTariffId: string;
 
   @ApiProperty()
-  @IsNumberString()
-  zipCode: number;
-  
-  @ApiProperty()
   @IsOptional()
   @IsMongoId()
   usageProfileId?: string;
@@ -35,4 +31,8 @@ export class CalculateActualUsageCostDto {
   @IsNotEmpty()
   @ValidateNested()
   utilityData: UtilityData;
+
+  @ApiProperty()
+  @IsOptional()
+  opportunityId: string;
 }

@@ -14,6 +14,8 @@ import { CALCULATION_MODE } from 'src/utilities/constants';
 import { CostDataDto, UtilityDataDto } from 'src/utilities/res';
 import { IUsageValue } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
+import { AddressDto } from 'src/e-commerces/req/sub-dto/address.dto';
+import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { OperationResult } from '../app/common';
 import { ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
 import { GeneratedSolarSystem } from './models/generated-solar-system';
@@ -68,7 +70,7 @@ export class ECommerceService {
       const numberOfSystemsToGenerate = panelVariance * 2 + 1;
 
       // Get the typical baseline power usage for the user
-      const typicalUsage = await this.getTypicalUsage(zip, req.monthlyUtilityBill);
+      const typicalUsage = await this.getTypicalUsage(req.addressDataDetail, req.monthlyUtilityBill);
 
       // Get the low and high end (+/- panelVariance) systems
       const [lowEndSystem, highEndSystem] = await Promise.all([
@@ -207,13 +209,22 @@ export class ECommerceService {
     return soilingDerate.amount;
   }
 
-  private async getTypicalUsage(zipCode: number, monthlyUtilityBill: number): Promise<TypicalUsage> {
+  private async getTypicalUsage(addressDataDetail: AddressDto, monthlyUtilityBill: number): Promise<TypicalUsage> {
     const utilityDataInst = strictPlainToClass(UtilityDataDto, {});
     const costDataInst = strictPlainToClass(CostDataDto, {});
 
+    const typicalBaselineParams: TypicalBaselineParamsDto = {
+      zipCode: Number(addressDataDetail.zip),
+      addressString: addressDataDetail.streetAddress + addressDataDetail.city + addressDataDetail.state,
+      lat: addressDataDetail.lat,
+      lng: addressDataDetail.long,
+      buildingType: 'singleFamilyDetached',
+      excludeMeasures: false,
+    };
+
     const [utilityTariffDataModel, typicalBaselineModel] = await Promise.all([
-      this.utilityService.getTariffs(zipCode),
-      this.utilityService.getTypicalBaseline(zipCode, true),
+      this.utilityService.getTariffs(addressDataDetail.zip),
+      this.utilityService.getTypicalBaseline(typicalBaselineParams, true),
     ]);
 
     const utilityTariffDataInst = utilityTariffDataModel.data;
@@ -226,7 +237,7 @@ export class ECommerceService {
       utilityTariffDataInst?.tariffDetails[0].masterTariffId || '',
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
-      zipCode,
+      addressDataDetail.zip,
     );
 
     costDataInst.masterTariffId = utilityTariffDataInst?.tariffDetails[0].masterTariffId || '';

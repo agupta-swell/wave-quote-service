@@ -1,4 +1,4 @@
-import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { ExposeMongoId, ExposeProp, ExposeObjectId } from 'src/shared/decorators';
 import { ServiceResponse } from '../../app/common/service-response';
 
 export class QuotePartnerConfigDto {
@@ -52,6 +52,9 @@ export class QuotePartnerConfigDto {
 
   @ExposeProp()
   useFixedSalesOriginationSalesFee: boolean;
+
+  @ExposeObjectId({ fieldName: 'defaultInverterId' })
+  defaultInverterId: string;
 }
 
 export class QuotePartnerConfigResponse implements ServiceResponse<QuotePartnerConfigDto> {

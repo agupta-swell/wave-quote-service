@@ -27,6 +27,7 @@ import {
   SystemDesignListRes,
   SystemDesignRes,
 } from './res';
+import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
 import { SystemDesignService } from './system-design.service';
 
 @ApiTags('System Design')
@@ -182,5 +183,14 @@ export class SystemDesignController {
   @ApiParam({ name: 'id', type: String })
   async uploadSystemDesignThumbnail(@Param('id') id: ObjectId, @Body() file: BusBoyFileStream) {
     await this.systemDesignService.updateSystemDesignThumbnail(id, file);
+  }
+
+  @Get(':id/download-8760-data')
+  @ApiParam({ name: 'id', type: String })
+  @ApiOperation({ summary: 'download8760DataCSV' })
+  async download8760DataCSV(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<CsvExportResDto>> {
+    const result = await this.systemDesignService.generate8760DataSeriesCSV(id);
+
+    return ServiceResponse.fromResult(result);
   }
 }

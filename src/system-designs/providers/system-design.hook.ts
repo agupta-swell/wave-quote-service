@@ -7,6 +7,7 @@ import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.s
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductionDto } from 'src/system-productions/res';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
+import { UtilityService } from 'src/utilities/utility.service';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
 import { SystemDesignDto } from '../res';
@@ -25,6 +26,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     private readonly s3Service: S3Service,
     private readonly googleSunroofService: GoogleSunroofService,
     private readonly systemProductionService: SystemProductionService,
+    private readonly utilityService: UtilityService,
     private readonly sunroofHourlyProductionCalculation: SunroofHourlyProductionCalculation,
   ) {}
 
@@ -249,17 +251,21 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   }
 
   private async regenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): Promise<void> {
-    const sunroofProduction = await this.googleSunroofService.calculateProduction(systemDesign);
-
-    const systemProduction = await this.systemProductionService.findOne(systemDesign.systemProductionId);
+    const [sunroofProduction, systemProduction, utilityAndUsage] = await Promise.all([
+      this.googleSunroofService.calculateProduction(systemDesign),
+      this.systemProductionService.findOne(systemDesign.systemProductionId),
+      this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
+    ]);
 
     if (!systemProduction) return;
     const cumulativeGenerationKWh = sunroofProduction.annualProduction;
-    const { capacityKW, annualUsageKWh } = systemProduction;
+    const { capacityKW } = systemProduction;
+    const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
     systemProduction.generationKWh = cumulativeGenerationKWh;
     systemProduction.productivity = capacityKW === 0 ? 0 : cumulativeGenerationKWh / capacityKW;
-    systemProduction.offsetPercentage = annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0;
+    systemProduction.offsetPercentage =
+      totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0;
     systemProduction.generationMonthlyKWh = sunroofProduction.monthlyProduction;
     systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
 
