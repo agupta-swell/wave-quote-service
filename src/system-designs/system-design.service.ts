@@ -1371,8 +1371,7 @@ export class SystemDesignService {
     }
 
     const { storage } = systemDesign.roofTopDesignData;
-
-    const simulatePinballData = await this.utilityService.simulatePinball({
+    const inputData = {
       hourlyPostInstallLoad: hourlyPostInstallLoadInWh,
       hourlySeriesForExistingPV: hourlySeriesForExistingPVInWh,
       hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
@@ -1387,7 +1386,16 @@ export class SystemDesignService {
             : sumBy(storage, item => item.reservePercentage || 0) / storage.length || 0,
         operationMode: storage[0]?.purpose || BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
       },
-    });
+    }
+
+    await this.s3Service.putObject(
+      this.PINBALL_SIMULATION_BUCKET,
+      `${systemDesign.id}/inputs`,
+      JSON.stringify(inputData),
+      'application/json; charset=utf-8',
+    )
+
+    const simulatePinballData = await this.utilityService.simulatePinball(inputData);
 
     // save simulatePinballData to s3
     const savePinballToS3Requests = [
