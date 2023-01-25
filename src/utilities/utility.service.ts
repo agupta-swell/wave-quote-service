@@ -5,7 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
-import { inRange, sum, sumBy } from 'lodash';
+import { inRange, mean, sum, sumBy } from 'lodash';
 import { Model, ObjectId, LeanDocument } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -1373,12 +1373,19 @@ export class UtilityService implements OnModuleInit {
       seasonsInMonths.push(seasonsInMonth);
     }
 
-    const monthlyTariffRawData: any[] = [];
+    // monthlyTariffRawData[monthIndex][seasonName][hourOfTheDay][dayOfTheMonth] = applicableCharges as number[]
+    const monthlyTariffRawData: {
+      [seasonName: string]: number[][][]
+    }[] = [];
 
     for (let i = 0; i < 12; i++) {
       const seasonsInMonth = seasonsInMonths[i];
       const rates = {};
-      seasonsInMonth.forEach(seasonName => (rates[seasonName] = [...Array(24)].map(() => [])));
+      seasonsInMonth.forEach(seasonName => {
+        rates[seasonName] = [...Array(24)].map(() => {
+          return [...Array(datesInMonths[i])].map(() => [])
+        })}
+      );
       monthlyTariffRawData.push(rates);
     }
 
@@ -1402,7 +1409,7 @@ export class UtilityService implements OnModuleInit {
         if (!season) return;
 
         const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay, seasonName } = season;
-        const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
+        const rateAmount = filterTariff?.rateBands[0]?.rateAmount || 0;
 
         const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
         const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
@@ -1418,9 +1425,9 @@ export class UtilityService implements OnModuleInit {
           return;
         }
 
-        const dayOfWeek = dayjs()
-          .dayOfYear(Math.floor(hourIndexWithDST / 24) + 1)
-          .day();
+        const day = dayjs().dayOfYear(Math.floor(hourIndexWithDST / 24) + 1);
+        const dayOfWeek = day.day();
+        const dayOfMonth = day.date();
 
         const hourInDay = hourIndexWithDST % 24;
 
@@ -1455,7 +1462,7 @@ export class UtilityService implements OnModuleInit {
           totalDays += datesInMonths[monthIndexWithDST + 1];
         }
 
-        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay].push(rateAmountTotal);
+        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay][dayOfMonth - 1].push(rateAmount);
       });
     }
 
@@ -1470,7 +1477,7 @@ export class UtilityService implements OnModuleInit {
         const hourlyTariffRateOfSeasonInMonth: any[] = [];
 
         rawTariffRateOfSeasonInMonth.forEach(hourlyRawData => {
-          const hourRate = roundNumber(hourlyRawData.reduce((a, b) => a + b, 0) / hourlyRawData.length, 3) || 0;
+          const hourRate = roundNumber(mean(hourlyRawData.map(charges => sum(charges))), 5);
           hourlyTariffRateOfSeasonInMonth.push(hourRate);
         });
 
