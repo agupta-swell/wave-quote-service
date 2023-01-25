@@ -1295,16 +1295,17 @@ export class UtilityService implements OnModuleInit {
 
   public async getTariffInfoByOpportunityId(opportunityId): Promise<IMonthSeasonTariff[][]> {
     let monthlyTariffData: IMonthSeasonTariff[][] = [];
-    let res;
+    let json;
 
     try {
-      res = await this.s3Service.getObject(this.AWS_S3_UTILITY_DATA, `${opportunityId}/monthlyTariffData`);
+      const { bucket, key } = this.getMonthlyTariffDataS3Info(opportunityId)
+      json = await this.s3Service.getObject(bucket, key);
     } catch (_) {
       // do nothing
     }
 
-    if (res) {
-      monthlyTariffData = JSON.parse(res);
+    if (json) {
+      monthlyTariffData = JSON.parse(json);
     } else {
       monthlyTariffData = await this.calculateTariffInfoByOpportunityId(opportunityId);
     }
@@ -1333,14 +1334,9 @@ export class UtilityService implements OnModuleInit {
 
     if (!seasons.length) {
       const noSeasonsMonthlyTariffData: IMonthSeasonTariff[][] = [...Array(12)].map(() => []);
-
-      await this.s3Service.putObject(
-        this.AWS_S3_UTILITY_DATA,
-        `${opportunityId}/monthlyTariffData`,
-        JSON.stringify(noSeasonsMonthlyTariffData),
-        'application/json; charset=utf-8',
-      );
-
+      const { bucket, key, contentType } = this.getMonthlyTariffDataS3Info(opportunityId);
+      const json = JSON.stringify(noSeasonsMonthlyTariffData);
+      await this.s3Service.putObject(bucket, key, json, contentType);
       return noSeasonsMonthlyTariffData;
     }
 
@@ -1492,13 +1488,18 @@ export class UtilityService implements OnModuleInit {
       monthlyTariffData.push(tariffDataOfSeasonsInMonth);
     }
 
-    await this.s3Service.putObject(
-      this.AWS_S3_UTILITY_DATA,
-      `${opportunityId}/monthlyTariffData`,
-      JSON.stringify(monthlyTariffData),
-      'application/json; charset=utf-8',
-    );
+    const { bucket, key, contentType } = this.getMonthlyTariffDataS3Info(opportunityId);
+    const json = JSON.stringify(monthlyTariffData);
+    await this.s3Service.putObject(bucket, key, json, contentType);
 
     return monthlyTariffData;
+  }
+
+  private getMonthlyTariffDataS3Info (opportunityId: string) {
+    return {
+      bucket: this.AWS_S3_UTILITY_DATA,
+      key: `${opportunityId}/monthlyTariffData.json`,
+      contentType: 'application/json; charset=utf-8'
+    };
   }
 }
