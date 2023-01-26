@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import * as dayjs from 'dayjs';
-import { getNextYearDateRage } from 'src/utils/datetime';
+import { getNextYearDateRange } from 'src/utils/datetime';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
@@ -260,14 +260,25 @@ export class ExternalService {
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
 
-    const { fromDateTime, toDateTime } = getNextYearDateRage();
+    const { fromDateTime, toDateTime } = getNextYearDateRange();
 
-    const today8760sIdx = dayjs(fromDateTime).diff(dayjs().startOf('year'), 'day') * 24;
+    const from8760Index = dayjs(fromDateTime).diff(dayjs().startOf('year'), 'day') * 24;
 
-    const dataSeries: number[] = [
-      ...hourlyDataForTheYear.slice(today8760sIdx, 8760),
-      ...hourlyDataForTheYear.slice(0, today8760sIdx),
+    const netDataSeries: number[] = [
+      ...hourlyDataForTheYear.slice(from8760Index, 8760),
+      ...hourlyDataForTheYear.slice(0, from8760Index),
     ];
+
+    // decompose netDataSeries into import and export series
+    const importDataSeries = netDataSeries.map(kWh => {
+      // imported energy is only positive net load numbers
+      return kWh > 0 ? kWh : 0;
+    });
+    const exportDataSeries = netDataSeries.map(kWh => {
+      // exported energy is only negative net load numbers
+      // but Genability expects positive (absolute) values
+      return kWh < 0 ? Math.abs(kWh) : 0;
+    });
 
     const payload = {
       fromDateTime,
@@ -282,8 +293,9 @@ export class ExternalService {
           keyName: 'consumption',
           fromDateTime,
           duration: 3600000,
-          dataSeries,
           unit: 'kWh',
+          dataSeries: importDataSeries,
+          exportDataSeries,
         },
       ],
     };
