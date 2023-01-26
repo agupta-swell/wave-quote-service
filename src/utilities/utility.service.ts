@@ -20,7 +20,7 @@ import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
-import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRage } from 'src/utils/datetime';
+import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRange } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
@@ -1077,7 +1077,7 @@ export class UtilityService implements OnModuleInit {
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
 
-    const { fromDateTime, toDateTime } = getNextYearDateRage();
+    const { fromDateTime, toDateTime } = getNextYearDateRange();
 
     if (!data[0].items.length) {
       for (let i = 0; i < 12; i++) {

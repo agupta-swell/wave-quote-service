@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import * as dayjs from 'dayjs';
-import { getNextYearDateRage } from 'src/utils/datetime';
+import { getNextYearDateRange } from 'src/utils/datetime';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
@@ -260,7 +260,7 @@ export class ExternalService {
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
 
-    const { fromDateTime, toDateTime } = getNextYearDateRage();
+    const { fromDateTime, toDateTime } = getNextYearDateRange();
 
     const today8760sIdx = dayjs(fromDateTime).diff(dayjs().startOf('year'), 'day') * 24;
 
