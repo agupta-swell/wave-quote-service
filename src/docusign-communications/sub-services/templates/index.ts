@@ -13,7 +13,7 @@ import './dummy-prp2-pa';
 import './dummy-sgip-pa';
 import './energy-home-improvement-agreement-change-order-hic';
 import './energy-home-improvement-agreement-hic';
-import './exhibit-1-swell-services-esa'
+import './exhibit-1-swell-services-esa';
 import './exhibit-2-limited-warranties-and-manufacturer-warranties-esa';
 import './exhibit-3-customer-system-related-obligations-esa';
 import './exhibit-4-arbitration-clause-esa';
@@ -31,6 +31,9 @@ import './exhibit-d-limited-warranty-hic';
 import './grid-services-agreement';
 import './grid-services-agreement-standby';
 import './home-energy-sub-agt-esa';
+import './participation-agreement-heco-big-island';
+import './participation-agreement-heco-maui';
+import './participation-agreement-heco-oahu';
 import './participation-prp2-aces-cash';
 import './participation-prp2-aces-esa';
 import './participation-sgip-hic';

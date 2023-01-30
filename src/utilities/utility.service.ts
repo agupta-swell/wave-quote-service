@@ -5,7 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
-import { inRange, sum, sumBy } from 'lodash';
+import { inRange, mean, sum, sumBy } from 'lodash';
 import { Model, ObjectId, LeanDocument } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -20,7 +20,7 @@ import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
-import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRage } from 'src/utils/datetime';
+import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRange } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
@@ -1077,13 +1077,15 @@ export class UtilityService implements OnModuleInit {
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
 
-    const { fromDateTime, toDateTime } = getNextYearDateRage();
+    const { fromDateTime, toDateTime } = getNextYearDateRange();
 
     if (!data[0].items.length) {
       for (let i = 0; i < 12; i++) {
+        const thisMonth = String(i + 1).padStart(2, '0');
+        const nextMonth = i === 11 ? String(1).padStart(2, '0') : String(i + 2).padStart(2, '0');
         monthlyCostToBeUsed.push({
-          startDate: new Date(`${currentYear}-0${i + 1}-01T00:00:00.000+00:00`),
-          endDate: new Date(`${currentYear}-0${i + 2}-01T00:00:00.000+00:00`),
+          startDate: new Date(`${currentYear}-${thisMonth}-01T00:00:00.000+00:00`),
+          endDate: new Date(`${i === 11 ? nextYear : currentYear}-${nextMonth}-01T00:00:00.000+00:00`),
           i,
           v: 0,
         });
@@ -1293,16 +1295,17 @@ export class UtilityService implements OnModuleInit {
 
   public async getTariffInfoByOpportunityId(opportunityId): Promise<IMonthSeasonTariff[][]> {
     let monthlyTariffData: IMonthSeasonTariff[][] = [];
-    let res;
+    let json;
 
     try {
-      res = await this.s3Service.getObject(this.AWS_S3_UTILITY_DATA, `${opportunityId}/monthlyTariffData`);
+      const { bucket, key } = this.getMonthlyTariffDataS3Info(opportunityId)
+      json = await this.s3Service.getObject(bucket, key);
     } catch (_) {
       // do nothing
     }
 
-    if (res) {
-      monthlyTariffData = JSON.parse(res);
+    if (json) {
+      monthlyTariffData = JSON.parse(json);
     } else {
       monthlyTariffData = await this.calculateTariffInfoByOpportunityId(opportunityId);
     }
@@ -1331,14 +1334,9 @@ export class UtilityService implements OnModuleInit {
 
     if (!seasons.length) {
       const noSeasonsMonthlyTariffData: IMonthSeasonTariff[][] = [...Array(12)].map(() => []);
-
-      await this.s3Service.putObject(
-        this.AWS_S3_UTILITY_DATA,
-        `${opportunityId}/monthlyTariffData`,
-        JSON.stringify(noSeasonsMonthlyTariffData),
-        'application/json; charset=utf-8',
-      );
-
+      const { bucket, key, contentType } = this.getMonthlyTariffDataS3Info(opportunityId);
+      const json = JSON.stringify(noSeasonsMonthlyTariffData);
+      await this.s3Service.putObject(bucket, key, json, contentType);
       return noSeasonsMonthlyTariffData;
     }
 
@@ -1371,12 +1369,19 @@ export class UtilityService implements OnModuleInit {
       seasonsInMonths.push(seasonsInMonth);
     }
 
-    const monthlyTariffRawData: any[] = [];
+    // monthlyTariffRawData[monthIndex][seasonName][hourOfTheDay][dayOfTheMonth] = applicableCharges as number[]
+    const monthlyTariffRawData: {
+      [seasonName: string]: number[][][]
+    }[] = [];
 
     for (let i = 0; i < 12; i++) {
       const seasonsInMonth = seasonsInMonths[i];
       const rates = {};
-      seasonsInMonth.forEach(seasonName => (rates[seasonName] = [...Array(24)].map(() => [])));
+      seasonsInMonth.forEach(seasonName => {
+        rates[seasonName] = [...Array(24)].map(() => {
+          return [...Array(datesInMonths[i])].map(() => [])
+        })}
+      );
       monthlyTariffRawData.push(rates);
     }
 
@@ -1400,7 +1405,7 @@ export class UtilityService implements OnModuleInit {
         if (!season) return;
 
         const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay, seasonName } = season;
-        const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
+        const rateAmount = filterTariff?.rateBands[0]?.rateAmount || 0;
 
         const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
         const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
@@ -1416,9 +1421,9 @@ export class UtilityService implements OnModuleInit {
           return;
         }
 
-        const dayOfWeek = dayjs()
-          .dayOfYear(Math.floor(hourIndexWithDST / 24) + 1)
-          .day();
+        const day = dayjs().dayOfYear(Math.floor(hourIndexWithDST / 24) + 1);
+        const dayOfWeek = day.day();
+        const dayOfMonth = day.date();
 
         const hourInDay = hourIndexWithDST % 24;
 
@@ -1453,7 +1458,7 @@ export class UtilityService implements OnModuleInit {
           totalDays += datesInMonths[monthIndexWithDST + 1];
         }
 
-        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay].push(rateAmountTotal);
+        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay][dayOfMonth - 1].push(rateAmount);
       });
     }
 
@@ -1468,7 +1473,7 @@ export class UtilityService implements OnModuleInit {
         const hourlyTariffRateOfSeasonInMonth: any[] = [];
 
         rawTariffRateOfSeasonInMonth.forEach(hourlyRawData => {
-          const hourRate = roundNumber(hourlyRawData.reduce((a, b) => a + b, 0) / hourlyRawData.length, 3) || 0;
+          const hourRate = roundNumber(mean(hourlyRawData.map(charges => sum(charges))), 5);
           hourlyTariffRateOfSeasonInMonth.push(hourRate);
         });
 
@@ -1483,13 +1488,18 @@ export class UtilityService implements OnModuleInit {
       monthlyTariffData.push(tariffDataOfSeasonsInMonth);
     }
 
-    await this.s3Service.putObject(
-      this.AWS_S3_UTILITY_DATA,
-      `${opportunityId}/monthlyTariffData`,
-      JSON.stringify(monthlyTariffData),
-      'application/json; charset=utf-8',
-    );
+    const { bucket, key, contentType } = this.getMonthlyTariffDataS3Info(opportunityId);
+    const json = JSON.stringify(monthlyTariffData);
+    await this.s3Service.putObject(bucket, key, json, contentType);
 
     return monthlyTariffData;
+  }
+
+  private getMonthlyTariffDataS3Info (opportunityId: string) {
+    return {
+      bucket: this.AWS_S3_UTILITY_DATA,
+      key: `${opportunityId}/monthlyTariffData.json`,
+      contentType: 'application/json; charset=utf-8'
+    };
   }
 }
