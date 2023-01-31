@@ -830,51 +830,77 @@ export class UtilityService implements OnModuleInit {
       rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), charge: true });
     }
 
-    // update periods charge or discharge in day
-    for (let i = 0; i < 365; i += 1) {
-      const firstHourOfDayIndex = i * 24;
-      // init the periodsInDay
-      const periodsInDay: {
-        rate: number;
-        index: number;
-        charge: boolean;
-      }[] = [{ rate: rateAmountHourly[firstHourOfDayIndex].rate, index: firstHourOfDayIndex, charge: true }];
+    // iterate through the hours of the year, jumping from period to period
+    // a 'period' is 1 or more consecutive hours with the same cost of electricity
+    for ( let firstHourOfThisPeriod = 0 ; true ; ) {
+      // the cost of electricity in the current period
+      const rateThisPeriod = rateAmountHourly[firstHourOfThisPeriod].rate
+      // the cost of electricity in the next period
+      let rateNextPeriod: number | undefined;
 
-      // find the periods in day
-
-      for (let j = 1; j < 24; j += 1) {
-        // push the next period into periodsInDay
-        const currentPeriodInDayIndex = periodsInDay[periodsInDay.length - 1].index;
-        if (rateAmountHourly[currentPeriodInDayIndex].rate !== rateAmountHourly[firstHourOfDayIndex + j].rate) {
-          periodsInDay.push({
-            rate: rateAmountHourly[firstHourOfDayIndex + j].rate,
-            index: firstHourOfDayIndex + j,
-            // the previous period is > the next period => next period charge
-            charge: rateAmountHourly[currentPeriodInDayIndex].rate > rateAmountHourly[firstHourOfDayIndex + j].rate,
-          });
+      // look ahead for the next period
+      let firstHourOfNextPeriod: number | undefined;
+      for ( let i = firstHourOfThisPeriod + 1 ; i < rateAmountHourly.length ; i++ ) {
+        // if the rate is different than the current rate
+        if ( rateAmountHourly[i].rate !== rateThisPeriod ) {
+          // then we have found the next period
+          firstHourOfNextPeriod = i;
+          break;
         }
       }
 
-      // update the first period if it is < the 2nd period => charge
-      if (periodsInDay.length > 1) {
-        periodsInDay[0].charge = !periodsInDay[1].charge;
-        // if the first period.rate === the final period.rate maybe it is the same period.charge (e.g. the hour from 9pm - 5am)
-        if (
-          rateAmountHourly[periodsInDay[0].index].rate ===
-          rateAmountHourly[periodsInDay[periodsInDay.length - 1].index].rate
-        ) {
-          periodsInDay[periodsInDay.length - 1].charge = periodsInDay[0].charge;
-        }
-      }
-
-      // only update rateAmountHourly when periodsInDay[i].charge false
-      for (let k = 0; k < periodsInDay.length; k += 1) {
-        if (!periodsInDay[k].charge) {
-          for (let h = periodsInDay[k].index; h < (periodsInDay[k + 1]?.index || periodsInDay[0].index + 24); h += 1) {
-            rateAmountHourly[h].charge = periodsInDay[k].charge;
+      // if we did not find the next period, then this is the last period of the year
+      if (!firstHourOfNextPeriod) {
+        // and we need to search from the beginning of the year, to find the next rate
+        for ( let i = 0 ; i < rateAmountHourly.length ; i++ ) {
+          // if the rate is different than the current rate
+          if ( rateAmountHourly[i].rate !== rateThisPeriod ) {
+            // then we have found the next rate
+            rateNextPeriod = rateAmountHourly[i].rate;
+            break;
           }
         }
+
+        // if we did not find the next rate, then the whole year is one rate
+        if (!rateNextPeriod) {
+          // and we need to set the charge plan for the full year
+          for ( let i = 0 ; i < rateAmountHourly.length ; i++ ) {
+            // always discharge if necessary; similar to pv self-consumption
+            rateAmountHourly[i].charge = false
+          }
+          // we're done
+          break
+        }
+
+        // WAV-1727 implements this NEM2 Advanced TOU charging plan:
+        // Charge if the next period is more expensive than the current one.
+        // Discharge if the next period is cheaper than the current one.
+        const shouldChargeDuringLastPeriodOfTheYear = rateNextPeriod > rateThisPeriod;
+
+        // set the charge flag for the rest of the year
+        for ( let i = firstHourOfThisPeriod ; i < rateAmountHourly.length ; i++ ) {
+          rateAmountHourly[i].charge = shouldChargeDuringLastPeriodOfTheYear
+        }
+
+        // we're done
+        break
       }
+
+      // get the rate for next period
+      rateNextPeriod = rateAmountHourly[firstHourOfNextPeriod].rate;
+
+      // WAV-1727 implements this NEM2 Advanced TOU charging plan:
+      // Charge if the next period is more expensive than the current one.
+      // Discharge if the next period is cheaper than the current one.
+      const shouldChargeDuringThisPeriod = rateNextPeriod > rateThisPeriod;
+      
+      // set the charge flag for all the hours of this period
+      for ( let i = firstHourOfThisPeriod ; i < firstHourOfNextPeriod ; i++ ) {
+        rateAmountHourly[i].charge = shouldChargeDuringThisPeriod;
+      }
+
+      // advance the cursor to the first hour of the next period
+      firstHourOfThisPeriod = firstHourOfNextPeriod;
     }
 
     const batteryStoredEnergySeries: number[] = [];
