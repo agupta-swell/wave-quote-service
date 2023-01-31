@@ -1324,7 +1324,7 @@ export class UtilityService implements OnModuleInit {
     let json;
 
     try {
-      const { bucket, key } = this.getMonthlyTariffDataS3Info(opportunityId)
+      const { bucket, key } = this.getMonthlyTariffDataS3Info(opportunityId);
       json = await this.s3Service.getObject(bucket, key);
     } catch (_) {
       // do nothing
@@ -1349,13 +1349,23 @@ export class UtilityService implements OnModuleInit {
     // Get seasons
     const seasons: any[] = [];
 
+    const tariffsBySeasons: {
+      [seasonName: string]: any[];
+    } = {};
+
     filterTariffs.forEach(filterTariff => {
       const season = filterTariff.timeOfUse.season || filterTariff.season;
 
       if (!season) return;
 
-      if (!seasons.length) seasons.push(season);
-      else if (seasons.findIndex(s => s.seasonId === season.seasonId) === -1) seasons.push(season);
+      if (!seasons.length || seasons.findIndex(s => s.seasonId === season.seasonId) === -1) {
+        seasons.push(season);
+      }
+
+      if (!tariffsBySeasons[season.seasonName]) {
+        tariffsBySeasons[season.seasonName] = [];
+      }
+      tariffsBySeasons[season.seasonName].push(filterTariff);
     });
 
     if (!seasons.length) {
@@ -1395,118 +1405,63 @@ export class UtilityService implements OnModuleInit {
       seasonsInMonths.push(seasonsInMonth);
     }
 
-    // monthlyTariffRawData[monthIndex][seasonName][hourOfTheDay][dayOfTheMonth] = applicableCharges as number[]
-    const monthlyTariffRawData: {
-      [seasonName: string]: number[][][]
-    }[] = [];
-
-    for (let i = 0; i < 12; i++) {
-      const seasonsInMonth = seasonsInMonths[i];
-      const rates = {};
-      seasonsInMonth.forEach(seasonName => {
-        rates[seasonName] = [...Array(24)].map(() => {
-          return [...Array(datesInMonths[i])].map(() => [])
-        })}
-      );
-      monthlyTariffRawData.push(rates);
-    }
-
-    // DST is second Sunday in March to the first Sunday in November of year
-    const secondSundayInMarch = dayjs(
-      new Date(currentYear, 3 - 1, firstSundayOfTheMonth(currentYear, 3) + 7),
-    ).dayOfYear();
-
-    const firstSundayInNovember = dayjs(
-      new Date(currentYear, 11 - 1, firstSundayOfTheMonth(currentYear, 11)),
-    ).dayOfYear();
-
-    const fromDST = (secondSundayInMarch - 1) * 24;
-
-    const toDST = (firstSundayInNovember - 1) * 24 + 1;
-
-    // Build monthlyTariffRawData
-    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
-      filterTariffs.forEach(filterTariff => {
-        const season = filterTariff.timeOfUse.season || filterTariff.season;
-        if (!season) return;
-
-        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay, seasonName } = season;
-        const rateAmount = filterTariff?.rateBands[0]?.rateAmount || 0;
-
-        const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
-        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
-
-        const hourIndexWithDST = fromDST < hourIndex && hourIndex < toDST ? hourIndex + 1 : hourIndex;
-
-        const isValidSeason =
-          fromHourIndex < toHourIndex
-            ? inRange(hourIndexWithDST, fromHourIndex, toHourIndex)
-            : inRange(hourIndexWithDST, 0, toHourIndex) || inRange(hourIndexWithDST, fromHourIndex, 8760);
-
-        if (!isValidSeason) {
-          return;
-        }
-
-        const day = dayjs().dayOfYear(Math.floor(hourIndexWithDST / 24) + 1);
-        const dayOfWeek = day.day();
-        const dayOfMonth = day.date();
-
-        const hourInDay = hourIndexWithDST % 24;
-
-        let checkIsValidHourDay = false;
-
-        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
-          const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
-          const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
-            fromDayOfWeek,
-            toDayOfWeek,
-            dayOfWeek,
-            fromHour,
-            toHour,
-            hourInDay,
-          );
-          if (isValidHourDay) {
-            checkIsValidHourDay = true;
-            break;
-          }
-        }
-
-        if (!checkIsValidHourDay) return;
-
-        const dayIndexWithDST = Math.floor(hourIndexWithDST / 24) + 1;
-
-        let monthIndexWithDST = 0;
-        let totalDays = datesInMonths[monthIndexWithDST];
-
-        for (monthIndexWithDST; monthIndexWithDST < 12; monthIndexWithDST++) {
-          // check day in month
-          if (dayIndexWithDST <= totalDays) break;
-          totalDays += datesInMonths[monthIndexWithDST + 1];
-        }
-
-        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay][dayOfMonth - 1].push(rateAmount);
-      });
-    }
-
     const monthlyTariffData: IMonthSeasonTariff[][] = [];
 
-    for (let i = 0; i < 12; i++) {
-      const seasonsInMonth = seasonsInMonths[i];
+    // Build monthlyTariffData
+    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+      const seasonsInMonth = seasonsInMonths[monthIndex];
+      const totalDayInMonth = datesInMonths[monthIndex];
+
       const tariffDataOfSeasonsInMonth: IMonthSeasonTariff[] = [];
 
       seasonsInMonth.forEach(seasonName => {
-        const rawTariffRateOfSeasonInMonth = monthlyTariffRawData[i][seasonName];
-        const hourlyTariffRateOfSeasonInMonth: any[] = [];
-
-        rawTariffRateOfSeasonInMonth.forEach(hourlyRawData => {
-          const hourRate = roundNumber(mean(hourlyRawData.map(charges => sum(charges))), 5);
-          hourlyTariffRateOfSeasonInMonth.push(hourRate);
-        });
+        const tariffsBySeason = tariffsBySeasons[seasonName];
 
         const seasonInMonthTariffData: IMonthSeasonTariff = {
           seasonName,
-          hourlyTariffRate: hourlyTariffRateOfSeasonInMonth,
+          hourlyTariffRate: [...Array(24)],
         };
+
+        for (let hourInDay = 0; hourInDay < 24; hourInDay++) {
+          const ratesOfHour: number[] = [];
+
+          for (let dayOfMonthIdx = 0; dayOfMonthIdx < totalDayInMonth; dayOfMonthIdx++) {
+            const day = dayjs(new Date(currentYear, monthIndex, dayOfMonthIdx + 1));
+            const dayOfWeek = day.day();
+
+            let totalRateInDay = 0;
+
+            tariffsBySeason.forEach(filterTariff => {
+              const rateAmount = filterTariff?.rateBands[0]?.rateAmount || 0;
+
+              let checkIsValidHourDay = false;
+
+              for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
+                const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
+                const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
+                  fromDayOfWeek,
+                  toDayOfWeek,
+                  dayOfWeek,
+                  fromHour,
+                  toHour,
+                  hourInDay,
+                );
+                if (isValidHourDay) {
+                  checkIsValidHourDay = true;
+                  break;
+                }
+              }
+
+              if (!checkIsValidHourDay) return;
+
+              totalRateInDay += rateAmount;
+            });
+
+            ratesOfHour.push(totalRateInDay);
+          }
+
+          seasonInMonthTariffData.hourlyTariffRate[hourInDay] = roundNumber(mean(ratesOfHour), 5);
+        }
 
         tariffDataOfSeasonsInMonth.push(seasonInMonthTariffData);
       });
@@ -1521,11 +1476,11 @@ export class UtilityService implements OnModuleInit {
     return monthlyTariffData;
   }
 
-  private getMonthlyTariffDataS3Info (opportunityId: string) {
+  private getMonthlyTariffDataS3Info(opportunityId: string) {
     return {
       bucket: this.AWS_S3_UTILITY_DATA,
       key: `${opportunityId}/monthlyTariffData.json`,
-      contentType: 'application/json; charset=utf-8'
+      contentType: 'application/json; charset=utf-8',
     };
   }
 }
