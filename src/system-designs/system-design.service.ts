@@ -13,9 +13,11 @@ import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { ContractService } from 'src/contracts/contract.service';
+import { ECommerceService } from 'src/e-commerces/e-commerce.service';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { ProductionDeratesService } from 'src/production-derates-v2/production-derates-v2.service';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { IProductDocument, IUnknownProduct } from 'src/products-v2/interfaces';
 import { ProductService } from 'src/products-v2/services';
@@ -35,6 +37,7 @@ import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
 import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
+import { roundNumber } from 'src/utils/transformNumber';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
@@ -56,7 +59,7 @@ import {
   SystemDesignDto,
 } from './res';
 import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
-import { ISystemProduction, SystemProductService } from './sub-services';
+import { ISystemProduction, SunroofHourlyProductionCalculation, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
   SystemDesign,
@@ -94,6 +97,9 @@ export class SystemDesignService {
     private readonly systemDesignHook: SystemDesignHook,
     private readonly asyncContext: AsyncContextProvider,
     private readonly existingSystem: ExistingSystemService,
+    private readonly eCommerceService: ECommerceService,
+    private readonly sunroofHourlyProductionCalculation: SunroofHourlyProductionCalculation,
+    private readonly productionDeratesService: ProductionDeratesService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -1345,24 +1351,36 @@ export class SystemDesignService {
 
     const hourlyPostInstallLoadInKWh = this.utilityService.getHourlyEstimatedUsage(utility);
 
-    const hourlySeriesForNewPVInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
+    const raw8760ProductionInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
       systemProductionArray.hourly,
       systemProduction.generationMonthlyKWh,
     ) as number[];
+
+    const production8760AfterSoilingAndDegradationInKWh = await this.applyProductionSoilingAndDegradation(
+      raw8760ProductionInKWh,
+      systemDesign,
+    );
+
+    const production8760AfterClippedInKWh = this.applyInverterClipping(
+      production8760AfterSoilingAndDegradationInKWh,
+      systemDesign,
+    );
+
+    const production8760AfterAllOtherLossesInKWh = await this.applyOtherLosses(production8760AfterClippedInKWh);
 
     const hourlySeriesForNewPVInWh: number[] = [];
     const hourlyPostInstallLoadInWh: number[] = [];
     const hourlySeriesForExistingPVInWh = existingSystemProduction.hourlyProduction;
 
     const maxLength = Math.max(
-      hourlySeriesForNewPVInKWh.length,
+      raw8760ProductionInKWh.length,
       hourlyPostInstallLoadInKWh.length,
       existingSystemProduction.hourlyProduction.length,
     );
 
     for (let i = 0; i < maxLength; i += 1) {
-      if (hourlySeriesForNewPVInKWh[i]) {
-        hourlySeriesForNewPVInWh[i] = hourlySeriesForNewPVInKWh[i] * 1000;
+      if (production8760AfterAllOtherLossesInKWh[i]) {
+        hourlySeriesForNewPVInWh[i] = production8760AfterAllOtherLossesInKWh[i] * 1000;
       }
 
       if (hourlyPostInstallLoadInKWh[i]) {
@@ -1386,14 +1404,14 @@ export class SystemDesignService {
             : sumBy(storage, item => item.reservePercentage || 0) / storage.length || 0,
         operationMode: storage[0]?.purpose || BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
       },
-    }
+    };
 
     await this.s3Service.putObject(
       this.PINBALL_SIMULATION_BUCKET,
       `${systemDesign.id}/inputs`,
       JSON.stringify(inputData),
       'application/json; charset=utf-8',
-    )
+    );
 
     const simulatePinballData = await this.utilityService.simulatePinball(inputData);
 
@@ -1518,5 +1536,55 @@ export class SystemDesignService {
     const csv = transformDataToCSVFormat(csvFields, csvData);
 
     return OperationResult.ok(strictPlainToClass(CsvExportResDto, { csv }));
+  }
+
+  private async applyProductionSoilingAndDegradation(
+    raw8760ProductionData: number[],
+    systemDesign: SystemDesign,
+  ): Promise<number[]> {
+    const {
+      roofTopDesignData: { panelArray },
+    } = systemDesign;
+
+    const [firstPanelArray] = panelArray;
+
+    const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
+
+    const soilingLosses = await this.eCommerceService.getSoilingLossesByOpportunityId(systemDesign.opportunityId);
+
+    const multipliedByDegrade = v => roundNumber(v * (1 - firstYearDegradation) * (1 - soilingLosses / 100));
+
+    return raw8760ProductionData.map(v => multipliedByDegrade(v));
+  }
+
+  private applyInverterClipping(productionData8760: number[], systemDesign: SystemDesign): number[] {
+    const {
+      roofTopDesignData: { inverters },
+    } = systemDesign;
+
+    const maxInverterPower = this.sunroofHourlyProductionCalculation.calculateMaxInverterPower(systemDesign);
+
+    if (maxInverterPower) {
+      const [inverter] = inverters;
+
+      const inverterEfficiency = (inverter.inverterModelDataSnapshot.inverterEfficiency ?? 100) / 100;
+
+      return this.sunroofHourlyProductionCalculation
+        .clipArrayByInverterPower(productionData8760, maxInverterPower)
+        .map(v => roundNumber(v * inverterEfficiency, 2));
+    }
+    return productionData8760;
+  }
+
+  private async applyOtherLosses(productionData8760: number[]) {
+    const productionDerates = await this.productionDeratesService.getAllProductionDerates();
+
+    let ratio = 1;
+
+    productionDerates.data?.forEach(item => {
+      ratio *= 1 - (item.amount || 0) / 100;
+    });
+
+    return productionData8760.map(v => roundNumber(v * ratio, 2));
   }
 }

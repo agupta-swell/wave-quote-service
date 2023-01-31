@@ -142,7 +142,7 @@ export class SunroofHourlyProductionCalculation {
     return finalSunroofHourlyProduction;
   }
 
-  private calculateMaxInverterPower(systemDesign: SystemDesign | LeanDocument<SystemDesign>): number | undefined {
+  public calculateMaxInverterPower(systemDesign: SystemDesign | LeanDocument<SystemDesign>): number | undefined {
     const {
       roofTopDesignData: { inverters, panelArray },
     } = systemDesign;
@@ -196,7 +196,7 @@ export class SunroofHourlyProductionCalculation {
     });
   }
 
-  private clipArrayByInverterPower(values: number[], capValue: number): number[] {
+  public clipArrayByInverterPower(values: number[], capValue: number): number[] {
     return values.map(v => Math.min(v, capValue));
   }
 
