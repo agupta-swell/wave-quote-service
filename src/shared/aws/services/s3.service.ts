@@ -271,7 +271,6 @@ export class S3Service {
       if ([bucketName, key].some(e => !e)) {
         return resolve();
       }
-
       this.S3.deleteObject(
         {
           Bucket: bucketName,
@@ -282,6 +281,35 @@ export class S3Service {
           return resolve();
         },
       );
+    });
+  }
+
+  public deleteDirectory(bucketName: string, prefix: string): Promise<void> {
+    // eslint-disable-next-line consistent-return
+    return new Promise((resolve, reject) => {
+      if ([bucketName, prefix].some(e => !e)) {
+        return resolve();
+      }
+      // eslint-disable-next-line consistent-return
+      this.S3.listObjectsV2({ Bucket: bucketName, Prefix: prefix }, (err, listedObjects) => {
+        if (err) return reject(err);
+        if (!listedObjects.Contents?.length) return reject(err);
+
+        const deleteParams: AWS.S3.Types.DeleteObjectsRequest = {
+          Bucket: bucketName,
+          Delete: { Objects: [] },
+        };
+
+        listedObjects.Contents?.forEach(item => {
+          if (item.Key) deleteParams.Delete.Objects.push({ Key: item.Key });
+        });
+
+        this.S3.deleteObjects(deleteParams, (error, _) => {
+          if (error) return reject(error);
+          if (listedObjects.IsTruncated) this.deleteDirectory(bucketName, prefix);
+          return resolve();
+        });
+      });
     });
   }
 

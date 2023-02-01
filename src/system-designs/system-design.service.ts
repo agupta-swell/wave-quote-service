@@ -74,6 +74,8 @@ export class SystemDesignService {
 
   private PINBALL_SIMULATION_BUCKET = process.env.AWS_S3_PINBALL_SIMULATION as string;
 
+  private GOOGLE_SUNROOF_BUCKET = process.env.GOOGLE_SUNROOF_S3_BUCKET as string;
+
   constructor(
     // @ts-ignore
     @Inject(SYSTEM_DESIGN) private readonly systemDesignModel: Model<SystemDesign>,
@@ -849,6 +851,14 @@ export class SystemDesignService {
     this.systemProductionService.delete(systemDesign.systemProductionId);
 
     await systemDesign.deleteOne();
+
+    Promise.all([
+      this.s3Service.deleteDirectory(this.PINBALL_SIMULATION_BUCKET, systemDesignId),
+      this.s3Service.deleteDirectory(this.GOOGLE_SUNROOF_BUCKET, `${opportunityId}/${systemDesignId}`),
+    ]).catch(_ => {
+      // Do not thing, any error, such as NoSuchKey (file not found)
+    });
+
     return OperationResult.ok('Deleted Successfully');
   }
 
