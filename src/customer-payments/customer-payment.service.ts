@@ -6,6 +6,7 @@ import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { QuoteCostBuildUpService, QuoteFinanceProductService } from 'src/quotes/sub-services';
 import { BigNumberUtils } from 'src/utils';
 import { roundNumber } from 'src/utils/transformNumber';
+import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
 import { CustomerPayment, CUSTOMER_PAYMENT } from './customer-payment.schema';
 
 @Injectable()
@@ -67,9 +68,15 @@ export class CustomerPaymentService {
 
     customerPayment.rebate = BigNumberUtils.sumBy(quoteFinanceProduct.rebateDetails, 'amount').toNumber();
 
-    customerPayment.credit = BigNumberUtils.sumBy(quoteFinanceProduct.projectDiscountDetails, 'amount')
-      .plus(BigNumberUtils.sumBy(quoteFinanceProduct.incentiveDetails, 'amount'))
-      .plus(quoteCostBuildup.cashDiscount.total)
+    customerPayment.credit = quoteFinanceProduct.projectDiscountDetails
+      .reduce((acc, cur) => {
+        const discountAmount = new BigNumber(cur?.amount || 0);
+        return acc.plus(
+          cur.type === DISCOUNT_TYPE.PERCENTAGE
+            ? discountAmount.dividedBy(100).multipliedBy(quoteCostBuildup.projectGrossTotal?.netCost || 0)
+            : discountAmount,
+        );
+      }, new BigNumber(0))
       .toNumber();
 
     customerPayment.programIncentiveDiscount = BigNumberUtils.sumBy(
