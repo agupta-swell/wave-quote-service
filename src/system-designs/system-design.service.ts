@@ -33,10 +33,11 @@ import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { ISystemProduction as ISystemProduction_v2 } from 'src/system-productions/system-production.schema';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
-import { IUtilityCostData } from 'src/utilities/utility.schema';
+import { GetPinballSimulatorDto } from 'src/utilities/req';
+import { IUtilityCostData, UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
-import { buildMonthlyAndAnnuallyDataFrom8760, buildMonthlyHourFrom8760 } from 'src/utils/transformData';
+import { buildMonthlyAndAnnualDataFrom8760, buildMonthlyHourFrom8760 } from 'src/utils/transformData';
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
 import { roundNumber } from 'src/utils/transformNumber';
 import { CALCULATION_MODE } from '../utilities/constants';
@@ -390,7 +391,7 @@ export class SystemDesignService {
       offsetPercentage: totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0,
       generationMonthlyKWh: systemProductionArray.monthly,
       arrayGenerationKWh,
-      pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt production typical
+      pvWattProduction: buildMonthlyAndAnnualDataFrom8760(systemProductionArray.hourly), // calculate pv watt production typical
     });
 
     if (newSystemProduction.data) {
@@ -570,7 +571,7 @@ export class SystemDesignService {
         offsetPercentage: totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
-        pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
+        pvWattProduction: buildMonthlyAndAnnualDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
       });
 
       if (dispatch) {
@@ -659,7 +660,7 @@ export class SystemDesignService {
         offsetPercentage: totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0,
         generationMonthlyKWh: systemProductionArray.monthly,
         arrayGenerationKWh,
-        pvWattProduction: buildMonthlyAndAnnuallyDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
+        pvWattProduction: buildMonthlyAndAnnualDataFrom8760(systemProductionArray.hourly), // calculate pv watt typical production
       });
 
       if (dispatch) {
@@ -1346,63 +1347,15 @@ export class SystemDesignService {
   }
 
   public async invokePINBALLSimulator(systemDesign: SystemDesign, systemActualProduction8760: number[]) {
-    const [utility, existingSystemProduction] = await Promise.all([
-      this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
-      this.utilityService.getExistingSystemProductionByOpportunityId(systemDesign.opportunityId, true),
-    ]);
+    const utility = await this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId);
 
     if (!utility) {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
-    const hourlyPostInstallLoadInKWh = this.utilityService.getHourlyEstimatedUsage(utility);
+    const pinballInputData = await this.buildPinballInputData(systemDesign, systemActualProduction8760, utility);
 
-    const hourlySeriesForNewPVInWh: number[] = [];
-    const hourlyPostInstallLoadInWh: number[] = [];
-    const hourlySeriesForExistingPVInWh = existingSystemProduction.hourlyProduction;
-
-    const maxLength = Math.max(
-      systemActualProduction8760.length,
-      hourlyPostInstallLoadInKWh.length,
-      existingSystemProduction.hourlyProduction.length,
-    );
-
-    for (let i = 0; i < maxLength; i += 1) {
-      if (systemActualProduction8760[i]) {
-        hourlySeriesForNewPVInWh[i] = systemActualProduction8760[i] * 1000;
-      }
-
-      if (hourlyPostInstallLoadInKWh[i]) {
-        hourlyPostInstallLoadInWh[i] = hourlyPostInstallLoadInKWh[i] * 1000;
-      }
-    }
-
-    const { storage } = systemDesign.roofTopDesignData;
-    const inputData = {
-      hourlyPostInstallLoad: hourlyPostInstallLoadInWh,
-      hourlySeriesForExistingPV: hourlySeriesForExistingPVInWh,
-      hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
-      postInstallMasterTariffId: utility.costData.postInstallMasterTariffId,
-      batterySystemSpecs: {
-        totalRatingInKW: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowatts || 0),
-        totalCapacityInKWh: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowattHours || 0),
-        roundTripEfficiency: storage[0]?.roundTripEfficiency || 0,
-        minimumReserve:
-          storage[0]?.purpose === BATTERY_PURPOSE.BACKUP_POWER
-            ? storage[0]?.reservePercentage
-            : sumBy(storage, item => item.reservePercentage || 0) / storage.length || 0,
-        operationMode: storage[0]?.purpose || BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
-      },
-    };
-
-    await this.s3Service.putObject(
-      this.PINBALL_SIMULATION_BUCKET,
-      `${systemDesign.id}/inputs`,
-      JSON.stringify(inputData),
-      'application/json; charset=utf-8',
-    );
-
-    const simulatePinballData = await this.utilityService.simulatePinball(inputData);
+    const simulatePinballData = await this.utilityService.simulatePinball(pinballInputData);
 
     // save simulatePinballData to s3
     const savePinballToS3Requests = [
@@ -1441,24 +1394,13 @@ export class SystemDesignService {
       throw new NotFoundException(`No system design found with id ${systemDesignId}`);
     }
 
-    const [utility, systemProduction, systemProductionArray] = await Promise.all([
-      this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
-      this.systemProductionService.findOne(systemDesign.systemProductionId),
-      this.systemProductService.calculateSystemProductionByHour(systemDesign),
-    ]);
+    const utility = await this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId);
 
     if (!utility) {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
-    if (!systemProduction) {
-      throw new NotFoundException(`System production with id ${systemDesign.systemProductionId} not found`);
-    }
-
-    const hourlySeriesForNewPVInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
-      systemProductionArray.hourly,
-      systemProduction.generationMonthlyKWh,
-    ) as number[];
+    const systemActualProduction8760 = await this.getSystemActualProduction(systemDesignId);
 
     const pinballDataSeriesKeys = [
       'postInstallSiteDemandSeries',
@@ -1468,24 +1410,18 @@ export class SystemDesignService {
       'rateAmountHourly',
     ];
 
-    const getPinballData = pinballDataSeriesKeys.map(series =>
-      this.s3Service.getObject(this.PINBALL_SIMULATION_BUCKET, `${systemDesignId}/${series}`),
+    const filenames = pinballDataSeriesKeys.map(key => `${systemDesignId}/${key}`);
+
+    const cachedPinballData: (string | undefined)[] = await this.s3Service.getObjects(
+      this.PINBALL_SIMULATION_BUCKET,
+      filenames,
     );
 
     const pinballData: any = {};
 
-    try {
-      const res = await Promise.all([...getPinballData]);
-
-      for (let i = 0; i < res.length; i++) {
-        const series = res[i];
-        if (series) {
-          pinballData[pinballDataSeriesKeys[i]] = JSON.parse(series);
-        }
-      }
-    } catch (_) {
-      // Do not thing, any error, such as NoSuchKey (file not found)
-    }
+    cachedPinballData.forEach((series, idx) => {
+      pinballData[pinballDataSeriesKeys[idx]] = series && JSON.parse(series);
+    });
 
     // prepare header and data in the right order
     const csvFields = [
@@ -1507,11 +1443,11 @@ export class SystemDesignService {
       typical_hourly_usage: utility.utilityData.typicalBaselineUsage?.typicalHourlyUsage?.map(hourly => hourly.v),
       actual_usage: utility.utilityData.actualUsage?.hourlyUsage?.map(hourly => hourly.v),
       computed_usage: utility.utilityData.computedUsage?.hourlyUsage?.map(hourly => hourly.v),
-      new_pv: hourlySeriesForNewPVInKWh, // TODO: update this field if more than one solar array
-      batteryChargingSeries: pinballData.batteryChargingSeries?.map(e => e / 1000),
-      batteryDischargingSeries: pinballData.batteryDischargingSeries?.map(e => e / 1000),
-      batteryStoredEnergySeries: pinballData.batteryStoredEnergySeries?.map(e => e / 1000),
-      postInstallSiteDemandSeries: pinballData.postInstallSiteDemandSeries?.map(e => e / 1000),
+      new_pv: systemActualProduction8760, // TODO: update this field if more than one solar array
+      batteryChargingSeries: pinballData.batteryChargingSeries?.map(e => e / 1000), // convert to KWh
+      batteryDischargingSeries: pinballData.batteryDischargingSeries?.map(e => e / 1000), // convert to KWh
+      batteryStoredEnergySeries: pinballData.batteryStoredEnergySeries?.map(e => e / 1000), // convert to KWh
+      postInstallSiteDemandSeries: pinballData.postInstallSiteDemandSeries?.map(e => e / 1000), // convert to KWh
       rateAmountHourly: pinballData.rateAmountHourly?.map(hourly => hourly.rate),
       isCharging: pinballData.rateAmountHourly?.map(hourly => hourly.charge),
     };
@@ -1671,5 +1607,92 @@ export class SystemDesignService {
     );
 
     return systemActualProduction8760;
+  }
+
+  public async getSystemActualProduction(systemDesignId: ObjectId | string): Promise<number[]> {
+    const foundSystemDesign = await this.getOneById(systemDesignId);
+
+    if (!foundSystemDesign) {
+      throw new NotFoundException(`System design with id ${systemDesignId} not found`);
+    }
+
+    let cacheSystemActualProduction8760;
+
+    try {
+      cacheSystemActualProduction8760 = await this.s3Service.getObject(
+        this.GOOGLE_SUNROOF_BUCKET,
+        `${
+          foundSystemDesign.opportunityId
+        }/${systemDesignId.toString()}/hourly-production/system-actual-production-8760.json`,
+      );
+    } catch (_) {
+      // Do not thing, any error, such as NoSuchKey (file not found)
+    }
+
+    const systemActualProduction8760: number[] = cacheSystemActualProduction8760
+      ? JSON.parse(cacheSystemActualProduction8760)
+      : await this.calculateSystemActualProduction(foundSystemDesign);
+
+    return systemActualProduction8760;
+  }
+
+  public async buildPinballInputData(
+    systemDesign: LeanDocument<SystemDesign>,
+    systemActualProduction8760: number[],
+    utility: LeanDocument<UtilityUsageDetails>,
+  ): Promise<GetPinballSimulatorDto> {
+    const existingSystemProduction = await this.utilityService.getExistingSystemProductionByOpportunityId(
+      systemDesign.opportunityId,
+      true,
+    );
+
+    const hourlyPostInstallLoadInKWh = this.utilityService.getHourlyEstimatedUsage(utility);
+
+    const hourlySeriesForNewPVInWh: number[] = [];
+    const hourlyPostInstallLoadInWh: number[] = [];
+    const hourlySeriesForExistingPVInWh = existingSystemProduction.hourlyProduction;
+
+    const maxLength = Math.max(
+      systemActualProduction8760.length,
+      hourlyPostInstallLoadInKWh.length,
+      existingSystemProduction.hourlyProduction.length,
+    );
+
+    for (let i = 0; i < maxLength; i += 1) {
+      if (systemActualProduction8760[i]) {
+        hourlySeriesForNewPVInWh[i] = systemActualProduction8760[i] * 1000;
+      }
+
+      if (hourlyPostInstallLoadInKWh[i]) {
+        hourlyPostInstallLoadInWh[i] = hourlyPostInstallLoadInKWh[i] * 1000;
+      }
+    }
+
+    const { storage } = systemDesign.roofTopDesignData;
+    const pinballInputData = {
+      hourlyPostInstallLoad: hourlyPostInstallLoadInWh,
+      hourlySeriesForExistingPV: hourlySeriesForExistingPVInWh,
+      hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
+      postInstallMasterTariffId: utility.costData.postInstallMasterTariffId,
+      batterySystemSpecs: {
+        totalRatingInKW: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowatts || 0),
+        totalCapacityInKWh: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowattHours || 0),
+        roundTripEfficiency: storage[0]?.roundTripEfficiency || 0,
+        minimumReserve:
+          storage[0]?.purpose === BATTERY_PURPOSE.BACKUP_POWER
+            ? storage[0]?.reservePercentage
+            : sumBy(storage, item => item.reservePercentage || 0) / storage.length || 0,
+        operationMode: storage[0]?.purpose || BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
+      },
+    };
+
+    await this.s3Service.putObject(
+      this.PINBALL_SIMULATION_BUCKET,
+      `${systemDesign.id}/inputs`,
+      JSON.stringify(pinballInputData),
+      'application/json; charset=utf-8',
+    );
+
+    return pinballInputData;
   }
 }
