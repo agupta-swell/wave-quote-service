@@ -144,16 +144,14 @@ export class SunroofHourlyProductionCalculation {
 
   public calculateMaxInverterPower(systemDesign: SystemDesign | LeanDocument<SystemDesign>): number | undefined {
     const {
-      roofTopDesignData: { inverters, panelArray },
+      roofTopDesignData: { inverters },
     } = systemDesign;
 
     const [inverter] = inverters;
 
     if (!inverter) return undefined;
 
-    const totalPanels = this.getTotalPanels(panelArray);
-
-    return this.calculateMaxInvertedKWh(inverter, totalPanels);
+    return this.calculateMaxInvertedKWh(inverter);
   }
 
   private calculateSunroofHourlyProduction(
@@ -200,12 +198,8 @@ export class SunroofHourlyProductionCalculation {
     return values.map(v => Math.min(v, capValue));
   }
 
-  private getTotalPanels(panels: ISolarPanelArraySchema[]): number {
-    return sumBy(panels, panel => panel.numberOfPanels);
-  }
-
-  private calculateMaxInvertedKWh(inverter: IInverterSchema, numberOfPanels: number): number {
-    return (inverter.inverterModelDataSnapshot.ratings.watts * numberOfPanels) / 1000;
+  private calculateMaxInvertedKWh(inverter: IInverterSchema): number {
+    return (inverter.inverterModelDataSnapshot.ratings.watts * inverter.quantity) / 1000;
   }
 
   private async saveToS3(key: string, sunroofHourlyProduction: IEnergyProfileProduction): Promise<void> {
