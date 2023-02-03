@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { isMongoId } from 'class-validator';
-import { flatten, pickBy, sumBy, uniq } from 'lodash';
+import { flatten, pickBy, range, sum, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
@@ -16,6 +16,7 @@ import { ContractService } from 'src/contracts/contract.service';
 import { ECommerceService } from 'src/e-commerces/e-commerce.service';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
+import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { ProductionDeratesService } from 'src/production-derates-v2/production-derates-v2.service';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
@@ -35,7 +36,7 @@ import { SystemProductionService } from 'src/system-productions/system-productio
 import { IUtilityCostData } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
-import { buildMonthlyAndAnnuallyDataFrom8760 } from 'src/utils/transformData';
+import { buildMonthlyAndAnnuallyDataFrom8760, buildMonthlyHourFrom8760 } from 'src/utils/transformData';
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
 import { roundNumber } from 'src/utils/transformNumber';
 import { CALCULATION_MODE } from '../utilities/constants';
@@ -102,6 +103,7 @@ export class SystemDesignService {
     private readonly eCommerceService: ECommerceService,
     private readonly sunroofHourlyProductionCalculation: SunroofHourlyProductionCalculation,
     private readonly productionDeratesService: ProductionDeratesService,
+    private readonly mountTypesService: MountTypesService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -735,6 +737,7 @@ export class SystemDesignService {
     delete removedUndefined?._id;
 
     // save newSystemProduction to systemProduction and remove it from systemDesign's props
+    // TODO: refactor - replace inside system-design-hook
     const newSystemProduction = { ...removedUndefined?.systemProductionData };
 
     delete removedUndefined?.systemProductionData;
@@ -767,12 +770,6 @@ export class SystemDesignService {
         ),
       );
     }
-
-    handlers.push(
-      this.systemProductionService.update(systemDesign.systemProductionId, {
-        ...newSystemProduction,
-      }),
-    );
 
     await Promise.all(handlers);
 
@@ -1348,11 +1345,10 @@ export class SystemDesignService {
     );
   }
 
-  public async invokePINBALLSimulator(systemDesign: SystemDesign, systemProduction: ISystemProduction_v2) {
-    const [utility, existingSystemProduction, systemProductionArray] = await Promise.all([
+  public async invokePINBALLSimulator(systemDesign: SystemDesign, systemActualProduction8760: number[]) {
+    const [utility, existingSystemProduction] = await Promise.all([
       this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
       this.utilityService.getExistingSystemProductionByOpportunityId(systemDesign.opportunityId, true),
-      this.systemProductService.calculateSystemProductionByHour(systemDesign),
     ]);
 
     if (!utility) {
@@ -1361,36 +1357,19 @@ export class SystemDesignService {
 
     const hourlyPostInstallLoadInKWh = this.utilityService.getHourlyEstimatedUsage(utility);
 
-    const raw8760ProductionInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
-      systemProductionArray.hourly,
-      systemProduction.generationMonthlyKWh,
-    ) as number[];
-
-    const production8760AfterSoilingAndDegradationInKWh = await this.applyProductionSoilingAndDegradation(
-      raw8760ProductionInKWh,
-      systemDesign,
-    );
-
-    const production8760AfterClippedInKWh = this.applyInverterClipping(
-      production8760AfterSoilingAndDegradationInKWh,
-      systemDesign,
-    );
-
-    const production8760AfterAllOtherLossesInKWh = await this.applyOtherLosses(production8760AfterClippedInKWh);
-
     const hourlySeriesForNewPVInWh: number[] = [];
     const hourlyPostInstallLoadInWh: number[] = [];
     const hourlySeriesForExistingPVInWh = existingSystemProduction.hourlyProduction;
 
     const maxLength = Math.max(
-      raw8760ProductionInKWh.length,
+      systemActualProduction8760.length,
       hourlyPostInstallLoadInKWh.length,
       existingSystemProduction.hourlyProduction.length,
     );
 
     for (let i = 0; i < maxLength; i += 1) {
-      if (production8760AfterAllOtherLossesInKWh[i]) {
-        hourlySeriesForNewPVInWh[i] = production8760AfterAllOtherLossesInKWh[i] * 1000;
+      if (systemActualProduction8760[i]) {
+        hourlySeriesForNewPVInWh[i] = systemActualProduction8760[i] * 1000;
       }
 
       if (hourlyPostInstallLoadInKWh[i]) {
@@ -1550,7 +1529,7 @@ export class SystemDesignService {
 
   private async applyProductionSoilingAndDegradation(
     raw8760ProductionData: number[],
-    systemDesign: SystemDesign,
+    systemDesign: LeanDocument<SystemDesign>,
   ): Promise<number[]> {
     const {
       roofTopDesignData: { panelArray },
@@ -1567,7 +1546,7 @@ export class SystemDesignService {
     return raw8760ProductionData.map(v => multipliedByDegrade(v));
   }
 
-  private applyInverterClipping(productionData8760: number[], systemDesign: SystemDesign): number[] {
+  private applyInverterClipping(productionData8760: number[], systemDesign: LeanDocument<SystemDesign>): number[] {
     const {
       roofTopDesignData: { inverters },
     } = systemDesign;
@@ -1596,5 +1575,101 @@ export class SystemDesignService {
     });
 
     return productionData8760.map(v => roundNumber(v * ratio, 2));
+  }
+
+  public async calculateSystemActualProduction(systemDesign: LeanDocument<SystemDesign>): Promise<number[]> {
+    const [systemPVWattProduction, sunroofProduction, systemProduction, utilityAndUsage] = await Promise.all([
+      this.systemProductService.calculateSystemProductionByHour(systemDesign),
+      this.googleSunroofService.calculateProduction(systemDesign),
+      this.systemProductionService.findOne(systemDesign.systemProductionId),
+      this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
+    ]);
+
+    if (!systemPVWattProduction.arrayHourly) throw new NotFoundException(`Hourly production not found`);
+
+    // scale by sunroofProduction
+    const scaled8760ProductionByArray = systemPVWattProduction.arrayHourly.map((pvWattdata, index) =>
+      this.utilityService.calculate8760OnActualMonthlyUsage(
+        pvWattdata,
+        sunroofProduction.byArray[index].monthlyProduction,
+      ),
+    );
+
+    // apply mount type derate
+    const allMountTypes = await this.mountTypesService.findAllMountTypes();
+    const {
+      roofTopDesignData: { panelArray },
+    } = systemDesign;
+
+    const appliedDerate8760ProductionByArray = scaled8760ProductionByArray?.map((productionData, index) => {
+      let mountTypeDeratePercentage = 0;
+      const { mountTypeId } = panelArray[index];
+      if (mountTypeId) {
+        const mountType = allMountTypes.find(mountType => mountType._id.toString() === mountTypeId);
+        mountTypeDeratePercentage = (mountType?.deratePercentage || 0) / 100;
+      }
+      return productionData.map(v => +v * (1 - mountTypeDeratePercentage));
+    });
+
+    // apply Soiling And Degradation
+    const appliedSoilingAndDegradation8760ProductionByArray = await Promise.all(
+      appliedDerate8760ProductionByArray?.map(productionData =>
+        this.applyProductionSoilingAndDegradation(productionData, systemDesign),
+      ),
+    );
+
+    // apply applyInverterClipping
+    const appliedInverterClipping8760ProductionByArray = appliedSoilingAndDegradation8760ProductionByArray.map(
+      productionData => this.applyInverterClipping(productionData, systemDesign),
+    );
+
+    // apply OtherLosses
+    const appliedOtherLosses8760ProductionByArray = await Promise.all(
+      appliedInverterClipping8760ProductionByArray.map(productionData => this.applyOtherLosses(productionData)),
+    );
+
+    // OUTPUT: array of array 12 number
+    const monthlyProductionByArray = appliedOtherLosses8760ProductionByArray.map(productionData => {
+      const monthly = buildMonthlyHourFrom8760(productionData);
+      return monthly.map(x => sum(x));
+    });
+
+    const yearlyProductionByArray = monthlyProductionByArray.map(month => sum(month));
+
+    const cumulativeGenerationKWh = sum(yearlyProductionByArray);
+
+    if (systemProduction) {
+      const { capacityKW } = systemProduction;
+      const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
+
+      systemProduction.generationKWh = cumulativeGenerationKWh;
+      systemProduction.productivity = capacityKW === 0 ? 0 : cumulativeGenerationKWh / capacityKW;
+      systemProduction.offsetPercentage =
+        totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0;
+      // cumulative monthly generation of all arrays
+      systemProduction.generationMonthlyKWh = range(12).map(monthIndex =>
+        sum(monthlyProductionByArray.map(x => x[monthIndex])),
+      );
+      // yearly generation for each array
+      systemProduction.arrayGenerationKWh = yearlyProductionByArray;
+
+      await systemProduction.save();
+    }
+
+    // TODO: handle leep year later
+    const systemActualProduction8760 = range(8760).map(hourIdx =>
+      sum(appliedOtherLosses8760ProductionByArray.map(x => x[hourIdx])),
+    );
+
+    await this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${
+        systemDesign.opportunityId
+      }/${systemDesign._id.toString()}/hourly-production/system-actual-production-8760.json`,
+      JSON.stringify(systemActualProduction8760),
+      'application/json; charset=utf-8',
+    );
+
+    return systemActualProduction8760;
   }
 }

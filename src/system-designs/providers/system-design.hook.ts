@@ -251,34 +251,14 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   }
 
   private async regenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): Promise<void> {
-    const [sunroofProduction, systemProduction, utilityAndUsage] = await Promise.all([
-      this.googleSunroofService.calculateProduction(systemDesign),
+    const production8760 = await this.systemDesignService.calculateSystemActualProduction(systemDesign);
+
+    const [systemProduction] = await Promise.all([
       this.systemProductionService.findOne(systemDesign.systemProductionId),
-      this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
+      this.systemDesignService.invokePINBALLSimulator(systemDesign, production8760),
     ]);
 
     if (!systemProduction) return;
-    const cumulativeGenerationKWh = sunroofProduction.annualProduction;
-    const { capacityKW } = systemProduction;
-    const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
-
-    systemProduction.generationKWh = cumulativeGenerationKWh;
-    systemProduction.productivity = capacityKW === 0 ? 0 : cumulativeGenerationKWh / capacityKW;
-    systemProduction.offsetPercentage =
-      totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0;
-    systemProduction.generationMonthlyKWh = sunroofProduction.monthlyProduction;
-    systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
-
-    await Promise.all([
-      systemProduction.save(),
-      this.sunroofHourlyProductionCalculation.calculateClippingSunroofProduction(
-        systemDesign,
-        systemProduction,
-        sunroofProduction,
-      ),
-    ]);
-
-    await this.systemDesignService.invokePINBALLSimulator(systemDesign, systemProduction);
 
     asyncQueueStore.transformBody = (body: ServiceResponse<SystemDesignDto>) => {
       if (!body?.data?.id) return body;

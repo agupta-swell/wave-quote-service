@@ -4,6 +4,20 @@ import { IPinballRateAmount } from 'src/utilities/utility.interface';
 import { sliceBySize, sliceBySizesMap } from './array';
 import { roundNumber } from './transformNumber';
 
+export const buildMonthlyHourFrom8760 = (hourlyProduction: number[]): number[][] => {
+  const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
+
+  const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  // leap year
+  if (totalDatesOfHourlyProduction === 366) {
+    datesInMonths[1] = 29;
+  }
+
+  const monthHours = datesInMonths.map(d => d * 24);
+
+  return sliceBySizesMap(hourlyProduction, monthHours);
+};
+
 export const buildMonthlyAndAnnuallyDataFrom8760 = (hourlyProduction: number[]): IEnergyProfileProduction => {
   const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
 
