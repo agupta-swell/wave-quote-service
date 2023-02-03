@@ -7,6 +7,7 @@ import { ExistingSystemResDto } from 'src/existing-systems/res/existing-system.r
 import { OpportunityService } from './opportunity.service';
 import { GetOppExistingSystemsQuery } from './req/get-opp-existing-systems-query.dto';
 import { UpdateOpportunityRebateProgramDto } from './req/update-opportunity-rebate-program.dto';
+import { UpdateOpportunityTiltleNameMatchDto } from './req/update-opportunity-title-name-match.dto';
 import { UpdateOpportunityUtilityProgramDto } from './req/update-opportunity-utility-program.dto';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto, GetRelatedInformationRes } from './res/get-related-information.dto';
@@ -17,7 +18,7 @@ import { QuoteDetailResDto } from './res/quote-detail.dto';
 @Controller('/opportunities')
 @PreAuthenticate()
 export class OpportunityController {
-  constructor(private readonly opportunityService: OpportunityService) {}
+  constructor(private readonly opportunityService: OpportunityService) { }
 
   @Get(':opportunityId')
   @ApiOperation({ summary: 'Get Related Information For Opportunity' })
@@ -62,6 +63,18 @@ export class OpportunityController {
   ): Promise<ServiceResponse<GetRelatedInformationDto>> {
     const res = await this.opportunityService.updateOpportunityRebateProgram(opportunityId, rebateProgramId);
 
+    return ServiceResponse.fromResult(res);
+  }
+
+
+  @Put('/:opportunityId/title-name-match')
+  @ApiOperation({ summary: "Update Opportunity's Title Name Match" })
+  @ApiOkResponse({ type: GetRelatedInformationDto })
+  async updateOpportunityTitleNameMatch(
+    @Body() titleNameMatchData: UpdateOpportunityTiltleNameMatchDto,
+    @Param('opportunityId') opportunityId: string,
+  ): Promise<ServiceResponse<GetRelatedInformationDto>> {
+    const res = await this.opportunityService.updateOpportunityTitleNameMatch(opportunityId, titleNameMatchData);
     return ServiceResponse.fromResult(res);
   }
 

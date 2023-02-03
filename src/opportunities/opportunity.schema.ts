@@ -5,7 +5,16 @@ import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/s
 
 export const OPPORTUNITY = Symbol('OPPORTUNITY').toString();
 
-export interface Opportunity extends Document {
+export interface UpdateOpportunityTiltleNameMatchType {
+  alternateTitleDocumentationSubmitted: boolean;
+  alternateTitleDocumentationSubmitDate: Date;
+  alternateTitleDocumentationName: string;
+  alternateTitleDocumentationAddress: string;
+  applicantNameMatchesTitle: boolean;
+  coapplicantNameMatchesTitle: boolean;
+}
+
+export interface Opportunity extends Document, Partial<UpdateOpportunityTiltleNameMatchType> {
   name: string;
   contactId: string;
   utilityId: string;
@@ -39,6 +48,12 @@ export interface Opportunity extends Document {
   gsTermYears?: string;
   primaryQuoteType: PRIMARY_QUOTE_TYPE;
   interconnectedWithExistingSystem: boolean;
+  applicantName?: string;
+  coapplicantName?: string;
+  applicantCreditApproved?: boolean;
+  coapplicantCreditApproved?: boolean;
+  onTitleName?: string;
+  onTitleAddress?: string;
 }
 
 export const OpportunitySchema = new Schema<Opportunity>({
@@ -75,6 +90,18 @@ export const OpportunitySchema = new Schema<Opportunity>({
   gsTermYears: String,
   primaryQuoteType: String,
   interconnectedWithExistingSystem: Boolean,
+  applicantName: String,
+  coapplicantName: String,
+  applicantCreditApproved: Boolean,
+  coapplicantCreditApproved: Boolean,
+  onTitleName: String,
+  onTitleAddress: String,
+  alternateTitleDocumentationSubmitted: Boolean,
+  alternateTitleDocumentationSubmitDate: Date,
+  alternateTitleDocumentationName: String,
+  alternateTitleDocumentationAddress: String,
+  applicantNameMatchesTitle: Boolean,
+  coapplicantNameMatchesTitle: Boolean,
 });
 
 MongooseNamingStrategy.ExcludeOne(OpportunitySchema);

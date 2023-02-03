@@ -86,9 +86,45 @@ export class GetRelatedInformationDto {
 
   @ExposeProp()
   existingPVAzimuth: number;
-  
+
   @ExposeProp()
   assignedMember: string;
+
+  @ExposeProp()
+  applicantName: string;
+
+  @ExposeProp()
+  coapplicantName: string;
+
+  @ExposeProp()
+  applicantCreditApproved: boolean;
+
+  @ExposeProp()
+  coapplicantCreditApproved: boolean;
+
+  @ExposeProp()
+  onTitleName: string;
+
+  @ExposeProp()
+  onTitleAddress: string;
+
+  @ExposeProp()
+  alternateTitleDocumentationSubmitted: boolean;
+
+  @ExposeProp()
+  alternateTitleDocumentationSubmitDate: Date;
+
+  @ExposeProp()
+  alternateTitleDocumentationName: string;
+
+  @ExposeProp()
+  alternateTitleDocumentationAddress: string;
+
+  @ExposeProp()
+  applicantNameMatchesTitle: boolean;
+
+  @ExposeProp()
+  coapplicantNameMatchesTitle: boolean;
 }
 
 export class GetRelatedInformationRes implements ServiceResponse<GetRelatedInformationDto> {
