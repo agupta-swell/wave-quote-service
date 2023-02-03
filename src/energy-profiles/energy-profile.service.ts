@@ -66,12 +66,14 @@ export class EnergyProfileService {
 
     if (cacheSystemActualProduction8760) {
       const parsedCacheSystemActualProduction8760 = JSON.parse(cacheSystemActualProduction8760);
-      return buildMonthlyAndAnnuallyDataFrom8760(parsedCacheSystemActualProduction8760);
+      return buildMonthlyAndAnnuallyDataFrom8760(parsedCacheSystemActualProduction8760.map(x => x * 1000)); // convert to Wh
     }
+
     const systemActualProduction8760 = await this.systemDesignService.calculateSystemActualProduction(
       foundSystemDesign,
     );
-    return buildMonthlyAndAnnuallyDataFrom8760(systemActualProduction8760);
+
+    return buildMonthlyAndAnnuallyDataFrom8760(systemActualProduction8760.map(x => x * 1000)); // convert to Wh
   }
 
   async getBatteryChargingSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {

@@ -63,8 +63,8 @@ export const buildMonthlyAndAnnuallyDataFrom8760 = (hourlyProduction: number[]):
   };
 };
 
-export const getMonthlyAndAnnualAverageFrom8760 = (hourlyProduction: number[]): IEnergyProfileProduction => {
-  const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
+export const getMonthlyAndAnnualAverageFrom8760 = (hourlyProductionInWh: number[]): IEnergyProfileProduction => {
+  const totalDatesOfHourlyProduction = hourlyProductionInWh.length / 24;
 
   const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   // leap year
@@ -74,7 +74,7 @@ export const getMonthlyAndAnnualAverageFrom8760 = (hourlyProduction: number[]): 
 
   const monthHours = datesInMonths.map(d => d * 24);
 
-  const monthlyAverage = sliceBySizesMap(hourlyProduction, monthHours).map((month, monthIdx) =>
+  const monthlyAverage = sliceBySizesMap(hourlyProductionInWh, monthHours).map((month, monthIdx) =>
     sliceBySize(month, 24)
       .reduce<number[]>((acc, cur) => {
         cur.forEach((c, idx) => {
@@ -85,7 +85,7 @@ export const getMonthlyAndAnnualAverageFrom8760 = (hourlyProduction: number[]): 
       .map(e => e / datesInMonths[monthIdx]),
   );
 
-  const annualAverage = sliceBySize(hourlyProduction, 24)
+  const annualAverage = sliceBySize(hourlyProductionInWh, 24)
     .reduce<number[]>((acc, cur) => {
       cur.forEach((c, idx) => {
         acc[idx] += c;
