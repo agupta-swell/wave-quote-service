@@ -6,7 +6,7 @@ import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
 import { inRange, mean, sum, sumBy } from 'lodash';
-import { Model, ObjectId, LeanDocument } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContactService } from 'src/contacts/contact.service';
@@ -19,11 +19,11 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
+import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
+import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRange } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
-import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
-import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
@@ -832,17 +832,17 @@ export class UtilityService implements OnModuleInit {
 
     // iterate through the hours of the year, jumping from period to period
     // a 'period' is 1 or more consecutive hours with the same cost of electricity
-    for ( let firstHourOfThisPeriod = 0 ; true ; ) {
+    for (let firstHourOfThisPeriod = 0; true; ) {
       // the cost of electricity in the current period
-      const rateThisPeriod = rateAmountHourly[firstHourOfThisPeriod].rate
+      const rateThisPeriod = rateAmountHourly[firstHourOfThisPeriod].rate;
       // the cost of electricity in the next period
       let rateNextPeriod: number | undefined;
 
       // look ahead for the next period
       let firstHourOfNextPeriod: number | undefined;
-      for ( let i = firstHourOfThisPeriod + 1 ; i < rateAmountHourly.length ; i++ ) {
+      for (let i = firstHourOfThisPeriod + 1; i < rateAmountHourly.length; i++) {
         // if the rate is different than the current rate
-        if ( rateAmountHourly[i].rate !== rateThisPeriod ) {
+        if (rateAmountHourly[i].rate !== rateThisPeriod) {
           // then we have found the next period
           firstHourOfNextPeriod = i;
           break;
@@ -852,9 +852,9 @@ export class UtilityService implements OnModuleInit {
       // if we did not find the next period, then this is the last period of the year
       if (!firstHourOfNextPeriod) {
         // and we need to search from the beginning of the year, to find the next rate
-        for ( let i = 0 ; i < rateAmountHourly.length ; i++ ) {
+        for (let i = 0; i < rateAmountHourly.length; i++) {
           // if the rate is different than the current rate
-          if ( rateAmountHourly[i].rate !== rateThisPeriod ) {
+          if (rateAmountHourly[i].rate !== rateThisPeriod) {
             // then we have found the next rate
             rateNextPeriod = rateAmountHourly[i].rate;
             break;
@@ -864,12 +864,12 @@ export class UtilityService implements OnModuleInit {
         // if we did not find the next rate, then the whole year is one rate
         if (!rateNextPeriod) {
           // and we need to set the charge plan for the full year
-          for ( let i = 0 ; i < rateAmountHourly.length ; i++ ) {
+          for (let i = 0; i < rateAmountHourly.length; i++) {
             // always discharge if necessary; similar to pv self-consumption
-            rateAmountHourly[i].charge = false
+            rateAmountHourly[i].charge = false;
           }
           // we're done
-          break
+          break;
         }
 
         // WAV-1727 implements this NEM2 Advanced TOU charging plan:
@@ -878,12 +878,12 @@ export class UtilityService implements OnModuleInit {
         const shouldChargeDuringLastPeriodOfTheYear = rateNextPeriod > rateThisPeriod;
 
         // set the charge flag for the rest of the year
-        for ( let i = firstHourOfThisPeriod ; i < rateAmountHourly.length ; i++ ) {
-          rateAmountHourly[i].charge = shouldChargeDuringLastPeriodOfTheYear
+        for (let i = firstHourOfThisPeriod; i < rateAmountHourly.length; i++) {
+          rateAmountHourly[i].charge = shouldChargeDuringLastPeriodOfTheYear;
         }
 
         // we're done
-        break
+        break;
       }
 
       // get the rate for next period
@@ -893,9 +893,9 @@ export class UtilityService implements OnModuleInit {
       // Charge if the next period is more expensive than the current one.
       // Discharge if the next period is cheaper than the current one.
       const shouldChargeDuringThisPeriod = rateNextPeriod > rateThisPeriod;
-      
+
       // set the charge flag for all the hours of this period
-      for ( let i = firstHourOfThisPeriod ; i < firstHourOfNextPeriod ; i++ ) {
+      for (let i = firstHourOfThisPeriod; i < firstHourOfNextPeriod; i++) {
         rateAmountHourly[i].charge = shouldChargeDuringThisPeriod;
       }
 
@@ -1080,11 +1080,19 @@ export class UtilityService implements OnModuleInit {
     year?: number,
     zipCode?: number,
   ): Promise<IUtilityCostData> {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    let genabilityCost: GenabilityCostData | null = null;
+
     if (mode === CALCULATION_MODE.TYPICAL) {
-      const genabilityCost = await this.genabilityCostDataModel.findOne({ masterTariffId }).lean();
+      genabilityCost = await this.genabilityCostDataModel.findOne({ masterTariffId });
 
       if (genabilityCost) {
-        return genabilityCost.utilityCost;
+        const genabilityCostYear = new Date(genabilityCost.utilityCost.startDate).getFullYear();
+        const genabilityCostMonth = new Date(genabilityCost.utilityCost.startDate).getMonth();
+        if (genabilityCostYear === currentYear && genabilityCostMonth === currentMonth + 1) {
+          return genabilityCost.utilityCost;
+        }
       }
     }
 
@@ -1100,7 +1108,6 @@ export class UtilityService implements OnModuleInit {
     const monthlyCosts: ICostDetailData[] = [];
     let monthlyCostToBeUsed: ICostDetailData[] = [];
 
-    const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
 
     const { fromDateTime, toDateTime } = getNextYearDateRange();
@@ -1146,11 +1153,19 @@ export class UtilityService implements OnModuleInit {
       }));
     }
 
+    // sort monthlyCostToBeUsed by month
+    const startMonth = new Date(monthlyCostToBeUsed[0].startDate).getMonth();
+
+    const monthlyCostToBeUsedSorted = [
+      ...monthlyCostToBeUsed.slice(startMonth * -1),
+      ...monthlyCostToBeUsed.slice(0, 12 - startMonth),
+    ];
+
     const costData = {
       startDate: new Date(fromDateTime),
       endDate: new Date(toDateTime),
       interval: INTERVAL_VALUE.MONTH,
-      cost: monthlyCostToBeUsed,
+      cost: monthlyCostToBeUsedSorted,
     } as IUtilityCostData;
 
     if (mode === CALCULATION_MODE.TYPICAL) {
@@ -1160,8 +1175,13 @@ export class UtilityService implements OnModuleInit {
         utilityCost: costData,
       };
 
-      const createdGenabilityCost = new this.genabilityCostDataModel(genabilityCostData);
-      await createdGenabilityCost.save();
+      if (!genabilityCost) {
+        const createdGenabilityCost = new this.genabilityCostDataModel(genabilityCostData);
+        await createdGenabilityCost.save();
+      } else {
+        genabilityCost.utilityCost = costData;
+        await genabilityCost.save();
+      }
     }
 
     return costData;
