@@ -998,7 +998,7 @@ export class ContractService {
     const batteryKw = roundNumber(
       sumBy(
         quoteDetail.quoteCostBuildup.storageQuoteDetails,
-        item => item.storageModelDataSnapshot.ratings.kilowattHours * item.quantity,
+        item => item.storageModelDataSnapshot.ratings.kilowatts * item.quantity,
       ),
       3,
     );

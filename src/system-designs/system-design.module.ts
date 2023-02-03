@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
+import { MountTypesModule } from 'src/mount-types-v2/mount-types-v2.module';
 import { ProductionDeratesModule } from 'src/production-derates-v2/production-derates-v2.module';
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
@@ -38,6 +39,7 @@ import { SystemDesignService } from './system-design.service';
     SystemProductionModule,
     ExistingSystemModule,
     ProductionDeratesModule,
+    MountTypesModule,
   ],
   controllers: [SystemDesignController],
   providers: [

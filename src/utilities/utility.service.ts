@@ -6,7 +6,7 @@ import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
 import { inRange, mean, sum, sumBy } from 'lodash';
-import { Model, ObjectId, LeanDocument } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContactService } from 'src/contacts/contact.service';
@@ -19,11 +19,11 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { IUsageProfile } from 'src/usage-profiles/interfaces';
+import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
+import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRange } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
-import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
-import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
@@ -830,51 +830,77 @@ export class UtilityService implements OnModuleInit {
       rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), charge: true });
     }
 
-    // update periods charge or discharge in day
-    for (let i = 0; i < 365; i += 1) {
-      const firstHourOfDayIndex = i * 24;
-      // init the periodsInDay
-      const periodsInDay: {
-        rate: number;
-        index: number;
-        charge: boolean;
-      }[] = [{ rate: rateAmountHourly[firstHourOfDayIndex].rate, index: firstHourOfDayIndex, charge: true }];
+    // iterate through the hours of the year, jumping from period to period
+    // a 'period' is 1 or more consecutive hours with the same cost of electricity
+    for (let firstHourOfThisPeriod = 0; true; ) {
+      // the cost of electricity in the current period
+      const rateThisPeriod = rateAmountHourly[firstHourOfThisPeriod].rate;
+      // the cost of electricity in the next period
+      let rateNextPeriod: number | undefined;
 
-      // find the periods in day
-
-      for (let j = 1; j < 24; j += 1) {
-        // push the next period into periodsInDay
-        const currentPeriodInDayIndex = periodsInDay[periodsInDay.length - 1].index;
-        if (rateAmountHourly[currentPeriodInDayIndex].rate !== rateAmountHourly[firstHourOfDayIndex + j].rate) {
-          periodsInDay.push({
-            rate: rateAmountHourly[firstHourOfDayIndex + j].rate,
-            index: firstHourOfDayIndex + j,
-            // the previous period is > the next period => next period charge
-            charge: rateAmountHourly[currentPeriodInDayIndex].rate > rateAmountHourly[firstHourOfDayIndex + j].rate,
-          });
+      // look ahead for the next period
+      let firstHourOfNextPeriod: number | undefined;
+      for (let i = firstHourOfThisPeriod + 1; i < rateAmountHourly.length; i++) {
+        // if the rate is different than the current rate
+        if (rateAmountHourly[i].rate !== rateThisPeriod) {
+          // then we have found the next period
+          firstHourOfNextPeriod = i;
+          break;
         }
       }
 
-      // update the first period if it is < the 2nd period => charge
-      if (periodsInDay.length > 1) {
-        periodsInDay[0].charge = !periodsInDay[1].charge;
-        // if the first period.rate === the final period.rate maybe it is the same period.charge (e.g. the hour from 9pm - 5am)
-        if (
-          rateAmountHourly[periodsInDay[0].index].rate ===
-          rateAmountHourly[periodsInDay[periodsInDay.length - 1].index].rate
-        ) {
-          periodsInDay[periodsInDay.length - 1].charge = periodsInDay[0].charge;
-        }
-      }
-
-      // only update rateAmountHourly when periodsInDay[i].charge false
-      for (let k = 0; k < periodsInDay.length; k += 1) {
-        if (!periodsInDay[k].charge) {
-          for (let h = periodsInDay[k].index; h < (periodsInDay[k + 1]?.index || periodsInDay[0].index + 24); h += 1) {
-            rateAmountHourly[h].charge = periodsInDay[k].charge;
+      // if we did not find the next period, then this is the last period of the year
+      if (!firstHourOfNextPeriod) {
+        // and we need to search from the beginning of the year, to find the next rate
+        for (let i = 0; i < rateAmountHourly.length; i++) {
+          // if the rate is different than the current rate
+          if (rateAmountHourly[i].rate !== rateThisPeriod) {
+            // then we have found the next rate
+            rateNextPeriod = rateAmountHourly[i].rate;
+            break;
           }
         }
+
+        // if we did not find the next rate, then the whole year is one rate
+        if (!rateNextPeriod) {
+          // and we need to set the charge plan for the full year
+          for (let i = 0; i < rateAmountHourly.length; i++) {
+            // always discharge if necessary; similar to pv self-consumption
+            rateAmountHourly[i].charge = false;
+          }
+          // we're done
+          break;
+        }
+
+        // WAV-1727 implements this NEM2 Advanced TOU charging plan:
+        // Charge if the next period is more expensive than the current one.
+        // Discharge if the next period is cheaper than the current one.
+        const shouldChargeDuringLastPeriodOfTheYear = rateNextPeriod > rateThisPeriod;
+
+        // set the charge flag for the rest of the year
+        for (let i = firstHourOfThisPeriod; i < rateAmountHourly.length; i++) {
+          rateAmountHourly[i].charge = shouldChargeDuringLastPeriodOfTheYear;
+        }
+
+        // we're done
+        break;
       }
+
+      // get the rate for next period
+      rateNextPeriod = rateAmountHourly[firstHourOfNextPeriod].rate;
+
+      // WAV-1727 implements this NEM2 Advanced TOU charging plan:
+      // Charge if the next period is more expensive than the current one.
+      // Discharge if the next period is cheaper than the current one.
+      const shouldChargeDuringThisPeriod = rateNextPeriod > rateThisPeriod;
+
+      // set the charge flag for all the hours of this period
+      for (let i = firstHourOfThisPeriod; i < firstHourOfNextPeriod; i++) {
+        rateAmountHourly[i].charge = shouldChargeDuringThisPeriod;
+      }
+
+      // advance the cursor to the first hour of the next period
+      firstHourOfThisPeriod = firstHourOfNextPeriod;
     }
 
     const batteryStoredEnergySeries: number[] = [];
@@ -1054,11 +1080,19 @@ export class UtilityService implements OnModuleInit {
     year?: number,
     zipCode?: number,
   ): Promise<IUtilityCostData> {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    let genabilityCost: GenabilityCostData | null = null;
+
     if (mode === CALCULATION_MODE.TYPICAL) {
-      const genabilityCost = await this.genabilityCostDataModel.findOne({ masterTariffId }).lean();
+      genabilityCost = await this.genabilityCostDataModel.findOne({ masterTariffId });
 
       if (genabilityCost) {
-        return genabilityCost.utilityCost;
+        const genabilityCostYear = new Date(genabilityCost.utilityCost.startDate).getFullYear();
+        const genabilityCostMonth = new Date(genabilityCost.utilityCost.startDate).getMonth();
+        if (genabilityCostYear === currentYear && genabilityCostMonth === currentMonth + 1) {
+          return genabilityCost.utilityCost;
+        }
       }
     }
 
@@ -1074,7 +1108,6 @@ export class UtilityService implements OnModuleInit {
     const monthlyCosts: ICostDetailData[] = [];
     let monthlyCostToBeUsed: ICostDetailData[] = [];
 
-    const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
 
     const { fromDateTime, toDateTime } = getNextYearDateRange();
@@ -1120,11 +1153,19 @@ export class UtilityService implements OnModuleInit {
       }));
     }
 
+    // sort monthlyCostToBeUsed by month
+    const startMonth = new Date(monthlyCostToBeUsed[0].startDate).getMonth();
+
+    const monthlyCostToBeUsedSorted = [
+      ...monthlyCostToBeUsed.slice(startMonth * -1),
+      ...monthlyCostToBeUsed.slice(0, 12 - startMonth),
+    ];
+
     const costData = {
       startDate: new Date(fromDateTime),
       endDate: new Date(toDateTime),
       interval: INTERVAL_VALUE.MONTH,
-      cost: monthlyCostToBeUsed,
+      cost: monthlyCostToBeUsedSorted,
     } as IUtilityCostData;
 
     if (mode === CALCULATION_MODE.TYPICAL) {
@@ -1134,8 +1175,13 @@ export class UtilityService implements OnModuleInit {
         utilityCost: costData,
       };
 
-      const createdGenabilityCost = new this.genabilityCostDataModel(genabilityCostData);
-      await createdGenabilityCost.save();
+      if (!genabilityCost) {
+        const createdGenabilityCost = new this.genabilityCostDataModel(genabilityCostData);
+        await createdGenabilityCost.save();
+      } else {
+        genabilityCost.utilityCost = costData;
+        await genabilityCost.save();
+      }
     }
 
     return costData;
@@ -1298,7 +1344,7 @@ export class UtilityService implements OnModuleInit {
     let json;
 
     try {
-      const { bucket, key } = this.getMonthlyTariffDataS3Info(opportunityId)
+      const { bucket, key } = this.getMonthlyTariffDataS3Info(opportunityId);
       json = await this.s3Service.getObject(bucket, key);
     } catch (_) {
       // do nothing
@@ -1323,13 +1369,23 @@ export class UtilityService implements OnModuleInit {
     // Get seasons
     const seasons: any[] = [];
 
+    const tariffsBySeasons: {
+      [seasonName: string]: any[];
+    } = {};
+
     filterTariffs.forEach(filterTariff => {
       const season = filterTariff.timeOfUse.season || filterTariff.season;
 
       if (!season) return;
 
-      if (!seasons.length) seasons.push(season);
-      else if (seasons.findIndex(s => s.seasonId === season.seasonId) === -1) seasons.push(season);
+      if (!seasons.length || seasons.findIndex(s => s.seasonId === season.seasonId) === -1) {
+        seasons.push(season);
+      }
+
+      if (!tariffsBySeasons[season.seasonName]) {
+        tariffsBySeasons[season.seasonName] = [];
+      }
+      tariffsBySeasons[season.seasonName].push(filterTariff);
     });
 
     if (!seasons.length) {
@@ -1369,118 +1425,63 @@ export class UtilityService implements OnModuleInit {
       seasonsInMonths.push(seasonsInMonth);
     }
 
-    // monthlyTariffRawData[monthIndex][seasonName][hourOfTheDay][dayOfTheMonth] = applicableCharges as number[]
-    const monthlyTariffRawData: {
-      [seasonName: string]: number[][][]
-    }[] = [];
-
-    for (let i = 0; i < 12; i++) {
-      const seasonsInMonth = seasonsInMonths[i];
-      const rates = {};
-      seasonsInMonth.forEach(seasonName => {
-        rates[seasonName] = [...Array(24)].map(() => {
-          return [...Array(datesInMonths[i])].map(() => [])
-        })}
-      );
-      monthlyTariffRawData.push(rates);
-    }
-
-    // DST is second Sunday in March to the first Sunday in November of year
-    const secondSundayInMarch = dayjs(
-      new Date(currentYear, 3 - 1, firstSundayOfTheMonth(currentYear, 3) + 7),
-    ).dayOfYear();
-
-    const firstSundayInNovember = dayjs(
-      new Date(currentYear, 11 - 1, firstSundayOfTheMonth(currentYear, 11)),
-    ).dayOfYear();
-
-    const fromDST = (secondSundayInMarch - 1) * 24;
-
-    const toDST = (firstSundayInNovember - 1) * 24 + 1;
-
-    // Build monthlyTariffRawData
-    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
-      filterTariffs.forEach(filterTariff => {
-        const season = filterTariff.timeOfUse.season || filterTariff.season;
-        if (!season) return;
-
-        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay, seasonName } = season;
-        const rateAmount = filterTariff?.rateBands[0]?.rateAmount || 0;
-
-        const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
-        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
-
-        const hourIndexWithDST = fromDST < hourIndex && hourIndex < toDST ? hourIndex + 1 : hourIndex;
-
-        const isValidSeason =
-          fromHourIndex < toHourIndex
-            ? inRange(hourIndexWithDST, fromHourIndex, toHourIndex)
-            : inRange(hourIndexWithDST, 0, toHourIndex) || inRange(hourIndexWithDST, fromHourIndex, 8760);
-
-        if (!isValidSeason) {
-          return;
-        }
-
-        const day = dayjs().dayOfYear(Math.floor(hourIndexWithDST / 24) + 1);
-        const dayOfWeek = day.day();
-        const dayOfMonth = day.date();
-
-        const hourInDay = hourIndexWithDST % 24;
-
-        let checkIsValidHourDay = false;
-
-        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
-          const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
-          const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
-            fromDayOfWeek,
-            toDayOfWeek,
-            dayOfWeek,
-            fromHour,
-            toHour,
-            hourInDay,
-          );
-          if (isValidHourDay) {
-            checkIsValidHourDay = true;
-            break;
-          }
-        }
-
-        if (!checkIsValidHourDay) return;
-
-        const dayIndexWithDST = Math.floor(hourIndexWithDST / 24) + 1;
-
-        let monthIndexWithDST = 0;
-        let totalDays = datesInMonths[monthIndexWithDST];
-
-        for (monthIndexWithDST; monthIndexWithDST < 12; monthIndexWithDST++) {
-          // check day in month
-          if (dayIndexWithDST <= totalDays) break;
-          totalDays += datesInMonths[monthIndexWithDST + 1];
-        }
-
-        monthlyTariffRawData[monthIndexWithDST][seasonName][hourInDay][dayOfMonth - 1].push(rateAmount);
-      });
-    }
-
     const monthlyTariffData: IMonthSeasonTariff[][] = [];
 
-    for (let i = 0; i < 12; i++) {
-      const seasonsInMonth = seasonsInMonths[i];
+    // Build monthlyTariffData
+    for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+      const seasonsInMonth = seasonsInMonths[monthIndex];
+      const totalDayInMonth = datesInMonths[monthIndex];
+
       const tariffDataOfSeasonsInMonth: IMonthSeasonTariff[] = [];
 
       seasonsInMonth.forEach(seasonName => {
-        const rawTariffRateOfSeasonInMonth = monthlyTariffRawData[i][seasonName];
-        const hourlyTariffRateOfSeasonInMonth: any[] = [];
-
-        rawTariffRateOfSeasonInMonth.forEach(hourlyRawData => {
-          const hourRate = roundNumber(mean(hourlyRawData.map(charges => sum(charges))), 5);
-          hourlyTariffRateOfSeasonInMonth.push(hourRate);
-        });
+        const tariffsBySeason = tariffsBySeasons[seasonName];
 
         const seasonInMonthTariffData: IMonthSeasonTariff = {
           seasonName,
-          hourlyTariffRate: hourlyTariffRateOfSeasonInMonth,
+          hourlyTariffRate: [...Array(24)],
         };
+
+        for (let hourInDay = 0; hourInDay < 24; hourInDay++) {
+          const ratesOfHour: number[] = [];
+
+          for (let dayOfMonthIdx = 0; dayOfMonthIdx < totalDayInMonth; dayOfMonthIdx++) {
+            const day = dayjs(new Date(currentYear, monthIndex, dayOfMonthIdx + 1));
+            const dayOfWeek = day.day();
+
+            let totalRateInDay = 0;
+
+            tariffsBySeason.forEach(filterTariff => {
+              const rateAmount = filterTariff?.rateBands[0]?.rateAmount || 0;
+
+              let checkIsValidHourDay = false;
+
+              for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
+                const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
+                const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
+                  fromDayOfWeek,
+                  toDayOfWeek,
+                  dayOfWeek,
+                  fromHour,
+                  toHour,
+                  hourInDay,
+                );
+                if (isValidHourDay) {
+                  checkIsValidHourDay = true;
+                  break;
+                }
+              }
+
+              if (!checkIsValidHourDay) return;
+
+              totalRateInDay += rateAmount;
+            });
+
+            ratesOfHour.push(totalRateInDay);
+          }
+
+          seasonInMonthTariffData.hourlyTariffRate[hourInDay] = roundNumber(mean(ratesOfHour), 5);
+        }
 
         tariffDataOfSeasonsInMonth.push(seasonInMonthTariffData);
       });
@@ -1495,11 +1496,11 @@ export class UtilityService implements OnModuleInit {
     return monthlyTariffData;
   }
 
-  private getMonthlyTariffDataS3Info (opportunityId: string) {
+  private getMonthlyTariffDataS3Info(opportunityId: string) {
     return {
       bucket: this.AWS_S3_UTILITY_DATA,
       key: `${opportunityId}/monthlyTariffData.json`,
-      contentType: 'application/json; charset=utf-8'
+      contentType: 'application/json; charset=utf-8',
     };
   }
 }

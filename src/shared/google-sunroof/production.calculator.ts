@@ -1,35 +1,14 @@
-
-import {
-  chunk,
-  mean,
-  range,
-  sum,
-  sumBy,
-} from 'lodash';
+import { chunk, mean, range, sum, sumBy } from 'lodash';
 
 import type { TypedArrayArrayWithDimensions } from 'geotiff';
 
 import { LeanDocument } from 'mongoose';
 
-import { MountTypesDocument } from 'src/mount-types-v2/mount-types-v2.schema';
-import {
-  ISolarPanelArraySchema,
-  SystemDesign,
-} from '../../system-designs/system-design.schema';
+import { ISolarPanelArraySchema, SystemDesign } from '../../system-designs/system-design.schema';
 
-import type {
-  ArrayProduction,
-  IDriftCorrection,
-  LatLng,
-  Pixel,
-  SystemProduction,
-} from './types';
+import type { ArrayProduction, IDriftCorrection, LatLng, Pixel, SystemProduction } from './types';
 
-import {
-  getPanelPixels,
-  mapLatLngPolygonToPixelPolygon,
-  translatePixelPolygon,
-} from './utils';
+import { getPanelPixels, mapLatLngPolygonToPixelPolygon, translatePixelPolygon } from './utils';
 
 export class ProductionCalculator {
   /**
@@ -51,46 +30,46 @@ export class ProductionCalculator {
     annualFluxLayers: TypedArrayArrayWithDimensions,
     monthlyFluxLayers: TypedArrayArrayWithDimensions,
     annualDriftCorrection: IDriftCorrection,
-    allMountTypes: LeanDocument<MountTypesDocument>[],
   ): SystemProduction {
     const {
       latitude,
       longitude,
-      roofTopDesignData: {
-        panelArray: arrays
-      }
-    } = systemDesign
+      roofTopDesignData: { panelArray: arrays },
+    } = systemDesign;
 
     const origin: LatLng = {
       lat: latitude,
       lng: longitude,
-    }
+    };
 
     // parse the GeoTIFF flux layers into 2-dimensional flux arrays
-    const {
-      0: annualFluxLayer,
-      width: annualWidth,
-    } = annualFluxLayers
-    const annualFlux = chunk(annualFluxLayer, annualWidth)
-    const { width: monthlyWidth } = monthlyFluxLayers
-    const monthlyFluxes = monthlyFluxLayers.map(monthlyFluxLayer => chunk(monthlyFluxLayer, monthlyWidth))
+    const { 0: annualFluxLayer, width: annualWidth } = annualFluxLayers;
+    const annualFlux = chunk(annualFluxLayer, annualWidth);
+    const { width: monthlyWidth } = monthlyFluxLayers;
+    const monthlyFluxes = monthlyFluxLayers.map(monthlyFluxLayer => chunk(monthlyFluxLayer, monthlyWidth));
 
     // calculate the production numbers of each array in the system
     const arrayProductions = arrays.map(array => {
-      return ProductionCalculator.calculateArrayProduction(annualFlux, monthlyFluxes, origin, array, annualDriftCorrection, allMountTypes)
-    })
+      return ProductionCalculator.calculateArrayProduction(
+        annualFlux,
+        monthlyFluxes,
+        origin,
+        array,
+        annualDriftCorrection,
+      );
+    });
 
     // summarize array production into system level figures
-    const annualProduction = sumBy(arrayProductions, 'annualProduction')
+    const annualProduction = sumBy(arrayProductions, 'annualProduction');
     const monthlyProduction = range(12).map(monthIndex => {
-      return sum(arrayProductions.map(x => x.monthlyProduction[monthIndex]))
-    })
+      return sum(arrayProductions.map(x => x.monthlyProduction[monthIndex]));
+    });
 
     return {
       annualProduction,
       monthlyProduction,
       byArray: arrayProductions,
-    }
+    };
   }
 
   /**
@@ -120,18 +99,14 @@ export class ProductionCalculator {
     origin: LatLng,
     array: ISolarPanelArraySchema,
     annualDriftCorrection: IDriftCorrection,
-    allMountTypes: LeanDocument<MountTypesDocument>[],
   ): ArrayProduction {
     const {
       arrayId,
       panels,
       panelModelDataSnapshot: {
-        ratings: {
-          wattsPtc: watts,
-        }
+        ratings: { wattsPtc: watts },
       },
-      mountTypeId,
-    } = array
+    } = array;
 
     // calculate the total production for the year
     const annualProduction = ProductionCalculator.calculateGenericArrayProduction(
@@ -141,7 +116,7 @@ export class ProductionCalculator {
       panels,
       watts,
       annualDriftCorrection,
-    )
+    );
 
     // calculate the production
     // which is only available at a lower resolution.
@@ -156,31 +131,18 @@ export class ProductionCalculator {
           x: Math.round(annualDriftCorrection.x / 5), // TODO WAV-1645: is this the right formula?
           y: Math.round(annualDriftCorrection.y / 5), // TODO WAV-1645: is this the right formula?
         },
-      )
-    })
+      );
+    });
 
     // we need to correct the monthly numbers to ensure they sum up to the annual number
     const scalingFactor = annualProduction / sum(rawMonthlyProduction);
     const correctedMonthlyProduction = rawMonthlyProduction.map(x => x * scalingFactor);
 
-    // apply mount type derate
-    let mountTypeDeratePercentage;
-
-    if (mountTypeId) {
-      const mountType = allMountTypes.find((mountType) => mountType._id.toString() === mountTypeId);
-      mountTypeDeratePercentage = (mountType?.deratePercentage || 0) / 100;
-    } else {
-      mountTypeDeratePercentage = 0;
-    }
-
-    const annualProductionAfterDerate = annualProduction * (1 - mountTypeDeratePercentage);
-    const monthlyProductionAfterDerate = correctedMonthlyProduction.map((month) => month * (1 - mountTypeDeratePercentage));
-
     return {
       arrayId: arrayId.toString(),
-      annualProduction: annualProductionAfterDerate,
-      monthlyProduction: monthlyProductionAfterDerate,
-    }
+      annualProduction,
+      monthlyProduction: correctedMonthlyProduction,
+    };
   }
 
   /**
@@ -229,37 +191,27 @@ export class ProductionCalculator {
     panelWattage: number,
     driftCorrection: IDriftCorrection,
   ): number {
-    const height = flux.length
-    const width = flux[0].length
+    const height = flux.length;
+    const width = flux[0].length;
 
     const originPixel: Pixel = [Math.round(height / 2), Math.round(width / 2)];
 
     const panelProductions = panels.map(panel => {
-      const rawPanelPixelPolygon = mapLatLngPolygonToPixelPolygon(
-        origin,
-        panel,
-        pixelsPerMeter
-      );
+      const rawPanelPixelPolygon = mapLatLngPolygonToPixelPolygon(origin, panel, pixelsPerMeter);
 
-      const centeredPanelPixelPolygon = translatePixelPolygon(
-        rawPanelPixelPolygon,
-        originPixel
-      )
+      const centeredPanelPixelPolygon = translatePixelPolygon(rawPanelPixelPolygon, originPixel);
 
-      const driftCorrectedPanelPixelPolygon = translatePixelPolygon(
-        centeredPanelPixelPolygon,
-        [
-          driftCorrection.x,
-          driftCorrection.y,
-        ],
-      )
+      const driftCorrectedPanelPixelPolygon = translatePixelPolygon(centeredPanelPixelPolygon, [
+        driftCorrection.x,
+        driftCorrection.y,
+      ]);
 
       const allPanelPixels = getPanelPixels(driftCorrectedPanelPixelPolygon);
-      const allPanelFluxValues = allPanelPixels.map(([x, y]) => flux[y][x])
-      const panelProductivity = mean(allPanelFluxValues)
-      return panelProductivity * panelWattage / 1000
-    })
+      const allPanelFluxValues = allPanelPixels.map(([x, y]) => flux[y][x]);
+      const panelProductivity = mean(allPanelFluxValues);
+      return (panelProductivity * panelWattage) / 1000;
+    });
 
-    return sum(panelProductions)
+    return sum(panelProductions);
   }
 }

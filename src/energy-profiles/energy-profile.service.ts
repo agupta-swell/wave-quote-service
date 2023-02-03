@@ -30,6 +30,8 @@ import {
 export class EnergyProfileService {
   private PINBALL_SIMULATION_BUCKET = process.env.AWS_S3_PINBALL_SIMULATION as string;
 
+  private GOOGLE_SUNROOF_BUCKET = process.env.GOOGLE_SUNROOF_S3_BUCKET as string;
+
   constructor(
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
@@ -55,24 +57,23 @@ export class EnergyProfileService {
       throw new NotFoundException(`System design with id ${systemDesignId} not found`);
     }
 
-    const cachedSunroofHourlyProduction = await this.sunroofHourlyProductionCalculationService.getS3HourlyProduction(
-      foundSystemDesign.opportunityId,
-      systemDesignId,
+    const cacheSystemActualProduction8760 = await this.s3Service.getObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${
+        foundSystemDesign.opportunityId
+      }/${systemDesignId.toString()}/hourly-production/system-actual-production-8760.json`,
     );
 
-    if (cachedSunroofHourlyProduction) return cachedSunroofHourlyProduction;
+    if (cacheSystemActualProduction8760) {
+      const parsedCacheSystemActualProduction8760 = JSON.parse(cacheSystemActualProduction8760);
+      return buildMonthlyAndAnnuallyDataFrom8760(parsedCacheSystemActualProduction8760.map(x => x * 1000)); // convert to Wh
+    }
 
-    const foundSystemProduction = await this.systemProductionService.findOne(foundSystemDesign.systemProductionId);
-
-    if (!foundSystemProduction)
-      throw new NotFoundException(`System production in system design with id ${systemDesignId} not found`);
-
-    const sunroofHourlyProduction = await this.sunroofHourlyProductionCalculationService.calculateClippingSunroofProduction(
+    const systemActualProduction8760 = await this.systemDesignService.calculateSystemActualProduction(
       foundSystemDesign,
-      foundSystemProduction,
     );
 
-    return sunroofHourlyProduction;
+    return buildMonthlyAndAnnuallyDataFrom8760(systemActualProduction8760.map(x => x * 1000)); // convert to Wh
   }
 
   async getBatteryChargingSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {

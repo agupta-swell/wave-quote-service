@@ -425,18 +425,15 @@ export class GoogleSunroofService {
     }
 
     const [annualFluxLayers, monthlyFluxLayers] = await Promise.all([
-        getLayersFromTiffBuffer(annualFluxTiffBuffer),
-        getLayersFromTiffBuffer(monthlyFluxTiffBuffer),
-      ]);
-
-    const allMountTypes = await this.mountTypesService.findAllMountTypes();
+      getLayersFromTiffBuffer(annualFluxTiffBuffer),
+      getLayersFromTiffBuffer(monthlyFluxTiffBuffer),
+    ]);
 
     return ProductionCalculator.calculateSystemProduction(
       systemDesign,
       annualFluxLayers,
       monthlyFluxLayers,
       sunroofDriftCorrection,
-      allMountTypes,
     );
   }
 
