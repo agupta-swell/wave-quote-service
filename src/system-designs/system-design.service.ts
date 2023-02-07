@@ -674,13 +674,9 @@ export class SystemDesignService {
 
   async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (
-      (systemDesignDto.roofTopDesignData &&
-        !systemDesignDto.roofTopDesignData.panelArray.length &&
-        !systemDesignDto.roofTopDesignData.storage.length &&
-        !systemDesignDto.roofTopDesignData.inverters.length) ||
-      (systemDesignDto.capacityProductionDesignData &&
-        !systemDesignDto.capacityProductionDesignData.panelArray.length &&
-        !systemDesignDto.capacityProductionDesignData.inverters.length)
+      systemDesignDto.capacityProductionDesignData &&
+      !systemDesignDto.capacityProductionDesignData.panelArray.length &&
+      !systemDesignDto.capacityProductionDesignData.inverters.length
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
