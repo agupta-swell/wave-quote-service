@@ -31,7 +31,6 @@ import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.s
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { ISystemProduction as ISystemProduction_v2 } from 'src/system-productions/system-production.schema';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { GetPinballSimulatorDto } from 'src/utilities/req';
 import { IUtilityCostData, UtilityUsageDetails } from 'src/utilities/utility.schema';
@@ -1475,11 +1474,19 @@ export class SystemDesignService {
 
     const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
 
-    const soilingLosses = await this.eCommerceService.getSoilingLossesByOpportunityId(systemDesign.opportunityId);
+    const [soilingLosses, snowLosses] = await Promise.all([
+      this.eCommerceService.getSoilingLossesByOpportunityId(systemDesign.opportunityId),
+      this.eCommerceService.getSnowLossesByOpportunityId(systemDesign.opportunityId),
+    ]);
 
-    const multipliedByDegrade = v => roundNumber(v * (1 - firstYearDegradation) * (1 - soilingLosses / 100));
+    const multipliedByDegrade = (v, monthIndex) =>
+      roundNumber(v * (1 - firstYearDegradation) * (1 - soilingLosses / 100) * (1 - snowLosses[monthIndex] / 100));
 
-    return raw8760ProductionData.map(v => multipliedByDegrade(v));
+    const raw8760MonthlyHour = buildMonthlyHourFrom8760(raw8760ProductionData)
+      .map((month, monthIndex) => month.map(v => multipliedByDegrade(v, monthIndex)))
+      .flat();
+
+    return raw8760MonthlyHour;
   }
 
   private applyInverterClipping(productionData8760: number[], systemDesign: LeanDocument<SystemDesign>): number[] {
