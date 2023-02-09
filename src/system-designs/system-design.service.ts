@@ -1619,6 +1619,11 @@ export class SystemDesignService {
       throw new NotFoundException(`System design with id ${systemDesignId} not found`);
     }
 
+    // check if system design does not have panel array => no solar production
+    if (!foundSystemDesign.roofTopDesignData.panelArray.length) {
+      return new Array(8760).fill(0);
+    }
+
     let cacheSystemActualProduction8760;
 
     try {
