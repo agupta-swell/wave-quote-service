@@ -186,7 +186,8 @@ export class ECommerceService {
     return OperationResult.ok(result);
   }
 
-  public async getSoilingLossesByOpportunityId(opportunityId): Promise<number> {
+  public async getSoilingLossesByOpportunityId(opportunityId): Promise<number[]> {
+    const DEFAULT_SOILING_LOSSES = Array(12).fill(0);
     const utilityService = await this.utilityService.getUtilityByOpportunityId(opportunityId);
 
     if (!utilityService) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
@@ -196,7 +197,7 @@ export class ECommerceService {
         zipCodes: utilityService?.utilityData.typicalBaselineUsage.zipCode,
       })
       .lean();
-    if (!foundZipCodeRegionMaps.length) return 0;
+    if (!foundZipCodeRegionMaps.length) return DEFAULT_SOILING_LOSSES;
 
     const foundRegion = await this.regionModel
       .findOne({
@@ -205,15 +206,15 @@ export class ECommerceService {
       })
       .lean();
 
-    if (!foundRegion) return 0;
-    const soilingDerate = await this.SoilingDerateModel.findOne({ regionId: foundRegion._id }).lean();
+    if (!foundRegion) return DEFAULT_SOILING_LOSSES;
+    const soilingDerates = await this.SoilingDerateModel.findOne({ regionId: foundRegion._id }).lean();
 
-    if (!soilingDerate) return 0;
-    return soilingDerate.amount;
+    if (!soilingDerates) return DEFAULT_SOILING_LOSSES;
+    return soilingDerates.amounts;
   }
 
   public async getSnowLossesByOpportunityId(opportunityId): Promise<number[]> {
-    const defaultSnowLosses = Array(12).fill(0);
+    const DEFAULT_SNOW_LOSSES = Array(12).fill(0);
     const utilityService = await this.utilityService.getUtilityByOpportunityId(opportunityId);
 
     if (!utilityService) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
@@ -225,7 +226,7 @@ export class ECommerceService {
       .lean();
 
     if (!foundZipCodeRegionMaps.length) {
-      return defaultSnowLosses;
+      return DEFAULT_SNOW_LOSSES;
     }
 
     const foundRegion = await this.regionModel
@@ -236,13 +237,13 @@ export class ECommerceService {
       .lean();
 
     if (!foundRegion) {
-      return defaultSnowLosses;
+      return DEFAULT_SNOW_LOSSES;
     }
 
     const snowDerates = await this.SnowDerateModel.findOne({ regionId: foundRegion._id }).lean();
 
     if (!snowDerates) {
-      return defaultSnowLosses;
+      return DEFAULT_SNOW_LOSSES;
     }
 
     return snowDerates.amounts;

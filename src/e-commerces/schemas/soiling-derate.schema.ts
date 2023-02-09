@@ -4,7 +4,7 @@ export const SOILING_DERATE = Symbol('SOILING_DERATE').toString();
 
 export interface SoilingDerate extends Document {
   regionId: Types.ObjectId;
-  amount: number;
+  amounts: number[];
   createdBy: string;
   createdAt: Date;
   updatedBy: string;
@@ -13,7 +13,7 @@ export interface SoilingDerate extends Document {
 
 export const SoilingDerateSchema = new Schema<SoilingDerate>({
   region_id: Types.ObjectId,
-  amount: Number,
+  amounts: [Number],
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

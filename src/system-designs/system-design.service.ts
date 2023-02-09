@@ -1480,7 +1480,9 @@ export class SystemDesignService {
     ]);
 
     const multipliedByDegrade = (v, monthIndex) =>
-      roundNumber(v * (1 - firstYearDegradation) * (1 - soilingLosses / 100) * (1 - snowLosses[monthIndex] / 100));
+      roundNumber(
+        v * (1 - firstYearDegradation) * (1 - soilingLosses[monthIndex] / 100) * (1 - snowLosses[monthIndex] / 100),
+      );
 
     const raw8760MonthlyHour = buildMonthlyHourFrom8760(raw8760ProductionData)
       .map((month, monthIndex) => month.map(v => multipliedByDegrade(v, monthIndex)))
