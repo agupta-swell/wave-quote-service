@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Cache } from 'cache-manager';
 import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
+import { AddressDto } from 'src/e-commerces/req/sub-dto/address.dto';
 import { EmailService } from 'src/emails/email.service';
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
 import { CalculateQuoteDetailDto } from 'src/quotes/req/calculate-quote-detail.dto';
@@ -11,11 +12,10 @@ import { CalculationService } from 'src/quotes/sub-services/calculation.service'
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductService } from 'src/system-designs/sub-services';
 import { CALCULATION_MODE } from 'src/utilities/constants';
+import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { CostDataDto, UtilityDataDto } from 'src/utilities/res';
 import { IUsageValue } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
-import { AddressDto } from 'src/e-commerces/req/sub-dto/address.dto';
-import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { OperationResult } from '../app/common';
 import { ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
 import { GeneratedSolarSystem } from './models/generated-solar-system';
@@ -35,6 +35,8 @@ import {
   REGION,
   Region,
   REGION_PURPOSE,
+  SnowDerate,
+  SNOW_DERATE,
   SoilingDerate,
   SOILING_DERATE,
   ZipCodeRegionMap,
@@ -54,6 +56,7 @@ export class ECommerceService {
     @InjectModel(REGION) private readonly regionModel: Model<Region>,
     @InjectModel(ZIP_CODE_REGION_MAP) private readonly zipCodeRegionMapModel: Model<ZipCodeRegionMap>,
     @InjectModel(SOILING_DERATE) private readonly SoilingDerateModel: Model<SoilingDerate>,
+    @InjectModel(SNOW_DERATE) private readonly SnowDerateModel: Model<SnowDerate>,
     @InjectModel(E_COMMERCE_PRODUCT) private readonly eCommerceProductModel: Model<ECommerceProduct>,
     @InjectModel(E_COMMERCE_SYSTEM_DESIGN) private readonly eCommerceSystemDesignModel: Model<ECommerceSystemDesign>,
   ) {}
@@ -183,7 +186,8 @@ export class ECommerceService {
     return OperationResult.ok(result);
   }
 
-  public async getSoilingLossesByOpportunityId(opportunityId): Promise<number> {
+  public async getSoilingLossesByOpportunityId(opportunityId): Promise<number[]> {
+    const DEFAULT_SOILING_LOSSES = Array(12).fill(0);
     const utilityService = await this.utilityService.getUtilityByOpportunityId(opportunityId);
 
     if (!utilityService) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
@@ -193,7 +197,7 @@ export class ECommerceService {
         zipCodes: utilityService?.utilityData.typicalBaselineUsage.zipCode,
       })
       .lean();
-    if (!foundZipCodeRegionMaps.length) return 0;
+    if (!foundZipCodeRegionMaps.length) return DEFAULT_SOILING_LOSSES;
 
     const foundRegion = await this.regionModel
       .findOne({
@@ -202,11 +206,47 @@ export class ECommerceService {
       })
       .lean();
 
-    if (!foundRegion) return 0;
-    const soilingDerate = await this.SoilingDerateModel.findOne({ regionId: foundRegion._id }).lean();
+    if (!foundRegion) return DEFAULT_SOILING_LOSSES;
+    const soilingDerates = await this.SoilingDerateModel.findOne({ regionId: foundRegion._id }).lean();
 
-    if (!soilingDerate) return 0;
-    return soilingDerate.amount;
+    if (!soilingDerates) return DEFAULT_SOILING_LOSSES;
+    return soilingDerates.amounts;
+  }
+
+  public async getSnowLossesByOpportunityId(opportunityId): Promise<number[]> {
+    const DEFAULT_SNOW_LOSSES = Array(12).fill(0);
+    const utilityService = await this.utilityService.getUtilityByOpportunityId(opportunityId);
+
+    if (!utilityService) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
+
+    const foundZipCodeRegionMaps = await this.zipCodeRegionMapModel
+      .find({
+        zipCodes: utilityService?.utilityData.typicalBaselineUsage.zipCode,
+      })
+      .lean();
+
+    if (!foundZipCodeRegionMaps.length) {
+      return DEFAULT_SNOW_LOSSES;
+    }
+
+    const foundRegion = await this.regionModel
+      .findOne({
+        _id: { $in: foundZipCodeRegionMaps.map(foundZipCodeRegionMap => foundZipCodeRegionMap.regionId) },
+        regionPurpose: REGION_PURPOSE.SNOW,
+      })
+      .lean();
+
+    if (!foundRegion) {
+      return DEFAULT_SNOW_LOSSES;
+    }
+
+    const snowDerates = await this.SnowDerateModel.findOne({ regionId: foundRegion._id }).lean();
+
+    if (!snowDerates) {
+      return DEFAULT_SNOW_LOSSES;
+    }
+
+    return snowDerates.amounts;
   }
 
   private async getTypicalUsage(addressDataDetail: AddressDto, monthlyUtilityBill: number): Promise<TypicalUsage> {

@@ -77,6 +77,7 @@ export class CustomerPaymentService {
             : discountAmount,
         );
       }, new BigNumber(0))
+      .plus(quoteCostBuildup.cashDiscount?.total || 0)
       .toNumber();
 
     customerPayment.programIncentiveDiscount = BigNumberUtils.sumBy(

@@ -4,75 +4,38 @@ import { IPinballRateAmount } from 'src/utilities/utility.interface';
 import { sliceBySize, sliceBySizesMap } from './array';
 import { roundNumber } from './transformNumber';
 
-export const buildMonthlyHourFrom8760 = (hourlyProduction: number[]): number[][] => {
-  const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
+export const getDaysDataFrom8760 = (
+  arrayOf8760Data: any[],
+): {
+  totalDays: number;
+  datesInMonths: number[];
+  monthHours: number[];
+} => {
+  const totalDays = arrayOf8760Data.length / 24;
 
   const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   // leap year
-  if (totalDatesOfHourlyProduction === 366) {
+  if (totalDays === 366) {
     datesInMonths[1] = 29;
   }
 
   const monthHours = datesInMonths.map(d => d * 24);
+
+  return {
+    totalDays,
+    datesInMonths,
+    monthHours,
+  };
+};
+
+export const buildMonthlyHourFrom8760 = (hourlyProduction: number[]): number[][] => {
+  const { monthHours } = getDaysDataFrom8760(hourlyProduction);
 
   return sliceBySizesMap(hourlyProduction, monthHours);
 };
 
-export const buildMonthlyAndAnnuallyDataFrom8760 = (hourlyProduction: number[]): IEnergyProfileProduction => {
-  const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
-
-  const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  // leap year
-  if (totalDatesOfHourlyProduction === 366) {
-    datesInMonths[1] = 29;
-  }
-
-  const monthHours = datesInMonths.map(d => d * 24);
-
-  const typicalDailyProductionPerMonths = sliceBySizesMap(hourlyProduction, monthHours)
-    .map(
-      (month, monthIdx) =>
-        sliceBySize(month, 24)
-          .reduce<number[]>((acc, cur) => {
-            cur.forEach((c, idx) => {
-              acc[idx] += c;
-            });
-            return acc;
-          }, Array(24).fill(0))
-          .map(e => roundNumber(e / datesInMonths[monthIdx] / 1000, 2)), // divide by 1000 to convert to KW
-    )
-    .map(m => {
-      m.push(m[0]);
-      return m;
-    });
-
-  const typicalDailyProductionPerYear = sliceBySize(hourlyProduction, 24)
-    .reduce<number[]>((acc, cur) => {
-      cur.forEach((c, idx) => {
-        acc[idx] += c;
-      });
-      return acc;
-    }, Array(24).fill(0))
-    .map(e => roundNumber(e / totalDatesOfHourlyProduction / 1000, 2)); // divide by 1000 to convert to KW
-
-  typicalDailyProductionPerYear.push(typicalDailyProductionPerYear[0]);
-
-  return {
-    monthlyAverage: typicalDailyProductionPerMonths,
-    annualAverage: typicalDailyProductionPerYear,
-  };
-};
-
 export const getMonthlyAndAnnualAverageFrom8760 = (hourlyProductionInWh: number[]): IEnergyProfileProduction => {
-  const totalDatesOfHourlyProduction = hourlyProductionInWh.length / 24;
-
-  const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  // leap year
-  if (totalDatesOfHourlyProduction === 366) {
-    datesInMonths[1] = 29;
-  }
-
-  const monthHours = datesInMonths.map(d => d * 24);
+  const { totalDays, datesInMonths, monthHours } = getDaysDataFrom8760(hourlyProductionInWh);
 
   const monthlyAverage = sliceBySizesMap(hourlyProductionInWh, monthHours).map((month, monthIdx) =>
     sliceBySize(month, 24)
@@ -92,7 +55,7 @@ export const getMonthlyAndAnnualAverageFrom8760 = (hourlyProductionInWh: number[
       });
       return acc;
     }, Array(24).fill(0))
-    .map(e => e / totalDatesOfHourlyProduction);
+    .map(e => e / totalDays);
 
   return {
     monthlyAverage,
@@ -100,20 +63,36 @@ export const getMonthlyAndAnnualAverageFrom8760 = (hourlyProductionInWh: number[
   };
 };
 
-export const getMonthlyAndAnnualWeekdayAverageFrom8760 = (hourlyProduction: number[]): IEnergyProfileProduction => {
+export const buildMonthlyAndAnnualDataFrom24HoursData = (data: IEnergyProfileProduction): IEnergyProfileProduction => {
+  const typicalDailyProductionPerYear = data.annualAverage.map(e => roundNumber(e / 1000, 2)); // convert to KWh
+
+  typicalDailyProductionPerYear.push(typicalDailyProductionPerYear[0]);
+
+  const typicalDailyProductionPerMonths = data.monthlyAverage
+    .map(month => month.map(e => roundNumber(e / 1000, 2))) // convert to KWh
+    .map(m => {
+      m.push(m[0]);
+      return m;
+    });
+
+  return {
+    monthlyAverage: typicalDailyProductionPerMonths,
+    annualAverage: typicalDailyProductionPerYear,
+  };
+};
+
+export const buildMonthlyAndAnnualDataFrom8760 = (hourlyProductionInWh: number[]): IEnergyProfileProduction => {
+  const monthlyAndAnnualAverage = getMonthlyAndAnnualAverageFrom8760(hourlyProductionInWh);
+
+  return buildMonthlyAndAnnualDataFrom24HoursData(monthlyAndAnnualAverage);
+};
+
+export const getMonthlyAndAnnualWeekdayAverageFrom8760 = (hourlyProductionInWh: number[]): IEnergyProfileProduction => {
   const currentYear = dayjs().year();
 
-  const totalDatesOfHourlyProduction = hourlyProduction.length / 24;
+  const { monthHours } = getDaysDataFrom8760(hourlyProductionInWh);
 
-  const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  // leap year
-  if (totalDatesOfHourlyProduction === 366) {
-    datesInMonths[1] = 29;
-  }
-
-  const monthHours = datesInMonths.map(d => d * 24);
-
-  const dailyHourlyProductionPerMonths = sliceBySizesMap(hourlyProduction, monthHours).map(month =>
+  const dailyHourlyProductionPerMonths = sliceBySizesMap(hourlyProductionInWh, monthHours).map(month =>
     sliceBySize(month, 24),
   );
 
@@ -129,7 +108,7 @@ export const getMonthlyAndAnnualWeekdayAverageFrom8760 = (hourlyProduction: numb
 
   const weekdaysInMonths: number[] = [];
 
-  const monthlyWeekdayAverage = weekdayHourlyProductionPerMonths.map((month, monthIdx) => {
+  const monthlyWeekdayAverage = weekdayHourlyProductionPerMonths.map(month => {
     const numOfWeekdayInMonth: number = month.length;
     weekdaysInMonths.push(numOfWeekdayInMonth);
 
@@ -166,15 +145,7 @@ export const getMonthlyAndAnnualRateAmountFrom8760 = (
   monthlyRateAmount: IPinballRateAmount[][];
   annualRateAmount: IPinballRateAmount[];
 } => {
-  const totalDates = rateAmountHourly.length / 24;
-
-  const datesInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  // leap year
-  if (totalDates === 366) {
-    datesInMonths[1] = 29;
-  }
-
-  const monthHours = datesInMonths.map(d => d * 24);
+  const { datesInMonths, monthHours } = getDaysDataFrom8760(rateAmountHourly);
 
   const dailyRateAmountHourlyPerMonths = sliceBySizesMap(rateAmountHourly, monthHours).map(month =>
     sliceBySize(month, 24),
@@ -192,25 +163,5 @@ export const getMonthlyAndAnnualRateAmountFrom8760 = (
   return {
     monthlyRateAmount,
     annualRateAmount,
-  };
-};
-
-export const buildMonthlyAndAnnuallyDataFrom24HoursData = (
-  data: IEnergyProfileProduction,
-): IEnergyProfileProduction => {
-  const typicalDailyProductionPerYear = data.annualAverage.map(e => roundNumber(e / 1000, 2));
-
-  typicalDailyProductionPerYear.push(typicalDailyProductionPerYear[0]);
-
-  const typicalDailyProductionPerMonths = data.monthlyAverage
-    .map(month => month.map(e => roundNumber(e / 1000, 2)))
-    .map(m => {
-      m.push(m[0]);
-      return m;
-    });
-
-  return {
-    monthlyAverage: typicalDailyProductionPerMonths,
-    annualAverage: typicalDailyProductionPerYear,
   };
 };

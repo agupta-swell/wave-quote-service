@@ -1,26 +1,17 @@
 /* eslint-disable no-plusplus */
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { sumBy } from 'lodash';
 import { ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { S3Service } from 'src/shared/aws/services/s3.service';
-import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
-import { SystemProduction } from 'src/shared/google-sunroof/types';
-import { BATTERY_PURPOSE } from 'src/system-designs/constants';
-import { SunroofHourlyProductionCalculation } from 'src/system-designs/sub-services';
-import { SystemProductService } from 'src/system-designs/sub-services/system-product.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { PvWattProductionDto } from 'src/system-productions/res';
-import { IEnergyProfileProduction, ISystemProduction } from 'src/system-productions/system-production.schema';
-import { SystemProductionService } from 'src/system-productions/system-production.service';
-import { BatterySystemSpecsDto } from 'src/utilities/req';
+import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
+import { GetPinballSimulatorDto } from 'src/utilities/req';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
 import { UtilityService } from 'src/utilities/utility.service';
-import { getCenterBound } from 'src/utils/calculate-coordinates';
-import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
 import {
-  buildMonthlyAndAnnuallyDataFrom24HoursData,
-  buildMonthlyAndAnnuallyDataFrom8760,
+  buildMonthlyAndAnnualDataFrom24HoursData,
+  buildMonthlyAndAnnualDataFrom8760,
   getMonthlyAndAnnualAverageFrom8760,
   getMonthlyAndAnnualRateAmountFrom8760,
   getMonthlyAndAnnualWeekdayAverageFrom8760,
@@ -35,14 +26,9 @@ export class EnergyProfileService {
   constructor(
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
-    @Inject(forwardRef(() => SunroofHourlyProductionCalculation))
-    private readonly sunroofHourlyProductionCalculationService: SunroofHourlyProductionCalculation,
-    private readonly systemProductionService: SystemProductionService,
     private readonly s3Service: S3Service,
     @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
-    private readonly googleSunroofService: GoogleSunroofService,
-    private readonly systemProductService: SystemProductService,
   ) {}
 
   async getPvWattProduction(systemDesignId: ObjectId): Promise<PvWattProductionDto | undefined> {
@@ -51,29 +37,9 @@ export class EnergyProfileService {
   }
 
   async getSunroofHourlyProduction(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
-    const foundSystemDesign = await this.systemDesignService.getOneById(systemDesignId);
+    const systemActualProduction8760 = await this.systemDesignService.getSystemActualProduction(systemDesignId);
 
-    if (!foundSystemDesign) {
-      throw new NotFoundException(`System design with id ${systemDesignId} not found`);
-    }
-
-    const cacheSystemActualProduction8760 = await this.s3Service.getObject(
-      this.GOOGLE_SUNROOF_BUCKET,
-      `${
-        foundSystemDesign.opportunityId
-      }/${systemDesignId.toString()}/hourly-production/system-actual-production-8760.json`,
-    );
-
-    if (cacheSystemActualProduction8760) {
-      const parsedCacheSystemActualProduction8760 = JSON.parse(cacheSystemActualProduction8760);
-      return buildMonthlyAndAnnuallyDataFrom8760(parsedCacheSystemActualProduction8760.map(x => x * 1000)); // convert to Wh
-    }
-
-    const systemActualProduction8760 = await this.systemDesignService.calculateSystemActualProduction(
-      foundSystemDesign,
-    );
-
-    return buildMonthlyAndAnnuallyDataFrom8760(systemActualProduction8760.map(x => x * 1000)); // convert to Wh
+    return buildMonthlyAndAnnualDataFrom8760(systemActualProduction8760.map(x => x * 1000)); // convert to Wh
   }
 
   async getBatteryChargingSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
@@ -92,7 +58,7 @@ export class EnergyProfileService {
       // Do not thing, any error, such as NoSuchKey (file not found)
     }
 
-    return buildMonthlyAndAnnuallyDataFrom8760(result);
+    return buildMonthlyAndAnnualDataFrom8760(result);
   }
 
   async getBatteryDischargingSeries(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
@@ -110,7 +76,7 @@ export class EnergyProfileService {
       // Do not thing, any error, such as NoSuchKey (file not found)
     }
 
-    return buildMonthlyAndAnnuallyDataFrom8760(result);
+    return buildMonthlyAndAnnualDataFrom8760(result);
   }
 
   async getBatteryDataSeriesForTypicalDay(
@@ -119,21 +85,25 @@ export class EnergyProfileService {
     batteryChargingSeries: IEnergyProfileProduction;
     batteryDischargingSeries: IEnergyProfileProduction;
   }> {
-    let rateAmountHourly: IPinballRateAmount[] = new Array(8760).fill({ rate: 0, charge: false });
-    try {
-      const res = await this.s3Service.getObject(this.PINBALL_SIMULATION_BUCKET, `${systemDesignId}/rateAmountHourly`);
+    const filenames = [`${systemDesignId}/rateAmountHourly`, `${systemDesignId}/inputs`];
 
-      if (res) {
-        rateAmountHourly = JSON.parse(res);
-      }
-    } catch (_) {
-      // Do not thing, any error, such as NoSuchKey (file not found)
-    }
+    const [cachedRateAmountHourlyDataFromS3, cachedPinballInputDataFromS3]: (
+      | string
+      | undefined
+    )[] = await this.s3Service.getObjects(this.PINBALL_SIMULATION_BUCKET, filenames);
 
-    const pinballPrepareData = await this.prepareProductionDataForPinballSimulation(systemDesignId);
+    const rateAmountHourly: IPinballRateAmount[] = cachedRateAmountHourlyDataFromS3
+      ? JSON.parse(cachedRateAmountHourlyDataFromS3)
+      : new Array(8760).fill({ rate: 0, charge: false });
 
-    if (!pinballPrepareData) {
-      const noneSolarBatteryDataSeries: IEnergyProfileProduction = buildMonthlyAndAnnuallyDataFrom8760(
+    // check if pinballInputData did not save to S3 => recalculate
+    const pinballInputData = cachedPinballInputDataFromS3
+      ? JSON.parse(cachedPinballInputDataFromS3)
+      : await this.prepareDataForTypicalView(systemDesignId);
+
+    // check if null result when recalculating => system does not have solar array
+    if (!pinballInputData) {
+      const noneSolarBatteryDataSeries: IEnergyProfileProduction = buildMonthlyAndAnnualDataFrom8760(
         Array(8760).fill(0),
       );
       return {
@@ -142,20 +112,21 @@ export class EnergyProfileService {
       };
     }
 
+    // all data is in Wh
     const {
-      hourlyPostInstallLoadInWh,
-      hourlySeriesForExistingPVInWh,
-      hourlySeriesForNewPVInWh,
+      hourlyPostInstallLoad,
+      hourlySeriesForExistingPV,
+      hourlySeriesForNewPV,
       batterySystemSpecs,
-    } = pinballPrepareData;
+    } = pinballInputData;
 
     const monthlyAndAnnualPostInstallLoadInWhIn24Hours = getMonthlyAndAnnualWeekdayAverageFrom8760(
-      hourlyPostInstallLoadInWh,
+      hourlyPostInstallLoad,
     );
     const monthlyAndAnnualSeriesForExistingPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(
-      hourlySeriesForExistingPVInWh,
+      hourlySeriesForExistingPV,
     );
-    const monthlyAndAnnualSeriesForNewPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(hourlySeriesForNewPVInWh);
+    const monthlyAndAnnualSeriesForNewPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(hourlySeriesForNewPV);
     const monthlyAndAnnualRateAmountIn24Hours = getMonthlyAndAnnualRateAmountFrom8760(rateAmountHourly);
 
     const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
@@ -203,8 +174,8 @@ export class EnergyProfileService {
       batteryDischargingSeries.monthlyAverage.push(monthlyPinballData.batteryDischargingSeriesIn24Hours);
     }
 
-    batteryChargingSeries = buildMonthlyAndAnnuallyDataFrom24HoursData(batteryChargingSeries);
-    batteryDischargingSeries = buildMonthlyAndAnnuallyDataFrom24HoursData(batteryDischargingSeries);
+    batteryChargingSeries = buildMonthlyAndAnnualDataFrom24HoursData(batteryChargingSeries);
+    batteryDischargingSeries = buildMonthlyAndAnnualDataFrom24HoursData(batteryDischargingSeries);
 
     return {
       batteryChargingSeries,
@@ -218,112 +189,36 @@ export class EnergyProfileService {
       true,
     );
 
-    return buildMonthlyAndAnnuallyDataFrom8760(existingSystemProduction.hourlyProduction);
+    return buildMonthlyAndAnnualDataFrom8760(existingSystemProduction.hourlyProduction);
   }
 
-  async prepareProductionDataForPinballSimulation(
-    systemDesignId: ObjectId | string,
-  ): Promise<{
-    hourlyPostInstallLoadInWh: number[];
-    hourlySeriesForExistingPVInWh: number[];
-    hourlySeriesForNewPVInWh: number[];
-    batterySystemSpecs: BatterySystemSpecsDto;
-  } | null> {
+  async prepareDataForTypicalView(systemDesignId: ObjectId | string): Promise<GetPinballSimulatorDto | null> {
     const systemDesign = await this.systemDesignService.getOneById(systemDesignId);
 
     if (!systemDesign) {
       throw new NotFoundException(`System design with id ${systemDesignId} not found`);
     }
 
-    const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
-    const { lat, lng } = getCenterBound(newPolygons);
-    const radiusMeters = calculateSystemDesignRadius({ lat, lng }, newPolygons);
-    const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters);
-
     // check if system design does not have panel array, so does not need SIMULATE PINBALL
     if (!systemDesign.roofTopDesignData.panelArray.length) {
       return null;
     }
 
-    const _handlers: Promise<unknown>[] = [this.systemProductionService.findOne(systemDesign.systemProductionId)];
-
-    if (isExistedGeotiff) {
-      _handlers.push(this.googleSunroofService.calculateProduction(systemDesign));
-    }
-
-    const [systemProduction, sunroofProduction] = <[ISystemProduction, SystemProduction]>await Promise.all(_handlers);
-
-    if (!systemProduction) {
-      throw new NotFoundException(`System production with id ${systemDesign.systemProductionId} not found`);
-    }
-
-    const cumulativeGenerationKWh = sunroofProduction
-      ? sunroofProduction.annualProduction
-      : systemProduction.generationKWh;
-
-    const { capacityKW, annualUsageKWh } = systemProduction;
-
-    systemProduction.generationKWh = cumulativeGenerationKWh;
-    systemProduction.productivity = capacityKW === 0 ? 0 : cumulativeGenerationKWh / capacityKW;
-    systemProduction.offsetPercentage = annualUsageKWh > 0 ? cumulativeGenerationKWh / annualUsageKWh : 0;
-
-    if (sunroofProduction) {
-      systemProduction.generationMonthlyKWh = sunroofProduction.monthlyProduction;
-      systemProduction.arrayGenerationKWh = sunroofProduction.byArray.map(array => array.annualProduction);
-    }
-
-    const [utility, existingSystemProduction, systemProductionArray] = await Promise.all([
-      this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
-      this.utilityService.getExistingSystemProductionByOpportunityId(systemDesign.opportunityId, true),
-      this.systemProductService.calculateSystemProductionByHour(systemDesign),
-    ]);
+    const utility = await this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId);
 
     if (!utility) {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
-    const hourlyPostInstallLoadInKWh = this.utilityService.getHourlyEstimatedUsage(utility);
+    const systemActualProduction8760 = await this.systemDesignService.getSystemActualProduction(systemDesignId);
 
-    const hourlySeriesForNewPVInKWh = this.utilityService.calculate8760OnActualMonthlyUsage(
-      systemProductionArray.hourly,
-      systemProduction.generationMonthlyKWh,
-    ) as number[];
+    const pinballInputData = await this.systemDesignService.buildPinballInputData(
+      systemDesign,
+      systemActualProduction8760,
+      utility,
+    );
 
-    const hourlySeriesForNewPVInWh: number[] = [];
-    const hourlyPostInstallLoadInWh: number[] = [];
-    const hourlySeriesForExistingPVInWh = existingSystemProduction.hourlyProduction;
-
-    const maxLength = Math.max(hourlySeriesForNewPVInKWh.length, hourlyPostInstallLoadInKWh.length);
-
-    for (let i = 0; i < maxLength; i += 1) {
-      if (hourlySeriesForNewPVInKWh[i]) {
-        hourlySeriesForNewPVInWh[i] = hourlySeriesForNewPVInKWh[i] * 1000;
-      }
-
-      if (hourlyPostInstallLoadInKWh[i]) {
-        hourlyPostInstallLoadInWh[i] = hourlyPostInstallLoadInKWh[i] * 1000;
-      }
-    }
-
-    const { storage } = systemDesign.roofTopDesignData;
-
-    const batterySystemSpecs = {
-      totalRatingInKW: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowatts || 0),
-      totalCapacityInKWh: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowattHours || 0),
-      roundTripEfficiency: storage[0]?.roundTripEfficiency || 0,
-      minimumReserve:
-        storage[0]?.purpose === BATTERY_PURPOSE.BACKUP_POWER
-          ? storage[0]?.reservePercentage
-          : sumBy(storage, item => item.reservePercentage || 0) / storage.length || 0,
-      operationMode: storage[0]?.purpose || BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
-    };
-
-    return {
-      hourlyPostInstallLoadInWh,
-      hourlySeriesForExistingPVInWh,
-      hourlySeriesForNewPVInWh,
-      batterySystemSpecs,
-    };
+    return pinballInputData;
   }
 
   async getNetLoadAverage(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
@@ -342,6 +237,6 @@ export class EnergyProfileService {
       // Do not thing, any error, such as NoSuchKey (file not found)
     }
 
-    return buildMonthlyAndAnnuallyDataFrom8760(result);
+    return buildMonthlyAndAnnualDataFrom8760(result);
   }
 }

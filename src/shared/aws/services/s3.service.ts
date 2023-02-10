@@ -384,4 +384,19 @@ export class S3Service {
   private decodeObjectKey(key: string): string {
     return decodeURIComponent(key.replace(/\+/g, ' '));
   }
+
+  public async getObjects(bucketName: string, keys: string[]): Promise<(string | undefined)[]> {
+    const responseFromS3 = await Promise.allSettled(keys.map(key => this.getObject(bucketName, key)));
+
+    const cachedDataFromS3: (string | undefined)[] = responseFromS3.map((res, idx) => {
+      if (res.status === 'rejected') {
+        // eslint-disable-next-line no-console, no-unused-expressions
+        res.reason.statusCode !== 404 && console.log(`Error with ${bucketName}/${keys[idx]}:`, res.reason);
+        return undefined;
+      }
+      return res.value;
+    });
+
+    return cachedDataFromS3;
+  }
 }

@@ -1,8 +1,8 @@
 import { Document, Schema, Types } from 'mongoose';
 
-export const SOILING_DERATE = Symbol('SOILING_DERATE').toString();
+export const SNOW_DERATE = Symbol('SNOW_DERATE').toString();
 
-export interface SoilingDerate extends Document {
+export interface SnowDerate extends Document {
   regionId: Types.ObjectId;
   amounts: number[];
   createdBy: string;
@@ -11,7 +11,7 @@ export interface SoilingDerate extends Document {
   updatedAt: Date;
 }
 
-export const SoilingDerateSchema = new Schema<SoilingDerate>({
+export const SnowDerateSchema = new Schema<SnowDerate>({
   region_id: Types.ObjectId,
   amounts: [Number],
   created_at: { type: Date, default: Date.now },

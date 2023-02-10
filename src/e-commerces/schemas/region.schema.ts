@@ -5,6 +5,7 @@ export const REGION = Symbol('REGION').toString();
 export enum REGION_PURPOSE {
   ECOMM = 'ecomm',
   SOILING = 'soiling',
+  SNOW = 'snow',
 }
 
 export interface Region extends Document {

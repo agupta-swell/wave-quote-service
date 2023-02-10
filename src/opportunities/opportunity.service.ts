@@ -17,11 +17,12 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
-import { Opportunity, OPPORTUNITY } from './opportunity.schema';
+import { Opportunity, OPPORTUNITY, UpdateOpportunityTiltleNameMatchType } from './opportunity.schema';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
 import { QuoteDetailResDto } from './res/quote-detail.dto';
 import { UpdateOpportunityRebateProgramDto as UpdateOpportunityRebateProgramDtoRes } from './res/update-opportunity-rebate-program.dto';
+import { UpdateOpportunityTitleNameMatchDto as UpdateOpportunityTitleNameMatchDtoRes } from './res/update-opportunity-title-name-match.dto';
 import { UpdateOpportunityUtilityProgramDto as UpdateOpportunityUtilityProgramDtoRes } from './res/update-opportunity-utility-program.dto';
 
 @Injectable()
@@ -40,7 +41,7 @@ export class OpportunityService {
     private readonly contractService: ContractService,
     @Inject(forwardRef(() => ExistingSystemService))
     private readonly existingSystemService: ExistingSystemService,
-  ) {}
+  ) { }
 
   async getRelatedInformation(opportunityId: string): Promise<OperationResult<GetRelatedInformationDto>> {
     const foundOpportunity = await this.opportunityModel.findById(opportunityId).lean();
@@ -80,7 +81,20 @@ export class OpportunityService {
       existingPVTilt: foundOpportunity.existingPVTilt,
       existingPVAzimuth: foundOpportunity.existingPVAzimuth,
       assignedMember: foundOpportunity.assignedMember,
+      applicantName: foundOpportunity.applicantName,
+      coapplicantName: foundOpportunity.coapplicantName,
+      applicantCreditApproved: foundOpportunity.applicantCreditApproved,
+      coapplicantCreditApproved: foundOpportunity.coapplicantCreditApproved,
+      onTitleName: foundOpportunity.onTitleName,
+      onTitleAddress: foundOpportunity.onTitleAddress,
+      alternateTitleDocumentationSubmitted: foundOpportunity.alternateTitleDocumentationSubmitted,
+      alternateTitleDocumentationSubmitDate: foundOpportunity.alternateTitleDocumentationSubmitDate,
+      alternateTitleDocumentationName: foundOpportunity.alternateTitleDocumentationName,
+      alternateTitleDocumentationAddress: foundOpportunity.alternateTitleDocumentationAddress,
+      applicantNameMatchesTitle: foundOpportunity.applicantNameMatchesTitle,
+      coapplicantNameMatchesTitle: foundOpportunity.coapplicantNameMatchesTitle,
     };
+
     return OperationResult.ok(strictPlainToClass(GetRelatedInformationDto, data));
   }
 
@@ -143,6 +157,25 @@ export class OpportunityService {
     const updatedOpportunity = strictPlainToClass(UpdateOpportunityRebateProgramDtoRes, savedOpportunity);
 
     // await this.quoteService.setOutdatedData(opportunityId, 'Rebate Program');
+
+    return OperationResult.ok(updatedOpportunity);
+  }
+
+  async updateOpportunityTitleNameMatch(
+    opportunityId: string,
+    titleNameMatchData: UpdateOpportunityTiltleNameMatchType,
+  ): Promise<OperationResult<UpdateOpportunityTitleNameMatchDtoRes>> {
+    const foundOpportunity = await this.opportunityModel.findById(opportunityId);
+
+    if (!foundOpportunity) {
+      throw ApplicationException.EntityNotFound(opportunityId);
+    }
+
+    const savedOpportunity = await this.opportunityModel
+      .findByIdAndUpdate(opportunityId, titleNameMatchData, { new: true })
+      .lean();
+
+    const updatedOpportunity = strictPlainToClass(UpdateOpportunityTitleNameMatchDtoRes, savedOpportunity);
 
     return OperationResult.ok(updatedOpportunity);
   }
