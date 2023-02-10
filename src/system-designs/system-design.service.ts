@@ -136,11 +136,7 @@ export class SystemDesignService {
     let cumulativeCapacityKW = 0;
 
     if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
-      const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
-      const { lat, lng } = getCenterBound(newPolygons);
-      const radiusMeters = calculateSystemDesignRadius({ lat, lng }, newPolygons);
-
-      const handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters)];
+      const handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(systemDesign)];
       // a system has only one module
       if (systemDesign.roofTopDesignData.panelArray.length) {
         handlers.push(
@@ -492,11 +488,7 @@ export class SystemDesignService {
       let cumulativeGenerationKWh = 0;
       let cumulativeCapacityKW = 0;
 
-      const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
-      const { lat, lng } = getCenterBound(newPolygons);
-      const radiusMeters = calculateSystemDesignRadius({ lat, lng }, newPolygons);
-
-      const _handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(lat, lng, radiusMeters)];
+      const _handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(systemDesign)];
       // a system has only one module
       if (systemDesign.roofTopDesignData.panelArray.length) {
         _handlers.push(
@@ -1625,10 +1617,10 @@ export class SystemDesignService {
       throw new NotFoundException(`System design with id ${systemDesignId} not found`);
     }
 
+    const noneSolarProduction8760: number[] = new Array(8760).fill(0);
+
     // check if system design does not have panel array => no solar production
-    if (!foundSystemDesign.roofTopDesignData.panelArray.length) {
-      return new Array(8760).fill(0);
-    }
+    if (!foundSystemDesign.roofTopDesignData.panelArray.length) return noneSolarProduction8760;
 
     let cacheSystemActualProduction8760;
 
@@ -1643,9 +1635,14 @@ export class SystemDesignService {
       // Do not thing, any error, such as NoSuchKey (file not found)
     }
 
-    const systemActualProduction8760: number[] = cacheSystemActualProduction8760
-      ? JSON.parse(cacheSystemActualProduction8760)
-      : await this.calculateSystemActualProduction(foundSystemDesign);
+    if (cacheSystemActualProduction8760) return JSON.parse(cacheSystemActualProduction8760);
+
+    const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(foundSystemDesign);
+
+    // check if Geotiff is not exist
+    if (!isExistedGeotiff) return noneSolarProduction8760;
+
+    const systemActualProduction8760: number[] = await this.calculateSystemActualProduction(foundSystemDesign);
 
     return systemActualProduction8760;
   }

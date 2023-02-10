@@ -210,7 +210,7 @@ export class EnergyProfileService {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
-    const systemActualProduction8760 = await this.systemDesignService.calculateSystemActualProduction(systemDesign);
+    const systemActualProduction8760 = await this.systemDesignService.getSystemActualProduction(systemDesignId);
 
     const pinballInputData = await this.systemDesignService.buildPinballInputData(
       systemDesign,

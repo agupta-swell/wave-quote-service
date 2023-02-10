@@ -11,9 +11,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PNG } from 'pngjs';
 import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
-import { SystemDesign } from '../../system-designs/system-design.schema';
+import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
+import { SystemDesign, SystemDesignModel } from '../../system-designs/system-design.schema';
 import {
   calcCoordinatesDistance,
+  getCenterBound,
   ICoordinate,
   isCoordinatesInsideBoundByAtLeast,
 } from '../../utils/calculate-coordinates';
@@ -521,9 +523,13 @@ export class GoogleSunroofService {
     await this.s3Service.putObject(this.GOOGLE_SUNROOF_S3_BUCKET, key, PNG.sync.write(png), 'image/png');
   }
 
-  public async isExistedGeotiff(latitude, longitude, radiusMeters = 25): Promise<boolean> {
+  public async isExistedGeotiff(systemDesign: SystemDesignModel | LeanDocument<SystemDesign>): Promise<boolean> {
+    const newPolygons = (systemDesign.roofTopDesignData?.panelArray?.map(p => p?.boundPolygon) ?? []).flat();
+    const { lat, lng } = getCenterBound(newPolygons);
+    const radiusMeters = calculateSystemDesignRadius({ lat, lng }, newPolygons) || 25;
+
     try {
-      await this.googleSunroofGateway.getSolarInfo(latitude, longitude, radiusMeters);
+      await this.googleSunroofGateway.getSolarInfo(lat, lng, radiusMeters);
     } catch (error) {
       return false;
     }
