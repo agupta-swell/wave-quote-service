@@ -256,12 +256,22 @@ export class SystemProductService implements OnModuleInit {
     if (systemDesignDto?.roofTopDesignData?.panelArray?.length) {
       pvProductionArray = await Promise.all(
         systemDesignDto.roofTopDesignData.panelArray.map(async item => {
-          const { azimuth, losses, pitch, useSunroof, sunroofPitch, sunroofAzimuth, overrideRooftopDetails } = item;
+          const {
+            azimuth,
+            losses,
+            pitch,
+            useSunroof,
+            sunroofPitch,
+            sunroofAzimuth,
+            overrideRooftopDetails,
+            panelModelDataSnapshot,
+          } = item;
           const panelModelData = cachedProducts
             ? (cachedProducts.find(p => p._id?.toString() === item.panelModelId) as LeanDocument<
                 IProductDocument<PRODUCT_TYPE.MODULE>
               >)
-            : await this.productService.getDetailById(item.panelModelId);
+            : panelModelDataSnapshot;
+
           const systemCapacityInkWh = (item.numberOfPanels * (panelModelData?.ratings?.watts ?? 0)) / 1000;
           return this.calculatePVProduction({
             latitude,
@@ -293,7 +303,7 @@ export class SystemProductService implements OnModuleInit {
 
     const cumulativePvProduction: ISystemProduction = { arrayHourly: [], hourly: [], monthly: [], annual: 0 };
     if (pvProductionArray.length === 1) {
-      cumulativePvProduction.arrayHourly = [pvProductionArray[0].hourly] || [];
+      cumulativePvProduction.arrayHourly = [pvProductionArray[0].hourly || []];
       cumulativePvProduction.hourly = pvProductionArray[0].hourly || [];
       cumulativePvProduction.monthly = pvProductionArray[0].monthly || [];
       cumulativePvProduction.annual = pvProductionArray[0].annual || 0;
