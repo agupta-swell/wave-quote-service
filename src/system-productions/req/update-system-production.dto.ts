@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsNumber, IsOptional } from 'class-validator';
+import { IDerateSnapshot } from '../system-production.schema';
 
 export class UpdateSystemProductionDto {
   @ApiProperty()
@@ -41,4 +42,6 @@ export class UpdateSystemProductionDto {
   @IsOptional()
   @IsArray()
   hourlyProduction?: string;
+
+  derateSnapshot?: IDerateSnapshot;
 }

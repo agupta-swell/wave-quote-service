@@ -21,3 +21,8 @@ export enum ECOM_PRODUCT_TYPE {
   BATTERY = 'battery',
   LABOR = 'labor',
 }
+
+export const DEFAULT_ENVIRONMENTAL_LOSSES_DATA = {
+  regionDescription: '',
+  amounts: Array(12).fill(0),
+};

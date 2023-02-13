@@ -13,11 +13,14 @@ import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { ContractService } from 'src/contracts/contract.service';
+import { DEFAULT_ENVIRONMENTAL_LOSSES_DATA } from 'src/e-commerces/constants';
 import { ECommerceService } from 'src/e-commerces/e-commerce.service';
+import { REGION_PURPOSE } from 'src/e-commerces/schemas';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { DEFAULT_PRODUCTION_DERATES, PRODUCTION_DERATES_NAME_MAPPER } from 'src/production-derates-v2/constants';
 import { ProductionDeratesService } from 'src/production-derates-v2/production-derates-v2.service';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { IProductDocument, IUnknownProduct } from 'src/products-v2/interfaces';
@@ -31,6 +34,7 @@ import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.s
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { IDerateSnapshot } from 'src/system-productions/system-production.schema';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { GetPinballSimulatorDto } from 'src/utilities/req';
 import { IUtilityCostData, UtilityUsageDetails } from 'src/utilities/utility.schema';
@@ -397,8 +401,11 @@ export class SystemDesignService {
 
     const newSystemDesign = (await createdSystemDesign.save()).toJSON();
 
+    const derateSnapshot = await this.updateDerateSnapshot(newSystemDesign);
+
     // expose systemProduction's props
     if (newSystemProduction.data) {
+      newSystemProduction.data.derateSnapshot = derateSnapshot;
       newSystemDesign.systemProductionData = newSystemProduction.data;
     }
 
@@ -664,6 +671,38 @@ export class SystemDesignService {
     return pickBy(systemDesign, item => typeof item !== 'undefined');
   }
 
+  async updateDerateSnapshot(systemDesign: LeanDocument<SystemDesign> | SystemDesignModel): Promise<IDerateSnapshot> {
+    const { systemProductionId, opportunityId } = systemDesign;
+
+    const [productionDerates, soilingLosses, snowLosses] = await Promise.all([
+      this.productionDeratesService.getAllProductionDerates(),
+      this.eCommerceService.getEnvironmentalLosses(opportunityId, REGION_PURPOSE.SOILING),
+      this.eCommerceService.getEnvironmentalLosses(opportunityId, REGION_PURPOSE.SNOW),
+    ]);
+
+    const productionLosses = { ...DEFAULT_PRODUCTION_DERATES };
+
+    productionDerates.data?.forEach(({ name, amount }) => {
+      const existedProductionDerate = PRODUCTION_DERATES_NAME_MAPPER[name];
+
+      if (!existedProductionDerate) {
+        return;
+      }
+
+      productionLosses[existedProductionDerate] = amount;
+    });
+
+    const updatedSystemProduction = await this.systemProductionService.update(systemProductionId, {
+      derateSnapshot: {
+        ...productionLosses,
+        soilingLosses,
+        snowLosses,
+      },
+    });
+
+    return updatedSystemProduction.data?.derateSnapshot as IDerateSnapshot;
+  }
+
   async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (
       (systemDesignDto.roofTopDesignData &&
@@ -762,6 +801,8 @@ export class SystemDesignService {
         ),
       );
     }
+
+    handlers.push(this.updateDerateSnapshot(systemDesign));
 
     await Promise.all(handlers);
 
@@ -1457,6 +1498,7 @@ export class SystemDesignService {
   private async applyProductionSoilingAndDegradation(
     raw8760ProductionData: number[],
     systemDesign: LeanDocument<SystemDesign>,
+    derateSnapshot: IDerateSnapshot,
   ): Promise<number[]> {
     const {
       roofTopDesignData: { panelArray },
@@ -1466,14 +1508,18 @@ export class SystemDesignService {
 
     const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
 
-    const [soilingLosses, snowLosses] = await Promise.all([
-      this.eCommerceService.getSoilingLossesByOpportunityId(systemDesign.opportunityId),
-      this.eCommerceService.getSnowLossesByOpportunityId(systemDesign.opportunityId),
-    ]);
+    const { soilingLosses, snowLosses } = derateSnapshot || {};
+
+    const soilingLossesAmounts = soilingLosses?.amounts || DEFAULT_ENVIRONMENTAL_LOSSES_DATA.amounts;
+
+    const snowLossesAmounts = snowLosses?.amounts || DEFAULT_ENVIRONMENTAL_LOSSES_DATA.amounts;
 
     const multipliedByDegrade = (v, monthIndex) =>
       roundNumber(
-        v * (1 - firstYearDegradation) * (1 - soilingLosses[monthIndex] / 100) * (1 - snowLosses[monthIndex] / 100),
+        v *
+          (1 - firstYearDegradation) *
+          (1 - soilingLossesAmounts[monthIndex] / 100) *
+          (1 - snowLossesAmounts[monthIndex] / 100),
       );
 
     const raw8760MonthlyHour = buildMonthlyHourFrom8760(raw8760ProductionData)
@@ -1502,13 +1548,19 @@ export class SystemDesignService {
     return productionData8760;
   }
 
-  private async applyOtherLosses(productionData8760: number[]) {
-    const productionDerates = await this.productionDeratesService.getAllProductionDerates();
+  private async applyOtherLosses(productionData8760: number[], derateSnapshot: IDerateSnapshot) {
+    const { wiringLosses, connectionLosses, allOtherLosses } = derateSnapshot || {};
 
     let ratio = 1;
 
-    productionDerates.data?.forEach(item => {
-      ratio *= 1 - (item.amount || 0) / 100;
+    const productionDerates = {
+      wiringLosses,
+      connectionLosses,
+      allOtherLosses,
+    };
+
+    Object.values(productionDerates).forEach(item => {
+      ratio *= 1 - (item || 0) / 100;
     });
 
     return productionData8760.map(v => roundNumber(v * ratio, 2));
@@ -1548,10 +1600,14 @@ export class SystemDesignService {
       return productionData.map(v => +v * (1 - mountTypeDeratePercentage));
     });
 
+    const derateSnapshot = systemProduction?.derateSnapshot
+      ? systemProduction.derateSnapshot
+      : await this.updateDerateSnapshot(systemDesign);
+
     // apply Soiling And Degradation
     const appliedSoilingAndDegradation8760ProductionByArray = await Promise.all(
       appliedDerate8760ProductionByArray?.map(productionData =>
-        this.applyProductionSoilingAndDegradation(productionData, systemDesign),
+        this.applyProductionSoilingAndDegradation(productionData, systemDesign, derateSnapshot),
       ),
     );
 
@@ -1562,7 +1618,9 @@ export class SystemDesignService {
 
     // apply OtherLosses
     const appliedOtherLosses8760ProductionByArray = await Promise.all(
-      appliedInverterClipping8760ProductionByArray.map(productionData => this.applyOtherLosses(productionData)),
+      appliedInverterClipping8760ProductionByArray.map(productionData =>
+        this.applyOtherLosses(productionData, derateSnapshot),
+      ),
     );
 
     // OUTPUT: array of array 12 number
