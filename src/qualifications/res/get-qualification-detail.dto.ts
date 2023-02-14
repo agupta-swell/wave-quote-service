@@ -1,26 +1,9 @@
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, QUALIFICATION_TYPE, VENDOR_ID } from '../constants';
+import { CustomerNotificationDto } from './sub-dto/customer-notification.dto';
+import { EventDto } from './sub-dto/event.dto';
 import { FniCommunicationDto } from './sub-dto/fni-communication.dto';
-
-class CustomerNotificationDto {
-  @ExposeProp()
-  sentOn: Date;
-
-  @ExposeProp()
-  email: string;
-}
-
-class EventDto {
-  @ExposeProp()
-  issueDate: Date;
-
-  @ExposeProp()
-  by: string;
-
-  @ExposeProp()
-  detail: string;
-}
 
 class QualificationDetailDto {
   @ExposeMongoId()

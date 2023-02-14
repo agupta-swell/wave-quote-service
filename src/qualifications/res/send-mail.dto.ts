@@ -1,25 +1,8 @@
 import { ServiceResponse } from 'src/app/common';
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, VENDOR_ID } from '../constants';
-
-class CustomerNotificationDto {
-  @ExposeProp()
-  sentOn: Date;
-
-  @ExposeProp()
-  email: string;
-}
-
-class EventDto {
-  @ExposeProp()
-  issueDate: Date;
-
-  @ExposeProp()
-  by: string;
-
-  @ExposeProp()
-  detail: string;
-}
+import { CustomerNotificationDto } from './sub-dto/customer-notification.dto';
+import { EventDto } from './sub-dto/event.dto';
 
 class QualificationDetailDto {
   @ExposeProp()
