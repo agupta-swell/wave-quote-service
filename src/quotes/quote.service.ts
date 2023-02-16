@@ -138,7 +138,6 @@ export class QuoteService {
     ) {
       throw ApplicationException.NoQuoteConfigAvailable();
     }
-
     const utilityProgram = data.utilityProgramId
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
       : null;
@@ -170,6 +169,16 @@ export class QuoteService {
       financialProduct,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
+
+    if (data.selectedQuoteMode === QUOTE_MODE_TYPE.PRICE_PER_WATT) {
+      quoteCostBuildup.projectGrandTotal.netCost = data.quotePricePerWatt.grossPrice;
+      quoteCostBuildup.projectGrossTotal.netCost = data.quotePricePerWatt.grossPrice;
+      quoteCostBuildup.cashDiscount.total = 0;
+    } else if (data.selectedQuoteMode === QUOTE_MODE_TYPE.PRICE_OVERRIDE) {
+      quoteCostBuildup.projectGrandTotal.netCost = data.quotePriceOverride.grossPrice;
+      quoteCostBuildup.projectGrossTotal.netCost = data.quotePriceOverride.grossPrice;
+      quoteCostBuildup.cashDiscount.total = 0;
+    }
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
@@ -240,7 +249,7 @@ export class QuoteService {
       quoteName: data.quoteName,
       allowedQuoteModes: data.allowedQuoteModes || [],
       selectedQuoteMode: data.selectedQuoteMode,
-      quotePricePerWatt: data.quotePricePerWatt || { pricePerWatt: -1, grossPrice: -1 },
+      quotePricePerWatt: data.quotePricePerWatt,
       quotePriceOverride: data.quotePriceOverride,
       notes: [],
     };
@@ -252,15 +261,11 @@ export class QuoteService {
 
       if (quoteConfigData.enablePricePerWatt) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_PER_WATT);
-        detailedQuote.quotePricePerWatt.pricePerWatt = 0;
       }
 
       if (quoteConfigData.enablePriceOverride) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_OVERRIDE);
       }
-
-      detailedQuote.selectedQuoteMode =
-        detailedQuote.allowedQuoteModes.length === 1 ? detailedQuote.allowedQuoteModes[0] : '';
     }
 
     const model = new QuoteModel(data, detailedQuote);
