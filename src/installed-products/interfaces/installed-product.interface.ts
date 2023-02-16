@@ -11,9 +11,9 @@ export interface IInstalledProduct {
   serialNumber: string;
   notes: string;
   createdAt: Date;
-  createdBy: String;
+  createdBy: string;
   updatedAt?: Date;
-  updatedBy?: String;
+  updatedBy?: string;
 }
 
 export type IInstalledProductDocument = IInstalledProduct & Document<ObjectId>;
