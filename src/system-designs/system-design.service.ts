@@ -802,6 +802,12 @@ export class SystemDesignService {
       );
     }
 
+    handlers.push(
+      this.systemProductionService.update(systemDesign.systemProductionId, {
+        ...newSystemProduction,
+      }),
+    );
+
     handlers.push(this.updateDerateSnapshot(systemDesign));
 
     await Promise.all(handlers);
