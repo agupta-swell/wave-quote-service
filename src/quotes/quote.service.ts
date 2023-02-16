@@ -118,6 +118,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('System Design');
     }
 
+    if (!systemDesign.roofTopDesignData.storage.length && !systemDesign.roofTopDesignData.panelArray.length) {
+      throw ApplicationException.UnprocessableEntity('Can not create quote from empty system design');
+    }
+
     if (systemDesign.isSolar && !systemDesign.roofTopDesignData.inverters.length) {
       throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
     }
