@@ -9,15 +9,15 @@ export class GetAllProductsQueryDto {
   @IsInt()
   @Min(0)
   @IsOptional()
-  @Transform(({ value }) => +value || 100)
-  limit = 100;
+  @Transform(({ value }) => +value)
+  limit: number;
 
   @ApiProperty({ required: false })
   @IsInt()
   @Min(0)
   @IsOptional()
-  @Transform(({ value }) => +value || 0)
-  skip = 0;
+  @Transform(({ value }) => +value)
+  skip: number;
 
   @ApiProperty({ type: String })
   @IsArray()
