@@ -153,11 +153,7 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('funding Source');
     }
 
-    const dealerFeePercentage = [FINANCE_PRODUCT_TYPE.CASH, FINANCE_PRODUCT_TYPE.LOAN].includes(
-      fundingSource.type as FINANCE_PRODUCT_TYPE,
-    )
-      ? await this.financialProductService.getHighestDealerFee(FINANCE_PRODUCT_TYPE.LOAN)
-      : 0;
+    const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, financialProduct.dealerFee);
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
       roofTopDesignData: systemDesign.roofTopDesignData,
@@ -404,12 +400,8 @@ export class QuoteService {
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('funding Source');
     }
-
-    const dealerFeePercentage = [FINANCE_PRODUCT_TYPE.CASH, FINANCE_PRODUCT_TYPE.LOAN].includes(
-      fundingSource.type as FINANCE_PRODUCT_TYPE,
-    )
-      ? await this.financialProductService.getHighestDealerFee(FINANCE_PRODUCT_TYPE.LOAN)
-      : 0;
+    const { dealerFee } = financialProductSnapshot;
+    const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, dealerFee);
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
       roofTopDesignData: foundSystemDesign.roofTopDesignData,
@@ -741,18 +733,14 @@ export class QuoteService {
     } = foundQuote.detailedQuote;
 
     const { financialProductSnapshot } = financeProduct;
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProductSnapshot;
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, dealerFee } = financialProductSnapshot;
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('funding Source');
     }
 
-    const dealerFeePercentage = [FINANCE_PRODUCT_TYPE.CASH, FINANCE_PRODUCT_TYPE.LOAN].includes(
-      fundingSource.type as FINANCE_PRODUCT_TYPE,
-    )
-      ? await this.financialProductService.getHighestDealerFee(FINANCE_PRODUCT_TYPE.LOAN)
-      : 0;
+    const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, dealerFee);
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
       roofTopDesignData: systemDesign.roofTopDesignData,
@@ -1024,7 +1012,7 @@ export class QuoteService {
     }
 
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProductSnapshot;
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, dealerFee } = financialProductSnapshot;
 
     const [quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
@@ -1056,11 +1044,10 @@ export class QuoteService {
       salesOriginationSalesFee: data.quoteCostBuildup.salesOriginationSalesFee,
     };
 
-    const dealerFeePercentage = [FINANCE_PRODUCT_TYPE.CASH, FINANCE_PRODUCT_TYPE.LOAN].includes(
+    const dealerFeePercentage = await this.getDealerFeePercentage(
       detailedQuote.quoteFinanceProduct.financeProduct.productType,
-    )
-      ? await this.financialProductService.getHighestDealerFee(FINANCE_PRODUCT_TYPE.LOAN)
-      : 0;
+      dealerFee,
+    );
 
     const quoteCostBuildUp = this.quoteCostBuildUpService.create({
       roofTopDesignData: systemDesign.roofTopDesignData,
@@ -1590,5 +1577,16 @@ export class QuoteService {
     if (minDownPayment > newUpfrontPayment) newUpfrontPayment = minDownPayment;
 
     return newUpfrontPayment;
+  }
+
+  async getDealerFeePercentage(type: string, dealerFee: number) {
+    switch (type) {
+      case FINANCE_PRODUCT_TYPE.CASH:
+        return this.financialProductService.getLowestDealerFee(FINANCE_PRODUCT_TYPE.LOAN);
+      case FINANCE_PRODUCT_TYPE.LOAN:
+        return dealerFee;
+      default:
+        return 0;
+    }
   }
 }
