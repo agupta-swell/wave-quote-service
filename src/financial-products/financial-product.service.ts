@@ -108,6 +108,7 @@ export class FinancialProductsService {
   }
 
   async getLowestDealerFee(fundingSourceType: FINANCE_PRODUCT_TYPE): Promise<number> {
+    const DEFAULT_DEALER_FEE = 0;
     const fundingSources = await this.fundingSourceService.getAll({ type: fundingSourceType });
     const financialProducts = await this.financialProduct
       .find({
@@ -119,6 +120,6 @@ export class FinancialProductsService {
       })
       .lean();
 
-    return financialProducts[0].dealerFee;
+    return financialProducts[0]?.dealerFee || DEFAULT_DEALER_FEE;
   }
 }
