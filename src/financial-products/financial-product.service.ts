@@ -107,17 +107,18 @@ export class FinancialProductsService {
     );
   }
 
-  async getHighestDealerFee(fundingSourceType: FINANCE_PRODUCT_TYPE): Promise<number> {
-    const DEFAULT_DEALER_FEE = 0;
-
+  async getLowestDealerFee(fundingSourceType: FINANCE_PRODUCT_TYPE): Promise<number> {
     const fundingSources = await this.fundingSourceService.getAll({ type: fundingSourceType });
     const financialProducts = await this.financialProduct
       .find({
         fundingSourceId: { $in: fundingSources.map(fs => fs._id) },
         isActive: true,
       })
+      .sort({
+        dealer_fee: 1,
+      })
       .lean();
 
-    return Math.max(...financialProducts.map(fp => fp.dealerFee), DEFAULT_DEALER_FEE);
+    return financialProducts[0].dealerFee;
   }
 }
