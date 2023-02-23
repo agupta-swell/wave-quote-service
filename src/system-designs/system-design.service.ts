@@ -43,9 +43,14 @@ import { IUtilityCostData, UtilityUsageDetails } from 'src/utilities/utility.sch
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { buildMonthlyAndAnnualDataFrom8760, buildMonthlyHourFrom8760 } from 'src/utils/transformData';
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
+import {
+  PRESIGNED_POST_URL_EXPIRES,
+  PRESIGNED_POST_URL_MAX_SIZE,
+  PRESIGNED_POST_URL_MIN_SIZE,
+} from 'src/shared/aws/constants';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
-import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
+import { BATTERY_PURPOSE, DESIGN_MODE, PRESIGNED_GET_URL_EXPIRE_IN } from './constants';
 import { SystemDesignHook } from './providers/system-design.hook';
 import {
   CalculateSunroofOrientationDto,
@@ -64,6 +69,7 @@ import {
   SystemDesignDto,
 } from './res';
 import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
+import { GetPresignedPostUrlResDto } from './res/get-presigned-post-url.dto';
 import { ISystemProduction, SunroofHourlyProductionCalculation, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
@@ -72,6 +78,7 @@ import {
   SystemDesignWithManufacturerMeta,
   SYSTEM_DESIGN,
 } from './system-design.schema';
+import { RoofTopImageReqDto } from './req/sub-dto/roof-top-image.dto';
 
 @Injectable()
 export class SystemDesignService {
@@ -118,6 +125,7 @@ export class SystemDesignService {
 
     if (
       (systemDesignDto.roofTopDesignData &&
+        !systemDesignDto.roofTopDesignData.roofTopImage &&
         !systemDesignDto.roofTopDesignData.panelArray.length &&
         !systemDesignDto.roofTopDesignData.storage.length &&
         !systemDesignDto.roofTopDesignData.inverters.length) ||
@@ -410,7 +418,10 @@ export class SystemDesignService {
       newSystemDesign.systemProductionData = newSystemProduction.data;
     }
 
-    return OperationResult.ok(strictPlainToClass(SystemDesignDto, newSystemDesign));
+    // expose rooftop image URL
+    const imageURL = await this.getPresignedGetURLOfRooftopImage(newSystemDesign);
+
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, { ...newSystemDesign, imageURL }));
   }
 
   async calculateSystemDesign<AuxCalculateResult>({
@@ -817,8 +828,15 @@ export class SystemDesignService {
 
     const systemDesignUpdated = foundSystemDesign.toJSON();
 
+    // expose rooftop image URL
+    const imageURL = await this.getPresignedGetURLOfRooftopImage(systemDesignUpdated);
+
     return OperationResult.ok(
-      strictPlainToClass(SystemDesignDto, { ...systemDesignUpdated, systemProductionData: newSystemProduction }),
+      strictPlainToClass(SystemDesignDto, {
+        ...systemDesignUpdated,
+        systemProductionData: newSystemProduction,
+        imageURL,
+      }),
     );
   }
 
@@ -832,6 +850,7 @@ export class SystemDesignService {
 
     if (
       systemDesignDto.roofTopDesignData &&
+      !systemDesignDto.roofTopDesignData.roofTopImage &&
       !systemDesignDto.roofTopDesignData.panelArray.length &&
       !systemDesignDto.roofTopDesignData.storage.length &&
       !systemDesignDto.roofTopDesignData.inverters.length
@@ -850,17 +869,22 @@ export class SystemDesignService {
 
       const result = await this.calculateSystemDesign({ systemDesign, systemDesignDto, remainArrayId: true });
 
+      const imageURL = await this.getPresignedGetURLOfRooftopImage(result);
+
       return OperationResult.ok(
         strictPlainToClass(SystemDesignDto, {
           ...foundSystemDesign,
           ...result,
+          imageURL,
         }),
       );
     }
 
     const result = await this.calculateSystemDesign({ systemDesign, systemDesignDto, remainArrayId: true });
 
-    return OperationResult.ok(strictPlainToClass(SystemDesignDto, result!));
+    const imageURL = await result;
+
+    return OperationResult.ok(strictPlainToClass(SystemDesignDto, { ...result!, imageURL }));
   }
 
   async delete(id: ObjectId, opportunityId: string): Promise<OperationResult<string>> {
@@ -912,10 +936,14 @@ export class SystemDesignService {
           const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
           systemDesign.systemProductionData = systemProduction.data;
         }
+
+        const imageURL = await this.getPresignedGetURLOfRooftopImage(systemDesign);
+
         return {
           ...systemDesign,
           editable: !isInUsed,
           editableMessage: isInUsed || null,
+          imageURL,
         };
       }),
     );
@@ -942,11 +970,15 @@ export class SystemDesignService {
     }
     foundSystemDesign.systemProductionData = systemProduction.data;
 
+    // expose rooftop image URL
+    const imageURL = await this.getPresignedGetURLOfRooftopImage(foundSystemDesign);
+
     return OperationResult.ok(
       strictPlainToClass(SystemDesignDto, {
         ...foundSystemDesign,
         editable: !isInUsed,
         editableMessage: isInUsed || null,
+        imageURL,
       } as any),
     );
   }
@@ -1223,10 +1255,10 @@ export class SystemDesignService {
   }
 
   private async getSignedUrls(pngs: string[]): Promise<string[]> {
-    const URL_EXPIRE_IN = 3600;
-
     return Promise.all(
-      pngs.map(e => this.s3Service.getSignedUrl(process.env.GOOGLE_SUNROOF_S3_BUCKET!, e, URL_EXPIRE_IN, true)),
+      pngs.map(e =>
+        this.s3Service.getPresignedGetUrl(process.env.GOOGLE_SUNROOF_S3_BUCKET!, e, PRESIGNED_GET_URL_EXPIRE_IN, true),
+      ),
     );
   }
 
@@ -1318,12 +1350,10 @@ export class SystemDesignService {
       await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
     }
 
-    const URL_EXPIRE_IN = 3600;
-
-    const signedUrl = await this.s3Service.getSignedUrl(
+    const signedUrl = await this.s3Service.getPresignedGetUrl(
       process.env.GOOGLE_SUNROOF_S3_BUCKET!,
       key,
-      URL_EXPIRE_IN,
+      PRESIGNED_GET_URL_EXPIRE_IN,
       true,
     );
 
@@ -1844,5 +1874,89 @@ export class SystemDesignService {
     );
 
     return pinballInputData;
+  }
+
+  async getPresignedPostURLUploadRooftopImage(fileType: string): Promise<OperationResult<GetPresignedPostUrlResDto>> {
+    const fileExt = fileType.split('/')[1];
+    const key = `${+new Date()}.${fileExt}`;
+
+    const Conditions = [
+      ['content-length-range', PRESIGNED_POST_URL_MIN_SIZE, PRESIGNED_POST_URL_MAX_SIZE],
+      ['eq', '$Content-Type', fileType],
+    ];
+
+    const options = {
+      Conditions,
+      Expires: PRESIGNED_POST_URL_EXPIRES,
+    };
+
+    const presignedPostData = await this.s3Service.getPresignedPostUrl(this.SYSTEM_DESIGN_S3_BUCKET, key, options);
+
+    const result = {
+      presignedPostData,
+      key,
+    };
+
+    return OperationResult.ok(strictPlainToClass(GetPresignedPostUrlResDto, result));
+  }
+
+  async getPresignedGetURLOfRooftopImage(
+    systemDesign: LeanDocument<SystemDesign> | Partial<SystemDesignModel>,
+  ): Promise<string | undefined> {
+    let presignedGetUrl;
+    const { roofTopDesignData } = systemDesign;
+
+    if (roofTopDesignData?.roofTopImage && roofTopDesignData?.roofTopImage.key) {
+      presignedGetUrl = await this.s3Service.getPresignedGetUrl(
+        this.SYSTEM_DESIGN_S3_BUCKET,
+        roofTopDesignData.roofTopImage.key,
+        PRESIGNED_GET_URL_EXPIRE_IN,
+        true,
+      );
+    }
+
+    return presignedGetUrl;
+  }
+
+  async updateRoofTopImage(
+    id: ObjectId,
+    rooftopImageDto: RoofTopImageReqDto,
+  ): Promise<OperationResult<SystemDesignDto>> {
+    const foundSystemDesign = await this.systemDesignModel.findById(id);
+
+    if (!foundSystemDesign) {
+      throw ApplicationException.EntityNotFound(id.toString());
+    }
+
+    const [systemProduction, isInUsed] = await Promise.all([
+      this.systemProductionService.findById(foundSystemDesign.systemProductionId),
+      this.checkInUsed(id.toString()),
+    ]);
+
+    if (!systemProduction.data) {
+      throw ApplicationException.EntityNotFound(`with systemProduction ${foundSystemDesign.systemProductionId} `);
+    }
+
+    if (isInUsed) {
+      throw new BadRequestException(isInUsed);
+    }
+
+    // update rooftop image data
+    foundSystemDesign.roofTopDesignData.roofTopImage = rooftopImageDto;
+
+    await foundSystemDesign.save();
+
+    const systemDesignUpdated = foundSystemDesign.toJSON();
+
+    // expose rooftop image URL
+    const imageURL = await this.getPresignedGetURLOfRooftopImage(systemDesignUpdated);
+
+    return OperationResult.ok(
+      strictPlainToClass(SystemDesignDto, {
+        ...systemDesignUpdated,
+        systemProductionData: systemProduction.data,
+        imageURL,
+      }),
+    );
   }
 }

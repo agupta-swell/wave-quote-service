@@ -10,6 +10,7 @@ import { SolarPanelArrayDto1 } from './solar-panel-array.dto';
 import { StorageDto } from './storage.dto';
 import { SoftCostDto } from './soft-cost.dto';
 import { LaborCostDto } from './labor-cost.dto';
+import { RoofTopImageReqDto } from './roof-top-image.dto';
 
 export class RoofTopDataReqDto {
   @ApiPropertyOptional({
@@ -96,4 +97,10 @@ export class RoofTopDataReqDto {
   @ValidateNested({ each: true })
   @Type(() => LaborCostDto)
   laborCosts: LaborCostDto[];
+
+  @ApiProperty()
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RoofTopImageReqDto)
+  roofTopImage: RoofTopImageReqDto;
 }

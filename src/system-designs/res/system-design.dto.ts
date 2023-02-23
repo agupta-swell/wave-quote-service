@@ -1,3 +1,4 @@
+import { Exclude, Transform } from 'class-transformer';
 import { Pagination } from 'src/app/common';
 import { ServiceResponse } from 'src/app/common/service-response';
 import { ExistingSystemResDto } from 'src/existing-systems/res';
@@ -20,6 +21,12 @@ export class SystemDesignDto {
   name: string;
 
   @ExposeProp({ type: RoofTopDataDto })
+  @Transform(({ value, obj }) => {
+    if (value.roofTopImage) {
+      value.roofTopImage.imageURL = obj.imageURL;
+    }
+    return value;
+  })
   roofTopDesignData: RoofTopDataDto;
 
   @ExposeProp({ type: CapacityProductionDataDto })

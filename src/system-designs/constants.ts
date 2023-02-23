@@ -53,3 +53,5 @@ export enum HEATMAP_MODE {
 export const KEYS = {
   REQ_PARAM_ID: Symbol.for('kReq/system-design/:id'),
 };
+
+export const PRESIGNED_GET_URL_EXPIRE_IN = 3600; // 3600 seconds = 1 hour

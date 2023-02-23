@@ -1,4 +1,6 @@
+import { Expose, Transform } from 'class-transformer';
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
+import { RoofTopImageResDto } from './roof-top-image.dto';
 import { AdderDto } from './adder.dto';
 import { AncillaryEquipmentDto } from './ancillary-equipment.dto';
 import { BalanceOfSystemDto } from './balance-of-system.dto';
@@ -78,4 +80,11 @@ export class RoofTopDataDto {
 
   @ExposeProp()
   hasSunroofIrradiance: boolean;
+
+  @ExposeProp({ type: RoofTopImageResDto, required: false })
+  roofTopImage: RoofTopImageResDto;
+
+  constructor() {
+    Object.assign(this, { entity: { name: 'name' } });
+  }
 }
