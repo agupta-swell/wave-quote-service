@@ -1,4 +1,5 @@
 import { ExposeProp } from 'src/shared/decorators';
+import { IPinballRateAmount } from '../utility.interface';
 
 export class PinballSimulatorDto {
   @ExposeProp()
@@ -12,4 +13,10 @@ export class PinballSimulatorDto {
 
   @ExposeProp()
   postInstallSiteDemandSeries: number[];
+
+  @ExposeProp()
+  rateAmountHourly: IPinballRateAmount[];
+
+  @ExposeProp()
+  year?: number;
 }

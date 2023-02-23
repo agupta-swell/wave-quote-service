@@ -735,16 +735,7 @@ export class UtilityService implements OnModuleInit {
     };
   }
 
-  async simulatePinball(
-    data: GetPinballSimulatorDto,
-  ): Promise<{
-    batteryStoredEnergySeries: number[];
-    batteryChargingSeries: number[];
-    batteryDischargingSeries: number[];
-    postInstallSiteDemandSeries: number[];
-    rateAmountHourly: IPinballRateAmount[];
-    year?: number;
-  }> {
+  async simulatePinball(data: GetPinballSimulatorDto): Promise<PinballSimulatorDto> {
     const {
       hourlyPostInstallLoad,
       hourlySeriesForExistingPV,
@@ -962,7 +953,8 @@ export class UtilityService implements OnModuleInit {
   }
 
   async pinballSimulator(data: GetPinballSimulatorDto): Promise<OperationResult<PinballSimulatorDto>> {
-    return OperationResult.ok(strictPlainToClass(PinballSimulatorDto, await this.simulatePinball(data)));
+    const result = await this.simulatePinball(data);
+    return OperationResult.ok(strictPlainToClass(PinballSimulatorDto, result));
   }
 
   async getExistingSystemProductionByOpportunityId(opportunityId: string, shouldGetHourlyProduction = false) {
