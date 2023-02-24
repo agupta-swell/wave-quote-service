@@ -1627,7 +1627,7 @@ export class SystemDesignService {
     const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
 
     const appliedFirstYearDegradation8760ProductionByArray = appliedMountTypeDerate8760ProductionByArray?.map(
-      productionData => this.applyDerate(productionData, firstYearDegradation),
+      productionData => this.applyDerate(productionData, 1 - firstYearDegradation),
     );
 
     this.s3Service.putObject(
