@@ -256,6 +256,7 @@ export class UtilityService implements OnModuleInit {
       masterTariffId,
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
+      typicalBaseLine.zipCode,
     );
 
     const costData = {
@@ -292,6 +293,7 @@ export class UtilityService implements OnModuleInit {
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       new Date().getFullYear(),
+      data.utilityData.typicalBaselineUsage.zipCode,
     );
 
     const costData = {
@@ -1077,8 +1079,8 @@ export class UtilityService implements OnModuleInit {
     hourlyDataForTheYear: number[],
     masterTariffId: string,
     mode: CALCULATION_MODE,
+    zipCode: number,
     year?: number,
-    zipCode?: number,
   ): Promise<IUtilityCostData> {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -1102,6 +1104,7 @@ export class UtilityService implements OnModuleInit {
       groupBy: EGenabilityGroupBy.MONTH,
       detailLevel: EGenabilityDetailLevel.CHARGE_TYPE,
       billingPeriod: false,
+      zipCode: zipCode.toString(),
     });
 
     const monthlyMinimumCosts: ICostDetailData[] = [];

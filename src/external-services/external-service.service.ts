@@ -257,6 +257,7 @@ export class ExternalService {
     groupBy,
     detailLevel,
     billingPeriod,
+    zipCode
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
 
@@ -281,6 +282,10 @@ export class ExternalService {
     });
 
     const payload = {
+      address: {
+        country: 'USA',
+        zip: zipCode,
+      },
       fromDateTime,
       toDateTime,
       masterTariffId,

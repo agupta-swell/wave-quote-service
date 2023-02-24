@@ -1411,6 +1411,7 @@ export class SystemDesignService {
         simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
         utility.costData.postInstallMasterTariffId,
         CALCULATION_MODE.ACTUAL,
+        utility.utilityData.typicalBaselineUsage.zipCode
       ),
       ...savePinballToS3Requests,
     ]);
