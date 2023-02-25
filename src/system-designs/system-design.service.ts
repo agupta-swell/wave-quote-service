@@ -1411,7 +1411,7 @@ export class SystemDesignService {
         simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
         utility.costData.postInstallMasterTariffId,
         CALCULATION_MODE.ACTUAL,
-        utility.utilityData.typicalBaselineUsage.zipCode
+        utility.utilityData.typicalBaselineUsage.zipCode,
       ),
       ...savePinballToS3Requests,
     ]);
@@ -1517,7 +1517,10 @@ export class SystemDesignService {
     return raw8760MonthlyHour;
   }
 
-  private applyInverterClipping(productionData8760: number[], systemDesign: LeanDocument<SystemDesign>): number[] {
+  private applyInverterClippingAndEfficiency(
+    productionData8760: number[],
+    systemDesign: LeanDocument<SystemDesign>,
+  ): number[] {
     const {
       roofTopDesignData: { inverters },
     } = systemDesign;
@@ -1595,7 +1598,7 @@ export class SystemDesignService {
       this.GOOGLE_SUNROOF_BUCKET,
       `${
         systemDesign.opportunityId
-      }/${systemDesign._id.toString()}/hourly-production/scaled-on-actual-monthly-usage.json`,
+      }/${systemDesign._id.toString()}/hourly-production/scaled-pvwatt-to-sunroof-production.json`,
       JSON.stringify(scaled8760ProductionByArray),
       'application/json',
     );
@@ -1674,20 +1677,22 @@ export class SystemDesignService {
     );
 
     // apply Inverter Clipping
-    const appliedInverterClipping8760ProductionByArray = appliedSnowDerate8760ProductionByArray.map(productionData =>
-      this.applyInverterClipping(productionData, systemDesign),
+    const appliedInverterClippingAndEfficiency8760ProductionByArray = appliedSnowDerate8760ProductionByArray.map(
+      productionData => this.applyInverterClippingAndEfficiency(productionData, systemDesign),
     );
 
     this.s3Service.putObject(
       this.GOOGLE_SUNROOF_BUCKET,
-      `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/applied-inverter-clipping.json`,
-      JSON.stringify(appliedInverterClipping8760ProductionByArray),
+      `${
+        systemDesign.opportunityId
+      }/${systemDesign._id.toString()}/hourly-production/applied-inverter-clipping-and-efficiency.json`,
+      JSON.stringify(appliedInverterClippingAndEfficiency8760ProductionByArray),
       'application/json',
     );
 
     // apply OtherLosses
-    const appliedOtherLosses8760ProductionByArray = appliedInverterClipping8760ProductionByArray.map(productionData =>
-      this.applyOtherLosses(productionData, derateSnapshot),
+    const appliedOtherLosses8760ProductionByArray = appliedInverterClippingAndEfficiency8760ProductionByArray.map(
+      productionData => this.applyOtherLosses(productionData, derateSnapshot),
     );
 
     this.s3Service.putObject(
