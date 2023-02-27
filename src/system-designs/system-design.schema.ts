@@ -379,7 +379,7 @@ export interface SystemDesign extends Document {
   systemProductionData?: ISystemProductionSchema;
   systemProductionId: string;
   netUsagePostInstallation: INetUsagePostInstallationSchema;
-  costPostInstallation: IUtilityCostData;
+  costPostInstallation: number;
   latitude: number;
   longitude: number;
   createdBy: string;
@@ -423,7 +423,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   roof_top_design_data: RoofTopSchema,
   capacity_production_design_data: CapacityProductionSchema,
   net_usage_post_installation: NetUsagePostInstallationSchema,
-  cost_post_installation: UtilityCostDataSchema,
+  cost_post_installation: { type: Number, default: 0 },
   system_production_data: SystemProductionSchema,
   system_production_id: String,
   sunroof_drift_correction: SunroofDriftCorrectionSchema,
@@ -466,9 +466,11 @@ export class SystemDesignModel {
 
   netUsagePostInstallation: INetUsagePostInstallationSchema;
 
-  costPostInstallation: IUtilityCostData;
+  costPostInstallation: number;
 
   sunroofDriftCorrection: ISunroofDriftCorrection;
+
+  annualPostInstallBill: number;
 
   createdBy: string;
 
@@ -688,7 +690,7 @@ export class SystemDesignModel {
     this.netUsagePostInstallation = data;
   }
 
-  setCostPostInstallation(data: IUtilityCostData) {
+  setCostPostInstallation(data: number) {
     this.costPostInstallation = data;
   }
 

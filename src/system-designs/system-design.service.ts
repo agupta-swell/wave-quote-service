@@ -18,6 +18,7 @@ import { DEFAULT_ENVIRONMENTAL_LOSSES_DATA } from 'src/e-commerces/constants';
 import { ECommerceService } from 'src/e-commerces/e-commerce.service';
 import { REGION_PURPOSE } from 'src/e-commerces/schemas';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
+import { ExternalService } from 'src/external-services/external-service.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
@@ -107,6 +108,7 @@ export class SystemDesignService {
     private readonly sunroofHourlyProductionCalculation: SunroofHourlyProductionCalculation,
     private readonly productionDeratesService: ProductionDeratesService,
     private readonly mountTypesService: MountTypesService,
+    private readonly externalService: ExternalService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -1406,18 +1408,17 @@ export class SystemDesignService {
       ),
     );
 
-    const [monthlyCost] = await Promise.all([
-      this.utilityService.calculateCost(
+    const [annualPostInstallBill] = await Promise.all([
+      this.externalService.calculateNetNegativeAnualUsage(
         simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
         utility.costData.postInstallMasterTariffId,
-        CALCULATION_MODE.ACTUAL,
         utility.utilityData.typicalBaselineUsage.zipCode,
       ),
       ...savePinballToS3Requests,
     ]);
 
     this.systemDesignModel
-      .updateOne({ _id: systemDesign.id }, { costPostInstallation: monthlyCost as IUtilityCostData })
+      .updateOne({ _id: systemDesign.id }, { costPostInstallation: annualPostInstallBill })
       .catch(error => console.error(error));
   }
 

@@ -181,11 +181,9 @@ export class QuoteService {
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    let postInstallAnnualCost = currentAnnualCost;
-
-    if (systemDesign.costPostInstallation) {
-      postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
-    }
+    const postInstallAnnualCost = systemDesign.costPostInstallation
+      ? systemDesign.costPostInstallation
+      : currentAnnualCost;
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
@@ -449,11 +447,10 @@ export class QuoteService {
     }
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    let postInstallAnnualCost = currentAnnualCost;
 
-    if (foundSystemDesign.costPostInstallation) {
-      postInstallAnnualCost = sumBy(foundSystemDesign.costPostInstallation.cost, item => item.v);
-    }
+    const postInstallAnnualCost = foundSystemDesign.costPostInstallation
+      ? foundSystemDesign.costPostInstallation
+      : currentAnnualCost;
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
@@ -767,11 +764,10 @@ export class QuoteService {
     const avgMonthlySavings = 0;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    let postInstallAnnualCost = currentAnnualCost;
 
-    if (systemDesign.costPostInstallation) {
-      postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
-    }
+    const postInstallAnnualCost = systemDesign.costPostInstallation
+      ? systemDesign.costPostInstallation
+      : currentAnnualCost;
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
@@ -1156,14 +1152,14 @@ export class QuoteService {
 
   async calculateQuoteDetail(data: CalculateQuoteDetailDto): Promise<OperationResult<QuoteDto>> {
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
-    const cost = systemDesign?.costPostInstallation?.cost || [];
+    const cost = systemDesign?.costPostInstallation || 0;
 
     const oppData = await this.opportunityService.getOppAccountData(data.opportunityId);
     const manufacturer = await this.manufacturerService.getOneById(
       data.quoteCostBuildup.storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId ?? '',
     );
     // I think this below variable show average money that customer have to pay monthly
-    const monthlyUtilityPayment = cost.reduce((acc, item) => (acc += item.v), 0) / cost.length;
+    const monthlyUtilityPayment = cost / 12;
 
     let res: CalculateQuoteDetailDto = {} as any;
     switch (data.quoteFinanceProduct.financeProduct.productType) {

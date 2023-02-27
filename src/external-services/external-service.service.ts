@@ -257,7 +257,7 @@ export class ExternalService {
     groupBy,
     detailLevel,
     billingPeriod,
-    zipCode
+    zipCode,
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const url = 'https://api.genability.com/rest/v1/ondemand/calculate';
 
@@ -340,5 +340,37 @@ export class ExternalService {
     const appKey = process.env.GENABILITY_APP_KEY;
     const credentials = Buffer.from(`${appId}:${appKey}`).toString('base64');
     return `Basic ${credentials}`;
+  }
+
+  /**
+   * Calculate net negative annual usage
+   */
+  async calculateNetNegativeAnualUsage(postInstall8760: number[], masterTariffId: string, zipCode: number) {
+    // Sum the 8760 kWh post-install data series
+    const netKwh = postInstall8760.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+
+    // Call Genability
+    const [result] = await this.calculateCost({
+      hourlyDataForTheYear: postInstall8760,
+      masterTariffId,
+      groupBy: EGenabilityGroupBy.MONTH,
+      detailLevel: EGenabilityDetailLevel.CHARGE_TYPE,
+      billingPeriod: false,
+      zipCode: zipCode.toString(),
+    });
+
+    // Calculate
+    const nonBypassableCost = result.summary.nonBypassableCost || 0; // 3313655 - SCE - Domestic Prime TOU return nonBypassableCost
+    const fixedCosts = result.items
+      .filter(item => item.quantityKey === 'fixed')
+      .reduce((accumulator, currentValue) => accumulator + currentValue.cost, 0); // could be negative
+    const consumptionCosts = result.items
+      .filter(item => item.quantityKey === 'consumption')
+      .reduce((accumulator, currentValue) => accumulator + currentValue.cost, 0);
+
+    const annualPostInstallBill =
+      fixedCosts + nonBypassableCost + (consumptionCosts > 0 ? consumptionCosts : netKwh * 0.05);
+
+    return annualPostInstallBill;
   }
 }
