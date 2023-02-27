@@ -712,6 +712,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
+    if (!systemDesign.roofTopDesignData.panelArray.length) { 
+      throw ApplicationException.UnprocessableEntity('Can not recalculate quote from empty system design');
+    }
+
     if (systemDesign.isSolar && !systemDesign.roofTopDesignData.inverters.length) {
       throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
     }
