@@ -100,13 +100,11 @@ export class ProductionCalculator {
     array: ISolarPanelArraySchema,
     annualDriftCorrection: IDriftCorrection,
   ): ArrayProduction {
-    const {
-      arrayId,
-      panels,
-      panelModelDataSnapshot: {
-        ratings: { wattsPtc: watts },
-      },
-    } = array;
+    const { arrayId, panels, panelModelDataSnapshot } = array;
+
+    const { watts, wattsPtc } = panelModelDataSnapshot.ratings;
+
+    const panelWatts = wattsPtc || watts || 0;
 
     // calculate the total production for the year
     const annualProduction = ProductionCalculator.calculateGenericArrayProduction(
@@ -114,7 +112,7 @@ export class ProductionCalculator {
       origin,
       10, // the annual flux tiff has a resolution of 10 pixels per meter (10cm per pixel)
       panels,
-      watts,
+      panelWatts,
       annualDriftCorrection,
     );
 
@@ -126,7 +124,7 @@ export class ProductionCalculator {
         origin,
         2, // the monthly flux tiff has a resolution of 2 pixels per meter (50cm per pixel)
         panels,
-        watts,
+        panelWatts,
         {
           x: Math.round(annualDriftCorrection.x / 5), // TODO WAV-1645: is this the right formula?
           y: Math.round(annualDriftCorrection.y / 5), // TODO WAV-1645: is this the right formula?
