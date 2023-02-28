@@ -11,13 +11,14 @@ import { LoanProductAttributesDto } from 'src/quotes/req/sub-dto/loan-product-at
 import { CalculationService } from 'src/quotes/sub-services/calculation.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { SystemProductService } from 'src/system-designs/sub-services';
+import { IEnvironmentalLosses } from 'src/system-productions/system-production.schema';
 import { CALCULATION_MODE } from 'src/utilities/constants';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { CostDataDto, UtilityDataDto } from 'src/utilities/res';
 import { IUsageValue } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { OperationResult } from '../app/common';
-import { ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
+import { DEFAULT_ENVIRONMENTAL_LOSSES_DATA, ECOM_PRODUCT_TYPE, ENERGY_SERVICE_TYPE, PAYMENT_TYPE } from './constants';
 import { GeneratedSolarSystem } from './models/generated-solar-system';
 import { TypicalUsage } from './models/typical-usage';
 import { GetEcomStorageOnlyQuoteReq } from './req/get-ecom-storage-only-quote.dto';
@@ -55,8 +56,8 @@ export class ECommerceService {
     @InjectModel(E_COMMERCE_CONFIG) private readonly eCommerceConfigModel: Model<ECommerceConfig>,
     @InjectModel(REGION) private readonly regionModel: Model<Region>,
     @InjectModel(ZIP_CODE_REGION_MAP) private readonly zipCodeRegionMapModel: Model<ZipCodeRegionMap>,
-    @InjectModel(SOILING_DERATE) private readonly SoilingDerateModel: Model<SoilingDerate>,
-    @InjectModel(SNOW_DERATE) private readonly SnowDerateModel: Model<SnowDerate>,
+    @InjectModel(SOILING_DERATE) private readonly soilingDerateModel: Model<SoilingDerate>,
+    @InjectModel(SNOW_DERATE) private readonly snowDerateModel: Model<SnowDerate>,
     @InjectModel(E_COMMERCE_PRODUCT) private readonly eCommerceProductModel: Model<ECommerceProduct>,
     @InjectModel(E_COMMERCE_SYSTEM_DESIGN) private readonly eCommerceSystemDesignModel: Model<ECommerceSystemDesign>,
   ) {}
@@ -186,38 +187,26 @@ export class ECommerceService {
     return OperationResult.ok(result);
   }
 
-  public async getSoilingLossesByOpportunityId(opportunityId): Promise<number[]> {
-    const DEFAULT_SOILING_LOSSES = Array(12).fill(0);
+  public async getEnvironmentalLosses(
+    opportunityId: string,
+    regionPurpose: REGION_PURPOSE,
+  ): Promise<IEnvironmentalLosses> {
+    const REGION_PURPOSE_AND_MODEL_MAPPING = {
+      [REGION_PURPOSE.SOILING]: this.soilingDerateModel,
+      [REGION_PURPOSE.SNOW]: this.snowDerateModel,
+    };
+
+    const environmentalModel = REGION_PURPOSE_AND_MODEL_MAPPING[regionPurpose];
+
+    if (!environmentalModel) {
+      throw ApplicationException.ValidationFailed(`region purpose is not valid: ${regionPurpose}`);
+    }
+
     const utilityService = await this.utilityService.getUtilityByOpportunityId(opportunityId);
 
-    if (!utilityService) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
-
-    const foundZipCodeRegionMaps = await this.zipCodeRegionMapModel
-      .find({
-        zipCodes: utilityService?.utilityData.typicalBaselineUsage.zipCode,
-      })
-      .lean();
-    if (!foundZipCodeRegionMaps.length) return DEFAULT_SOILING_LOSSES;
-
-    const foundRegion = await this.regionModel
-      .findOne({
-        _id: { $in: foundZipCodeRegionMaps.map(foundZipCodeRegionMap => foundZipCodeRegionMap.regionId) },
-        regionPurpose: REGION_PURPOSE.SOILING,
-      })
-      .lean();
-
-    if (!foundRegion) return DEFAULT_SOILING_LOSSES;
-    const soilingDerates = await this.SoilingDerateModel.findOne({ regionId: foundRegion._id }).lean();
-
-    if (!soilingDerates) return DEFAULT_SOILING_LOSSES;
-    return soilingDerates.amounts;
-  }
-
-  public async getSnowLossesByOpportunityId(opportunityId): Promise<number[]> {
-    const DEFAULT_SNOW_LOSSES = Array(12).fill(0);
-    const utilityService = await this.utilityService.getUtilityByOpportunityId(opportunityId);
-
-    if (!utilityService) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
+    if (!utilityService) {
+      throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
+    }
 
     const foundZipCodeRegionMaps = await this.zipCodeRegionMapModel
       .find({
@@ -226,27 +215,26 @@ export class ECommerceService {
       .lean();
 
     if (!foundZipCodeRegionMaps.length) {
-      return DEFAULT_SNOW_LOSSES;
+      return DEFAULT_ENVIRONMENTAL_LOSSES_DATA;
     }
 
     const foundRegion = await this.regionModel
       .findOne({
         _id: { $in: foundZipCodeRegionMaps.map(foundZipCodeRegionMap => foundZipCodeRegionMap.regionId) },
-        regionPurpose: REGION_PURPOSE.SNOW,
+        regionPurpose,
       })
       .lean();
 
     if (!foundRegion) {
-      return DEFAULT_SNOW_LOSSES;
+      return DEFAULT_ENVIRONMENTAL_LOSSES_DATA;
     }
 
-    const snowDerates = await this.SnowDerateModel.findOne({ regionId: foundRegion._id }).lean();
+    const environmentalDerate = await environmentalModel.findOne({ regionId: foundRegion._id }).lean();
 
-    if (!snowDerates) {
-      return DEFAULT_SNOW_LOSSES;
-    }
-
-    return snowDerates.amounts;
+    return {
+      regionDescription: foundRegion.name,
+      amounts: environmentalDerate ? environmentalDerate.amounts : DEFAULT_ENVIRONMENTAL_LOSSES_DATA.amounts,
+    };
   }
 
   private async getTypicalUsage(addressDataDetail: AddressDto, monthlyUtilityBill: number): Promise<TypicalUsage> {

@@ -69,8 +69,9 @@ export class QualificationService {
       eventHistories: [
         {
           issueDate: now,
-          by: `${qualificationDto.agentDetail.name} - (${qualificationDto.agentDetail.userId})`,
+          by: qualificationDto.agentDetail.name,
           detail: 'Request Initiated',
+          userId: qualificationDto.agentDetail.userId,
         },
       ],
       vendorId: VENDOR_ID.FNI,
@@ -144,6 +145,7 @@ export class QualificationService {
       issueDate: now,
       by: manualApprovalDto.agentFullName,
       detail: 'Credit Check Approved By Agent',
+      userId: manualApprovalDto.agentUserId,
     });
     qualificationCredit.approvalMode = APPROVAL_MODE.AGENT;
     qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.APPROVED;
@@ -183,8 +185,9 @@ export class QualificationService {
 
     qualificationCredit.eventHistories.push({
       issueDate: now,
-      by: `${req.agentDetail.name} - (${req.agentDetail.userId})`,
+      by: req.agentDetail.name,
       detail: 'Email Sent',
+      userId: req.agentDetail.userId,
     });
 
     qualificationCredit.customerNotifications.push({

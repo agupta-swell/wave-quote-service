@@ -13,14 +13,19 @@ export interface SystemAttribute extends Document {
   gsOpportunityId?: string;
 }
 
-export const SystemAttributeSchema = new Schema<SystemAttribute>({
-  _id: Schema.Types.Mixed,
-  pvKw: Number,
-  batteryKw: Number,
-  batteryKwh: Number,
-  opportunityId: String,
-  projectId: String,
-  gsOpportunityId: String,
-});
+export const SystemAttributeSchema = new Schema<SystemAttribute>(
+  {
+    _id: Schema.Types.Mixed,
+    pvKw: Number,
+    batteryKw: Number,
+    batteryKwh: Number,
+    opportunityId: String,
+    projectId: String,
+    gsOpportunityId: String,
+  },
+  {
+    versionKey: false,
+  },
+);
 
 MongooseNamingStrategy.ExcludeOne(SystemAttributeSchema);

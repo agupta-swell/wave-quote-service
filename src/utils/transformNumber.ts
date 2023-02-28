@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+/**
+ * @param value
+ * @param digits number of decimal number default 2 digits, ie: toFixed(digits)
+ */
 export const roundNumber = (value: number, digits = 2) => {
-  // digits: number of decimal number, ie: toFixed(digits)
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
 };

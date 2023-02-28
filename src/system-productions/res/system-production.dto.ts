@@ -1,5 +1,5 @@
 import { ExposeMongoId, ExposeProp } from '../../shared/decorators';
-import { IEnergyProfileProduction } from '../system-production.schema';
+import { IDerateSnapshot, IEnergyProfileProduction } from '../system-production.schema';
 
 export class PvWattProductionDto implements IEnergyProfileProduction {
   @ExposeProp()
@@ -39,4 +39,7 @@ export class SystemProductionDto {
 
   @ExposeProp()
   pvWattProduction: PvWattProductionDto;
+
+  @ExposeProp()
+  derateSnapshot: IDerateSnapshot;
 }

@@ -256,6 +256,7 @@ export class UtilityService implements OnModuleInit {
       masterTariffId,
       CALCULATION_MODE.TYPICAL,
       new Date().getFullYear(),
+      typicalBaseLine.zipCode,
     );
 
     const costData = {
@@ -292,6 +293,7 @@ export class UtilityService implements OnModuleInit {
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       new Date().getFullYear(),
+      data.utilityData.typicalBaselineUsage.zipCode,
     );
 
     const costData = {
@@ -1077,8 +1079,8 @@ export class UtilityService implements OnModuleInit {
     hourlyDataForTheYear: number[],
     masterTariffId: string,
     mode: CALCULATION_MODE,
+    zipCode: number,
     year?: number,
-    zipCode?: number,
   ): Promise<IUtilityCostData> {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -1102,6 +1104,7 @@ export class UtilityService implements OnModuleInit {
       groupBy: EGenabilityGroupBy.MONTH,
       detailLevel: EGenabilityDetailLevel.CHARGE_TYPE,
       billingPeriod: false,
+      zipCode: zipCode.toString(),
     });
 
     const monthlyMinimumCosts: ICostDetailData[] = [];
@@ -1241,36 +1244,45 @@ export class UtilityService implements OnModuleInit {
     });
   }
 
+  /**
+   * Calculate 8760 by scale it on Actual Monthly Usage, if has param usageProfile it will scale by seasons
+   *
+   * if hourlyUsage's type is UsageValue[] it will return IUsageValue[] else return number[]
+   */
   calculate8760OnActualMonthlyUsage(
     hourlyUsage: (UsageValue | number)[], // 8760
     actualMonthlyUsage: (UsageValue | number)[], // MonthlyUsage
     usageProfile?: IUsageProfile,
   ): (IUsageValue | number)[] {
-    let typical8760Usage = hourlyUsage;
-    let actualMonthlyUsageTemp = actualMonthlyUsage;
+    let typical8760Usage: number[];
+    let actualMonthlyUsageTemp: number[];
 
     const typicalUsageByMonth = Array.from({ length: 12 }, () => 0);
 
     if (typeof hourlyUsage[0] !== 'number') {
       typical8760Usage = (hourlyUsage as UsageValue[]).map(e => e.v);
       actualMonthlyUsageTemp = (actualMonthlyUsage as UsageValue[]).map(e => e.v);
+    } else {
+      typical8760Usage = hourlyUsage as number[];
+      actualMonthlyUsageTemp = actualMonthlyUsage as number[];
     }
 
-    (typical8760Usage as number[]).forEach((v, hourIndex) => {
+    typical8760Usage.forEach((v, hourIndex) => {
       const dayOfYear = dayjs().dayOfYear(Math.ceil((hourIndex + 1) / 24));
       const monthIndex = dayOfYear.get('month');
       typicalUsageByMonth[monthIndex] = new BigNumber(typicalUsageByMonth[monthIndex]).plus(v).toNumber();
     });
 
-    const scalingFactorByMonth = (typicalUsageByMonth as number[]).map(
-      (monthlyUsage, index) =>
-        monthlyUsage && new BigNumber((actualMonthlyUsageTemp as number[])[index]).dividedBy(monthlyUsage).toNumber(),
+    const scalingFactorByMonth = typicalUsageByMonth.map((monthlyUsage, index) =>
+      monthlyUsage
+        ? new BigNumber(actualMonthlyUsageTemp[index]).dividedBy(monthlyUsage).toNumber()
+        : actualMonthlyUsageTemp[index],
     );
 
     const hourlyAllocationByMonth = Array.from({ length: 12 }, () => Array.from({ length: 24 }, () => 0));
     const targetMonthlyKwh = Array.from({ length: 12 }, () => 0);
 
-    const scaledArray = (typical8760Usage as number[]).map((v, hourIndex) => {
+    const scaledArray = typical8760Usage.map((v, hourIndex) => {
       const dayOfYear = dayjs().dayOfYear(Math.floor(hourIndex / 24) + 1);
       const monthIndex = dayOfYear.get('month');
 
@@ -1292,7 +1304,7 @@ export class UtilityService implements OnModuleInit {
         return scaledArray.map((e, i) => ({
           i,
           v: e,
-        }));
+        })) as IUsageValue[];
       }
       return scaledArray;
     }
@@ -1334,7 +1346,7 @@ export class UtilityService implements OnModuleInit {
       return scaledArray.map((e, i) => ({
         i,
         v: e,
-      }));
+      })) as IUsageValue[];
     }
     return shapedArray;
   }

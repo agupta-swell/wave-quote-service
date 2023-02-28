@@ -7,17 +7,22 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import BigNumber from 'bignumber.js';
 import { isMongoId } from 'class-validator';
 import { flatten, pickBy, range, sum, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
 import { ContractService } from 'src/contracts/contract.service';
+import { DEFAULT_ENVIRONMENTAL_LOSSES_DATA } from 'src/e-commerces/constants';
 import { ECommerceService } from 'src/e-commerces/e-commerce.service';
+import { REGION_PURPOSE } from 'src/e-commerces/schemas';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
+import { ExternalService } from 'src/external-services/external-service.service';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { DEFAULT_PRODUCTION_DERATES, PRODUCTION_DERATES_NAME_MAPPER } from 'src/production-derates-v2/constants';
 import { ProductionDeratesService } from 'src/production-derates-v2/production-derates-v2.service';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { IProductDocument, IUnknownProduct } from 'src/products-v2/interfaces';
@@ -31,14 +36,13 @@ import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.s
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { IDerateSnapshot } from 'src/system-productions/system-production.schema';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { GetPinballSimulatorDto } from 'src/utilities/req';
 import { IUtilityCostData, UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
-import { calculateSystemDesignRadius } from 'src/utils/calculateSystemDesignRadius';
 import { buildMonthlyAndAnnualDataFrom8760, buildMonthlyHourFrom8760 } from 'src/utils/transformData';
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
-import { roundNumber } from 'src/utils/transformNumber';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
@@ -104,6 +108,7 @@ export class SystemDesignService {
     private readonly sunroofHourlyProductionCalculation: SunroofHourlyProductionCalculation,
     private readonly productionDeratesService: ProductionDeratesService,
     private readonly mountTypesService: MountTypesService,
+    private readonly externalService: ExternalService,
   ) {}
 
   async create(systemDesignDto: CreateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
@@ -397,8 +402,11 @@ export class SystemDesignService {
 
     const newSystemDesign = (await createdSystemDesign.save()).toJSON();
 
+    const derateSnapshot = await this.updateDerateSnapshot(newSystemDesign);
+
     // expose systemProduction's props
     if (newSystemProduction.data) {
+      newSystemProduction.data.derateSnapshot = derateSnapshot;
       newSystemDesign.systemProductionData = newSystemProduction.data;
     }
 
@@ -664,15 +672,43 @@ export class SystemDesignService {
     return pickBy(systemDesign, item => typeof item !== 'undefined');
   }
 
+  async updateDerateSnapshot(systemDesign: LeanDocument<SystemDesign> | SystemDesignModel): Promise<IDerateSnapshot> {
+    const { systemProductionId, opportunityId } = systemDesign;
+
+    const [productionDerates, soilingLosses, snowLosses] = await Promise.all([
+      this.productionDeratesService.getAllProductionDerates(),
+      this.eCommerceService.getEnvironmentalLosses(opportunityId, REGION_PURPOSE.SOILING),
+      this.eCommerceService.getEnvironmentalLosses(opportunityId, REGION_PURPOSE.SNOW),
+    ]);
+
+    const productionLosses = { ...DEFAULT_PRODUCTION_DERATES };
+
+    productionDerates.data?.forEach(({ name, amount }) => {
+      const existedProductionDerate = PRODUCTION_DERATES_NAME_MAPPER[name];
+
+      if (!existedProductionDerate) {
+        return;
+      }
+
+      productionLosses[existedProductionDerate] = amount;
+    });
+
+    const updatedSystemProduction = await this.systemProductionService.update(systemProductionId, {
+      derateSnapshot: {
+        ...productionLosses,
+        soilingLosses,
+        snowLosses,
+      },
+    });
+
+    return updatedSystemProduction.data?.derateSnapshot as IDerateSnapshot;
+  }
+
   async update(id: ObjectId, systemDesignDto: UpdateSystemDesignDto): Promise<OperationResult<SystemDesignDto>> {
     if (
-      (systemDesignDto.roofTopDesignData &&
-        !systemDesignDto.roofTopDesignData.panelArray.length &&
-        !systemDesignDto.roofTopDesignData.storage.length &&
-        !systemDesignDto.roofTopDesignData.inverters.length) ||
-      (systemDesignDto.capacityProductionDesignData &&
-        !systemDesignDto.capacityProductionDesignData.panelArray.length &&
-        !systemDesignDto.capacityProductionDesignData.inverters.length)
+      systemDesignDto.capacityProductionDesignData &&
+      !systemDesignDto.capacityProductionDesignData.panelArray.length &&
+      !systemDesignDto.capacityProductionDesignData.inverters.length
     ) {
       throw ApplicationException.ValidationFailed('Please add at least 1 product');
     }
@@ -762,6 +798,14 @@ export class SystemDesignService {
         ),
       );
     }
+
+    handlers.push(
+      this.systemProductionService.update(systemDesign.systemProductionId, {
+        ...newSystemProduction,
+      }),
+    );
+
+    handlers.push(this.updateDerateSnapshot(systemDesign));
 
     await Promise.all(handlers);
 
@@ -1364,17 +1408,17 @@ export class SystemDesignService {
       ),
     );
 
-    const [monthlyCost] = await Promise.all([
-      this.utilityService.calculateCost(
+    const [annualPostInstallBill] = await Promise.all([
+      this.externalService.calculateNetNegativeAnualUsage(
         simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
         utility.costData.postInstallMasterTariffId,
-        CALCULATION_MODE.ACTUAL,
+        utility.utilityData.typicalBaselineUsage.zipCode,
       ),
       ...savePinballToS3Requests,
     ]);
 
     this.systemDesignModel
-      .updateOne({ _id: systemDesign.id }, { costPostInstallation: monthlyCost as IUtilityCostData })
+      .updateOne({ _id: systemDesign.id }, { costPostInstallation: annualPostInstallBill })
       .catch(error => console.error(error));
   }
 
@@ -1454,36 +1498,30 @@ export class SystemDesignService {
     return OperationResult.ok(strictPlainToClass(CsvExportResDto, { csv }));
   }
 
-  private async applyProductionSoilingAndDegradation(
-    raw8760ProductionData: number[],
-    systemDesign: LeanDocument<SystemDesign>,
-  ): Promise<number[]> {
-    const {
-      roofTopDesignData: { panelArray },
-    } = systemDesign;
+  private applyDerate(data: number[], derateValue: number): number[] {
+    if (derateValue === 1) return data;
 
-    const [firstPanelArray] = panelArray;
+    const result = data.map(v => new BigNumber(v).multipliedBy(derateValue).toNumber());
+    return result;
+  }
 
-    const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
-
-    const [soilingLosses, snowLosses] = await Promise.all([
-      this.eCommerceService.getSoilingLossesByOpportunityId(systemDesign.opportunityId),
-      this.eCommerceService.getSnowLossesByOpportunityId(systemDesign.opportunityId),
-    ]);
-
-    const multipliedByDegrade = (v, monthIndex) =>
-      roundNumber(
-        v * (1 - firstYearDegradation) * (1 - soilingLosses[monthIndex] / 100) * (1 - snowLosses[monthIndex] / 100),
-      );
-
+  private applyDerateByMonth(raw8760ProductionData: number[], monthlyDerate: number[]): number[] {
     const raw8760MonthlyHour = buildMonthlyHourFrom8760(raw8760ProductionData)
-      .map((month, monthIndex) => month.map(v => multipliedByDegrade(v, monthIndex)))
+      .map((month, monthIndex) => {
+        const derateValue = 1 - monthlyDerate[monthIndex] / 100;
+        if (derateValue === 1) return month;
+
+        return this.applyDerate(month, derateValue);
+      })
       .flat();
 
     return raw8760MonthlyHour;
   }
 
-  private applyInverterClipping(productionData8760: number[], systemDesign: LeanDocument<SystemDesign>): number[] {
+  private applyInverterClippingAndEfficiency(
+    productionData8760: number[],
+    systemDesign: LeanDocument<SystemDesign>,
+  ): number[] {
     const {
       roofTopDesignData: { inverters },
     } = systemDesign;
@@ -1495,25 +1533,49 @@ export class SystemDesignService {
 
       const inverterEfficiency = (inverter.inverterModelDataSnapshot.inverterEfficiency ?? 100) / 100;
 
-      return this.sunroofHourlyProductionCalculation
-        .clipArrayByInverterPower(productionData8760, maxInverterPower)
-        .map(v => roundNumber(v * inverterEfficiency, 2));
+      const raw8760Hour = this.sunroofHourlyProductionCalculation.clipArrayByInverterPower(
+        productionData8760,
+        maxInverterPower,
+      );
+
+      return this.applyDerate(raw8760Hour, inverterEfficiency);
     }
     return productionData8760;
   }
 
-  private async applyOtherLosses(productionData8760: number[]) {
-    const productionDerates = await this.productionDeratesService.getAllProductionDerates();
+  private applyOtherLosses(productionData8760: number[], derateSnapshot: IDerateSnapshot): number[] {
+    const { wiringLosses, connectionLosses, allOtherLosses } = derateSnapshot || {};
 
     let ratio = 1;
 
-    productionDerates.data?.forEach(item => {
-      ratio *= 1 - (item.amount || 0) / 100;
+    const productionDerates = {
+      wiringLosses,
+      connectionLosses,
+      allOtherLosses,
+    };
+
+    Object.values(productionDerates).forEach(item => {
+      ratio *= 1 - (item || 0) / 100;
     });
 
-    return productionData8760.map(v => roundNumber(v * ratio, 2));
+    return this.applyDerate(productionData8760, ratio);
   }
 
+  /**
+   * Calculate System Production by array and apply:
+   * 1 Scaled on Actual Monthly Usage,
+   * 2 Mount Type Derate,
+   * 3 First Year Degradation,
+   * 4 Soiling Derate,
+   * 5 Snow Derate,
+   * 6 Inverter Clipping,
+   * 7 Other Losses
+   *
+   * Then upload all of this to S3
+   *
+   * @param systemDesign
+   * @returns Cumulative by hourly generation of all arrays - number[8760]
+   */
   public async calculateSystemActualProduction(systemDesign: LeanDocument<SystemDesign>): Promise<number[]> {
     const [systemPVWattProduction, sunroofProduction, systemProduction, utilityAndUsage] = await Promise.all([
       this.systemProductService.calculateSystemProductionByHour(systemDesign),
@@ -1525,11 +1587,21 @@ export class SystemDesignService {
     if (!systemPVWattProduction.arrayHourly) throw new NotFoundException(`Hourly production not found`);
 
     // scale by sunroofProduction
-    const scaled8760ProductionByArray = systemPVWattProduction.arrayHourly.map((pvWattdata, index) =>
-      this.utilityService.calculate8760OnActualMonthlyUsage(
-        pvWattdata,
-        sunroofProduction.byArray[index].monthlyProduction,
-      ),
+    const scaled8760ProductionByArray = systemPVWattProduction.arrayHourly.map(
+      (pvWattData, index) =>
+        this.utilityService.calculate8760OnActualMonthlyUsage(
+          pvWattData,
+          sunroofProduction.byArray[index].monthlyProduction,
+        ) as number[],
+    );
+
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${
+        systemDesign.opportunityId
+      }/${systemDesign._id.toString()}/hourly-production/scaled-pvwatt-to-sunroof-production.json`,
+      JSON.stringify(scaled8760ProductionByArray),
+      'application/json',
     );
 
     // apply mount type derate
@@ -1538,31 +1610,97 @@ export class SystemDesignService {
       roofTopDesignData: { panelArray },
     } = systemDesign;
 
-    const appliedDerate8760ProductionByArray = scaled8760ProductionByArray?.map((productionData, index) => {
+    const appliedMountTypeDerate8760ProductionByArray = scaled8760ProductionByArray?.map((productionData, index) => {
       let mountTypeDeratePercentage = 0;
       const { mountTypeId } = panelArray[index];
       if (mountTypeId) {
         const mountType = allMountTypes.find(mountType => mountType._id.toString() === mountTypeId);
         mountTypeDeratePercentage = (mountType?.deratePercentage || 0) / 100;
       }
-      return productionData.map(v => +v * (1 - mountTypeDeratePercentage));
+      return this.applyDerate(productionData, 1 - mountTypeDeratePercentage);
     });
 
-    // apply Soiling And Degradation
-    const appliedSoilingAndDegradation8760ProductionByArray = await Promise.all(
-      appliedDerate8760ProductionByArray?.map(productionData =>
-        this.applyProductionSoilingAndDegradation(productionData, systemDesign),
-      ),
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/applied-mount-type-derate.json`,
+      JSON.stringify(appliedMountTypeDerate8760ProductionByArray),
+      'application/json',
     );
 
-    // apply applyInverterClipping
-    const appliedInverterClipping8760ProductionByArray = appliedSoilingAndDegradation8760ProductionByArray.map(
-      productionData => this.applyInverterClipping(productionData, systemDesign),
+    // apply First year Degradation
+    const [firstPanelArray] = panelArray;
+    const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
+
+    const appliedFirstYearDegradation8760ProductionByArray = appliedMountTypeDerate8760ProductionByArray?.map(
+      productionData => this.applyDerate(productionData, 1 - firstYearDegradation),
+    );
+
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${
+        systemDesign.opportunityId
+      }/${systemDesign._id.toString()}/hourly-production/applied-first-year-degradation.json`,
+      JSON.stringify(appliedFirstYearDegradation8760ProductionByArray),
+      'application/json',
+    );
+
+    // check derateSnapshot existed
+    const derateSnapshot = systemProduction?.derateSnapshot
+      ? systemProduction.derateSnapshot
+      : await this.updateDerateSnapshot(systemDesign);
+    const { soilingLosses, snowLosses } = derateSnapshot || {};
+
+    // apply Soiling derate
+    const soilingLossesAmounts = soilingLosses?.amounts || DEFAULT_ENVIRONMENTAL_LOSSES_DATA.amounts;
+
+    const appliedSoilingDerate8760ProductionByArray = appliedFirstYearDegradation8760ProductionByArray?.map(
+      productionData => this.applyDerateByMonth(productionData, soilingLossesAmounts),
+    );
+
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/applied-soiling-derate.json`,
+      JSON.stringify(appliedSoilingDerate8760ProductionByArray),
+      'application/json',
+    );
+
+    // apply Snow derate
+    const snowLossesAmounts = snowLosses?.amounts || DEFAULT_ENVIRONMENTAL_LOSSES_DATA.amounts;
+    const appliedSnowDerate8760ProductionByArray = appliedSoilingDerate8760ProductionByArray?.map(productionData =>
+      this.applyDerateByMonth(productionData, snowLossesAmounts),
+    );
+
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/applied-snow-derate.json`,
+      JSON.stringify(appliedSnowDerate8760ProductionByArray),
+      'application/json',
+    );
+
+    // apply Inverter Clipping
+    const appliedInverterClippingAndEfficiency8760ProductionByArray = appliedSnowDerate8760ProductionByArray.map(
+      productionData => this.applyInverterClippingAndEfficiency(productionData, systemDesign),
+    );
+
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${
+        systemDesign.opportunityId
+      }/${systemDesign._id.toString()}/hourly-production/applied-inverter-clipping-and-efficiency.json`,
+      JSON.stringify(appliedInverterClippingAndEfficiency8760ProductionByArray),
+      'application/json',
     );
 
     // apply OtherLosses
-    const appliedOtherLosses8760ProductionByArray = await Promise.all(
-      appliedInverterClipping8760ProductionByArray.map(productionData => this.applyOtherLosses(productionData)),
+    const appliedOtherLosses8760ProductionByArray = appliedInverterClippingAndEfficiency8760ProductionByArray.map(
+      productionData => this.applyOtherLosses(productionData, derateSnapshot),
+    );
+
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/applied-apply-other-losses.json`,
+      JSON.stringify(appliedOtherLosses8760ProductionByArray),
+      'application/json',
     );
 
     // OUTPUT: array of array 12 number
@@ -1593,7 +1731,8 @@ export class SystemDesignService {
       await systemProduction.save();
     }
 
-    // TODO: handle leep year later
+    // TODO: handle leap year later
+    // cumulative by hourly generation of all arrays
     const systemActualProduction8760 = range(8760).map(hourIdx =>
       sum(appliedOtherLosses8760ProductionByArray.map(x => x[hourIdx])),
     );
@@ -1604,7 +1743,7 @@ export class SystemDesignService {
         systemDesign.opportunityId
       }/${systemDesign._id.toString()}/hourly-production/system-actual-production-8760.json`,
       JSON.stringify(systemActualProduction8760),
-      'application/json; charset=utf-8',
+      'application/json',
     );
 
     return systemActualProduction8760;
@@ -1701,7 +1840,7 @@ export class SystemDesignService {
       this.PINBALL_SIMULATION_BUCKET,
       `${systemDesign.id}/inputs`,
       JSON.stringify(pinballInputData),
-      'application/json; charset=utf-8',
+      'application/json',
     );
 
     return pinballInputData;

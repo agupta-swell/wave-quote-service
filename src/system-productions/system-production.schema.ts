@@ -8,6 +8,19 @@ export interface IEnergyProfileProduction {
   monthlyAverage: number[][];
 }
 
+export interface IEnvironmentalLosses {
+  regionDescription: string;
+  amounts: number[];
+}
+
+export interface IDerateSnapshot {
+  wiringLosses: number;
+  connectionLosses: number;
+  allOtherLosses: number;
+  soilingLosses: IEnvironmentalLosses;
+  snowLosses: IEnvironmentalLosses;
+}
+
 export interface ISystemProduction extends Document {
   capacityKW: number;
   generationKWh: number;
@@ -18,7 +31,31 @@ export interface ISystemProduction extends Document {
   arrayGenerationKWh: number[];
   pvWattProduction: IEnergyProfileProduction;
   createdAt: Date;
+  derateSnapshot: IDerateSnapshot;
 }
+
+export const EnvironmentalLossesSchema = new Schema<IEnvironmentalLosses>(
+  {
+    region_description: String,
+    amounts: [Number],
+  },
+  {
+    _id: false,
+  },
+);
+
+export const DerateSnapshotSchema = new Schema<IDerateSnapshot>(
+  {
+    wiring_losses: Number,
+    connection_losses: Number,
+    all_other_losses: Number,
+    soiling_losses: EnvironmentalLossesSchema,
+    snow_losses: EnvironmentalLossesSchema,
+  },
+  {
+    _id: false,
+  },
+);
 
 export const SystemProductionSchema = new Schema<ISystemProduction>({
   capacityKW: Number,
@@ -36,6 +73,10 @@ export const SystemProductionSchema = new Schema<ISystemProduction>({
     { _id: false },
   ),
   created_at: { type: Date, default: Date.now },
+  derate_snapshot: {
+    type: DerateSnapshotSchema,
+    required: false,
+  },
 });
 
 export class SystemProductionModel {

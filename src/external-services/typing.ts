@@ -73,4 +73,5 @@ export interface IGenabilityCalculateUtilityCost {
   groupBy?: EGenabilityGroupBy;
   detailLevel?: EGenabilityDetailLevel;
   billingPeriod?: boolean;
+  zipCode: string;
 }

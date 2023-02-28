@@ -37,12 +37,12 @@ export class ProductService {
       condition.manufacturerId = { $in: manufacturers.map(Types.ObjectId) };
     }
 
-    const [panels, total] = await Promise.all([
+    const [products, total] = await Promise.all([
       this.productModel.find(condition).limit(limit).skip(skip).lean(),
       this.productModel.countDocuments(condition),
     ]);
 
-    return OperationResult.ok(new Pagination({ data: strictPlainToClass(ProductResDto, panels), total }));
+    return OperationResult.ok(new Pagination({ data: strictPlainToClass(ProductResDto, products), total }));
   }
 
   async saveInsertionRule(id: ObjectId, req: SaveInsertionRuleReq): Promise<OperationResult<ProductResDto>> {

@@ -20,6 +20,7 @@ export interface IEventHistory {
   issueDate: Date;
   by: string;
   detail: string;
+  userId?: string;
 }
 
 export const EventHistorySchema = new Schema<Document<IEventHistory>>(
@@ -27,6 +28,10 @@ export const EventHistorySchema = new Schema<Document<IEventHistory>>(
     issue_date: Date,
     by: String,
     detail: String,
+    user_id: {
+      type: String,
+      required: false,
+    },
   },
   { _id: false },
 );

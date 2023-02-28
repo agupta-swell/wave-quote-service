@@ -61,8 +61,8 @@ export class CreateQuoteDto {
 
   @ApiProperty()
   @IsOptional()
-  @IsString()
-  selectedQuoteMode: string;
+  @IsEnum(QUOTE_MODE_TYPE)
+  selectedQuoteMode: QUOTE_MODE_TYPE;
 
   @ApiProperty({ type: QuotePricePerWatt })
   @ValidateNested()

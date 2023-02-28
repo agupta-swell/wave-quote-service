@@ -118,6 +118,10 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('System Design');
     }
 
+    if (!systemDesign.roofTopDesignData.storage.length && !systemDesign.roofTopDesignData.panelArray.length) {
+      throw ApplicationException.UnprocessableEntity('Can not create quote from empty system design');
+    }
+
     if (systemDesign.isSolar && !systemDesign.roofTopDesignData.inverters.length) {
       throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
     }
@@ -134,7 +138,6 @@ export class QuoteService {
     ) {
       throw ApplicationException.NoQuoteConfigAvailable();
     }
-
     const utilityProgram = data.utilityProgramId
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
       : null;
@@ -163,16 +166,24 @@ export class QuoteService {
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
 
+    if (data.selectedQuoteMode === QUOTE_MODE_TYPE.PRICE_PER_WATT) {
+      quoteCostBuildup.projectGrandTotal.netCost = data.quotePricePerWatt.grossPrice;
+      quoteCostBuildup.projectGrossTotal.netCost = data.quotePricePerWatt.grossPrice;
+      quoteCostBuildup.cashDiscount.total = 0;
+    } else if (data.selectedQuoteMode === QUOTE_MODE_TYPE.PRICE_OVERRIDE) {
+      quoteCostBuildup.projectGrandTotal.netCost = data.quotePriceOverride.grossPrice;
+      quoteCostBuildup.projectGrossTotal.netCost = data.quotePriceOverride.grossPrice;
+      quoteCostBuildup.cashDiscount.total = 0;
+    }
+
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    let postInstallAnnualCost = currentAnnualCost;
-
-    if (systemDesign.costPostInstallation) {
-      postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
-    }
+    const postInstallAnnualCost = systemDesign.costPostInstallation
+      ? systemDesign.costPostInstallation
+      : currentAnnualCost;
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
@@ -232,7 +243,7 @@ export class QuoteService {
       quoteName: data.quoteName,
       allowedQuoteModes: data.allowedQuoteModes || [],
       selectedQuoteMode: data.selectedQuoteMode,
-      quotePricePerWatt: data.quotePricePerWatt || { pricePerWatt: -1, grossPrice: -1 },
+      quotePricePerWatt: data.quotePricePerWatt,
       quotePriceOverride: data.quotePriceOverride,
       notes: [],
     };
@@ -244,15 +255,11 @@ export class QuoteService {
 
       if (quoteConfigData.enablePricePerWatt) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_PER_WATT);
-        detailedQuote.quotePricePerWatt.pricePerWatt = 0;
       }
 
       if (quoteConfigData.enablePriceOverride) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_OVERRIDE);
       }
-
-      detailedQuote.selectedQuoteMode =
-        detailedQuote.allowedQuoteModes.length === 1 ? detailedQuote.allowedQuoteModes[0] : '';
     }
 
     const model = new QuoteModel(data, detailedQuote);
@@ -440,11 +447,10 @@ export class QuoteService {
     }
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    let postInstallAnnualCost = currentAnnualCost;
 
-    if (foundSystemDesign.costPostInstallation) {
-      postInstallAnnualCost = sumBy(foundSystemDesign.costPostInstallation.cost, item => item.v);
-    }
+    const postInstallAnnualCost = foundSystemDesign.costPostInstallation
+      ? foundSystemDesign.costPostInstallation
+      : currentAnnualCost;
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
@@ -758,11 +764,10 @@ export class QuoteService {
     const avgMonthlySavings = 0;
 
     const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
-    let postInstallAnnualCost = currentAnnualCost;
 
-    if (systemDesign.costPostInstallation) {
-      postInstallAnnualCost = sumBy(systemDesign.costPostInstallation.cost, item => item.v);
-    }
+    const postInstallAnnualCost = systemDesign.costPostInstallation
+      ? systemDesign.costPostInstallation
+      : currentAnnualCost;
 
     const currentAverageMonthlyBill = roundNumber(currentAnnualCost / 12, 2) || 0;
     const currentPricePerKWh =
@@ -1147,14 +1152,14 @@ export class QuoteService {
 
   async calculateQuoteDetail(data: CalculateQuoteDetailDto): Promise<OperationResult<QuoteDto>> {
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
-    const cost = systemDesign?.costPostInstallation?.cost || [];
+    const cost = systemDesign?.costPostInstallation || 0;
 
     const oppData = await this.opportunityService.getOppAccountData(data.opportunityId);
     const manufacturer = await this.manufacturerService.getOneById(
       data.quoteCostBuildup.storageQuoteDetails[0].storageModelDataSnapshot.manufacturerId ?? '',
     );
     // I think this below variable show average money that customer have to pay monthly
-    const monthlyUtilityPayment = cost.reduce((acc, item) => (acc += item.v), 0) / cost.length;
+    const monthlyUtilityPayment = cost / 12;
 
     let res: CalculateQuoteDetailDto = {} as any;
     switch (data.quoteFinanceProduct.financeProduct.productType) {
