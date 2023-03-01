@@ -17,7 +17,12 @@ import {
   mapToResult,
 } from './operators';
 import { ValidateAndSnapshotUsageProfilePipe } from './pipes';
-import { CalculateActualUsageCostDto, CreateUtilityReqDto, GetActualUsageDto, GetPinballSimulatorDto } from './req';
+import {
+  CalculateActualUsageCostDto,
+  CreateUtilityReqDto,
+  GetActualUsageDto,
+  GetPinballSimulatorAndCostPostInstallationDto,
+} from './req';
 import {
   ComputedUsageDto,
   CostDataDto,
@@ -27,7 +32,7 @@ import {
   UtilityDataDto,
   UtilityDetailsDto,
 } from './res';
-import { PinballSimulatorDto } from './res/pinball-simulator.dto';
+import { PinballSimulatorDto, PinballSimulatorAndCostPostInstallationDto } from './res/pinball-simulator.dto';
 import { IGetTypicalUsageKwh } from './sub-services';
 import { UtilityService } from './utility.service';
 
@@ -147,11 +152,13 @@ export class UtilityController {
     return this.utilityService.getTypicalUsage$(opportunityId);
   }
 
-  @Post('/pinball-simulator')
+  @Post('/pinball-simulator-and-cost-post-installation')
   @ApiOperation({ summary: 'Post-Install Battery Level And Net Load (PINBALL) Simulator' })
   @ApiOkResponse({ type: PinballSimulatorDto })
-  async pinballSimulator(@Body() data: GetPinballSimulatorDto): Promise<ServiceResponse<PinballSimulatorDto>> {
-    const res = await this.utilityService.pinballSimulator(data);
+  async pinballSimulatorAndCostPostInstallation(
+    @Body() data: GetPinballSimulatorAndCostPostInstallationDto,
+  ): Promise<ServiceResponse<PinballSimulatorAndCostPostInstallationDto>> {
+    const res = await this.utilityService.pinballSimulatorAndCostPostInstallation(data);
     return ServiceResponse.fromResult(res);
   }
 

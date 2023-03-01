@@ -36,6 +36,7 @@ import {
   CreateUtilityReqDto,
   GetActualUsageDto,
   GetPinballSimulatorDto,
+  GetPinballSimulatorAndCostPostInstallationDto,
 } from './req';
 import { UsageValue } from './req/sub-dto';
 import {
@@ -46,7 +47,7 @@ import {
   UtilityDataDto,
   UtilityDetailsDto,
 } from './res';
-import { PinballSimulatorDto } from './res/pinball-simulator.dto';
+import { PinballSimulatorDto, PinballSimulatorAndCostPostInstallationDto } from './res/pinball-simulator.dto';
 import { UTILITIES, Utilities } from './schemas';
 import { GenabilityLseData, GENABILITY_LSE_DATA } from './schemas/genability-lse-caching.schema';
 import { GenabilityTeriffData, GENABILITY_TARIFF_DATA } from './schemas/genability-tariff-caching.schema';
@@ -952,9 +953,18 @@ export class UtilityService implements OnModuleInit {
     };
   }
 
-  async pinballSimulator(data: GetPinballSimulatorDto): Promise<OperationResult<PinballSimulatorDto>> {
-    const result = await this.simulatePinball(data);
-    return OperationResult.ok(strictPlainToClass(PinballSimulatorDto, result));
+  async pinballSimulatorAndCostPostInstallation(
+    data: GetPinballSimulatorAndCostPostInstallationDto,
+  ): Promise<OperationResult<PinballSimulatorAndCostPostInstallationDto>> {
+    const pinballSimulatorOutput = await this.simulatePinball(data);
+    const costPostInstallation = await this.externalService.calculateNetNegativeAnualUsage(
+      pinballSimulatorOutput.postInstallSiteDemandSeries.map(i => i / 1000),
+      data.postInstallMasterTariffId,
+      data.zipCode,
+    );
+    const result = { ...pinballSimulatorOutput, costPostInstallation };
+
+    return OperationResult.ok(strictPlainToClass(PinballSimulatorAndCostPostInstallationDto, result));
   }
 
   async getExistingSystemProductionByOpportunityId(opportunityId: string, shouldGetHourlyProduction = false) {
