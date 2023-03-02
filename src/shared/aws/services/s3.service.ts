@@ -368,15 +368,17 @@ export class S3Service {
   public getPresignedPostUrl(bucket: string, key: string, options): Promise<AWS.S3.PresignedPost> {
     const { Expires, Conditions, acl } = options;
 
-    const params = {
+    const params: any = {
       Expires: Expires || PRESIGNED_POST_URL_EXPIRES,
       Bucket: bucket,
       Conditions,
       Fields: {
         key,
-        acl,
       },
     };
+
+    // add optional acl
+    if (acl) params.Fields.acl = acl;
 
     return new Promise((resolve, reject) =>
       this.S3.createPresignedPost(params, (err, data) => {
