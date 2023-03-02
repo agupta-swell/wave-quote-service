@@ -14,8 +14,8 @@ import {
 import { CurrencyFormatter, NumberFormatter } from 'src/utils/numberFormatter';
 import { roundNumber } from 'src/utils/transformNumber';
 
-@DocusignTemplate('demo', 'b0eb7c6c-7c1a-4060-a4bd-375274be977d')
-@DocusignTemplate('live', 'eb58fac9-e680-4d68-bdd6-0bda547ea500')
+@DocusignTemplate('demo', '98e79e67-2a2f-40d4-9e8e-4463afa6c556')
+@DocusignTemplate('live', '508faaf8-a840-48b9-8086-6de9f35e60ac')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
 export class EnergyHomeImprovementAgreementHicTemplate {
