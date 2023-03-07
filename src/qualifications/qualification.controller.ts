@@ -13,9 +13,12 @@ import {
   GenerateTokenReqDto,
   GetApplicationDetailReqDto,
   SendMailReqDto,
+  SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
 } from './req';
 import {
+  ApplicantConsentDto,
+  ApplicantConsentRes,
   GenerateTokenRes,
   GetApplicationDetailDto,
   GetApplicationDetailRes,
@@ -44,6 +47,20 @@ export class QualificationController {
     @Body() qualificationDto: CreateQualificationReqDto,
   ): Promise<ServiceResponse<QualificationDetailDto>> {
     const res = await this.qualificationService.createQualification(qualificationDto);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put(':qualificationId/applicant-consent')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiParam({ name: 'qualificationId', type: String })
+  @ApiOperation({ summary: 'Set applicant consent' })
+  @ApiOkResponse({ type: ApplicantConsentRes})
+  async applicationConsent(
+    @Param('qualificationId', ParseObjectIdPipe) id: ObjectId,
+    @Body() applicantConsentDto: SetApplicantConsentReqDto,
+  ): Promise<ServiceResponse<ApplicantConsentDto>> {
+    const res = await this.qualificationService.setApplicantConsent(id, applicantConsentDto);
     return ServiceResponse.fromResult(res);
   }
 
