@@ -12,7 +12,7 @@ export type SoftPartial<T> = {
  */
 export function strictPlainToClass<T>(
   cls: ClassConstructor<T>,
-  plain: (SoftPartial<T> & Record<PropertyKey, unknown> & {}) | null,
+  plain: (SoftPartial<T> & {}) | (SoftPartial<T> & Record<PropertyKey, unknown> & {}) | null,
   options?: ClassTransformOptions,
 ): T;
 /**
@@ -30,5 +30,5 @@ export function strictPlainToClass(cls: any, plain: any, options: any) {
   }
 
   options.excludeExtraneousValues = true;
-  return plainToClass(cls, plainToClass, options);
+  return plainToClass(cls, plain, options);
 }

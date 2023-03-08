@@ -5,9 +5,9 @@ import { Observable } from 'rxjs';
 import { ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { ValidateAndSnapshotElectricVehiclesPipe } from 'src/electric-vehicles/pipes';
+import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
-import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PreAuthenticate } from '../app/securities';
 import { TransformTypicalUsage } from './interceptors';
 import {
@@ -149,7 +149,7 @@ export class UtilityController {
 
   @Post('/pinball-simulator')
   @ApiOperation({ summary: 'Post-Install Battery Level And Net Load (PINBALL) Simulator' })
-  @ApiOkResponse({ type: GetDataSeriesResDto })
+  @ApiOkResponse({ type: PinballSimulatorDto })
   async pinballSimulator(@Body() data: GetPinballSimulatorDto): Promise<ServiceResponse<PinballSimulatorDto>> {
     const res = await this.utilityService.pinballSimulator(data);
     return ServiceResponse.fromResult(res);

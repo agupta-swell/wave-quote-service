@@ -300,12 +300,17 @@ export class DocusignApiService<Context> implements OnModuleInit {
       // eslint-disable-next-line no-await-in-loop
       const docusignTabs = await this.getDocumentTabs(envelopeId, `${docId}`);
 
-      const foundTemplate = docusignMetaStorage.find(e => e.id === templateId);
+      const foundTemplate = docusignMetaStorage.find(e => e.ids.includes(templateId));
       if (!foundTemplate) {
         throw new DocusignException(undefined, `No template found with id ${templateIds[idx]}`);
       }
 
-      const prefillTabs = foundTemplate.toPrefillTabs(context.genericObject, this._defaultContractor, docusignTabs);
+      const prefillTabs = foundTemplate.toPrefillTabs(
+        context.genericObject,
+        this._defaultContractor,
+        docusignTabs,
+        templateId,
+      );
 
       // eslint-disable-next-line no-continue
       if (!prefillTabs || !prefillTabs.prefillTabs.textTabs.length) continue;
@@ -321,7 +326,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
     if (textTabs) return textTabs;
 
-    const foundTemplate = docusignMetaStorage.find(e => e.id === templateId);
+    const foundTemplate = docusignMetaStorage.find(e => e.ids.includes(templateId));
 
     if (!foundTemplate) {
       throw new DocusignException(undefined, `No template found with id ${templateId}`);
@@ -335,7 +340,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
 
     try {
-      const tabs = foundTemplate.toTextTabs(ctx.genericObject, this._defaultContractor);
+      const tabs = foundTemplate.toTextTabs(ctx.genericObject, this._defaultContractor, templateId);
 
       ctx.compiledTemplates[templateId] = {
         textTabs: tabs,
@@ -501,7 +506,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
      */
     for (let i = 0; i < templateIds.length; i++) {
       const templateId = templateIds[i];
-      const template = docusignMetaStorage.find(e => e.id === templateId);
+      const template = docusignMetaStorage.find(e => e.ids.includes(templateId));
 
       if (!template) {
         // eslint-disable-next-line no-continue
@@ -523,7 +528,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     ctx.totalPage = templatesWithPageNumber.reduce((acc, cur) => acc + cur.totalPage, 0);
 
     for (let i = 0; i < templatesWithPageNumber.length; i++) {
-      const docId = ctx.serverTemplateIds.findIndex(e => e === templatesWithPageNumber[i].id) + 1;
+      const docId = ctx.serverTemplateIds.findIndex(e => templatesWithPageNumber[i].ids.includes(e)) + 1;
 
       const template = templatesWithPageNumber[i];
       const pageNumberTabs = template.toPageNumberTabs(ctx, `${docId}`, this.pageNumberFormatter);

@@ -13,18 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ORIENTATION } from '../../constants';
-
-class LatLng {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  lat: number;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsNumber()
-  lng: number;
-}
+import { LatLngDto } from './lat-lng.dto';
 
 export class SolarPanelArrayDto1 {
   @ApiProperty()
@@ -36,11 +25,11 @@ export class SolarPanelArrayDto1 {
   @IsNotEmpty()
   panelOrientation: ORIENTATION;
 
-  @ApiProperty({ isArray: true, type: LatLng })
+  @ApiProperty({ isArray: true, type: LatLngDto })
   @IsNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => LatLng)
-  boundPolygon: LatLng[];
+  @Type(() => LatLngDto)
+  boundPolygon: LatLngDto[];
 
   @ApiProperty({
     type: 'array',
@@ -57,16 +46,16 @@ export class SolarPanelArrayDto1 {
   })
   @IsNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => LatLng)
-  panels: LatLng[][];
+  @Type(() => LatLngDto)
+  panels: LatLngDto[][];
 
   @ApiPropertyOptional()
   setbacks: Map<string, number>;
 
-  @ApiPropertyOptional({ isArray: true, type: LatLng })
+  @ApiPropertyOptional({ isArray: true, type: LatLngDto })
   @ValidateNested({ each: true })
-  @Type(() => LatLng)
-  setbacksPolygon: LatLng[];
+  @Type(() => LatLngDto)
+  setbacksPolygon: LatLngDto[];
 
   @ApiProperty()
   @IsNotEmpty()

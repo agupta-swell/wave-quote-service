@@ -26,7 +26,7 @@ export namespace ICompiledTemplate {
 }
 
 export interface ICompiledTemplate<T, Context> {
-  readonly id: string;
+  readonly ids: string[];
   readonly hasPrefillTab: boolean;
   readonly refId: string;
   readonly requirePageNumber: boolean;
@@ -34,11 +34,12 @@ export interface ICompiledTemplate<T, Context> {
 
   totalPage: number;
 
-  toTextTabs(ctx: Context, defaultContractor: IDefaultContractor): ICompiledTemplate.TextTab[];
+  toTextTabs(ctx: Context, defaultContractor: IDefaultContractor, templateId: string): ICompiledTemplate.TextTab[];
   toPrefillTabs(
     ctx: Context,
     defaultContractor: IDefaultContractor,
     docTabs: ICompiledTemplate.DocTabs,
+    templateId: string,
   ): ICompiledTemplate.PrefillTabs | undefined;
   fromTabs(tabs: any): ICompiledTemplate.ExtractedTabValue<T>;
   refresh(): void;

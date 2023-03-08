@@ -15,6 +15,7 @@ import {
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
+import { GetRoofTopImagePresignedPostUrlQueryDto } from './req/get-roof-top-image-presigned-post-url-query.dto';
 import {
   AnciallaryMasterRes,
   CalculateSunroofOrientationResDto,
@@ -28,7 +29,9 @@ import {
   SystemDesignRes,
 } from './res';
 import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
+import { GetPresignedPostUrlResDto } from './res/get-presigned-post-url.dto';
 import { SystemDesignService } from './system-design.service';
+import { RoofTopImageReqDto } from './req/sub-dto/roof-top-image.dto';
 
 @ApiTags('System Design')
 @ApiBearerAuth()
@@ -191,6 +194,29 @@ export class SystemDesignController {
   async download8760DataCSV(@Param('id', ParseObjectIdPipe) id: ObjectId): Promise<ServiceResponse<CsvExportResDto>> {
     const result = await this.systemDesignService.generate8760DataSeriesCSV(id);
 
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Get('roof-top-image/presigned-post-url')
+  @ApiOkResponse({ type: GetPresignedPostUrlResDto })
+  async getPresignedPostURLUploadRooftopImage(
+    @Query() queryParams: GetRoofTopImagePresignedPostUrlQueryDto,
+  ): Promise<ServiceResponse<GetPresignedPostUrlResDto>> {
+    const { fileType } = queryParams;
+    const result = await this.systemDesignService.getPresignedPostURLUploadRooftopImage(fileType);
+
+    return ServiceResponse.fromResult(result);
+  }
+
+  @Put(':id/roof-top-image')
+  @ApiOperation({ summary: 'Update system design rooftop image' })
+  @ApiOkResponse({ type: SystemDesignRes })
+  @CheckOpportunity()
+  async updateRoofTopImage(
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
+    @Body() rooftopImage: RoofTopImageReqDto,
+  ): Promise<ServiceResponse<SystemDesignDto>> {
+    const result = await this.systemDesignService.updateRoofTopImage(id, rooftopImage);
     return ServiceResponse.fromResult(result);
   }
 }

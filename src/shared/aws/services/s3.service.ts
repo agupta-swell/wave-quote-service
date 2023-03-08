@@ -3,6 +3,7 @@ import * as AWS from 'aws-sdk';
 import * as mime from 'mime';
 import { ApplicationException } from 'src/app/app.exception';
 import { PassThrough, Readable, Stream } from 'stream';
+import { PRESIGNED_POST_URL_EXPIRES } from '../constants';
 import { IS3GetLocationFromUrlResult, IS3GetUrlOptions, IS3RootDir } from '../interfaces';
 import { CredentialService } from './credential.service';
 
@@ -340,7 +341,7 @@ export class S3Service {
    * @param expires
    * @param logError
    */
-  public getSignedUrl(bucket: string, key: string, expires: number, logError?: boolean): Promise<string> {
+  public getPresignedGetUrl(bucket: string, key: string, expires: number, logError?: boolean): Promise<string> {
     return new Promise((resolve, _) =>
       this.S3.getSignedUrl(
         'getObject',
@@ -361,6 +362,34 @@ export class S3Service {
           resolve(url);
         },
       ),
+    );
+  }
+
+  public getPresignedPostUrl(bucket: string, key: string, options): Promise<AWS.S3.PresignedPost> {
+    const { Expires, Conditions, acl } = options;
+
+    const params: any = {
+      Expires: Expires || PRESIGNED_POST_URL_EXPIRES,
+      Bucket: bucket,
+      Conditions,
+      Fields: {
+        key,
+      },
+    };
+
+    // add optional acl
+    if (acl) params.Fields.acl = acl;
+
+    return new Promise((resolve, reject) =>
+      this.S3.createPresignedPost(params, (err, data) => {
+        if (err) {
+          console.error(err);
+          reject(err);
+          return;
+        }
+
+        resolve(data);
+      }),
     );
   }
 

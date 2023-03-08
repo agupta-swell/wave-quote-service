@@ -36,6 +36,77 @@ const LatLngSchema = new Schema<Document<ILatLngSchema>>(
   { _id: false },
 );
 
+export interface IPointSchema {
+  x: number;
+  y: number;
+}
+
+export const PointSchema = new Schema<Document<IPointSchema>>(
+  {
+    x: Number,
+    y: Number,
+  },
+  { _id: false },
+);
+
+export interface ILatLngBoundsSchema {
+  ne: ILatLngSchema;
+  sw: ILatLngSchema;
+}
+
+export const LatLngBoundsSchema = new Schema<Document<ILatLngBoundsSchema>>(
+  {
+    ne: LatLngSchema,
+    sw: LatLngSchema,
+  },
+  { _id: false },
+);
+
+export interface ILineSegmentLengthSchema {
+  feet: number;
+  inch: number;
+}
+
+export const LineSegmentLengthSchema = new Schema<Document<ILineSegmentLengthSchema>>(
+  {
+    feet: Number,
+    inch: Number,
+  },
+  { _id: false },
+);
+
+export interface ICanvasSchema {
+  line: IPointSchema[];
+  arrow: IPointSchema[];
+  lineSegmentLength: ILineSegmentLengthSchema;
+}
+
+export const CanvasSchema = new Schema<Document<ICanvasSchema>>(
+  {
+    line: [PointSchema],
+    arrow: [PointSchema],
+    line_segment_length: LineSegmentLengthSchema,
+  },
+  { _id: false },
+);
+
+export interface IRoofTopImageSchema {
+  key: string;
+  latLngBounds: ILatLngBoundsSchema;
+  rotationDegrees: number;
+  canvas: ICanvasSchema;
+}
+
+export const RoofTopImageSchema = new Schema<Document<IRoofTopImageSchema>>(
+  {
+    key: String,
+    lat_lng_bounds: LatLngBoundsSchema,
+    rotation_degrees: Number,
+    canvas: CanvasSchema,
+  },
+  { _id: false },
+);
+
 export interface ISystemProductionSchema {
   capacityKW: number;
   generationKWh: number;
@@ -300,6 +371,7 @@ export interface IRoofTopSchema {
   softCosts: ISoftCostSchema[];
   laborCosts: ILaborCostSchema[];
   hasSunroofIrradiance?: boolean;
+  roofTopImage?: IRoofTopImageSchema;
 }
 
 export interface ICapacityProductionSchema {
@@ -325,6 +397,7 @@ export const RoofTopSchema = new Schema<Document<IRoofTopSchema>>(
     soft_costs: [SoftCostSchema],
     labor_costs: [LaborCostSchema],
     has_sunroof_irradiance: Boolean,
+    roof_top_image: RoofTopImageSchema,
   },
   { _id: false },
 );
@@ -508,6 +581,7 @@ export class SystemDesignModel {
       keepouts,
       softCosts,
       laborCosts,
+      roofTopImage,
     } = data;
     return {
       panelArray,
@@ -519,6 +593,7 @@ export class SystemDesignModel {
       ancillaryEquipments,
       softCosts,
       laborCosts,
+      roofTopImage,
     } as any;
   };
 

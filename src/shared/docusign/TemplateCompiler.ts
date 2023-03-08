@@ -13,7 +13,7 @@ import { toPascalCase, toSnakeCase, toUpperSnakeCase } from './utils';
 export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Context> {
   private readonly _ctor: IClass<T>;
 
-  private _id: string;
+  private _ids: string[];
 
   private _refId: string;
 
@@ -36,7 +36,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
     this._ctor = ctor;
 
-    this.extractId();
+    this.extractIds();
 
     this.extractDefaultOptions();
 
@@ -44,7 +44,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
   }
 
   public refresh() {
-    this.extractId();
+    this.extractIds();
   }
 
   private extractDefaultOptions() {
@@ -78,20 +78,15 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
     this._defaultTransform = tabNamingStrategy;
   }
 
-  private extractId(): void {
+  private extractIds(): void {
     const refId = Reflect.getMetadata('docusign:template:classRefId', this._ctor);
     this._refId = refId;
 
     const meta: IMetaTemplate[] = Reflect.getMetadata(KEYS.META, this._ctor);
 
-    const envMeta = meta.find(e => e.env === process.env.DOCUSIGN_ENV);
+    const envMeta = meta.filter(e => e.env === process.env.DOCUSIGN_ENV);
 
-    if (!envMeta) {
-      this._id = 'none';
-      return;
-    }
-
-    this._id = envMeta.id;
+    this._ids = envMeta.map(e => e?.id);
   }
 
   private parseRawTabs(): void {
@@ -141,15 +136,15 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
       });
   }
 
-  get id(): string {
-    return this._id;
+  get ids(): string[] {
+    return this._ids;
   }
 
   get refId(): string {
     return this._refId;
   }
 
-  toTextTabs(ctx: Context, defaultContractor: IDefaultContractor): ICompiledTemplate.TextTab[] {
+  toTextTabs(ctx: Context, defaultContractor: IDefaultContractor, templateId: string): ICompiledTemplate.TextTab[] {
     const tabs: { tabLabel: string; value: string }[] = [];
     this._rawTabs
       .filter(e => e.tabType === DOCUSIGN_TAB_TYPE.TEXT_TABS && !e.tabDynamicValue)
@@ -162,7 +157,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
         if (!value && e.tabRequireProp) {
           throw new DocusignException(
             undefined,
-            `Missing tab value for  ${e.tabRequireProp}, template id: ${this._id}`,
+            `Missing tab value for  ${e.tabRequireProp}, template id: ${templateId}`,
             true,
           );
         }
@@ -202,6 +197,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
     ctx: Context,
     defaultContractor: IDefaultContractor,
     docTabs: ICompiledTemplate.DocTabs,
+    templateId: string,
   ): ICompiledTemplate.PrefillTabs | undefined {
     const { prefillTabs } = docTabs;
 
@@ -229,7 +225,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
         if (!tabValue && rawTab.tabRequireProp) {
           throw new DocusignException(
             undefined,
-            `Missing tab value for  ${rawTab.tabRequireProp}, template id: ${this._id}`,
+            `Missing tab value for  ${rawTab.tabRequireProp}, template id: ${templateId}`,
             true,
           );
         }

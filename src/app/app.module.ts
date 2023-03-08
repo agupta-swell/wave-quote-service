@@ -18,6 +18,7 @@ import { EmailModule } from 'src/emails/email.module';
 import { EnergyProfileModule } from 'src/energy-profiles/energy-profile.module';
 import { ExistingSystemModule } from 'src/existing-systems/existing-system.module';
 import { ExternalServiceModule } from 'src/external-services/external-service.module';
+import { FeatureFlagModule } from 'src/feature-flags/feature-flag.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { GenabilityUtilityMapModule } from 'src/genability-utility-map/genability-utility-map.module';
@@ -100,6 +101,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     EmailModule,
     EmailTemplateModule,
     ExternalServiceModule,
+    FeatureFlagModule,
     FundingSourceModule,
     LeaseSolverConfigModule,
     ManufacturerModule,

@@ -7,6 +7,13 @@ export interface ICalculateSystemProduction {
   losses?: number;
 }
 
+export interface ILoadServingEntityResponse {
+  name: string;
+  lseCode: string;
+  serviceTypes: string;
+  lseId: string;
+}
+
 export interface ILoadServingEntity {
   lseName: string;
   lseCode: string;
@@ -20,14 +27,29 @@ export interface ITypicalUsage {
   v: number;
 }
 
-export interface ITypicalBaseLine {
-  zipCode: number;
+export interface ITypicalBaseLineResponse {
+  buildingType: { id: string; customerClass: string };
+  climateZone: { lseName: string; lseId: number };
+  serviceType: string;
+  factors: { annualConsumption: number };
+  measures: ITypicalUsage[];
+}
+
+export interface ITypicalBaseLineBase {
   buildingType: string;
   customerClass: string;
   lseName: string;
   lseId: number;
   sourceType: string;
   annualConsumption: number;
+}
+
+export interface ITypicalBaseLineData extends ITypicalBaseLineBase {
+  measures: ITypicalUsage[];
+}
+
+export interface ITypicalBaseLine extends ITypicalBaseLineBase {
+  zipCode: number;
   typicalHourlyUsage: ITypicalUsage[];
   typicalMonthlyUsage: ITypicalUsage[];
 }
@@ -74,4 +96,44 @@ export interface IGenabilityCalculateUtilityCost {
   detailLevel?: EGenabilityDetailLevel;
   billingPeriod?: boolean;
   zipCode: string;
+}
+
+export interface ICalculateCostAddress {
+  country: string;
+  zip: string;
+}
+
+export interface ICalculateCostPropertyInputs {
+  keyName: string;
+  fromDateTime: string;
+  duration: number;
+  unit: string;
+  dataSeries: number[];
+  exportDataSeries: number[];
+}
+
+export interface ICalculateCostPayload {
+  address: ICalculateCostAddress;
+  fromDateTime: string;
+  toDateTime: string;
+  masterTariffId: string;
+  groupBy: EGenabilityGroupBy;
+  detailLevel: EGenabilityDetailLevel;
+  billingPeriod: boolean;
+  minimums: boolean;
+  propertyInputs: ICalculateCostPropertyInputs[];
+}
+
+export interface ITariffParams {
+  zipCode: number;
+  populateProperties: boolean;
+  isActive: boolean;
+  customerClasses: string;
+  pageCount: number;
+  pageStart?: number;
+}
+
+export interface IAxiosDataResponse {
+  count: number;
+  results: any;
 }
