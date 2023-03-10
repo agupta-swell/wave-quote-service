@@ -17,7 +17,7 @@ import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partn
 import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
-import { Opportunity, OPPORTUNITY, UpdateOpportunityTiltleNameMatchType } from './opportunity.schema';
+import { Opportunity, OPPORTUNITY, UpdateOpportunityTitleNameMatchType } from './opportunity.schema';
 import { GetFinancialSelectionsDto } from './res/financial-selection.dto';
 import { GetRelatedInformationDto } from './res/get-related-information.dto';
 import { QuoteDetailResDto } from './res/quote-detail.dto';
@@ -41,7 +41,7 @@ export class OpportunityService {
     private readonly contractService: ContractService,
     @Inject(forwardRef(() => ExistingSystemService))
     private readonly existingSystemService: ExistingSystemService,
-  ) { }
+  ) {}
 
   async getRelatedInformation(opportunityId: string): Promise<OperationResult<GetRelatedInformationDto>> {
     const foundOpportunity = await this.opportunityModel.findById(opportunityId).lean();
@@ -163,7 +163,7 @@ export class OpportunityService {
 
   async updateOpportunityTitleNameMatch(
     opportunityId: string,
-    titleNameMatchData: UpdateOpportunityTiltleNameMatchType,
+    titleNameMatchData: UpdateOpportunityTitleNameMatchType,
   ): Promise<OperationResult<UpdateOpportunityTitleNameMatchDtoRes>> {
     const foundOpportunity = await this.opportunityModel.findById(opportunityId);
 

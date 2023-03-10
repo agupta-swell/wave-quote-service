@@ -10,6 +10,7 @@ import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
 import {
+  CONSENT_STATUS,
   APPROVAL_MODE,
   PROCESS_STATUS,
   QUALIFICATION_STATUS,
@@ -24,6 +25,7 @@ import {
   CreateQualificationReqDto,
   GetApplicationDetailReqDto,
   SendMailReqDto,
+  SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
 } from './req';
 import {
@@ -32,6 +34,7 @@ import {
   ManualApprovalDto,
   QualificationDetailDto,
   SendMailDto,
+  ApplicantConsentDto
 } from './res';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import { FniEngineService } from './sub-services/fni-engine.service';
@@ -162,6 +165,90 @@ export class QualificationService {
     );
   }
 
+  async setApplicantConsent(
+    id: ObjectId,
+    applicantConsentDto: SetApplicantConsentReqDto,
+  ): Promise<OperationResult<ApplicantConsentDto>> {
+    const { applicantConsent } = applicantConsentDto;
+    if (process.env.NODE_ENV === 'production') {
+      throw ApplicationException.NoPermission();
+    }
+
+    const now = new Date();
+    const qualificationCredit = await this.qualificationCreditModel.findById(id);
+    if (!qualificationCredit) {
+      throw ApplicationException.EntityNotFound(id.toString());
+    }
+    
+    switch (applicantConsent.type) {
+      case CONSENT_STATUS.HAS_CO_APPLICANT_CONSENT:
+        qualificationCredit.hasCoApplicantConsent = applicantConsent.option;
+        if (applicantConsent.option) {
+          qualificationCredit.eventHistories.push({
+            issueDate: now,
+            by: applicantConsentDto.userFullName,
+            detail: 'Co-Applicant Consent set to Yes',
+            qualificationCategory: "Hard Credit",
+          });
+        } else {
+          qualificationCredit.eventHistories.push({
+            issueDate: now,
+            by: applicantConsentDto.userFullName,
+            detail: 'Co-Applicant Consent set to No',
+            qualificationCategory: "Hard Credit",
+          });
+        }
+        break;
+      case CONSENT_STATUS.HAS_CO_APPLICANT:
+        qualificationCredit.hasCoApplicant = applicantConsent.option;
+        if (applicantConsent.option) {
+          qualificationCredit.eventHistories.push({
+            issueDate: now,
+            by: applicantConsentDto.userFullName,
+            detail: 'Has Co-Applicant set to Yes',
+            qualificationCategory: "Hard Credit",
+          });
+        } else {
+          qualificationCredit.eventHistories.push({
+            issueDate: now,
+            by: applicantConsentDto.userFullName,
+            detail: 'Has Co-Applicant set to No',
+            qualificationCategory: "Hard Credit",
+          });
+          if (qualificationCredit.hasCoApplicantConsent !== undefined) {
+            qualificationCredit.hasCoApplicantConsent = undefined;
+          }
+        }
+        break;
+      default:
+        qualificationCredit.hasApplicantConsent = applicantConsent.option;
+        if (applicantConsent.option) {
+          qualificationCredit.eventHistories.push({
+            issueDate: now,
+            by: applicantConsentDto.userFullName,
+            detail: 'Applicant consent set to Yes',
+            qualificationCategory: "Hard Credit",
+          });
+        } else {
+          qualificationCredit.eventHistories.push({
+            issueDate: now,
+            by: applicantConsentDto.userFullName,
+            detail: 'Applicant consent set to No',
+            qualificationCategory: "Hard Credit",
+          });
+        }
+        break;
+    }
+
+    await qualificationCredit.save();
+
+    return OperationResult.ok(
+      strictPlainToClass(ApplicantConsentDto, {
+        qualificationCredit: qualificationCredit.toJSON(),
+      }),
+    );
+  }
+
   async sendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
@@ -194,6 +281,8 @@ export class QualificationService {
       sentOn: now,
       email: email || '',
     });
+
+    qualificationCredit.applicationSentOn = now;
 
     await qualificationCredit.save();
     return OperationResult.ok(strictPlainToClass(SendMailDto, { status: true, detail: qualificationCredit.toJSON() }));

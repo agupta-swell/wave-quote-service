@@ -21,6 +21,7 @@ export interface IEventHistory {
   by: string;
   detail: string;
   userId?: string;
+  qualificationCategory?: string;
 }
 
 export const EventHistorySchema = new Schema<Document<IEventHistory>>(
@@ -29,6 +30,10 @@ export const EventHistorySchema = new Schema<Document<IEventHistory>>(
     by: String,
     detail: String,
     user_id: {
+      type: String,
+      required: false,
+    },
+    qualification_category: {
       type: String,
       required: false,
     },
@@ -47,6 +52,10 @@ export interface QualificationCredit extends Document {
   approvalMode: APPROVAL_MODE;
   approvedBy: string;
   qualificationStatus: QUALIFICATION_STATUS;
+  hasApplicantConsent?: boolean,
+  hasCoApplicantConsent?: boolean,
+  hasCoApplicant?: boolean,
+  applicationSentOn: Date;
   createdBy: string;
   createdAt: Date;
   updatedBy: string;
@@ -64,6 +73,10 @@ export const QualificationCreditSchema = new Schema<QualificationCredit>({
   approval_mode: String,
   approved_by: String,
   qualification_status: String,
+  has_applicant_consent: Boolean,
+  has_co_applicant_consent: Boolean,
+  has_co_applicant: Boolean,
+  application_sent_on: Date,
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

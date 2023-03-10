@@ -1,44 +1,9 @@
-import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { ExposeProp } from 'src/shared/decorators';
 import { Pagination, ServiceResponse } from '../../app/common';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, QUALIFICATION_TYPE, VENDOR_ID } from '../constants';
-import { CustomerNotificationDto } from './sub-dto/customer-notification.dto';
-import { EventDto } from './sub-dto/event.dto';
+import { QUALIFICATION_TYPE } from '../constants';
+import { QualificationDetailDto } from './qualification.dto';
 import { FniCommunicationDto } from './sub-dto/fni-communication.dto';
 
-class QualificationDetailDto {
-  @ExposeMongoId()
-  qualificationId: string;
-
-  @ExposeProp()
-  opportunityId: string;
-
-  @ExposeProp()
-  type: QUALIFICATION_TYPE;
-
-  @ExposeProp()
-  startedOn: Date;
-
-  @ExposeProp()
-  processStatus: PROCESS_STATUS;
-
-  @ExposeProp({ isArray: true, type: CustomerNotificationDto })
-  customerNotifications: CustomerNotificationDto[];
-
-  @ExposeProp({ isArray: true, type: EventDto })
-  eventHistories: EventDto[];
-
-  @ExposeProp()
-  vendorId: VENDOR_ID;
-
-  @ExposeProp()
-  approvalMode: APPROVAL_MODE;
-
-  @ExposeProp()
-  approvedBy: string;
-
-  @ExposeProp()
-  qualificationStatus: QUALIFICATION_STATUS;
-}
 class QualificationDataDto {
   @ExposeProp()
   type: QUALIFICATION_TYPE;

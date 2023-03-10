@@ -20,3 +20,8 @@ export class PinballSimulatorDto {
   @ExposeProp()
   year?: number;
 }
+
+export class PinballSimulatorAndCostPostInstallationDto extends PinballSimulatorDto {
+  @ExposeProp()
+  costPostInstallation: number;
+}

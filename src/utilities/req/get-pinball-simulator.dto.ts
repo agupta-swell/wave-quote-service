@@ -62,3 +62,8 @@ export class GetPinballSimulatorDto {
   @IsNumber()
   year?: number;
 }
+
+export class GetPinballSimulatorAndCostPostInstallationDto extends GetPinballSimulatorDto {
+  @IsNumber()
+  zipCode: number;
+}

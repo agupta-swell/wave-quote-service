@@ -37,6 +37,15 @@ export class QualificationDetailDto {
 
   @ExposeProp()
   qualificationStatus: QUALIFICATION_STATUS;
+
+  @ExposeProp()
+  hasApplicantConsent: boolean;
+
+  @ExposeProp()
+  hasCoApplicantConsent: boolean;
+
+  @ExposeProp()
+  hasCoApplicant: boolean;
 }
 
 export class QualificationDto {

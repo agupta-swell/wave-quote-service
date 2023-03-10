@@ -5,7 +5,7 @@ import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/s
 
 export const OPPORTUNITY = Symbol('OPPORTUNITY').toString();
 
-export interface UpdateOpportunityTiltleNameMatchType {
+export interface UpdateOpportunityTitleNameMatchType {
   alternateTitleDocumentationSubmitted: boolean;
   alternateTitleDocumentationSubmitDate: Date;
   alternateTitleDocumentationName: string;
@@ -14,7 +14,32 @@ export interface UpdateOpportunityTiltleNameMatchType {
   coapplicantNameMatchesTitle: boolean;
 }
 
-export interface Opportunity extends Document, Partial<UpdateOpportunityTiltleNameMatchType> {
+export interface IElectronicPaymentSettings {
+  deposit: number;
+  depositPayPercent: boolean;
+  payment1: number;
+  payment1PayPercent: boolean;
+  payment2: number;
+  payment2PayPercent: boolean;
+  payment2PayBalance: boolean;
+}
+
+export type ElectronicPaymentSettings = Document & IElectronicPaymentSettings;
+
+export const ElectronicPaymentSettingsSchema = new Schema<ElectronicPaymentSettings>(
+  {
+    deposit: Number,
+    depositPayPercent: Boolean,
+    payment1: Number,
+    payment1PayPercent: Boolean,
+    payment2: Number,
+    payment2PayPercent: Boolean,
+    payment2PayBalance: Boolean,
+  },
+  { _id: false },
+);
+
+export interface Opportunity extends Document, Partial<UpdateOpportunityTitleNameMatchType> {
   name: string;
   contactId: string;
   utilityId: string;
@@ -54,6 +79,7 @@ export interface Opportunity extends Document, Partial<UpdateOpportunityTiltleNa
   coapplicantCreditApproved?: boolean;
   onTitleName?: string;
   onTitleAddress?: string;
+  electronicPaymentSettings: IElectronicPaymentSettings;
 }
 
 export const OpportunitySchema = new Schema<Opportunity>({
@@ -102,6 +128,7 @@ export const OpportunitySchema = new Schema<Opportunity>({
   alternateTitleDocumentationAddress: String,
   applicantNameMatchesTitle: Boolean,
   coapplicantNameMatchesTitle: Boolean,
+  electronicPaymentSettings: ElectronicPaymentSettingsSchema,
 });
 
 MongooseNamingStrategy.ExcludeOne(OpportunitySchema);
