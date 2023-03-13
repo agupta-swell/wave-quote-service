@@ -48,6 +48,7 @@ import {
   PRESIGNED_POST_URL_MAX_SIZE,
   PRESIGNED_POST_URL_MIN_SIZE,
 } from 'src/shared/aws/constants';
+import { v4 as uuidv4 } from 'uuid';
 import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE, PRESIGNED_GET_URL_EXPIRE_IN } from './constants';
@@ -1878,7 +1879,7 @@ export class SystemDesignService {
 
   async getPresignedPostURLUploadRooftopImage(fileType: string): Promise<OperationResult<GetPresignedPostUrlResDto>> {
     const fileExt = fileType.split('/')[1];
-    const key = `${+new Date()}.${fileExt}`;
+    const key = `${uuidv4()}.${fileExt}`;
 
     const Conditions = [
       ['content-length-range', PRESIGNED_POST_URL_MIN_SIZE, PRESIGNED_POST_URL_MAX_SIZE],
