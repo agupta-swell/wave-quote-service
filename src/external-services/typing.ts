@@ -137,3 +137,9 @@ export interface IAxiosDataResponse {
   count: number;
   results: any;
 }
+
+export interface INetNegativeAnnualUsage {
+  annualPostInstallBill: number;
+  fromDateTime: string;
+  toDateTime: string;
+}

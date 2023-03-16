@@ -13,6 +13,7 @@ import {
   ICalculateSystemProduction,
   IGenabilityCalculateUtilityCost,
   ILoadServingEntity,
+  INetNegativeAnnualUsage,
   IPvWattV6Responses,
   ITypicalBaseLine,
   ITypicalUsage,
@@ -232,7 +233,11 @@ export class ExternalService {
   /**
    * Calculate net negative annual usage
    */
-  async calculateNetNegativeAnualUsage(postInstall8760: number[], masterTariffId: string, zipCode: number) {
+  async calculateNetNegativeAnnualUsage(
+    postInstall8760: number[],
+    masterTariffId: string,
+    zipCode: number,
+  ): Promise<INetNegativeAnnualUsage> {
     // Sum the 8760 kWh post-install data series
     const netKwh = postInstall8760.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 
@@ -246,6 +251,8 @@ export class ExternalService {
       zipCode: zipCode.toString(),
     });
 
+    const { fromDateTime, toDateTime } = result;
+
     // Calculate
     const nonBypassableCost = result.summary.nonBypassableCost || 0; // 3313655 - SCE - Domestic Prime TOU return nonBypassableCost
     const fixedCosts = result.items
@@ -258,6 +265,10 @@ export class ExternalService {
     const annualPostInstallBill =
       fixedCosts + nonBypassableCost + (consumptionCosts > 0 ? consumptionCosts : netKwh * 0.05);
 
-    return annualPostInstallBill;
+    return {
+      annualPostInstallBill,
+      fromDateTime,
+      toDateTime,
+    };
   }
 }

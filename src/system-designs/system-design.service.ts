@@ -19,6 +19,7 @@ import { ECommerceService } from 'src/e-commerces/e-commerce.service';
 import { REGION_PURPOSE } from 'src/e-commerces/schemas';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
 import { ExternalService } from 'src/external-services/external-service.service';
+import { INetNegativeAnnualUsage } from 'src/external-services/typing';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
@@ -31,6 +32,11 @@ import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { AsyncContextProvider } from 'src/shared/async-context/providers/async-context.provider';
+import {
+  PRESIGNED_POST_URL_EXPIRES,
+  PRESIGNED_POST_URL_MAX_SIZE,
+  PRESIGNED_POST_URL_MIN_SIZE,
+} from 'src/shared/aws/constants';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
 import { attachMeta } from 'src/shared/mongo';
@@ -39,17 +45,11 @@ import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { IDerateSnapshot } from 'src/system-productions/system-production.schema';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { GetPinballSimulatorDto } from 'src/utilities/req';
-import { IUtilityCostData, UtilityUsageDetails } from 'src/utilities/utility.schema';
+import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { buildMonthlyAndAnnualDataFrom8760, buildMonthlyHourFrom8760 } from 'src/utils/transformData';
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
-import {
-  PRESIGNED_POST_URL_EXPIRES,
-  PRESIGNED_POST_URL_MAX_SIZE,
-  PRESIGNED_POST_URL_MIN_SIZE,
-} from 'src/shared/aws/constants';
 import { v4 as uuidv4 } from 'uuid';
-import { CALCULATION_MODE } from '../utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE, PRESIGNED_GET_URL_EXPIRE_IN } from './constants';
 import { SystemDesignHook } from './providers/system-design.hook';
@@ -60,6 +60,7 @@ import {
   UpdateAncillaryMasterDtoReq,
   UpdateSystemDesignDto,
 } from './req';
+import { RoofTopImageReqDto } from './req/sub-dto/roof-top-image.dto';
 import {
   CalculateSunroofOrientationResDto,
   CalculateSunroofProductionResDto,
@@ -69,8 +70,8 @@ import {
   SystemDesignAncillaryMasterDto,
   SystemDesignDto,
 } from './res';
-import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
 import { GetPresignedPostUrlResDto } from './res/get-presigned-post-url.dto';
+import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
 import { ISystemProduction, SunroofHourlyProductionCalculation, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
@@ -79,7 +80,6 @@ import {
   SystemDesignWithManufacturerMeta,
   SYSTEM_DESIGN,
 } from './system-design.schema';
-import { RoofTopImageReqDto } from './req/sub-dto/roof-top-image.dto';
 
 @Injectable()
 export class SystemDesignService {
@@ -1419,6 +1419,8 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
+    const masterTariffId = utility.costData.postInstallMasterTariffId;
+
     const pinballInputData = await this.buildPinballInputData(systemDesign, systemActualProduction8760, utility);
 
     const simulatePinballData = await this.utilityService.simulatePinball(pinballInputData);
@@ -1439,17 +1441,29 @@ export class SystemDesignService {
       ),
     );
 
-    const [annualPostInstallBill] = await Promise.all([
-      this.externalService.calculateNetNegativeAnualUsage(
+    const [netNegativeAnnualUsage] = await Promise.all([
+      this.externalService.calculateNetNegativeAnnualUsage(
         simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
-        utility.costData.postInstallMasterTariffId,
+        masterTariffId,
         utility.utilityData.typicalBaselineUsage.zipCode,
       ),
       ...savePinballToS3Requests,
     ]);
 
+    const { annualPostInstallBill, fromDateTime, toDateTime } = netNegativeAnnualUsage as INetNegativeAnnualUsage;
+
     this.systemDesignModel
-      .updateOne({ _id: systemDesign.id }, { costPostInstallation: annualPostInstallBill })
+      .updateOne(
+        { _id: systemDesign.id },
+        {
+          costPostInstallation: annualPostInstallBill,
+          costCalculationInput: {
+            masterTariffId,
+            fromDateTime,
+            toDateTime,
+          },
+        },
+      )
       .catch(error => console.error(error));
   }
 

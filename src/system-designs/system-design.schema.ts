@@ -16,7 +16,6 @@ import {
 } from 'src/products-v2/schemas';
 import { WithMetaOfType } from 'src/shared/mongo';
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
-import { IUtilityCostData, UtilityCostDataSchema } from '../utilities/utility.schema';
 import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
 import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
@@ -438,6 +437,12 @@ export interface ISunroofDriftCorrection {
   y: number;
 }
 
+export interface ICostCalculationInput {
+  masterTariffId?: string;
+  fromDateTime?: string;
+  toDateTime?: string;
+}
+
 // @ts-ignore
 export interface SystemDesign extends Document {
   name: string;
@@ -462,6 +467,7 @@ export interface SystemDesign extends Document {
   sunroofDriftCorrection: ISunroofDriftCorrection;
   existingSystem?: ExistingSystemDocument;
   pinballSimulatorId?: string;
+  costCalculationInput?: ICostCalculationInput;
 }
 
 export type SystemDesignWithManufacturerMeta = WithMetaOfType<
@@ -476,6 +482,17 @@ const SunroofDriftCorrectionSchema = new Schema(
   {
     x: Number,
     y: Number,
+  },
+  {
+    _id: false,
+  },
+);
+
+const CostCalculationInputSchema = new Schema<ICostCalculationInput>(
+  {
+    master_tariff_id: String,
+    from_date_time: String,
+    to_date_time: String,
   },
   {
     _id: false,
@@ -506,6 +523,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   updated_by: String,
   existing_system: ExistingSystemSchema,
   pinball_simulator_id: String,
+  cost_calculation_input: CostCalculationInputSchema,
 });
 
 export class SystemDesignModel {
