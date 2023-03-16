@@ -96,6 +96,7 @@ export interface IGenabilityCalculateUtilityCost {
   detailLevel?: EGenabilityDetailLevel;
   billingPeriod?: boolean;
   zipCode: string;
+  startDate?: Date;
 }
 
 export interface ICalculateCostAddress {

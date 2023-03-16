@@ -170,10 +170,11 @@ export class ExternalService {
     detailLevel,
     billingPeriod,
     zipCode,
+    startDate,
   }: IGenabilityCalculateUtilityCost): Promise<any> {
-    const { fromDateTime, toDateTime } = getNextYearDateRange();
+    const { fromDateTime, toDateTime } = getNextYearDateRange(startDate);
 
-    const from8760Index = dayjs(fromDateTime).diff(dayjs().startOf('year'), 'day') * 24;
+    const from8760Index = dayjs(fromDateTime).diff(dayjs(fromDateTime).startOf('year'), 'day') * 24;
 
     const netDataSeries: number[] = [
       ...hourlyDataForTheYear.slice(from8760Index, 8760),
@@ -237,6 +238,7 @@ export class ExternalService {
     postInstall8760: number[],
     masterTariffId: string,
     zipCode: number,
+    startDate?: Date,
   ): Promise<INetNegativeAnnualUsage> {
     // Sum the 8760 kWh post-install data series
     const netKwh = postInstall8760.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
@@ -249,6 +251,7 @@ export class ExternalService {
       detailLevel: EGenabilityDetailLevel.CHARGE_TYPE,
       billingPeriod: false,
       zipCode: zipCode.toString(),
+      startDate,
     });
 
     const { fromDateTime, toDateTime } = result;
