@@ -40,8 +40,8 @@ export const firstSundayOfTheMonth = (year: number, month: number): number => {
   return firstSunday;
 };
 
-export const getNextYearDateRange = (): { fromDateTime: string; toDateTime: string } => {
-  const start = dayjs().add(1, 'month').startOf('month').startOf('date');
+export const getNextYearDateRange = (startDate?: Date): { fromDateTime: string; toDateTime: string } => {
+  const start = startDate ? dayjs(startDate) : dayjs().add(1, 'month').startOf('month').startOf('date');
   const end = start.add(1, 'year');
 
   const [fromDateTime] = start.format().split('+');

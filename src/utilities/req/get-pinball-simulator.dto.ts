@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested, IsDate } from 'class-validator';
 import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 
 export class BatterySystemSpecsDto {
@@ -64,6 +64,10 @@ export class GetPinballSimulatorDto {
 }
 
 export class GetPinballSimulatorAndCostPostInstallationDto extends GetPinballSimulatorDto {
+  @Type(() => Date)
+  @IsDate()
+  startDate: Date;
+
   @IsNumber()
   zipCode: number;
 }

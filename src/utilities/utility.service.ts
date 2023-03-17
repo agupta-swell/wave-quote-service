@@ -961,6 +961,7 @@ export class UtilityService implements OnModuleInit {
       pinballSimulatorOutput.postInstallSiteDemandSeries.map(i => i / 1000),
       data.postInstallMasterTariffId,
       data.zipCode,
+      data.startDate,
     );
     const result = { ...pinballSimulatorOutput, costPostInstallation };
 
