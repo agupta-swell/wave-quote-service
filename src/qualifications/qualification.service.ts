@@ -285,7 +285,12 @@ export class QualificationService {
     qualificationCredit.applicationSentOn = now;
 
     await qualificationCredit.save();
-    return OperationResult.ok(strictPlainToClass(SendMailDto, { status: true, detail: qualificationCredit.toJSON() }));
+
+    return OperationResult.ok(
+      strictPlainToClass(SendMailDto, {
+        qualificationCredit: qualificationCredit.toJSON(),
+      }),
+    );
   }
 
   async getApplicationDetail(req: GetApplicationDetailReqDto): Promise<OperationResult<GetApplicationDetailDto>> {
