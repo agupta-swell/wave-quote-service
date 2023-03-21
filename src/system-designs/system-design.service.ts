@@ -1515,8 +1515,19 @@ export class SystemDesignService {
       'batteryStoredEnergySeries',
       'postInstallSiteDemandSeries',
       'rateAmountHourly',
-      'isCharging',
+      'shouldCharge',
+      'shouldDischarge',
     ];
+
+    const rateAmountHourly: number[] = [];
+    const shouldCharge: boolean[] = [];
+    const shouldDischarge: boolean[] = [];
+
+    pinballData.rateAmountHourly?.forEach(hourly => {
+      rateAmountHourly.push(hourly.rate);
+      shouldCharge.push(hourly.shouldCharge ?? hourly.isCharge);
+      shouldDischarge.push(hourly.shouldDischarge ?? !hourly.isCharge);
+    });
 
     const csvData: any = {
       Hour: Array.from({ length: 8760 }, (_, i) => i + 1),
@@ -1528,8 +1539,9 @@ export class SystemDesignService {
       batteryDischargingSeries: pinballData.batteryDischargingSeries?.map(e => e / 1000), // convert to KWh
       batteryStoredEnergySeries: pinballData.batteryStoredEnergySeries?.map(e => e / 1000), // convert to KWh
       postInstallSiteDemandSeries: pinballData.postInstallSiteDemandSeries?.map(e => e / 1000), // convert to KWh
-      rateAmountHourly: pinballData.rateAmountHourly?.map(hourly => hourly.rate),
-      isCharging: pinballData.rateAmountHourly?.map(hourly => hourly.charge),
+      rateAmountHourly,
+      shouldCharge,
+      shouldDischarge,
     };
 
     return [csvFields, csvData];
@@ -1878,6 +1890,7 @@ export class SystemDesignService {
       hourlySeriesForExistingPV: hourlySeriesForExistingPVInWh,
       hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
       postInstallMasterTariffId: utility.costData.postInstallMasterTariffId,
+      zipCode: utility.utilityData.typicalBaselineUsage.zipCode,
       batterySystemSpecs: {
         totalRatingInKW: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowatts || 0),
         totalCapacityInKWh: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowattHours || 0),

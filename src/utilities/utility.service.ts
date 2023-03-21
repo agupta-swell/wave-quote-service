@@ -5,7 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
-import { inRange, mean, sum, sumBy } from 'lodash';
+import { inRange, mean, sum, sumBy, cloneDeep } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -28,7 +28,7 @@ import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { CALCULATION_MODE, ENTRY_MODE, INTERVAL_VALUE } from './constants';
+import { CALCULATION_MODE, CHARGING_LOGIC_TYPE, ENTRY_MODE, INTERVAL_VALUE } from './constants';
 import { roundUpNumber } from './operators';
 import {
   BatterySystemSpecsDto,
@@ -621,6 +621,7 @@ export class UtilityService implements OnModuleInit {
     minimumReserveInKW: number,
     sqrtRoundTripEfficiency: number,
     batteryStoredEnergySeriesInPrevious24Hours: number[],
+    chargingLogicType: CHARGING_LOGIC_TYPE = CHARGING_LOGIC_TYPE.NEM2,
   ): {
     batteryStoredEnergySeriesIn24Hours: number[];
     batteryChargingSeriesIn24Hours: number[];
@@ -665,11 +666,29 @@ export class UtilityService implements OnModuleInit {
           );
           break;
         case BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION:
-          plannedBatteryACIn24Hours.push(
-            rateAmountHourlyIn24Hours[i].charge
-              ? Math.min(pvGenerationIn24Hours[i], ratingInKW)
-              : -Math.min(Math.max(netLoadIn24Hours[i], -ratingInKW), ratingInKW),
-          );
+          if (chargingLogicType === CHARGING_LOGIC_TYPE.NEM3) {
+            let plannedBatteryAC: number;
+
+            if (rateAmountHourlyIn24Hours[i].shouldCharge) {
+              // there are excess PV (pvGeneration > hourlyPostInstallLoad) to charge into battery
+              // => netLoad < 0
+              plannedBatteryAC = Math.min(-netLoadIn24Hours[i], ratingInKW);
+            } else if (rateAmountHourlyIn24Hours[i].shouldDischarge) {
+              plannedBatteryAC = -Math.min(Math.max(netLoadIn24Hours[i], -ratingInKW), ratingInKW);
+            } else {
+              // pvGeneration is just enough to cover hourlyPostInstallLoad
+              // no need to charge or discharge
+              plannedBatteryAC = 0;
+            }
+
+            plannedBatteryACIn24Hours.push(plannedBatteryAC);
+          } else if (chargingLogicType === CHARGING_LOGIC_TYPE.NEM2) {
+            plannedBatteryACIn24Hours.push(
+              rateAmountHourlyIn24Hours[i].shouldCharge
+                ? Math.min(pvGenerationIn24Hours[i], ratingInKW)
+                : -Math.min(Math.max(netLoadIn24Hours[i], -ratingInKW), ratingInKW),
+            );
+          }
           break;
         default:
       }
@@ -742,6 +761,7 @@ export class UtilityService implements OnModuleInit {
       hourlySeriesForExistingPV,
       hourlySeriesForNewPV,
       postInstallMasterTariffId,
+      zipCode,
       batterySystemSpecs,
     } = data;
 
@@ -821,9 +841,13 @@ export class UtilityService implements OnModuleInit {
 
         totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
       });
-      rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), charge: true });
+      rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), shouldCharge: false, shouldDischarge: false });
     }
 
+    // get charging logic type
+    const chargingLogicType = await this.getChargingLogicType(postInstallMasterTariffId);
+
+    // current/NEM2 charging logic
     // iterate through the hours of the year, jumping from period to period
     // a 'period' is 1 or more consecutive hours with the same cost of electricity
     for (let firstHourOfThisPeriod = 0; true; ) {
@@ -860,7 +884,7 @@ export class UtilityService implements OnModuleInit {
           // and we need to set the charge plan for the full year
           for (let i = 0; i < rateAmountHourly.length; i++) {
             // always discharge if necessary; similar to pv self-consumption
-            rateAmountHourly[i].charge = false;
+            rateAmountHourly[i].shouldDischarge = true;
           }
           // we're done
           break;
@@ -872,8 +896,14 @@ export class UtilityService implements OnModuleInit {
         const shouldChargeDuringLastPeriodOfTheYear = rateNextPeriod > rateThisPeriod;
 
         // set the charge flag for the rest of the year
-        for (let i = firstHourOfThisPeriod; i < rateAmountHourly.length; i++) {
-          rateAmountHourly[i].charge = shouldChargeDuringLastPeriodOfTheYear;
+        if (shouldChargeDuringLastPeriodOfTheYear) {
+          for (let i = firstHourOfThisPeriod; i < rateAmountHourly.length; i++) {
+            rateAmountHourly[i].shouldCharge = true;
+          }
+        } else {
+          for (let i = firstHourOfThisPeriod; i < rateAmountHourly.length; i++) {
+            rateAmountHourly[i].shouldDischarge = true;
+          }
         }
 
         // we're done
@@ -889,22 +919,145 @@ export class UtilityService implements OnModuleInit {
       const shouldChargeDuringThisPeriod = rateNextPeriod > rateThisPeriod;
 
       // set the charge flag for all the hours of this period
-      for (let i = firstHourOfThisPeriod; i < firstHourOfNextPeriod; i++) {
-        rateAmountHourly[i].charge = shouldChargeDuringThisPeriod;
+      if (shouldChargeDuringThisPeriod) {
+        for (let i = firstHourOfThisPeriod; i < firstHourOfNextPeriod; i++) {
+          rateAmountHourly[i].shouldCharge = true;
+        }
+      } else {
+        for (let i = firstHourOfThisPeriod; i < firstHourOfNextPeriod; i++) {
+          rateAmountHourly[i].shouldDischarge = true;
+        }
       }
 
       // advance the cursor to the first hour of the next period
       firstHourOfThisPeriod = firstHourOfNextPeriod;
     }
 
+    const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
+    const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
+    const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency / 100);
+
+    const pinballDataForNEM2 = this.calculatePinballData(
+      hourlyPostInstallLoad,
+      hourlySeriesForExistingPV,
+      hourlySeriesForNewPV,
+      rateAmountHourly,
+      batterySystemSpecs,
+      ratingInKW,
+      minimumReserveInKW,
+      sqrtRoundTripEfficiency,
+    );
+
+    // PINBALL Battery Charging Logic for NEM3
+    if (chargingLogicType === CHARGING_LOGIC_TYPE.NEM3) {
+      // re-use data from NEM2 charging logic
+      const rateAmountHourlyForNEM3 = cloneDeep(rateAmountHourly);
+
+      // NEM3 charging logic
+      for (let i = 0; i < rateAmountHourlyForNEM3.length; i++) {
+        const excessPV = new BigNumber(hourlySeriesForNewPV[i] || 0).minus(hourlyPostInstallLoad[i]).toNumber();
+
+        if (rateAmountHourlyForNEM3[i].shouldCharge) {
+          // next period is more expensive than the current period
+          if (excessPV <= 0) {
+            // no excess PV to charge into the battery
+            rateAmountHourlyForNEM3[i].shouldCharge = false;
+          }
+        } else if (rateAmountHourlyForNEM3[i].shouldDischarge) {
+          // next period is less expensive than the current period
+          if (excessPV === 0) {
+            // no excess PV to charge into the battery
+            rateAmountHourlyForNEM3[i].shouldDischarge = false;
+          } else if (excessPV > 0) {
+            // excess PV should charge into the battery
+            rateAmountHourlyForNEM3[i].shouldCharge = true;
+            rateAmountHourlyForNEM3[i].shouldDischarge = false;
+          }
+        }
+      }
+
+      const pinballDataForNEM3 = this.calculatePinballData(
+        hourlyPostInstallLoad,
+        hourlySeriesForExistingPV,
+        hourlySeriesForNewPV,
+        rateAmountHourlyForNEM3,
+        batterySystemSpecs,
+        ratingInKW,
+        minimumReserveInKW,
+        sqrtRoundTripEfficiency,
+        chargingLogicType,
+      );
+
+      const [
+        { annualPostInstallBill: costPostInstallationForNEM2 },
+        { annualPostInstallBill: costPostInstallationForNEM3 },
+      ] = await Promise.all([
+        this.externalService.calculateNetNegativeAnnualUsage(
+          pinballDataForNEM2.postInstallSiteDemandSeries.map(i => i / 1000),
+          postInstallMasterTariffId,
+          zipCode,
+        ),
+        this.externalService.calculateNetNegativeAnnualUsage(
+          pinballDataForNEM3.postInstallSiteDemandSeries.map(i => i / 1000),
+          postInstallMasterTariffId,
+          zipCode,
+        ),
+      ]);
+
+      if (costPostInstallationForNEM2 >= costPostInstallationForNEM3) {
+        const {
+          batteryStoredEnergySeries,
+          batteryChargingSeries,
+          batteryDischargingSeries,
+          postInstallSiteDemandSeries,
+        } = pinballDataForNEM3;
+
+        return {
+          batteryStoredEnergySeries,
+          batteryChargingSeries,
+          batteryDischargingSeries,
+          postInstallSiteDemandSeries,
+          rateAmountHourly: rateAmountHourlyForNEM3,
+        };
+      }
+    }
+
+    const {
+      batteryStoredEnergySeries,
+      batteryChargingSeries,
+      batteryDischargingSeries,
+      postInstallSiteDemandSeries,
+    } = pinballDataForNEM2;
+
+    return {
+      batteryStoredEnergySeries,
+      batteryChargingSeries,
+      batteryDischargingSeries,
+      postInstallSiteDemandSeries,
+      rateAmountHourly,
+    };
+  }
+
+  calculatePinballData(
+    hourlyPostInstallLoad: number[],
+    hourlySeriesForExistingPV: number[] | undefined,
+    hourlySeriesForNewPV: number[],
+    rateAmountHourly: IPinballRateAmount[],
+    batterySystemSpecs: BatterySystemSpecsDto,
+    ratingInKW: number,
+    minimumReserveInKW: number,
+    sqrtRoundTripEfficiency: number,
+    chargingLogicType: CHARGING_LOGIC_TYPE = CHARGING_LOGIC_TYPE.NEM2,
+  ): {
+    batteryStoredEnergySeries: number[];
+    batteryChargingSeries: number[];
+    batteryDischargingSeries: number[];
+    postInstallSiteDemandSeries: number[];
+  } {
     const batteryStoredEnergySeries: number[] = [];
     const batteryChargingSeries: number[] = [];
     const batteryDischargingSeries: number[] = [];
     const postInstallSiteDemandSeries: number[] = [];
-
-    const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
-    const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
-    const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency / 100);
 
     let batteryStoredEnergySeriesInPrevious24Hours: number[] = [];
 
@@ -934,6 +1087,7 @@ export class UtilityService implements OnModuleInit {
         minimumReserveInKW,
         sqrtRoundTripEfficiency,
         batteryStoredEnergySeriesInPrevious24Hours,
+        chargingLogicType,
       );
 
       batteryStoredEnergySeriesInPrevious24Hours = batteryStoredEnergySeriesIn24Hours;
@@ -949,7 +1103,6 @@ export class UtilityService implements OnModuleInit {
       batteryChargingSeries,
       batteryDischargingSeries,
       postInstallSiteDemandSeries,
-      rateAmountHourly,
     };
   }
 
@@ -1518,4 +1671,14 @@ export class UtilityService implements OnModuleInit {
       contentType: 'application/json; charset=utf-8',
     };
   }
+
+  private getChargingLogicType = async (postInstallMasterTariffId: string): Promise<CHARGING_LOGIC_TYPE> => {
+    const filterTariffs = await this.externalService.getTariffsByMasterTariffId(postInstallMasterTariffId);
+
+    const { tariffCode } = filterTariffs[0];
+
+    if (tariffCode.includes(CHARGING_LOGIC_TYPE.NEM3)) return CHARGING_LOGIC_TYPE.NEM3;
+
+    return CHARGING_LOGIC_TYPE.NEM2;
+  };
 }

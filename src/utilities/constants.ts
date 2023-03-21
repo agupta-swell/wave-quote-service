@@ -31,3 +31,8 @@ export enum PROPOSAL_PERIOD_MODE {
 export const TYPICAL_USAGE_METAKEY = Symbol.for('kUtility/typicalUsage');
 
 export const KWH_PER_GALLON = 33.7;
+
+export enum CHARGING_LOGIC_TYPE {
+  NEM3 = 'NEM3',
+  NEM2 = 'NEM2',
+}
