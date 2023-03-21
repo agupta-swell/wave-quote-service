@@ -1,3 +1,4 @@
+/* eslint-disable no-plusplus */
 import { BadRequestException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
@@ -141,25 +142,34 @@ export class DocusignTemplateMasterService {
 
   async getContractCompositeTemplates(type?: CONTRACT_TYPE): Promise<OperationResult<GetContractCompositeTemplateDto>> {
     const query = type === undefined ? {} : { type };
-    const compositeTemplate = await this.docusignCompositeTemplateMasterModel.find(query).lean();
+
+    const [signerRoles, compositeTemplate] = await Promise.all([
+      this.signerRoleMasterModel.find().lean(),
+      this.docusignCompositeTemplateMasterModel.find(query).lean(),
+    ]);
+
+    const signerRolesMap = new Map<string, LeanDocument<SignerRoleMaster>>(
+      signerRoles.map(signerRole => [signerRole._id.toString(), signerRole]),
+    );
 
     const compositeTemplates = (await Promise.all(
       compositeTemplate.map(async item => {
-        const docusignTemplates = await Promise.all(
-          item.docusignTemplateIds.map(async templateId => {
-            const template = await this.docusignTemplateMasterModel.findById(templateId).lean();
-            if (!template) {
-              return [];
-            }
+        const templates = await this.docusignTemplateMasterModel
+          .find({
+            _id: {
+              $in: item.docusignTemplateIds,
+            },
+          })
+          .lean();
 
-            const roles = await Promise.all(
-              template.recipientRoles.map(roleId => this.signerRoleMasterModel.findById(roleId).lean()),
-            );
+        const docusignTemplates = await Promise.all(
+          templates.map(async template => {
+            const recipientRoles = template.recipientRoles.map(roleId => signerRolesMap.get(roleId));
 
             return {
               ...template,
               compositeTemplateId: item._id.toString(),
-              recipientRoles: roles,
+              recipientRoles,
             };
           }),
         );
