@@ -1,4 +1,5 @@
 import { DynamicModule, Module, Provider } from '@nestjs/common';
+import { DocusignIntegrationModule } from 'src/docusign-integration/docusign-integration.module';
 import { AwsModule } from '../aws/aws.module';
 import { KEYS } from './constants';
 import { DocusignApiService } from './docusign-api.service';
@@ -17,7 +18,7 @@ export class DocusignApiModule {
   static forRoot(pageNumberFormatter: IPageNumberFormatter): DynamicModule {
     return {
       module: DocusignApiModule,
-      imports: [AwsModule],
+      imports: [AwsModule, DocusignIntegrationModule],
       providers: [
         ...providers,
         {

@@ -74,9 +74,10 @@ export class ApplicationException extends HttpException {
   }
 
   static InvalidContract(): ApplicationException {
-    return new ApplicationException(
-      'Contract is not invalid',
-      HttpStatus.UNPROCESSABLE_ENTITY,
-    );
+    return new ApplicationException('Contract is not invalid', HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+
+  static InvalidDocusignIntegrationConfig(): ApplicationException {
+    return new ApplicationException('Docusign Integration Config is missing.', HttpStatus.UNPROCESSABLE_ENTITY);
   }
 }
