@@ -1515,8 +1515,19 @@ export class SystemDesignService {
       'batteryStoredEnergySeries',
       'postInstallSiteDemandSeries',
       'rateAmountHourly',
-      'isCharging',
+      'shouldCharge',
+      'shouldDischarge',
     ];
+
+    const rateAmountHourly: number[] = [];
+    const shouldCharge: boolean[] = [];
+    const shouldDischarge: boolean[] = [];
+
+    pinballData.rateAmountHourly?.forEach(hourly => {
+      rateAmountHourly.push(hourly.rate);
+      shouldCharge.push(hourly.shouldCharge ?? hourly.isCharge);
+      shouldDischarge.push(hourly.shouldDischarge ?? !hourly.isCharge);
+    });
 
     const csvData: any = {
       Hour: Array.from({ length: 8760 }, (_, i) => i + 1),
@@ -1528,8 +1539,9 @@ export class SystemDesignService {
       batteryDischargingSeries: pinballData.batteryDischargingSeries?.map(e => e / 1000), // convert to KWh
       batteryStoredEnergySeries: pinballData.batteryStoredEnergySeries?.map(e => e / 1000), // convert to KWh
       postInstallSiteDemandSeries: pinballData.postInstallSiteDemandSeries?.map(e => e / 1000), // convert to KWh
-      rateAmountHourly: pinballData.rateAmountHourly?.map(hourly => hourly.rate),
-      isCharging: pinballData.rateAmountHourly?.map(hourly => hourly.charge),
+      rateAmountHourly,
+      shouldCharge,
+      shouldDischarge,
     };
 
     return [csvFields, csvData];
@@ -1563,27 +1575,24 @@ export class SystemDesignService {
     return raw8760MonthlyHour;
   }
 
-  private applyInverterClippingAndEfficiency(
-    productionData8760: number[],
-    systemDesign: LeanDocument<SystemDesign>,
-  ): number[] {
-    const {
-      roofTopDesignData: { inverters },
-    } = systemDesign;
-
+  private applyInverterClipping(productionData8760: number[], systemDesign: LeanDocument<SystemDesign>): number[] {
     const maxInverterPower = this.sunroofHourlyProductionCalculation.calculateMaxInverterPower(systemDesign);
 
     if (maxInverterPower) {
-      const [inverter] = inverters;
+      return this.sunroofHourlyProductionCalculation.clipArrayByInverterPower(productionData8760, maxInverterPower);
+    }
+    return productionData8760;
+  }
 
+  private applyInverterEfficiency(productionData8760: number[], systemDesign: LeanDocument<SystemDesign>): number[] {
+    const {
+      roofTopDesignData: { inverters },
+    } = systemDesign;
+    const [inverter] = inverters;
+
+    if (inverter) {
       const inverterEfficiency = (inverter.inverterModelDataSnapshot.inverterEfficiency ?? 100) / 100;
-
-      const raw8760Hour = this.sunroofHourlyProductionCalculation.clipArrayByInverterPower(
-        productionData8760,
-        maxInverterPower,
-      );
-
-      return this.applyDerate(raw8760Hour, inverterEfficiency);
+      return this.applyDerate(productionData8760, inverterEfficiency);
     }
     return productionData8760;
   }
@@ -1723,27 +1732,39 @@ export class SystemDesignService {
     );
 
     // apply Inverter Clipping
-    const appliedInverterClippingAndEfficiency8760ProductionByArray = appliedSnowDerate8760ProductionByArray.map(
-      productionData => this.applyInverterClippingAndEfficiency(productionData, systemDesign),
+    const appliedInverterClipping8760ProductionByArray = appliedSnowDerate8760ProductionByArray.map(productionData =>
+      this.applyInverterClipping(productionData, systemDesign),
+    );
+
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/applied-inverter-clipping.json`,
+      JSON.stringify(appliedInverterClipping8760ProductionByArray),
+      'application/json',
+    );
+
+    // apply Inverter Efficiency
+    const appliedInverterEfficiency8760ProductionByArray = appliedInverterClipping8760ProductionByArray.map(
+      productionData => this.applyInverterEfficiency(productionData, systemDesign),
+    );
+
+    this.s3Service.putObject(
+      this.GOOGLE_SUNROOF_BUCKET,
+      `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/applied-inverter-efficiency.json`,
+      JSON.stringify(appliedInverterEfficiency8760ProductionByArray),
+      'application/json',
+    );
+
+    // apply OtherLosses
+    const appliedOtherLosses8760ProductionByArray = appliedInverterEfficiency8760ProductionByArray.map(productionData =>
+      this.applyOtherLosses(productionData, derateSnapshot),
     );
 
     this.s3Service.putObject(
       this.GOOGLE_SUNROOF_BUCKET,
       `${
         systemDesign.opportunityId
-      }/${systemDesign._id.toString()}/hourly-production/applied-inverter-clipping-and-efficiency.json`,
-      JSON.stringify(appliedInverterClippingAndEfficiency8760ProductionByArray),
-      'application/json',
-    );
-
-    // apply OtherLosses
-    const appliedOtherLosses8760ProductionByArray = appliedInverterClippingAndEfficiency8760ProductionByArray.map(
-      productionData => this.applyOtherLosses(productionData, derateSnapshot),
-    );
-
-    this.s3Service.putObject(
-      this.GOOGLE_SUNROOF_BUCKET,
-      `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/applied-apply-other-losses.json`,
+      }/${systemDesign._id.toString()}/hourly-production/applied-wiring-connection-and-other-losses`,
       JSON.stringify(appliedOtherLosses8760ProductionByArray),
       'application/json',
     );
@@ -1869,6 +1890,7 @@ export class SystemDesignService {
       hourlySeriesForExistingPV: hourlySeriesForExistingPVInWh,
       hourlySeriesForNewPV: hourlySeriesForNewPVInWh,
       postInstallMasterTariffId: utility.costData.postInstallMasterTariffId,
+      zipCode: utility.utilityData.typicalBaselineUsage.zipCode,
       batterySystemSpecs: {
         totalRatingInKW: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowatts || 0),
         totalCapacityInKWh: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowattHours || 0),

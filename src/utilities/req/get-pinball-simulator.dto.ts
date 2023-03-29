@@ -61,13 +61,13 @@ export class GetPinballSimulatorDto {
   @IsOptional()
   @IsNumber()
   year?: number;
+
+  @IsNumber()
+  zipCode: number;
 }
 
 export class GetPinballSimulatorAndCostPostInstallationDto extends GetPinballSimulatorDto {
   @Type(() => Date)
   @IsDate()
   startDate: Date;
-
-  @IsNumber()
-  zipCode: number;
 }

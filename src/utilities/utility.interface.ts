@@ -1,4 +1,5 @@
 export interface IPinballRateAmount {
   rate: number;
-  charge: boolean;
+  shouldCharge: boolean;
+  shouldDischarge: boolean;
 }
