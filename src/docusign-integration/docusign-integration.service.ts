@@ -78,6 +78,11 @@ export class DocusignIntegrationService implements OnModuleInit {
       });
 
       await newDocusignIntegration.save();
+    } else {
+      foundDocusignIntegration.clientId = data.clientId;
+      foundDocusignIntegration.userId = data.userId;
+      foundDocusignIntegration.rsaPrivateKey = data.rsaPrivateKey;
+      await foundDocusignIntegration.save();
     }
   }
 
