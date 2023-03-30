@@ -31,6 +31,7 @@ const PreCheckValidAuthConfig = (): MethodDecorator => (
 ) => {
   const originalMethod = descriptor.value;
   descriptor.value = async function (...args: any[]) {
+    let isInitAuthConfig = false;
     if (!this._jwtAuthConfig || !this._jwtAuthConfig.accessToken) {
       const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegration();
 
@@ -38,11 +39,12 @@ const PreCheckValidAuthConfig = (): MethodDecorator => (
         throw ApplicationException.InvalidDocusignIntegrationConfig();
       }
       this._jwtAuthConfig = docusignIntegration;
+      isInitAuthConfig = true;
     }
     const isGetNewAccessToken = await this.getNewAccessTokenIfExpired();
 
-    // re-run setAuthConfig if get new access token
-    if (isGetNewAccessToken) await this.setAuthConfig();
+    // re-run setAuthConfig if get new access token or when init _jwtAuthConfig
+    if (isInitAuthConfig || isGetNewAccessToken) await this.setAuthConfig();
 
     return originalMethod.apply(this, args);
   };
