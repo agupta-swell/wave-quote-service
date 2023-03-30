@@ -54,6 +54,7 @@ import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { UserModule } from 'src/users/user.module';
 import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
+import { DocusignIntegrationModule } from 'src/docusign-integration/docusign-integration.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()
@@ -137,6 +138,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     ProductionDeratesModule,
     ToolTipModule,
     MountTypesModule,
+    DocusignIntegrationModule,
   ],
 })
 export class AppModule {}

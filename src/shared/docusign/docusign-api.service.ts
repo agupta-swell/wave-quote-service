@@ -7,6 +7,10 @@ import { IDocusignCompositeContract } from 'src/docusign-communications/typing';
 import { ApplicationException } from 'src/app/app.exception';
 import { randomBytes } from 'crypto';
 import { EnvelopeSummary } from 'docusign-esign';
+import { DocusignIntegrationService } from 'src/docusign-integration/docusign-integration.service';
+import { DocusignIntegrationDocument } from 'src/docusign-integration/docusign-integration.schema';
+import { JWT_EXPIRES_IN, SCOPES } from 'src/docusign-integration/constants';
+import { LeanDocument } from 'mongoose';
 import { SecretManagerService } from '../aws/services/secret-manager.service';
 import { InjectDocusignContext } from './decorators/inject-docusign-context';
 import { docusignMetaStorage } from './decorators/meta-storage';
@@ -20,19 +24,42 @@ import { IDocusignAwsSecretPayload } from './interfaces/IDocusignAwsSecretPayloa
 import { MultipartStreamBuilder } from '../multipart-builder';
 import { KEYS } from './constants';
 
+const PreCheckValidAuthConfig = (): MethodDecorator => (
+  target: any,
+  propertyKey: string,
+  descriptor: PropertyDescriptor,
+) => {
+  const originalMethod = descriptor.value;
+  descriptor.value = async function (...args: any[]) {
+    let isInitAuthConfig = false;
+    if (!this._jwtAuthConfig || !this._jwtAuthConfig.accessToken) {
+      const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegration();
+
+      if (!docusignIntegration || !docusignIntegration.accessToken) {
+        throw ApplicationException.InvalidDocusignIntegrationConfig();
+      }
+      this._jwtAuthConfig = docusignIntegration;
+      isInitAuthConfig = true;
+    }
+    const isGetNewAccessToken = await this.getNewAccessTokenIfExpired();
+
+    // re-run setAuthConfig if get new access token or when init _jwtAuthConfig
+    if (isInitAuthConfig || isGetNewAccessToken) await this.setAuthConfig();
+
+    return originalMethod.apply(this, args);
+  };
+  return descriptor;
+};
+
 @Injectable()
 export class DocusignApiService<Context> implements OnModuleInit {
   private apiClient: docusign.ApiClient;
-
-  private authApi: docusign.AuthenticationApi;
 
   private envelopeApi: docusign.EnvelopesApi;
 
   private accountId: string;
 
   private readonly secretName: string;
-
-  private _creds: string;
 
   private _defaultContractor: IDefaultContractor;
 
@@ -42,12 +69,15 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
   private _headers: Record<string, string>;
 
+  private _jwtAuthConfig: LeanDocument<DocusignIntegrationDocument>;
+
   constructor(
     private readonly secretManagerService: SecretManagerService,
     @InjectDocusignContext()
     private readonly contextStore: IDocusignContextStore,
     @Inject(KEYS.PAGE_NUMBER_FORMATTER)
     private readonly pageNumberFormatter: IPageNumberFormatter,
+    private readonly docusignIntegrationService: DocusignIntegrationService,
   ) {
     if (!process.env.DOCUSIGN_SECRET_NAME) {
       throw new Error('Missing DOCUSIGN_SECRET_NAME');
@@ -78,19 +108,89 @@ export class DocusignApiService<Context> implements OnModuleInit {
       oAuthBasePath: null as any,
     });
 
-    const creds = JSON.stringify({
-      Username: parsedSecret.docusign.email,
-      Password: parsedSecret.docusign.password,
-      IntegratorKey: parsedSecret.docusign.integratorKey,
-    });
+    const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegration();
 
-    this._creds = creds;
+    if (docusignIntegration && docusignIntegration.accessToken) {
+      this._jwtAuthConfig = docusignIntegration;
 
-    this.apiClient.addDefaultHeader('X-DocuSign-Authentication', creds);
+      await this.getNewAccessTokenIfExpired();
 
-    await this.initAuth();
+      // setAuthConfig on init
+      await this.setAuthConfig();
+    }
   }
 
+  async getNewAccessTokenIfExpired(): Promise<boolean> {
+    const checkTime = new Date().getTime();
+
+    if (checkTime > this._jwtAuthConfig.expiresAt.getTime()) {
+      const { userId, clientId, rsaPrivateKey } = this._jwtAuthConfig;
+
+      try {
+        const results = await this.apiClient.requestJWTUserToken(
+          clientId,
+          userId,
+          SCOPES,
+          Buffer.from(rsaPrivateKey),
+          JWT_EXPIRES_IN,
+        );
+
+        // The access token granted by JWT Grant expires after one hour,
+        // see document: https://developers.docusign.com/platform/auth/jwt/jwt-get-token/,
+        // section Token expiration and best practices
+        // should get a new access token about 15 minutes before their existing one expires
+        const expiresAt = new Date(Date.now() + (results.body.expires_in - 15 * 60) * 1000);
+
+        const docusignIntegration = await this.docusignIntegrationService.updateAccessToken(
+          this._jwtAuthConfig._id,
+          results.body.access_token,
+          expiresAt,
+        );
+
+        this._jwtAuthConfig = docusignIntegration;
+
+        return true;
+      } catch (error) {
+        throw new DocusignException(error, error.response?.text);
+      }
+    }
+
+    return false;
+  }
+
+  async setAuthConfig(): Promise<void> {
+    try {
+      this.apiClient.addDefaultHeader('Authorization', `Bearer ${this._jwtAuthConfig.accessToken}`);
+      // get user info
+      const userInfo = await this.apiClient.getUserInfo(this._jwtAuthConfig.accessToken);
+
+      const { accounts } = userInfo;
+
+      if (!accounts || !accounts.length) {
+        throw new Error('Could not login into docusign');
+      }
+
+      const account = accounts[0];
+
+      this.accountId = account.accountId || '';
+
+      const baseUrl = account.baseUri || '';
+
+      this._baseUrl = new URL(`${baseUrl}/restapi/v2.1/accounts/${this.accountId}`);
+
+      this.apiClient.setBasePath(`${baseUrl}/restapi`);
+
+      this.envelopeApi = new docusign.EnvelopesApi(this.apiClient);
+
+      this._headers = {
+        Authorization: `Bearer ${this._jwtAuthConfig.accessToken}`,
+      };
+    } catch (error) {
+      throw new DocusignException(error, error.response?.text);
+    }
+  }
+
+  @PreCheckValidAuthConfig()
   public async sendContract(
     createContractPayload: IDocusignCompositeContract,
     pageFrom: string,
@@ -156,6 +256,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return this;
   }
 
+  @PreCheckValidAuthConfig()
   public getEnvelopeDocumentById(envelopeId: string, showChanges: boolean): Promise<IncomingMessage> {
     return new Promise((resolve, reject) => {
       https.get(
@@ -179,6 +280,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return this.updateEnvelope(envelopeId, { status: 'sent' }, 'Send contract from draft');
   }
 
+  @PreCheckValidAuthConfig()
   public async resendEnvelop(envelopedId: string): Promise<TResendEnvelopeStatus> {
     try {
       const res = await this.envelopeApi.update(this.accountId, envelopedId, {
@@ -202,6 +304,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
+  @PreCheckValidAuthConfig()
   public sendWetSignedContract(
     document: NodeJS.ReadableStream,
     originFilename: string,
@@ -352,6 +455,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
+  @PreCheckValidAuthConfig()
   private getDocumentTabs(envelopeId: string, docId: string): Promise<ICompiledTemplate.DocTabs> {
     return new Promise((resolve, reject) => {
       https.get(
@@ -398,6 +502,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return result;
   }
 
+  @PreCheckValidAuthConfig()
   private populatePrefillTabs(
     envelopeId: string,
     docId: string,
@@ -451,43 +556,6 @@ export class DocusignApiService<Context> implements OnModuleInit {
     });
   }
 
-  private async initAuth(): Promise<ILoginAccountWithMeta> {
-    this.authApi = new docusign.AuthenticationApi(this.apiClient);
-
-    const res = await this.authApi.login({ apiPassword: 'true', includeAccountIdGuid: 'true' });
-
-    const { loginAccounts } = res;
-
-    if (!loginAccounts || !loginAccounts.length) {
-      throw new Error('Could not login into docusign');
-    }
-
-    const loginAccount = loginAccounts[0];
-
-    this.accountId = loginAccount.accountId || '';
-
-    const baseUrl = loginAccount.baseUrl || '';
-
-    this._baseUrl = new URL(baseUrl);
-
-    const accountDomain = baseUrl.split('/v2');
-
-    this.apiClient.setBasePath(accountDomain[0]);
-
-    this.envelopeApi = new docusign.EnvelopesApi(this.apiClient);
-
-    this._headers = {
-      'X-DocuSign-Authentication': this._creds,
-    };
-
-    return (
-      loginAccount && {
-        ...loginAccount,
-        headers: this._headers,
-      }
-    );
-  }
-
   private async populatePageNumber(pageFrom: string): Promise<void> {
     const ctx = this.contextStore.get<Context>();
 
@@ -538,6 +606,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
+  @PreCheckValidAuthConfig()
   private async getTemplatePagesCount(templateId: string): Promise<number> {
     return new Promise((resolve, reject) => {
       const ctx = this.contextStore.get<Context>();
@@ -600,6 +669,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     });
   }
 
+  @PreCheckValidAuthConfig()
   private updateEnvelope(envelopeId: string, payload: Record<string, unknown>, errorTitle: string): Promise<any> {
     return new Promise((resolve, reject) => {
       https
