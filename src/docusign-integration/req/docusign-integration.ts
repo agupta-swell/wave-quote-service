@@ -13,4 +13,8 @@ export class DocusignIntegrationReqDto {
   @ApiProperty()
   @IsString()
   rsaPrivateKey: string;
+
+  @ApiProperty()
+  @IsString()
+  redirectUri: string;
 }

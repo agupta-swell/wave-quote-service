@@ -82,6 +82,7 @@ export class DocusignIntegrationService implements OnModuleInit {
       foundDocusignIntegration.clientId = data.clientId;
       foundDocusignIntegration.userId = data.userId;
       foundDocusignIntegration.rsaPrivateKey = data.rsaPrivateKey;
+      foundDocusignIntegration.redirectUri = data.redirectUri;
       await foundDocusignIntegration.save();
     }
   }
