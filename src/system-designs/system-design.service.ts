@@ -49,6 +49,7 @@ import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { getCenterBound } from 'src/utils/calculate-coordinates';
 import { buildMonthlyAndAnnualDataFrom8760, buildMonthlyHourFrom8760 } from 'src/utils/transformData';
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
+import { roundNumber } from 'src/utils/transformNumber';
 import { v4 as uuidv4 } from 'uuid';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE, PRESIGNED_GET_URL_EXPIRE_IN } from './constants';
@@ -64,9 +65,11 @@ import { RoofTopImageReqDto } from './req/sub-dto/roof-top-image.dto';
 import {
   CalculateSunroofOrientationResDto,
   CalculateSunroofProductionResDto,
+  CalculateSystemActualProductionResDto,
   GetArrayOverlaySignedUrlResDto,
   GetBoundingBoxesResDto,
   GetHeatmapSignedUrlsResDto,
+  ProductionDeratesDesignSystemDto,
   SystemDesignAncillaryMasterDto,
   SystemDesignDto,
 } from './res';
@@ -75,11 +78,12 @@ import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
 import { ISystemProduction, SunroofHourlyProductionCalculation, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
+  SYSTEM_DESIGN,
   SystemDesign,
   SystemDesignModel,
   SystemDesignWithManufacturerMeta,
-  SYSTEM_DESIGN,
 } from './system-design.schema';
+import { IProductionDeratesData } from './typing';
 
 @Injectable()
 export class SystemDesignService {
@@ -1630,7 +1634,9 @@ export class SystemDesignService {
    * @param systemDesign
    * @returns Cumulative by hourly generation of all arrays - number[8760]
    */
-  public async calculateSystemActualProduction(systemDesign: LeanDocument<SystemDesign>): Promise<number[]> {
+  public async calculateSystemActualProduction(
+    systemDesign: LeanDocument<SystemDesign>,
+  ): Promise<CalculateSystemActualProductionResDto> {
     const [systemPVWattProduction, sunroofProduction, systemProduction, utilityAndUsage] = await Promise.all([
       this.systemProductService.calculateSystemProductionByHour(systemDesign),
       this.googleSunroofService.calculateProduction(systemDesign),
@@ -1803,7 +1809,7 @@ export class SystemDesignService {
       sum(appliedOtherLosses8760ProductionByArray.map(x => x[hourIdx])),
     );
 
-    await this.s3Service.putObject(
+    this.s3Service.putObject(
       this.GOOGLE_SUNROOF_BUCKET,
       `${
         systemDesign.opportunityId
@@ -1812,7 +1818,14 @@ export class SystemDesignService {
       'application/json',
     );
 
-    return systemActualProduction8760;
+    return {
+      scaled8760ProductionByArray,
+      appliedSoilingDerate8760ProductionByArray,
+      appliedSnowDerate8760ProductionByArray,
+      appliedInverterClipping8760ProductionByArray,
+      appliedInverterEfficiency8760ProductionByArray,
+      systemActualProduction8760,
+    };
   }
 
   public async getSystemActualProduction(systemDesignId: ObjectId | string): Promise<number[]> {
@@ -1847,7 +1860,7 @@ export class SystemDesignService {
     // check if Geotiff is not exist
     if (!isExistedGeotiff) return noneSolarProduction8760;
 
-    const systemActualProduction8760: number[] = await this.calculateSystemActualProduction(foundSystemDesign);
+    const { systemActualProduction8760 } = await this.calculateSystemActualProduction(foundSystemDesign);
 
     return systemActualProduction8760;
   }
@@ -1993,6 +2006,271 @@ export class SystemDesignService {
         ...systemDesignUpdated,
         systemProductionData: systemProduction.data,
         imageURL,
+      }),
+    );
+  }
+
+  async getProductionDeratesDesignSystemDetail(
+    systemDesignId: string,
+  ): Promise<OperationResult<ProductionDeratesDesignSystemDto>> {
+    const systemDesign = await this.systemDesignModel.findById(systemDesignId).lean();
+
+    if (!systemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId);
+    }
+
+    let cachedDataFromS3: any;
+
+    try {
+      cachedDataFromS3 = await Promise.all(
+        [
+          'scaled-pvwatt-to-sunroof-productio.json',
+          'applied-soiling-derate.json',
+          'applied-snow-derate.json',
+          'applied-inverter-clipping.json',
+          'applied-inverter-efficiency.json',
+        ].map(item =>
+          this.s3Service.getObject(
+            this.GOOGLE_SUNROOF_BUCKET,
+            `${systemDesign.opportunityId}/${systemDesign._id.toString()}/hourly-production/${item}`,
+          ),
+        ),
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    let rawAnnualProductionArray: number[][];
+    let soilingLossesArray: number[][];
+    let snowLossesArray: number[][];
+    let inverterRatingClippingArray: number[][];
+    let dcAcConversionLossesArray: number[][];
+
+    if (!cachedDataFromS3) {
+      const actualProducion = await this.calculateSystemActualProduction(systemDesign);
+
+      rawAnnualProductionArray = actualProducion.scaled8760ProductionByArray;
+      soilingLossesArray = actualProducion.appliedSoilingDerate8760ProductionByArray;
+      snowLossesArray = actualProducion.appliedSnowDerate8760ProductionByArray;
+      inverterRatingClippingArray = actualProducion.appliedInverterClipping8760ProductionByArray;
+      dcAcConversionLossesArray = actualProducion.appliedInverterEfficiency8760ProductionByArray;
+    } else {
+      const [
+        rawAnnualProductionData,
+        soilingLossesData,
+        snowLossesData,
+        inverterRatingClippingData,
+        dcAcConversionLossesData,
+      ] = cachedDataFromS3.map(item => JSON.parse(item));
+
+      rawAnnualProductionArray = rawAnnualProductionData;
+      soilingLossesArray = soilingLossesData;
+      snowLossesArray = snowLossesData;
+      inverterRatingClippingArray = inverterRatingClippingData;
+      dcAcConversionLossesArray = dcAcConversionLossesData;
+    }
+
+    // Modules
+    const modules = {
+      value: systemDesign.roofTopDesignData?.panelArray[0]?.panelModelDataSnapshot?.name,
+      array: systemDesign.roofTopDesignData?.panelArray.map(item => item.numberOfPanels),
+      system: systemDesign.roofTopDesignData?.panelArray.reduce((sum, panel) => sum + panel?.numberOfPanels || 0, 0),
+    };
+
+    // STC Rating
+    const arrayStcRating = systemDesign?.roofTopDesignData?.panelArray.map(
+      item => (item.panelModelDataSnapshot.ratings.watts * item.numberOfPanels) / 1000,
+    );
+    const ratingWatts = systemDesign.roofTopDesignData?.panelArray[0]?.panelModelDataSnapshot?.ratings.watts;
+    const stcRating = {
+      value: ratingWatts,
+      array: arrayStcRating,
+      system: arrayStcRating?.reduce((total, currentValue) => total + currentValue, 0),
+    };
+    const arrayPtcRating = systemDesign.roofTopDesignData?.panelArray.map(item =>
+      Math.round((item.panelModelDataSnapshot.ratings.wattsPtc * item.numberOfPanels) / 1000),
+    );
+
+    // PTC Rating
+    const ratingWattsPtc = systemDesign.roofTopDesignData?.panelArray[0]?.panelModelDataSnapshot?.ratings.wattsPtc;
+    const ptcRating = {
+      value: ratingWattsPtc,
+      subValue: Math.round(((ratingWattsPtc - ratingWatts) * 100) / ratingWatts),
+      array: arrayPtcRating,
+      system: arrayPtcRating?.reduce((total, currentValue) => total + currentValue, 0),
+    };
+
+    // Raw Annual Production
+    const rawAnnualProductionSumArray = rawAnnualProductionArray?.map(item =>
+      Math.round(item.reduce((acc, curr) => acc + curr, 0)),
+    );
+    const rawAnnualProductionSystem = rawAnnualProductionSumArray.reduce(
+      (total, currentValue) => total + currentValue,
+      0,
+    );
+    const rawAnnualProduction = {
+      array: rawAnnualProductionSumArray,
+      system: rawAnnualProductionSystem,
+      netProduction: rawAnnualProductionSystem,
+    };
+
+    // Raw Annual Productivity
+    const rawArrayAnnualProductivity = rawAnnualProductionSumArray.map((item, index) =>
+      Math.round(item / arrayPtcRating[index]),
+    );
+    const rawAnnualProductivity = {
+      array: rawArrayAnnualProductivity,
+      system: Math.round(rawAnnualProduction.system / ptcRating.system),
+    };
+
+    // First Year Degradation
+    const firstYearDegradationValue = roundNumber(
+      systemDesign.roofTopDesignData.panelArray[0].panelModelDataSnapshot.firstYearDegradation,
+      2,
+    );
+    const firstYearDegradationArray = this.applyDerate(rawAnnualProductionSumArray, firstYearDegradationValue / 100);
+    const firstYearDegradationSystem = Math.round((rawAnnualProduction.system * firstYearDegradationValue) / 100);
+    const firstYearDegradation = {
+      value: firstYearDegradationValue,
+      array: firstYearDegradationArray,
+      system: firstYearDegradationSystem,
+      netProduction: rawAnnualProduction.system - firstYearDegradationSystem,
+    };
+
+    // Mount Type Derating
+    const allMountTypes = await this.mountTypesService.findAllMountTypes();
+    const {
+      roofTopDesignData: { panelArray },
+    } = systemDesign;
+
+    let mountTypeDerating: IProductionDeratesData = {};
+    const mountTypeDeratingArray = await Promise.all(
+      panelArray.map(async (item, index) => {
+        const mountTypesData = allMountTypes.find(mountType => mountType._id.toString() === item.mountTypeId);
+        return {
+          name: mountTypesData?.name || 'Unknown',
+          derateNumber:
+            Math.round(
+              ((rawAnnualProductionSumArray[index] - firstYearDegradationArray[index]) *
+                Number(mountTypesData?.deratePercentage)) /
+                100,
+            ) || 0,
+          percent: mountTypesData?.deratePercentage || 0,
+        };
+      }),
+    );
+
+    const mountTypeDeratingSystem = mountTypeDeratingArray.reduce(
+      (total, currentValue) => total + currentValue?.derateNumber,
+      0,
+    );
+    mountTypeDerating = {
+      array: mountTypeDeratingArray,
+      system: mountTypeDeratingSystem,
+      netProduction: firstYearDegradation.netProduction - mountTypeDeratingSystem,
+    };
+
+    // Soiling Losses
+    const { data: systemProduction } = await this.systemProductionService.findById(systemDesign.systemProductionId);
+    const derateSnapshot = systemProduction?.derateSnapshot;
+    const soilingLossesNetProduction = Math.round(soilingLossesArray.flat().reduce((acc, curr) => acc + curr, 0));
+    const soilingLosses = {
+      value: derateSnapshot?.soilingLosses.regionDescription,
+      subValue: derateSnapshot?.soilingLosses.amounts,
+      system: mountTypeDerating.netProduction
+        ? Math.abs(soilingLossesNetProduction - mountTypeDerating.netProduction ?? 0)
+        : null,
+      netProduction: soilingLossesNetProduction,
+    };
+
+    // Snow Losses
+    const snowLossesNetProduction = Math.round(snowLossesArray.flat().reduce((acc, curr) => acc + curr, 0));
+    const snowLosses = {
+      value: derateSnapshot?.snowLosses.regionDescription || '',
+      subValue: derateSnapshot?.snowLosses.amounts,
+      system: Math.abs(snowLossesNetProduction - soilingLosses.netProduction),
+      netProduction: snowLossesNetProduction,
+    };
+
+    // Inverter Rating Clipping
+    const inverterRatingClippingNetProduction = Math.round(
+      inverterRatingClippingArray?.flat().reduce((acc, curr) => acc + curr, 0),
+    );
+    const inverters = systemDesign.roofTopDesignData.inverters?.[0];
+    const clippingSystemValue = Math.abs(inverterRatingClippingNetProduction - snowLossesNetProduction);
+    const inverterRatingClipping = {
+      value: inverters?.inverterModelDataSnapshot ? inverters?.inverterModelDataSnapshot.ratings.watts : '',
+      system: {
+        value: clippingSystemValue,
+        percent: roundNumber((clippingSystemValue * 100) / snowLossesNetProduction),
+      },
+      netProduction: inverterRatingClippingNetProduction,
+    };
+
+    // DC/AC Conversion Losses
+    const dcAcConversionLossesNetProduction = Math.round(
+      dcAcConversionLossesArray?.flat().reduce((acc, curr) => acc + curr, 0),
+    );
+    const dcAcConversionLosses = {
+      value: inverters?.inverterModelDataSnapshot?.inverterEfficiency
+        ? roundNumber(100 - inverters?.inverterModelDataSnapshot?.inverterEfficiency)
+        : 100,
+      system: Math.abs(dcAcConversionLossesNetProduction - inverterRatingClippingNetProduction),
+      netProduction: dcAcConversionLossesNetProduction,
+    };
+
+    // Wiring Losses | Connection Losses | All Other Losses | Annual Production
+    let wiringLosses: IProductionDeratesData = {};
+    let connectionLosses: IProductionDeratesData = {};
+    let allOtherLosses: IProductionDeratesData = {};
+    let annualProduction: IProductionDeratesData = {};
+    if (derateSnapshot) {
+      const wiringLossesNetProduction = Math.round(
+        (1 - derateSnapshot.wiringLosses / 100) * dcAcConversionLosses.netProduction,
+      );
+      const connectionLossesNetProduction = Math.round(
+        (1 - derateSnapshot.connectionLosses / 100) * wiringLossesNetProduction,
+      );
+      const allOtherLossesNetProduction = Math.round(
+        (1 - derateSnapshot.allOtherLosses / 100) * connectionLossesNetProduction,
+      );
+      wiringLosses = {
+        value: derateSnapshot.wiringLosses,
+        system: Math.round((derateSnapshot.wiringLosses / 100) * dcAcConversionLossesNetProduction),
+        netProduction: wiringLossesNetProduction,
+      };
+      connectionLosses = {
+        value: derateSnapshot.connectionLosses,
+        system: Math.round((derateSnapshot.connectionLosses / 100) * wiringLossesNetProduction),
+        netProduction: connectionLossesNetProduction,
+      };
+      allOtherLosses = {
+        value: derateSnapshot.allOtherLosses,
+        system: Math.round((derateSnapshot.allOtherLosses / 100) * connectionLossesNetProduction),
+        netProduction: allOtherLossesNetProduction,
+      };
+      annualProduction = {
+        netProduction: allOtherLossesNetProduction,
+      };
+    }
+
+    return OperationResult.ok(
+      strictPlainToClass(ProductionDeratesDesignSystemDto, {
+        modules,
+        stcRating,
+        ptcRating,
+        rawAnnualProductivity,
+        rawAnnualProduction,
+        firstYearDegradation,
+        mountTypeDerating,
+        soilingLosses,
+        snowLosses,
+        inverterRatingClipping,
+        dcAcConversionLosses,
+        wiringLosses,
+        allOtherLosses,
+        connectionLosses,
+        annualProduction,
       }),
     );
   }

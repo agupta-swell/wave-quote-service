@@ -251,7 +251,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   }
 
   private async regenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): Promise<void> {
-    const production8760 = await this.systemDesignService.calculateSystemActualProduction(systemDesign);
+    const {systemActualProduction8760: production8760} = await this.systemDesignService.calculateSystemActualProduction(systemDesign);
 
     const [systemProduction] = await Promise.all([
       this.systemProductionService.findOne(systemDesign.systemProductionId),

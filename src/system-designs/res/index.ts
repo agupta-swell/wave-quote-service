@@ -6,3 +6,4 @@ export * from './get-sunroof-bounding-boxes-res.dto';
 export * from './get-heatmap-signed-urls-res.dto';
 export * from './get-array-overlay-signed-url-res.dto';
 export * from './calculate-sunroof-production-res.dto';
+export * from './get-production-derate-res.dto';

@@ -22,6 +22,7 @@ import {
   GetArrayOverlaySignedUrlResDto,
   GetBoundingBoxesResDto,
   GetHeatmapSignedUrlsResDto,
+  ProductionDeratesDesignSystemDto,
   SystemDesignAncillaryMasterDto,
   SystemDesignAncillaryMasterListRes,
   SystemDesignDto,
@@ -218,5 +219,15 @@ export class SystemDesignController {
   ): Promise<ServiceResponse<SystemDesignDto>> {
     const result = await this.systemDesignService.updateRoofTopImage(id, rooftopImage);
     return ServiceResponse.fromResult(result);
+  }
+
+  @Get(':id/production-derate')
+  @ApiOperation({ summary: 'Get Production Derate By System Design Id' })
+  @ApiOkResponse({ type: ProductionDeratesDesignSystemDto })
+  async getProductionDerates(
+    @Param('id') id: string,
+  ): Promise<ServiceResponse<ProductionDeratesDesignSystemDto>> {
+    const res = await this.systemDesignService.getProductionDeratesDesignSystemDetail(id);
+    return ServiceResponse.fromResult(res);
   }
 }
