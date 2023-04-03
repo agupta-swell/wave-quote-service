@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/node:16 as builder
+FROM public.ecr.aws/docker/library/node:18.15.0 as builder
 RUN mkdir -p /home/node/app
 WORKDIR /home/node/app
 COPY . .
