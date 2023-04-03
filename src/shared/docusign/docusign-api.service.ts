@@ -112,11 +112,14 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
     if (docusignIntegration && docusignIntegration.accessToken) {
       this._jwtAuthConfig = docusignIntegration;
+      try {
+        await this.getNewAccessTokenIfExpired();
 
-      await this.getNewAccessTokenIfExpired();
-
-      // setAuthConfig on init
-      await this.setAuthConfig();
+        // setAuthConfig on init
+        await this.setAuthConfig();
+      } catch (e) {
+        console.error('onModuleInit Docusign Integration Error: ', e.message);
+      }
     }
   }
 
