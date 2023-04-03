@@ -1,7 +1,7 @@
 /* eslint-disable no-plusplus */
 import * as https from 'https';
 import { IncomingMessage } from 'http';
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import * as docusign from 'docusign-esign';
 import { IDocusignCompositeContract } from 'src/docusign-communications/typing';
 import { ApplicationException } from 'src/app/app.exception';
@@ -16,7 +16,6 @@ import { InjectDocusignContext } from './decorators/inject-docusign-context';
 import { docusignMetaStorage } from './decorators/meta-storage';
 import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
 import { IDocusignContextStore, IRecipient, TResendEnvelopeStatus } from './interfaces';
-import { ILoginAccountWithMeta } from './interfaces/ILoginAccountWithMeta';
 import { DocusignException } from './docusign.exception';
 import { IDefaultContractor } from './interfaces/IDefaultContractor';
 import { IPageNumberFormatter } from './interfaces/IPageNumberFormatter';
@@ -41,10 +40,9 @@ const PreCheckValidAuthConfig = (): MethodDecorator => (
       this._jwtAuthConfig = docusignIntegration;
       isInitAuthConfig = true;
     }
-    const isGetNewAccessToken = await this.getNewAccessTokenIfExpired();
+    await this.getNewAccessTokenIfExpired();
 
-    // re-run setAuthConfig if get new access token or when init _jwtAuthConfig
-    if (isInitAuthConfig || isGetNewAccessToken) await this.setAuthConfig();
+    if (isInitAuthConfig) await this.setAuthConfig();
 
     return originalMethod.apply(this, args);
   };
@@ -77,6 +75,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     private readonly contextStore: IDocusignContextStore,
     @Inject(KEYS.PAGE_NUMBER_FORMATTER)
     private readonly pageNumberFormatter: IPageNumberFormatter,
+    @Inject(forwardRef(() => DocusignIntegrationService))
     private readonly docusignIntegrationService: DocusignIntegrationService,
   ) {
     if (!process.env.DOCUSIGN_SECRET_NAME) {
@@ -123,6 +122,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
+  public async updateJwtAuthConfig(newJwtAuthConfig: LeanDocument<DocusignIntegrationDocument>): Promise<void> {
+    this._jwtAuthConfig = newJwtAuthConfig;
+    await this.setAuthConfig();
+  }
+
   async getNewAccessTokenIfExpired(): Promise<boolean> {
     const checkTime = new Date().getTime();
 
@@ -144,13 +148,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
         // should get a new access token about 15 minutes before their existing one expires
         const expiresAt = new Date(Date.now() + (results.body.expires_in - 15 * 60) * 1000);
 
-        const docusignIntegration = await this.docusignIntegrationService.updateAccessToken(
+        await this.docusignIntegrationService.updateAccessToken(
           this._jwtAuthConfig._id,
           results.body.access_token,
           expiresAt,
         );
-
-        this._jwtAuthConfig = docusignIntegration;
 
         return true;
       } catch (error) {

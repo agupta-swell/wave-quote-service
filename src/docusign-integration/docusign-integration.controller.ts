@@ -13,14 +13,14 @@ export class DocusignIntegrationController {
   @Get()
   @ApiOperation({ summary: 'Get Docusign JWT Information' })
   @ApiOkResponse({ type: DocusignIntegrationResDto })
-  async getDocusignJWTInformation(): Promise<ServiceResponse<DocusignIntegrationResDto>> {
+  async getOneDocusignIntegration(): Promise<ServiceResponse<DocusignIntegrationResDto>> {
     const result = await this.docusignIntegrationService.getOneDocusignIntegration();
     return ServiceResponse.fromResult(result);
   }
 
   @Post('/add-docusign-integration')
   @ApiOperation({ summary: 'Post Docusign JWT Information' })
-  async addDocusignJWTInformation(@Body() data: DocusignIntegrationReqDto): Promise<void> {
+  async addDocusignIntegration(@Body() data: DocusignIntegrationReqDto): Promise<void> {
     await this.docusignIntegrationService.addDocusignIntegration(data);
   }
 
