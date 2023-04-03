@@ -712,7 +712,7 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
-    if (!systemDesign.roofTopDesignData.panelArray.length) { 
+    if (!systemDesign.roofTopDesignData.panelArray.length) {
       throw ApplicationException.UnprocessableEntity('Can not recalculate quote from empty system design');
     }
 
@@ -759,6 +759,11 @@ export class QuoteService {
       financialProduct: financialProductSnapshot,
       fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
       userInputs: foundQuote.detailedQuote.quoteCostBuildup,
+      discountsPromotionsAndIncentives: {
+        discounts: foundQuote.detailedQuote.quoteFinanceProduct.projectDiscountDetails,
+        promotions: foundQuote.detailedQuote.quoteFinanceProduct.promotionDetails,
+        incentives: foundQuote.detailedQuote.quoteFinanceProduct.incentiveDetails,
+      },
     });
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
