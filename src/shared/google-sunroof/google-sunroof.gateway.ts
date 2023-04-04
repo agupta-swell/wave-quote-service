@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
+import { EHttpMethod, EVendor } from '../api-metrics/api-metrics.schema';
+import { ApiMetricsService } from '../api-metrics/api-metrics.service';
 import { GoogleSunroofGatewayAxiosException } from './exceptions';
 import type { GoogleSunroof } from './types';
 
@@ -18,7 +20,7 @@ const SOLAR_INFO_GET = 'solarInfo:get';
 export class GoogleSunroofGateway {
   private readonly client: AxiosInstance;
 
-  constructor() {
+  constructor(private readonly apiMetricsService: ApiMetricsService) {
     const sunroofApiKey = process.env.GOOGLE_SUNROOF_API_KEY;
     if (!sunroofApiKey) throw new Error('Missing GOOGLE_SUNROOF_API_KEY environment variable');
 
@@ -51,14 +53,19 @@ export class GoogleSunroofGateway {
    * @param {number} longitude
    */
   public async findClosestBuilding(latitude: number, longitude: number): Promise<GoogleSunroof.Building> {
-    const { data } = await this.client.request<GoogleSunroof.Building>({
-      method: 'GET',
-      url: BUILDINGS_FIND_CLOSEST,
-      params: {
-        'location.latitude': latitude,
-        'location.longitude': longitude,
+    const params: GoogleSunroof.IFindClosestBuildingParams = {
+      'location.latitude': latitude,
+      'location.longitude': longitude,
+    };
+
+    const data = await this.callGoogleSunroofAPI<GoogleSunroof.Building, GoogleSunroof.IFindClosestBuildingParams, any>(
+      {
+        url: BUILDINGS_FIND_CLOSEST,
+        method: EHttpMethod.GET,
+        params,
       },
-    });
+    );
+
     return data;
   }
 
@@ -77,15 +84,39 @@ export class GoogleSunroofGateway {
     longitude: number,
     radiusMeters: number,
   ): Promise<GoogleSunroof.SolarInfo> {
-    const { data } = await this.client.request<GoogleSunroof.SolarInfo>({
-      method: 'GET',
+    const params: GoogleSunroof.IGetSolarInfoParams = {
+      'location.latitude': latitude,
+      'location.longitude': longitude,
+      radiusMeters,
+    };
+
+    const data = await this.callGoogleSunroofAPI<GoogleSunroof.SolarInfo, GoogleSunroof.IGetSolarInfoParams, any>({
       url: SOLAR_INFO_GET,
-      params: {
-        'location.latitude': latitude,
-        'location.longitude': longitude,
-        radiusMeters,
-      },
+      method: EHttpMethod.GET,
+      params,
     });
+
+    return data;
+  }
+
+  async callGoogleSunroofAPI<T, U, K>(requestData: {
+    url: string;
+    method: EHttpMethod;
+    params?: U;
+    data?: K;
+  }): Promise<T> {
+    const { status, data } = await this.client.request<T>(requestData);
+
+    const route = `${GOOGLE_SUNROOF_BASE_URL}/${requestData.url}`;
+
+    if (status === HttpStatus.OK) {
+      await this.apiMetricsService.updateAPIMetrics({
+        vendor: EVendor.GOOGLE_SUNROOF,
+        method: requestData.method,
+        route,
+      });
+    }
+
     return data;
   }
 }

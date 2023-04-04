@@ -1,14 +1,12 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import axios, { AxiosRequestConfig } from 'axios';
-import * as dayjs from 'dayjs';
-import { Model } from 'mongoose';
 
 import { ApplicationException } from 'src/app/app.exception';
 import { MyLogger } from 'src/app/my-logger/my-logger.service';
+import { ApiMetricsService } from 'src/shared/api-metrics/api-metrics.service';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 
-import { EHttpMethod, EVendor, IV2APIMetrics, V2_API_METRICS } from '../schemas/v2-api-metrics.schema';
+import { EHttpMethod, EVendor } from 'src/shared/api-metrics/api-metrics.schema';
 import {
   IAxiosDataResponse,
   ICalculateCostPayload,
@@ -23,10 +21,7 @@ import {
 export class GenabilityService {
   private genabilityToken: string;
 
-  constructor(
-    @InjectModel(V2_API_METRICS) private readonly v2APIMetricsModel: Model<IV2APIMetrics>,
-    private readonly logger: MyLogger,
-  ) {
+  constructor(private readonly apiMetricsService: ApiMetricsService, private readonly logger: MyLogger) {
     this.genabilityToken = this.getGenabilityToken();
   }
 
@@ -130,16 +125,6 @@ export class GenabilityService {
     }
   }
 
-  async updateAPIMetrics({ vendor = EVendor.GENABILITY, method, route }): Promise<void> {
-    const month = dayjs().format('YYYY-MM');
-
-    await this.v2APIMetricsModel.findOneAndUpdate(
-      { vendor, method, route, month },
-      { $inc: { count: 1 } },
-      { upsert: true },
-    );
-  }
-
   async callAPI({
     route,
     url,
@@ -186,7 +171,7 @@ export class GenabilityService {
     }
 
     if (status === HttpStatus.OK) {
-      await this.updateAPIMetrics({ method, route });
+      await this.apiMetricsService.updateAPIMetrics({ vendor: EVendor.GENABILITY, method, route });
     }
 
     return data;
