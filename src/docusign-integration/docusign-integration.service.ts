@@ -1,13 +1,12 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId, Types } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from 'src/app/common';
 import * as docusign from 'docusign-esign';
 import { SecretManagerService } from 'src/shared/aws/services/secret-manager.service';
-import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { IDocusignAwsSecretPayload } from 'src/shared/docusign/interfaces/IDocusignAwsSecretPayload';
 import { ApplicationException } from 'src/app/app.exception';
-import { DocusignApiService } from 'src/shared/docusign';
 import { DOCUSIGN_INTEGRATION_NAME, SCOPES, JWT_EXPIRES_IN } from './constants';
 import { DocusignIntegrationDocument } from './docusign-integration.schema';
 import { DocusignIntegrationReqDto } from './req/docusign-integration';
@@ -22,8 +21,6 @@ export class DocusignIntegrationService implements OnModuleInit {
   constructor(
     private readonly secretManagerService: SecretManagerService,
     @InjectModel(DOCUSIGN_INTEGRATION_NAME) private docusignIntegrationModel: Model<DocusignIntegrationDocument>,
-    @Inject(forwardRef(() => DocusignApiService))
-    private readonly docusignApiService: DocusignApiService<any>,
   ) {
     if (!process.env.DOCUSIGN_SECRET_NAME) {
       throw new Error('Missing DOCUSIGN_SECRET_NAME');
@@ -67,8 +64,6 @@ export class DocusignIntegrationService implements OnModuleInit {
     res.accessToken = accessToken;
     res.expiresAt = expiresAt;
 
-    await this.docusignApiService.updateJwtAuthConfig(res);
-
     await res.save();
 
     return res;
@@ -84,16 +79,11 @@ export class DocusignIntegrationService implements OnModuleInit {
 
       await newDocusignIntegration.save();
     } else {
-      await this.docusignIntegrationModel.findOneAndUpdate(
-        { _id: foundDocusignIntegration._id },
-        {
-          $set: data,
-          $unset: {
-            expiresAt: '',
-            accessToken: '',
-          },
-        },
-      );
+      foundDocusignIntegration.clientId = data.clientId;
+      foundDocusignIntegration.userId = data.userId;
+      foundDocusignIntegration.rsaPrivateKey = data.rsaPrivateKey;
+      foundDocusignIntegration.redirectUri = data.redirectUri;
+      await foundDocusignIntegration.save();
     }
   }
 
