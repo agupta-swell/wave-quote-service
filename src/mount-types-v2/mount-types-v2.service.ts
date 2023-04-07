@@ -17,4 +17,9 @@ export class MountTypesService {
     const res = await this.mountTypesModel.find().lean();
     return res;
   }
+
+  async getDetails(id: string): Promise<LeanDocument<MountTypesDocument> | null> {
+    const res = await this.mountTypesModel.findById(id);
+    return res;
+  }
 }

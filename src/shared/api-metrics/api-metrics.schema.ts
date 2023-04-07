@@ -5,6 +5,7 @@ export const V2_API_METRICS = Symbol('V2_API_METRICS').toString();
 export enum EVendor {
   GENABILITY = 'GENABILITY',
   PVWATTS = 'PVWATTS',
+  GOOGLE_SUNROOF = 'GOOGLE_SUNROOF',
 }
 
 export enum EHttpMethod {

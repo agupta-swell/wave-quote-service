@@ -1,30 +1,28 @@
-
 export type Color = [red: number, green: number, blue: number, alpha?: number];
 
 export type Vector2 = [x: number, y: number];
 export type Pixel = Vector2;
-export type PixelPolygon = Pixel[]
+export type PixelPolygon = Pixel[];
 
 export type LatLng = {
-  lat: number,
-  lng: number,
-}
+  lat: number;
+  lng: number;
+};
 
-export type LatLngPolygon = LatLng[]
+export type LatLngPolygon = LatLng[];
 
 type Production = {
-  annualProduction: number,
-  monthlyProduction: number[],
-}
+  annualProduction: number;
+  monthlyProduction: number[];
+};
 
 export type ArrayProduction = Production & {
-  arrayId: string,
-}
+  arrayId: string;
+};
 
 export type SystemProduction = Production & {
-  byArray: ArrayProduction[],
-}
-
+  byArray: ArrayProduction[];
+};
 
 export interface IClosestBuildingKey {
   key: string;
@@ -68,6 +66,17 @@ export namespace GoogleSunroof {
     maskUrl: string;
     annualFluxUrl: string;
     monthlyFluxUrl: string;
+  }
+
+  export interface IFindClosestBuildingParams {
+    'location.latitude': number;
+    'location.longitude': number;
+  }
+
+  export interface IGetSolarInfoParams {
+    'location.latitude': number;
+    'location.longitude': number;
+    radiusMeters: number;
   }
 }
 
