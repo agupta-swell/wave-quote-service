@@ -16,6 +16,7 @@ import {
 } from 'src/products-v2/schemas';
 import { WithMetaOfType } from 'src/shared/mongo';
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
+import { CHARGING_LOGIC_TYPE } from 'src/utilities/constants';
 import { BATTERY_PURPOSE, DESIGN_MODE } from './constants';
 import { CapacityProductionDataDto, CreateSystemDesignDto, RoofTopDataReqDto } from './req';
 
@@ -468,6 +469,7 @@ export interface SystemDesign extends Document {
   existingSystem?: ExistingSystemDocument;
   pinballSimulatorId?: string;
   costCalculationInput?: ICostCalculationInput;
+  pinballChargingLogicType?: CHARGING_LOGIC_TYPE;
 }
 
 export type SystemDesignWithManufacturerMeta = WithMetaOfType<
@@ -524,6 +526,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   existing_system: ExistingSystemSchema,
   pinball_simulator_id: String,
   cost_calculation_input: CostCalculationInputSchema,
+  pinball_charging_logic_type: String,
 });
 
 export class SystemDesignModel {

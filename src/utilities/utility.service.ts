@@ -677,7 +677,7 @@ export class UtilityService implements OnModuleInit {
               plannedBatteryAC = -Math.min(Math.max(netLoadIn24Hours[i], -ratingInKW), ratingInKW);
             } else {
               // pvGeneration is just enough to cover hourlyPostInstallLoad
-              // no need to charge or discharge
+              // or not enough PV to cover the load, but remaining load should be covered by importing
               plannedBatteryAC = 0;
             }
 
@@ -755,98 +755,7 @@ export class UtilityService implements OnModuleInit {
     };
   }
 
-  async simulatePinball(data: GetPinballSimulatorDto): Promise<PinballSimulatorDto> {
-    const {
-      hourlyPostInstallLoad,
-      hourlySeriesForExistingPV,
-      hourlySeriesForNewPV,
-      postInstallMasterTariffId,
-      zipCode,
-      batterySystemSpecs,
-    } = data;
-
-    let filterTariffs: any[] = [];
-    if (batterySystemSpecs.operationMode === BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION) {
-      filterTariffs = await this.filterTariffs(postInstallMasterTariffId);
-    }
-
-    // generate 8760 charge or discharge the battery.
-    const rateAmountHourly: IPinballRateAmount[] = [];
-
-    const currentYear = data?.year ?? new Date().getFullYear();
-
-    // DST is second Sunday in March to the first Sunday in November of year
-    const secondSundayInMarch = dayjs(
-      new Date(currentYear, 3 - 1, firstSundayOfTheMonth(currentYear, 3) + 7),
-    ).dayOfYear();
-
-    const firstSundayInNovember = dayjs(
-      new Date(currentYear, 11 - 1, firstSundayOfTheMonth(currentYear, 11)),
-    ).dayOfYear();
-
-    const fromDST = (secondSundayInMarch - 1) * 24;
-
-    const toDST = (firstSundayInNovember - 1) * 24 + 1;
-
-    // Build rateAmountHourly
-    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
-      let totalRateAmountHourly = new BigNumber(0);
-
-      filterTariffs.forEach(filterTariff => {
-        const season = filterTariff.timeOfUse.season || filterTariff.season;
-        if (!season) return;
-
-        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = season;
-        const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
-
-        const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
-        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
-
-        const hourIndexWithDST = fromDST < hourIndex && hourIndex < toDST ? hourIndex + 1 : hourIndex;
-
-        const isValidSeason =
-          fromHourIndex < toHourIndex
-            ? inRange(hourIndexWithDST, fromHourIndex, toHourIndex)
-            : inRange(hourIndexWithDST, 0, toHourIndex) || inRange(hourIndexWithDST, fromHourIndex, 8760);
-
-        if (!isValidSeason) {
-          return;
-        }
-
-        const dayOfWeek = dayjs()
-          .dayOfYear(Math.floor(hourIndexWithDST / 24) + 1)
-          .day();
-
-        const hourInDay = hourIndexWithDST % 24;
-
-        let checkIsValidHourDay = false;
-
-        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
-          const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
-          const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
-            fromDayOfWeek,
-            toDayOfWeek,
-            dayOfWeek,
-            fromHour,
-            toHour,
-            hourInDay,
-          );
-          if (isValidHourDay) {
-            checkIsValidHourDay = true;
-            break;
-          }
-        }
-
-        if (!checkIsValidHourDay) return;
-
-        totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
-      });
-      rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), shouldCharge: false, shouldDischarge: false });
-    }
-
-    // get charging logic type
-    const chargingLogicType = await this.getChargingLogicType(postInstallMasterTariffId);
-
+  buildNEM2ChargingLogic = (rateAmountHourly: IPinballRateAmount[]): IPinballRateAmount[] => {
     // current/NEM2 charging logic
     // iterate through the hours of the year, jumping from period to period
     // a 'period' is 1 or more consecutive hours with the same cost of electricity
@@ -933,6 +842,139 @@ export class UtilityService implements OnModuleInit {
       firstHourOfThisPeriod = firstHourOfNextPeriod;
     }
 
+    return rateAmountHourly;
+  };
+
+  buildNEM3ChargingLogic = (
+    rateAmountHourlyForNEM2: IPinballRateAmount[],
+    hourlySeriesForNewPV: number[],
+    hourlyPostInstallLoad: number[],
+  ): IPinballRateAmount[] => {
+    // NEM3 charging logic
+    // re-use data from NEM2 charging logic
+    const rateAmountHourlyForNEM3 = cloneDeep(rateAmountHourlyForNEM2);
+
+    for (let i = 0; i < rateAmountHourlyForNEM3.length; i++) {
+      const excessPV = new BigNumber(hourlySeriesForNewPV[i] || 0).minus(hourlyPostInstallLoad[i]).toNumber();
+
+      if (rateAmountHourlyForNEM3[i].shouldCharge) {
+        // next period is more expensive than the current period
+        if (excessPV <= 0) {
+          // no excess PV to charge into the battery
+          rateAmountHourlyForNEM3[i].shouldCharge = false;
+        }
+      } else if (rateAmountHourlyForNEM3[i].shouldDischarge) {
+        // next period is less expensive than the current period
+        if (excessPV === 0) {
+          // no excess PV to charge into the battery
+          rateAmountHourlyForNEM3[i].shouldDischarge = false;
+        } else if (excessPV > 0) {
+          // excess PV should charge into the battery
+          rateAmountHourlyForNEM3[i].shouldCharge = true;
+          rateAmountHourlyForNEM3[i].shouldDischarge = false;
+        }
+      }
+    }
+
+    return rateAmountHourlyForNEM3;
+  };
+
+  async simulatePinball(data: GetPinballSimulatorDto): Promise<PinballSimulatorDto> {
+    const {
+      hourlyPostInstallLoad,
+      hourlySeriesForExistingPV,
+      hourlySeriesForNewPV,
+      postInstallMasterTariffId,
+      zipCode,
+      batterySystemSpecs,
+    } = data;
+
+    let filterTariffs: any[] = [];
+    let chargingLogicType: CHARGING_LOGIC_TYPE | undefined;
+
+    if (batterySystemSpecs.operationMode === BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION) {
+      [filterTariffs, chargingLogicType] = await Promise.all([
+        this.filterTariffs(postInstallMasterTariffId),
+        this.getChargingLogicType(postInstallMasterTariffId),
+      ]);
+    }
+
+    // generate 8760 charge or discharge the battery.
+    const rateAmountHourly: IPinballRateAmount[] = [];
+
+    const currentYear = data?.year ?? new Date().getFullYear();
+
+    // DST is second Sunday in March to the first Sunday in November of year
+    const secondSundayInMarch = dayjs(
+      new Date(currentYear, 3 - 1, firstSundayOfTheMonth(currentYear, 3) + 7),
+    ).dayOfYear();
+
+    const firstSundayInNovember = dayjs(
+      new Date(currentYear, 11 - 1, firstSundayOfTheMonth(currentYear, 11)),
+    ).dayOfYear();
+
+    const fromDST = (secondSundayInMarch - 1) * 24;
+
+    const toDST = (firstSundayInNovember - 1) * 24 + 1;
+
+    // Build rateAmountHourly
+    for (let hourIndex = 0; hourIndex < 8760; hourIndex += 1) {
+      let totalRateAmountHourly = new BigNumber(0);
+
+      filterTariffs.forEach(filterTariff => {
+        const season = filterTariff.timeOfUse.season || filterTariff.season;
+        if (!season) return;
+
+        const { seasonFromMonth, seasonToMonth, seasonFromDay, seasonToDay } = season;
+        const rateAmountTotal = filterTariff?.rateBands[0]?.rateAmount || 0;
+
+        const fromHourIndex = (dayjs(new Date(currentYear, seasonFromMonth - 1, seasonFromDay)).dayOfYear() - 1) * 24;
+        const toHourIndex = dayjs(new Date(currentYear, seasonToMonth - 1, seasonToDay)).dayOfYear() * 24;
+
+        const hourIndexWithDST = fromDST < hourIndex && hourIndex < toDST ? hourIndex + 1 : hourIndex;
+
+        const isValidSeason =
+          fromHourIndex < toHourIndex
+            ? inRange(hourIndexWithDST, fromHourIndex, toHourIndex)
+            : inRange(hourIndexWithDST, 0, toHourIndex) || inRange(hourIndexWithDST, fromHourIndex, 8760);
+
+        if (!isValidSeason) {
+          return;
+        }
+
+        const dayOfWeek = dayjs()
+          .dayOfYear(Math.floor(hourIndexWithDST / 24) + 1)
+          .day();
+
+        const hourInDay = hourIndexWithDST % 24;
+
+        let checkIsValidHourDay = false;
+
+        for (let i = 0; i < filterTariff?.timeOfUse.touPeriods.length; i++) {
+          const { fromDayOfWeek, toDayOfWeek, fromHour, toHour } = filterTariff?.timeOfUse.touPeriods[i];
+          const isValidHourDay = this.checkDayOfWeekIsInDayOfWeekAndHourInDayIsInHourOfDay(
+            fromDayOfWeek,
+            toDayOfWeek,
+            dayOfWeek,
+            fromHour,
+            toHour,
+            hourInDay,
+          );
+          if (isValidHourDay) {
+            checkIsValidHourDay = true;
+            break;
+          }
+        }
+
+        if (!checkIsValidHourDay) return;
+
+        totalRateAmountHourly = totalRateAmountHourly.plus(rateAmountTotal);
+      });
+      rateAmountHourly.push({ rate: totalRateAmountHourly.toNumber(), shouldCharge: false, shouldDischarge: false });
+    }
+
+    const rateAmountHourlyForNEM2 = this.buildNEM2ChargingLogic(rateAmountHourly);
+
     const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
     const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
     const sqrtRoundTripEfficiency = Math.sqrt(batterySystemSpecs.roundTripEfficiency / 100);
@@ -941,7 +983,7 @@ export class UtilityService implements OnModuleInit {
       hourlyPostInstallLoad,
       hourlySeriesForExistingPV,
       hourlySeriesForNewPV,
-      rateAmountHourly,
+      rateAmountHourlyForNEM2,
       batterySystemSpecs,
       ratingInKW,
       minimumReserveInKW,
@@ -950,31 +992,11 @@ export class UtilityService implements OnModuleInit {
 
     // PINBALL Battery Charging Logic for NEM3
     if (chargingLogicType === CHARGING_LOGIC_TYPE.NEM3) {
-      // re-use data from NEM2 charging logic
-      const rateAmountHourlyForNEM3 = cloneDeep(rateAmountHourly);
-
-      // NEM3 charging logic
-      for (let i = 0; i < rateAmountHourlyForNEM3.length; i++) {
-        const excessPV = new BigNumber(hourlySeriesForNewPV[i] || 0).minus(hourlyPostInstallLoad[i]).toNumber();
-
-        if (rateAmountHourlyForNEM3[i].shouldCharge) {
-          // next period is more expensive than the current period
-          if (excessPV <= 0) {
-            // no excess PV to charge into the battery
-            rateAmountHourlyForNEM3[i].shouldCharge = false;
-          }
-        } else if (rateAmountHourlyForNEM3[i].shouldDischarge) {
-          // next period is less expensive than the current period
-          if (excessPV === 0) {
-            // no excess PV to charge into the battery
-            rateAmountHourlyForNEM3[i].shouldDischarge = false;
-          } else if (excessPV > 0) {
-            // excess PV should charge into the battery
-            rateAmountHourlyForNEM3[i].shouldCharge = true;
-            rateAmountHourlyForNEM3[i].shouldDischarge = false;
-          }
-        }
-      }
+      const rateAmountHourlyForNEM3 = this.buildNEM3ChargingLogic(
+        rateAmountHourlyForNEM2,
+        hourlySeriesForNewPV,
+        hourlyPostInstallLoad,
+      );
 
       const pinballDataForNEM3 = this.calculatePinballData(
         hourlyPostInstallLoad,
@@ -1018,6 +1040,7 @@ export class UtilityService implements OnModuleInit {
           batteryDischargingSeries,
           postInstallSiteDemandSeries,
           rateAmountHourly: rateAmountHourlyForNEM3,
+          chargingLogicType,
         };
       }
     }
@@ -1034,7 +1057,8 @@ export class UtilityService implements OnModuleInit {
       batteryChargingSeries,
       batteryDischargingSeries,
       postInstallSiteDemandSeries,
-      rateAmountHourly,
+      rateAmountHourly: rateAmountHourlyForNEM2,
+      chargingLogicType,
     };
   }
 

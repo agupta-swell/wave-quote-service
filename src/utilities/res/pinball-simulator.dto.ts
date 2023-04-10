@@ -1,5 +1,6 @@
 import { ExposeProp } from 'src/shared/decorators';
 import { IPinballRateAmount } from '../utility.interface';
+import { CHARGING_LOGIC_TYPE } from '../constants';
 
 export class PinballSimulatorDto {
   @ExposeProp()
@@ -16,6 +17,9 @@ export class PinballSimulatorDto {
 
   @ExposeProp()
   rateAmountHourly: IPinballRateAmount[];
+
+  @ExposeProp()
+  chargingLogicType: CHARGING_LOGIC_TYPE | undefined;
 
   @ExposeProp()
   year?: number;
