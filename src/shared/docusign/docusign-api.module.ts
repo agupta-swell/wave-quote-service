@@ -1,5 +1,8 @@
 import { DynamicModule, Module, Provider } from '@nestjs/common';
-import { DocusignIntegrationModule } from 'src/docusign-integration/docusign-integration.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import { DOCUSIGN_INTEGRATION_NAME } from 'src/docusign-integration/constants';
+import { DocusignIntegrationSchema } from 'src/docusign-integration/docusign-integration.schema';
+import { DocusignIntegrationService } from 'src/docusign-integration/docusign-integration.service';
 import { AwsModule } from '../aws/aws.module';
 import { KEYS } from './constants';
 import { DocusignApiService } from './docusign-api.service';
@@ -18,7 +21,7 @@ export class DocusignApiModule {
   static forRoot(pageNumberFormatter: IPageNumberFormatter): DynamicModule {
     return {
       module: DocusignApiModule,
-      imports: [AwsModule, DocusignIntegrationModule],
+      imports: [AwsModule],
       providers: [
         ...providers,
         {
@@ -26,7 +29,7 @@ export class DocusignApiModule {
           useValue: pageNumberFormatter,
         },
       ],
-      exports: [...providers],
+      exports: providers,
     };
   }
 
@@ -35,6 +38,21 @@ export class DocusignApiModule {
       module: DocusignApiModule,
       providers: [ContextProvider],
       exports: [ContextProvider],
+    };
+  }
+
+  static forIntegration(): DynamicModule {
+    return {
+      module: DocusignApiModule,
+      imports: [AwsModule],
+      providers: [
+        ...providers,
+        {
+          provide: KEYS.PAGE_NUMBER_FORMATTER,
+          useValue: {},
+        },
+      ],
+      exports: providers,
     };
   }
 }
