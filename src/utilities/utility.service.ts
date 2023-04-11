@@ -660,10 +660,7 @@ export class UtilityService implements OnModuleInit {
           plannedBatteryACIn24Hours.push(Math.min(pvGenerationIn24Hours[i], ratingInKW));
           break;
         case BATTERY_PURPOSE.PV_SELF_CONSUMPTION:
-          plannedBatteryACIn24Hours.push(
-            Math.min(pvGenerationIn24Hours[i], ratingInKW),
-            -Math.min(Math.max(netLoadIn24Hours[i], -ratingInKW), ratingInKW),
-          );
+          plannedBatteryACIn24Hours.push(-Math.min(Math.max(netLoadIn24Hours[i], -ratingInKW), ratingInKW));
           break;
         case BATTERY_PURPOSE.ADVANCED_TOU_SELF_CONSUMPTION:
           if (chargingLogicType === CHARGING_LOGIC_TYPE.NEM3) {
