@@ -277,9 +277,10 @@ export class ContractController {
   @ApiOperation({ summary: 'Resend Contract' })
   @ApiOkResponse({ type: SaveContractRes })
   async voidContract(
+    @CurrentUser() user: ILoggedInUser,
     @Param('contractId', ParseObjectIdPipe, VoidPrimaryContractPipe) contract: Contract,
   ): Promise<Contract> {
-    await this.contractService.voidContract(contract);
+    await this.contractService.voidContract(contract, true, user);
     return contract;
   }
 

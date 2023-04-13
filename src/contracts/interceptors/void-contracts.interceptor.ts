@@ -3,10 +3,10 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { OperationResult, ServiceResponse } from 'src/app/common';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
-import { ContractService } from '../contract.service';
-import { Contract } from '../contract.schema';
-import { SaveContractDto } from '../res';
 import { PROCESS_STATUS } from '../constants';
+import { Contract } from '../contract.schema';
+import { ContractService } from '../contract.service';
+import { SaveContractDto } from '../res';
 
 @Injectable()
 export class VoidRelatedContractsInterceptor implements NestInterceptor {
@@ -23,7 +23,7 @@ export class VoidRelatedContractsInterceptor implements NestInterceptor {
 
         const relatedContracts = await this.contractService.getCOContractsByPrimaryContractId(_id.toString());
 
-        await Promise.all(relatedContracts.map(c => this.contractService.voidContract(c)));
+        await Promise.all(relatedContracts.map(c => this.contractService.voidContract(c, false)));
 
         const result = ServiceResponse.fromResult(
           OperationResult.ok(strictPlainToClass(SaveContractDto, { status: true, newlyUpdatedContract: res })),
