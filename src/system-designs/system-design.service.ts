@@ -1456,16 +1456,29 @@ export class SystemDesignService {
 
     const { annualPostInstallBill, fromDateTime, toDateTime } = netNegativeAnnualUsage as INetNegativeAnnualUsage;
 
+    // update systemDesign
+    const setData: any = {
+      costPostInstallation: annualPostInstallBill,
+      costCalculationInput: {
+        masterTariffId,
+        fromDateTime,
+        toDateTime,
+      },
+    };
+    const unsetData: any = {};
+
+    if (simulatePinballData.chargingLogicType) {
+      setData.pinballChargingLogicType = simulatePinballData.chargingLogicType;
+    } else {
+      unsetData.pinballChargingLogicType = '';
+    }
+
     this.systemDesignModel
-      .updateOne(
+      .findOneAndUpdate(
         { _id: systemDesign.id },
         {
-          costPostInstallation: annualPostInstallBill,
-          costCalculationInput: {
-            masterTariffId,
-            fromDateTime,
-            toDateTime,
-          },
+          $set: setData,
+          $unset: unsetData,
         },
       )
       .catch(error => console.error(error));

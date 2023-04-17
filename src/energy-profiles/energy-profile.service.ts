@@ -6,6 +6,7 @@ import { S3Service } from 'src/shared/aws/services/s3.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { PvWattProductionDto } from 'src/system-productions/res';
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
+import { CHARGING_LOGIC_TYPE } from 'src/utilities/constants';
 import { GetPinballSimulatorDto } from 'src/utilities/req';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
 import { UtilityService } from 'src/utilities/utility.service';
@@ -94,12 +95,21 @@ export class EnergyProfileService {
 
     const rateAmountHourly: IPinballRateAmount[] = cachedRateAmountHourlyDataFromS3
       ? JSON.parse(cachedRateAmountHourlyDataFromS3)
-      : new Array(8760).fill({ rate: 0, charge: false });
+      : new Array(8760).fill({ rate: 0, shouldCharge: false, shouldDischarge: false });
 
     // check if pinballInputData did not save to S3 => recalculate
     const pinballInputData = cachedPinballInputDataFromS3
       ? JSON.parse(cachedPinballInputDataFromS3)
       : await this.prepareDataForTypicalView(systemDesignId);
+
+    const systemDesign = await this.systemDesignService.getOneById(systemDesignId);
+
+    if (!systemDesign) {
+      throw new NotFoundException(`System design with id ${systemDesignId} not found`);
+    }
+
+    // get save pinballChargingLogicType
+    const pinballChargingLogicType = systemDesign.pinballChargingLogicType;
 
     // check if null result when recalculating => system does not have solar array
     if (!pinballInputData) {
@@ -127,7 +137,54 @@ export class EnergyProfileService {
       hourlySeriesForExistingPV,
     );
     const monthlyAndAnnualSeriesForNewPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(hourlySeriesForNewPV);
-    const monthlyAndAnnualRateAmountIn24Hours = getMonthlyAndAnnualRateAmountFrom8760(rateAmountHourly);
+
+    let monthlyAndAnnualRateAmountIn24Hours;
+
+    if (pinballChargingLogicType === CHARGING_LOGIC_TYPE.NEM3) {
+      rateAmountHourly.forEach(hourly => {
+        hourly.shouldCharge = false;
+        hourly.shouldDischarge = false;
+      });
+
+      // NEM2 charging logic
+      const rateAmountHourlyForNEM2 = this.utilityService.buildNEM2ChargingLogic(rateAmountHourly);
+
+      monthlyAndAnnualRateAmountIn24Hours = getMonthlyAndAnnualRateAmountFrom8760(rateAmountHourlyForNEM2);
+
+      // apply NEM3 charging logic for typical day
+      // annual
+      monthlyAndAnnualRateAmountIn24Hours.annualRateAmount = this.utilityService.buildNEM3ChargingLogic(
+        monthlyAndAnnualRateAmountIn24Hours.annualRateAmount,
+        monthlyAndAnnualSeriesForNewPVInWhIn24Hours.annualAverage,
+        monthlyAndAnnualPostInstallLoadInWhIn24Hours.annualAverage,
+      );
+      // monthly
+      for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+        monthlyAndAnnualRateAmountIn24Hours.monthlyRateAmount[monthIndex] = this.utilityService.buildNEM3ChargingLogic(
+          monthlyAndAnnualRateAmountIn24Hours.monthlyRateAmount[monthIndex],
+          monthlyAndAnnualSeriesForNewPVInWhIn24Hours.monthlyAverage[monthIndex],
+          monthlyAndAnnualPostInstallLoadInWhIn24Hours.monthlyAverage[monthIndex],
+        );
+      }
+    } else if (!rateAmountHourly[0].shouldCharge && !rateAmountHourly[0].shouldDischarge) {
+      // check if rateAmountHourly in old format
+      const updatedRateAmountHourly = rateAmountHourly.map(hourly => {
+        const { rate, charge } = hourly as any;
+        return { rate, shouldCharge: charge, shouldDischarge: !charge };
+      });
+
+      // save to s3
+      this.s3Service.putObject(
+        this.PINBALL_SIMULATION_BUCKET,
+        `${systemDesignId}/rateAmountHourly`,
+        JSON.stringify(updatedRateAmountHourly),
+        'application/json; charset=utf-8',
+      );
+
+      monthlyAndAnnualRateAmountIn24Hours = getMonthlyAndAnnualRateAmountFrom8760(updatedRateAmountHourly);
+    } else {
+      monthlyAndAnnualRateAmountIn24Hours = getMonthlyAndAnnualRateAmountFrom8760(rateAmountHourly);
+    }
 
     const ratingInKW = batterySystemSpecs.totalRatingInKW * 1000;
     const minimumReserveInKW = (batterySystemSpecs.totalCapacityInKWh * 1000 * batterySystemSpecs.minimumReserve) / 100;
@@ -153,6 +210,7 @@ export class EnergyProfileService {
       minimumReserveInKW,
       sqrtRoundTripEfficiency,
       [],
+      pinballChargingLogicType,
     );
 
     batteryChargingSeries.annualAverage = annualPinballData.batteryChargingSeriesIn24Hours;
@@ -169,6 +227,7 @@ export class EnergyProfileService {
         minimumReserveInKW,
         sqrtRoundTripEfficiency,
         [],
+        pinballChargingLogicType,
       );
       batteryChargingSeries.monthlyAverage.push(monthlyPinballData.batteryChargingSeriesIn24Hours);
       batteryDischargingSeries.monthlyAverage.push(monthlyPinballData.batteryDischargingSeriesIn24Hours);

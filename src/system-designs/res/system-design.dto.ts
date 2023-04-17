@@ -22,7 +22,7 @@ export class SystemDesignDto {
 
   @ExposeProp({ type: RoofTopDataDto })
   @Transform(({ value, obj }) => {
-    if (value.roofTopImage) {
+    if (value?.roofTopImage) {
       value.roofTopImage.imageURL = obj.imageURL;
     }
     return value;

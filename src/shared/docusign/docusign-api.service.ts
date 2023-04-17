@@ -1,3 +1,4 @@
+/* eslint-disable no-use-before-define */
 /* eslint-disable no-plusplus */
 import * as https from 'https';
 import { IncomingMessage } from 'http';
@@ -32,32 +33,32 @@ const PreCheckValidAuthConfig = (): MethodDecorator => (
   const originalMethod = descriptor.value;
   descriptor.value = async function (...args: any[]) {
     let isInitAuthConfig = false;
-    if (!this._jwtAuthConfig || !this._jwtAuthConfig.accessToken) {
+    if (!DocusignApiService._jwtAuthConfig || !DocusignApiService._jwtAuthConfig.accessToken) {
       const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegration();
 
       if (!docusignIntegration || !docusignIntegration.accessToken) {
         throw ApplicationException.InvalidDocusignIntegrationConfig();
       }
-      this._jwtAuthConfig = docusignIntegration;
+      DocusignApiService._jwtAuthConfig = docusignIntegration;
       isInitAuthConfig = true;
     }
-    const isGetNewAccessToken = await this.getNewAccessTokenIfExpired();
+    await this.getNewAccessTokenIfExpired();
 
-    // re-run setAuthConfig if get new access token or when init _jwtAuthConfig
-    if (isInitAuthConfig || isGetNewAccessToken) await this.setAuthConfig();
+    if (isInitAuthConfig) await this.setAuthConfig();
 
     return originalMethod.apply(this, args);
   };
+
   return descriptor;
 };
 
 @Injectable()
 export class DocusignApiService<Context> implements OnModuleInit {
-  private apiClient: docusign.ApiClient;
+  private static apiClient: docusign.ApiClient;
 
-  private envelopeApi: docusign.EnvelopesApi;
+  private static envelopeApi: docusign.EnvelopesApi;
 
-  private accountId: string;
+  private static accountId: string;
 
   private readonly secretName: string;
 
@@ -65,11 +66,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
   private _docusignEmail: string;
 
-  private _baseUrl: URL;
+  private static _baseUrl: URL;
 
-  private _headers: Record<string, string>;
+  private static _headers: Record<string, string>;
 
-  private _jwtAuthConfig: LeanDocument<DocusignIntegrationDocument>;
+  static _jwtAuthConfig: LeanDocument<DocusignIntegrationDocument>;
 
   constructor(
     private readonly secretManagerService: SecretManagerService,
@@ -103,7 +104,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
     this._docusignEmail = parsedSecret.docusign.email;
 
-    this.apiClient = new docusign.ApiClient({
+    DocusignApiService.apiClient = new docusign.ApiClient({
       basePath: parsedSecret.docusign.baseUrl,
       oAuthBasePath: null as any,
     });
@@ -111,7 +112,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegration();
 
     if (docusignIntegration && docusignIntegration.accessToken) {
-      this._jwtAuthConfig = docusignIntegration;
+      DocusignApiService._jwtAuthConfig = docusignIntegration;
       try {
         await this.getNewAccessTokenIfExpired();
 
@@ -123,14 +124,19 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
+  public async updateJwtAuthConfig(newJwtAuthConfig: LeanDocument<DocusignIntegrationDocument>): Promise<void> {
+    DocusignApiService._jwtAuthConfig = newJwtAuthConfig;
+    await this.setAuthConfig();
+  }
+
   async getNewAccessTokenIfExpired(): Promise<boolean> {
     const checkTime = new Date().getTime();
 
-    if (checkTime > this._jwtAuthConfig.expiresAt.getTime()) {
-      const { userId, clientId, rsaPrivateKey } = this._jwtAuthConfig;
+    if (checkTime > DocusignApiService._jwtAuthConfig.expiresAt.getTime()) {
+      const { userId, clientId, rsaPrivateKey } = DocusignApiService._jwtAuthConfig;
 
       try {
-        const results = await this.apiClient.requestJWTUserToken(
+        const results = await DocusignApiService.apiClient.requestJWTUserToken(
           clientId,
           userId,
           SCOPES,
@@ -144,13 +150,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
         // should get a new access token about 15 minutes before their existing one expires
         const expiresAt = new Date(Date.now() + (results.body.expires_in - 15 * 60) * 1000);
 
-        const docusignIntegration = await this.docusignIntegrationService.updateAccessToken(
-          this._jwtAuthConfig._id,
+        await this.docusignIntegrationService.updateAccessToken(
+          DocusignApiService._jwtAuthConfig._id,
           results.body.access_token,
           expiresAt,
         );
-
-        this._jwtAuthConfig = docusignIntegration;
 
         return true;
       } catch (error) {
@@ -163,9 +167,12 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
   async setAuthConfig(): Promise<void> {
     try {
-      this.apiClient.addDefaultHeader('Authorization', `Bearer ${this._jwtAuthConfig.accessToken}`);
+      DocusignApiService.apiClient.addDefaultHeader(
+        'Authorization',
+        `Bearer ${DocusignApiService._jwtAuthConfig.accessToken}`,
+      );
       // get user info
-      const userInfo = await this.apiClient.getUserInfo(this._jwtAuthConfig.accessToken);
+      const userInfo = await DocusignApiService.apiClient.getUserInfo(DocusignApiService._jwtAuthConfig.accessToken);
 
       const { accounts } = userInfo;
 
@@ -175,18 +182,18 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       const account = accounts[0];
 
-      this.accountId = account.accountId || '';
+      DocusignApiService.accountId = account.accountId || '';
 
       const baseUrl = account.baseUri || '';
 
-      this._baseUrl = new URL(`${baseUrl}/restapi/v2.1/accounts/${this.accountId}`);
+      DocusignApiService._baseUrl = new URL(`${baseUrl}/restapi/v2.1/accounts/${DocusignApiService.accountId}`);
 
-      this.apiClient.setBasePath(`${baseUrl}/restapi`);
+      DocusignApiService.apiClient.setBasePath(`${baseUrl}/restapi`);
 
-      this.envelopeApi = new docusign.EnvelopesApi(this.apiClient);
+      DocusignApiService.envelopeApi = new docusign.EnvelopesApi(DocusignApiService.apiClient);
 
-      this._headers = {
-        Authorization: `Bearer ${this._jwtAuthConfig.accessToken}`,
+      DocusignApiService._headers = {
+        Authorization: `Bearer ${DocusignApiService._jwtAuthConfig.accessToken}`,
       };
     } catch (error) {
       throw new DocusignException(error, error.response?.text);
@@ -225,7 +232,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
     };
 
     try {
-      const result = await this.envelopeApi.createEnvelope(this.accountId, envelope);
+      const result = await DocusignApiService.envelopeApi.createEnvelope(DocusignApiService.accountId, envelope);
 
       if (!result.envelopeId) return result;
 
@@ -264,9 +271,9 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return new Promise((resolve, reject) => {
       https.get(
         {
-          hostname: this._baseUrl.host,
-          path: `${this._baseUrl.pathname}/envelopes/${envelopeId}/documents/combined?show_changes=${showChanges}`,
-          headers: this._headers,
+          hostname: DocusignApiService._baseUrl.host,
+          path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}/documents/combined?show_changes=${showChanges}`,
+          headers: DocusignApiService._headers,
         },
         res => {
           if (res.statusCode !== 200) {
@@ -286,7 +293,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
   @PreCheckValidAuthConfig()
   public async resendEnvelop(envelopedId: string): Promise<TResendEnvelopeStatus> {
     try {
-      const res = await this.envelopeApi.update(this.accountId, envelopedId, {
+      const res = await DocusignApiService.envelopeApi.update(DocusignApiService.accountId, envelopedId, {
         resendEnvelope: true,
       });
 
@@ -354,10 +361,10 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       const req = https.request(
         {
-          hostname: this._baseUrl.host,
-          path: `${this._baseUrl.pathname}/envelopes`,
+          hostname: DocusignApiService._baseUrl.host,
+          path: `${DocusignApiService._baseUrl.pathname}/envelopes`,
           headers: {
-            ...this._headers,
+            ...DocusignApiService._headers,
             'Content-Type': multipartStream.getType(),
           },
           method: 'post',
@@ -463,9 +470,9 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return new Promise((resolve, reject) => {
       https.get(
         {
-          hostname: this._baseUrl.host,
-          path: `${this._baseUrl.pathname}/envelopes/${envelopeId}/documents/${docId}/tabs`,
-          headers: this._headers,
+          hostname: DocusignApiService._baseUrl.host,
+          path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}/documents/${docId}/tabs`,
+          headers: DocusignApiService._headers,
         },
         res => {
           const chunks: Buffer[] = [];
@@ -516,9 +523,9 @@ export class DocusignApiService<Context> implements OnModuleInit {
       https
         .request(
           {
-            hostname: this._baseUrl.host,
-            path: `${this._baseUrl.pathname}/envelopes/${envelopeId}/documents/${docId}/tabs`,
-            headers: this._headers,
+            hostname: DocusignApiService._baseUrl.host,
+            path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}/documents/${docId}/tabs`,
+            headers: DocusignApiService._headers,
             method: mode === 'update' ? 'put' : 'post',
           },
           res => {
@@ -636,9 +643,9 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       https.get(
         {
-          hostname: this._baseUrl.host,
-          path: `${this._baseUrl.pathname}/envelopes/${envelopeId}/documents`,
-          headers: this._headers,
+          hostname: DocusignApiService._baseUrl.host,
+          path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}/documents`,
+          headers: DocusignApiService._headers,
         },
         res => {
           if (res.statusCode !== 200) {
@@ -678,9 +685,9 @@ export class DocusignApiService<Context> implements OnModuleInit {
       https
         .request(
           {
-            hostname: this._baseUrl.host,
-            path: `${this._baseUrl.pathname}/envelopes/${envelopeId}`,
-            headers: this._headers,
+            hostname: DocusignApiService._baseUrl.host,
+            path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}`,
+            headers: DocusignApiService._headers,
             method: 'put',
           },
           res => {
