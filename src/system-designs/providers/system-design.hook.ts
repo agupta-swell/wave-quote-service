@@ -171,7 +171,11 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
         return;
       }
 
-      this.queueGenerateArrayOverlay(asyncQueueStore, systemDesign);
+      this.googleSunroofService.isExistedGeotiff(systemDesign).then(isExistedGeotiff => {
+        if (isExistedGeotiff) {
+          this.queueGenerateArrayOverlay(asyncQueueStore, systemDesign);
+        }
+      });
 
       return;
     }
@@ -196,8 +200,12 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     const task = async () => {
       try {
-        await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
-        await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+        const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(systemDesign);
+
+        if (isExistedGeotiff) {
+          await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
+          await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+        }
         await this.regenerateSunroofProduction(asyncQueueStore, systemDesign);
       } catch (e) {
         this.teardown(e, asyncQueueStore);
@@ -251,7 +259,9 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   }
 
   private async regenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): Promise<void> {
-    const {systemActualProduction8760: production8760} = await this.systemDesignService.calculateSystemActualProduction(systemDesign);
+    const {
+      systemActualProduction8760: production8760,
+    } = await this.systemDesignService.calculateSystemActualProduction(systemDesign);
 
     const [systemProduction] = await Promise.all([
       this.systemProductionService.findOne(systemDesign.systemProductionId),
