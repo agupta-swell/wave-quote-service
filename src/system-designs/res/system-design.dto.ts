@@ -101,19 +101,19 @@ export class SystemDesignRes implements ServiceResponse<SystemDesignDto> {
 
 export class CalculateSystemActualProductionResDto {
   @ExposeProp()
-  scaled8760ProductionByArray: number[][];
+  scaled8760ProductionByArray?: number[][];
 
   @ExposeProp()
-  appliedSoilingDerate8760ProductionByArray: number[][];
+  appliedSoilingDerate8760ProductionByArray?: number[][];
 
   @ExposeProp()
-  appliedSnowDerate8760ProductionByArray: number[][];
+  appliedSnowDerate8760ProductionByArray?: number[][];
 
   @ExposeProp()
-  appliedInverterClipping8760ProductionByArray: number[][];
+  appliedInverterClipping8760ProductionByArray?: number[][];
 
   @ExposeProp()
-  appliedInverterEfficiency8760ProductionByArray: number[][];
+  appliedInverterEfficiency8760ProductionByArray?: number[][];
 
   @ExposeProp()
   systemActualProduction8760: number[];

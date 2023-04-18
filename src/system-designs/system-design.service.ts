@@ -51,6 +51,7 @@ import { buildMonthlyAndAnnualDataFrom8760, buildMonthlyHourFrom8760 } from 'src
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
 import { roundNumber } from 'src/utils/transformNumber';
 import { v4 as uuidv4 } from 'uuid';
+import { SystemProduction } from 'src/shared/google-sunroof/types';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE, PRESIGNED_GET_URL_EXPIRE_IN } from './constants';
 import { SystemDesignHook } from './providers/system-design.hook';
@@ -1650,23 +1651,46 @@ export class SystemDesignService {
   public async calculateSystemActualProduction(
     systemDesign: LeanDocument<SystemDesign>,
   ): Promise<CalculateSystemActualProductionResDto> {
-    const [systemPVWattProduction, sunroofProduction, systemProduction, utilityAndUsage] = await Promise.all([
+    const handlers: Promise<unknown>[] = [
       this.systemProductService.calculateSystemProductionByHour(systemDesign),
-      this.googleSunroofService.calculateProduction(systemDesign),
       this.systemProductionService.findOne(systemDesign.systemProductionId),
       this.utilityService.getUtilityByOpportunityId(systemDesign.opportunityId),
-    ]);
+    ];
+    const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(systemDesign);
+
+    if (isExistedGeotiff) handlers.push(this.googleSunroofService.calculateProduction(systemDesign));
+
+    const [systemPVWattProduction, systemProduction, utilityAndUsage, sunroofProduction] = <
+      [ISystemProduction, any, LeanDocument<UtilityUsageDetails> | null, SystemProduction]
+    >await Promise.all(handlers);
 
     if (!systemPVWattProduction.arrayHourly) throw new NotFoundException(`Hourly production not found`);
 
+    if (!isExistedGeotiff) {
+      const systemActualProduction8760 = range(8760).map(hourIdx =>
+        sum(systemPVWattProduction.arrayHourly?.map(x => x[hourIdx])),
+      );
+      return {
+        systemActualProduction8760,
+      };
+    }
+    // keep PV Watt of panels that useSunroof is false
+    const usePVWatt8760ProductionByArray: number[][] = [];
+    const {
+      roofTopDesignData: { panelArray },
+    } = systemDesign;
+
     // scale by sunroofProduction
-    const scaled8760ProductionByArray = systemPVWattProduction.arrayHourly.map(
-      (pvWattData, index) =>
-        this.utilityService.calculate8760OnActualMonthlyUsage(
+    const scaled8760ProductionByArray = systemPVWattProduction.arrayHourly.map((pvWattData, index) => {
+      const { useSunroof } = panelArray[index];
+      if (useSunroof)
+        return this.utilityService.calculate8760OnActualMonthlyUsage(
           pvWattData,
           sunroofProduction.byArray[index].monthlyProduction,
-        ) as number[],
-    );
+        ) as number[];
+      usePVWatt8760ProductionByArray.push(pvWattData);
+      return [];
+    });
 
     this.s3Service.putObject(
       this.GOOGLE_SUNROOF_BUCKET,
@@ -1679,9 +1703,6 @@ export class SystemDesignService {
 
     // apply mount type derate
     const allMountTypes = await this.mountTypesService.findAllMountTypes();
-    const {
-      roofTopDesignData: { panelArray },
-    } = systemDesign;
 
     const appliedMountTypeDerate8760ProductionByArray = scaled8760ProductionByArray?.map((productionData, index) => {
       let mountTypeDeratePercentage = 0;
@@ -1818,9 +1839,8 @@ export class SystemDesignService {
 
     // TODO: handle leap year later
     // cumulative by hourly generation of all arrays
-    const systemActualProduction8760 = range(8760).map(hourIdx =>
-      sum(appliedOtherLosses8760ProductionByArray.map(x => x[hourIdx])),
-    );
+    const final8760ProductionByArray = [...appliedOtherLosses8760ProductionByArray, ...usePVWatt8760ProductionByArray];
+    const systemActualProduction8760 = range(8760).map(hourIdx => sum(final8760ProductionByArray.map(x => x[hourIdx])));
 
     this.s3Service.putObject(
       this.GOOGLE_SUNROOF_BUCKET,
@@ -1867,11 +1887,6 @@ export class SystemDesignService {
     }
 
     if (cacheSystemActualProduction8760) return JSON.parse(cacheSystemActualProduction8760);
-
-    const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(foundSystemDesign);
-
-    // check if Geotiff is not exist
-    if (!isExistedGeotiff) return noneSolarProduction8760;
 
     const { systemActualProduction8760 } = await this.calculateSystemActualProduction(foundSystemDesign);
 
@@ -2037,7 +2052,7 @@ export class SystemDesignService {
     try {
       cachedDataFromS3 = await Promise.all(
         [
-          'scaled-pvwatt-to-sunroof-productio.json',
+          'scaled-pvwatt-to-sunroof-production.json',
           'applied-soiling-derate.json',
           'applied-snow-derate.json',
           'applied-inverter-clipping.json',
@@ -2062,11 +2077,11 @@ export class SystemDesignService {
     if (!cachedDataFromS3) {
       const actualProducion = await this.calculateSystemActualProduction(systemDesign);
 
-      rawAnnualProductionArray = actualProducion.scaled8760ProductionByArray;
-      soilingLossesArray = actualProducion.appliedSoilingDerate8760ProductionByArray;
-      snowLossesArray = actualProducion.appliedSnowDerate8760ProductionByArray;
-      inverterRatingClippingArray = actualProducion.appliedInverterClipping8760ProductionByArray;
-      dcAcConversionLossesArray = actualProducion.appliedInverterEfficiency8760ProductionByArray;
+      rawAnnualProductionArray = actualProducion.scaled8760ProductionByArray || [];
+      soilingLossesArray = actualProducion.appliedSoilingDerate8760ProductionByArray || [];
+      snowLossesArray = actualProducion.appliedSnowDerate8760ProductionByArray || [];
+      inverterRatingClippingArray = actualProducion.appliedInverterClipping8760ProductionByArray || [];
+      dcAcConversionLossesArray = actualProducion.appliedInverterEfficiency8760ProductionByArray || [];
     } else {
       const [
         rawAnnualProductionData,
