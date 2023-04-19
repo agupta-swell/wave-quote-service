@@ -124,3 +124,7 @@ __snapshots__
 .idea
 
 .run/index.ts.run.xml
+
+#CDK files and directories
+/cdk.out
+cdk.context.json
