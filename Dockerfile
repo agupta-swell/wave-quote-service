@@ -5,6 +5,7 @@ COPY . .
 USER root
 RUN yarn
 RUN yarn build
+ENV GENERATE_SOURCEMAP=false
 ENV MONGO_URL=$MONGO_URL
 ENV JWT_SECRET=$JWT_SECRET
 ENV JWT_EXPIRE_TIME=$JWT_EXPIRE_TIME
@@ -23,7 +24,7 @@ ENV SUPPORT_MAIL=$SUPPORT_MAIL
 ENV SALESFORCE_ENV=$SALESFORCE_ENV
 EXPOSE 3001
 RUN echo $(ls -1 .)
-CMD [ "node","dist/index" ]
+CMD [ "node","dist/index.js" ]
 RUN echo "Finished building docker"
 
 # docker build -t backend:1.0 .
