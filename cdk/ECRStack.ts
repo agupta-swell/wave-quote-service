@@ -40,7 +40,7 @@ export class ECRStack extends Stack {
   // 👇 Create an output object which defines ecr repo name which is deployed
   new CfnOutput(this, "ECRRepo", {
     value: repo.repositoryName,
-    exportName: 'repo-name',
+    exportName: '${company}-${applicationId}-${processId}-${environment}-repo-name',
   })
 
 }
