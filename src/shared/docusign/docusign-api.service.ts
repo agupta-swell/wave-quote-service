@@ -481,7 +481,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
             reject(
               new DocusignException(
                 undefined,
-                `Can not get document tabs fro envelopeId ${envelopeId}, docId ${docId}`,
+                `Can not get document tabs from envelopeId ${envelopeId}, docId ${docId}`,
               ),
             );
             res.destroy();

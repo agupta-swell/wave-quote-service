@@ -1,9 +1,9 @@
 import * as docusign from 'docusign-esign';
-import { DocusignException } from './docusign.exception';
-import { IContext } from './interfaces/IContext';
 import { DOCUSIGN_TAB_TYPE, KEYS } from './constants';
+import { DocusignException } from './docusign.exception';
 import { IClass } from './interfaces/IClass';
 import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
+import { IContext } from './interfaces/IContext';
 import { IDefaultContractor } from './interfaces/IDefaultContractor';
 import { IMetaTemplate } from './interfaces/IMetaTemplate';
 import { IPageNumberFormatter } from './interfaces/IPageNumberFormatter';

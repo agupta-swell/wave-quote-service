@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId, FilterQuery, LeanDocument, Types } from 'mongoose';
+import { FilterQuery, LeanDocument, Model, ObjectId } from 'mongoose';
+import { Contract } from 'src/contracts/contract.schema';
+import { ContractResDto } from 'src/contracts/res/sub-dto';
+import { QuoteService } from 'src/quotes/quote.service';
+import { SystemDesign } from 'src/system-designs/system-design.schema';
+import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { V2_INSTALLED_PRODUCT_COLL } from './constants';
 import { IInstalledProduct, IInstalledProductDocument, IUpdateLatestProductDataPayload } from './interfaces';
 
@@ -9,6 +14,8 @@ export class InstalledProductService {
   constructor(
     @InjectModel(V2_INSTALLED_PRODUCT_COLL)
     private readonly installedProductModel: Model<IInstalledProductDocument>,
+    private readonly quoteService: QuoteService,
+    private readonly systemDesignService: SystemDesignService,
   ) {}
 
   public async findOne(id: string | ObjectId): Promise<IInstalledProductDocument | null> {
@@ -107,5 +114,44 @@ export class InstalledProductService {
 
     await this.removeManyByOppId(oppId);
     await this.installedProductModel.insertMany(installedProducts as any);
+  }
+
+  public async getSystemDesign(
+    contract: ContractResDto | LeanDocument<Contract>,
+  ): Promise<LeanDocument<SystemDesign> | null> {
+    if (contract.systemDesignId) {
+      const systemDesign = await this.systemDesignService.getOneById(contract.systemDesignId);
+
+      if (!systemDesign) {
+        console.info(
+          `Something went wrong, can not find system design ${contract.systemDesignId} in contract ${contract.id}`,
+        );
+
+        return null;
+      }
+
+      return systemDesign;
+    }
+
+    const { id, associatedQuoteId } = contract;
+
+    const quote = await this.quoteService.getOneFullQuoteDataById(associatedQuoteId);
+
+    if (!quote) {
+      console.info(`Something went wrong, can not find quote ${associatedQuoteId} in contract ${id}`);
+      return null;
+    }
+
+    const systemDesign = await this.systemDesignService.getOneById(quote.systemDesignId);
+
+    if (!systemDesign) {
+      console.info(
+        `Something went wrong, can not find system design ${quote.systemDesignId} in quote ${associatedQuoteId} - contract ${id}`,
+      );
+
+      return null;
+    }
+
+    return systemDesign;
   }
 }
