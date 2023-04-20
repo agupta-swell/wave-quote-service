@@ -34,7 +34,7 @@ export class ECSStack extends Stack {
 
 
   // 👇 Importing existing hosted zone in route53 using lookup function
-  const zone = HostedZone.fromLookup(this, 'Zone', { domainName: 'dev.wave.swellenergy.com' });
+  const zone = HostedZone.fromLookup(this, 'Zone', { domainName: '${environment}.wave.swellenergy.com' });
     
   // 👇 ECS cluster creation
   const cluster = new Cluster(this, "Cluster", {
