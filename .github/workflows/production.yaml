@@ -3,7 +3,7 @@ run-name: Deploy to ${{ inputs.env }}
 on:
   push:
     branches:
-      - production
+      - master
   workflow_dispatch:
     inputs:
       folder:
