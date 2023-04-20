@@ -1,0 +1,29 @@
+name: Deploy
+run-name: Deploy to ${{ inputs.env }}
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+    inputs:
+      folder:
+        description: Folder
+        required: true
+        type: string
+        default: .
+      env:
+        description: 'Environment'
+        required: true
+        type: choice
+        options:
+          - Development
+          - QA Automation
+        default: Development
+jobs: 
+  deploy:
+    uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
+    with:
+      Environment:                   ${{ inputs.env }}
+    permissions:
+      id-token: write
+      contents: read
