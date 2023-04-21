@@ -826,11 +826,7 @@ export class SystemDesignService {
 
     await Promise.all(handlers);
 
-    const useSunroof = (systemDesignDto.roofTopDesignData?.panelArray ?? []).some(p => p.useSunroof);
-
-    if (useSunroof) {
-      this.systemDesignHook.queueGenerateSunroofProduction(this.asyncContext.UNSAFE_getStore()!, foundSystemDesign);
-    }
+    this.systemDesignHook.queueGenerateSunroofProduction(this.asyncContext.UNSAFE_getStore()!, foundSystemDesign);
 
     const systemDesignUpdated = foundSystemDesign.toJSON();
 
@@ -1670,6 +1666,16 @@ export class SystemDesignService {
       const systemActualProduction8760 = range(8760).map(hourIdx =>
         sum(systemPVWattProduction.arrayHourly?.map(x => x[hourIdx])),
       );
+
+      this.s3Service.putObject(
+        this.GOOGLE_SUNROOF_BUCKET,
+        `${
+          systemDesign.opportunityId
+        }/${systemDesign._id.toString()}/hourly-production/system-actual-production-8760.json`,
+        JSON.stringify(systemActualProduction8760),
+        'application/json',
+      );
+
       return {
         systemActualProduction8760,
       };

@@ -48,7 +48,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     newTotalPanelsInArray: number,
   ): Promise<void> {
     if (isNewPanelArray) {
-      this.dispatchNewPanelArray(asyncQueueStore, systemDesign, targetPanelArrayId, newPanelArrayBoundPolygon);
+      await this.dispatchNewPanelArray(asyncQueueStore, systemDesign, targetPanelArrayId, newPanelArrayBoundPolygon);
     }
 
     if (!this.canDispatchNextSystemDesignEvent(asyncQueueStore)) {
@@ -91,7 +91,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     return true;
   }
 
-  private dispatchNewPanelArray(
+  private async dispatchNewPanelArray(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
     targetPanelArrayId: string,
@@ -99,14 +99,18 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   ) {
     const newCenterPoint = getCenterBound(newPanelArrayBoundPolygon);
 
-    this.queueResaveClosestBuilding(
-      asyncQueueStore,
-      systemDesign._id.toString(),
-      systemDesign.opportunityId,
-      targetPanelArrayId,
-      newCenterPoint.lat,
-      newCenterPoint.lng,
-    );
+    const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(systemDesign);
+
+    if (isExistedGeotiff) {
+      this.queueResaveClosestBuilding(
+        asyncQueueStore,
+        systemDesign._id.toString(),
+        systemDesign.opportunityId,
+        targetPanelArrayId,
+        newCenterPoint.lat,
+        newCenterPoint.lng,
+      );
+    }
   }
 
   private async dispatchPanelArrayChange(
