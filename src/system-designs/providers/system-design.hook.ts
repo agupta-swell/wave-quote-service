@@ -36,7 +36,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
   private WILL_GENERATE_SUNROOF_PRODUCTION_SYM = Symbol('willGenerateSunroofProduction');
 
-  dispatch(
+  async dispatch(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
     initSystemDesign: InitSystemDesign,
@@ -46,7 +46,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     isNewPanelArray: boolean,
     newPanelArrayBoundPolygon: ILatLngSchema[],
     newTotalPanelsInArray: number,
-  ): void {
+  ): Promise<void> {
     if (isNewPanelArray) {
       this.dispatchNewPanelArray(asyncQueueStore, systemDesign, targetPanelArrayId, newPanelArrayBoundPolygon);
     }
@@ -70,7 +70,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
       return;
     }
 
-    this.dispatchPanelArrayChange(
+    await this.dispatchPanelArrayChange(
       asyncQueueStore,
       systemDesign,
       initSystemDesign,
@@ -109,7 +109,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     );
   }
 
-  private dispatchPanelArrayChange(
+  private async dispatchPanelArrayChange(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
     initSystemDesign: InitSystemDesign,
@@ -171,11 +171,11 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
         return;
       }
 
-      this.googleSunroofService.isExistedGeotiff(systemDesign).then(isExistedGeotiff => {
-        if (isExistedGeotiff) {
-          this.queueGenerateArrayOverlay(asyncQueueStore, systemDesign);
-        }
-      });
+      const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(systemDesign);
+
+      if (isExistedGeotiff) {
+        this.queueGenerateArrayOverlay(asyncQueueStore, systemDesign);
+      }
 
       return;
     }
