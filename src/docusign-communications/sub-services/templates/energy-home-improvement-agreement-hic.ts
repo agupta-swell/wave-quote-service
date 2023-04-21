@@ -218,7 +218,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     if (rebateDetails.length) labels.push('Estimated Rebate(s)');
 
-    labels.push('Funding Source');
+    labels.push('Product Type');
 
     return labels.join('\n');
   })

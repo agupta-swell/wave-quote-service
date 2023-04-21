@@ -153,7 +153,7 @@ export class QuoteService {
 
     const fundingSource = await this.fundingSourceService.getDetailById(data.fundingSourceId);
     if (!fundingSource) {
-      throw ApplicationException.EntityNotFound('funding Source');
+      throw ApplicationException.EntityNotFound('Product Type');
     }
 
     const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, financialProduct.dealerFee);
@@ -405,7 +405,7 @@ export class QuoteService {
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
-      throw ApplicationException.EntityNotFound('funding Source');
+      throw ApplicationException.EntityNotFound('Product Type');
     }
     const { dealerFee } = financialProductSnapshot;
     const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, dealerFee);
@@ -747,7 +747,7 @@ export class QuoteService {
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
-      throw ApplicationException.EntityNotFound('funding Source');
+      throw ApplicationException.EntityNotFound('Product Type');
     }
 
     const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, dealerFee);
