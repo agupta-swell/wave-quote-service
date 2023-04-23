@@ -1,28 +1,15 @@
 name: Deploy
-run-name: Deploy to ${{ inputs.env }}
+run-name: Deploy 
 on:
   push:
     branches:
       - uat
   workflow_dispatch:
-    inputs:
-      folder:
-        description: Folder
-        required: true
-        type: string
-        default: .
-      env:
-        description: 'Environment'
-        required: true
-        type: choice
-        options:
-          - UAT
-        default: UAT
 jobs: 
-  deploy:
+  deploy_uat:
     uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
     with:
-      Environment:                   ${{ inputs.env }}
+      Environment: UAT
     permissions:
       id-token: write
       contents: read
