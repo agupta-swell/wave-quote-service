@@ -1,5 +1,5 @@
-import { App, Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
-import { RemovalPolicy } from "aws-cdk-lib";
+import { App, Stack, StackProps } from 'aws-cdk-lib';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { Repository } from 'aws-cdk-lib/aws-ecr';
 import { aws_iam as iam } from 'aws-cdk-lib';
 
@@ -14,7 +14,7 @@ const {
 
 
 export class ECRStack extends Stack {
-  constructor(scope: App, id: string, props?: StackProps) {
+  constructor(scope: App, id: string, props: StackProps) {
     super(scope, id, props);
 
     // 👇 ECR repository creation
@@ -28,20 +28,9 @@ export class ECRStack extends Stack {
   policy.addActions(
     "ecr:BatchGetImage",
     "ecr:BatchCheckLayerAvailability",
-    "ecr:CompleteLayerUpload",
     "ecr:GetDownloadUrlForLayer",
-    "ecr:InitiateLayerUpload",
-    "ecr:PutImage",
-    "ecr:UploadLayerPart"
   )
   
   repo.addToResourcePolicy(policy)
-
-  // 👇 Create an output object which defines ecr repo name which is deployed
-  new CfnOutput(this, "ECRRepo", {
-    value: repo.repositoryName,
-    exportName: '${company}-${applicationId}-${processId}-${environment}-repo-name',
-  })
-
 }
 }
