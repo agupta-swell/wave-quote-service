@@ -1,6 +1,6 @@
 import { App, Stack, StackProps, Fn } from 'aws-cdk-lib';
 import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
-import { AwsLogDriver, Cluster, ContainerImage, FargateTaskDefinition, Protocol } from 'aws-cdk-lib/aws-ecs';
+import { Cluster, ContainerImage } from 'aws-cdk-lib/aws-ecs';
 import { aws_elasticloadbalancingv2, aws_ecs_patterns } from 'aws-cdk-lib';
 import { Certificate, CertificateValidation }from 'aws-cdk-lib/aws-certificatemanager';
 import { aws_iam as iam } from 'aws-cdk-lib';
@@ -28,13 +28,13 @@ export class ECSStack extends Stack {
   super(scope, id, props);
 
   // 👇 Importing existing VPC and Public/Private Subnets using Import function
-  const vpc = Vpc.fromLookup(this, 'myvpc', {
+  const vpc = Vpc.fromLookup(this, 'vpc', {
     vpcId,
   })
 
 
   // 👇 Importing existing hosted zone in route53 using lookup function
-  const zone = HostedZone.fromLookup(this, 'Zone', { domainName: '${environment}.wave.swellenergy.com' });
+  const zone = HostedZone.fromLookup(this, 'Zone', { domainName: `${environment}.wave.swellenergy.com` });
     
   // 👇 ECS cluster creation
   const cluster = new Cluster(this, "Cluster", {
@@ -51,53 +51,6 @@ export class ECSStack extends Stack {
     validation: CertificateValidation.fromDns(zone)
   });
 
-  // 👇 Task Role creation
-  const taskrole = new iam.Role(this, `ecs-taskrole-${this.stackName}`, {
-    roleName: `${company}-${applicationId}-${processId}-${environment}-ecs-taskrole`,
-    assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com')
-  });
-  
-  // 👇 IAM policy creation for task role
-  const executionRolePolicy =  new iam.PolicyStatement({
-    effect: iam.Effect.ALLOW,
-    resources: ['*'],
-    actions: [
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:BatchGetImage",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
-    ]
-  });
-
-  
-  // 👇 Task definition creation  
-  const taskDef = new FargateTaskDefinition(this, "ecs-taskdef", {
-    taskRole: taskrole,
-    executionRole: iam.Role.fromRoleArn(this, 'Myrole', Fn.importValue(`${company}-${applicationId}-${processId}-${environment}-role-arn`)),
-  });
-  
-  // 👇 Added execution policy to task definition    
-  taskDef.addToExecutionRolePolicy(executionRolePolicy);
-  
-  // 👇 ECS logging enabling    
-  const logging = new AwsLogDriver({
-    streamPrefix: "ecs-logs"
-  });
-
-  // 👇 Adding container to Task definition
-  const container = taskDef.addContainer('my-app', {
-    image: ContainerImage.fromRegistry(`${toolsAccountId}.dkr.ecr.${ecrRegion}.amazonaws.com/${company}-${applicationId}-${processId}-${environment}:${imagetag}`),
-    memoryLimitMiB: parseInt(memory_spec ?? "256"),
-    cpu: parseInt(cpu_spec ?? "256"),
-    logging,
-  });
-
-  container.addPortMappings({
-    containerPort: 3001,
-    protocol: Protocol.TCP
-  });
-
   const loadBalancer = new aws_elasticloadbalancingv2.ApplicationLoadBalancer(this, 'ECSLB', {
     loadBalancerName: `${company}-${applicationId}-${processId}`,
     vpc,
@@ -107,7 +60,6 @@ export class ECSStack extends Stack {
           ',', `${publicSubnetsIds}`,3).map((subnetId, i) => Subnet.fromSubnetId(this, `subnet${i}`, subnetId))
       }
    })
-
 
   // 👇 Deploy fargate to ECS
   const loadBalancedFargateService = new aws_ecs_patterns.ApplicationLoadBalancedFargateService(this, 'Service', {
@@ -119,21 +71,27 @@ export class ECSStack extends Stack {
     taskSubnets: {
       subnets: Fn.split(
         ',', `${privateSubnetsIds}`,3).map((subnetId, i) => Subnet.fromSubnetId(this, `mysubnet${i}`, subnetId))
-     },
+    },
     serviceName: `${company}-${applicationId}-${processId}`,
     loadBalancer,
     domainName: domain,
     domainZone: zone,
     certificate: mycertificate,
     redirectHTTP: true,
-    taskDefinition: taskDef,    
+    memoryLimitMiB: parseInt(memory_spec ?? "512"),
+    cpu: parseInt(cpu_spec ?? "256"),
+    taskImageOptions: {
+      image: ContainerImage.fromRegistry(`${toolsAccountId}.dkr.ecr.${ecrRegion}.amazonaws.com/${company}-${applicationId}-${processId}:${imagetag}`),
+      containerPort: 3000,
+      containerName: 'app',
+      executionRole: iam.Role.fromRoleName(this, 'exec-role', `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`),
+    }   
   });
 
   // 👇 Target group helth check configurations
   loadBalancedFargateService.targetGroup.configureHealthCheck({
-    path: "/api/healthcheck",
-    healthyHttpCodes: '200',
-  });
-
-    }
+      path: "/api/healthcheck",
+      healthyHttpCodes: '200',
+      });
+  }
 }
