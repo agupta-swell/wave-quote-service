@@ -113,6 +113,12 @@ export class ProposalDto {
 
   @ExposeProp()
   proposalMonthIndex: number;
+
+  @ExposeProp()
+  isArchived: boolean;
+
+  @ExposeProp()
+  isSent: boolean;
 }
 
 class ProposalPaginationRes implements Pagination<ProposalDto> {

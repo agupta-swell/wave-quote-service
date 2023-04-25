@@ -85,6 +85,7 @@ export interface Proposal extends Document {
   proposalView: PROPOSAL_VIEW_MODE;
   proposalPeriod: PROPOSAL_PERIOD_MODE;
   proposalMonthIndex?: number;
+  isArchived: boolean;
 }
 
 export const ProposalSchema = new Schema<Proposal>({
@@ -97,6 +98,7 @@ export const ProposalSchema = new Schema<Proposal>({
   proposalView: String,
   proposalPeriod: String,
   proposalMonthIndex: { type: Number },
+  is_archived: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

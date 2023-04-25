@@ -5,7 +5,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ManagedUpload } from 'aws-sdk/clients/s3';
 import axios from 'axios';
 import { IncomingMessage } from 'http';
-import { identity, pickBy, uniq } from 'lodash';
+import { isNil, omitBy, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { of } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
@@ -50,7 +50,7 @@ import { OperationResult, Pagination } from '../app/common';
 import { EmailService } from '../emails/email.service';
 import { QuoteService } from '../quotes/quote.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { PROPOSAL_ANALYTIC_TYPE, PROPOSAL_STATUS } from './constants';
+import { PROPOSAL_ANALYTIC_TYPE, PROPOSAL_FILTER_STATUS, PROPOSAL_STATUS } from './constants';
 import { Proposal, PROPOSAL } from './proposal.schema';
 import {
   CreateProposalDto,
@@ -179,7 +179,9 @@ export class ProposalService {
     });
     await newProposalAnalytic.save();
 
-    return OperationResult.ok(strictPlainToClass(ProposalDto, infoProposalAfterInsert.toJSON()));
+    const isSent = await this.checkIsSent(infoProposalAfterInsert);
+
+    return OperationResult.ok(strictPlainToClass(ProposalDto, { ...infoProposalAfterInsert.toJSON(), isSent }));
   }
 
   async update(id: ObjectId, proposalDto: UpdateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -195,9 +197,15 @@ export class ProposalService {
       foundProposal.detailedProposal[key] = filteredPayload[key];
     });
 
+    if (filteredPayload.isArchived !== undefined) {
+      foundProposal.isArchived = filteredPayload.isArchived;
+    }
+
     await foundProposal.save();
 
-    return OperationResult.ok(strictPlainToClass(ProposalDto, foundProposal.toJSON()));
+    const isSent = await this.checkIsSent(foundProposal);
+
+    return OperationResult.ok(strictPlainToClass(ProposalDto, { ...foundProposal.toJSON(), isSent }));
   }
 
   async getList(
@@ -205,13 +213,29 @@ export class ProposalService {
     skip: number,
     quoteId: string,
     opportunityId: string,
+    status: PROPOSAL_FILTER_STATUS,
   ): Promise<OperationResult<Pagination<ProposalDto>>> {
-    const condition = pickBy(
+    let isArchived;
+    switch (status) {
+      case PROPOSAL_FILTER_STATUS.ACTIVE:
+        isArchived = { $ne: true };
+        break;
+      case PROPOSAL_FILTER_STATUS.ARCHIVED:
+        isArchived = true;
+        break;
+      default:
+        // get all
+        isArchived = undefined;
+        break;
+    }
+
+    const condition = omitBy(
       {
         quoteId,
         opportunityId,
+        isArchived,
       },
-      identity,
+      isNil,
     );
 
     const [proposals, total] = await Promise.all([
@@ -219,8 +243,15 @@ export class ProposalService {
       this.proposalModel.countDocuments(condition),
     ]);
 
+    const checkedProposals = await Promise.all(
+      proposals.map(async proposal => {
+        const isSent = await this.checkIsSent(proposal);
+        return { ...proposal, isSent };
+      }),
+    );
+
     return OperationResult.ok({
-      data: strictPlainToClass(ProposalDto, proposals),
+      data: strictPlainToClass(ProposalDto, checkedProposals),
       total,
     });
   }
@@ -233,10 +264,13 @@ export class ProposalService {
 
     const requiredData = await this.getProposalRequiredData(proposal);
 
+    const isSent = await this.checkIsSent(proposal);
+
     return OperationResult.ok(
       strictPlainToClass(ProposalDto, {
         ...proposal,
         ...requiredData,
+        isSent,
       }),
     );
   }
@@ -268,7 +302,7 @@ export class ProposalService {
     return OperationResult.ok({ proposalLink: (process.env.PROPOSAL_URL || '').concat(`/?s=${token}`) });
   }
 
-  async sendRecipients(proposalId: ObjectId, recipientEmails: string[]): Promise<OperationResult<boolean>> {
+  async sendRecipients(proposalId: ObjectId, recipientEmails: string[]): Promise<OperationResult<ProposalDto>> {
     const foundProposal = await this.proposalModel.findById(proposalId);
     if (!foundProposal) {
       throw ApplicationException.EntityNotFound(proposalId.toString());
@@ -377,7 +411,9 @@ export class ProposalService {
         .catch(error => console.error(error));
     });
 
-    return OperationResult.ok(true);
+    const isSent = await this.checkIsSent(foundProposal);
+
+    return OperationResult.ok(strictPlainToClass(ProposalDto, { ...foundProposal.toJSON(), isSent }));
   }
 
   async verifyProposalToken(
@@ -556,7 +592,9 @@ export class ProposalService {
       ) || 0;
     // TODO: remove end
 
-    const proposalDetail = strictPlainToClass(ProposalDto, { ...proposal, ...requiredData });
+    const isSent = await this.checkIsSent(proposal);
+
+    const proposalDetail = strictPlainToClass(ProposalDto, { ...proposal, ...requiredData, isSent });
     // add props systemProductionData to systemDesignData
     if (systemProductionRes?.data) {
       proposalDetail.systemDesignData.systemProductionData = systemProductionRes?.data;
@@ -857,7 +895,9 @@ export class ProposalService {
       proposal.detailedProposal.sampleContractUrl = currentSampleContractUrl;
       await proposal.save();
 
-      return OperationResult.ok(strictPlainToClass(ProposalDto, proposal.toJSON()));
+      const isSent = await this.checkIsSent(proposal);
+
+      return OperationResult.ok(strictPlainToClass(ProposalDto, { ...proposal.toJSON(), isSent }));
     } catch (err) {
       // TODO use Logger
       console.error('s3 upload error', err);
@@ -907,5 +947,31 @@ export class ProposalService {
         }),
       );
     });
+  }
+
+  public async deleteProposal(proposalId: ObjectId): Promise<void> {
+    const found = await this.proposalModel.findOne({ _id: proposalId });
+
+    if (!found) {
+      throw new NotFoundException(`No proposal found with id ${proposalId.toString()}`);
+    }
+
+    await found.delete();
+  }
+
+  async checkIsSent(proposal: LeanDocument<Proposal>): Promise<boolean> {
+    const foundProposalAnalytic = await this.proposalAnalyticModel.findOne({ proposalId: proposal._id.toString() });
+
+    if (!foundProposalAnalytic) return false;
+
+    for (let i = 0; i < foundProposalAnalytic.tracking.length; i++) {
+      const trackingInfo = foundProposalAnalytic.tracking[i];
+      const isSentToRecipient = proposal.detailedProposal.recipients.find(
+        recipient => recipient.email === trackingInfo.by,
+      );
+      if (isSentToRecipient) return true;
+    }
+
+    return false;
   }
 }

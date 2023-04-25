@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { plainToClass } from 'class-transformer';
 import { ObjectId } from 'mongoose';
@@ -17,6 +17,7 @@ import { GetPresignedUrlDto } from './req/get-presigned-url.dto';
 import { ProposalSendSampleContractDto } from './req/send-sample-contract.dto';
 import { ProposalAnalyticDto } from './res/proposal-analytic.dto';
 import { ProposalDto, ProposalListRes, ProposalRes } from './res/proposal.dto';
+import { PROPOSAL_FILTER_STATUS } from './constants';
 
 @ApiTags('Proposal')
 @Controller('/proposals')
@@ -58,13 +59,27 @@ export class ProposalController {
   @ApiQuery({ name: 'skip', required: false, example: 0 })
   @ApiQuery({ name: 'quote-id', required: false, example: 'quote-id' })
   @ApiQuery({ name: 'opportunity-id', required: false, example: 'opportunity-id' })
+  @ApiQuery({ name: 'status', required: false })
   @ApiOkResponse({ type: ProposalListRes })
   async getList(
-    @Query() query: { limit: string; skip: string; 'quote-id': string; 'opportunity-id': string },
+    @Query()
+    query: {
+      limit: string;
+      skip: string;
+      'quote-id': string;
+      'opportunity-id': string;
+      status: PROPOSAL_FILTER_STATUS;
+    },
   ): Promise<ServiceResponse<Pagination<ProposalDto>>> {
     const limit = Number(query.limit || 100);
     const skip = Number(query.skip || 0);
-    const res = await this.proposalService.getList(limit, skip, query['quote-id'], query['opportunity-id']);
+    const res = await this.proposalService.getList(
+      limit,
+      skip,
+      query['quote-id'],
+      query['opportunity-id'],
+      query.status || PROPOSAL_FILTER_STATUS.ACTIVE,
+    );
     return ServiceResponse.fromResult(res);
   }
 
@@ -99,7 +114,7 @@ export class ProposalController {
     @Param('proposalId', ParseObjectIdPipe) proposalId: ObjectId,
     @Body() additionalRecipients: string[],
     @CurrentUser() user: ILoggedInUser,
-  ): Promise<ServiceResponse<boolean>> {
+  ): Promise<ServiceResponse<ProposalDto>> {
     const res = await this.proposalService.sendRecipients(proposalId, additionalRecipients);
     return ServiceResponse.fromResult(res);
   }
@@ -184,5 +199,11 @@ export class ProposalController {
 
     const res = await this.proposalService.sendSampleContract(proposalId, templateDetails, signerDetails);
     return ServiceResponse.fromResult(res);
+  }
+
+  @Delete('/:proposalId')
+  @ApiOperation({ summary: 'Delete quote' })
+  async deleteQuote(@Param('proposalId', ParseObjectIdPipe) proposalId: ObjectId): Promise<void> {
+    await this.proposalService.deleteProposal(proposalId);
   }
 }
