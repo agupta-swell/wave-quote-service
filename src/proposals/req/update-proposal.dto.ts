@@ -25,4 +25,9 @@ export class UpdateProposalDto {
   @IsOptional()
   @IsNumber()
   proposalValidityPeriod: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsBoolean()
+  isArchived: boolean;
 }
