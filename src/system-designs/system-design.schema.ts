@@ -470,6 +470,7 @@ export interface SystemDesign extends Document {
   pinballSimulatorId?: string;
   costCalculationInput?: ICostCalculationInput;
   pinballChargingLogicType?: CHARGING_LOGIC_TYPE;
+  isArchived: boolean;
 }
 
 export type SystemDesignWithManufacturerMeta = WithMetaOfType<
@@ -527,6 +528,7 @@ export const SystemDesignSchema = new Schema<SystemDesign>({
   pinball_simulator_id: String,
   cost_calculation_input: CostCalculationInputSchema,
   pinball_charging_logic_type: String,
+  is_archived: { type: Boolean, default: false },
 });
 
 export class SystemDesignModel {
@@ -574,6 +576,8 @@ export class SystemDesignModel {
 
   updated_at: Date;
 
+  isArchived: boolean;
+
   constructor(systemDesign: CreateSystemDesignDto) {
     this.name = systemDesign.name;
     // this.is_selected = systemDesign.isSelected;
@@ -589,6 +593,7 @@ export class SystemDesignModel {
       systemDesign.capacityProductionDesignData &&
       this.transformCapacityProductionData(systemDesign.capacityProductionDesignData);
     this.sunroofDriftCorrection = systemDesign.sunroofDriftCorrection;
+    this.isArchived = systemDesign.isArchived;
   }
 
   transformRoofTopData = (data: RoofTopDataReqDto): IRoofTopSchema => {

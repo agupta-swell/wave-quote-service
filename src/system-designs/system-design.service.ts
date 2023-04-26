@@ -932,10 +932,32 @@ export class SystemDesignService {
     limit: number,
     skip: number,
     opportunityId: string,
+    status: string | undefined,
   ): Promise<OperationResult<Pagination<SystemDesignDto>>> {
+    let query = {};
+    switch (status) {
+      case 'active':
+        query = {
+          isArchived: {
+            $ne: true,
+          },
+        };
+        break;
+      case 'archived':
+        query = {
+          isArchived: true,
+        };
+        break;
+      default:
+        break;
+    }
     const [systemDesigns, count] = await Promise.all([
-      this.systemDesignModel.find({ opportunityId }).limit(limit).skip(skip).lean(),
-      this.systemDesignModel.countDocuments({ opportunityId }).lean(),
+      this.systemDesignModel
+        .find({ opportunityId, ...query })
+        .limit(limit)
+        .skip(skip)
+        .lean(),
+      this.systemDesignModel.countDocuments({ opportunityId, ...query }).lean(),
     ]);
 
     const checkedSystemDesigns = await Promise.all(

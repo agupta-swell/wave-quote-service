@@ -68,4 +68,9 @@ export class CreateSystemDesignDto {
   @Type(() => SunroofDriftCorrectionReqDto)
   @Default({ x: 0, y: 0 })
   sunroofDriftCorrection: SunroofDriftCorrectionReqDto;
+
+  @ApiProperty()
+  @IsBoolean()
+  @Default(false)
+  isArchived: boolean;
 }
