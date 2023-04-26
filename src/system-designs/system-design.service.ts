@@ -1656,15 +1656,15 @@ export class SystemDesignService {
 
     if (isExistedGeotiff) handlers.push(this.googleSunroofService.calculateProduction(systemDesign));
 
-    const [systemPVWattProduction, systemProduction, utilityAndUsage, sunroofProduction] = <
+    const [systemPVWattProductionInWh, systemProduction, utilityAndUsage, sunroofProduction] = <
       [ISystemProduction, any, LeanDocument<UtilityUsageDetails> | null, SystemProduction]
     >await Promise.all(handlers);
 
-    if (!systemPVWattProduction.arrayHourly) throw new NotFoundException(`Hourly production not found`);
+    if (!systemPVWattProductionInWh.arrayHourly) throw new NotFoundException(`Hourly production not found`);
 
     if (!isExistedGeotiff) {
-      const systemActualProduction8760 = range(8760).map(hourIdx =>
-        sum(systemPVWattProduction.arrayHourly?.map(x => x[hourIdx])),
+      const systemActualProduction8760 = range(8760).map(
+        hourIdx => sum(systemPVWattProductionInWh.arrayHourly?.map(x => x[hourIdx])) / 1000, // convert PVWatt from Wh to kWh
       );
 
       this.s3Service.putObject(
@@ -1687,7 +1687,7 @@ export class SystemDesignService {
     } = systemDesign;
 
     // scale by sunroofProduction
-    const scaled8760ProductionByArray = systemPVWattProduction.arrayHourly.map((pvWattData, index) => {
+    const scaled8760ProductionByArray = systemPVWattProductionInWh.arrayHourly.map((pvWattData, index) => {
       const { useSunroof } = panelArray[index];
       if (useSunroof)
         return this.utilityService.calculate8760OnActualMonthlyUsage(
