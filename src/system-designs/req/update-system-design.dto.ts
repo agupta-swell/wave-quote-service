@@ -66,4 +66,9 @@ export class UpdateSystemDesignDto {
   @IsOptional()
   @IsMongoId()
   existingSystemId?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsBoolean()
+  isArchived?: boolean;
 }

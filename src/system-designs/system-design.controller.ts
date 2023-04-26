@@ -99,11 +99,13 @@ export class SystemDesignController {
     @Query('limit') limit: string,
     @Query('skip') skip: string,
     @Query('opportunityId') opportunityId: string,
+    @Query('status') status: string,
   ): Promise<ServiceResponse<Pagination<SystemDesignDto>>> {
     const result = await this.systemDesignService.getAllSystemDesigns(
       Number(limit || 100),
       Number(skip || 0),
       opportunityId,
+      status ? status.toLowerCase() : undefined,
     );
     return ServiceResponse.fromResult(result);
   }
@@ -224,9 +226,7 @@ export class SystemDesignController {
   @Get(':id/production-derate')
   @ApiOperation({ summary: 'Get Production Derate By System Design Id' })
   @ApiOkResponse({ type: ProductionDeratesDesignSystemDto })
-  async getProductionDerates(
-    @Param('id') id: string,
-  ): Promise<ServiceResponse<ProductionDeratesDesignSystemDto>> {
+  async getProductionDerates(@Param('id') id: string): Promise<ServiceResponse<ProductionDeratesDesignSystemDto>> {
     const res = await this.systemDesignService.getProductionDeratesDesignSystemDetail(id);
     return ServiceResponse.fromResult(res);
   }

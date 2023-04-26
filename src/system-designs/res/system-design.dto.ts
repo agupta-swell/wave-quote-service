@@ -70,6 +70,9 @@ export class SystemDesignDto {
 
   @ExposeProp({ type: PinballSimulatorDto })
   pinballSimulator: PinballSimulatorDto;
+
+  @ExposeProp()
+  isArchived?: boolean;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {
