@@ -9,7 +9,8 @@ jobs:
   deploy_qa:
     uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
     with:
-      Environment: QA
+      Environment:      QA
+      SWL_PROCESS_ID:   wave-quote-service
     permissions:
       id-token: write
       contents: read

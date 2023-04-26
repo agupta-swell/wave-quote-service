@@ -9,7 +9,8 @@ jobs:
   deploy_uat:
     uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
     with:
-      Environment: UAT
+      Environment:      UAT
+      SWL_PROCESS_ID:   wave-quote-service
     permissions:
       id-token: write
       contents: read
