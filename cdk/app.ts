@@ -58,5 +58,3 @@ new ECSStack(app, 'ECSStack', {
   stackName: `${company}-${applicationId}-${processId}-${environment}-ecs`,
   tags: tags,
 });
-
-
