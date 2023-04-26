@@ -6,11 +6,11 @@ import { Certificate, CertificateValidation }from 'aws-cdk-lib/aws-certificatema
 import { aws_iam as iam } from 'aws-cdk-lib';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
 
-
 const {
   AWS_VPC: vpcId,
   AWS_PRIVATE_SUBNETS: privateSubnetsIds,
   AWS_PUBLIC_SUBNETS: publicSubnetsIds,
+  AWS_DOMAIN_NAME: domainName,
   AWS_TOOLS_ACCOUNT_ID: toolsAccountId,
   AWS_NETWORKING_STACK: awsNetworkingStack,
   AWS_ECR_REGION: ecrRegion,
@@ -32,10 +32,9 @@ export class ECSStack extends Stack {
     vpcId,
   })
 
-
   // 👇 Importing existing hosted zone in route53 using lookup function
-  const zone = HostedZone.fromLookup(this, 'Zone', { domainName: `${environment}.wave.swellenergy.com` });
-    
+  const zone = HostedZone.fromLookup(this, 'Zone', { domainName: `${domainName}` });
+
   // 👇 ECS cluster creation
   const cluster = new Cluster(this, "Cluster", {
     clusterName: `${company}-${applicationId}-${processId}-${environment}`,
@@ -43,7 +42,7 @@ export class ECSStack extends Stack {
   })
 
   // Domain name for ECS App
-  const domain = `${processId}.${environment}.wave.swellenergy.com`
+  const domain = `${processId}.${environment}.${domainName}`
   
   // 👇 SSL certificate creation
   const mycertificate = new Certificate(this, 'SubSubDomainsCertificate', {
@@ -52,7 +51,7 @@ export class ECSStack extends Stack {
   });
 
   const loadBalancer = new aws_elasticloadbalancingv2.ApplicationLoadBalancer(this, 'ECSLB', {
-    loadBalancerName: `${company}-${applicationId}-${processId}`,
+    loadBalancerName: `${company}-${applicationId}-${processId}-${environment}`,
     vpc,
     internetFacing: true,
       vpcSubnets: {
@@ -72,7 +71,7 @@ export class ECSStack extends Stack {
       subnets: Fn.split(
         ',', `${privateSubnetsIds}`,3).map((subnetId, i) => Subnet.fromSubnetId(this, `mysubnet${i}`, subnetId))
     },
-    serviceName: `${company}-${applicationId}-${processId}`,
+    serviceName: `${company}-${applicationId}-${processId}-${environment}`,
     loadBalancer,
     domainName: domain,
     domainZone: zone,
@@ -81,7 +80,7 @@ export class ECSStack extends Stack {
     memoryLimitMiB: parseInt(memory_spec ?? "512"),
     cpu: parseInt(cpu_spec ?? "256"),
     taskImageOptions: {
-      image: ContainerImage.fromRegistry(`${toolsAccountId}.dkr.ecr.${ecrRegion}.amazonaws.com/${company}-${applicationId}-${processId}:${imagetag}`),
+      image: ContainerImage.fromRegistry(`${toolsAccountId}.dkr.ecr.${ecrRegion}.amazonaws.com/${company}-${applicationId}-${processId}-${environment}:${imagetag}`),
       containerPort: 3000,
       containerName: 'app',
       executionRole: iam.Role.fromRoleName(this, 'exec-role', `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`),
