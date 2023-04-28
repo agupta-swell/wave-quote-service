@@ -12,6 +12,8 @@ export interface DocusignCompositeTemplateMaster extends Document {
   applicableRebatePrograms: (string | null)[];
   applicableFundingSources: string[];
   applicableUtilityPrograms: (string | null)[];
+  applicableFinanciers: string[];
+  applicableFinancialProductTypes: string[];
   applicableUtilities: string[];
   applicableStates: string[];
   applicableSystemTypes: SYSTEM_TYPE[];
@@ -32,6 +34,8 @@ export const DocusignCompositeTemplateMasterSchemaWithoutId = new Schema<Docusig
     applicable_rebate_programs: [String],
     applicable_funding_sources: [String],
     applicable_utility_programs: [String],
+    applicable_financiers: [String],
+    applicable_financial_product_types: [String],
     applicable_utilities: [String],
     applicable_states: [String],
     applicable_system_types: [String],
@@ -56,6 +60,8 @@ export const DocusignCompositeTemplateMasterSchema = new Schema<DocusignComposit
   filename_for_downloads: String,
   applicable_rebate_programs: [String],
   applicable_funding_sources: [String],
+  applicable_financiers: [String],
+  applicable_financial_product_types: [String],
   applicable_utility_programs: [String],
   applicable_utilities: [String],
   applicable_states: [String],

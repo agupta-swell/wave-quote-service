@@ -63,6 +63,8 @@ export class ContractController {
   async getContractTemplates(
     @Query('opportunity-id') opportunityId: string,
     @Query('funding-source-id') fundingSourceId: string,
+    @Query('financier-id') financierId: string,
+    @Query('financial-product-id') financialProductId: string,
     @Query('contract-type') contractType: CONTRACT_TYPE,
     @Query('system-design-id') systemDesignId: string,
     @Query('quote-id') quoteId: string,
@@ -70,6 +72,8 @@ export class ContractController {
     const res = await this.contractService.getContractTemplates(
       opportunityId,
       fundingSourceId,
+      financierId,
+      financialProductId,
       contractType,
       systemDesignId,
       quoteId,
