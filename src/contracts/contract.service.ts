@@ -106,6 +106,8 @@ export class ContractService {
   async getContractTemplates(
     opportunityId: string,
     fundingSourceId?: string,
+    financierId?: string,
+    financialProductId?: string,
     contractType?: CONTRACT_TYPE,
     systemDesignId?: string,
     quoteId?: string,
@@ -158,10 +160,20 @@ export class ContractService {
       throw ApplicationException.ValidationFailed('fundingSourceId is required');
     }
 
+    if (!financierId) {
+      throw ApplicationException.ValidationFailed('financierId is required');
+    }
+
+    if (!financialProductId) {
+      throw ApplicationException.ValidationFailed('financialProductId is required');
+    }
+
     const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id?.toString() || '';
 
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId, 'ALL'],
+      [financierId, 'ALL', undefined],
+      [financialProductId, 'ALL', undefined],
       [utilityId, 'ALL'],
       [utilityProgramIdTemp, 'ALL'],
       [...applicableSystemTypes, SYSTEM_TYPE.ALL],

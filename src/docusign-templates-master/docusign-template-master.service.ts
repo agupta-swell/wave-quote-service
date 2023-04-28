@@ -9,6 +9,8 @@ import { ITemplateDetailSchema } from 'src/contracts/contract.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
+import { FinancierService } from 'src/financiers/financier.service';
+import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { SAVE_TEMPLATE_MODE, SYSTEM_TYPE } from './constants';
 import { DocusignTemplateMaster, DOCUSIGN_TEMPLATE_MASTER } from './docusign-template-master.schema';
 import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
@@ -40,6 +42,8 @@ export class DocusignTemplateMasterService {
     private readonly docusignCompositeTemplateMasterModel: Model<DocusignCompositeTemplateMaster>,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
     private readonly fundingSourceService: FundingSourceService,
+    private readonly financierService: FinancierService,
+    private readonly financialProductsService: FinancialProductsService,
   ) {}
 
   async getTemplateMasterById(id: string): Promise<ITemplateDetailSchema> {
@@ -210,10 +214,18 @@ export class DocusignTemplateMasterService {
   }
 
   async getContractApplicabilityData(): Promise<OperationResult<GetContractApplicabilityDataDto>> {
-    const [utilitiesMaster, utilityProgramsMaster, fundingSources] = await Promise.all([
+    const [
+      utilitiesMaster,
+      utilityProgramsMaster,
+      fundingSources,
+      financiers,
+      financialProductTypes,
+    ] = await Promise.all([
       this.utilityMasterModel.find().lean(),
       this.utilityProgramMasterService.getAll(),
       this.fundingSourceService.getAll(),
+      this.financierService.getAll({ isActive: true }),
+      this.financialProductsService.getAll({ isActive: true }),
     ]);
 
     return OperationResult.ok(
@@ -221,6 +233,8 @@ export class DocusignTemplateMasterService {
         applicableUtilities: utilitiesMaster,
         applicableFundingSources: fundingSources,
         applicableUtilityPrograms: utilityProgramsMaster,
+        applicableFinanciers: financiers,
+        applicableFinancialProductTypes: financialProductTypes,
       }),
     );
   }
@@ -263,6 +277,8 @@ export class DocusignTemplateMasterService {
           filenameForDownloads: req.compositeTemplateData.filenameForDownloads,
           applicableRebatePrograms: req.compositeTemplateData.applicableRebatePrograms,
           applicableFundingSources: req.compositeTemplateData.applicableFundingSources,
+          applicableFinanciers: req.compositeTemplateData.applicableFinanciers,
+          applicableFinancialProductTypes: req.compositeTemplateData.applicableFinancialProductTypes,
           applicableUtilityPrograms: req.compositeTemplateData.applicableUtilityPrograms,
           applicableUtilities: req.compositeTemplateData.applicableUtilities,
           applicableStates: req.compositeTemplateData.applicableStates,
@@ -318,14 +334,18 @@ export class DocusignTemplateMasterService {
 
   async getDocusignCompositeTemplateMaster(
     fundingSources: string[],
+    financiers: (string | undefined)[],
+    financialProducts: (string | undefined)[],
     utilities: string[],
     utilityPrograms: (string | null)[],
     applicableSystemTypes: SYSTEM_TYPE[],
   ): Promise<LeanDocument<DocusignCompositeTemplateMaster>[]> {
     const res = await this.docusignCompositeTemplateMasterModel
-      .find({
+      .find(<any>{
         type: { $ne: CONTRACT_TYPE.GRID_SERVICES_PACKET },
         applicableFundingSources: { $in: fundingSources },
+        applicableFinanciers: { $in: financiers },
+        applicableFinancialProductTypes: { $in: financialProducts },
         applicableUtilities: { $in: utilities },
         applicableUtilityPrograms: { $in: utilityPrograms },
         applicableSystemTypes: { $in: applicableSystemTypes },

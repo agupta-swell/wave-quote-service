@@ -34,6 +34,12 @@ export class DocusignCompositeTemplateMasterDataResDto {
   applicableUtilities: string[];
 
   @ExposeProp({ type: String, isArray: true })
+  applicableFinanciers: string[];
+
+  @ExposeProp({ type: String, isArray: true })
+  applicableFinancialProductTypes: string[];
+
+  @ExposeProp({ type: String, isArray: true })
   applicableStates: string[];
 
   @ExposeProp({ enum: SYSTEM_TYPE, type: String, isArray: true })

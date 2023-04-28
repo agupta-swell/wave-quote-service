@@ -44,6 +44,14 @@ export class DocusignCompositeTemplateMasterDataReqDto {
   applicableFundingSources: string[];
 
   @ApiProperty()
+  @IsString({ each: true })
+  applicableFinanciers: string[];
+
+  @ApiProperty()
+  @IsString({ each: true })
+  applicableFinancialProductTypes: string[];
+
+  @ApiProperty()
   @IsStringOrNull({ each: true })
   applicableUtilityPrograms: string[];
 

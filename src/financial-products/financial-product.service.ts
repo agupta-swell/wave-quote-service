@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { inRange } from 'lodash';
-import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
+import { FilterQuery, LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -121,5 +121,10 @@ export class FinancialProductsService {
       .lean();
 
     return financialProducts[0]?.dealerFee || DEFAULT_DEALER_FEE;
+  }
+
+  async getAll(query?: FilterQuery<FinancialProduct>): Promise<LeanDocument<FinancialProduct>[]> {
+    const financialProducts = await this.financialProduct.find(query as any).lean();
+    return financialProducts;
   }
 }
