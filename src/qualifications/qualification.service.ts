@@ -179,7 +179,7 @@ export class QualificationService {
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound(id.toString());
     }
-    
+
     switch (applicantConsent.type) {
       case CONSENT_STATUS.HAS_CO_APPLICANT_CONSENT:
         qualificationCredit.hasCoApplicantConsent = applicantConsent.option;
@@ -455,12 +455,21 @@ export class QualificationService {
     await qualificationCredit.save();
     fniApplyRequest.qualificationCreditId = qualificationCredit._id;
 
-    const applyResponse = await this.fniEngineService.apply(fniApplyRequest);
+    // ==== FOR DEMO PURPOSE ONLY ====
+    // const applyResponse = await this.fniEngineService.apply(fniApplyRequest);
+    // const responseStatus = await this.handleFNIResponse(
+    //   applyResponse,
+    //   `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
+    //   qualificationCredit,
+    // );
+
+    const applyResponse = 'SUCCESS';
     const responseStatus = await this.handleFNIResponse(
       applyResponse,
       `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
       qualificationCredit,
     );
+    // ==== FOR DEMO PURPOSE ONLY ====
 
     return OperationResult.ok({ responseStatus });
   }
