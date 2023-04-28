@@ -159,6 +159,9 @@ export class QuoteDto {
   savingsDetails: SavingsDetailDto[];
 
   @ExposeProp()
+  isArchived: boolean;
+
+  @ExposeProp()
   isSync: boolean;
 
   @ExposeProp()

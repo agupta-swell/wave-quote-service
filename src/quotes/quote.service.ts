@@ -6,6 +6,7 @@ import BigNumber from 'bignumber.js';
 import { isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
+import { STATUS_QUERY } from 'src/contracts/constants';
 import { ContractService } from 'src/contracts/contract.service';
 import { DiscountService } from 'src/discounts/discount.service';
 import { IExistingSystem } from 'src/existing-systems/interfaces';
@@ -968,13 +969,28 @@ export class QuoteService {
     skip: number,
     systemDesignId: string,
     opportunityId: string,
+    status: string,
     isSync?: string,
   ): Promise<OperationResult<Pagination<QuoteDto>>> {
+    let isArchived;
+    switch (status) {
+      case STATUS_QUERY.ACTIVE:
+        isArchived = { $ne: true };
+        break;
+      case STATUS_QUERY.ARCHIVED:
+        isArchived = true;
+        break;
+      default:
+        isArchived = undefined;
+        break;
+    }
+
     const condition = omitBy(
       {
         systemDesignId,
         opportunityId,
         isSync: typeof isSync === 'undefined' ? undefined : getBooleanString(isSync),
+        isArchived,
       },
       isNil,
     );
@@ -985,15 +1001,20 @@ export class QuoteService {
     ]);
 
     const checkedQuotes = await Promise.all(
-      quotes.map(async q => {
-        const isInUsed = await this.checkInUsed(q._id.toString());
-        if (q.detailedQuote.systemProductionId) {
-          const systemProduction = await this.systemProductionService.findById(q.detailedQuote.systemProductionId);
-          if (systemProduction.data && q) {
-            q.detailedQuote.systemProduction = systemProduction.data;
+      quotes.map(async quote => {
+        const isInUsed = await this.checkInUsed(quote._id.toString());
+        if (quote.detailedQuote.systemProductionId) {
+          const systemProduction = await this.systemProductionService.findById(quote.detailedQuote.systemProductionId);
+          if (systemProduction.data && quote) {
+            quote.detailedQuote.systemProduction = systemProduction.data;
           }
         }
-        return { ...q, editable: !isInUsed, editableMessage: isInUsed || null };
+        return {
+          ...quote,
+          editable: !isInUsed,
+          editableMessage: isInUsed || null,
+          isArchived: quote?.isArchived === true,
+        };
       }),
     );
 

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayUnique, IsArray, IsMongoId, IsOptional, ValidateNested } from 'class-validator';
+import { ArrayUnique, IsArray, IsBoolean, IsMongoId, IsOptional, ValidateNested } from 'class-validator';
 import { SystemProductionDto } from 'src/system-designs/res/sub-dto/system-production.dto';
 import { DiscountReqDto } from '../res/sub-dto/discount.dto';
 import { UpdateQuoteDto } from './update-quote.dto';
@@ -31,4 +31,9 @@ export class CalculateQuoteDetailDto extends UpdateQuoteDto {
   @IsArray()
   @ArrayUnique<DiscountReqDto>(discount => discount.id)
   discounts?: DiscountReqDto[];
+
+  @ApiProperty()
+  @IsBoolean()
+  @IsOptional()
+  isArchived: boolean;
 }

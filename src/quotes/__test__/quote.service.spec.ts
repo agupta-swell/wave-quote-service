@@ -1,5 +1,6 @@
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
+import { STATUS_QUERY } from 'src/contracts/constants';
 import {
   FINANCE_PRODUCT_TYPE,
   INCENTIVE_APPLIES_TO_VALUE,
@@ -915,7 +916,7 @@ describe('Quote Service', () => {
 
       quoteService = new QuoteService(mockQuoteModel as any, null, null, null, null, null, null, null);
 
-      const res = await quoteService.getAllQuotes(100, 0, 'systemDesignId', 'opportunityId');
+      const res = await quoteService.getAllQuotes(100, 0, 'systemDesignId', 'opportunityId', STATUS_QUERY.ALL);
 
       expect(res).toMatchSnapshot();
       expect(res).toBeInstanceOf(OperationResult);

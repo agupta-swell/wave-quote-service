@@ -1,6 +1,3 @@
-import { PRODUCT_TYPE } from 'src/products-v2/constants';
-import { QUOTE_MODE_TYPE } from 'src/quotes/constants';
-
 export enum CONTRACT_TYPE {
   PRIMARY_CONTRACT = 'PRIMARY_CONTRACT',
   GRID_SERVICES_PACKET = 'GRID_SERVICES_PACKET',
@@ -51,3 +48,9 @@ export const KEYS = {
 export const CONTRACT_SECRET_PREFIX = 'contract';
 
 export const DEFAULT_PROJECT_COMPLETION_DATE_OFFSET = 90;
+
+export enum STATUS_QUERY {
+  ACTIVE = 'ACTIVE',
+  ALL = 'ALL',
+  ARCHIVED = 'ARCHIVED',
+}
