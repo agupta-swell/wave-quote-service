@@ -83,6 +83,11 @@ export class UpdateQuoteDto {
   @IsBoolean()
   isSync: boolean;
 
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  isArchived: boolean;
+
   @ApiProperty({ type: TaxCreditDto, isArray: true })
   @Type(() => TaxCreditDto)
   @IsOptional()

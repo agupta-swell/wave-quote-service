@@ -13,6 +13,7 @@ import { flatten, pickBy, range, sum, sumBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult, Pagination } from 'src/app/common';
+import { STATUS_QUERY } from 'src/contracts/constants';
 import { ContractService } from 'src/contracts/contract.service';
 import { DEFAULT_ENVIRONMENTAL_LOSSES_DATA } from 'src/e-commerces/constants';
 import { ECommerceService } from 'src/e-commerces/e-commerce.service';
@@ -39,6 +40,7 @@ import {
 } from 'src/shared/aws/constants';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { GoogleSunroofService } from 'src/shared/google-sunroof/google-sunroof.service';
+import { SystemProduction } from 'src/shared/google-sunroof/types';
 import { attachMeta } from 'src/shared/mongo';
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
@@ -51,7 +53,6 @@ import { buildMonthlyAndAnnualDataFrom8760, buildMonthlyHourFrom8760 } from 'src
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
 import { roundNumber } from 'src/utils/transformNumber';
 import { v4 as uuidv4 } from 'uuid';
-import { SystemProduction } from 'src/shared/google-sunroof/types';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE, PRESIGNED_GET_URL_EXPIRE_IN } from './constants';
 import { SystemDesignHook } from './providers/system-design.hook';
@@ -79,10 +80,10 @@ import { CsvExportResDto } from './res/sub-dto/csv-export-res.dto';
 import { ISystemProduction, SunroofHourlyProductionCalculation, SystemProductService } from './sub-services';
 import {
   IRoofTopSchema,
-  SYSTEM_DESIGN,
   SystemDesign,
   SystemDesignModel,
   SystemDesignWithManufacturerMeta,
+  SYSTEM_DESIGN,
 } from './system-design.schema';
 import { IProductionDeratesData } from './typing';
 
@@ -896,7 +897,13 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(systemDesignId);
     }
 
-    const checkUsedByQuote = await this.quoteService.getAllQuotes(1, 0, systemDesignId, opportunityId);
+    const checkUsedByQuote = await this.quoteService.getAllQuotes(
+      1,
+      0,
+      systemDesignId,
+      opportunityId,
+      STATUS_QUERY.ALL,
+    );
     if (checkUsedByQuote.data?.total) {
       throw new BadRequestException('This system design has been used by Quote');
     }
