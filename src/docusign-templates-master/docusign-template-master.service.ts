@@ -178,8 +178,12 @@ export class DocusignTemplateMasterService {
           }),
         );
 
+        const sortedDocusignTemplates = item.docusignTemplateIds.map(docusignTemplateId =>
+          docusignTemplates.find(docusignTemplate => docusignTemplate._id.toString() === docusignTemplateId),
+        );
+
         return {
-          templateDetails: docusignTemplates as any,
+          templateDetails: sortedDocusignTemplates as any,
           compositeTemplateData: item,
         } as ICompositeTemplateResDto;
       }),
