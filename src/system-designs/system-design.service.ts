@@ -1680,8 +1680,13 @@ export class SystemDesignService {
         systemActualProduction8760,
       };
     }
+
+    // Some array use PVWatt data, some use Google Sunroof
+    // Since PVWatt value already include degradation, so
+    // only arrays that use Google Sunroof need to run through all of the scaling and degradation
     // keep PV Watt of panels that useSunroof is false
-    const usePVWatt8760ProductionByArray: number[][] = [];
+    const usePVWattArrayIndex: number[] = [];
+
     const {
       roofTopDesignData: { panelArray },
     } = systemDesign;
@@ -1694,8 +1699,8 @@ export class SystemDesignService {
           pvWattData,
           sunroofProduction.byArray[index].monthlyProduction,
         ) as number[];
-      usePVWatt8760ProductionByArray.push(pvWattData);
-      return [];
+      usePVWattArrayIndex.push(index);
+      return pvWattData;
     });
 
     this.s3Service.putObject(
@@ -1711,6 +1716,10 @@ export class SystemDesignService {
     const allMountTypes = await this.mountTypesService.findAllMountTypes();
 
     const appliedMountTypeDerate8760ProductionByArray = scaled8760ProductionByArray?.map((productionData, index) => {
+      if (usePVWattArrayIndex.includes(index)) {
+        return productionData;
+      }
+
       let mountTypeDeratePercentage = 0;
       const { mountTypeId } = panelArray[index];
       if (mountTypeId) {
@@ -1732,7 +1741,13 @@ export class SystemDesignService {
     const firstYearDegradation = (firstPanelArray?.panelModelDataSnapshot?.firstYearDegradation ?? 0) / 100;
 
     const appliedFirstYearDegradation8760ProductionByArray = appliedMountTypeDerate8760ProductionByArray?.map(
-      productionData => this.applyDerate(productionData, 1 - firstYearDegradation),
+      (productionData, index) => {
+        if (usePVWattArrayIndex.includes(index)) {
+          return productionData;
+        }
+
+        return this.applyDerate(productionData, 1 - firstYearDegradation);
+      },
     );
 
     this.s3Service.putObject(
@@ -1754,7 +1769,13 @@ export class SystemDesignService {
     const soilingLossesAmounts = soilingLosses?.amounts || DEFAULT_ENVIRONMENTAL_LOSSES_DATA.amounts;
 
     const appliedSoilingDerate8760ProductionByArray = appliedFirstYearDegradation8760ProductionByArray?.map(
-      productionData => this.applyDerateByMonth(productionData, soilingLossesAmounts),
+      (productionData, index) => {
+        if (usePVWattArrayIndex.includes(index)) {
+          return productionData;
+        }
+
+        return this.applyDerateByMonth(productionData, soilingLossesAmounts);
+      },
     );
 
     this.s3Service.putObject(
@@ -1766,8 +1787,14 @@ export class SystemDesignService {
 
     // apply Snow derate
     const snowLossesAmounts = snowLosses?.amounts || DEFAULT_ENVIRONMENTAL_LOSSES_DATA.amounts;
-    const appliedSnowDerate8760ProductionByArray = appliedSoilingDerate8760ProductionByArray?.map(productionData =>
-      this.applyDerateByMonth(productionData, snowLossesAmounts),
+    const appliedSnowDerate8760ProductionByArray = appliedSoilingDerate8760ProductionByArray?.map(
+      (productionData, index) => {
+        if (usePVWattArrayIndex.includes(index)) {
+          return productionData;
+        }
+
+        return this.applyDerateByMonth(productionData, snowLossesAmounts);
+      },
     );
 
     this.s3Service.putObject(
@@ -1778,8 +1805,14 @@ export class SystemDesignService {
     );
 
     // apply Inverter Clipping
-    const appliedInverterClipping8760ProductionByArray = appliedSnowDerate8760ProductionByArray.map(productionData =>
-      this.applyInverterClipping(productionData, systemDesign),
+    const appliedInverterClipping8760ProductionByArray = appliedSnowDerate8760ProductionByArray.map(
+      (productionData, index) => {
+        if (usePVWattArrayIndex.includes(index)) {
+          return productionData;
+        }
+
+        return this.applyInverterClipping(productionData, systemDesign);
+      },
     );
 
     this.s3Service.putObject(
@@ -1791,7 +1824,13 @@ export class SystemDesignService {
 
     // apply Inverter Efficiency
     const appliedInverterEfficiency8760ProductionByArray = appliedInverterClipping8760ProductionByArray.map(
-      productionData => this.applyInverterEfficiency(productionData, systemDesign),
+      (productionData, index) => {
+        if (usePVWattArrayIndex.includes(index)) {
+          return productionData;
+        }
+
+        return this.applyInverterEfficiency(productionData, systemDesign);
+      },
     );
 
     this.s3Service.putObject(
@@ -1802,8 +1841,14 @@ export class SystemDesignService {
     );
 
     // apply OtherLosses
-    const appliedOtherLosses8760ProductionByArray = appliedInverterEfficiency8760ProductionByArray.map(productionData =>
-      this.applyOtherLosses(productionData, derateSnapshot),
+    const appliedOtherLosses8760ProductionByArray = appliedInverterEfficiency8760ProductionByArray.map(
+      (productionData, index) => {
+        if (usePVWattArrayIndex.includes(index)) {
+          return productionData;
+        }
+
+        return this.applyOtherLosses(productionData, derateSnapshot);
+      },
     );
 
     this.s3Service.putObject(
@@ -1844,9 +1889,9 @@ export class SystemDesignService {
     }
 
     // TODO: handle leap year later
-    // cumulative by hourly generation of all arrays
-    const final8760ProductionByArray = [...appliedOtherLosses8760ProductionByArray, ...usePVWatt8760ProductionByArray];
-    const systemActualProduction8760 = range(8760).map(hourIdx => sum(final8760ProductionByArray.map(x => x[hourIdx])));
+    const systemActualProduction8760 = range(8760).map(hourIdx =>
+      sum(appliedOtherLosses8760ProductionByArray.map(x => x[hourIdx])),
+    );
 
     this.s3Service.putObject(
       this.GOOGLE_SUNROOF_BUCKET,
