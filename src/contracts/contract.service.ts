@@ -1,4 +1,12 @@
-import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { IncomingMessage } from 'http';
@@ -355,6 +363,13 @@ export class ContractService {
     ]);
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
+
+    if (!assignedMember?.hisNumber) {
+      throw new HttpException(
+        `Assigned sales agent ${assignedMember?.profile.firstName} ${assignedMember?.profile.lastName} does not have an HIS Number`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     // Get gsProgram=
     const gsProgram = quote.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot;
