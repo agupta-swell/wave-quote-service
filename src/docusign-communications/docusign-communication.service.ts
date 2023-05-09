@@ -47,9 +47,7 @@ export class DocusignCommunicationService {
     isDraft = false,
   ): Promise<ISendDocusignToContractResponse> {
     const docusignPayload: any = {
-      emailSubject: `${
-        genericObject.quote.quoteFinanceProduct?.financeProduct?.financialProductSnapshot?.name || 'Contract'
-      } - Agreement for ${genericObject.opportunity.name}`,
+      emailSubject: `${genericObject.contact.lastName}, ${genericObject.contact.firstName} - ${genericObject.contract?.name}`,
       emailBlurb: 'Please review and sign the contract for your energy project!',
       compositeTemplates: [],
     };
@@ -321,15 +319,14 @@ export class DocusignCommunicationService {
     financier: ISignerDetailDataSchema,
     carbonCopyRecipients: ISignerDetailDataSchema[],
     contractFile: FastifyFile,
-    opportunityName: string,
-    financialName: string,
+    emailSubject: string,
   ): Promise<EnvelopeSummary> {
     return this.docusignApiService.sendWetSignedContract(
       contractFile.file,
       contractFile.filename,
       'pdf',
       'application/pdf',
-      `${financialName} - Agreement for ${opportunityName}`,
+      emailSubject,
       {
         name: financier.fullName,
         email: financier.email,

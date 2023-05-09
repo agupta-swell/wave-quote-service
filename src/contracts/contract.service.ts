@@ -849,6 +849,9 @@ export class ContractService {
     const financier = contract.signerDetails.find(e => e.role === 'Financier');
 
     const opportunity = await this.opportunityService.getDetailById(contract.opportunityId);
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${contract.opportunityId}`);
+    }
 
     if (!financier) {
       throw new BadRequestException('Financier is missing');
@@ -856,12 +859,13 @@ export class ContractService {
 
     const carbonCopiesRecipient = contract.signerDetails.filter(e => e.role !== 'Financier');
 
+    const contact = await this.contactService.getContactById(opportunity.contactId);
+
     const envelope = await this.docusignCommunicationService.sendWetSingedContract(
       financier,
       carbonCopiesRecipient,
       file,
-      opportunity?.name ?? '',
-      detailedQuote.quoteFinanceProduct.financialProductSnapshot?.name ?? 'Contract',
+      `${contact?.lastName}, ${contact?.firstName} - ${contract?.name}`,
     );
 
     if (envelope.status !== 'sent' || !envelope.envelopeId) {
