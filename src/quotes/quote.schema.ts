@@ -161,6 +161,26 @@ export interface ILeaseProductAttributes {
   leaseSolverConfigSnapshot?: LeaseSolverConfig;
 }
 
+export interface IEsaQuoteConfigSnapshot {
+  type: string;
+  config: {
+    name: string;
+    percentage: number;
+  }[];
+}
+
+export interface IEsaProductAttributes {
+  upfrontPayment: number;
+  balance: number;
+  milestonePayment: IMilestonePayment[];
+  esaQuoteConfigSnapshot: IEsaQuoteConfigSnapshot;
+  esaQuoteConfigSnapshotDate: Date;
+  currentAverageMonthlyBill: number;
+  newAverageMonthlyBill: number;
+  currentPricePerKWh: number;
+  newPricePerKWh: number;
+}
+
 export interface IMilestonePayment {
   name: string;
   amount: number;

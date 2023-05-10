@@ -39,6 +39,7 @@ import { IQuoteCostBuildup } from './interfaces';
 import {
   ICashProductAttributes,
   IDetailedQuoteSchema,
+  IEsaProductAttributes,
   ILeaseProductAttributes,
   ILoanProductAttributes,
   IRebateDetailsSchema,
@@ -63,6 +64,8 @@ import { QuoteCostBuildupUserInputDto } from './res/sub-dto';
 import { ITC, I_T_C } from './schemas';
 import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
 import { ICreateProductAttribute } from './typing';
+import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
+import { EsaPaymentConfigService } from 'src/esa-payment-configs/esa-payment-config.service';
 
 @Injectable()
 export class QuoteService {
@@ -76,6 +79,7 @@ export class QuoteService {
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
     private readonly cashPaymentConfigService: CashPaymentConfigService,
+    private readonly esaPaymentConfigService: EsaPaymentConfigService,
     @Inject(forwardRef(() => CalculationService))
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
@@ -494,6 +498,13 @@ export class QuoteService {
         } as LoanProductAttributesDto;
         break;
       }
+      case FINANCE_PRODUCT_TYPE.ESA: {
+        productAttribute = {
+          ...productAttribute,
+          upfrontPayment: product_attribute.upfrontPayment,
+        } as EsaProductAttributesDto;
+        break;
+      }
 
       default: {
         productAttribute = {
@@ -607,7 +618,7 @@ export class QuoteService {
     newAverageMonthlyBill = 0,
   }: ICreateProductAttribute): Promise<any> {
     // TODO: Refactor this function with correct params and default value.
-    let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
+    let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes | IEsaProductAttributes;
 
     const { defaultDownPayment, interestRate, terms, termMonths } = financialProductSnapshot;
 
@@ -657,6 +668,27 @@ export class QuoteService {
         } as ILeaseProductAttributes;
         return template;
 
+      case FINANCE_PRODUCT_TYPE.ESA:
+        const esaQuoteConfig = await this.esaPaymentConfigService.getFirst();
+        template = {
+          upfrontPayment: defaultDownPayment,
+          balance: netAmount,
+          milestonePayment: (esaQuoteConfig?.config || []).map(item => ({
+            ...item,
+            amount: roundNumber(netAmount * item.percentage, 2),
+          })),
+          esaQuoteConfigSnapshot: {
+            type: esaQuoteConfig?.type,
+            config: esaQuoteConfig?.config,
+          },
+          currentAverageMonthlyBill,
+          newAverageMonthlyBill,
+          currentPricePerKWh,
+          newPricePerKWh,
+          esaQuoteConfigSnapshotDate: new Date(),
+        } as IEsaProductAttributes;
+        return template;
+      
       default: {
         const cashQuoteConfig = await this.cashPaymentConfigService.getFirst();
         template = {
@@ -813,6 +845,13 @@ export class QuoteService {
           loanTerm: product_attribute.loanTerm,
           monthlyUtilityPayment: productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings,
         } as LoanProductAttributesDto;
+        break;
+      }
+      case FINANCE_PRODUCT_TYPE.ESA: {
+        productAttribute = {
+          ...productAttribute,
+          upfrontPayment: product_attribute.upfrontPayment,
+        } as EsaProductAttributesDto;
         break;
       }
 
@@ -1122,6 +1161,8 @@ export class QuoteService {
         break;
       }
 
+      case FINANCE_PRODUCT_TYPE.CASH:
+      case FINANCE_PRODUCT_TYPE.ESA:
       default: {
         // do nothing
       }
@@ -1183,6 +1224,7 @@ export class QuoteService {
       case FINANCE_PRODUCT_TYPE.LOAN:
         res = await this.calculationService.calculateLoanSolver(data, monthlyUtilityPayment);
         break;
+      case FINANCE_PRODUCT_TYPE.ESA:
       case FINANCE_PRODUCT_TYPE.CASH:
         res = {} as any;
         break;
@@ -1419,6 +1461,16 @@ export class QuoteService {
         return newProductAttribute;
       }
 
+      case FINANCE_PRODUCT_TYPE.ESA: {
+        const newProductAttribute = { ...financeProduct.productAttribute } as any;
+        newProductAttribute.balance = netAmount - newProductAttribute.upfrontPayment;
+        newProductAttribute.milestonePayment = newProductAttribute.milestonePayment.map((item: any) => ({
+          ...item,
+          amount: roundNumber(newProductAttribute.balance * item.percentage, 2),
+        }));
+        return newProductAttribute;
+      }
+
       case FINANCE_PRODUCT_TYPE.LOAN: {
         const newProductAttribute = { ...financeProduct.productAttribute } as any;
         newProductAttribute.loanAmount = netAmount - newProductAttribute.upfrontPayment;
@@ -1596,6 +1648,8 @@ export class QuoteService {
   async getDealerFeePercentage(type: string, dealerFee: number) {
     switch (type) {
       case FINANCE_PRODUCT_TYPE.CASH:
+        return this.financialProductService.getLowestDealerFee(FINANCE_PRODUCT_TYPE.LOAN);
+      case FINANCE_PRODUCT_TYPE.ESA:
         return this.financialProductService.getLowestDealerFee(FINANCE_PRODUCT_TYPE.LOAN);
       case FINANCE_PRODUCT_TYPE.LOAN:
         return dealerFee;
