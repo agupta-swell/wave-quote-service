@@ -205,7 +205,9 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
     const tabs = prefillTabs.textTabs
       .map(tab => {
-        const { tabId, tabLabel } = tab;
+        const { tabId, tabLabel, required } = tab;
+
+        const isTabRequired = required === 'true';
 
         const rawTab = this._rawTabs.find(
           rawTab =>
@@ -215,7 +217,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
         );
 
         if (!rawTab) {
-          if (tab.required && !tab.value)
+          if (isTabRequired && !tab.value)
             throw new DocusignException(
               undefined,
               `Missing tab value for  ${tab.tabLabel}, template id: ${templateId}`,
@@ -230,7 +232,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
             : rawTab.tabValue
           )?.toString() ?? '';
 
-        if (!tabValue && (rawTab.tabRequireProp || tab.required)) {
+        if (!tabValue && (rawTab.tabRequireProp || isTabRequired)) {
           throw new DocusignException(
             undefined,
             `Missing tab value for  ${rawTab.tabRequireProp || tab.tabLabel}, template id: ${templateId}`,
