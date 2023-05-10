@@ -65,7 +65,6 @@ import { ITC, I_T_C } from './schemas';
 import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
 import { ICreateProductAttribute } from './typing';
 import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
-import { EsaPaymentConfigService } from 'src/esa-payment-configs/esa-payment-config.service';
 
 @Injectable()
 export class QuoteService {
@@ -79,7 +78,6 @@ export class QuoteService {
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
     private readonly cashPaymentConfigService: CashPaymentConfigService,
-    private readonly esaPaymentConfigService: EsaPaymentConfigService,
     @Inject(forwardRef(() => CalculationService))
     private readonly calculationService: CalculationService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
@@ -669,26 +667,17 @@ export class QuoteService {
         return template;
 
       case FINANCE_PRODUCT_TYPE.ESA:
-        const esaQuoteConfig = await this.esaPaymentConfigService.getFirst();
         template = {
           upfrontPayment: defaultDownPayment,
           balance: netAmount,
-          milestonePayment: (esaQuoteConfig?.config || []).map(item => ({
-            ...item,
-            amount: roundNumber(netAmount * item.percentage, 2),
-          })),
-          esaQuoteConfigSnapshot: {
-            type: esaQuoteConfig?.type,
-            config: esaQuoteConfig?.config,
-          },
+          milestonePayment: [],
           currentAverageMonthlyBill,
           newAverageMonthlyBill,
           currentPricePerKWh,
           newPricePerKWh,
-          esaQuoteConfigSnapshotDate: new Date(),
         } as IEsaProductAttributes;
         return template;
-      
+
       default: {
         const cashQuoteConfig = await this.cashPaymentConfigService.getFirst();
         template = {
