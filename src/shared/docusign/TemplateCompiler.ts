@@ -214,7 +214,15 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
             !rawTab.tabDynamicValue,
         );
 
-        if (!rawTab) return;
+        if (!rawTab) {
+          if (tab.required && !tab.value)
+            throw new DocusignException(
+              undefined,
+              `Missing tab value for  ${tab.tabLabel}, template id: ${templateId}`,
+              true,
+            );
+          else return;
+        }
 
         const tabValue =
           (typeof rawTab.tabValue === 'function'
@@ -222,10 +230,10 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
             : rawTab.tabValue
           )?.toString() ?? '';
 
-        if (!tabValue && rawTab.tabRequireProp) {
+        if (!tabValue && (rawTab.tabRequireProp || tab.required)) {
           throw new DocusignException(
             undefined,
-            `Missing tab value for  ${rawTab.tabRequireProp}, template id: ${templateId}`,
+            `Missing tab value for  ${rawTab.tabRequireProp || tab.tabLabel}, template id: ${templateId}`,
             true,
           );
         }
