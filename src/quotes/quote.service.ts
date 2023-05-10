@@ -1045,6 +1045,13 @@ export class QuoteService {
 
     const isInUsed = await this.checkInUsed(quoteId);
 
+    if (quote.detailedQuote.systemProductionId) {
+      const systemProduction = await this.systemProductionService.findById(quote.detailedQuote.systemProductionId);
+      if (systemProduction.data && quote) {
+        quote.detailedQuote.systemProduction = systemProduction.data;
+      }
+    }
+
     return OperationResult.ok(
       strictPlainToClass(QuoteDto, {
         ...quote,
