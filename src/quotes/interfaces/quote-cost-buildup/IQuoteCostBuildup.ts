@@ -1,19 +1,17 @@
 import { Document, LeanDocument } from 'mongoose';
-import { PRODUCT_TYPE } from 'src/products-v2/constants';
-import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
-import { QuoteCostBuildupUserInputDto } from 'src/quotes/res/sub-dto';
-import { FinancialProduct } from 'src/financial-products/financial-product.schema';
-import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
 import { IDiscount } from 'src/discounts/interfaces';
+import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { IPromotion } from 'src/promotions/interfaces';
+import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
 import { IIncentiveDetailsSchema } from 'src/quotes/quote.schema';
+import { QuoteCostBuildupUserInputDto } from 'src/quotes/res/sub-dto';
 import { IBaseQuoteCost } from './IBaseQuoteCost';
-import { IQuoteCost } from './IQuoteCost';
 import { IBaseQuoteMarginData } from './IBaseQuoteMarginData';
 import { IAdditionalFees, IBaseCostBuildupFee, ICashDiscount, ISalesOriginationSalesFee } from './ICostBuildupFee';
-import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
 import { ICreateQuoteCostBuildUpArg } from './ICreateQuoteCostBuildUpArg';
+import { IQuoteCost } from './IQuoteCost';
 import { ISalesTaxData } from './ISalesTaxData';
+import { ITotalPromotionsDiscountsAndSwellGridrewards } from './ITotalPromotionsDiscountsGridrewards';
 
 export interface IQuoteCostBuildup {
   panelQuoteDetails: IQuoteCost<PRODUCT_TYPE.MODULE>[];
@@ -34,7 +32,7 @@ export interface IQuoteCostBuildup {
   salesOriginationManagerFee: IBaseCostBuildupFee;
   salesOriginationSalesFee: ISalesOriginationSalesFee;
   thirdPartyFinancingDealerFee: IBaseCostBuildupFee;
-  cashDiscount: ICashDiscount;
+  cashDiscount: ICashDiscount | null; // This field is only used for backwards compatibility
   subtotalWithSalesOriginationManagerFee: IBaseQuoteMarginData;
   additionalFees: IAdditionalFees;
   projectGrandTotal: IBaseQuoteMarginData;
@@ -53,8 +51,6 @@ export type IQuoteCostBuildupDocument = Document &
 export interface ICreateQuoteCostBuildupParams {
   roofTopDesignData: ICreateQuoteCostBuildUpArg;
   partnerMarkup: LeanDocument<QuotePartnerConfig>;
-  financialProduct: LeanDocument<FinancialProduct>;
-  fundingSourceType: FINANCE_PRODUCT_TYPE;
   userInputs?: QuoteCostBuildupUserInputDto;
   dealerFeePercentage: number;
   discountsPromotionsAndIncentives?: {

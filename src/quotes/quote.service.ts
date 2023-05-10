@@ -61,7 +61,7 @@ import {
 } from './req';
 import { QuoteDto } from './res';
 import { QuoteCostBuildupUserInputDto } from './res/sub-dto';
-import { ITC, I_T_C } from './schemas';
+import { I_T_C, ITC } from './schemas';
 import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
 import { ICreateProductAttribute } from './typing';
 import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
@@ -164,18 +164,14 @@ export class QuoteService {
       roofTopDesignData: systemDesign.roofTopDesignData,
       partnerMarkup: quoteConfigData,
       dealerFeePercentage,
-      financialProduct,
-      fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
     });
 
     if (data.selectedQuoteMode === QUOTE_MODE_TYPE.PRICE_PER_WATT) {
       quoteCostBuildup.projectGrandTotal.netCost = data.quotePricePerWatt.grossPrice;
       quoteCostBuildup.projectGrossTotal.netCost = data.quotePricePerWatt.grossPrice;
-      quoteCostBuildup.cashDiscount.total = 0;
     } else if (data.selectedQuoteMode === QUOTE_MODE_TYPE.PRICE_OVERRIDE) {
       quoteCostBuildup.projectGrandTotal.netCost = data.quotePriceOverride.grossPrice;
       quoteCostBuildup.projectGrossTotal.netCost = data.quotePriceOverride.grossPrice;
-      quoteCostBuildup.cashDiscount.total = 0;
     }
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
@@ -417,8 +413,6 @@ export class QuoteService {
       partnerMarkup: markupConfig,
       userInputs: foundQuote.detailedQuote.quoteCostBuildup,
       dealerFeePercentage,
-      financialProduct: financialProductSnapshot,
-      fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
       discountsPromotionsAndIncentives: {
         discounts: foundQuote.detailedQuote.quoteFinanceProduct.projectDiscountDetails,
         promotions: foundQuote.detailedQuote.quoteFinanceProduct.promotionDetails,
@@ -777,8 +771,6 @@ export class QuoteService {
       roofTopDesignData: systemDesign.roofTopDesignData,
       partnerMarkup: quotePartnerConfig,
       dealerFeePercentage,
-      financialProduct: financialProductSnapshot,
-      fundingSourceType: fundingSource.type as FINANCE_PRODUCT_TYPE,
       userInputs: foundQuote.detailedQuote.quoteCostBuildup,
       discountsPromotionsAndIncentives: {
         discounts: foundQuote.detailedQuote.quoteFinanceProduct.projectDiscountDetails,
@@ -1103,8 +1095,6 @@ export class QuoteService {
       partnerMarkup: quoteConfigData,
       userInputs,
       dealerFeePercentage,
-      financialProduct: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot,
-      fundingSourceType: detailedQuote.quoteFinanceProduct.financeProduct.productType,
       discountsPromotionsAndIncentives: {
         discounts: detailedQuote.quoteFinanceProduct.projectDiscountDetails,
         promotions: detailedQuote.quoteFinanceProduct.promotionDetails,
