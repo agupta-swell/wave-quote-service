@@ -4,10 +4,10 @@ import { IGenericObject } from 'src/docusign-communications/typing';
 import { ISystemDesignProducts, parseSystemDesignProducts } from 'src/docusign-communications/utils';
 import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import {
+  DOCUSIGN_TAB_TYPE,
   DefaultTabTransformation,
   DefaultTabType,
   DocusignTemplate,
-  DOCUSIGN_TAB_TYPE,
   TabRequire,
   TabValue,
 } from 'src/shared/docusign';
@@ -154,7 +154,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     if (promotionDetails.length) headings.push('Promotions');
 
-    if (projectDiscountDetails.length || cashDiscount.total) headings.push('Discounts');
+    if (projectDiscountDetails.length || cashDiscount?.total) headings.push('Discounts');
 
     if (headings.length > 2) {
       const last = headings.pop();
@@ -187,9 +187,9 @@ export class EnergyHomeImprovementAgreementHicTemplate {
         )})`,
     );
 
-    if (cashDiscount.total) {
+    if (cashDiscount?.total) {
       discountTexts.push(
-        `Discount: ${financialProduct?.name} Discount (${CurrencyFormatter.format(cashDiscount.total)})`,
+        `Discount: ${financialProduct?.name} Discount (${CurrencyFormatter.format(cashDiscount?.total)})`,
       );
     }
 
@@ -206,7 +206,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     if (promotionDetails.length) labels.push('Promotions Total');
 
-    if (projectDiscountDetails.length || cashDiscount.total) labels.push('Discounts Total');
+    if (projectDiscountDetails.length || cashDiscount?.total) labels.push('Discounts Total');
 
     if (incentiveDetails.length) labels.push('GridRevenue® Upfront Payment Discount');
 
@@ -236,7 +236,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     const { promotionDetails, rebateDetails, projectDiscountDetails, incentiveDetails } = quoteFinanceProduct;
 
-    const cashDiscountAmount = new BigNumber(cashDiscount.total || 0);
+    const cashDiscountAmount = new BigNumber(cashDiscount?.total || 0);
 
     values.push(
       CurrencyFormatter.format(
@@ -254,7 +254,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
         )})`,
       );
 
-    if (projectDiscountDetails.length || cashDiscount.total) {
+    if (projectDiscountDetails.length || cashDiscount?.total) {
       const discountTotalAmount = new BigNumber(
         QuoteFinanceProductService.calculateReductions(projectDiscountDetails, projectGrossTotal.netCost),
       );

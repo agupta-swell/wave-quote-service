@@ -4,10 +4,10 @@ import { IGenericObject } from 'src/docusign-communications/typing';
 import { ISystemDesignProducts, parseSystemDesignProducts } from 'src/docusign-communications/utils';
 import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import {
+  DOCUSIGN_TAB_TYPE,
   DefaultTabTransformation,
   DefaultTabType,
   DocusignTemplate,
-  DOCUSIGN_TAB_TYPE,
   TabValue,
 } from 'src/shared/docusign';
 import { CurrencyFormatter, NumberFormatter } from 'src/utils/numberFormatter';
@@ -111,25 +111,25 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   moduleSummary: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
-  parseSystemDesignProducts(systemDesign)
-    .systemDesignInverters.reduce<ISystemDesignProducts['systemDesignInverters']>((acc, cur) => {
-      const inverter = acc.find(e => e.inverterModelId === cur.inverterModelId);
+    parseSystemDesignProducts(systemDesign)
+      .systemDesignInverters.reduce<ISystemDesignProducts['systemDesignInverters']>((acc, cur) => {
+        const inverter = acc.find(e => e.inverterModelId === cur.inverterModelId);
 
-      if (inverter) {
-        inverter.quantity += cur.quantity;
+        if (inverter) {
+          inverter.quantity += cur.quantity;
+          return acc;
+        }
+
+        acc.push(cur);
         return acc;
-      }
-
-      acc.push(cur);
-      return acc;
-    }, [])
-    .map(
-      item =>
-        `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
-    )
-    .join(', '),
-)
-inverterSummary: string;
+      }, [])
+      .map(
+        item =>
+          `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
+      )
+      .join(', '),
+  )
+  inverterSummary: string;
 
   @TabValue<IGenericObject>(({ contract }) => contract?.changeOrderDescription)
   changeOrderDescription: string;
@@ -167,7 +167,7 @@ inverterSummary: string;
 
     if (promotionDetails.length) headings.push('Promotions');
 
-    if (projectDiscountDetails.length || cashDiscount.total) headings.push('Discounts');
+    if (projectDiscountDetails.length || cashDiscount?.total) headings.push('Discounts');
 
     if (headings.length > 2) {
       const last = headings.pop();

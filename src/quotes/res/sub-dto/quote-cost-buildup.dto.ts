@@ -1,20 +1,20 @@
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { ProductResDto } from 'src/products-v2/res/product.dto';
-import { ExposeProp } from 'src/shared/decorators';
 import {
+  IAdditionalFees,
+  IBaseCostBuildupFee,
   IBaseQuoteCost,
+  IBaseQuoteMarginData,
+  ICashDiscount,
   IQuoteCost,
   IQuoteCostBuildup,
-  IBaseQuoteMarginData,
-  IBaseCostBuildupFee,
-  IAdditionalFees,
-  ITotalPromotionsDiscountsAndSwellGridrewards,
-  ICashDiscount,
-  ISalesTaxData,
   ISalesOriginationSalesFee,
+  ISalesTaxData,
+  ITotalPromotionsDiscountsAndSwellGridrewards,
   SALES_ORIGINATION_SALES_FEE_INPUT_TYPE,
 } from 'src/quotes/interfaces';
+import { ExposeProp } from 'src/shared/decorators';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
   @ExposeProp()
@@ -294,7 +294,7 @@ export class QuoteCostBuildupDto implements IQuoteCostBuildup {
   thirdPartyFinancingDealerFee: BaseCostBuildupFeeDto;
 
   @ExposeProp({ type: CashDiscountDto })
-  cashDiscount: ICashDiscount;
+  cashDiscount: ICashDiscount | null; // This field is only used for backwards compatibility
 
   @ExposeProp({ type: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto })
   subtotalWithSalesOriginationManagerFee: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto;

@@ -1,18 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber } from 'class-validator';
+import { IsNumber, IsOptional } from 'class-validator';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { ISnapshotProduct } from 'src/products-v2/interfaces';
 import { ICashDiscount, IQuoteCost, IQuoteCostBuildup } from 'src/quotes/interfaces';
 import { IBaseQuoteCost } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteCost';
 import { IBaseQuoteMarginData } from 'src/quotes/interfaces/quote-cost-buildup/IBaseQuoteMarginData';
 import {
-  TotalPromotionsDiscountsAndSwellGridrewardsDto,
-  BaseCostBuildupFeeDto,
   AdditionalFeesDto,
+  BaseCostBuildupFeeDto,
   CashDiscountDto,
   SalesOriginationSalesFeeDto,
+  TotalPromotionsDiscountsAndSwellGridrewardsDto,
 } from 'src/quotes/res/sub-dto';
-import { ExposeProp } from 'src/shared/decorators';
 import { AncillaryEquipmentDto } from 'src/system-designs/res/sub-dto';
 
 class QuoteCostBuildupCommon implements IBaseQuoteCost {
@@ -188,24 +187,25 @@ export class QuoteCostBuildupDto implements Partial<IQuoteCostBuildup> {
   @ApiProperty({ type: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto })
   projectGrandTotal: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto;
 
-  @ExposeProp({ type: TotalPromotionsDiscountsAndSwellGridrewardsDto })
+  @ApiProperty({ type: TotalPromotionsDiscountsAndSwellGridrewardsDto })
   totalPromotionsDiscountsAndSwellGridrewards: TotalPromotionsDiscountsAndSwellGridrewardsDto;
 
-  @ExposeProp({ type: BaseCostBuildupFeeDto })
+  @ApiProperty({ type: BaseCostBuildupFeeDto })
   salesOriginationManagerFee: BaseCostBuildupFeeDto;
 
-  @ExposeProp({ type: SalesOriginationSalesFeeDto })
+  @ApiProperty({ type: SalesOriginationSalesFeeDto })
   salesOriginationSalesFee: SalesOriginationSalesFeeDto;
 
-  @ExposeProp({ type: BaseCostBuildupFeeDto })
+  @ApiProperty({ type: BaseCostBuildupFeeDto })
   thirdPartyFinancingDealerFee: BaseCostBuildupFeeDto;
 
-  @ExposeProp({ type: CashDiscountDto })
-  cashDiscount: ICashDiscount;
+  @ApiProperty({ type: CashDiscountDto })
+  @IsOptional()
+  cashDiscount: ICashDiscount | null; // This field is only used for backwards compatibility
 
-  @ExposeProp({ type: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto })
+  @ApiProperty({ type: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto })
   subtotalWithSalesOriginationManagerFee: ProjectSubtotalWithDiscountsPromotionsAndSwellGridrewardsDto;
 
-  @ExposeProp({ type: AdditionalFeesDto })
+  @ApiProperty({ type: AdditionalFeesDto })
   additionalFees: AdditionalFeesDto;
 }
