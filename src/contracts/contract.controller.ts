@@ -13,7 +13,7 @@ import { FastifyFile, FastifyResponse } from '../shared/fastify';
 import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE } from './constants';
 import { Contract } from './contract.schema';
 import { ContractService } from './contract.service';
-import { UseDefaultContractName, UseWetSignContract, VoidRelatedContracts } from './interceptors';
+import { UseWetSignContract, VoidRelatedContracts } from './interceptors';
 import { IContractWithDetailedQuote } from './interceptors/wet-sign-contract.interceptor';
 import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier, VoidPrimaryContractPipe } from './pipes';
 import { DownloadContractPipe, IContractDownloadReqPayload } from './pipes/download-contract.validation.pipe';
@@ -105,7 +105,6 @@ export class ContractController {
   @Post()
   @UsePipes(ValidationPipe)
   @UseDefaultFinancier()
-  @UseDefaultContractName()
   @ApiOperation({ summary: 'Save Contract' })
   @ReplaceInstalledProductAfterSuccess()
   @ApiOkResponse({ type: SaveContractRes })
@@ -161,7 +160,6 @@ export class ContractController {
 
   @Post('/change-orders')
   @UsePipes(ValidationPipe)
-  @UseDefaultContractName()
   @ReplaceInstalledProductAfterSuccess()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveChangeOrderRes })
