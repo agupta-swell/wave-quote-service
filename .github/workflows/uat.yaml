@@ -1,5 +1,4 @@
-name: Deploy
-run-name: Deploy 
+name: UAT 
 on:
   push:
     branches:
@@ -10,7 +9,6 @@ jobs:
     uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
     with:
       Environment:      UAT
-      SWL_PROCESS_ID:   wave-quote-service
     permissions:
       id-token: write
       contents: read
