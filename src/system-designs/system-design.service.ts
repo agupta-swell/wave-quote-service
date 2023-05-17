@@ -177,38 +177,40 @@ export class SystemDesignService {
           this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
           systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
             item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
+            item.useSunroof = hasSunroofIrradiance;
 
             const {
               numberOfPanels,
               azimuth,
               pitch,
               overrideRooftopDetails,
-              useSunroof,
               sunroofAzimuth,
               sunroofPitch,
               sunroofPrimaryOrientationSide,
             } = item;
-
-            const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
-            // TODO: is this duplicated with systemProductionArray
-            const acAnnual = await this.systemProductService.pvWatCalculation({
-              lat: systemDesign.latitude,
-              lon: systemDesign.longitude,
-              azimuth: useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
-              systemCapacity: capacity,
-              tilt: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
-              losses: item.losses,
-            });
-
-            arrayGenerationKWh[index] = acAnnual;
-            cumulativeGenerationKWh += acAnnual;
-            cumulativeCapacityKW += capacity;
 
             systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop = [
               sunroofAzimuth,
               sunroofPitch,
               sunroofPrimaryOrientationSide,
             ].every(e => e !== undefined);
+
+            const hasSunroofRooftop = systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop;
+
+            const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
+            // TODO: is this duplicated with systemProductionArray
+            const acAnnual = await this.systemProductService.pvWatCalculation({
+              lat: systemDesign.latitude,
+              lon: systemDesign.longitude,
+              azimuth: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofAzimuth! : azimuth,
+              systemCapacity: capacity,
+              tilt: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofPitch : pitch,
+              losses: item.losses,
+            });
+
+            arrayGenerationKWh[index] = acAnnual;
+            cumulativeGenerationKWh += acAnnual;
+            cumulativeCapacityKW += capacity;
 
             systemDesign.setPanelModelDataSnapshot(panelModelData, index);
           }),
@@ -533,38 +535,40 @@ export class SystemDesignService {
       const handlers = [
         systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
           item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
+          if (!hasSunroofIrradiance) item.useSunroof = hasSunroofIrradiance;
 
           const {
             numberOfPanels,
             azimuth,
             pitch,
             overrideRooftopDetails,
-            useSunroof,
             sunroofPitch,
             sunroofAzimuth,
             sunroofPrimaryOrientationSide,
           } = item;
-
-          const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
-
-          const acAnnual = await this.systemProductService.pvWatCalculation({
-            lat: systemDesign.latitude,
-            lon: systemDesign.longitude,
-            azimuth: useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
-            systemCapacity: capacity,
-            tilt: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
-            losses: item.losses,
-          });
-
-          arrayGenerationKWh[index] = acAnnual;
-          cumulativeGenerationKWh += acAnnual;
-          cumulativeCapacityKW += capacity;
 
           systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop = [
             sunroofAzimuth,
             sunroofPitch,
             sunroofPrimaryOrientationSide,
           ].every(e => e !== undefined);
+
+          const hasSunroofRooftop = systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop;
+
+          const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
+
+          const acAnnual = await this.systemProductService.pvWatCalculation({
+            lat: systemDesign.latitude,
+            lon: systemDesign.longitude,
+            azimuth: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofAzimuth! : azimuth,
+            systemCapacity: capacity,
+            tilt: !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
+            losses: item.losses,
+          });
+
+          arrayGenerationKWh[index] = acAnnual;
+          cumulativeGenerationKWh += acAnnual;
+          cumulativeCapacityKW += capacity;
 
           systemDesign.setPanelModelDataSnapshot(panelModelData, index);
         }),
