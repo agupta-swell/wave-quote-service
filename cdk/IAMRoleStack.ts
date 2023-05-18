@@ -1,8 +1,9 @@
-import { aws_iam as iam } from 'aws-cdk-lib';
-import { App, Stack, StackProps } from 'aws-cdk-lib';
-
+import { ManagedPolicy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import {App, Stack, StackProps, CfnOutput} from 'aws-cdk-lib';
 
 const {
+  AWS_REGION: region,
+  AWS_ACCOUNT_ID: accountId,
   SWL_APPLICATION_ID: applicationId,
   SWL_COMPANY: company,
   SWL_ENVIRONMENT: environment,
@@ -14,10 +15,17 @@ export class IAMRoleStack extends Stack {
   super(scope, id, props);
 
   // 👇 Task execution role creation  
-  const execRole = new iam.Role(this, 'TaskExecutionRole', {
-    assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+  const execRole = new Role(this, 'TaskExecutionRole', {
+    assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
     roleName: `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`,
-  })
-  execRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy'))
+    managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy')],
+  }).addToPolicy(new PolicyStatement({actions: [
+        "secretsmanager:GetSecretValue"
+      ],
+        resources: [
+          `arn:aws:secretsmanager:${region}:${accountId}:secret:${company}-${applicationId}-${processId}-${environment}-env-vars:*`
+        ]
+      }
+      ))
   }
 }
