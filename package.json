@@ -18,9 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "cdk:deploy:stack1": "npx cdk deploy IAMRoleStack",
-    "cdk:deploy:stack2": "npx cdk deploy ECRStack",
-    "cdk:deploy:stack3": "npx cdk deploy ECSStack"
+    "cdk:deploy:stack1": "cdk deploy IAMRoleStack",
+    "cdk:deploy:stack2": "cdk deploy ECRStack",
+    "cdk:deploy:stack3": "cdk deploy ECSStack"
   },
   "dependencies": {
     "@nestjs/axios": "^0.0.3",
