@@ -10,6 +10,8 @@ import { GenabilityService } from './sub-services/genability.service';
 import {
   EGenabilityDetailLevel,
   EGenabilityGroupBy,
+  ICalculateCostPayload,
+  ICalculateNetNegativeAnnualUsage,
   ICalculateSystemProduction,
   IGenabilityCalculateUtilityCost,
   ILoadServingEntity,
@@ -171,6 +173,7 @@ export class ExternalService {
     billingPeriod,
     zipCode,
     startDate,
+    medicalBaselineAmount,
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const { fromDateTime, toDateTime } = getNextYearDateRange(startDate);
 
@@ -189,7 +192,7 @@ export class ExternalService {
     // but Genability expects positive (absolute) values
     const exportDataSeries = netDataSeries.map(kWh => (kWh < 0 ? Math.abs(kWh) : 0));
 
-    const payload = {
+    const payload: ICalculateCostPayload = {
       address: {
         country: 'USA',
         zip: zipCode,
@@ -212,6 +215,12 @@ export class ExternalService {
         },
       ],
     };
+    if (medicalBaselineAmount) {
+      payload.propertyInputs.push({
+        keyName: 'dailyMedicalAllowance',
+        dataValue: medicalBaselineAmount.toString(),
+      });
+    }
 
     return this.genabilityService.calculateCostData(payload);
   }
@@ -234,12 +243,9 @@ export class ExternalService {
   /**
    * Calculate net negative annual usage
    */
-  async calculateNetNegativeAnnualUsage(
-    postInstall8760: number[],
-    masterTariffId: string,
-    zipCode: number,
-    startDate?: Date,
-  ): Promise<INetNegativeAnnualUsage> {
+  async calculateNetNegativeAnnualUsage(data: ICalculateNetNegativeAnnualUsage): Promise<INetNegativeAnnualUsage> {
+    const { postInstall8760, masterTariffId, zipCode, medicalBaselineAmount, startDate } = data;
+    
     // Sum the 8760 kWh post-install data series
     const netKwh = postInstall8760.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
 
@@ -252,6 +258,7 @@ export class ExternalService {
       billingPeriod: false,
       zipCode: zipCode.toString(),
       startDate,
+      medicalBaselineAmount,
     });
 
     const { fromDateTime, toDateTime } = result;

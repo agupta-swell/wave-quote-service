@@ -440,6 +440,7 @@ export interface ISunroofDriftCorrection {
 
 export interface ICostCalculationInput {
   masterTariffId?: string;
+  medicalBaselineAmount?: number;
   fromDateTime?: string;
   toDateTime?: string;
 }
@@ -494,6 +495,7 @@ const SunroofDriftCorrectionSchema = new Schema(
 const CostCalculationInputSchema = new Schema<ICostCalculationInput>(
   {
     master_tariff_id: String,
+    medical_baseline_amount: Number,
     from_date_time: String,
     to_date_time: String,
   },

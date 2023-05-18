@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsMongoId, IsNotEmpty, IsNumberString, IsOptional, ValidateNested } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsNumber, IsOptional, ValidateNested } from 'class-validator';
 import { TypicalBaselineUsageDto, ComputedUsageDto } from './sub-dto';
 
 class UtilityData {
@@ -35,4 +35,9 @@ export class CalculateActualUsageCostDto {
   @ApiProperty()
   @IsOptional()
   opportunityId: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @IsOptional()
+  medicalBaselineAmount?: number;
 }

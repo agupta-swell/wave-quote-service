@@ -46,4 +46,10 @@ export class UtilityDetailsDto {
 
   @ExposeProp()
   monthlyTariffData: MonthSeasonTariffDto[][];
+  
+  @ExposeProp()
+  hasMedicalBaseline?: boolean;
+
+  @ExposeProp()
+  medicalBaselineAmount?: number;
 }

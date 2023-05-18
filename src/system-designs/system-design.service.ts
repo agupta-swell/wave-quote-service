@@ -1442,6 +1442,8 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
+    const medicalBaselineAmount = utility.medicalBaselineAmount;
+
     const masterTariffId = utility.costData.postInstallMasterTariffId;
 
     const pinballInputData = await this.buildPinballInputData(systemDesign, systemActualProduction8760, utility);
@@ -1465,10 +1467,12 @@ export class SystemDesignService {
     );
 
     const [netNegativeAnnualUsage] = await Promise.all([
-      this.externalService.calculateNetNegativeAnnualUsage(
-        simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
+      this.externalService.calculateNetNegativeAnnualUsage({
+        postInstall8760: simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
         masterTariffId,
-        utility.utilityData.typicalBaselineUsage.zipCode,
+        zipCode: utility.utilityData.typicalBaselineUsage.zipCode,
+        medicalBaselineAmount,
+      }
       ),
       ...savePinballToS3Requests,
     ]);
@@ -1480,6 +1484,7 @@ export class SystemDesignService {
       costPostInstallation: annualPostInstallBill,
       costCalculationInput: {
         masterTariffId,
+        medicalBaselineAmount,
         fromDateTime,
         toDateTime,
       },
@@ -2015,6 +2020,7 @@ export class SystemDesignService {
             : sumBy(storage, item => item.reservePercentage || 0) / storage.length || 0,
         operationMode: storage[0]?.purpose || BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
       },
+      medicalBaselineAmount: utility.medicalBaselineAmount,
     };
 
     await this.s3Service.putObject(

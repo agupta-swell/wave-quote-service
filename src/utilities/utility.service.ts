@@ -37,6 +37,7 @@ import {
   GetActualUsageDto,
   GetPinballSimulatorAndCostPostInstallationDto,
   GetPinballSimulatorDto,
+  MedicalBaselineDataDto,
 } from './req';
 import { UsageValue } from './req/sub-dto';
 import {
@@ -250,14 +251,19 @@ export class UtilityService implements OnModuleInit {
     opportunityId: string,
     masterTariffId: string,
   ): Promise<OperationResult<CostDataDto>> {
-    const typicalBaseLine = await this.getTypicalBaselineData(opportunityId);
+    const [typicalBaseLine, utilityUsageDetailData] = await Promise.all([
+      this.getTypicalBaselineData(opportunityId),
+      this.utilityUsageDetailsModel.findOne({ opportunityId }).lean(),
+    ]);
+    const medicalBaselineAmount = utilityUsageDetailData?.medicalBaselineAmount;
 
     const monthlyCost = await this.calculateCost(
       typicalBaseLine.typicalBaseline.typicalHourlyUsage.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.TYPICAL,
-      new Date().getFullYear(),
       typicalBaseLine.zipCode,
+      medicalBaselineAmount,
+      new Date().getFullYear(),
     );
 
     const costData = {
@@ -270,7 +276,9 @@ export class UtilityService implements OnModuleInit {
   }
 
   async calculateActualUsageCostUtil(data: CalculateActualUsageCostDto): Promise<any> {
-    const { masterTariffId, utilityData, usageProfileId } = data;
+    const { masterTariffId, utilityData, usageProfileId, opportunityId, medicalBaselineAmount } = data;
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
+
     let hourlyDataForTheYear: UsageValue[] = [];
 
     if (utilityData.computedUsage?.hourlyUsage?.length) {
@@ -293,8 +301,9 @@ export class UtilityService implements OnModuleInit {
       hourlyDataForTheYear.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
-      new Date().getFullYear(),
       data.utilityData.typicalBaselineUsage.zipCode,
+      medicalBaselineAmount ?? utilityUsageDetailData?.medicalBaselineAmount,
+      new Date().getFullYear(),
     );
 
     const costData = {
@@ -348,6 +357,19 @@ export class UtilityService implements OnModuleInit {
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
     utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
 
+    if(utilityDto.hasMedicalBaseline && utilityDto.medicalBaselineAmount !== undefined) {
+      const newCostData = await this.calculateActualUsageCostUtil({
+        masterTariffId: utilityDto.costData.masterTariffId,
+        utilityData: utilityDto.utilityData,
+        usageProfileId: utilityDto.usageProfileId,
+        opportunityId: utilityDto.opportunityId,
+        medicalBaselineAmount: utilityDto.medicalBaselineAmount,
+      });
+  
+      utilityDto.costData.actualUsageCost = newCostData.actualUsageCost;
+      utilityDto.costData.computedCost = newCostData.computedCost;
+    }
+
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
     if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
@@ -369,6 +391,39 @@ export class UtilityService implements OnModuleInit {
     const monthlyTariffData = await this.calculateTariffInfoByOpportunityId(utilityDto.opportunityId);
     const result = { ...createdUtilityObj, monthlyTariffData };
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, result));
+  }
+
+  async updateMedicalBaseline(
+    utilityId: ObjectId,
+    medicalBaselineData: MedicalBaselineDataDto,
+  ): Promise<OperationResult<UtilityDetailsDto>> {
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById({ _id: utilityId });
+    if (!utilityUsageDetailData) {
+      throw ApplicationException.EntityNotFound(utilityId.toString());
+    }
+
+    utilityUsageDetailData.hasMedicalBaseline = medicalBaselineData.hasMedicalBaseline;
+    if (medicalBaselineData.hasMedicalBaseline) {
+      utilityUsageDetailData.medicalBaselineAmount = medicalBaselineData.medicalBaselineAmount;
+    } else {
+      utilityUsageDetailData.medicalBaselineAmount = undefined;
+    }
+
+    const { costData, utilityData, usageProfileId, opportunityId } = utilityUsageDetailData;
+    const newCostData = await this.calculateActualUsageCostUtil({
+      masterTariffId: costData.masterTariffId,
+      utilityData,
+      usageProfileId,
+      opportunityId,
+      medicalBaselineAmount: medicalBaselineData.medicalBaselineAmount,
+    });
+
+    utilityUsageDetailData.costData.actualUsageCost = newCostData.actualUsageCost;
+    utilityUsageDetailData.costData.computedCost = newCostData.computedCost;
+
+    await utilityUsageDetailData.save();
+
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, utilityUsageDetailData));
   }
 
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
@@ -884,6 +939,7 @@ export class UtilityService implements OnModuleInit {
       postInstallMasterTariffId,
       zipCode,
       batterySystemSpecs,
+      medicalBaselineAmount,
     } = data;
 
     let filterTariffs: any[] = [];
@@ -1011,16 +1067,18 @@ export class UtilityService implements OnModuleInit {
         { annualPostInstallBill: costPostInstallationForNEM2 },
         { annualPostInstallBill: costPostInstallationForNEM3 },
       ] = await Promise.all([
-        this.externalService.calculateNetNegativeAnnualUsage(
-          pinballDataForNEM2.postInstallSiteDemandSeries.map(i => i / 1000),
-          postInstallMasterTariffId,
+        this.externalService.calculateNetNegativeAnnualUsage({
+          postInstall8760: pinballDataForNEM2.postInstallSiteDemandSeries.map(i => i / 1000),
+          masterTariffId: postInstallMasterTariffId,
           zipCode,
-        ),
-        this.externalService.calculateNetNegativeAnnualUsage(
-          pinballDataForNEM3.postInstallSiteDemandSeries.map(i => i / 1000),
-          postInstallMasterTariffId,
+          medicalBaselineAmount,
+        }),
+        this.externalService.calculateNetNegativeAnnualUsage({
+          postInstall8760: pinballDataForNEM3.postInstallSiteDemandSeries.map(i => i / 1000),
+          masterTariffId: postInstallMasterTariffId,
           zipCode,
-        ),
+          medicalBaselineAmount,
+        }),
       ]);
 
       if (costPostInstallationForNEM2 >= costPostInstallationForNEM3) {
@@ -1131,12 +1189,12 @@ export class UtilityService implements OnModuleInit {
     data: GetPinballSimulatorAndCostPostInstallationDto,
   ): Promise<OperationResult<PinballSimulatorAndCostPostInstallationDto>> {
     const pinballSimulatorOutput = await this.simulatePinball(data);
-    const { annualPostInstallBill: costPostInstallation } = await this.externalService.calculateNetNegativeAnnualUsage(
-      pinballSimulatorOutput.postInstallSiteDemandSeries.map(i => i / 1000),
-      data.postInstallMasterTariffId,
-      data.zipCode,
-      data.startDate,
-    );
+    const { annualPostInstallBill: costPostInstallation } = await this.externalService.calculateNetNegativeAnnualUsage({
+      postInstall8760: pinballSimulatorOutput.postInstallSiteDemandSeries.map(i => i / 1000),
+      masterTariffId: data.postInstallMasterTariffId,
+      zipCode: data.zipCode,
+      startDate: data.startDate,
+    });
     const result = { ...pinballSimulatorOutput, costPostInstallation };
 
     return OperationResult.ok(strictPlainToClass(PinballSimulatorAndCostPostInstallationDto, result));
@@ -1257,6 +1315,7 @@ export class UtilityService implements OnModuleInit {
     masterTariffId: string,
     mode: CALCULATION_MODE,
     zipCode: number,
+    medicalBaselineAmount?: number,
     year?: number,
   ): Promise<IUtilityCostData> {
     const currentMonth = new Date().getMonth();
@@ -1282,6 +1341,7 @@ export class UtilityService implements OnModuleInit {
       detailLevel: EGenabilityDetailLevel.CHARGE_TYPE,
       billingPeriod: false,
       zipCode: zipCode.toString(),
+      medicalBaselineAmount,
     });
 
     const monthlyMinimumCosts: ICostDetailData[] = [];
