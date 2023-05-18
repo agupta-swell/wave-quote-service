@@ -1689,15 +1689,18 @@ export class SystemDesignService {
 
     if (isExistedGeotiff) handlers.push(this.googleSunroofService.calculateProduction(systemDesign));
 
-    const [systemPVWattProductionInWh, systemProduction, utilityAndUsage, sunroofProduction] = <
+    const [systemPVWattProductionInWh, systemProductionInKwh, utilityAndUsage, sunroofProductionInKwh] = <
       [ISystemProduction, any, LeanDocument<UtilityUsageDetails> | null, SystemProduction]
     >await Promise.all(handlers);
 
     if (!systemPVWattProductionInWh.arrayHourly) throw new NotFoundException(`Hourly production not found`);
+    const systemPVWattProductionInKwh = systemPVWattProductionInWh.arrayHourly?.map(
+      pvWattData => pvWattData.map(x => x / 1000), // convert PVWatt from Wh to kWh
+    );
 
     if (!isExistedGeotiff) {
-      const systemActualProduction8760 = range(8760).map(
-        hourIdx => sum(systemPVWattProductionInWh.arrayHourly?.map(x => x[hourIdx])) / 1000, // convert PVWatt from Wh to kWh
+      const systemActualProduction8760 = range(8760).map(hourIdx =>
+        sum(systemPVWattProductionInKwh.map(x => x[hourIdx])),
       );
 
       this.s3Service.putObject(
@@ -1725,14 +1728,15 @@ export class SystemDesignService {
     } = systemDesign;
 
     // scale by sunroofProduction
-    const scaled8760ProductionByArray = systemPVWattProductionInWh.arrayHourly.map((pvWattData, index) => {
+    const scaled8760ProductionByArray = systemPVWattProductionInKwh.map((pvWattData, index) => {
       const { useSunroof } = panelArray[index];
       if (useSunroof)
         return this.utilityService.calculate8760OnActualMonthlyUsage(
           pvWattData,
-          sunroofProduction.byArray[index].monthlyProduction,
+          sunroofProductionInKwh.byArray[index].monthlyProduction,
         ) as number[];
       usePVWattArrayIndex.push(index);
+
       return pvWattData;
     });
 
@@ -1793,8 +1797,8 @@ export class SystemDesignService {
     );
 
     // check derateSnapshot existed
-    const derateSnapshot = systemProduction?.derateSnapshot
-      ? systemProduction.derateSnapshot
+    const derateSnapshot = systemProductionInKwh?.derateSnapshot
+      ? systemProductionInKwh.derateSnapshot
       : await this.updateDerateSnapshot(systemDesign);
     const { soilingLosses, snowLosses } = derateSnapshot || {};
 
@@ -1903,22 +1907,22 @@ export class SystemDesignService {
 
     const cumulativeGenerationKWh = sum(yearlyProductionByArray);
 
-    if (systemProduction) {
-      const { capacityKW } = systemProduction;
+    if (systemProductionInKwh) {
+      const { capacityKW } = systemProductionInKwh;
       const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
-      systemProduction.generationKWh = cumulativeGenerationKWh;
-      systemProduction.productivity = capacityKW === 0 ? 0 : cumulativeGenerationKWh / capacityKW;
-      systemProduction.offsetPercentage =
+      systemProductionInKwh.generationKWh = cumulativeGenerationKWh;
+      systemProductionInKwh.productivity = capacityKW === 0 ? 0 : cumulativeGenerationKWh / capacityKW;
+      systemProductionInKwh.offsetPercentage =
         totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0;
       // cumulative monthly generation of all arrays
-      systemProduction.generationMonthlyKWh = range(12).map(monthIndex =>
+      systemProductionInKwh.generationMonthlyKWh = range(12).map(monthIndex =>
         sum(monthlyProductionByArray.map(x => x[monthIndex])),
       );
       // yearly generation for each array
-      systemProduction.arrayGenerationKWh = yearlyProductionByArray;
+      systemProductionInKwh.arrayGenerationKWh = yearlyProductionByArray;
 
-      await systemProduction.save();
+      await systemProductionInKwh.save();
     }
 
     // TODO: handle leap year later
