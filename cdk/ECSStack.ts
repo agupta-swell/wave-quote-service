@@ -1,9 +1,10 @@
 import { App, Stack, StackProps, Fn } from 'aws-cdk-lib';
 import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { Cluster, ContainerImage } from 'aws-cdk-lib/aws-ecs';
-import { aws_elasticloadbalancingv2, aws_ecs_patterns } from 'aws-cdk-lib';
+import { ApplicationLoadBalancer } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import { ApplicationLoadBalancedFargateService } from 'aws-cdk-lib/aws-ecs-patterns';
 import { Certificate, CertificateValidation }from 'aws-cdk-lib/aws-certificatemanager';
-import { aws_iam as iam } from 'aws-cdk-lib';
+import { Role } from 'aws-cdk-lib/aws-iam';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
 
 const {
@@ -50,7 +51,7 @@ export class ECSStack extends Stack {
     validation: CertificateValidation.fromDns(zone)
   });
 
-  const loadBalancer = new aws_elasticloadbalancingv2.ApplicationLoadBalancer(this, 'ECSLB', {
+  const loadBalancer = new ApplicationLoadBalancer(this, 'ECSLB', {
     loadBalancerName: `${company}-${applicationId}-${processId}-${environment}`,
     vpc,
     internetFacing: true,
@@ -61,7 +62,7 @@ export class ECSStack extends Stack {
    })
 
   // 👇 Deploy fargate to ECS
-  const loadBalancedFargateService = new aws_ecs_patterns.ApplicationLoadBalancedFargateService(this, 'Service', {
+  const loadBalancedFargateService = new ApplicationLoadBalancedFargateService(this, 'Service', {
     cluster,
     circuitBreaker: {
       rollback: true,
@@ -83,7 +84,7 @@ export class ECSStack extends Stack {
       image: ContainerImage.fromRegistry(`${toolsAccountId}.dkr.ecr.${ecrRegion}.amazonaws.com/${company}-${applicationId}-${processId}-${environment}:${imagetag}`),
       containerPort: 3000,
       containerName: 'app',
-      executionRole: iam.Role.fromRoleName(this, 'exec-role', `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`),
+      executionRole: Role.fromRoleName(this, 'exec-role', `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`),
     }   
   });
 
