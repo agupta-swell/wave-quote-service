@@ -22,6 +22,7 @@ import {
   CreateUtilityReqDto,
   GetActualUsageDto,
   GetPinballSimulatorAndCostPostInstallationDto,
+  MedicalBaselineDataDto,
 } from './req';
 import {
   ComputedUsageDto,
@@ -102,6 +103,16 @@ export class UtilityController {
   @ApiOkResponse({ type: UtilityDataDto })
   async createActualUsages(@Body() data: GetActualUsageDto): Promise<ServiceResponse<UtilityDataDto>> {
     const res = await this.utilityService.createActualUsages(data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put('/:utilityId/medical-baseline')
+  @ApiOperation({ summary: 'Update Medical Baseline Information' })
+  @ApiOkResponse({ type: UtilityDetailsDto })
+  async updateMedicalBaseline(
+    @Param('utilityId', ParseObjectIdPipe) utilityId: ObjectId,
+    @Body() data: MedicalBaselineDataDto): Promise<ServiceResponse<UtilityDetailsDto>> {
+    const res = await this.utilityService.updateMedicalBaseline(utilityId, data);
     return ServiceResponse.fromResult(res);
   }
 

@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsMongoId,
   IsNotEmpty,
@@ -66,4 +67,14 @@ export class CreateUtilityReqDto {
   @IsNumber()
   @Default()
   increaseAmount: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsBoolean()
+  hasMedicalBaseline?: boolean;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  medicalBaselineAmount?: number;
 }

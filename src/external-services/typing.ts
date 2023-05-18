@@ -97,6 +97,7 @@ export interface IGenabilityCalculateUtilityCost {
   billingPeriod?: boolean;
   zipCode: string;
   startDate?: Date;
+  medicalBaselineAmount?: number;
 }
 
 export interface ICalculateCostAddress {
@@ -106,11 +107,12 @@ export interface ICalculateCostAddress {
 
 export interface ICalculateCostPropertyInputs {
   keyName: string;
-  fromDateTime: string;
-  duration: number;
-  unit: string;
-  dataSeries: number[];
-  exportDataSeries: number[];
+  fromDateTime?: string;
+  duration?: number;
+  unit?: string;
+  dataSeries?: number[];
+  exportDataSeries?: number[];
+  dataValue?: string; 
 }
 
 export interface ICalculateCostPayload {
@@ -143,4 +145,12 @@ export interface INetNegativeAnnualUsage {
   annualPostInstallBill: number;
   fromDateTime: string;
   toDateTime: string;
+}
+
+export interface ICalculateNetNegativeAnnualUsage {
+  postInstall8760: number[],
+  masterTariffId: string,
+  zipCode: number,
+  medicalBaselineAmount?: number,
+  startDate?: Date,
 }

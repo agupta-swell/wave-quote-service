@@ -64,6 +64,11 @@ export class GetPinballSimulatorDto {
 
   @IsNumber()
   zipCode: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  medicalBaselineAmount?: number;
 }
 
 export class GetPinballSimulatorAndCostPostInstallationDto extends GetPinballSimulatorDto {
