@@ -1,7 +1,7 @@
 import { App, Stack, StackProps } from 'aws-cdk-lib';
 import { RemovalPolicy } from 'aws-cdk-lib';
 import { Repository } from 'aws-cdk-lib/aws-ecr';
-import { aws_iam as iam } from 'aws-cdk-lib';
+import { ArnPrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 
 const {
@@ -23,14 +23,13 @@ export class ECRStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
-  const policy = new iam.PolicyStatement()
-  policy.addPrincipals(new iam.ArnPrincipal(`arn:aws:iam::${accountId}:role/${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`))
-  policy.addActions(
-    "ecr:BatchGetImage",
-    "ecr:BatchCheckLayerAvailability",
-    "ecr:GetDownloadUrlForLayer",
-  )
-  
-  repo.addToResourcePolicy(policy)
+    const policy = new PolicyStatement()
+    policy.addPrincipals(new ArnPrincipal(`arn:aws:iam::${accountId}:role/${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`))
+    policy.addActions(
+      "ecr:BatchGetImage",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+    )        
+    repo.addToResourcePolicy(policy)
 }
 }
