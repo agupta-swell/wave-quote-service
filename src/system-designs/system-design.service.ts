@@ -176,8 +176,9 @@ export class SystemDesignService {
         flatten([
           this.s3Service.putBase64Image(this.SYSTEM_DESIGN_S3_BUCKET, systemDesignDto.thumbnail, 'public-read') as any,
           systemDesign.roofTopDesignData.panelArray.map(async (item, index) => {
-            item.arrayId = Types.ObjectId.isValid(item.arrayId) ? item.arrayId : Types.ObjectId();
-            item.useSunroof = hasSunroofIrradiance;
+            const isObjectIdValid = Types.ObjectId.isValid(item.arrayId);
+            item.arrayId = isObjectIdValid ? item.arrayId : Types.ObjectId();
+            if (!isObjectIdValid) item.useSunroof = hasSunroofIrradiance;
 
             const {
               numberOfPanels,
