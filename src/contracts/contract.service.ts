@@ -12,7 +12,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { IncomingMessage } from 'http';
 import { sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
-
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { DOWNLOADABLE_RESOURCE, IDownloadResourcePayload, ILoggedInUser } from 'src/app/securities';
@@ -666,7 +665,9 @@ export class ContractService {
   }
 
   async existsByQuoteId(associatedQuoteId: string): Promise<false | { (name: string): string }> {
-    const doc = await this.contractModel.find({ associatedQuoteId }, { _id: 1, name: 1 }).limit(1);
+    const doc = await this.contractModel
+      .find({ associatedQuoteId, contractStatus: { $ne: PROCESS_STATUS.VOIDED } }, { _id: 1, name: 1 })
+      .limit(1);
 
     if (doc.length) {
       return name => `${name} is being used in the contract named ${doc[0].name} (id: ${doc[0].id})`;
