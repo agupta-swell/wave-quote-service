@@ -4,10 +4,10 @@ import { IGenericObject } from 'src/docusign-communications/typing';
 import { ISystemDesignProducts, parseSystemDesignProducts } from 'src/docusign-communications/utils';
 import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import {
-  DOCUSIGN_TAB_TYPE,
   DefaultTabTransformation,
   DefaultTabType,
   DocusignTemplate,
+  DOCUSIGN_TAB_TYPE,
   TabValue,
 } from 'src/shared/docusign';
 import { CurrencyFormatter, NumberFormatter } from 'src/utils/numberFormatter';
@@ -39,7 +39,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   homeAddress: string;
 
   @TabValue<IGenericObject>(({ primaryContract }) =>
-    primaryContract?.signerDetails.find(e => e.role === 'Financier')?.signedOn.toLocaleDateString(),
+    primaryContract?.signerDetails.find(e => e.role === 'Financier')?.signedOn?.toLocaleDateString(),
   )
   primaryContractFinancierSignDate: Date;
 
@@ -219,7 +219,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   @TabValue<IGenericObject>(({ customerPayment }) => NumberFormatter.format(customerPayment.payment2))
   payment2: string;
 
-  @TabValue<IGenericObject>(({ contract }) => contract?.projectCompletionDate.toLocaleDateString())
+  @TabValue<IGenericObject>(({ contract }) => contract?.projectCompletionDate?.toLocaleDateString())
   projectCompletionDate: Date;
 
   @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)
