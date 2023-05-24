@@ -4,6 +4,7 @@ on:
     branches:
       - uat
   workflow_dispatch:
+concurrency: uat  
 jobs: 
   deploy_uat:
     uses: SwellEnergy/actions/.github/workflows/backend.yaml@development

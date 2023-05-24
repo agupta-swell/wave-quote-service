@@ -4,6 +4,7 @@ on:
     branches:
       - qa
   workflow_dispatch:
+concurrency: qa 
 jobs: 
   deploy_qa:
     uses: SwellEnergy/actions/.github/workflows/backend.yaml@development

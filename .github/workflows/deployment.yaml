@@ -4,6 +4,7 @@ on:
     branches:
       - development
   workflow_dispatch:
+concurrency: development  
 jobs: 
   deploy_dev:
     uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
