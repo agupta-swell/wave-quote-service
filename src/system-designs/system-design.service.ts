@@ -1484,8 +1484,7 @@ export class SystemDesignService {
         masterTariffId,
         zipCode: utility.utilityData.typicalBaselineUsage.zipCode,
         medicalBaselineAmount,
-      }
-      ),
+      }),
       ...savePinballToS3Requests,
     ]);
 

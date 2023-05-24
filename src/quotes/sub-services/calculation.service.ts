@@ -477,7 +477,7 @@ export class CalculationService {
       payPeriodData.daysInYear = 365;
       payPeriodData.period = i;
       payPeriodData.paymentNumber = paymentNumberCounter;
-      payPeriodData.paymentDueDate = currentlyProcessingDate.toLocaleDateString();
+      payPeriodData.paymentDueDate = currentlyProcessingDate?.toLocaleDateString();
 
       if (i > 0) {
         payPeriodData.startingBalance = previousCycleEndingBalance;
