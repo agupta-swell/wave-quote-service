@@ -2028,7 +2028,8 @@ export class SystemDesignService {
       batterySystemSpecs: {
         totalRatingInKW: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowatts || 0),
         totalCapacityInKWh: sumBy(storage, item => item.storageModelDataSnapshot.ratings.kilowattHours || 0),
-        roundTripEfficiency: storage[0]?.roundTripEfficiency || 0,
+        roundTripEfficiency:
+          storage[0]?.roundTripEfficiency || storage[0]?.storageModelDataSnapshot.roundTripEfficiency || 0,
         minimumReserve:
           storage[0]?.purpose === BATTERY_PURPOSE.BACKUP_POWER
             ? storage[0]?.reservePercentage
