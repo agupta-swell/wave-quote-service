@@ -18,6 +18,7 @@ import {
   ROLE,
   TOKEN_STATUS,
   VENDOR_ID,
+  QUALIFICATION_CATEGORY,
 } from './constants';
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
@@ -34,7 +35,7 @@ import {
   ManualApprovalDto,
   QualificationDetailDto,
   SendMailDto,
-  ApplicantConsentDto
+  ApplicantConsentDto,
 } from './res';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import { FniEngineService } from './sub-services/fni-engine.service';
@@ -64,6 +65,10 @@ export class QualificationService {
     }
 
     const now = new Date();
+    const qualificationCategory =
+      qualificationDto.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
     const model = new this.qualificationCreditModel({
       opportunityId: qualificationDto.opportunityId,
       type: qualificationDto.type,
@@ -75,6 +80,7 @@ export class QualificationService {
           by: qualificationDto.agentDetail.name,
           detail: 'Request Initiated',
           userId: qualificationDto.agentDetail.userId,
+          qualificationCategory,
         },
       ],
       vendorId: VENDOR_ID.FNI,
@@ -142,13 +148,17 @@ export class QualificationService {
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound(id.toString());
     }
-
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
     qualificationCredit.processStatus = PROCESS_STATUS.COMPLETED;
     qualificationCredit.eventHistories.push({
       issueDate: now,
       by: manualApprovalDto.agentFullName,
       detail: 'Credit Check Approved By Agent',
       userId: manualApprovalDto.agentUserId,
+      qualificationCategory,
     });
     qualificationCredit.approvalMode = APPROVAL_MODE.AGENT;
     qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.APPROVED;
@@ -180,6 +190,10 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound(id.toString());
     }
 
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
     switch (applicantConsent.type) {
       case CONSENT_STATUS.HAS_CO_APPLICANT_CONSENT:
         qualificationCredit.hasCoApplicantConsent = applicantConsent.option;
@@ -188,14 +202,14 @@ export class QualificationService {
             issueDate: now,
             by: applicantConsentDto.userFullName,
             detail: 'Co-Applicant Consent set to Yes',
-            qualificationCategory: "Hard Credit",
+            qualificationCategory,
           });
         } else {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
             detail: 'Co-Applicant Consent set to No',
-            qualificationCategory: "Hard Credit",
+            qualificationCategory,
           });
         }
         break;
@@ -206,14 +220,14 @@ export class QualificationService {
             issueDate: now,
             by: applicantConsentDto.userFullName,
             detail: 'Has Co-Applicant set to Yes',
-            qualificationCategory: "Hard Credit",
+            qualificationCategory,
           });
         } else {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
             detail: 'Has Co-Applicant set to No',
-            qualificationCategory: "Hard Credit",
+            qualificationCategory,
           });
           if (qualificationCredit.hasCoApplicantConsent !== undefined) {
             qualificationCredit.hasCoApplicantConsent = undefined;
@@ -227,14 +241,14 @@ export class QualificationService {
             issueDate: now,
             by: applicantConsentDto.userFullName,
             detail: 'Applicant consent set to Yes',
-            qualificationCategory: "Hard Credit",
+            qualificationCategory,
           });
         } else {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
             detail: 'Applicant consent set to No',
-            qualificationCategory: "Hard Credit",
+            qualificationCategory,
           });
         }
         break;
@@ -269,12 +283,16 @@ export class QualificationService {
     await this.emailService.sendMailByTemplate(email || '', 'Qualification Invitation', 'Qualification Email', data);
 
     const now = new Date();
-
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
     qualificationCredit.eventHistories.push({
       issueDate: now,
       by: req.agentDetail.name,
       detail: 'Email Sent',
       userId: req.agentDetail.userId,
+      qualificationCategory,
     });
 
     qualificationCredit.customerNotifications.push({
@@ -346,12 +364,16 @@ export class QualificationService {
 
     const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
     const contact = await this.contactService.getContactById(contactId || '');
-
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
     qualificationCredit.processStatus = PROCESS_STATUS.STARTED;
     qualificationCredit.eventHistories.push({
       issueDate: new Date(),
       by: `${contact?.firstName} ${contact?.lastName}`,
       detail: `Application Started by ${applicationInitatedBy}`,
+      qualificationCategory,
     });
 
     await qualificationCredit.save();
@@ -445,11 +467,16 @@ export class QualificationService {
       };
     }
 
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
     qualificationCredit.processStatus = PROCESS_STATUS.IN_PROGRESS;
     qualificationCredit.eventHistories.push({
       issueDate: new Date(),
       by: `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
       detail: 'Application sent for Credit Check',
+      qualificationCategory,
     });
 
     await qualificationCredit.save();
@@ -539,6 +566,10 @@ export class QualificationService {
     qualificationCreditRecordInst: LeanDocument<QualificationCredit>,
   ): Promise<string> {
     let applyCreditQualificationResponseStatus = '';
+    const qualificationCategory =
+      qualificationCreditRecordInst.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
 
     // eslint-disable-next-line default-case
     switch (fniResponse) {
@@ -549,6 +580,7 @@ export class QualificationService {
           issueDate: new Date(),
           by: customerNameInst,
           detail: 'Credit Validation Completed',
+          qualificationCategory,
         });
         qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.APPROVED;
@@ -562,6 +594,7 @@ export class QualificationService {
           issueDate: new Date(),
           by: customerNameInst,
           detail: 'Credit Validation Completed',
+          qualificationCategory,
         });
         qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.DECLINED;
@@ -575,6 +608,7 @@ export class QualificationService {
           issueDate: new Date(),
           by: customerNameInst,
           detail: 'Credit Validation In Progress',
+          qualificationCategory,
         });
         qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
         qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.PENDING;
