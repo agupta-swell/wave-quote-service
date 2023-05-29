@@ -179,8 +179,8 @@ export class ContractService {
 
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId, 'ALL'],
-      [financierId, 'ALL', undefined],
-      [financialProductId, 'ALL', undefined],
+      [financierId, 'ALL'],
+      [financialProductId, 'ALL'],
       [utilityId, 'ALL'],
       [utilityProgramIdTemp, 'ALL'],
       [...applicableSystemTypes, SYSTEM_TYPE.ALL],

@@ -338,8 +338,8 @@ export class DocusignTemplateMasterService {
 
   async getDocusignCompositeTemplateMaster(
     fundingSources: string[],
-    financiers: (string | undefined)[],
-    financialProducts: (string | undefined)[],
+    financiers: string[],
+    financialProducts: string[],
     utilities: string[],
     utilityPrograms: (string | null)[],
     applicableSystemTypes: SYSTEM_TYPE[],
