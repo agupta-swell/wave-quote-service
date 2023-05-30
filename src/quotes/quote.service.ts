@@ -121,6 +121,12 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('System Design');
     }
 
+    const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
+    
+    if (!systemProduction) {
+      throw ApplicationException.EntityNotFound('System Production');
+    }
+
     if (!systemDesign.roofTopDesignData.storage.length && !systemDesign.roofTopDesignData.panelArray.length) {
       throw ApplicationException.UnprocessableEntity('Can not create quote from empty system design');
     }
@@ -141,6 +147,7 @@ export class QuoteService {
     ) {
       throw ApplicationException.NoQuoteConfigAvailable();
     }
+
     const utilityProgram = data.utilityProgramId
       ? await this.utilityProgramService.getDetailById(data.utilityProgramId)
       : null;
@@ -199,6 +206,7 @@ export class QuoteService {
       newPricePerKWh,
       currentAverageMonthlyBill,
       newAverageMonthlyBill,
+      capacityKW: systemProduction.data?.capacityKW || 0,
     });
 
     productAttribute.upfrontPayment = this.calculateUpfrontPayment(
@@ -457,6 +465,8 @@ export class QuoteService {
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
+    const financeProductAttribute = financeProduct.productAttribute as unknown as IEsaProductAttributes;
+
     let productAttribute = await this.createProductAttribute({
       productType: financeProduct.productType,
       netAmount: currentProjectPrice,
@@ -465,6 +475,9 @@ export class QuoteService {
       newPricePerKWh,
       currentAverageMonthlyBill,
       newAverageMonthlyBill,
+      capacityKW: systemProduction.data?.capacityKW || 0,
+      esaTerm: financeProductAttribute.esaTerm,
+      rateEscalator: financeProductAttribute.rateEscalator,
     });
 
     const { productAttribute: product_attribute } = financeProduct as any;
@@ -611,12 +624,15 @@ export class QuoteService {
     newPricePerKWh = 0,
     currentAverageMonthlyBill = 0,
     newAverageMonthlyBill = 0,
+    capacityKW,
+    esaTerm = 20,
+    rateEscalator = 0.9,
   }: ICreateProductAttribute): Promise<any> {
     // TODO: Refactor this function with correct params and default value.
     let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes | IEsaProductAttributes;
 
     const { defaultDownPayment, interestRate, terms, termMonths } = financialProductSnapshot;
-
+    
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
         template = {
@@ -672,6 +688,14 @@ export class QuoteService {
           newAverageMonthlyBill,
           currentPricePerKWh,
           newPricePerKWh,
+          esaTerm: esaTerm, 
+          rateEscalator: rateEscalator,
+          grossFinancePayment: this.calculationService.calculateGrossFinancePayment(
+            rateEscalator,
+            esaTerm,
+            capacityKW,
+            netAmount,
+          ),
         } as IEsaProductAttributes;
         return template;
 
@@ -738,6 +762,11 @@ export class QuoteService {
       throw ApplicationException.UnprocessableEntity('Inverters are required on PV system designs!');
     }
 
+    const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
+    if (!systemProduction) {
+      throw ApplicationException.EntityNotFound('System Production');
+    }
+
     if (!quotePartnerConfig) {
       throw new NotFoundException('No quote partner config');
     }
@@ -801,6 +830,8 @@ export class QuoteService {
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
+    const { productAttribute: product_attribute } = financeProduct as any;
+
     let productAttribute = await this.createProductAttribute({
       productType: financeProduct.productType,
       netAmount: quoteCostBuildup.projectGrandTotal.netCost,
@@ -809,9 +840,11 @@ export class QuoteService {
       newPricePerKWh,
       currentAverageMonthlyBill,
       newAverageMonthlyBill,
+      capacityKW: systemProduction.data?.capacityKW || 0,
+      esaTerm: product_attribute.esaTerm,
+      rateEscalator: product_attribute.rateEscalator
     });
 
-    const { productAttribute: product_attribute } = financeProduct as any;
     switch (financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE: {
         productAttribute = {
@@ -1076,6 +1109,12 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
+    const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
+    
+    if (!systemProduction) {
+      throw ApplicationException.EntityNotFound('System Production');
+    }
+
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, dealerFee } = financialProductSnapshot;
 
@@ -1171,8 +1210,24 @@ export class QuoteService {
         break;
       }
 
+      case FINANCE_PRODUCT_TYPE.ESA: {
+        const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
+          .productAttribute as EsaProductAttributesDto;
+        const {
+          rateEscalator,
+          esaTerm,
+          balance
+        } = productAttribute;
+        productAttribute.grossFinancePayment = this.calculationService.calculateGrossFinancePayment(
+          rateEscalator,
+          esaTerm,
+          systemProduction.data?.capacityKW || 0,
+          balance
+        );
+        break;
+      }
+
       case FINANCE_PRODUCT_TYPE.CASH:
-      case FINANCE_PRODUCT_TYPE.ESA:
       default: {
         // do nothing
       }
@@ -1472,7 +1527,7 @@ export class QuoteService {
       }
 
       case FINANCE_PRODUCT_TYPE.ESA: {
-        const newProductAttribute = { ...financeProduct.productAttribute } as any;
+        const newProductAttribute = { ...financeProduct.productAttribute } as IEsaProductAttributes;
         newProductAttribute.balance = netAmount - newProductAttribute.upfrontPayment;
         newProductAttribute.milestonePayment = newProductAttribute.milestonePayment.map((item: any) => ({
           ...item,

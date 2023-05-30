@@ -13,6 +13,14 @@ import { IPayPeriodData } from '../typing.d';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const PAYMENT_ROUNDING = 2;
+const DEV_FEE = 0.1; // hard coding the target dev fee 10%
+const COEFFICIENTS_BY_RATE_ESCALATOR = {
+  // where termYears = 25
+  '0.0': [79.690483, 91.35549163, -72.8379058, -88.3012586],
+  '0.9': [74.0338386, 84.79026194, -67.17454928, -81.95091914],
+  '1.9': [67.96243953, 77.77185268, -60.99651091, -75.17769009],
+  '2.9': [62.28990212, 71.19436799, -55.99430839, -68.6789748],
+};
 
 @Injectable()
 export class CalculationService {
@@ -21,6 +29,25 @@ export class CalculationService {
     private readonly utilityService: UtilityService,
     private readonly leaseSolverConfigService: LeaseSolverConfigService,
   ) {}
+
+  calculateGrossFinancePayment(
+    rateEscalator: number,
+    esaTerm: number,
+    systemSizeKW: number,
+    projectGrossAmount: number,
+  ) {
+    if (!esaTerm || !systemSizeKW) return 0;
+
+    const [a, b, c, d] = COEFFICIENTS_BY_RATE_ESCALATOR[rateEscalator.toFixed(1)] as number[];
+    const pricePerWatt = projectGrossAmount / systemSizeKW / 1000;
+
+    // output
+    const payment =
+      (a * (systemSizeKW * pricePerWatt * DEV_FEE) + b * (systemSizeKW * pricePerWatt) + c * systemSizeKW + d) *
+      (25 / esaTerm);
+
+    return roundNumber(payment / 12);
+  }
 
   async calculateLeaseQuote(
     detailedQuote: CalculateQuoteDetailDto,

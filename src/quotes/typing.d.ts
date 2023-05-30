@@ -46,4 +46,7 @@ export interface ICreateProductAttribute {
   newPricePerKWh: number;
   currentAverageMonthlyBill: number;
   newAverageMonthlyBill: number;
+  capacityKW: number;
+  esaTerm?: number;
+  rateEscalator?: number;
 }
