@@ -21,4 +21,16 @@ export class EsaProductAttributesDto {
   @ApiProperty()
   @IsNumber()
   newAverageMonthlyBill: number;
+
+  @ApiProperty()
+  @IsNumber()
+  rateEscalator: number;
+
+  @ApiProperty()
+  @IsNumber()
+  esaTerm: number;
+
+  @ApiProperty()
+  @IsNumber()
+  grossFinancePayment: number;
 }

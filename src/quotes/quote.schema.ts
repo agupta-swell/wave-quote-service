@@ -175,6 +175,9 @@ export interface IEsaProductAttributes {
   newAverageMonthlyBill: number;
   currentPricePerKWh: number;
   newPricePerKWh: number;
+  esaTerm: number;
+  rateEscalator: number;
+  grossFinancePayment: number;
 }
 
 export interface ICashQuoteConfigSnapshot {
