@@ -179,7 +179,8 @@ export class QuoteService {
 
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
-    const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
+    const currentAnnualCost =
+      utilityData.costData.computedCost.annualCost ?? sumBy(utilityData.costData.computedCost.cost, item => item.v);
     const postInstallAnnualCost = systemDesign.costPostInstallation
       ? systemDesign.costPostInstallation
       : currentAnnualCost;
@@ -443,7 +444,8 @@ export class QuoteService {
         currentProjectPrice = 0;
     }
 
-    const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
+    const currentAnnualCost =
+      utilityData.costData.computedCost.annualCost ?? sumBy(utilityData.costData.computedCost.cost, item => item.v);
 
     const postInstallAnnualCost = foundSystemDesign.costPostInstallation
       ? foundSystemDesign.costPostInstallation
@@ -786,7 +788,8 @@ export class QuoteService {
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
     const avgMonthlySavings = 0;
 
-    const currentAnnualCost = sumBy(utilityData.costData.computedCost.cost, item => item.v);
+    const currentAnnualCost =
+      utilityData.costData.computedCost.annualCost ?? sumBy(utilityData.costData.computedCost.cost, item => item.v);
 
     const postInstallAnnualCost = systemDesign.costPostInstallation
       ? systemDesign.costPostInstallation

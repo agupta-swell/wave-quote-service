@@ -112,7 +112,7 @@ export interface ICalculateCostPropertyInputs {
   unit?: string;
   dataSeries?: number[];
   exportDataSeries?: number[];
-  dataValue?: string; 
+  dataValue?: string;
 }
 
 export interface ICalculateCostPayload {
@@ -141,16 +141,16 @@ export interface IAxiosDataResponse {
   results: any;
 }
 
-export interface INetNegativeAnnualUsage {
-  annualPostInstallBill: number;
+export interface IAnnualBillData {
+  annualCost: number;
   fromDateTime: string;
   toDateTime: string;
 }
 
-export interface ICalculateNetNegativeAnnualUsage {
-  postInstall8760: number[],
-  masterTariffId: string,
-  zipCode: number,
-  medicalBaselineAmount?: number,
-  startDate?: Date,
+export interface ICalculateAnnualBillPayload {
+  hourlyDataForTheYear: number[];
+  masterTariffId: string;
+  zipCode: number;
+  medicalBaselineAmount?: number;
+  startDate?: Date;
 }

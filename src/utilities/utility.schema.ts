@@ -202,7 +202,8 @@ export interface IUtilityCostData {
   startDate: Date;
   endDate: Date;
   interval: string;
-  cost: ICostDetailData[];
+  cost?: ICostDetailData[];
+  annualCost: number;
 }
 
 export const UtilityCostDataSchema = new Schema<Document<IUtilityCostData>>(
@@ -211,6 +212,7 @@ export const UtilityCostDataSchema = new Schema<Document<IUtilityCostData>>(
     end_date: Date,
     interval: String,
     cost: [CostDetailDataSchema],
+    annual_cost: Number,
   },
   { _id: false },
 );
@@ -243,8 +245,8 @@ export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   increaseAmount: number;
   electricVehicles: IElectricVehicleSnapshot[];
   totalPlannedUsageIncreases: number;
-  hasMedicalBaseline?: boolean,
-  medicalBaselineAmount?: number,
+  hasMedicalBaseline?: boolean;
+  medicalBaselineAmount?: number;
 }
 
 export type UtilityUsageDetails = Document & IUtilityUsageDetails;
@@ -336,5 +338,5 @@ export class UtilityUsageDetailsModel {
 
 export interface IMonthSeasonTariff {
   seasonName: string;
-  hourlyTariffRate: number[]; 
+  hourlyTariffRate: number[];
 }

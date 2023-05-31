@@ -10,12 +10,12 @@ import { GenabilityService } from './sub-services/genability.service';
 import {
   EGenabilityDetailLevel,
   EGenabilityGroupBy,
+  IAnnualBillData,
+  ICalculateAnnualBillPayload,
   ICalculateCostPayload,
-  ICalculateNetNegativeAnnualUsage,
   ICalculateSystemProduction,
   IGenabilityCalculateUtilityCost,
   ILoadServingEntity,
-  INetNegativeAnnualUsage,
   IPvWattV6Responses,
   ITypicalBaseLine,
   ITypicalUsage,
@@ -241,17 +241,14 @@ export class ExternalService {
     });
 
   /**
-   * Calculate net negative annual usage
+   * Calculate annual bill from Genability response
    */
-  async calculateNetNegativeAnnualUsage(data: ICalculateNetNegativeAnnualUsage): Promise<INetNegativeAnnualUsage> {
-    const { postInstall8760, masterTariffId, zipCode, medicalBaselineAmount, startDate } = data;
-    
-    // Sum the 8760 kWh post-install data series
-    const netKwh = postInstall8760.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+  async calculateAnnualBill(data: ICalculateAnnualBillPayload): Promise<IAnnualBillData> {
+    const { hourlyDataForTheYear, masterTariffId, zipCode, medicalBaselineAmount, startDate } = data;
 
     // Call Genability
     const [result] = await this.calculateCost({
-      hourlyDataForTheYear: postInstall8760,
+      hourlyDataForTheYear,
       masterTariffId,
       groupBy: EGenabilityGroupBy.MONTH,
       detailLevel: EGenabilityDetailLevel.CHARGE_TYPE,
@@ -263,20 +260,16 @@ export class ExternalService {
 
     const { fromDateTime, toDateTime } = result;
 
-    // Calculate
-    const nonBypassableCost = result.summary.nonBypassableCost || 0; // 3313655 - SCE - Domestic Prime TOU return nonBypassableCost
-    const fixedCosts = result.items
-      .filter(item => item.quantityKey === 'fixed')
-      .reduce((accumulator, currentValue) => accumulator + currentValue.cost, 0); // could be negative
+    // Calculate annual bill
+    const { adjustedTotalCost, kWh } = result.summary;
     const consumptionCosts = result.items
       .filter(item => item.quantityKey === 'consumption')
       .reduce((accumulator, currentValue) => accumulator + currentValue.cost, 0);
 
-    const annualPostInstallBill =
-      fixedCosts + nonBypassableCost + (consumptionCosts > 0 ? consumptionCosts : netKwh * 0.05);
+    const annualCost = consumptionCosts < 0 ? adjustedTotalCost + consumptionCosts + kWh * 0.05 : adjustedTotalCost;
 
     return {
-      annualPostInstallBill,
+      annualCost,
       fromDateTime,
       toDateTime,
     };

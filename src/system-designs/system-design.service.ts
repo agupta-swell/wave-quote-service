@@ -20,7 +20,6 @@ import { ECommerceService } from 'src/e-commerces/e-commerce.service';
 import { REGION_PURPOSE } from 'src/e-commerces/schemas';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
 import { ExternalService } from 'src/external-services/external-service.service';
-import { INetNegativeAnnualUsage } from 'src/external-services/typing';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { MountTypesService } from 'src/mount-types-v2/mount-types-v2.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
@@ -53,6 +52,7 @@ import { buildMonthlyAndAnnualDataFrom8760, buildMonthlyHourFrom8760 } from 'src
 import { transformDataToCSVFormat } from 'src/utils/transformDataToCSVFormat';
 import { roundNumber } from 'src/utils/transformNumber';
 import { v4 as uuidv4 } from 'uuid';
+import { IAnnualBillData } from 'src/external-services/typing';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE, PRESIGNED_GET_URL_EXPIRE_IN } from './constants';
 import { SystemDesignHook } from './providers/system-design.hook';
@@ -1478,9 +1478,9 @@ export class SystemDesignService {
       ),
     );
 
-    const [netNegativeAnnualUsage] = await Promise.all([
-      this.externalService.calculateNetNegativeAnnualUsage({
-        postInstall8760: simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
+    const [annualPostInstallBill] = await Promise.all([
+      this.externalService.calculateAnnualBill({
+        hourlyDataForTheYear: simulatePinballData.postInstallSiteDemandSeries.map(i => i / 1000), // Wh -> KWh
         masterTariffId,
         zipCode: utility.utilityData.typicalBaselineUsage.zipCode,
         medicalBaselineAmount,
@@ -1488,11 +1488,11 @@ export class SystemDesignService {
       ...savePinballToS3Requests,
     ]);
 
-    const { annualPostInstallBill, fromDateTime, toDateTime } = netNegativeAnnualUsage as INetNegativeAnnualUsage;
+    const { annualCost: annualPostInstallCost, fromDateTime, toDateTime } = annualPostInstallBill as IAnnualBillData;
 
     // update systemDesign
     const setData: any = {
-      costPostInstallation: annualPostInstallBill,
+      costPostInstallation: annualPostInstallCost,
       costCalculationInput: {
         masterTariffId,
         medicalBaselineAmount,
