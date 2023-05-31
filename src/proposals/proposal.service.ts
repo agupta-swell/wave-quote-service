@@ -582,8 +582,12 @@ export class ProposalService {
     }
 
     const sumOfUtilityUsageCost =
-      utility?.costData.computedCost.cost.reduce((previousValue, currentValue) => previousValue + currentValue.v, 0) ||
-      0;
+      utility?.costData.computedCost.annualCost ??
+      (utility?.costData.computedCost.cost?.reduce(
+        (previousValue, currentValue) => previousValue + currentValue.v,
+        0,
+      ) ||
+        0);
 
     const sumOfMonthlyUsageCost =
       utility?.utilityData?.computedUsage?.monthlyUsage?.reduce(

@@ -33,6 +33,9 @@ class UtilityCostData {
 
   @ExposeProp({ type: CostDetailData, isArray: true })
   cost: CostDetailData[];
+
+  @ExposeProp()
+  annualCost: number;
 }
 
 export class CostDataDto {

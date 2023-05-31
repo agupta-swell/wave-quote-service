@@ -117,7 +117,8 @@ export class CalculationService {
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
     const actualUsage = sumBy(utilityUsage?.utilityData.computedUsage.monthlyUsage, item => item.v);
-    const currentBill = sumBy(utilityUsage?.costData.computedCost.cost, item => item.v);
+    const currentBill =
+      utilityUsage?.costData.computedCost.annualCost ?? sumBy(utilityUsage?.costData.computedCost.cost, item => item.v);
     productAttribute.currentPricePerKWh = currentBill / actualUsage;
     productAttribute.newPricePerKWh = (productAttribute.monthlyEnergyPayment * 12) / actualUsage;
 
@@ -228,8 +229,9 @@ export class CalculationService {
   private async getCurrentMonthlyAverageUtilityPayment(opportunityId: string): Promise<number> {
     const utility = await this.utilityService.getUtilityByOpportunityId(opportunityId);
     if (!utility) return 0;
-    const totalCost = sumBy(utility.costData.typicalUsageCost.cost, item => item.v);
-    const lenCost = utility.costData.typicalUsageCost.cost.length;
+    const totalCost =
+      utility?.costData.typicalUsageCost.annualCost ?? sumBy(utility.costData.typicalUsageCost.cost, item => item.v);
+    const lenCost = utility.costData.typicalUsageCost.cost?.length || 12;
     return totalCost / lenCost;
   }
 
