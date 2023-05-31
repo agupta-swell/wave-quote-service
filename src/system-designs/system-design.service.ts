@@ -848,6 +848,53 @@ export class SystemDesignService {
     );
   }
 
+  async updateArchiveStatus(
+    systemDesignId: ObjectId,
+    body: { isArchived: boolean },
+  ): Promise<OperationResult<SystemDesignDto>> {
+    const foundSystemDesign = await this.systemDesignModel.findById(systemDesignId);
+
+    if (!foundSystemDesign) {
+      throw ApplicationException.EntityNotFound(systemDesignId.toString());
+    }
+
+    const isInUsed = await this.checkInUsed(systemDesignId.toString());
+
+    if (isInUsed) {
+      throw new BadRequestException(isInUsed);
+    }
+
+    const { isArchived } = body;
+
+    foundSystemDesign.isArchived = isArchived;
+
+    await foundSystemDesign.save();
+
+    if (isArchived) {
+      const { opportunityId } = foundSystemDesign;
+      const foundQuotes = await this.quoteService.getQuotesByCondition(
+        {
+          systemDesignId: systemDesignId.toString(),
+          opportunityId,
+          isArchived: false,
+        },
+        100,
+        0,
+      );
+
+      await this.quoteService.updateQuotesByCondition(
+        { _id: { $in: foundQuotes.map(({ _id }) => _id) } },
+        { isArchived: true },
+      );
+    }
+
+    return OperationResult.ok(
+      strictPlainToClass(SystemDesignDto, {
+        ...foundSystemDesign.toJSON(),
+      }),
+    );
+  }
+
   async recalculateSystemDesign(
     id: ObjectId | null,
     systemDesignDto: UpdateSystemDesignDto,

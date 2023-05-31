@@ -122,7 +122,7 @@ export class QuoteService {
     }
 
     const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
-    
+
     if (!systemProduction) {
       throw ApplicationException.EntityNotFound('System Production');
     }
@@ -465,7 +465,7 @@ export class QuoteService {
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
-    const financeProductAttribute = financeProduct.productAttribute as unknown as IEsaProductAttributes;
+    const financeProductAttribute = (financeProduct.productAttribute as unknown) as IEsaProductAttributes;
 
     let productAttribute = await this.createProductAttribute({
       productType: financeProduct.productType,
@@ -632,7 +632,7 @@ export class QuoteService {
     let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes | IEsaProductAttributes;
 
     const { defaultDownPayment, interestRate, terms, termMonths } = financialProductSnapshot;
-    
+
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
         template = {
@@ -688,7 +688,7 @@ export class QuoteService {
           newAverageMonthlyBill,
           currentPricePerKWh,
           newPricePerKWh,
-          esaTerm: esaTerm, 
+          esaTerm: esaTerm,
           rateEscalator: rateEscalator,
           grossFinancePayment: this.calculationService.calculateGrossFinancePayment(
             rateEscalator,
@@ -842,7 +842,7 @@ export class QuoteService {
       newAverageMonthlyBill,
       capacityKW: systemProduction.data?.capacityKW || 0,
       esaTerm: product_attribute.esaTerm,
-      rateEscalator: product_attribute.rateEscalator
+      rateEscalator: product_attribute.rateEscalator,
     });
 
     switch (financeProduct.productType) {
@@ -1110,7 +1110,7 @@ export class QuoteService {
     }
 
     const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
-    
+
     if (!systemProduction) {
       throw ApplicationException.EntityNotFound('System Production');
     }
@@ -1213,16 +1213,12 @@ export class QuoteService {
       case FINANCE_PRODUCT_TYPE.ESA: {
         const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
           .productAttribute as EsaProductAttributesDto;
-        const {
-          rateEscalator,
-          esaTerm,
-          balance
-        } = productAttribute;
+        const { rateEscalator, esaTerm, balance } = productAttribute;
         productAttribute.grossFinancePayment = this.calculationService.calculateGrossFinancePayment(
           rateEscalator,
           esaTerm,
           systemProduction.data?.capacityKW || 0,
-          balance
+          balance,
         );
         break;
       }
@@ -1721,5 +1717,26 @@ export class QuoteService {
       default:
         return 0;
     }
+  }
+
+  getQuotesByCondition(condition, limit: number, skip: number) {
+    return this.quoteModel.find(condition).limit(limit).skip(skip).lean();
+  }
+
+  updateQuoteById(quoteId: ObjectId, newQuote) {
+    return this.quoteModel
+      .findByIdAndUpdate(
+        quoteId,
+        {
+          '@@check-transform': true,
+          ...newQuote,
+        },
+        { new: true },
+      )
+      .lean();
+  }
+
+  updateQuotesByCondition(condition, update) {
+    return this.quoteModel.updateMany(condition, update);
   }
 }
