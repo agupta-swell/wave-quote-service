@@ -1332,7 +1332,6 @@ export class UtilityService implements OnModuleInit {
       startDate: new Date(fromDateTime),
       endDate: new Date(toDateTime),
       interval: INTERVAL_VALUE.YEAR,
-      cost: null as any,
       annualCost,
     } as IUtilityCostData;
 

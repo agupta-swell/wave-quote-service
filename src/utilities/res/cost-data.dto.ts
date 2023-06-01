@@ -1,4 +1,5 @@
 import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
+import { Transform } from 'class-transformer';
 import { INTERVAL_VALUE } from '../constants';
 
 class CostDetailData {
@@ -35,6 +36,10 @@ class UtilityCostData {
   cost: CostDetailData[];
 
   @ExposeProp()
+  @Transform(({ value, obj }) => {
+    if (value) return value;
+    return obj.cost.reduce((acc, curr) => acc + curr.v, 0);
+  })
   annualCost: number;
 }
 
