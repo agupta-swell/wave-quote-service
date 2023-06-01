@@ -266,7 +266,7 @@ export class ExternalService {
       .filter(item => item.quantityKey === 'consumption')
       .reduce((accumulator, currentValue) => accumulator + currentValue.cost, 0);
 
-    const annualCost = consumptionCosts < 0 ? adjustedTotalCost + consumptionCosts + kWh * 0.05 : adjustedTotalCost;
+    const annualCost = consumptionCosts < 0 ? adjustedTotalCost - consumptionCosts + kWh * 0.05 : adjustedTotalCost;
 
     return {
       annualCost,
