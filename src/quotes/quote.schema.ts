@@ -204,7 +204,7 @@ export interface IFinanceProductSchema {
   productType: string;
   fundingSourceId: string;
   fundingSourceName: string;
-  productAttribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
+  productAttribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes | IEsaProductAttributes;
   financialProductSnapshot: FinancialProduct;
 }
 

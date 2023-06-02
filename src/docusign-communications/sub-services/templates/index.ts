@@ -40,3 +40,4 @@ import './participation-sgip-hic';
 import './solar-energy-disclosure-esa';
 import './solar-energy-system-disclosure-document-hic';
 import './terms-and-conditions-hic';
+import './solar-disclosures-esa';
