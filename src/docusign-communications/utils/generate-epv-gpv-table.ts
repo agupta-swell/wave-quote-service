@@ -1,5 +1,6 @@
-import { IDetailedQuoteSchema, ILeaseProductAttributes } from 'src/quotes/quote.schema';
+import { IDetailedQuoteSchema, IEsaProductAttributes, ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { ISystemProductionSchema } from 'src/system-designs/system-design.schema';
+import { roundNumber } from 'src/utils/transformNumber';
 
 interface IGenerateEPVAndGPVTableParams {
   systemProduction: ISystemProductionSchema;
@@ -33,5 +34,29 @@ export const generateEPVAndGPVTable = ({ systemProduction, quote }: IGenerateEPV
     EPV_YLD_CUM,
     GPV_YLD,
     GUARANTEED_PV_PRICE_PER_KWH,
+  };
+};
+
+export const generateEPVAndGPVTableForESA = ({ systemProduction, quote }: IGenerateEPVAndGPVTableParams) => {
+  const { generationKWh } = systemProduction;
+  const { annualDegradation = 0, guaranteedProduction = 0 } =
+    quote.quoteFinanceProduct.financeProduct.financialProductSnapshot ?? {};
+  const { esaTerm } = quote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes;
+
+  const EPV_YLD: number[] = [generationKWh];
+  const EPV_YLD_CUM: number[] = [generationKWh];
+
+  const GPV_YLD: number[] = [(generationKWh * guaranteedProduction) / 100];
+
+  for (let index = 1; index < esaTerm; index++) {
+    EPV_YLD[index] = EPV_YLD[index - 1] * (1 - annualDegradation / 100);
+    EPV_YLD_CUM[index] = EPV_YLD_CUM[index - 1] + EPV_YLD[index];
+    GPV_YLD[index] = (EPV_YLD[index] * guaranteedProduction) / 100;
+  }
+
+  return {
+    EPV_YLD,
+    EPV_YLD_CUM,
+    GPV_YLD,
   };
 };
