@@ -19,6 +19,7 @@ import './exhibit-3-customer-system-related-obligations-esa';
 import './exhibit-4-arbitration-clause-esa';
 import './exhibit-5-notice-of-cancellation-california-esa';
 import './exhibit-6-state-disclosures-california-esa';
+import './exhibit-7-guaranteed-production-esa.ts';
 import './exhibit-7-solar-energy-system-estimated-production';
 import './exhibit-8-system-design-notice-esa';
 import './exhibit-9-insurance-esa';
