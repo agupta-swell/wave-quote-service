@@ -7,7 +7,7 @@ import { IContext } from './interfaces/IContext';
 import { IDefaultContractor } from './interfaces/IDefaultContractor';
 import { IMetaTemplate } from './interfaces/IMetaTemplate';
 import { IPageNumberFormatter } from './interfaces/IPageNumberFormatter';
-import { IRawTab } from './interfaces/IRawTab';
+import { IDynamicRawTab, IRawTab } from './interfaces/IRawTab';
 import { toPascalCase, toSnakeCase, toUpperSnakeCase } from './utils';
 
 export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Context> {
@@ -193,6 +193,14 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
     return tabs;
   }
 
+  /**
+   * @param ctx
+   * @param defaultContractor
+   * @param docTabs
+   * @param templateId
+   *
+   * @warning When creating a Docusign Template, only use the list of TabValue or TabDynamic. Don't mix them together.
+   */
   toPrefillTabs(
     ctx: Context,
     defaultContractor: IDefaultContractor,
@@ -203,80 +211,99 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
     if (!prefillTabs || !Object.keys(prefillTabs).length || !prefillTabs.textTabs.length) return;
 
-    const tabs = prefillTabs.textTabs
-      .map(tab => {
-        const { tabId, tabLabel, required } = tab;
+    let tabs = [] as docusign.Text[];
 
-        const isTabRequired = required === 'true';
+    // check case use only the list of TabValue
+    if (this._rawTabs[0].tabLabel !== 'dynamicTabs') {
+      tabs = prefillTabs.textTabs
+        .map(tab => {
+          const { tabId, tabLabel, required } = tab;
 
-        const rawTab = this._rawTabs.find(
-          rawTab =>
-            rawTab.tabType === DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS &&
-            rawTab.tabLabel === tabLabel &&
-            !rawTab.tabDynamicValue,
-        );
+          const isTabRequired = required === 'true';
 
-        if (!rawTab) {
-          if (isTabRequired && !tab.value)
+          const rawTab = this._rawTabs.find(
+            rawTab => rawTab.tabType === DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS && rawTab.tabLabel === tabLabel,
+          );
+
+          if (!rawTab) {
+            if (isTabRequired && !tab.value)
+              throw new DocusignException(
+                undefined,
+                `Missing tab value for  ${tab.tabLabel}, template id: ${templateId}`,
+                true,
+              );
+            else return;
+          }
+
+          const tabValue =
+            (typeof rawTab.tabValue === 'function'
+              ? rawTab.tabValue(ctx, defaultContractor)
+              : rawTab.tabValue
+            )?.toString() ?? '';
+
+          if (!tabValue && (rawTab.tabRequireProp || isTabRequired)) {
             throw new DocusignException(
               undefined,
-              `Missing tab value for  ${tab.tabLabel}, template id: ${templateId}`,
+              `Missing tab value for  ${rawTab.tabRequireProp || tab.tabLabel}, template id: ${templateId}`,
               true,
             );
-          else return;
-        }
+          }
 
-        const tabValue =
-          (typeof rawTab.tabValue === 'function'
-            ? rawTab.tabValue(ctx, defaultContractor)
-            : rawTab.tabValue
-          )?.toString() ?? '';
+          const value = {
+            ...tab,
+            tabId,
+            value: tabValue,
+          } as docusign.Text;
 
-        if (!tabValue && (rawTab.tabRequireProp || isTabRequired)) {
-          throw new DocusignException(
-            undefined,
-            `Missing tab value for  ${rawTab.tabRequireProp || tab.tabLabel}, template id: ${templateId}`,
-            true,
-          );
-        }
+          // eslint-disable-next-line consistent-return
+          return value;
+        })
+        .filter((e): e is docusign.Text => !!e);
+    } else {
+      // handle dynamic tab value
+      this._rawTabs
+        .filter(e => e.tabDynamicValue && e.tabType === DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
+        .forEach(({ tabDynamicValue }) => {
+          const res = tabDynamicValue!(ctx, defaultContractor);
 
-        const value = {
-          ...tab,
-          tabId,
-          value: tabValue,
-        } as docusign.Text;
+          const dynamicTabs = Array.isArray(res)
+            ? res
+            : (Object.entries(res).map(([key, value]) => ({
+                prop: key,
+                tabValue: value,
+                tabLabel: '',
+              })) as IDynamicRawTab[]);
 
-        // eslint-disable-next-line consistent-return
-        return value;
-      })
-      .filter((e): e is docusign.Text => !!e);
+          prefillTabs.textTabs.forEach(tab => {
+            const { tabId, tabLabel, required } = tab;
 
-    // handle dynamic tab value
+            const isTabRequired = required === 'true';
 
-    this._rawTabs
-      .filter(e => e.tabDynamicValue && e.tabType === DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
-      .forEach(({ tabDynamicValue }) => {
-        const res = tabDynamicValue!(ctx, defaultContractor);
+            const rawTab = dynamicTabs.find(dynTab => {
+              const { prop, tabLabel: dynamicTabLabel } = dynTab;
 
-        const dynamicTabs = Array.isArray(res)
-          ? res
-          : Object.entries(res).map(([key, value]) => ({ prop: key, tabValue: value, tabLabel: '' }));
+              const label = dynamicTabLabel || (this._defaultTransform ? this._defaultTransform(prop) : prop);
 
-        dynamicTabs.forEach(dynTab => {
-          const { prop, tabLabel, tabValue } = dynTab;
+              return label === tabLabel;
+            });
 
-          const label = tabLabel ?? (this._defaultTransform ? this._defaultTransform(prop) : prop);
+            if (!rawTab) {
+              if (isTabRequired && !tab.value)
+                throw new DocusignException(
+                  undefined,
+                  `Missing tab value for  ${tab.tabLabel}, template id: ${templateId}`,
+                  true,
+                );
+              else return;
+            }
 
-          const foundTab = prefillTabs.textTabs.find(e => e.tabLabel === label);
-
-          if (!foundTab) return;
-
-          tabs.push({
-            tabId: foundTab.tabId,
-            value: tabValue?.toString() ?? '',
+            tabs.push({
+              tabId,
+              value: rawTab.tabValue?.toString() ?? '',
+            });
           });
         });
-      });
+    }
 
     // eslint-disable-next-line consistent-return
     return {
