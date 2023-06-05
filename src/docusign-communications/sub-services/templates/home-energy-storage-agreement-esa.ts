@@ -25,11 +25,11 @@ export class HomeEnergyStorageAgreementEsaTemplate {
   opportunityId: string;
 
   @TabLabel('battery_X')
-  @TabValue<IGenericObject>(({ systemDesign }) => (systemDesign.roofTopDesignData.storage.length ? 'X' : ''))
+  @TabValue<IGenericObject>(({ systemDesign }) => (systemDesign.roofTopDesignData.storage.length ? 'X' : ' '))
   batteryX: string;
 
   @TabLabel('solar_X')
-  @TabValue<IGenericObject>(({ systemDesign }) => (systemDesign.roofTopDesignData.panelArray.length ? 'X' : ''))
+  @TabValue<IGenericObject>(({ systemDesign }) => (systemDesign.roofTopDesignData.panelArray.length ? 'X' : ' '))
   solarX: string;
 
   @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.fullName)
@@ -68,8 +68,10 @@ export class HomeEnergyStorageAgreementEsaTemplate {
   )
   esKw: number;
 
-  @TabValue<IGenericObject>(({ systemDesign }) =>
-    parseSystemDesignProducts(systemDesign)
+  @TabValue<IGenericObject>(({ systemDesign }) => {
+    if (!systemDesign.roofTopDesignData.storage.length) return ' ';
+
+    return parseSystemDesignProducts(systemDesign)
       .systemDesignBatteries.reduce<ISystemDesignProducts['systemDesignBatteries']>((acc, cur) => {
         const batt = acc.find(e => e.storageModelId === cur.storageModelId);
 
@@ -85,15 +87,17 @@ export class HomeEnergyStorageAgreementEsaTemplate {
         item =>
           `${item.quantity} x ${item.storageModelDataSnapshot.$meta.manufacturer.name} ${item.storageModelDataSnapshot.name}`,
       )
-      .join(', '),
-  )
+      .join(', ');
+  })
   batterySummary: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) => roundNumber(systemDesign?.systemProductionData?.capacityKW || 0, 3))
   pvKw: string;
 
-  @TabValue<IGenericObject>(({ systemDesign }) =>
-    parseSystemDesignProducts(systemDesign)
+  @TabValue<IGenericObject>(({ systemDesign }) => {
+    if (!systemDesign.roofTopDesignData.panelArray.length) return ' ';
+
+    return parseSystemDesignProducts(systemDesign)
       .systemDesignModules.reduce<ISystemDesignProducts['systemDesignModules']>((acc, cur) => {
         const module = acc.find(e => e.panelModelId === cur.panelModelId);
 
@@ -109,12 +113,14 @@ export class HomeEnergyStorageAgreementEsaTemplate {
         item =>
           `${item.numberOfPanels} x ${item.panelModelDataSnapshot.$meta.manufacturer.name} ${item.panelModelDataSnapshot.name}`,
       )
-      .join(', '),
-  )
+      .join(', ');
+  })
   moduleSummary: string;
 
-  @TabValue<IGenericObject>(({ systemDesign }) =>
-    parseSystemDesignProducts(systemDesign)
+  @TabValue<IGenericObject>(({ systemDesign }) => {
+    if (!systemDesign.roofTopDesignData.inverters.length) return ' ';
+
+    return parseSystemDesignProducts(systemDesign)
       .systemDesignInverters.reduce<ISystemDesignProducts['systemDesignInverters']>((acc, cur) => {
         const inverter = acc.find(e => e.inverterModelId === cur.inverterModelId);
 
@@ -130,8 +136,8 @@ export class HomeEnergyStorageAgreementEsaTemplate {
         item =>
           `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
       )
-      .join(', '),
-  )
+      .join(', ');
+  })
   inverterSummary: string;
 
   @TabValue<IGenericObject>(
@@ -156,10 +162,13 @@ export class HomeEnergyStorageAgreementEsaTemplate {
   esaEsc: number;
 
   @TabValue<IGenericObject>(({ quote }) =>
-    roundNumber(
-      ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment * 12) /
-        quote.systemProduction.generationKWh,
-    ),
+    quote.systemProduction.generationKWh
+      ? roundNumber(
+          ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment *
+            12) /
+            quote.systemProduction.generationKWh,
+        )
+      : 0,
   )
   pricePerKwh: number;
 

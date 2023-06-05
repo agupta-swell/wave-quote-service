@@ -16,10 +16,13 @@ import { IGenericObject } from '../../typing';
 export class SolarDisclosuresESATemplate {
   @TabLabel('$_per_kwh')
   @TabValue<IGenericObject>(({ quote }) =>
-    roundNumber(
-      ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment * 12) /
-        quote.systemProduction.generationKWh,
-    ),
+    quote.systemProduction.generationKWh
+      ? roundNumber(
+          ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment *
+            12) /
+            quote.systemProduction.generationKWh,
+        )
+      : 0,
   )
   $PerKwh: number;
 
