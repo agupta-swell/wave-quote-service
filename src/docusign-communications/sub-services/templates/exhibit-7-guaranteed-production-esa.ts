@@ -11,10 +11,13 @@ export class Exhibit7GuaranteedProductionESATemplate {
     const { quote } = genericObj;
     const result: Record<string, string> = {};
 
-    result.price_per_kwh = roundNumber(
-      ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment * 12) /
-        quote.systemProduction.generationKWh,
-    ).toString();
+    result.price_per_kwh = quote.systemProduction.generationKWh
+      ? roundNumber(
+          ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment *
+            12) /
+            quote.systemProduction.generationKWh,
+        ).toString()
+      : '0';
 
     result.esa_escalator = (<IEsaProductAttributes>(
       quote.quoteFinanceProduct.financeProduct.productAttribute
