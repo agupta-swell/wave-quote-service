@@ -43,3 +43,5 @@ import './solar-disclosures-esa';
 import './solar-energy-disclosure-esa';
 import './solar-energy-system-disclosure-document-hic';
 import './terms-and-conditions-hic';
+import './solar-disclosures-esa';
+import './home-energy-storage-agreement-esa';
