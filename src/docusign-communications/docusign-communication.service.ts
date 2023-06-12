@@ -216,49 +216,6 @@ export class DocusignCommunicationService {
     return compositeTemplateDataPayload;
   }
 
-  async callBackFromDocusign(payloadFromDocusign: IDocusignPayload): Promise<boolean> {
-    const foundDocusignCommunication = await this.docusignCommunicationModel.findOne({
-      envelopId: payloadFromDocusign.EnvelopeID[0],
-    });
-
-    const docusignCommunication = {
-      dateTime: new Date(),
-      contractId: foundDocusignCommunication?.contractId,
-      envelopId: payloadFromDocusign.EnvelopeID[0],
-      requestType: REQUEST_TYPE.INBOUND,
-    };
-
-    const model = new this.docusignCommunicationModel(docusignCommunication);
-    model.save();
-
-    const contractSignerDetails = {} as IContractSignerDetails;
-    contractSignerDetails.contractSystemReferenceId = payloadFromDocusign.EnvelopeID[0];
-    contractSignerDetails.contractingSystem = 'DOCUSIGN';
-    if (payloadFromDocusign.Status[0] === 'Completed') {
-      contractSignerDetails.overallContractStatus = 'COMPLETED';
-    }
-
-    const statusesData = payloadFromDocusign.RecipientStatuses.map(recipientStatus => {
-      const signerDetail = {} as ISignerDetailFromContractingSystemData;
-      signerDetail.emailId = recipientStatus.Email[0];
-      if (recipientStatus.Status[0] === 'Sent') {
-        signerDetail.status = CONTRACTING_SYSTEM_STATUS.SENT;
-        signerDetail.date = recipientStatus.Sent[0];
-      }
-      if (recipientStatus.Status[0] === 'Completed') {
-        signerDetail.status = CONTRACTING_SYSTEM_STATUS.SIGNED;
-        signerDetail.date = recipientStatus.Signed[0];
-      }
-
-      return signerDetail;
-    });
-
-    contractSignerDetails.statusesData = statusesData;
-
-    await this.contractService.updateContractByDocusign(contractSignerDetails);
-    return true;
-  }
-
   // ========================= INTERNAL =========================
 
   async getCommunicationsByContractId(contractId: string): Promise<LeanDocument<DocusignCommunication>[]> {
