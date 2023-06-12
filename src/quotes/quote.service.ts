@@ -2,7 +2,6 @@
 /* eslint-disable no-return-assign */
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import BigNumber from 'bignumber.js';
 import { isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -60,12 +59,12 @@ import {
   UpdateLatestQuoteDto,
   UpdateQuoteDto,
 } from './req';
+import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
 import { QuoteDto } from './res';
 import { QuoteCostBuildupUserInputDto } from './res/sub-dto';
-import { I_T_C, ITC } from './schemas';
+import { ITC, I_T_C } from './schemas';
 import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
 import { ICreateProductAttribute } from './typing';
-import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
 
 @Injectable()
 export class QuoteService {
@@ -122,7 +121,7 @@ export class QuoteService {
     }
 
     const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
-    
+
     if (!systemProduction) {
       throw ApplicationException.EntityNotFound('System Production');
     }
@@ -236,7 +235,7 @@ export class QuoteService {
           productAttribute,
           financialProductSnapshot: financialProduct,
         },
-        netAmount: 0,
+        netAmount: quoteCostBuildup.projectGrandTotal.netCost,
         incentiveDetails: [],
         rebateDetails: await this.createRebateDetails(rebateProgram, fundingSource.rebateAssignment),
         projectDiscountDetails: [],
@@ -465,7 +464,7 @@ export class QuoteService {
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
-    const financeProductAttribute = financeProduct.productAttribute as unknown as IEsaProductAttributes;
+    const financeProductAttribute = (financeProduct.productAttribute as unknown) as IEsaProductAttributes;
 
     let productAttribute = await this.createProductAttribute({
       productType: financeProduct.productType,
@@ -632,7 +631,7 @@ export class QuoteService {
     let template: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes | IEsaProductAttributes;
 
     const { defaultDownPayment, interestRate, terms, termMonths } = financialProductSnapshot;
-    
+
     switch (productType) {
       case FINANCE_PRODUCT_TYPE.LOAN:
         template = {
@@ -688,8 +687,8 @@ export class QuoteService {
           newAverageMonthlyBill,
           currentPricePerKWh,
           newPricePerKWh,
-          esaTerm: esaTerm, 
-          rateEscalator: rateEscalator,
+          esaTerm,
+          rateEscalator,
           grossFinancePayment: this.calculationService.calculateGrossFinancePayment(
             rateEscalator,
             esaTerm,
@@ -842,7 +841,7 @@ export class QuoteService {
       newAverageMonthlyBill,
       capacityKW: systemProduction.data?.capacityKW || 0,
       esaTerm: product_attribute.esaTerm,
-      rateEscalator: product_attribute.rateEscalator
+      rateEscalator: product_attribute.rateEscalator,
     });
 
     switch (financeProduct.productType) {
@@ -929,7 +928,7 @@ export class QuoteService {
           productAttribute,
           financialProductSnapshot: financeProduct.financialProductSnapshot,
         },
-        netAmount: quoteCostBuildup.projectGrossTotal.netCost,
+        netAmount: quoteCostBuildup.projectGrandTotal.netCost,
         incentiveDetails: handledIncentiveDetails,
         rebateDetails,
         projectDiscountDetails:
@@ -1110,7 +1109,7 @@ export class QuoteService {
     }
 
     const systemProduction = await this.systemProductionService.findById(systemDesign.systemProductionId);
-    
+
     if (!systemProduction) {
       throw ApplicationException.EntityNotFound('System Production');
     }
@@ -1213,16 +1212,12 @@ export class QuoteService {
       case FINANCE_PRODUCT_TYPE.ESA: {
         const productAttribute = detailedQuote.quoteFinanceProduct.financeProduct
           .productAttribute as EsaProductAttributesDto;
-        const {
-          rateEscalator,
-          esaTerm,
-          balance
-        } = productAttribute;
+        const { rateEscalator, esaTerm, balance } = productAttribute;
         productAttribute.grossFinancePayment = this.calculationService.calculateGrossFinancePayment(
           rateEscalator,
           esaTerm,
           systemProduction.data?.capacityKW || 0,
-          balance
+          balance,
         );
         break;
       }
@@ -1500,13 +1495,9 @@ export class QuoteService {
     quoteCostBuildup: IQuoteCostBuildup,
     projectGrossPrice?: number,
   ): QuoteFinanceProductDto {
-    const grossPrice = projectGrossPrice ?? quoteCostBuildup.projectGrossTotal.netCost;
-
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
 
-    newQuoteFinanceProduct.netAmount = new BigNumber(grossPrice)
-      .minus(quoteCostBuildup.totalPromotionsDiscountsAndSwellGridrewards.total)
-      .toNumber();
+    newQuoteFinanceProduct.netAmount = projectGrossPrice ?? quoteCostBuildup.projectGrandTotal.netCost;
     newQuoteFinanceProduct.financeProduct.productAttribute = this.handleUpdateProductAttribute(newQuoteFinanceProduct);
 
     return newQuoteFinanceProduct;
@@ -1713,7 +1704,6 @@ export class QuoteService {
   async getDealerFeePercentage(type: string, dealerFee: number) {
     switch (type) {
       case FINANCE_PRODUCT_TYPE.CASH:
-        return this.financialProductService.getLowestDealerFee(FINANCE_PRODUCT_TYPE.LOAN);
       case FINANCE_PRODUCT_TYPE.ESA:
         return this.financialProductService.getLowestDealerFee(FINANCE_PRODUCT_TYPE.LOAN);
       case FINANCE_PRODUCT_TYPE.LOAN:
