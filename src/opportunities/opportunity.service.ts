@@ -93,6 +93,7 @@ export class OpportunityService {
       alternateTitleDocumentationAddress: foundOpportunity.alternateTitleDocumentationAddress,
       applicantNameMatchesTitle: foundOpportunity.applicantNameMatchesTitle,
       coapplicantNameMatchesTitle: foundOpportunity.coapplicantNameMatchesTitle,
+      propertyId: foundOpportunity.propertyId,
     };
 
     return OperationResult.ok(strictPlainToClass(GetRelatedInformationDto, data));
@@ -270,9 +271,9 @@ export class OpportunityService {
     }
     return {
       zipCode: Number(contact.zip),
-      addressString: contact.address1,
-      lat: contact.lat,
-      lng: contact.lng,
+      addressString: contact.address1 || '',
+      lat: contact?.lat || 0,
+      lng: contact?.lng || 0,
       buildingType: 'singleFamilyDetached',
       excludeMeasures: false,
     };

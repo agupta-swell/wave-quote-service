@@ -18,7 +18,7 @@ import { QuoteDetailResDto } from './res/quote-detail.dto';
 @Controller('/opportunities')
 @PreAuthenticate()
 export class OpportunityController {
-  constructor(private readonly opportunityService: OpportunityService) { }
+  constructor(private readonly opportunityService: OpportunityService) {}
 
   @Get(':opportunityId')
   @ApiOperation({ summary: 'Get Related Information For Opportunity' })
@@ -65,7 +65,6 @@ export class OpportunityController {
 
     return ServiceResponse.fromResult(res);
   }
-
 
   @Put('/:opportunityId/title-name-match')
   @ApiOperation({ summary: "Update Opportunity's Title Name Match" })

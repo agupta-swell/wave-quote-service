@@ -9,7 +9,7 @@ import { UpdateGeoLocation } from './req/update-leo-location.req';
 @ApiBearerAuth()
 @Controller('/contacts')
 @PreAuthenticate()
-export class ContractController {
+export class ContactController {
   constructor(private readonly contactService: ContactService) {}
 
   @Put('/geo-location')

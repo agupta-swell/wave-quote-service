@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
+import { PropertyService } from 'src/property/property.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
@@ -51,6 +52,7 @@ export class QualificationService {
     private readonly jwtService: JwtService,
     private readonly opportunityService: OpportunityService,
     private readonly contactService: ContactService,
+    private readonly propertyService: PropertyService,
     private readonly emailService: EmailService,
     private readonly fniEngineService: FniEngineService,
   ) {}
@@ -182,16 +184,28 @@ export class QualificationService {
     id: ObjectId,
     applicantConsentDto: SetApplicantConsentReqDto,
   ): Promise<OperationResult<ApplicantConsentDto>> {
-    const { applicantConsent } = applicantConsentDto;
+    const { applicantConsent, opportunityId } = applicantConsentDto;
+
+    const now = new Date();
+
     if (process.env.NODE_ENV === 'production') {
       throw ApplicationException.NoPermission();
     }
 
-    const now = new Date();
-    const qualificationCredit = await this.qualificationCreditModel.findById(id);
+    const [foundOpportunity, qualificationCredit] = await Promise.all([
+      this.opportunityService.getDetailById(opportunityId),
+      this.qualificationCreditModel.findById(id),
+    ]);
+
+    if (!foundOpportunity) {
+      throw ApplicationException.EntityNotFound(opportunityId);
+    }
+
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound(id.toString());
     }
+
+    const oldPropertyHomeowners = await this.propertyService.findHomeownersById(foundOpportunity.propertyId);
 
     const qualificationCategory =
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
@@ -219,6 +233,12 @@ export class QualificationService {
       case CONSENT_STATUS.HAS_CO_APPLICANT:
         qualificationCredit.hasCoApplicant = applicantConsent.option;
         if (applicantConsent.option) {
+          if (applicantConsent.coApplicantContact && oldPropertyHomeowners?.length === 1) {
+            await this.contactService.addNewContact({
+              propertyId: foundOpportunity.propertyId,
+              data: applicantConsent.coApplicantContact,
+            });
+          }
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
@@ -262,11 +282,15 @@ export class QualificationService {
     qualificationCredit.milestone = milestone;
     qualificationCredit.processStatus = processStatus;
 
-    await qualificationCredit.save();
+    const [_, newPropertyHomeowners] = await Promise.all([
+      qualificationCredit.save(),
+      this.propertyService.findHomeownersById(foundOpportunity.propertyId),
+    ]);
 
     return OperationResult.ok(
       strictPlainToClass(ApplicantConsentDto, {
         qualificationCredit: qualificationCredit.toJSON(),
+        propertyHomeowners: newPropertyHomeowners,
       }),
     );
   }
@@ -651,6 +675,6 @@ export class QualificationService {
     const counter = await this.qualificationCreditModel.countDocuments({ opportunityId });
     return counter;
   }
-  
+
   // ===================== INTERNAL =====================
 }

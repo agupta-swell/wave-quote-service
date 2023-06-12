@@ -1,4 +1,6 @@
+import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
+import { PropertyHomeowners } from 'src/property/property.schema';
 import { ExposeProp } from 'src/shared/decorators';
 import { FINANCE_TYPE_EXISTING_SOLAR, INVERTER_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 
@@ -125,6 +127,9 @@ export class GetRelatedInformationDto {
 
   @ExposeProp()
   coapplicantNameMatchesTitle: boolean;
+
+  @ExposeProp()
+  propertyId: string;
 }
 
 export class GetRelatedInformationRes implements ServiceResponse<GetRelatedInformationDto> {

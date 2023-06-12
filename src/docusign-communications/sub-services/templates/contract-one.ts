@@ -87,16 +87,16 @@ export class ContractOneTemplate {
       obj['Text Opp Owner HIS - 1'] = recordOwner.hisNumber ?? '';
       obj['Text Opp Owner Phone - 1'] = recordOwner?.profile?.cellPhone ? recordOwner?.profile?.cellPhone : '';
       obj['Text Opp State - 1'] = contact.state;
-      obj['Text Opp Street 1 - 1'] = contact.address1;
-      obj['Text Opp Street 1 - 7'] = contact.address1;
-      obj['Text Opp Street 2 - 1'] = contact.address2;
-      obj['Text Opp Street 2 - 7'] = contact.address2;
-      obj['Text Opp Zip - 1'] = contact.zip;
+      obj['Text Opp Street 1 - 1'] = contact.address1 || '';
+      obj['Text Opp Street 1 - 7'] = contact.address1 || '';
+      obj['Text Opp Street 2 - 1'] = contact.address2 || '';
+      obj['Text Opp Street 2 - 7'] = contact.address2 || '';
+      obj['Text Opp Zip - 1'] = contact.zip || '';
       obj['Text Owner Name 1 - 1'] = contact.firstName;
       obj['Text Owner Name 1 - 7'] = contact.firstName;
       obj['Text Owner Name 2 - 1'] = contact.lastName;
       obj['Text Owner Name 2 - 7'] = contact.lastName;
-      obj['Text Phone - 1'] = contact.cellPhone;
+      obj['Text Phone - 1'] = contact.cellPhone || '';
       obj['Text Prg Incentives - 1'] = accounting.formatMoney(customerPayment.programIncentiveDiscount);
       obj['Text Utility Program - 1'] = utilityName;
       obj['Text Adders - 1'] = roofTopDesign.adders.reduce((acc, item, index) => {

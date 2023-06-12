@@ -42,9 +42,9 @@ export class GridServiceAgreementTemplate {
   @TabLabel('Home_Address_1&2_City_State_ZIP')
   @TabValue<IGenericObject>(
     ({ contact }) =>
-      `${contact.address1}${contact.address2 ? `, ${contact.address2}` : ''}, ${contact.city}, ${contact.state} ${
-        contact.zip
-      }`,
+      `${contact.address1 || ''}${contact.address2 ? `, ${contact.address2}` : ''}, ${contact.city || ''}, ${
+        contact.state || ''
+      } ${contact.zip || ''}`,
   )
   equipmentAddress: string;
 }

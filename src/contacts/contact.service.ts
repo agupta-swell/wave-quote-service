@@ -4,14 +4,19 @@ import { LeanDocument, Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
-import { Contact, CONTACT } from './contact.schema';
+import { PropertyService } from 'src/property/property.service';
+import { CONTACT, Contact } from './contact.schema';
+import { AddNewContactReqDto } from './req/add-new-contact.req';
 import { UpdateGeoLocation } from './req/update-leo-location.req';
+import { COUNTER, Counter } from './sub-schemas/counter.schema';
 
 @Injectable()
 export class ContactService {
   constructor(
     @InjectModel(CONTACT) private readonly contactModel: Model<Contact>,
+    @InjectModel(COUNTER) private readonly countersModel: Model<Counter>,
     private readonly opportunityService: OpportunityService,
+    private readonly propertyService: PropertyService,
   ) {}
 
   async saveGeolocation(req: UpdateGeoLocation): Promise<OperationResult<string>> {
@@ -32,6 +37,24 @@ export class ContactService {
     await foundContact.save();
 
     return OperationResult.ok('Updated Successfully');
+  }
+
+  async addNewContact(addNewContactData: AddNewContactReqDto) {
+    const { data, propertyId } = addNewContactData;
+
+    const contactCounter = await this.countersModel.findOneAndUpdate(
+      { _id: 'contactCounter' },
+      { $inc: { nextVal: 1 } },
+      { returnDocument: 'after', upsert: true },
+    );
+
+    const newContactModel = new this.contactModel({ ...data, contactId: contactCounter?.nextVal || 1 });
+    const newContact = await newContactModel.save();
+
+    await this.propertyService.addNewHomeowner({
+      propertyId,
+      newContactId: newContact.id,
+    });
   }
 
   // =====================> INTERNAL <=====================

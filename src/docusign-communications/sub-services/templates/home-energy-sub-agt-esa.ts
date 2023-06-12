@@ -23,16 +23,16 @@ export class HomeEnergySubAgtESATemplate {
 
     result['FIRST_1 MI_1 LAST_1'] = `${contact.firstName} ${contact.lastName}`;
     result['FIRST_2 MI_2 LAST_2'] = coOwner ? `${coOwner.fullName}` : '';
-    result.HOME_ADDRESS_1 = contact.address1;
-    result.HOME_ADDRESS_2 = contact.address2;
+    result.HOME_ADDRESS_1 = contact.address1 || '';
+    result.HOME_ADDRESS_2 = contact?.address2 || '';
     result['CITY, STATE'] = `${contact.city}, ${contact.state}`;
-    result.ZIP = contact.zip;
+    result.ZIP = contact.zip || '';
     result.EMAIL_1 = contact.email;
     result.EMAIL_2 = coOwner?.email || '';
 
     // Temporarily ignore applicant phone for 2
-    result['TEL_1'] = contact.primaryPhone === 'HomePhone' ? contact.businessPhone! : contact.cellPhone;
-    result['TEL_2'] = coOwner?.phoneNumber || '';
+    result.TEL_1 = contact.primaryPhone === 'HomePhone' ? contact.businessPhone || '' : contact.cellPhone || '';
+    result.TEL_2 = coOwner?.phoneNumber || '';
 
     result.GRID_PROG = quote.utilityProgram?.utilityProgramName ?? 'none';
     result.ES_QUANTITY = quote.quoteCostBuildup.storageQuoteDetails
@@ -66,20 +66,20 @@ export class HomeEnergySubAgtESATemplate {
       .join(', ');
 
     // Current solar energy system?
-    result['ExistingSolar_Yes'] = opportunity.existingPV ? '1' : '';
-    result['ExistingSolar_No'] = !opportunity.existingPV ? '1' : '';
+    result.ExistingSolar_Yes = opportunity.existingPV ? '1' : '';
+    result.ExistingSolar_No = !opportunity.existingPV ? '1' : '';
 
     // Owned by Third Party?
-    result['CustomerOwned'] = opportunity.financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO ? '1' : '';
-    result['ThirdPartyOwned'] = opportunity.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO ? '1' : '';
+    result.CustomerOwned = opportunity.financeType !== FINANCE_TYPE_EXISTING_SOLAR.TPO ? '1' : '';
+    result.ThirdPartyOwned = opportunity.financeType === FINANCE_TYPE_EXISTING_SOLAR.TPO ? '1' : '';
 
     // Appointed another response party?
-    result['DemandResponse_Yes'] = opportunity.hasHadOtherDemandResponseProvider ? '1' : '';
-    result['DemandResponse_No'] = !opportunity.hasHadOtherDemandResponseProvider ? '1' : '';
+    result.DemandResponse_Yes = opportunity.hasHadOtherDemandResponseProvider ? '1' : '';
+    result.DemandResponse_No = !opportunity.hasHadOtherDemandResponseProvider ? '1' : '';
 
     // Granted rights to other party?
-    result['GrantedRights_Yes'] = opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
-    result['GrantedRights_No'] = !opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
+    result.GrantedRights_Yes = opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
+    result.GrantedRights_No = !opportunity.hasGrantedHomeBatterySystemRights ? '1' : '';
 
     const leaseProductAttribute = quote.quoteFinanceProduct.financeProduct.productAttribute as ILeaseProductAttributes;
 

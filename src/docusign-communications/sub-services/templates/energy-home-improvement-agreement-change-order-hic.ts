@@ -32,9 +32,9 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
 
   @TabValue<IGenericObject>(
     ({ contact }) =>
-      `${contact.address1}${contact.address2 ? `, ${contact.address2}` : ''}, ${contact.city}, ${contact.state} ${
-        contact.zip
-      }`,
+      `${contact.address1 || ''}${contact.address2 ? `, ${contact.address2}` : ''}, ${contact.city || ''}, ${
+        contact.state || ''
+      } ${contact.zip || ''}`,
   )
   homeAddress: string;
 
