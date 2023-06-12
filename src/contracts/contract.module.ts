@@ -14,6 +14,7 @@ import { USER, UserSchema } from 'src/users/user.schema';
 import { ContractController } from './contract.controller';
 import { CONTRACT, ContractSchema } from './contract.schema';
 import { ContractService } from './contract.service';
+import { ProjectModule } from 'src/projects/project.module';
 
 @Global()
 @Module({
@@ -37,6 +38,7 @@ import { ContractService } from './contract.service';
     GenabilityUtilityMapModule,
     SystemAttributeModule,
     SystemProductionModule,
+    ProjectModule,
   ],
   controllers: [ContractController],
   providers: [ContractService],
