@@ -236,7 +236,7 @@ export class QuoteService {
           productAttribute,
           financialProductSnapshot: financialProduct,
         },
-        netAmount: 0,
+        netAmount: quoteCostBuildup.projectGrandTotal.netCost,
         incentiveDetails: [],
         rebateDetails: await this.createRebateDetails(rebateProgram, fundingSource.rebateAssignment),
         projectDiscountDetails: [],
@@ -688,8 +688,8 @@ export class QuoteService {
           newAverageMonthlyBill,
           currentPricePerKWh,
           newPricePerKWh,
-          esaTerm: esaTerm,
-          rateEscalator: rateEscalator,
+          esaTerm,
+          rateEscalator,
           grossFinancePayment: this.calculationService.calculateGrossFinancePayment(
             rateEscalator,
             esaTerm,
@@ -929,7 +929,7 @@ export class QuoteService {
           productAttribute,
           financialProductSnapshot: financeProduct.financialProductSnapshot,
         },
-        netAmount: quoteCostBuildup.projectGrossTotal.netCost,
+        netAmount: quoteCostBuildup.projectGrandTotal.netCost,
         incentiveDetails: handledIncentiveDetails,
         rebateDetails,
         projectDiscountDetails:
@@ -1496,13 +1496,9 @@ export class QuoteService {
     quoteCostBuildup: IQuoteCostBuildup,
     projectGrossPrice?: number,
   ): QuoteFinanceProductDto {
-    const grossPrice = projectGrossPrice ?? quoteCostBuildup.projectGrossTotal.netCost;
-
     const newQuoteFinanceProduct = { ...quoteFinanceProduct };
 
-    newQuoteFinanceProduct.netAmount = new BigNumber(grossPrice)
-      .minus(quoteCostBuildup.totalPromotionsDiscountsAndSwellGridrewards.total)
-      .toNumber();
+    newQuoteFinanceProduct.netAmount = projectGrossPrice ?? quoteCostBuildup.projectGrandTotal.netCost;
     newQuoteFinanceProduct.financeProduct.productAttribute = this.handleUpdateProductAttribute(newQuoteFinanceProduct);
 
     return newQuoteFinanceProduct;
@@ -1708,9 +1704,8 @@ export class QuoteService {
 
   async getDealerFeePercentage(type: string, dealerFee: number) {
     switch (type) {
-      case FINANCE_PRODUCT_TYPE.CASH:
-        return this.financialProductService.getLowestDealerFee(FINANCE_PRODUCT_TYPE.LOAN);
-      case FINANCE_PRODUCT_TYPE.ESA:
+        case FINANCE_PRODUCT_TYPE.CASH:
+        case FINANCE_PRODUCT_TYPE.ESA:
         return this.financialProductService.getLowestDealerFee(FINANCE_PRODUCT_TYPE.LOAN);
       case FINANCE_PRODUCT_TYPE.LOAN:
         return dealerFee;
