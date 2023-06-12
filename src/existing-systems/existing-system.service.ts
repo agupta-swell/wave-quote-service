@@ -219,11 +219,11 @@ export class ExistingSystemService implements OnModuleInit {
     await Promise.all(
       uniqueExistingArraysByPVSize.map(({ existingPVSize, existingPVAzimuth, existingPVPitch }) =>
         this.systemProductService.calculatePVProduction({
-          latitude: lat,
-          longitude: lng,
+          latitude: lat || 0,
+          longitude: lng || 0,
           systemCapacityInkWh: existingPVSize,
           azimuth: existingPVAzimuth ?? 180,
-          pitch: existingPVPitch ?? lat,
+          pitch: existingPVPitch ?? (lat || 0),
           losses: 14,
         }),
       ),

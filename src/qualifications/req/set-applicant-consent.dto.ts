@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, ValidateNested, IsEnum } from 'class-validator';
+import { IsBoolean, ValidateNested, IsEnum, IsOptional } from 'class-validator';
+import { ContactReqDto } from 'src/contacts/req/contact.req';
 import { CONSENT_STATUS } from '../constants';
 
 class ApplicantConsentDetailDto {
@@ -11,6 +12,10 @@ class ApplicantConsentDetailDto {
   @ApiProperty()
   @IsEnum(CONSENT_STATUS)
   type: string;
+
+  @ApiProperty()
+  @IsOptional()
+  coApplicantContact?: ContactReqDto;
 }
 
 export class SetApplicantConsentReqDto {

@@ -2,9 +2,11 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
-import { ContractController } from './contact.controller';
+import { PropertyModule } from 'src/property/property.module';
+import { ContactController } from './contact.controller';
 import { CONTACT, ContactSchema } from './contact.schema';
 import { ContactService } from './contact.service';
+import { COUNTER, CounterSchema } from './sub-schemas/counter.schema';
 
 @Global()
 @Module({
@@ -18,9 +20,15 @@ import { ContactService } from './contact.service';
         schema: ContactSchema,
         collection: 'contacts',
       },
+      {
+        name: COUNTER,
+        schema: CounterSchema,
+        collection: 'counters',
+      },
     ]),
+    PropertyModule,
   ],
-  controllers: [ContractController],
+  controllers: [ContactController],
   providers: [ContactService],
   exports: [ContactService],
 })

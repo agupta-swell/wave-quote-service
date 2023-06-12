@@ -41,6 +41,7 @@ export const ElectronicPaymentSettingsSchema = new Schema<ElectronicPaymentSetti
 
 export interface Opportunity extends Document, Partial<UpdateOpportunityTitleNameMatchType> {
   name: string;
+  propertyId: string;
   contactId: string;
   utilityId: string;
   utilityProgramId: string;
@@ -84,6 +85,7 @@ export interface Opportunity extends Document, Partial<UpdateOpportunityTitleNam
 
 export const OpportunitySchema = new Schema<Opportunity>({
   _id: Schema.Types.Mixed,
+  propertyId: String,
   contactId: String,
   utilityId: String,
   utilityProgramId: String,

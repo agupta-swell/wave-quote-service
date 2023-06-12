@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
+import { PropertyModule } from 'src/property/property.module';
 import { QualificationController } from './qualification.controller';
 import { QualificationCreditSchema, QUALIFICATION_CREDIT } from './qualification.schema';
 import { QualificationService } from './qualification.service';
@@ -24,6 +25,7 @@ import { FniEngineService } from './sub-services/fni-engine.service';
         collection: 'v2_fni_communications',
       },
     ]),
+    PropertyModule,
   ],
   controllers: [QualificationController, SightenController],
   providers: [QualificationService, FniEngineService, FniCallbackService],
