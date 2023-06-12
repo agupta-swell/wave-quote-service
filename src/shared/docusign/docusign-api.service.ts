@@ -8,6 +8,7 @@ import { IDocusignCompositeContract } from 'src/docusign-communications/typing';
 import { ApplicationException } from 'src/app/app.exception';
 import { randomBytes } from 'crypto';
 import { EnvelopeSummary } from 'docusign-esign';
+import { cloneDeep } from 'lodash';
 import { DocusignIntegrationService } from 'src/docusign-integration/docusign-integration.service';
 import { DocusignIntegrationDocument } from 'src/docusign-integration/docusign-integration.schema';
 import { JWT_EXPIRES_IN, SCOPES } from 'src/docusign-integration/constants';
@@ -413,6 +414,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
       // eslint-disable-next-line no-await-in-loop
       const docusignTabs = await this.getDocumentTabs(envelopeId, `${docId}`);
 
+      if (docusignTabs?.prefillTabs?.textTabs) {
+        const textTabs = cloneDeep(docusignTabs?.prefillTabs?.textTabs);
+        docusignTabs.prefillTabs.textTabs = textTabs.sort((a, b) => a.tabLabel!.localeCompare(b.tabLabel!));
+      }
+
       const foundTemplate = docusignMetaStorage.find(e => e.ids.includes(templateId));
       if (!foundTemplate) {
         throw new DocusignException(undefined, `No template found with id ${templateIds[idx]}`);
@@ -481,7 +487,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
             reject(
               new DocusignException(
                 undefined,
-                `Can not get document tabs fro envelopeId ${envelopeId}, docId ${docId}`,
+                `Can not get document tabs from envelopeId ${envelopeId}, docId ${docId}`,
               ),
             );
             res.destroy();

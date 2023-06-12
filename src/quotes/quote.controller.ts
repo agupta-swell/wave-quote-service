@@ -4,6 +4,7 @@ import { ObjectId } from 'mongoose';
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { PreAuthenticate } from 'src/app/securities';
+import { STATUS_QUERY } from 'src/contracts/constants';
 import { UseAsyncContext } from 'src/shared/async-context/decorators';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { UseSaveQuoteIdToReq } from './interceptors';
@@ -14,8 +15,8 @@ import {
   CreateQuoteDto,
   LeaseQuoteValidationDto,
   ReQuoteDto,
-  UpdateQuoteDto,
   UpdateLatestQuoteDto,
+  UpdateQuoteDto,
 } from './req';
 import { QuoteDto, QuoteListRes, QuoteRes } from './res';
 
@@ -50,18 +51,21 @@ export class QuoteController {
   @ApiQuery({ name: 'opportunityId', required: false })
   @ApiQuery({ name: 'systemDesignId', required: false })
   @ApiQuery({ name: 'isSync', required: false })
+  @ApiQuery({ name: 'status', required: false })
   async getListQuotes(
     @Query('limit') limit: string,
     @Query('skip') skip: string,
     @Query('isSync') isSync: string,
     @Query('systemDesignId') systemDesignId: string,
     @Query('opportunityId') opportunityId: string,
+    @Query('status') status: STATUS_QUERY,
   ): Promise<ServiceResponse<Pagination<QuoteDto>>> {
     const res = await this.quoteService.getAllQuotes(
       Number(limit || 100),
       Number(skip || 0),
       systemDesignId,
       opportunityId,
+      status || STATUS_QUERY.ACTIVE,
       isSync,
     );
     return ServiceResponse.fromResult(res);

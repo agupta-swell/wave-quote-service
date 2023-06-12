@@ -264,8 +264,9 @@ export class ECommerceService {
       (typicalBaselineInst?.typicalBaselineUsage?.typicalHourlyUsage || []).map(i => i.v),
       utilityTariffDataInst?.tariffDetails[0].masterTariffId || '',
       CALCULATION_MODE.TYPICAL,
-      new Date().getFullYear(),
       addressDataDetail.zip,
+      undefined,
+      new Date().getFullYear(),
     );
 
     costDataInst.masterTariffId = utilityTariffDataInst?.tariffDetails[0].masterTariffId || '';
@@ -278,10 +279,7 @@ export class ECommerceService {
     //   (monthlyUtilityBill - (utilityTypicalCostDataInst.cost?.find(item => item.i === monthToAdjust)?.v || 0)) /
     //   monthlyUtilityBill;
 
-    const typicalAnnualCost = utilityTypicalCostDataInst.cost?.reduce((acc, item) => {
-      acc += item.v;
-      return acc;
-    }, 0);
+    const typicalAnnualCost = utilityTypicalCostDataInst.annualCost;
 
     const typicalAnnualUsageInKwh = typicalBaselineInst?.typicalBaselineUsage.typicalMonthlyUsage.reduce(
       (acc, item) => {

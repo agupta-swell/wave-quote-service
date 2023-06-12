@@ -1,28 +1,24 @@
 /* eslint-disable no-return-assign */
 import { Injectable } from '@nestjs/common';
 import { BigNumber } from 'bignumber.js';
-import { LeanDocument } from 'mongoose';
 import { IDiscount } from 'src/discounts/interfaces';
-import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { IPromotion } from 'src/promotions/interfaces';
 import { roundNumber } from 'src/utils/transformNumber';
-import { FINANCE_PRODUCT_TYPE } from '../constants';
 import {
+  IBaseQuoteCost,
+  IBaseQuoteMarginData,
   ICalculateCostResult,
+  ICreateQuoteCostBuildUpArg,
+  ICreateQuoteCostBuildupParams,
   IQuoteCost,
   IQuoteCostBuildup,
-  ICreateQuoteCostBuildUpArg,
-  IBaseQuoteMarginData,
-  ICreateQuoteCostBuildupParams,
-  IBaseQuoteCost,
   ISalesTaxData,
   SALES_ORIGINATION_SALES_FEE_INPUT_TYPE,
 } from '../interfaces';
 import {
   IAdditionalFees,
   IBaseCostBuildupFee,
-  ICashDiscount,
   ISalesOriginationSalesFee,
 } from '../interfaces/quote-cost-buildup/ICostBuildupFee';
 import { ITotalPromotionsDiscountsAndSwellGridrewards } from '../interfaces/quote-cost-buildup/ITotalPromotionsDiscountsGridrewards';
@@ -396,64 +392,17 @@ export class QuoteCostBuildUpService {
     };
   }
 
-  public calculateCashDiscount(
-    thirdPartyFinancingDealerFee: IBaseCostBuildupFee,
-    subtotalWithSalesOriginationManagerFee: number,
-    salesOriginationSalesFee: ISalesOriginationSalesFee,
-    financialProduct: LeanDocument<FinancialProduct>,
-    fundingSourceType: FINANCE_PRODUCT_TYPE,
-  ): ICashDiscount {
-    if (fundingSourceType !== FINANCE_PRODUCT_TYPE.CASH) {
-      return {
-        name: '',
-        unitPercentage: 0,
-        total: 0,
-        cogsAllocation: 100,
-        marginAllocation: 0,
-        cogsAmount: 0,
-        marginAmount: 0,
-      };
-    }
-
-    const processingFee = new BigNumber(financialProduct.processingFee || 0).dividedBy(100);
-
-    // https://swellenergy.atlassian.net/browse/WAV-1152
-    const total = new BigNumber(thirdPartyFinancingDealerFee.total).minus(
-      new BigNumber(subtotalWithSalesOriginationManagerFee)
-        .plus(salesOriginationSalesFee.total)
-        .multipliedBy(processingFee),
-    );
-
-    const amount = roundNumber(total.toNumber(), 2);
-
-    return {
-      name: `${financialProduct.name} Discount (${financialProduct.processingFee || 0}% effective fee)`,
-      unitPercentage: financialProduct.processingFee || 0,
-      total: amount,
-      cogsAllocation: 100,
-      marginAllocation: 0,
-      cogsAmount: amount,
-      marginAmount: 0,
-    };
-  }
-
   private calculateAddidionalFees(
     salesOriginationSalesFee: IBaseCostBuildupFee,
     thirdPartyFinancingDealerFee: IBaseCostBuildupFee,
-    cashDiscount: IBaseCostBuildupFee,
   ): IAdditionalFees {
     return {
-      total: new BigNumber(salesOriginationSalesFee.total)
-        .plus(thirdPartyFinancingDealerFee.total)
-        .minus(cashDiscount.total)
-        .toNumber(),
+      total: new BigNumber(salesOriginationSalesFee.total).plus(thirdPartyFinancingDealerFee.total).toNumber(),
       cogsAmount: new BigNumber(salesOriginationSalesFee.cogsAmount)
         .plus(thirdPartyFinancingDealerFee.cogsAmount)
-        .minus(cashDiscount.cogsAmount)
         .toNumber(),
       marginAmount: new BigNumber(salesOriginationSalesFee.cogsAmount)
         .plus(thirdPartyFinancingDealerFee.cogsAmount)
-        .minus(cashDiscount.cogsAmount)
         .toNumber(),
     };
   }
@@ -550,8 +499,6 @@ export class QuoteCostBuildUpService {
     partnerMarkup,
     userInputs,
     dealerFeePercentage = 0,
-    financialProduct,
-    fundingSourceType,
     discountsPromotionsAndIncentives = {},
   }: ICreateQuoteCostBuildupParams): IQuoteCostBuildup {
     const { discounts, promotions, incentives } = discountsPromotionsAndIncentives;
@@ -687,19 +634,7 @@ export class QuoteCostBuildUpService {
       dealerFeePercentage,
     );
 
-    const cashDiscount = this.calculateCashDiscount(
-      thirdPartyFinancingDealerFee,
-      subtotalWithSalesOriginationManagerFee.netCost,
-      salesOriginationSalesFee,
-      financialProduct,
-      fundingSourceType,
-    );
-
-    const additionalFees = this.calculateAddidionalFees(
-      salesOriginationSalesFee,
-      thirdPartyFinancingDealerFee,
-      cashDiscount,
-    );
+    const additionalFees = this.calculateAddidionalFees(salesOriginationSalesFee, thirdPartyFinancingDealerFee);
 
     const projectGrandTotal = this.calculateProjectGrandTotal(subtotalWithSalesOriginationManagerFee, additionalFees);
 
@@ -723,7 +658,7 @@ export class QuoteCostBuildUpService {
       subtotalWithSalesOriginationManagerFee,
       salesOriginationSalesFee,
       thirdPartyFinancingDealerFee,
-      cashDiscount,
+      cashDiscount: null,
       additionalFees,
       projectGrandTotal,
       taxableEquipmentSubtotal,

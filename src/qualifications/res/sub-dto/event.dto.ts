@@ -14,4 +14,8 @@ export class EventDto {
   @ExposeProp()
   @IsOptional()
   userId?: string;
+
+  @ExposeProp()
+  @IsOptional()
+  qualificationCategory?: string;
 }

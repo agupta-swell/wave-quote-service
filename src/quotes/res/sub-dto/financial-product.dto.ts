@@ -1,5 +1,5 @@
 import { ILoanTerms } from 'src/financial-products/financial-product.schema';
-import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { Default, ExposeMongoId, ExposeObjectId, ExposeProp } from 'src/shared/decorators';
 
 export class LoanTermsDto implements ILoanTerms {
   @ExposeProp()
@@ -15,6 +15,9 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   fundingSourceId: string;
+
+  @ExposeObjectId({ fieldName: 'financierId' })
+  financierId: string;
 
   @ExposeProp()
   isActive: boolean;

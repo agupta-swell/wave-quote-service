@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional } from 'class-validator';
 
 class CostDetailData {
   @ApiProperty()
@@ -25,7 +26,11 @@ class UtilityCostData {
   interval: string;
 
   @ApiProperty({ type: CostDetailData, isArray: true })
-  cost: CostDetailData[];
+  @IsOptional()
+  cost?: CostDetailData[];
+
+  @ApiProperty()
+  annualCost: number;
 }
 
 export class CostDataDto {
@@ -37,6 +42,9 @@ export class CostDataDto {
 
   @ApiProperty({ type: UtilityCostData })
   actualUsageCost: UtilityCostData;
+
+  @ApiProperty({ type: UtilityCostData })
+  computedCost: UtilityCostData | undefined;
 
   @ApiProperty()
   postInstallMasterTariffId: string;

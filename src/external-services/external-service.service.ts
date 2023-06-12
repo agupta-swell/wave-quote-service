@@ -10,10 +10,12 @@ import { GenabilityService } from './sub-services/genability.service';
 import {
   EGenabilityDetailLevel,
   EGenabilityGroupBy,
+  IAnnualBillData,
+  ICalculateAnnualBillPayload,
+  ICalculateCostPayload,
   ICalculateSystemProduction,
   IGenabilityCalculateUtilityCost,
   ILoadServingEntity,
-  INetNegativeAnnualUsage,
   IPvWattV6Responses,
   ITypicalBaseLine,
   ITypicalUsage,
@@ -171,6 +173,7 @@ export class ExternalService {
     billingPeriod,
     zipCode,
     startDate,
+    medicalBaselineAmount,
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const { fromDateTime, toDateTime } = getNextYearDateRange(startDate);
 
@@ -189,7 +192,7 @@ export class ExternalService {
     // but Genability expects positive (absolute) values
     const exportDataSeries = netDataSeries.map(kWh => (kWh < 0 ? Math.abs(kWh) : 0));
 
-    const payload = {
+    const payload: ICalculateCostPayload = {
       address: {
         country: 'USA',
         zip: zipCode,
@@ -212,6 +215,12 @@ export class ExternalService {
         },
       ],
     };
+    if (medicalBaselineAmount) {
+      payload.propertyInputs.push({
+        keyName: 'dailyMedicalAllowance',
+        dataValue: medicalBaselineAmount.toString(),
+      });
+    }
 
     return this.genabilityService.calculateCostData(payload);
   }
@@ -232,44 +241,35 @@ export class ExternalService {
     });
 
   /**
-   * Calculate net negative annual usage
+   * Calculate annual bill from Genability response
    */
-  async calculateNetNegativeAnnualUsage(
-    postInstall8760: number[],
-    masterTariffId: string,
-    zipCode: number,
-    startDate?: Date,
-  ): Promise<INetNegativeAnnualUsage> {
-    // Sum the 8760 kWh post-install data series
-    const netKwh = postInstall8760.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+  async calculateAnnualBill(data: ICalculateAnnualBillPayload): Promise<IAnnualBillData> {
+    const { hourlyDataForTheYear, masterTariffId, zipCode, medicalBaselineAmount, startDate } = data;
 
     // Call Genability
     const [result] = await this.calculateCost({
-      hourlyDataForTheYear: postInstall8760,
+      hourlyDataForTheYear,
       masterTariffId,
       groupBy: EGenabilityGroupBy.MONTH,
       detailLevel: EGenabilityDetailLevel.CHARGE_TYPE,
       billingPeriod: false,
       zipCode: zipCode.toString(),
       startDate,
+      medicalBaselineAmount,
     });
 
     const { fromDateTime, toDateTime } = result;
 
-    // Calculate
-    const nonBypassableCost = result.summary.nonBypassableCost || 0; // 3313655 - SCE - Domestic Prime TOU return nonBypassableCost
-    const fixedCosts = result.items
-      .filter(item => item.quantityKey === 'fixed')
-      .reduce((accumulator, currentValue) => accumulator + currentValue.cost, 0); // could be negative
+    // Calculate annual bill
+    const { adjustedTotalCost, kWh } = result.summary;
     const consumptionCosts = result.items
       .filter(item => item.quantityKey === 'consumption')
       .reduce((accumulator, currentValue) => accumulator + currentValue.cost, 0);
 
-    const annualPostInstallBill =
-      fixedCosts + nonBypassableCost + (consumptionCosts > 0 ? consumptionCosts : netKwh * 0.05);
+    const annualCost = consumptionCosts < 0 ? adjustedTotalCost - consumptionCosts + kWh * 0.05 : adjustedTotalCost;
 
     return {
-      annualPostInstallBill,
+      annualCost,
       fromDateTime,
       toDateTime,
     };

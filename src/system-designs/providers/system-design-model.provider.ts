@@ -61,7 +61,7 @@ export const createSystemDesignProvider = (
       next();
     });
 
-    patchedSolarPanelArraySchema.post('save', function (_, next) {
+    patchedSolarPanelArraySchema.post('save', async function (_, next) {
       const store: IQueueStore = get(this, ctxStoreSym);
 
       if (!store) {
@@ -119,7 +119,7 @@ export const createSystemDesignProvider = (
       }
 
       try {
-        systemDesignHook.dispatch(
+        await systemDesignHook.dispatch(
           store!,
           parentSystemDesign,
           previousSystemDesign,

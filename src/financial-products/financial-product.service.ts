@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { inRange } from 'lodash';
-import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
+import { FilterQuery, LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -73,8 +73,8 @@ export class FinancialProductsService {
     data: any,
   ): Promise<LeanDocument<FinancialProduct>[]> {
     return Promise.all(
-      financialProducts.map(async e => {
-        const foundFundingSource = fundingSources.find(fs => fs?._id.toString() === e.fundingSourceId)!;
+      financialProducts.map(async financialProduct => {
+        const foundFundingSource = fundingSources.find(fs => fs?._id.toString() === financialProduct.fundingSourceId)!;
         if (foundFundingSource?.type === 'lease') {
           const systemDesign: LeanDocument<SystemDesign> = data.systemDesign;
 
@@ -86,23 +86,23 @@ export class FinancialProductsService {
           if (systemProductionData.data) {
             systemKW = systemProductionData.data.capacityKW;
             batteryKwh = systemDesign.roofTopDesignData.storage.reduce(
-              (acc, cv) => (acc += cv.quantity * cv.storageModelDataSnapshot.ratings.kilowattHours),
+              (acc, cur) => acc + cur.quantity * cur.storageModelDataSnapshot.ratings.kilowattHours,
               0,
             );
             systemProductivity = systemProductionData.data.productivity;
           }
 
           if (
-            !inRange(systemKW, e.minSystemKw, e.maxSystemKw) ||
-            !inRange(batteryKwh, e.minBatteryKwh, e.maxBatteryKwh) ||
-            !inRange(systemProductivity, e.minProductivity, e.maxProductivity)
+            !inRange(systemKW, financialProduct.minSystemKw, financialProduct.maxSystemKw) ||
+            !inRange(batteryKwh, financialProduct.minBatteryKwh, financialProduct.maxBatteryKwh) ||
+            !inRange(systemProductivity, financialProduct.minProductivity, financialProduct.maxProductivity)
           ) {
-            e.name = `${e.name} (not eligible)`;
+            financialProduct.name = `${financialProduct.name} (not eligible)`;
           }
 
-          return e;
+          return financialProduct;
         }
-        return e;
+        return financialProduct;
       }),
     );
   }
@@ -121,5 +121,10 @@ export class FinancialProductsService {
       .lean();
 
     return financialProducts[0]?.dealerFee || DEFAULT_DEALER_FEE;
+  }
+
+  async getAll(query?: FilterQuery<FinancialProduct>): Promise<LeanDocument<FinancialProduct>[]> {
+    const financialProducts = await this.financialProduct.find(query as any).lean();
+    return financialProducts;
   }
 }

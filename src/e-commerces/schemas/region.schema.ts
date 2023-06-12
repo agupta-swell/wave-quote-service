@@ -6,6 +6,7 @@ export enum REGION_PURPOSE {
   ECOMM = 'ecomm',
   SOILING = 'soiling',
   SNOW = 'snow',
+  FINANCIAL_PRODUCT = 'financial_product',
 }
 
 export interface Region extends Document {

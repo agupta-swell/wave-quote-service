@@ -64,6 +64,18 @@ export class SystemDesignController {
     return ServiceResponse.fromResult(result);
   }
 
+  @Put(':id/archive')
+  @ApiOperation({ summary: 'Update system design archive status' })
+  @ApiOkResponse({ type: SystemDesignRes })
+  @CheckOpportunity()
+  async updateArchiveStatus(
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
+    @Body() body: { isArchived: boolean },
+  ): Promise<ServiceResponse<SystemDesignDto>> {
+    const result = await this.systemDesignService.updateArchiveStatus(id, body);
+    return ServiceResponse.fromResult(result);
+  }
+
   @UseAsyncContext
   @Post(':id/calculate')
   @ApiParam({ name: 'id', type: String, description: 'use -1 for uncreated system design' })
@@ -99,11 +111,13 @@ export class SystemDesignController {
     @Query('limit') limit: string,
     @Query('skip') skip: string,
     @Query('opportunityId') opportunityId: string,
+    @Query('status') status: string,
   ): Promise<ServiceResponse<Pagination<SystemDesignDto>>> {
     const result = await this.systemDesignService.getAllSystemDesigns(
       Number(limit || 100),
       Number(skip || 0),
       opportunityId,
+      status ? status.toLowerCase() : undefined,
     );
     return ServiceResponse.fromResult(result);
   }
@@ -224,9 +238,7 @@ export class SystemDesignController {
   @Get(':id/production-derate')
   @ApiOperation({ summary: 'Get Production Derate By System Design Id' })
   @ApiOkResponse({ type: ProductionDeratesDesignSystemDto })
-  async getProductionDerates(
-    @Param('id') id: string,
-  ): Promise<ServiceResponse<ProductionDeratesDesignSystemDto>> {
+  async getProductionDerates(@Param('id') id: string): Promise<ServiceResponse<ProductionDeratesDesignSystemDto>> {
     const res = await this.systemDesignService.getProductionDeratesDesignSystemDetail(id);
     return ServiceResponse.fromResult(res);
   }

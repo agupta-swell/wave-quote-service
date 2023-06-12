@@ -13,7 +13,7 @@ import { FastifyFile, FastifyResponse } from '../shared/fastify';
 import { CONTRACT_SECRET_PREFIX, CONTRACT_TYPE } from './constants';
 import { Contract } from './contract.schema';
 import { ContractService } from './contract.service';
-import { UseDefaultContractName, UseWetSignContract, VoidRelatedContracts } from './interceptors';
+import { UseWetSignContract, VoidRelatedContracts } from './interceptors';
 import { IContractWithDetailedQuote } from './interceptors/wet-sign-contract.interceptor';
 import { ChangeOrderValidationPipe, SignerValidationPipe, UseDefaultFinancier, VoidPrimaryContractPipe } from './pipes';
 import { DownloadContractPipe, IContractDownloadReqPayload } from './pipes/download-contract.validation.pipe';
@@ -63,6 +63,8 @@ export class ContractController {
   async getContractTemplates(
     @Query('opportunity-id') opportunityId: string,
     @Query('funding-source-id') fundingSourceId: string,
+    @Query('financier-id') financierId: string,
+    @Query('financial-product-id') financialProductId: string,
     @Query('contract-type') contractType: CONTRACT_TYPE,
     @Query('system-design-id') systemDesignId: string,
     @Query('quote-id') quoteId: string,
@@ -70,6 +72,8 @@ export class ContractController {
     const res = await this.contractService.getContractTemplates(
       opportunityId,
       fundingSourceId,
+      financierId,
+      financialProductId,
       contractType,
       systemDesignId,
       quoteId,
@@ -101,7 +105,6 @@ export class ContractController {
   @Post()
   @UsePipes(ValidationPipe)
   @UseDefaultFinancier()
-  @UseDefaultContractName()
   @ApiOperation({ summary: 'Save Contract' })
   @ReplaceInstalledProductAfterSuccess()
   @ApiOkResponse({ type: SaveContractRes })
@@ -157,7 +160,6 @@ export class ContractController {
 
   @Post('/change-orders')
   @UsePipes(ValidationPipe)
-  @UseDefaultContractName()
   @ReplaceInstalledProductAfterSuccess()
   @ApiOperation({ summary: 'Save Contract' })
   @ApiOkResponse({ type: SaveChangeOrderRes })
@@ -277,9 +279,10 @@ export class ContractController {
   @ApiOperation({ summary: 'Resend Contract' })
   @ApiOkResponse({ type: SaveContractRes })
   async voidContract(
+    @CurrentUser() user: ILoggedInUser,
     @Param('contractId', ParseObjectIdPipe, VoidPrimaryContractPipe) contract: Contract,
   ): Promise<Contract> {
-    await this.contractService.voidContract(contract);
+    await this.contractService.voidContract(contract, true, user);
     return contract;
   }
 

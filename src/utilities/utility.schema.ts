@@ -202,7 +202,8 @@ export interface IUtilityCostData {
   startDate: Date;
   endDate: Date;
   interval: string;
-  cost: ICostDetailData[];
+  cost?: ICostDetailData[];
+  annualCost: number;
 }
 
 export const UtilityCostDataSchema = new Schema<Document<IUtilityCostData>>(
@@ -211,6 +212,7 @@ export const UtilityCostDataSchema = new Schema<Document<IUtilityCostData>>(
     end_date: Date,
     interval: String,
     cost: [CostDetailDataSchema],
+    annual_cost: Number,
   },
   { _id: false },
 );
@@ -243,6 +245,8 @@ export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   increaseAmount: number;
   electricVehicles: IElectricVehicleSnapshot[];
   totalPlannedUsageIncreases: number;
+  hasMedicalBaseline?: boolean;
+  medicalBaselineAmount?: number;
 }
 
 export type UtilityUsageDetails = Document & IUtilityUsageDetails;
@@ -261,6 +265,8 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   increase_amount: Number,
   electric_vehicles: [ElectricVehicleSnapshotSchema],
   total_planned_usage_increases: Number,
+  has_medical_baseline: Boolean,
+  medical_baseline_amount: Number,
 });
 
 export interface GenabilityCostData extends Document {
@@ -298,6 +304,10 @@ export class UtilityUsageDetailsModel {
 
   totalPlannedUsageIncreases: number;
 
+  hasMedicalBaseline: boolean;
+
+  medicalBaselineAmount: number | undefined;
+
   constructor(props: CreateUtilityReqDto | any) {
     this.opportunityId = props.opportunityId;
     this.utilityData = props.utilityData;
@@ -308,6 +318,8 @@ export class UtilityUsageDetailsModel {
     this.usageProfileSnapshot = props.usageProfileSnapshot;
     this.increaseAmount = props.increaseAmount;
     this.poolValue = props.poolValue;
+    this.hasMedicalBaseline = props.hasMedicalBaseline;
+    this.medicalBaselineAmount = props.medicalBaselineAmount;
     this.electricVehicles = props.electricVehicles ?? [];
   }
 
@@ -326,5 +338,5 @@ export class UtilityUsageDetailsModel {
 
 export interface IMonthSeasonTariff {
   seasonName: string;
-  hourlyTariffRate: number[]; 
+  hourlyTariffRate: number[];
 }

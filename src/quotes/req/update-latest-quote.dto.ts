@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsMongoId, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsBoolean, IsEnum, IsMongoId, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { QuoteFinanceProductDto } from '.';
 import { QUOTE_MODE_TYPE } from '../constants';
 import { QuotePriceOverride, QuotePricePerWatt } from './create-quote.dto';
@@ -59,4 +59,9 @@ export class UpdateLatestQuoteDto {
   @IsOptional()
   @ValidateNested()
   quoteFinanceProduct: QuoteFinanceProductDto;
+
+  @ApiProperty()
+  @IsBoolean()
+  @IsOptional()
+  isArchived: boolean;
 }

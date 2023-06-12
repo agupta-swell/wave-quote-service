@@ -1,9 +1,8 @@
-import { CONTRACT_TYPE } from 'src/contracts/constants';
+import { CONTRACT_TYPE, PROCESS_STATUS } from 'src/contracts/constants';
 import {
   DocusignCompositeTemplateMasterDataResDto,
   TemplateMasterDataResDto,
 } from 'src/docusign-templates-master/res/sub-dto';
-import { PROCESS_STATUS } from 'src/qualifications/constants';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { SignerDetailResDto } from './signer-detail.dto';
 

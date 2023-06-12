@@ -39,7 +39,7 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   homeAddress: string;
 
   @TabValue<IGenericObject>(({ primaryContract }) =>
-    primaryContract?.signerDetails.find(e => e.role === 'Financier')?.signedOn.toLocaleDateString(),
+    primaryContract?.signerDetails.find(e => e.role === 'Financier')?.signedOn?.toLocaleDateString(),
   )
   primaryContractFinancierSignDate: Date;
 
@@ -111,25 +111,25 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   moduleSummary: string;
 
   @TabValue<IGenericObject>(({ systemDesign }) =>
-  parseSystemDesignProducts(systemDesign)
-    .systemDesignInverters.reduce<ISystemDesignProducts['systemDesignInverters']>((acc, cur) => {
-      const inverter = acc.find(e => e.inverterModelId === cur.inverterModelId);
+    parseSystemDesignProducts(systemDesign)
+      .systemDesignInverters.reduce<ISystemDesignProducts['systemDesignInverters']>((acc, cur) => {
+        const inverter = acc.find(e => e.inverterModelId === cur.inverterModelId);
 
-      if (inverter) {
-        inverter.quantity += cur.quantity;
+        if (inverter) {
+          inverter.quantity += cur.quantity;
+          return acc;
+        }
+
+        acc.push(cur);
         return acc;
-      }
-
-      acc.push(cur);
-      return acc;
-    }, [])
-    .map(
-      item =>
-        `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
-    )
-    .join(', '),
-)
-inverterSummary: string;
+      }, [])
+      .map(
+        item =>
+          `${item.quantity} x ${item.inverterModelDataSnapshot.$meta.manufacturer.name} ${item.inverterModelDataSnapshot.name}`,
+      )
+      .join(', '),
+  )
+  inverterSummary: string;
 
   @TabValue<IGenericObject>(({ contract }) => contract?.changeOrderDescription)
   changeOrderDescription: string;
@@ -167,7 +167,7 @@ inverterSummary: string;
 
     if (promotionDetails.length) headings.push('Promotions');
 
-    if (projectDiscountDetails.length || cashDiscount.total) headings.push('Discounts');
+    if (projectDiscountDetails.length || cashDiscount?.total) headings.push('Discounts');
 
     if (headings.length > 2) {
       const last = headings.pop();
@@ -219,7 +219,7 @@ inverterSummary: string;
   @TabValue<IGenericObject>(({ customerPayment }) => NumberFormatter.format(customerPayment.payment2))
   payment2: string;
 
-  @TabValue<IGenericObject>(({ contract }) => contract?.projectCompletionDate.toLocaleDateString())
+  @TabValue<IGenericObject>(({ contract }) => contract?.projectCompletionDate?.toLocaleDateString())
   projectCompletionDate: Date;
 
   @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)

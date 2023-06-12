@@ -260,7 +260,6 @@ export class SystemProductService implements OnModuleInit {
             azimuth,
             losses,
             pitch,
-            useSunroof,
             sunroofPitch,
             sunroofAzimuth,
             overrideRooftopDetails,
@@ -277,8 +276,8 @@ export class SystemProductService implements OnModuleInit {
             latitude,
             longitude,
             systemCapacityInkWh,
-            azimuth: useSunroof && !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
-            pitch: useSunroof && !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
+            azimuth: !overrideRooftopDetails && sunroofAzimuth !== undefined ? sunroofAzimuth : azimuth,
+            pitch: !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
             losses,
             shouldGetHourlyProduction: true,
           });

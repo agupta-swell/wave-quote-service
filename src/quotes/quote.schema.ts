@@ -167,6 +167,19 @@ export interface IMilestonePayment {
   percentage: number;
 }
 
+export interface IEsaProductAttributes {
+  upfrontPayment: number;
+  balance: number;
+  milestonePayment: IMilestonePayment[];
+  currentAverageMonthlyBill: number;
+  newAverageMonthlyBill: number;
+  currentPricePerKWh: number;
+  newPricePerKWh: number;
+  esaTerm: number;
+  rateEscalator: number;
+  grossFinancePayment: number;
+}
+
 export interface ICashQuoteConfigSnapshot {
   type: string;
   config: {
@@ -191,7 +204,7 @@ export interface IFinanceProductSchema {
   productType: string;
   fundingSourceId: string;
   fundingSourceName: string;
-  productAttribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes;
+  productAttribute: ILoanProductAttributes | ILeaseProductAttributes | ICashProductAttributes | IEsaProductAttributes;
   financialProductSnapshot: FinancialProduct;
 }
 
@@ -502,6 +515,7 @@ export interface Quote extends Document {
   systemDesignId: string;
   quoteModelType: string;
   detailedQuote: IDetailedQuoteSchema;
+  isArchived: boolean;
   isSync: boolean;
   isSyncMessages: string[];
   createdBy: string;
@@ -515,6 +529,7 @@ export const QuoteSchema = new Schema<Quote>({
   system_design_id: String,
   quote_model_type: String,
   detailed_quote: DetailedQuoteSchema,
+  is_archived: { type: Boolean, default: false },
   is_sync: Boolean,
   is_sync_messages: [String],
   created_at: { type: Date, default: Date.now },
@@ -532,6 +547,8 @@ export class QuoteModel {
 
   detailedQuote: IDetailedQuoteSchema;
 
+  isArchived: boolean;
+
   isSync: boolean;
 
   isSyncMessages: string[];
@@ -541,6 +558,7 @@ export class QuoteModel {
     this.systemDesignId = data.systemDesignId;
     this.quoteModelType = 'detailed';
     this.detailedQuote = this.transformDetailedQuote(detailedQuote);
+    this.isArchived = (data as UpdateQuoteDto)?.isArchived || false;
   }
 
   transformDetailedQuote(data: any): IDetailedQuoteSchema {

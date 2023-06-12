@@ -1,4 +1,12 @@
-import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { IncomingMessage } from 'http';
@@ -12,8 +20,8 @@ import { ContactService } from 'src/contacts/contact.service';
 import { DocusignCommunicationService } from 'src/docusign-communications/docusign-communication.service';
 import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
-import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { GenabilityUtilityMapService } from 'src/genability-utility-map/genability-utility-map.service';
+import { InstalledProductService } from 'src/installed-products/installed-product.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
 import { REBATE_TYPE } from 'src/quotes/constants';
@@ -46,7 +54,6 @@ import {
   SIGN_STATUS,
   STATUS,
 } from './constants';
-
 import { Contract, CONTRACT } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import { ContractReqDto } from './req/contract-req.dto';
@@ -78,11 +85,11 @@ export class ContractService {
     private readonly contactService: ContactService,
     private readonly customerPaymentService: CustomerPaymentService,
     private readonly systemDesignService: SystemDesignService,
-    private readonly financialProductService: FinancialProductsService,
     private readonly jwtService: JwtService,
     private readonly genabilityUtilityMapService: GenabilityUtilityMapService,
     private readonly systemAttributeService: SystemAttributeService,
     private readonly systemProductionService: SystemProductionService,
+    private readonly installedProductService: InstalledProductService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -106,6 +113,8 @@ export class ContractService {
   async getContractTemplates(
     opportunityId: string,
     fundingSourceId?: string,
+    financierId?: string,
+    financialProductId?: string,
     contractType?: CONTRACT_TYPE,
     systemDesignId?: string,
     quoteId?: string,
@@ -158,10 +167,20 @@ export class ContractService {
       throw ApplicationException.ValidationFailed('fundingSourceId is required');
     }
 
+    if (!financierId) {
+      throw ApplicationException.ValidationFailed('financierId is required');
+    }
+
+    if (!financialProductId) {
+      throw ApplicationException.ValidationFailed('financialProductId is required');
+    }
+
     const utilityId = (await this.docusignTemplateMasterService.getUtilityMaster(utilityName))?._id?.toString() || '';
 
     const templateMasterRecords = await this.docusignTemplateMasterService.getDocusignCompositeTemplateMaster(
       [fundingSourceId, 'ALL'],
+      [financierId, 'ALL'],
+      [financialProductId, 'ALL'],
       [utilityId, 'ALL'],
       [utilityProgramIdTemp, 'ALL'],
       [...applicableSystemTypes, SYSTEM_TYPE.ALL],
@@ -343,6 +362,13 @@ export class ContractService {
     ]);
 
     const assignedMember = await this.userService.getUserById(opportunity.assignedMember);
+
+    if (!assignedMember?.hisNumber) {
+      throw new HttpException(
+        `Assigned sales agent ${assignedMember?.profile.firstName} ${assignedMember?.profile.lastName} does not have an HIS Number`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
     // Get gsProgram=
     const gsProgram = quote.detailedQuote.quoteFinanceProduct.incentiveDetails[0]?.detail?.gsProgramSnapshot;
@@ -639,7 +665,9 @@ export class ContractService {
   }
 
   async existsByQuoteId(associatedQuoteId: string): Promise<false | { (name: string): string }> {
-    const doc = await this.contractModel.find({ associatedQuoteId }, { _id: 1, name: 1 }).limit(1);
+    const doc = await this.contractModel
+      .find({ associatedQuoteId, contractStatus: { $ne: PROCESS_STATUS.VOIDED } }, { _id: 1, name: 1 })
+      .limit(1);
 
     if (doc.length) {
       return name => `${name} is being used in the contract named ${doc[0].name} (id: ${doc[0].id})`;
@@ -837,6 +865,9 @@ export class ContractService {
     const financier = contract.signerDetails.find(e => e.role === 'Financier');
 
     const opportunity = await this.opportunityService.getDetailById(contract.opportunityId);
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${contract.opportunityId}`);
+    }
 
     if (!financier) {
       throw new BadRequestException('Financier is missing');
@@ -844,12 +875,13 @@ export class ContractService {
 
     const carbonCopiesRecipient = contract.signerDetails.filter(e => e.role !== 'Financier');
 
+    const contact = await this.contactService.getContactById(opportunity.contactId);
+
     const envelope = await this.docusignCommunicationService.sendWetSingedContract(
       financier,
       carbonCopiesRecipient,
       file,
-      opportunity?.name ?? '',
-      detailedQuote.quoteFinanceProduct.financialProductSnapshot?.name ?? 'Contract',
+      `${contact?.lastName}, ${contact?.firstName} - ${contract?.name}`,
     );
 
     if (envelope.status !== 'sent' || !envelope.envelopeId) {
@@ -881,7 +913,11 @@ export class ContractService {
     );
   }
 
-  public async voidContract(contract: Pick<Contract, '_id' | 'contractingSystemReferenceId'>): Promise<void> {
+  public async voidContract(
+    contract: LeanDocument<Contract> | Contract,
+    isUpdateInstalledProduct: boolean,
+    user?: ILoggedInUser,
+  ): Promise<void> {
     try {
       if (contract?.contractingSystemReferenceId) {
         await this.docusignCommunicationService.voidEnvelope(contract.contractingSystemReferenceId);
@@ -896,10 +932,34 @@ export class ContractService {
       );
     }
 
+    const { _id, primaryContractId, contractType, opportunityId } = contract;
+
     await this.contractModel.updateOne(
-      { _id: contract._id },
+      { _id },
       { $set: { contractStatus: PROCESS_STATUS.VOIDED, updatedAt: new Date() } },
     );
+
+    if (isUpdateInstalledProduct && user && contractType === CONTRACT_TYPE.CHANGE_ORDER) {
+      const primaryContract = await this.contractModel.findById(primaryContractId).lean();
+
+      if (!primaryContract) {
+        throw ApplicationException.EntityNotFound(`ContractId: ${primaryContractId}`);
+      }
+
+      const systemDesign = await this.installedProductService.getSystemDesign(primaryContract);
+
+      if (!systemDesign) {
+        return;
+      }
+
+      await this.installedProductService.updateLatestProductData(
+        opportunityId,
+        user.userId,
+        Object.keys(systemDesign.capacityProductionDesignData ?? {}).length
+          ? systemDesign.capacityProductionDesignData
+          : systemDesign.roofTopDesignData,
+      );
+    }
   }
 
   public async voidGSPContract(contract: Pick<Contract, '_id' | 'contractingSystemReferenceId'>): Promise<void> {

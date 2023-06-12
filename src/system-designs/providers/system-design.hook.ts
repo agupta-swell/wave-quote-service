@@ -36,7 +36,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
   private WILL_GENERATE_SUNROOF_PRODUCTION_SYM = Symbol('willGenerateSunroofProduction');
 
-  dispatch(
+  async dispatch(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
     initSystemDesign: InitSystemDesign,
@@ -46,9 +46,9 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     isNewPanelArray: boolean,
     newPanelArrayBoundPolygon: ILatLngSchema[],
     newTotalPanelsInArray: number,
-  ): void {
+  ): Promise<void> {
     if (isNewPanelArray) {
-      this.dispatchNewPanelArray(asyncQueueStore, systemDesign, targetPanelArrayId, newPanelArrayBoundPolygon);
+      await this.dispatchNewPanelArray(asyncQueueStore, systemDesign, targetPanelArrayId, newPanelArrayBoundPolygon);
     }
 
     if (!this.canDispatchNextSystemDesignEvent(asyncQueueStore)) {
@@ -70,7 +70,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
       return;
     }
 
-    this.dispatchPanelArrayChange(
+    await this.dispatchPanelArrayChange(
       asyncQueueStore,
       systemDesign,
       initSystemDesign,
@@ -91,7 +91,7 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
     return true;
   }
 
-  private dispatchNewPanelArray(
+  private async dispatchNewPanelArray(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
     targetPanelArrayId: string,
@@ -99,17 +99,21 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   ) {
     const newCenterPoint = getCenterBound(newPanelArrayBoundPolygon);
 
-    this.queueResaveClosestBuilding(
-      asyncQueueStore,
-      systemDesign._id.toString(),
-      systemDesign.opportunityId,
-      targetPanelArrayId,
-      newCenterPoint.lat,
-      newCenterPoint.lng,
-    );
+    const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(systemDesign);
+
+    if (isExistedGeotiff) {
+      this.queueResaveClosestBuilding(
+        asyncQueueStore,
+        systemDesign._id.toString(),
+        systemDesign.opportunityId,
+        targetPanelArrayId,
+        newCenterPoint.lat,
+        newCenterPoint.lng,
+      );
+    }
   }
 
-  private dispatchPanelArrayChange(
+  private async dispatchPanelArrayChange(
     asyncQueueStore: IQueueStore,
     systemDesign: SystemDesign,
     initSystemDesign: InitSystemDesign,
@@ -171,7 +175,11 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
         return;
       }
 
-      this.queueGenerateArrayOverlay(asyncQueueStore, systemDesign);
+      const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(systemDesign);
+
+      if (isExistedGeotiff) {
+        this.queueGenerateArrayOverlay(asyncQueueStore, systemDesign);
+      }
 
       return;
     }
@@ -196,8 +204,12 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
 
     const task = async () => {
       try {
-        await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
-        await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+        const isExistedGeotiff = await this.googleSunroofService.isExistedGeotiff(systemDesign);
+
+        if (isExistedGeotiff) {
+          await this.googleSunroofService.generateHeatmapPngs(systemDesign, radiusMeters);
+          await this.googleSunroofService.generateArrayOverlayPng(systemDesign);
+        }
         await this.regenerateSunroofProduction(asyncQueueStore, systemDesign);
       } catch (e) {
         this.teardown(e, asyncQueueStore);
@@ -251,7 +263,9 @@ export class SystemDesignHook implements ISystemDesignSchemaHook {
   }
 
   private async regenerateSunroofProduction(asyncQueueStore: IQueueStore, systemDesign: SystemDesign): Promise<void> {
-    const {systemActualProduction8760: production8760} = await this.systemDesignService.calculateSystemActualProduction(systemDesign);
+    const {
+      systemActualProduction8760: production8760,
+    } = await this.systemDesignService.calculateSystemActualProduction(systemDesign);
 
     const [systemProduction] = await Promise.all([
       this.systemProductionService.findOne(systemDesign.systemProductionId),
