@@ -1,0 +1,15 @@
+name: UAT 
+on:
+  push:
+    branches:
+      - uat
+  workflow_dispatch:
+concurrency: uat  
+jobs: 
+  deploy_uat:
+    uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
+    with:
+      Environment:      UAT
+    permissions:
+      id-token: write
+      contents: read
