@@ -36,15 +36,10 @@ export class GetPinballSimulatorDto {
   @IsNumber({}, { each: true })
   hourlyPostInstallLoad: number[];
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber({}, { each: true })
-  hourlySeriesForExistingPV?: number[];
-
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber({}, { each: true })
-  hourlySeriesForNewPV: number[];
+  hourlySeriesForTotalPV: number[];
 
   @ApiProperty()
   @IsNotEmpty()

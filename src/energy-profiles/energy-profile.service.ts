@@ -125,7 +125,7 @@ export class EnergyProfileService {
     // all data is in Wh
     const {
       hourlyPostInstallLoad,
-      hourlySeriesForExistingPV,
+      hourlySeriesForTotalPV,
       hourlySeriesForNewPV,
       batterySystemSpecs,
     } = pinballInputData;
@@ -133,10 +133,11 @@ export class EnergyProfileService {
     const monthlyAndAnnualPostInstallLoadInWhIn24Hours = getMonthlyAndAnnualWeekdayAverageFrom8760(
       hourlyPostInstallLoad,
     );
-    const monthlyAndAnnualSeriesForExistingPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(
-      hourlySeriesForExistingPV,
+
+    // handle backward compatibility
+    const monthlyAndAnnualSeriesForTotalPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(
+      hourlySeriesForTotalPV || hourlySeriesForNewPV,
     );
-    const monthlyAndAnnualSeriesForNewPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(hourlySeriesForNewPV);
 
     let monthlyAndAnnualRateAmountIn24Hours;
 
@@ -155,14 +156,14 @@ export class EnergyProfileService {
       // annual
       monthlyAndAnnualRateAmountIn24Hours.annualRateAmount = this.utilityService.buildNEM3ChargingLogic(
         monthlyAndAnnualRateAmountIn24Hours.annualRateAmount,
-        monthlyAndAnnualSeriesForNewPVInWhIn24Hours.annualAverage,
+        monthlyAndAnnualSeriesForTotalPVInWhIn24Hours.annualAverage,
         monthlyAndAnnualPostInstallLoadInWhIn24Hours.annualAverage,
       );
       // monthly
       for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
         monthlyAndAnnualRateAmountIn24Hours.monthlyRateAmount[monthIndex] = this.utilityService.buildNEM3ChargingLogic(
           monthlyAndAnnualRateAmountIn24Hours.monthlyRateAmount[monthIndex],
-          monthlyAndAnnualSeriesForNewPVInWhIn24Hours.monthlyAverage[monthIndex],
+          monthlyAndAnnualSeriesForTotalPVInWhIn24Hours.monthlyAverage[monthIndex],
           monthlyAndAnnualPostInstallLoadInWhIn24Hours.monthlyAverage[monthIndex],
         );
       }
@@ -202,8 +203,7 @@ export class EnergyProfileService {
 
     const annualPinballData = this.utilityService.calculatePinballDataIn24Hours(
       monthlyAndAnnualPostInstallLoadInWhIn24Hours.annualAverage,
-      monthlyAndAnnualSeriesForExistingPVInWhIn24Hours.annualAverage,
-      monthlyAndAnnualSeriesForNewPVInWhIn24Hours.annualAverage,
+      monthlyAndAnnualSeriesForTotalPVInWhIn24Hours.annualAverage,
       monthlyAndAnnualRateAmountIn24Hours.annualRateAmount,
       batterySystemSpecs,
       ratingInKW,
@@ -219,8 +219,7 @@ export class EnergyProfileService {
     for (let i = 0; i < 12; i++) {
       const monthlyPinballData = this.utilityService.calculatePinballDataIn24Hours(
         monthlyAndAnnualPostInstallLoadInWhIn24Hours.monthlyAverage[i],
-        monthlyAndAnnualSeriesForExistingPVInWhIn24Hours.monthlyAverage[i],
-        monthlyAndAnnualSeriesForNewPVInWhIn24Hours.monthlyAverage[i],
+        monthlyAndAnnualSeriesForTotalPVInWhIn24Hours.monthlyAverage[i],
         monthlyAndAnnualRateAmountIn24Hours.monthlyRateAmount[i],
         batterySystemSpecs,
         ratingInKW,

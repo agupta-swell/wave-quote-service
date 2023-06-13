@@ -223,6 +223,8 @@ export interface ICostData {
   actualUsageCost: IUtilityCostData;
   computedCost: IUtilityCostData;
   postInstallMasterTariffId: string;
+  currentUsageCost: IUtilityCostData;
+  plannedCost: IUtilityCostData;
 }
 
 export const CostDataSchema = new Schema<Document<ICostData>>(
@@ -232,6 +234,23 @@ export const CostDataSchema = new Schema<Document<ICostData>>(
     actual_usage_cost: UtilityCostDataSchema,
     computed_cost: UtilityCostDataSchema,
     post_install_master_tariff_id: String,
+    current_usage_cost: UtilityCostDataSchema,
+    planned_cost: UtilityCostDataSchema,
+  },
+  { _id: false },
+);
+
+export interface IUsageProfileProduction {
+  annualUsage: number;
+  monthlyUsage: number[];
+  hourlyUsage: number[];
+}
+
+export const UsageProfileProductionSchema = new Schema<Document<IUsageProfileProduction>>(
+  {
+    annual_usage: Number,
+    monthly_usage: [Number],
+    hourly_usage: [Number],
   },
   { _id: false },
 );
@@ -247,6 +266,12 @@ export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   totalPlannedUsageIncreases: number;
   hasMedicalBaseline?: boolean;
   medicalBaselineAmount?: number;
+  computedAdditions: IUsageProfileProduction;
+  homeUsageProfile: IUsageProfileProduction;
+  adjustedUsageProfile: IUsageProfileProduction;
+  currentUsageProfile: IUsageProfileProduction;
+  plannedProfile: IUsageProfileProduction;
+  plannedCost: number;
 }
 
 export type UtilityUsageDetails = Document & IUtilityUsageDetails;
@@ -267,6 +292,12 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   total_planned_usage_increases: Number,
   has_medical_baseline: Boolean,
   medical_baseline_amount: Number,
+  computed_additions: UsageProfileProductionSchema,
+  home_usage_profile: UsageProfileProductionSchema,
+  adjusted_usage_profile: UsageProfileProductionSchema,
+  current_usage_profile: UsageProfileProductionSchema,
+  planned_profile: UsageProfileProductionSchema,
+  planned_cost: { type: Number, default: 0 },
 });
 
 export interface GenabilityCostData extends Document {
@@ -308,6 +339,18 @@ export class UtilityUsageDetailsModel {
 
   medicalBaselineAmount: number | undefined;
 
+  computedAdditions: IUsageProfileProduction;
+
+  homeUsageProfile: IUsageProfileProduction;
+
+  adjustedUsageProfile: IUsageProfileProduction;
+
+  currentUsageProfile: IUsageProfileProduction;
+
+  plannedProfile: IUsageProfileProduction;
+
+  plannedCost: number;
+
   constructor(props: CreateUtilityReqDto | any) {
     this.opportunityId = props.opportunityId;
     this.utilityData = props.utilityData;
@@ -333,6 +376,30 @@ export class UtilityUsageDetailsModel {
 
   setTotalPlannedUsageIncreases(data: number) {
     this.totalPlannedUsageIncreases = data;
+  }
+
+  setComputedAdditions(data: IUsageProfileProduction) {
+    this.computedAdditions = data;
+  }
+
+  setHomeUsageProfile(data: IUsageProfileProduction) {
+    this.homeUsageProfile = data;
+  }
+
+  setAdjustedUsageProfile(data: IUsageProfileProduction) {
+    this.adjustedUsageProfile = data;
+  }
+
+  setCurrentUsageProfile(data: IUsageProfileProduction) {
+    this.currentUsageProfile = data;
+  }
+
+  setPlannedProfile(data: IUsageProfileProduction) {
+    this.plannedProfile = data;
+  }
+
+  setCostData(data: ICostData) {
+    this.costData = data;
   }
 }
 

@@ -24,6 +24,7 @@ import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRange } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
+import { buildMonthlyAndAnnualDataFromHour8760 } from 'src/utils/transformData';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
@@ -51,7 +52,7 @@ import { PinballSimulatorAndCostPostInstallationDto, PinballSimulatorDto } from 
 import { UTILITIES, Utilities } from './schemas';
 import { GenabilityLseData, GENABILITY_LSE_DATA } from './schemas/genability-lse-caching.schema';
 import { GenabilityTeriffData, GENABILITY_TARIFF_DATA } from './schemas/genability-tariff-caching.schema';
-import { getTypicalUsage, IGetTypicalUsageKwh } from './sub-services';
+import { getTypicalUsage, IGetTypicalUsageKwh, UsageProfileProductionService } from './sub-services';
 import { IPinballRateAmount } from './utility.interface';
 import {
   GenabilityCostData,
@@ -59,7 +60,6 @@ import {
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
-  ICostDetailData,
   IMonthSeasonTariff,
   IUsageValue,
   IUtilityCostData,
@@ -101,6 +101,7 @@ export class UtilityService implements OnModuleInit {
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly s3Service: S3Service,
+    private readonly usageProfileProductionService: UsageProfileProductionService,
   ) {
     dayjs.extend(dayOfYear);
     if (!this.AWS_S3_UTILITY_DATA) {
@@ -354,16 +355,83 @@ export class UtilityService implements OnModuleInit {
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
     if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
-      const computedHourlyUsage = this.getHourlyUsageFromMonthlyUsage(
+      const computedHourlyUsageInKWh = this.getHourlyUsageFromMonthlyUsage(
         utilityDto.utilityData.computedUsage.monthlyUsage,
         typicalMonthlyUsage,
         typicalHourlyUsage,
-      );
-      utilityModel.setComputedHourlyUsage(computedHourlyUsage);
+      ); // kwh
+      utilityModel.setComputedHourlyUsage(computedHourlyUsageInKWh);
     }
 
     const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
+
+    const {
+      annualComputedAdditions,
+      monthlyComputedAdditions,
+      hourlyComputedAdditions,
+      annualHomeUsageProfile,
+      monthlyHomeUsageProfile,
+      hourlyHomeUsageProfile,
+      annualAdjustedUsageProfile,
+      monthlyAdjustedUsageProfile,
+      hourlyAdjustedUsageProfile,
+      annualCurrentUsageProfile,
+      monthlyCurrentUsageProfile,
+      hourlyCurrentUsageProfile,
+      annualPlannedProfile,
+      monthlyPlannedProfile,
+      hourlyPlannedProfile,
+    } = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
+
+    utilityModel.setComputedAdditions({
+      annualUsage: annualComputedAdditions,
+      monthlyUsage: monthlyComputedAdditions,
+      hourlyUsage: hourlyComputedAdditions,
+    });
+
+    utilityModel.setHomeUsageProfile({
+      annualUsage: annualHomeUsageProfile,
+      monthlyUsage: monthlyHomeUsageProfile,
+      hourlyUsage: hourlyHomeUsageProfile,
+    });
+
+    utilityModel.setAdjustedUsageProfile({
+      annualUsage: annualAdjustedUsageProfile,
+      monthlyUsage: monthlyAdjustedUsageProfile,
+      hourlyUsage: hourlyAdjustedUsageProfile,
+    });
+    utilityModel.setCurrentUsageProfile({
+      annualUsage: annualCurrentUsageProfile,
+      monthlyUsage: monthlyCurrentUsageProfile,
+      hourlyUsage: hourlyCurrentUsageProfile,
+    });
+    utilityModel.setPlannedProfile({
+      annualUsage: annualPlannedProfile,
+      monthlyUsage: monthlyPlannedProfile,
+      hourlyUsage: hourlyPlannedProfile,
+    });
+
+    const [currentUsageCost, plannedCost] = await Promise.all([
+      this.calculateCost(
+        hourlyCurrentUsageProfile,
+        utilityDto.costData.masterTariffId,
+        CALCULATION_MODE.ACTUAL,
+        utilityDto.utilityData.typicalBaselineUsage.zipCode,
+      ),
+      this.calculateCost(
+        hourlyPlannedProfile,
+        utilityDto.costData.masterTariffId,
+        CALCULATION_MODE.ACTUAL,
+        utilityDto.utilityData.typicalBaselineUsage.zipCode,
+      ),
+    ]);
+
+    utilityModel.setCostData({
+      ...utilityDto.costData,
+      currentUsageCost,
+      plannedCost,
+    });
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
 
@@ -439,6 +507,73 @@ export class UtilityService implements OnModuleInit {
 
     const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
+
+    const {
+      annualComputedAdditions,
+      monthlyComputedAdditions,
+      hourlyComputedAdditions,
+      annualHomeUsageProfile,
+      monthlyHomeUsageProfile,
+      hourlyHomeUsageProfile,
+      annualAdjustedUsageProfile,
+      monthlyAdjustedUsageProfile,
+      hourlyAdjustedUsageProfile,
+      annualCurrentUsageProfile,
+      monthlyCurrentUsageProfile,
+      hourlyCurrentUsageProfile,
+      annualPlannedProfile,
+      monthlyPlannedProfile,
+      hourlyPlannedProfile,
+    } = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
+
+    utilityModel.setComputedAdditions({
+      annualUsage: annualComputedAdditions,
+      monthlyUsage: monthlyComputedAdditions,
+      hourlyUsage: hourlyComputedAdditions,
+    });
+
+    utilityModel.setHomeUsageProfile({
+      annualUsage: annualHomeUsageProfile,
+      monthlyUsage: monthlyHomeUsageProfile,
+      hourlyUsage: hourlyHomeUsageProfile,
+    });
+
+    utilityModel.setAdjustedUsageProfile({
+      annualUsage: annualAdjustedUsageProfile,
+      monthlyUsage: monthlyAdjustedUsageProfile,
+      hourlyUsage: hourlyAdjustedUsageProfile,
+    });
+    utilityModel.setCurrentUsageProfile({
+      annualUsage: annualCurrentUsageProfile,
+      monthlyUsage: monthlyCurrentUsageProfile,
+      hourlyUsage: hourlyCurrentUsageProfile,
+    });
+    utilityModel.setPlannedProfile({
+      annualUsage: annualPlannedProfile,
+      monthlyUsage: monthlyPlannedProfile,
+      hourlyUsage: hourlyPlannedProfile,
+    });
+
+    const [currentUsageCost, plannedCost] = await Promise.all([
+      this.calculateCost(
+        hourlyCurrentUsageProfile,
+        utilityDto.costData.masterTariffId,
+        CALCULATION_MODE.ACTUAL,
+        utilityDto.utilityData.typicalBaselineUsage.zipCode,
+      ),
+      this.calculateCost(
+        hourlyPlannedProfile,
+        utilityDto.costData.masterTariffId,
+        CALCULATION_MODE.ACTUAL,
+        utilityDto.utilityData.typicalBaselineUsage.zipCode,
+      ),
+    ]);
+
+    utilityModel.setCostData({
+      ...utilityDto.costData,
+      currentUsageCost,
+      plannedCost,
+    });
 
     const updatedUtility = await this.utilityUsageDetailsModel
       .findOneAndUpdate({ _id: utilityId }, utilityModel, {
@@ -649,8 +784,7 @@ export class UtilityService implements OnModuleInit {
 
   calculatePinballDataIn24Hours(
     hourlyPostInstallLoadIn24Hours: number[],
-    hourlySeriesForExistingPVIn24Hours: number[] | undefined,
-    hourlySeriesForNewPVIn24Hours: number[],
+    hourlySeriesForTotalPVIn24Hours: number[],
     rateAmountHourlyIn24Hours: IPinballRateAmount[],
     batterySystemSpecs: BatterySystemSpecsDto,
     ratingInKW: number,
@@ -677,15 +811,7 @@ export class UtilityService implements OnModuleInit {
     const batteryDischargingSeriesIn24Hours: number[] = [];
     const postInstallSiteDemandSeriesIn24Hours: number[] = [];
     for (let i = 0; i < 24; i += 1) {
-      // Temporary exclude existingPV from PINBALL calculation due to incorrect Net Load value. Ref wav-2640
-      //
-      // pvGenerationIn24Hours.push(
-      //   new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
-      //     .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
-      //     .toNumber(),
-      // );
-
-      pvGenerationIn24Hours.push(hourlySeriesForNewPVIn24Hours[i] || 0);
+      pvGenerationIn24Hours.push(hourlySeriesForTotalPVIn24Hours[i] || 0);
       netLoadIn24Hours.push(
         new BigNumber(hourlyPostInstallLoadIn24Hours[i] || 0).minus(pvGenerationIn24Hours[i]).toNumber(),
       );
@@ -880,7 +1006,7 @@ export class UtilityService implements OnModuleInit {
 
   buildNEM3ChargingLogic = (
     rateAmountHourlyForNEM2: IPinballRateAmount[],
-    hourlySeriesForNewPV: number[],
+    hourlySeriesForTotalPV: number[],
     hourlyPostInstallLoad: number[],
   ): IPinballRateAmount[] => {
     // NEM3 charging logic
@@ -888,7 +1014,7 @@ export class UtilityService implements OnModuleInit {
     const rateAmountHourlyForNEM3 = cloneDeep(rateAmountHourlyForNEM2);
 
     for (let i = 0; i < rateAmountHourlyForNEM3.length; i++) {
-      const excessPV = new BigNumber(hourlySeriesForNewPV[i] || 0).minus(hourlyPostInstallLoad[i]).toNumber();
+      const excessPV = new BigNumber(hourlySeriesForTotalPV[i] || 0).minus(hourlyPostInstallLoad[i]).toNumber();
 
       if (rateAmountHourlyForNEM3[i].shouldCharge) {
         // next period is more expensive than the current period
@@ -915,8 +1041,7 @@ export class UtilityService implements OnModuleInit {
   async simulatePinball(data: GetPinballSimulatorDto): Promise<PinballSimulatorDto> {
     const {
       hourlyPostInstallLoad,
-      hourlySeriesForExistingPV,
-      hourlySeriesForNewPV,
+      hourlySeriesForTotalPV,
       postInstallMasterTariffId,
       zipCode,
       batterySystemSpecs,
@@ -1015,8 +1140,7 @@ export class UtilityService implements OnModuleInit {
 
     const pinballDataForNEM2 = this.calculatePinballData(
       hourlyPostInstallLoad,
-      hourlySeriesForExistingPV,
-      hourlySeriesForNewPV,
+      hourlySeriesForTotalPV,
       rateAmountHourlyForNEM2,
       batterySystemSpecs,
       ratingInKW,
@@ -1028,14 +1152,13 @@ export class UtilityService implements OnModuleInit {
     if (chargingLogicType === CHARGING_LOGIC_TYPE.NEM3) {
       const rateAmountHourlyForNEM3 = this.buildNEM3ChargingLogic(
         rateAmountHourlyForNEM2,
-        hourlySeriesForNewPV,
+        hourlySeriesForTotalPV,
         hourlyPostInstallLoad,
       );
 
       const pinballDataForNEM3 = this.calculatePinballData(
         hourlyPostInstallLoad,
-        hourlySeriesForExistingPV,
-        hourlySeriesForNewPV,
+        hourlySeriesForTotalPV,
         rateAmountHourlyForNEM3,
         batterySystemSpecs,
         ratingInKW,
@@ -1100,8 +1223,7 @@ export class UtilityService implements OnModuleInit {
 
   calculatePinballData(
     hourlyPostInstallLoad: number[],
-    hourlySeriesForExistingPV: number[] | undefined,
-    hourlySeriesForNewPV: number[],
+    hourlySeriesForTotalPV: number[],
     rateAmountHourly: IPinballRateAmount[],
     batterySystemSpecs: BatterySystemSpecsDto,
     ratingInKW: number,
@@ -1125,11 +1247,7 @@ export class UtilityService implements OnModuleInit {
       const startIdx = i * 24;
       const endIdx = startIdx + 24;
       const hourlyPostInstallLoadIn24Hours: number[] = hourlyPostInstallLoad.slice(startIdx, endIdx);
-      const hourlySeriesForExistingPVIn24Hours: number[] | undefined = hourlySeriesForExistingPV?.slice(
-        startIdx,
-        endIdx,
-      );
-      const hourlySeriesForNewPVIn24Hours: number[] = hourlySeriesForNewPV.slice(startIdx, endIdx);
+      const hourlySeriesForTotalPVIn24Hours: number[] = hourlySeriesForTotalPV.slice(startIdx, endIdx);
       const rateAmountHourlyIn24Hours: IPinballRateAmount[] = rateAmountHourly.slice(startIdx, endIdx);
 
       const {
@@ -1139,8 +1257,7 @@ export class UtilityService implements OnModuleInit {
         postInstallSiteDemandSeriesIn24Hours,
       } = this.calculatePinballDataIn24Hours(
         hourlyPostInstallLoadIn24Hours,
-        hourlySeriesForExistingPVIn24Hours,
-        hourlySeriesForNewPVIn24Hours,
+        hourlySeriesForTotalPVIn24Hours,
         rateAmountHourlyIn24Hours,
         batterySystemSpecs,
         ratingInKW,
@@ -1219,6 +1336,7 @@ export class UtilityService implements OnModuleInit {
       ),
     );
 
+    // kWh
     const monthlyProduction = existingSystemProductions.reduce(
       (prev, current) =>
         current.monthly.map((value, monthIdx) => ({
