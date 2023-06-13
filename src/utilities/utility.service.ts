@@ -24,6 +24,7 @@ import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRange } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
+import { buildMonthlyAndAnnualDataFromHour8760 } from 'src/utils/transformData';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
@@ -51,7 +52,7 @@ import { PinballSimulatorAndCostPostInstallationDto, PinballSimulatorDto } from 
 import { UTILITIES, Utilities } from './schemas';
 import { GenabilityLseData, GENABILITY_LSE_DATA } from './schemas/genability-lse-caching.schema';
 import { GenabilityTeriffData, GENABILITY_TARIFF_DATA } from './schemas/genability-tariff-caching.schema';
-import { getTypicalUsage, IGetTypicalUsageKwh } from './sub-services';
+import { getTypicalUsage, IGetTypicalUsageKwh, UsageProfileProductionService } from './sub-services';
 import { IPinballRateAmount } from './utility.interface';
 import {
   GenabilityCostData,
@@ -59,7 +60,6 @@ import {
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
-  ICostDetailData,
   IMonthSeasonTariff,
   IUsageValue,
   IUtilityCostData,
@@ -101,6 +101,7 @@ export class UtilityService implements OnModuleInit {
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly s3Service: S3Service,
+    private readonly usageProfileProductionService: UsageProfileProductionService,
   ) {
     dayjs.extend(dayOfYear);
     if (!this.AWS_S3_UTILITY_DATA) {
@@ -353,17 +354,65 @@ export class UtilityService implements OnModuleInit {
 
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
+    utilityModel.setPlannedCost(utilityDto.costData.computedCost?.annualCost || 0);
+
     if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
-      const computedHourlyUsage = this.getHourlyUsageFromMonthlyUsage(
+      const computedHourlyUsageInKWh = this.getHourlyUsageFromMonthlyUsage(
         utilityDto.utilityData.computedUsage.monthlyUsage,
         typicalMonthlyUsage,
         typicalHourlyUsage,
-      );
-      utilityModel.setComputedHourlyUsage(computedHourlyUsage);
+      ); // kwh
+      utilityModel.setComputedHourlyUsage(computedHourlyUsageInKWh);
     }
 
     const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
+
+    const {
+      annualComputedAdditions,
+      monthlyComputedAdditions,
+      hourlyComputedAdditions,
+      annualHomeUsageProfile,
+      monthlyHomeUsageProfile,
+      hourlyHomeUsageProfile,
+      annualAdjustedUsageProfile,
+      monthlyAdjustedUsageProfile,
+      hourlyAdjustedUsageProfile,
+      annualCurrentUsageProfile,
+      monthlyCurrentUsageProfile,
+      hourlyCurrentUsageProfile,
+      annualPlannedProfile,
+      monthlyPlannedProfile,
+      hourlyPlannedProfile,
+    } = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
+
+    utilityModel.setComputedAdditions({
+      annualUsage: annualComputedAdditions,
+      monthlyUsage: monthlyComputedAdditions,
+      hourlyUsage: hourlyComputedAdditions,
+    });
+
+    utilityModel.setHomeUsageProfile({
+      annualUsage: annualHomeUsageProfile,
+      monthlyUsage: monthlyHomeUsageProfile,
+      hourlyUsage: hourlyHomeUsageProfile,
+    });
+
+    utilityModel.setAdjustedUsageProfile({
+      annualUsage: annualAdjustedUsageProfile,
+      monthlyUsage: monthlyAdjustedUsageProfile,
+      hourlyUsage: hourlyAdjustedUsageProfile,
+    });
+    utilityModel.setCurrentUsageProfile({
+      annualUsage: annualCurrentUsageProfile,
+      monthlyUsage: monthlyCurrentUsageProfile,
+      hourlyUsage: hourlyCurrentUsageProfile,
+    });
+    utilityModel.setPlannedProfile({
+      annualUsage: annualPlannedProfile,
+      monthlyUsage: monthlyPlannedProfile,
+      hourlyUsage: hourlyPlannedProfile,
+    });
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
 
@@ -439,6 +488,63 @@ export class UtilityService implements OnModuleInit {
 
     const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
+
+    const {
+      annualComputedAdditions,
+      monthlyComputedAdditions,
+      hourlyComputedAdditions,
+      annualHomeUsageProfile,
+      monthlyHomeUsageProfile,
+      hourlyHomeUsageProfile,
+      annualAdjustedUsageProfile,
+      monthlyAdjustedUsageProfile,
+      hourlyAdjustedUsageProfile,
+      annualCurrentUsageProfile,
+      monthlyCurrentUsageProfile,
+      hourlyCurrentUsageProfile,
+      annualPlannedProfile,
+      monthlyPlannedProfile,
+      hourlyPlannedProfile,
+    } = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
+
+    utilityModel.setComputedAdditions({
+      annualUsage: annualComputedAdditions,
+      monthlyUsage: monthlyComputedAdditions,
+      hourlyUsage: hourlyComputedAdditions,
+    });
+
+    utilityModel.setHomeUsageProfile({
+      annualUsage: annualHomeUsageProfile,
+      monthlyUsage: monthlyHomeUsageProfile,
+      hourlyUsage: hourlyHomeUsageProfile,
+    });
+
+    utilityModel.setAdjustedUsageProfile({
+      annualUsage: annualAdjustedUsageProfile,
+      monthlyUsage: monthlyAdjustedUsageProfile,
+      hourlyUsage: hourlyAdjustedUsageProfile,
+    });
+    utilityModel.setCurrentUsageProfile({
+      annualUsage: annualCurrentUsageProfile,
+      monthlyUsage: monthlyCurrentUsageProfile,
+      hourlyUsage: hourlyCurrentUsageProfile,
+    });
+    utilityModel.setPlannedProfile({
+      annualUsage: annualPlannedProfile,
+      monthlyUsage: monthlyPlannedProfile,
+      hourlyUsage: hourlyPlannedProfile,
+    });
+
+    const usageCost = await this.calculateCost(
+      hourlyPlannedProfile,
+      utilityDto.costData.masterTariffId,
+      CALCULATION_MODE.ACTUAL,
+      utilityDto.utilityData.typicalBaselineUsage.zipCode,
+      utilityDto.medicalBaselineAmount,
+      new Date().getFullYear(),
+    );
+
+    utilityModel.setPlannedCost(usageCost.annualCost);
 
     const updatedUtility = await this.utilityUsageDetailsModel
       .findOneAndUpdate({ _id: utilityId }, utilityModel, {
@@ -677,15 +783,12 @@ export class UtilityService implements OnModuleInit {
     const batteryDischargingSeriesIn24Hours: number[] = [];
     const postInstallSiteDemandSeriesIn24Hours: number[] = [];
     for (let i = 0; i < 24; i += 1) {
-      // Temporary exclude existingPV from PINBALL calculation due to incorrect Net Load value. Ref wav-2640
-      //
-      // pvGenerationIn24Hours.push(
-      //   new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
-      //     .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
-      //     .toNumber(),
-      // );
+      pvGenerationIn24Hours.push(
+        new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
+          .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
+          .toNumber(),
+      );
 
-      pvGenerationIn24Hours.push(hourlySeriesForNewPVIn24Hours[i] || 0);
       netLoadIn24Hours.push(
         new BigNumber(hourlyPostInstallLoadIn24Hours[i] || 0).minus(pvGenerationIn24Hours[i]).toNumber(),
       );
@@ -1219,6 +1322,7 @@ export class UtilityService implements OnModuleInit {
       ),
     );
 
+    // kWh
     const monthlyProduction = existingSystemProductions.reduce(
       (prev, current) =>
         current.monthly.map((value, monthIdx) => ({

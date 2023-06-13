@@ -1,6 +1,7 @@
 import * as dayjs from 'dayjs';
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
+import { sum } from 'lodash';
 import { sliceBySize, sliceBySizesMap } from './array';
 import { roundNumber } from './transformNumber';
 
@@ -163,5 +164,16 @@ export const getMonthlyAndAnnualRateAmountFrom8760 = (
   return {
     monthlyRateAmount,
     annualRateAmount,
+  };
+};
+
+export const buildMonthlyAndAnnualDataFromHour8760 = (
+  hourlyProduction: number[],
+): { annualProduction: number; monthlyProduction: number[] } => {
+  const monthlyProduction = buildMonthlyHourFrom8760(hourlyProduction).map(v => sum(v));
+  const annualProduction = sum(monthlyProduction);
+  return {
+    annualProduction,
+    monthlyProduction,
   };
 };
