@@ -19,6 +19,7 @@ import {
   TOKEN_STATUS,
   VENDOR_ID,
   QUALIFICATION_CATEGORY,
+  MILESTONE_STATUS,
 } from './constants';
 import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
@@ -39,6 +40,7 @@ import {
 } from './res';
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import { FniEngineService } from './sub-services/fni-engine.service';
+import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
 import { IFniApplyReq } from './typing.d';
 
 @Injectable()
@@ -73,6 +75,7 @@ export class QualificationService {
       opportunityId: qualificationDto.opportunityId,
       type: qualificationDto.type,
       startedOn: now,
+      milestone: MILESTONE_STATUS.INITIATED,
       processStatus: PROCESS_STATUS.INITIATED,
       eventHistories: [
         {
@@ -254,6 +257,11 @@ export class QualificationService {
         break;
     }
 
+    const { milestone, processStatus } = getQualificationMilestoneAndProcessStatusByVerbalConsent(qualificationCredit);
+
+    qualificationCredit.milestone = milestone;
+    qualificationCredit.processStatus = processStatus;
+
     await qualificationCredit.save();
 
     return OperationResult.ok(
@@ -301,6 +309,9 @@ export class QualificationService {
     });
 
     qualificationCredit.applicationSentOn = now;
+
+    qualificationCredit.processStatus = PROCESS_STATUS.APPLICATION_EMAILED;
+    qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_EMAILED;
 
     await qualificationCredit.save();
 
@@ -621,6 +632,8 @@ export class QualificationService {
       }
     }
 
+    qualificationCreditRecordInst.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
+
     await this.qualificationCreditModel.updateOne(
       { _id: qualificationCreditRecordInst.id },
       qualificationCreditRecordInst,
@@ -638,6 +651,6 @@ export class QualificationService {
     const counter = await this.qualificationCreditModel.countDocuments({ opportunityId });
     return counter;
   }
-
+  
   // ===================== INTERNAL =====================
 }
