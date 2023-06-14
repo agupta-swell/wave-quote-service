@@ -163,7 +163,7 @@ export class QuoteService {
 
     const fundingSource = await this.fundingSourceService.getDetailById(data.fundingSourceId);
     if (!fundingSource) {
-      throw ApplicationException.EntityNotFound('Product Type');
+      throw ApplicationException.EntityNotFound('Financial Product Type');
     }
 
     const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, financialProduct.dealerFee);
@@ -413,7 +413,7 @@ export class QuoteService {
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
-      throw ApplicationException.EntityNotFound('Product Type');
+      throw ApplicationException.EntityNotFound('Financial Product Type');
     }
     const { dealerFee } = financialProductSnapshot;
     const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, dealerFee);
@@ -794,7 +794,7 @@ export class QuoteService {
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
-      throw ApplicationException.EntityNotFound('Product Type');
+      throw ApplicationException.EntityNotFound('Financial Product Type');
     }
 
     const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, dealerFee);
@@ -1704,8 +1704,8 @@ export class QuoteService {
 
   async getDealerFeePercentage(type: string, dealerFee: number) {
     switch (type) {
-        case FINANCE_PRODUCT_TYPE.CASH:
-        case FINANCE_PRODUCT_TYPE.ESA:
+      case FINANCE_PRODUCT_TYPE.CASH:
+      case FINANCE_PRODUCT_TYPE.ESA:
         return this.financialProductService.getLowestDealerFee(FINANCE_PRODUCT_TYPE.LOAN);
       case FINANCE_PRODUCT_TYPE.LOAN:
         return dealerFee;
