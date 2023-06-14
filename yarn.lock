@@ -2485,6 +2485,11 @@ console-control-strings@^1.0.0, console-control-strings@~1.1.0:
   resolved "https://registry.npmjs.org/console-control-strings/-/console-control-strings-1.1.0.tgz"
   integrity sha1-PXz0Rk22RG6mRL9LOVB/mFEAjo4=
 
+constructs@^10.2.51:
+  version "10.2.51"
+  resolved "https://registry.yarnpkg.com/constructs/-/constructs-10.2.51.tgz#fc63578979eaaecd29d5600ad74350f039d1aac3"
+  integrity sha512-vB96JQJzno7k0e+dX7Y9UmV4NDxqdr+2qnD5izDi552u7uFSpRF88GAEJjtv2eAWHG4WCDNu9+lV59Z3fYHlRQ==
+
 contains-path@^0.1.0:
   version "0.1.0"
   resolved "https://registry.npmjs.org/contains-path/-/contains-path-0.1.0.tgz"
