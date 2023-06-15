@@ -122,16 +122,5 @@ export class MonthSeasonTariffDto {
   seasonName: string;
 
   @ExposeProp()
-  hourlyTariffRate: number[];
-}
-
-export class UsageProfileProductionDto {
-  @ExposeProp()
-  annualUsage: number;
-
-  @ExposeProp()
-  monthlyUsage: number[];
-
-  @ExposeProp()
-  hourlyUsage: number[];
+  hourlyTariffRate: number[]; 
 }

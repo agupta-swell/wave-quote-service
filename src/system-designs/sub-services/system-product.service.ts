@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model } from 'mongoose';
 import { PRODUCT_TYPE } from 'src/products-v2/constants';
 import { IProductDocument, IUnknownProduct } from 'src/products-v2/interfaces';
+import { ProductService } from 'src/products-v2/services';
 import { AsyncContextProvider } from 'src/shared/async-context/providers/async-context.provider';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -46,6 +47,7 @@ export class SystemProductService implements OnModuleInit {
     // @ts-ignore
     @InjectModel(PV_WATT_SYSTEM_PRODUCTION) private readonly pvWattSystemProduction: Model<PvWattSystemProduction>,
     private readonly externalService: ExternalService,
+    private readonly productService: ProductService,
     private readonly s3Service: S3Service,
     private readonly asyncContext: AsyncContextProvider,
   ) {}
@@ -161,7 +163,6 @@ export class SystemProductService implements OnModuleInit {
     return res.ac;
   }
 
-  // https://developer.nrel.gov/docs/solar/pvwatts/v6/
   async calculatePVProduction(data: ICalculatePVProduction) {
     const { latitude, longitude, systemCapacityInkWh, azimuth, pitch, losses, shouldGetHourlyProduction } = data;
     const arrayProductionData: ISystemProduction = { hourly: [], monthly: [], annual: 0 };
@@ -236,9 +237,9 @@ export class SystemProductService implements OnModuleInit {
     });
     await createdPvWattSystemProduction.save();
 
-    arrayProductionData.annual = res.ac_annual; // kWh
-    arrayProductionData.monthly = res.ac_monthly; // kWh
-    arrayProductionData.hourly = res.ac; // Wh
+    arrayProductionData.annual = res.ac_annual;
+    arrayProductionData.monthly = res.ac_monthly;
+    arrayProductionData.hourly = res.ac;
 
     return arrayProductionData;
   }

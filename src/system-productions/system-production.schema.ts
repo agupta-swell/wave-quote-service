@@ -84,11 +84,11 @@ export class SystemProductionModel {
 
   capacityKW: number;
 
-  generationKWh: number; // newPV
+  generationKWh: number;
 
   productivity: number;
 
-  annualUsageKWh: number; // computedUsage
+  annualUsageKWh: number;
 
   offsetPercentage: number;
 
