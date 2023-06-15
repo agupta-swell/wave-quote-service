@@ -92,6 +92,7 @@ export class ECSStack extends Stack {
       containerName: 'app',
       executionRole: Role.fromRoleName(this, 'exec-role', `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`),
       secrets:{
+        AWS_REGION: sec.fromSecretsManager(secret, 'AWS_REGION'),
         AWS_S3_ARRAY_HOURLY_PRODUCTION: sec.fromSecretsManager(secret, 'AWS_S3_ARRAY_HOURLY_PRODUCTION'),
         AWS_S3_BUCKET: sec.fromSecretsManager(secret, 'AWS_S3_BUCKET'),
         AWS_S3_PINBALL_SIMULATION: sec.fromSecretsManager(secret, 'AWS_S3_PINBALL_SIMULATION'),
