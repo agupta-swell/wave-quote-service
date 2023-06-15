@@ -70,7 +70,7 @@ async function bootstrap() {
     ),
   );
   // app.useLogger(app.get(MyLogger));
-  await app.listen(Number(process.env.PORT) || 3001, 'localhost');
+  await app.listen(Number(process.env.PORT) || 3001, '0.0.0.0');
 }
 
 bootstrap().then(() => {
