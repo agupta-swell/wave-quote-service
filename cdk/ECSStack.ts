@@ -117,7 +117,6 @@ export class ECSStack extends Stack {
         PROPOSAL_URL: sec.fromSecretsManager(secret, 'PROPOSAL_URL'),
         QUALIFICATION_JWT_SECRET: sec.fromSecretsManager(secret, 'QUALIFICATION_JWT_SECRET'),
         QUALIFICATION_PAGE: sec.fromSecretsManager(secret, 'QUALIFICATION_PAGE'),
-        SOLAR_QUOTING_TOOL_INTEGRATION: sec.fromSecretsManager(secret, 'SOLAR_QUOTING_TOOL_INTEGRATION'),
         SUPPORT_MAIL: sec.fromSecretsManager(secret, 'SUPPORT_MAIL'),
       }
     }   
