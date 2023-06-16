@@ -38,7 +38,7 @@ export class Exhibit7GuaranteedProductionESATemplate {
       result[`guaranteed_production_yr${i + 1}`] = roundNumber(e).toString();
     });
     GUARANTEED_PV_PRICE_PER_KWH.forEach((e, i) => {
-      result[`price_per_kwh_yr${i + 1}`] = roundNumber(e).toString();
+      result[`price_per_kwh_yr${i + 1}`] = e.toFixed(2);
     });
 
     result.pv_cumulative_production = roundNumber(EPV_YLD_CUM[EPV_YLD_CUM.length - 1]).toString();
