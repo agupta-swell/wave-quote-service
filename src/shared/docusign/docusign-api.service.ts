@@ -13,7 +13,6 @@ import { DocusignIntegrationService } from 'src/docusign-integration/docusign-in
 import { DocusignIntegrationDocument } from 'src/docusign-integration/docusign-integration.schema';
 import { JWT_EXPIRES_IN, SCOPES } from 'src/docusign-integration/constants';
 import { LeanDocument } from 'mongoose';
-import { SecretManagerService } from '../aws/services/secret-manager.service';
 import { InjectDocusignContext } from './decorators/inject-docusign-context';
 import { docusignMetaStorage } from './decorators/meta-storage';
 import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
@@ -61,7 +60,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
   private static accountId: string;
 
-  private readonly secretName: string;
+  private readonly docusignCredentials: IDocusignAwsSecretPayload;
 
   private _defaultContractor: IDefaultContractor;
 
@@ -74,18 +73,27 @@ export class DocusignApiService<Context> implements OnModuleInit {
   static _jwtAuthConfig: LeanDocument<DocusignIntegrationDocument>;
 
   constructor(
-    private readonly secretManagerService: SecretManagerService,
     @InjectDocusignContext()
     private readonly contextStore: IDocusignContextStore,
     @Inject(KEYS.PAGE_NUMBER_FORMATTER)
     private readonly pageNumberFormatter: IPageNumberFormatter,
     private readonly docusignIntegrationService: DocusignIntegrationService,
   ) {
-    if (!process.env.DOCUSIGN_SECRET_NAME) {
-      throw new Error('Missing DOCUSIGN_SECRET_NAME');
+    const docusignCredentialsEnv = process.env.DOCUSIGN_CREDENTIALS;
+
+    if (!docusignCredentialsEnv) {
+      throw new Error('Missing DOCUSIGN_CREDENTIALS');
     }
 
-    this.secretName = process.env.DOCUSIGN_SECRET_NAME;
+    const docusignSecret: IDocusignAwsSecretPayload = JSON.parse(docusignCredentialsEnv);
+
+    const { baseUrl, defaultContractor, email } = docusignSecret?.docusign || {};
+
+    if (!baseUrl || !defaultContractor || !email) {
+      throw new Error('DOCUSIGN_CREDENTIALS is invalid');
+    }
+
+    this.docusignCredentials = docusignSecret;
   }
 
   get defaultContractor(): IDefaultContractor {
@@ -97,16 +105,12 @@ export class DocusignApiService<Context> implements OnModuleInit {
   }
 
   public async onModuleInit() {
-    const secretString = await this.secretManagerService.getSecret(this.secretName);
+    this._defaultContractor = this.docusignCredentials.docusign.defaultContractor;
 
-    const parsedSecret: IDocusignAwsSecretPayload = JSON.parse(secretString);
-
-    this._defaultContractor = parsedSecret.docusign.defaultContractor;
-
-    this._docusignEmail = parsedSecret.docusign.email;
+    this._docusignEmail = this.docusignCredentials.docusign.email;
 
     DocusignApiService.apiClient = new docusign.ApiClient({
-      basePath: parsedSecret.docusign.baseUrl,
+      basePath: this.docusignCredentials.docusign.baseUrl,
       oAuthBasePath: null as any,
     });
 

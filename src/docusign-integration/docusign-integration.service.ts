@@ -3,7 +3,6 @@ import { Model, ObjectId, Types } from 'mongoose';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from 'src/app/common';
 import * as docusign from 'docusign-esign';
-import { SecretManagerService } from 'src/shared/aws/services/secret-manager.service';
 import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { IDocusignAwsSecretPayload } from 'src/shared/docusign/interfaces/IDocusignAwsSecretPayload';
 import { ApplicationException } from 'src/app/app.exception';
@@ -17,28 +16,31 @@ import { DocusignIntegrationResDto } from './res/docusign-integration';
 export class DocusignIntegrationService implements OnModuleInit {
   private apiClient: docusign.ApiClient;
 
-  private readonly secretName: string;
+  private readonly docusignCredentials: IDocusignAwsSecretPayload;
 
   constructor(
-    private readonly secretManagerService: SecretManagerService,
     @InjectModel(DOCUSIGN_INTEGRATION_NAME) private docusignIntegrationModel: Model<DocusignIntegrationDocument>,
     @Inject(forwardRef(() => DocusignApiService))
     private readonly docusignApiService: DocusignApiService<any>,
   ) {
-    if (!process.env.DOCUSIGN_SECRET_NAME) {
-      throw new Error('Missing DOCUSIGN_SECRET_NAME');
+    const docusignCredentialsEnv = process.env.DOCUSIGN_CREDENTIALS;
+    
+    if (!docusignCredentialsEnv) {
+      throw new Error('Missing DOCUSIGN_CREDENTIALS');
     }
 
-    this.secretName = process.env.DOCUSIGN_SECRET_NAME;
+    const docusignSecret: IDocusignAwsSecretPayload = JSON.parse(docusignCredentialsEnv);
+
+    if (!docusignSecret?.docusign?.baseUrl) {
+      throw new Error('DOCUSIGN_CREDENTIALS is invalid');
+    }
+
+    this.docusignCredentials = docusignSecret;
   }
 
   public async onModuleInit() {
-    const secretString = await this.secretManagerService.getSecret(this.secretName);
-
-    const parsedSecret: IDocusignAwsSecretPayload = JSON.parse(secretString);
-
     this.apiClient = new docusign.ApiClient({
-      basePath: parsedSecret.docusign.baseUrl,
+      basePath: this.docusignCredentials.docusign.baseUrl,
       oAuthBasePath: null as any,
     });
   }
