@@ -88,7 +88,7 @@ export class ECSStack extends Stack {
     cpu: parseInt(cpu_spec ?? "256"),
     taskImageOptions: {
       image: ContainerImage.fromRegistry(`${toolsAccountId}.dkr.ecr.${ecrRegion}.amazonaws.com/${company}-${applicationId}-${processId}-${environment}:${imagetag}`),
-      containerPort: 3000,
+      containerPort: 3001,
       containerName: 'app',
       executionRole: Role.fromRoleName(this, 'exec-role', `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`),
       secrets:{
