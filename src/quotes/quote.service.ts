@@ -754,8 +754,8 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
-    if (!systemDesign.roofTopDesignData.panelArray.length) {
-      throw ApplicationException.UnprocessableEntity('Can not recalculate quote from empty system design');
+    if (!systemDesign.roofTopDesignData.panelArray.length && !systemDesign.roofTopDesignData.storage.length) {
+      throw ApplicationException.UnprocessableEntity('Cannot recalculate quote from empty system design');
     }
 
     if (systemDesign.isSolar && !systemDesign.roofTopDesignData.inverters.length) {
