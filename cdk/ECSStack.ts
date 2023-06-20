@@ -125,7 +125,7 @@ export class ECSStack extends Stack {
 
   // 👇 Target group helth check configurations
   loadBalancedFargateService.targetGroup.configureHealthCheck({
-      path: "/api/healthcheck",
+      path: "/healthcheck",
       healthyHttpCodes: '200',
       });
   }
