@@ -27,7 +27,7 @@ export class ProgressService {
       qualificationCounter,
     ] = await Promise.all([
       this.utilityService.countByOpportunityId(opportunityId),
-      this.systemDesignService.countByOpportunityId(opportunityId),
+      this.systemDesignService.countActiveDocumentsByOpportunityId(opportunityId),
       this.quoteService.countByOpportunityId(opportunityId),
       this.proposalService.countByOpportunityId(opportunityId),
       this.qualificationService.countByOpportunityId(opportunityId),

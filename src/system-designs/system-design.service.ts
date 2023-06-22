@@ -1274,6 +1274,13 @@ export class SystemDesignService {
     return this.systemDesignModel.countDocuments({ opportunityId }).lean();
   }
 
+  async countActiveDocumentsByOpportunityId(opportunityId: string): Promise<number> {
+    return this.systemDesignModel.find({
+      opportunity_id: opportunityId,
+      is_archived: false
+    }).count();
+  }
+  
   async checkInUsed(systemDesignId: string): Promise<boolean | string> {
     const hasProposals = await this.proposalService.existBySystemDesignId(systemDesignId);
 
