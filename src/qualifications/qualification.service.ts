@@ -157,6 +157,7 @@ export class QualificationService {
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
         ? QUALIFICATION_CATEGORY.HARD_CREDIT
         : QUALIFICATION_CATEGORY.SOFT_CREDIT;
+    qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
     qualificationCredit.processStatus = PROCESS_STATUS.COMPLETED;
     qualificationCredit.eventHistories.push({
       issueDate: now,
@@ -387,7 +388,7 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound('Qualification Credit');
     }
 
-    if (![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED].includes(qualificationCredit.processStatus)) {
+    if (![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED, PROCESS_STATUS.APPLICATION_EMAILED].includes(qualificationCredit.processStatus)) {
       return OperationResult.ok(
         strictPlainToClass(GetApplicationDetailDto, {
           qualificationCreditId,
