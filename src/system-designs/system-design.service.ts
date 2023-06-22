@@ -910,10 +910,14 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(systemDesignId.toString());
     }
 
-    const isInUsed = await this.checkInUsed(systemDesignId.toString());
+    const { opportunityId } = foundSystemDesign;
 
-    if (isInUsed) {
-      throw new BadRequestException(isInUsed);
+    const { isSentProposalsExisted, isGeneratedContractExisted } = await this.checkSentProposalOrGeneratedContract(
+      foundSystemDesign,
+    );
+
+    if (isSentProposalsExisted || isGeneratedContractExisted) {
+      throw new BadRequestException('This system design has sent proposal or generated contract');
     }
 
     const { isArchived } = body;
@@ -923,26 +927,40 @@ export class SystemDesignService {
     await foundSystemDesign.save();
 
     if (isArchived) {
-      const { opportunityId } = foundSystemDesign;
-      const foundQuotes = await this.quoteService.getQuotesByCondition(
-        {
-          systemDesignId: systemDesignId.toString(),
-          opportunityId,
-          isArchived: false,
-        },
-        100,
-        0,
-      );
+      const foundQuotes = await this.quoteService.getQuotesByCondition({
+        systemDesignId: systemDesignId.toString(),
+        opportunityId,
+        isArchived: false,
+      });
 
-      await this.quoteService.updateQuotesByCondition(
-        { _id: { $in: foundQuotes.map(({ _id }) => _id) } },
-        { isArchived: true },
-      );
+      if (foundQuotes.length) {
+        const checkedQuotes = await Promise.all(
+          foundQuotes.map(async quote => {
+            const isInUsed = await this.quoteService.checkInUsed(quote._id.toString());
+            return { ...quote, isInUsed };
+          }),
+        );
+
+        const filteredQuotes = checkedQuotes.filter(({ isInUsed }) => !isInUsed);
+
+        if (filteredQuotes.length) {
+          await this.quoteService.updateQuotesByCondition(
+            { _id: { $in: filteredQuotes.map(({ _id }) => _id) } },
+            { isArchived: true },
+          );
+        }
+      }
     }
+    const [imageURL, systemProduction] = await Promise.all([
+      this.getPresignedGetURLOfRooftopImage(foundSystemDesign),
+      this.systemProductionService.findById(foundSystemDesign.systemProductionId),
+    ]);
 
     return OperationResult.ok(
       strictPlainToClass(SystemDesignDto, {
         ...foundSystemDesign.toJSON(),
+        systemProductionData: systemProduction.data,
+        imageURL,
       }),
     );
   }
@@ -1072,12 +1090,18 @@ export class SystemDesignService {
           systemDesign.systemProductionData = systemProduction.data;
         }
 
+        const { isSentProposalsExisted, isGeneratedContractExisted } = await this.checkSentProposalOrGeneratedContract(
+          systemDesign,
+        );
+
         const imageURL = await this.getPresignedGetURLOfRooftopImage(systemDesign);
 
         return {
           ...systemDesign,
           editable: !isInUsed,
           editableMessage: isInUsed || null,
+          isSentProposalsExisted,
+          isGeneratedContractExisted,
           imageURL,
         };
       }),
@@ -2594,5 +2618,36 @@ export class SystemDesignService {
         annualProduction,
       }),
     );
+  }
+
+  private async checkSentProposalOrGeneratedContract(
+    systemDesign: SystemDesign,
+  ): Promise<{ isSentProposalsExisted: boolean; isGeneratedContractExisted: boolean }> {
+    const { _id: systemDesignId, opportunityId } = systemDesign;
+    const [foundProposals, foundContract] = await Promise.all([
+      this.proposalService.getProposalsBySystemDesignId(systemDesignId.toString()),
+      this.contractService.getNotVoidedContractByOpportunityId(opportunityId),
+    ]);
+
+    const isGeneratedContractExisted = !!foundContract?.contractingSystemReferenceId;
+
+    let isSentProposalsExisted = false;
+    if (foundProposals.length) {
+      isSentProposalsExisted = await (async () => {
+        for (let index = 0; index < foundProposals.length; index++) {
+          const proposal = foundProposals[index];
+          // eslint-disable-next-line no-await-in-loop
+          const isSent = await this.proposalService.checkIsSent(proposal);
+
+          if (isSent) return true;
+        }
+        return false;
+      })();
+    }
+
+    return {
+      isSentProposalsExisted,
+      isGeneratedContractExisted,
+    };
   }
 }

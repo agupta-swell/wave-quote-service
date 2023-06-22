@@ -966,4 +966,8 @@ export class ProposalService {
 
     return false;
   }
+
+  public async getProposalsBySystemDesignId(systemDesignId: string): Promise<Proposal[]> {
+    return this.proposalModel.find({ systemDesignId });
+  }
 }

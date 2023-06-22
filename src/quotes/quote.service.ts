@@ -1714,8 +1714,8 @@ export class QuoteService {
     }
   }
 
-  getQuotesByCondition(condition, limit: number, skip: number) {
-    return this.quoteModel.find(condition).limit(limit).skip(skip).lean();
+  getQuotesByCondition(condition) {
+    return this.quoteModel.find(condition).lean();
   }
 
   updateQuoteById(quoteId: ObjectId, newQuote) {
