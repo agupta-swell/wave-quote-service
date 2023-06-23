@@ -1,12 +1,19 @@
 /* eslint-disable no-plusplus */
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ObjectId } from 'mongoose';
+import { of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { ApplicationException } from 'src/app/app.exception';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { PvWattProductionDto } from 'src/system-productions/res';
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
 import { CHARGING_LOGIC_TYPE } from 'src/utilities/constants';
+import {
+  calculateElectricVehicle,
+  calculatePlannedUsageIncreasesKwh,
+  calculatePoolUsageKwh,
+} from 'src/utilities/operators';
 import { GetPinballSimulatorDto } from 'src/utilities/req';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
 import { UtilityService } from 'src/utilities/utility.service';
@@ -22,8 +29,6 @@ import {
 export class EnergyProfileService {
   private PINBALL_SIMULATION_BUCKET = process.env.AWS_S3_PINBALL_SIMULATION as string;
 
-  private GOOGLE_SUNROOF_BUCKET = process.env.GOOGLE_SUNROOF_S3_BUCKET as string;
-
   constructor(
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
@@ -35,6 +40,31 @@ export class EnergyProfileService {
   async getPvWattProduction(systemDesignId: ObjectId): Promise<PvWattProductionDto | undefined> {
     const systemDesign = await this.systemDesignService.getDetails(systemDesignId);
     return systemDesign.data?.systemProductionData.pvWattProduction;
+  }
+
+  async getExpectedUsage(opportunityId: string): Promise<IEnergyProfileProduction> {
+    const utilityUsageDetailData = await this.utilityService.getUtilityByOpportunityId(opportunityId);
+
+    if (!utilityUsageDetailData) {
+      throw new NotFoundException(`Utility and Usage detail is not found with this opportunity id ${opportunityId}`);
+    }
+
+    if (utilityUsageDetailData.plannedProfile) {
+      return buildMonthlyAndAnnualDataFrom8760(utilityUsageDetailData.plannedProfile.hourlyUsage.map(v => v * 1000)); // convert to Wh
+    }
+
+    const { usage } = await this.utilityService
+      .getTypicalUsage$(opportunityId)
+      .pipe(
+        mergeMap(res =>
+          of(res).pipe(calculatePlannedUsageIncreasesKwh, calculatePoolUsageKwh, calculateElectricVehicle),
+        ),
+      )
+      .toPromise();
+
+    const [annualUsage, ...monthlyUsage] = usage;
+
+    return { annualAverage: annualUsage, monthlyAverage: monthlyUsage };
   }
 
   async getSunroofHourlyProduction(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {

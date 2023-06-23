@@ -1,5 +1,4 @@
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
-import { TypicalUsageKwh } from 'src/utilities/sub-services';
 
 export interface IBatteryDataSeries {
   average: IEnergyProfileProduction;
@@ -12,7 +11,7 @@ export interface INetLoad {
 }
 
 export interface IGetEnergyProfile {
-  usage: TypicalUsageKwh;
+  expectedUsage: IEnergyProfileProduction;
   solarProduction: IEnergyProfileProduction;
   batteryChargingSeries: IEnergyProfileProduction;
   batteryDischargingSeries: IEnergyProfileProduction;
