@@ -134,7 +134,7 @@ export class SystemDesignService {
     if (
       (systemDesignDto.roofTopDesignData &&
         !systemDesignDto.roofTopDesignData.roofTopImage &&
-        !systemDesignDto.roofTopDesignData.panelArray.length &&
+        !systemDesignDto.roofTopDesignData?.panelArray.length &&
         !systemDesignDto.roofTopDesignData.storage.length &&
         !systemDesignDto.roofTopDesignData.inverters.length) ||
       (systemDesignDto.capacityProductionDesignData &&
@@ -164,7 +164,7 @@ export class SystemDesignService {
     if (systemDesign.designMode === DESIGN_MODE.ROOF_TOP) {
       const handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(systemDesign)];
       // a system has only one module
-      if (systemDesign.roofTopDesignData.panelArray.length) {
+      if (systemDesign.roofTopDesignData?.panelArray.length) {
         handlers.push(
           this.productService.getDetailByIdAndType(
             PRODUCT_TYPE.MODULE,
@@ -550,7 +550,7 @@ export class SystemDesignService {
 
       const _handlers: Promise<unknown>[] = [this.googleSunroofService.isExistedGeotiff(systemDesign)];
       // a system has only one module
-      if (systemDesign.roofTopDesignData.panelArray.length) {
+      if (systemDesign.roofTopDesignData?.panelArray.length) {
         _handlers.push(
           this.productService.getDetailByIdAndType(
             PRODUCT_TYPE.MODULE,
@@ -976,7 +976,7 @@ export class SystemDesignService {
     if (
       systemDesignDto.roofTopDesignData &&
       !systemDesignDto.roofTopDesignData.roofTopImage &&
-      !systemDesignDto.roofTopDesignData.panelArray.length &&
+      !systemDesignDto.roofTopDesignData?.panelArray.length &&
       !systemDesignDto.roofTopDesignData.storage.length &&
       !systemDesignDto.roofTopDesignData.inverters.length
     ) {
@@ -1299,12 +1299,14 @@ export class SystemDesignService {
   }
 
   async countActiveDocumentsByOpportunityId(opportunityId: string): Promise<number> {
-    return this.systemDesignModel.find({
-      opportunity_id: opportunityId,
-      is_archived: false
-    }).count();
+    return this.systemDesignModel
+      .find({
+        opportunity_id: opportunityId,
+        is_archived: false,
+      })
+      .count();
   }
-  
+
   async checkInUsed(systemDesignId: string): Promise<boolean | string> {
     const hasProposals = await this.proposalService.existBySystemDesignId(systemDesignId);
 
@@ -1345,7 +1347,7 @@ export class SystemDesignService {
       if (isMongoId(arrayId)) {
         const foundPanel =
           systemDesign.roofTopDesignData &&
-          systemDesign.roofTopDesignData.panelArray.find(item => item.arrayId.toString() === arrayId);
+          systemDesign.roofTopDesignData?.panelArray.find(item => item.arrayId.toString() === arrayId);
 
         if (!foundPanel)
           throw new NotFoundException(`No panel found with id ${arrayId} in system design ${systemDesignId}`);
@@ -2176,7 +2178,7 @@ export class SystemDesignService {
     const noneSolarProduction8760: number[] = new Array(8760).fill(0);
 
     // check if system design does not have panel array => no solar production
-    if (!foundSystemDesign.roofTopDesignData.panelArray.length) return noneSolarProduction8760;
+    if (!foundSystemDesign.roofTopDesignData?.panelArray.length) return noneSolarProduction8760;
 
     let cacheSystemActualProduction8760;
 
@@ -2474,7 +2476,7 @@ export class SystemDesignService {
 
     // First Year Degradation
     const firstYearDegradationValue = roundNumber(
-      systemDesign.roofTopDesignData.panelArray[0].panelModelDataSnapshot.firstYearDegradation,
+      systemDesign.roofTopDesignData?.panelArray[0].panelModelDataSnapshot.firstYearDegradation,
       2,
     );
     const firstYearDegradationArray = this.applyDerate(rawAnnualProductionSumArray, firstYearDegradationValue / 100);

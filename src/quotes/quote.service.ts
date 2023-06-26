@@ -127,7 +127,7 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('System Production');
     }
 
-    if (!systemDesign.roofTopDesignData.storage.length && !systemDesign.roofTopDesignData.panelArray.length) {
+    if (!systemDesign.roofTopDesignData?.storage.length && !systemDesign.roofTopDesignData?.panelArray.length) {
       throw ApplicationException.UnprocessableEntity('Can not create quote from empty system design');
     }
 
@@ -754,7 +754,7 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('system Design');
     }
 
-    if (!systemDesign.roofTopDesignData.panelArray.length && !systemDesign.roofTopDesignData.storage.length) {
+    if (!systemDesign.roofTopDesignData?.panelArray.length && !systemDesign.roofTopDesignData?.storage.length) {
       throw ApplicationException.UnprocessableEntity('Cannot recalculate quote from empty system design');
     }
 

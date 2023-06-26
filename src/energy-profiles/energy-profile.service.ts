@@ -288,7 +288,7 @@ export class EnergyProfileService {
     }
 
     // check if system design does not have panel array, so does not need SIMULATE PINBALL
-    if (!systemDesign.roofTopDesignData.panelArray.length) {
+    if (!systemDesign.roofTopDesignData?.panelArray.length) {
       return null;
     }
 
