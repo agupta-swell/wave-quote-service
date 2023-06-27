@@ -77,4 +77,9 @@ export class CreateUtilityReqDto {
   @IsOptional()
   @IsNumber()
   medicalBaselineAmount?: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsBoolean()
+  isLowIncomeOrDac?: boolean;
 }

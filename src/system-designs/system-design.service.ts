@@ -1609,6 +1609,7 @@ export class SystemDesignService {
     }
 
     const medicalBaselineAmount = utility.medicalBaselineAmount;
+    const isLowIncomeOrDac = utility.isLowIncomeOrDac;
 
     const masterTariffId = utility.costData.postInstallMasterTariffId;
 
@@ -1638,6 +1639,7 @@ export class SystemDesignService {
         masterTariffId,
         zipCode: utility.utilityData.typicalBaselineUsage.zipCode,
         medicalBaselineAmount,
+        isLowIncomeOrDac,
       }),
       ...savePinballToS3Requests,
     ]);
@@ -1652,6 +1654,7 @@ export class SystemDesignService {
         medicalBaselineAmount,
         fromDateTime,
         toDateTime,
+        isLowIncomeOrDac
       },
     };
     const unsetData: any = {};
@@ -2259,6 +2262,7 @@ export class SystemDesignService {
         operationMode: storage[0]?.purpose || BATTERY_PURPOSE.PV_SELF_CONSUMPTION,
       },
       medicalBaselineAmount: utility.medicalBaselineAmount,
+      isLowIncomeOrDac: utility.isLowIncomeOrDac,
     };
 
     await this.s3Service.putObject(

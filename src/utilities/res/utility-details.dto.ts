@@ -67,4 +67,7 @@ export class UtilityDetailsDto {
 
   @ExposeProp({ type: UsageProfileProductionDto })
   plannedProfile: UsageProfileProductionDto;
+
+  @ExposeProp()
+  isLowIncomeOrDac?: boolean;
 }

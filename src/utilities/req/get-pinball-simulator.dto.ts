@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested, IsDate } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested, IsDate, IsBoolean } from 'class-validator';
 import { BATTERY_PURPOSE } from 'src/system-designs/constants';
 
 export class BatterySystemSpecsDto {
@@ -64,6 +64,11 @@ export class GetPinballSimulatorDto {
   @IsOptional()
   @IsNumber()
   medicalBaselineAmount?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isLowIncomeOrDac?: boolean;
 }
 
 export class GetPinballSimulatorAndCostPostInstallationDto extends GetPinballSimulatorDto {

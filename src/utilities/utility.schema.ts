@@ -272,6 +272,7 @@ export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   currentUsageProfile: IUsageProfileProduction;
   plannedProfile: IUsageProfileProduction;
   plannedCost: number;
+  isLowIncomeOrDac?: boolean;
 }
 
 export type UtilityUsageDetails = Document & IUtilityUsageDetails;
@@ -292,6 +293,7 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   total_planned_usage_increases: Number,
   has_medical_baseline: Boolean,
   medical_baseline_amount: Number,
+  is_low_income_or_dac: Boolean,
   computed_additions: UsageProfileProductionSchema,
   home_usage_profile: UsageProfileProductionSchema,
   adjusted_usage_profile: UsageProfileProductionSchema,
@@ -351,6 +353,8 @@ export class UtilityUsageDetailsModel {
 
   plannedCost: number;
 
+  isLowIncomeOrDac?: boolean;
+
   constructor(props: CreateUtilityReqDto | any) {
     this.opportunityId = props.opportunityId;
     this.utilityData = props.utilityData;
@@ -364,6 +368,7 @@ export class UtilityUsageDetailsModel {
     this.hasMedicalBaseline = props.hasMedicalBaseline;
     this.medicalBaselineAmount = props.medicalBaselineAmount;
     this.electricVehicles = props.electricVehicles ?? [];
+    this.isLowIncomeOrDac = props.isLowIncomeOrDac;
   }
 
   setActualHourlyUsage(data: IUsageValue[]) {

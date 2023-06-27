@@ -67,6 +67,7 @@ import {
   UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
 } from './utility.schema';
+import { UpdateAccPlusLowIncomeIncentiveDto } from './req/update-acc-plus-low-income-incentive.dto';
 
 @Injectable()
 export class UtilityService implements OnModuleInit {
@@ -256,6 +257,7 @@ export class UtilityService implements OnModuleInit {
       this.utilityUsageDetailsModel.findOne({ opportunityId }).lean(),
     ]);
     const medicalBaselineAmount = utilityUsageDetailData?.medicalBaselineAmount;
+    const isLowIncomeOrDac = utilityUsageDetailData?.isLowIncomeOrDac;
 
     const usageCost = await this.calculateCost(
       typicalBaseLine.typicalBaseline.typicalHourlyUsage.map(item => item.v),
@@ -264,6 +266,7 @@ export class UtilityService implements OnModuleInit {
       typicalBaseLine.zipCode,
       medicalBaselineAmount,
       new Date().getFullYear(),
+      isLowIncomeOrDac,
     );
 
     const costData = {
@@ -276,7 +279,7 @@ export class UtilityService implements OnModuleInit {
   }
 
   async calculateActualUsageCostUtil(data: CalculateActualUsageCostDto): Promise<any> {
-    const { masterTariffId, utilityData, usageProfileId, opportunityId, medicalBaselineAmount } = data;
+    const { masterTariffId, utilityData, usageProfileId, opportunityId, hasMedicalBaseline, medicalBaselineAmount, isLowIncomeOrDac } = data;
     const utilityUsageDetailData = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
 
     let hourlyDataForTheYear: UsageValue[] = [];
@@ -297,13 +300,16 @@ export class UtilityService implements OnModuleInit {
       ) as UsageValue[];
     }
 
+    const medicalBaselineAmountPayloadData = typeof hasMedicalBaseline === 'boolean' && !hasMedicalBaseline ? undefined : medicalBaselineAmount ?? utilityUsageDetailData?.medicalBaselineAmount;
+
     const usageCost = await this.calculateCost(
       hourlyDataForTheYear.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       data.utilityData.typicalBaselineUsage.zipCode,
-      medicalBaselineAmount ?? utilityUsageDetailData?.medicalBaselineAmount,
+      medicalBaselineAmountPayloadData,
       new Date().getFullYear(),
+      typeof isLowIncomeOrDac === 'boolean' ? isLowIncomeOrDac : utilityUsageDetailData?.isLowIncomeOrDac
     );
 
     const costData = {
@@ -339,14 +345,26 @@ export class UtilityService implements OnModuleInit {
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
     utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
 
+    let isCalculateActualUsage = false;
+    const calculateActualUsageCostUtilPayload: CalculateActualUsageCostDto = {
+      masterTariffId: utilityDto.costData.masterTariffId,
+      utilityData: utilityDto.utilityData,
+      usageProfileId: utilityDto.usageProfileId,
+      opportunityId: utilityDto.opportunityId,
+    };
+
     if (utilityDto.hasMedicalBaseline && utilityDto.medicalBaselineAmount !== undefined) {
-      const newCostData = await this.calculateActualUsageCostUtil({
-        masterTariffId: utilityDto.costData.masterTariffId,
-        utilityData: utilityDto.utilityData,
-        usageProfileId: utilityDto.usageProfileId,
-        opportunityId: utilityDto.opportunityId,
-        medicalBaselineAmount: utilityDto.medicalBaselineAmount,
-      });
+      isCalculateActualUsage = true;
+      calculateActualUsageCostUtilPayload.medicalBaselineAmount = utilityDto.medicalBaselineAmount;
+    }
+
+    if (utilityDto.isLowIncomeOrDac) {
+      isCalculateActualUsage = true;
+      calculateActualUsageCostUtilPayload.isLowIncomeOrDac = utilityDto.isLowIncomeOrDac;
+    }
+
+    if (isCalculateActualUsage) {
+      const newCostData = await this.calculateActualUsageCostUtil(calculateActualUsageCostUtilPayload);
 
       utilityDto.costData.actualUsageCost = newCostData.actualUsageCost;
       utilityDto.costData.computedCost = newCostData.computedCost;
@@ -451,9 +469,11 @@ export class UtilityService implements OnModuleInit {
       throw ApplicationException.EntityNotFound(utilityId.toString());
     }
 
-    utilityUsageDetailData.hasMedicalBaseline = medicalBaselineData.hasMedicalBaseline;
+    const { hasMedicalBaseline, medicalBaselineAmount } = medicalBaselineData;
+
+    utilityUsageDetailData.hasMedicalBaseline = hasMedicalBaseline;
     if (medicalBaselineData.hasMedicalBaseline) {
-      utilityUsageDetailData.medicalBaselineAmount = medicalBaselineData.medicalBaselineAmount;
+      utilityUsageDetailData.medicalBaselineAmount = medicalBaselineAmount;
     } else {
       utilityUsageDetailData.medicalBaselineAmount = undefined;
     }
@@ -464,7 +484,38 @@ export class UtilityService implements OnModuleInit {
       utilityData,
       usageProfileId,
       opportunityId,
-      medicalBaselineAmount: medicalBaselineData.medicalBaselineAmount,
+      hasMedicalBaseline: utilityUsageDetailData.hasMedicalBaseline,
+      medicalBaselineAmount: utilityUsageDetailData.medicalBaselineAmount,
+    });
+
+    utilityUsageDetailData.costData.actualUsageCost = newCostData.actualUsageCost;
+    utilityUsageDetailData.costData.computedCost = newCostData.computedCost;
+
+    await utilityUsageDetailData.save();
+
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, utilityUsageDetailData));
+  }
+
+  async updateAccPlusLowIncomeIncentive(
+    utilityId: ObjectId,
+    accPlusLowIncomeIncentiveData: UpdateAccPlusLowIncomeIncentiveDto,
+  ): Promise<OperationResult<UtilityDetailsDto>> {
+    const { isLowIncomeOrDac } = accPlusLowIncomeIncentiveData;
+
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById({ _id: utilityId });
+    if (!utilityUsageDetailData) {
+      throw ApplicationException.EntityNotFound(utilityId.toString());
+    }
+
+    utilityUsageDetailData.isLowIncomeOrDac = isLowIncomeOrDac;
+
+    const { costData, utilityData, usageProfileId, opportunityId } = utilityUsageDetailData;
+    const newCostData = await this.calculateActualUsageCostUtil({
+      masterTariffId: costData.masterTariffId,
+      utilityData,
+      usageProfileId,
+      opportunityId,
+      isLowIncomeOrDac,
     });
 
     utilityUsageDetailData.costData.actualUsageCost = newCostData.actualUsageCost;
@@ -554,18 +605,26 @@ export class UtilityService implements OnModuleInit {
       hourlyUsage: hourlyPlannedProfile,
     });
 
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findOne({ _id: utilityId }).lean();
+
     const [currentUsageCost, plannedCost] = await Promise.all([
       this.calculateCost(
         hourlyCurrentUsageProfile,
         utilityDto.costData.masterTariffId,
         CALCULATION_MODE.ACTUAL,
         utilityDto.utilityData.typicalBaselineUsage.zipCode,
+        utilityUsageDetailData?.medicalBaselineAmount,
+        undefined,
+        utilityUsageDetailData?.isLowIncomeOrDac,
       ),
       this.calculateCost(
         hourlyPlannedProfile,
         utilityDto.costData.masterTariffId,
         CALCULATION_MODE.ACTUAL,
         utilityDto.utilityData.typicalBaselineUsage.zipCode,
+        utilityUsageDetailData?.medicalBaselineAmount,
+        undefined,
+        utilityUsageDetailData?.isLowIncomeOrDac,
       ),
     ]);
 
@@ -1046,6 +1105,7 @@ export class UtilityService implements OnModuleInit {
       zipCode,
       batterySystemSpecs,
       medicalBaselineAmount,
+      isLowIncomeOrDac,
     } = data;
 
     let filterTariffs: any[] = [];
@@ -1166,7 +1226,7 @@ export class UtilityService implements OnModuleInit {
         sqrtRoundTripEfficiency,
         chargingLogicType,
       );
-
+        
       const [
         { annualCost: costPostInstallationForNEM2 },
         { annualCost: costPostInstallationForNEM3 },
@@ -1176,12 +1236,14 @@ export class UtilityService implements OnModuleInit {
           masterTariffId: postInstallMasterTariffId,
           zipCode,
           medicalBaselineAmount,
+          isLowIncomeOrDac,
         }),
         this.externalService.calculateAnnualBill({
           hourlyDataForTheYear: pinballDataForNEM3.postInstallSiteDemandSeries.map(i => i / 1000),
           masterTariffId: postInstallMasterTariffId,
           zipCode,
           medicalBaselineAmount,
+          isLowIncomeOrDac,
         }),
       ]);
 
@@ -1416,6 +1478,7 @@ export class UtilityService implements OnModuleInit {
     zipCode: number,
     medicalBaselineAmount?: number,
     year?: number,
+    isLowIncomeOrDac?: boolean,
   ): Promise<IUtilityCostData> {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -1442,6 +1505,7 @@ export class UtilityService implements OnModuleInit {
       masterTariffId,
       zipCode,
       medicalBaselineAmount,
+      isLowIncomeOrDac,
     });
 
     const { annualCost, fromDateTime, toDateTime } = data;
