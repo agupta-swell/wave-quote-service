@@ -1,3 +1,4 @@
+import { DOCUSIGN_INTEGRATION_TYPE } from 'src/docusign-integration/constants';
 import { ICompiledTemplate } from './ICompiledTemplate';
 
 export interface IIndexable {
@@ -30,4 +31,6 @@ export interface IContext<T extends IIndexable> {
   envelopeId?: string;
 
   templatePages?: number[];
+
+  docusignIntegrationType: DOCUSIGN_INTEGRATION_TYPE;
 }

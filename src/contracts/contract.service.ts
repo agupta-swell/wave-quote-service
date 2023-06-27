@@ -886,6 +886,7 @@ export class ContractService {
     const contact = await this.contactService.getContactById(opportunity.contactId);
 
     const envelope = await this.docusignCommunicationService.sendWetSingedContract(
+      contract.id,
       financier,
       carbonCopiesRecipient,
       file,
@@ -1300,5 +1301,15 @@ export class ContractService {
       associatedQuoteId: { $in: foundQuoteIds },
       contractStatus: { $ne: PROCESS_STATUS.VOIDED },
     });
+  }
+
+  async getFinancialProductType(query = {}): Promise<string | undefined> {
+    const contract = await this.contractModel.findOne(query).lean();
+
+    if (contract?.associatedQuoteId) {
+      const quote = await this.quoteService.getOneById(contract.associatedQuoteId);
+      return quote?.quoteFinanceProduct.financeProduct.productType;
+    }
+    return undefined;
   }
 }

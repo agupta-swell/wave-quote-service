@@ -6,29 +6,110 @@ import { IncomingMessage } from 'http';
 import { DocusignTemplateMaster } from 'src/docusign-templates-master/docusign-template-master.schema';
 import { SignerRoleMaster } from 'src/docusign-templates-master/schemas';
 import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
-import { compareIds } from 'src/utils/common';
+import { compareIds, transformToValidId } from 'src/utils/common';
 import { DocusignApiService, TResendEnvelopeStatus } from 'src/shared/docusign';
 import { EnvelopeSummary, EnvelopeUpdateSummary } from 'docusign-esign';
+import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
+import { DOCUSIGN_INTEGRATION_TYPE } from 'src/docusign-integration/constants';
 import {
-  CONTRACTING_SYSTEM_STATUS,
   ICompositeTemplate,
-  IContractSignerDetails,
-  IDocusignPayload,
   IGenericObject,
   IGenericObjectForGSP,
   IInlineTemplate,
   ISendDocusignToContractResponse,
   IServerTemplate,
   ISignerData,
-  ISignerDetailFromContractingSystemData,
   REQUEST_TYPE,
 } from './typing';
 import { DocusignCommunication, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
 import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
 import { FastifyFile } from '../shared/fastify';
+import { getFunctionParams } from './utils';
+import { DEFAULT_QUERY_CONTRACT_KEY_MAPPING, DOCUSIGN_API_TYPE } from './constants';
+
+function GetDocusignIntegrationInstance(
+  docusignApiType = DOCUSIGN_API_TYPE.DEFAULT,
+  customMapping?: Record<string, any>,
+): MethodDecorator {
+  return (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+    const originalMethod = descriptor.value;
+
+    descriptor.value = async function (...args: any[]) {
+      const queryContractKeyMapping = customMapping || DEFAULT_QUERY_CONTRACT_KEY_MAPPING;
+      let queryKey = '';
+      let queryValue: any;
+      let docusignIntegrationType = DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+
+      // case originalMethod = ({a,b,c,...}) => {...}
+      for (let argIdx = 0; argIdx < args.length; argIdx += 1) {
+        const arg = args[argIdx];
+        let isDone = false;
+
+        if (typeof arg === 'object') {
+          for (let keyIdx = 0; keyIdx < Object.keys(queryContractKeyMapping).length; keyIdx += 1) {
+            const key = queryContractKeyMapping[keyIdx];
+
+            if (arg[key]) {
+              queryKey = queryContractKeyMapping[key];
+              queryValue = arg[key];
+              isDone = true;
+              break;
+            }
+          }
+        }
+
+        if (isDone === true) {
+          break;
+        }
+      }
+
+      // case originalMethod = (a,b,c,...) => {...}
+      if (!queryKey) {
+        const params = getFunctionParams(originalMethod);
+
+        for (let paramIdx = 0; paramIdx < params.length; paramIdx += 1) {
+          const param = params[paramIdx];
+          if (Object.keys(queryContractKeyMapping).includes(param)) {
+            queryKey = queryContractKeyMapping[param];
+            queryValue = args[paramIdx];
+          }
+        }
+      }
+
+      if (queryKey === '_id') {
+        queryValue = transformToValidId(queryValue);
+      }
+
+      if (queryKey) {
+        const financialProductType = await this.contractService.getFinancialProductType({
+          [queryKey]: queryValue,
+        });
+        docusignIntegrationType =
+          financialProductType === FINANCE_PRODUCT_TYPE.ESA
+            ? DOCUSIGN_INTEGRATION_TYPE.ESA
+            : DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+      }
+
+      switch (docusignApiType) {
+        case DOCUSIGN_API_TYPE.GSP:
+          await this.docusignGSPApiService.preCheckValidAuthConfig(docusignIntegrationType);
+          break;
+        default:
+          await this.docusignApiService.preCheckValidAuthConfig(docusignIntegrationType);
+      }
+
+      const result = originalMethod.apply(this, args);
+
+      return result;
+    };
+
+    return descriptor;
+  };
+}
 
 @Injectable()
 export class DocusignCommunicationService {
+  // contractService is being used in GetDocusignIntegrationInstance decorator, don't remove it in constructor
   constructor(
     @InjectModel(DOCUSIGN_COMMUNICATION) private readonly docusignCommunicationModel: Model<DocusignCommunication>,
     @Inject(forwardRef(() => ContractService))
@@ -38,6 +119,7 @@ export class DocusignCommunicationService {
   ) {}
 
   // =====================> INTERNAL <=====================
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.DEFAULT)
   async sendContractToDocusign(
     contractId: string,
     templateDetails: ITemplateDetailSchema[],
@@ -90,6 +172,7 @@ export class DocusignCommunicationService {
     return { status: 'SUCCESS', contractingSystemReferenceId: resDocusign?.envelopeId };
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.GSP)
   async sendGSPContractToDocusign(
     contractId: string,
     templateDetails: ITemplateDetailSchema[],
@@ -100,7 +183,7 @@ export class DocusignCommunicationService {
     isDraft = false,
   ): Promise<ISendDocusignToContractResponse> {
     const docusignPayload: any = {
-      emailSubject: `${'Contract'} - Agreement for ${contractName}`,
+      emailSubject: `Contract - Agreement for ${contractName}`,
       emailBlurb: 'Please review and sign the contract for your energy project!',
       compositeTemplates: [],
     };
@@ -224,26 +307,32 @@ export class DocusignCommunicationService {
     return res;
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.DEFAULT)
   downloadContract(envelopeId: string, showChanges: boolean): Promise<IncomingMessage> {
     return this.docusignApiService.getEnvelopeDocumentById(envelopeId, showChanges);
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.DEFAULT)
   resendContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
     return this.docusignApiService.resendEnvelop(envelopeId);
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.DEFAULT)
   sendDraftContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
     return this.docusignApiService.sendDraftEnvelop(envelopeId);
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.GSP)
   downloadGSPContract(envelopeId: string, showChanges: boolean): Promise<IncomingMessage> {
     return this.docusignGSPApiService.getEnvelopeDocumentById(envelopeId, showChanges);
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.GSP)
   resendGSPContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
     return this.docusignGSPApiService.resendEnvelop(envelopeId);
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.GSP)
   sendGSPDraftContract(envelopeId: string): Promise<TResendEnvelopeStatus> {
     return this.docusignGSPApiService.sendDraftEnvelop(envelopeId);
   }
@@ -272,12 +361,15 @@ export class DocusignCommunicationService {
     }
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.DEFAULT)
   sendWetSingedContract(
+    contractId: string,
     financier: ISignerDetailDataSchema,
     carbonCopyRecipients: ISignerDetailDataSchema[],
     contractFile: FastifyFile,
     emailSubject: string,
   ): Promise<EnvelopeSummary> {
+    // contractId will be used in GetDocusignIntegrationInstance decorator
     return this.docusignApiService.sendWetSignedContract(
       contractFile.file,
       contractFile.filename,
@@ -292,10 +384,12 @@ export class DocusignCommunicationService {
     );
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.DEFAULT)
   voidEnvelope(envelopeId: string): Promise<EnvelopeUpdateSummary> {
     return this.docusignApiService.voidEnvelope(envelopeId);
   }
 
+  @GetDocusignIntegrationInstance(DOCUSIGN_API_TYPE.GSP)
   voidGSPEnvelope(envelopeId: string): Promise<EnvelopeUpdateSummary> {
     return this.docusignGSPApiService.voidEnvelope(envelopeId);
   }

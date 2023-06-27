@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { DOCUSIGN_INTEGRATION_TYPE } from './constants';
 
 export interface DocusignIntegrationDocument extends Document {
   accessToken: string;
@@ -8,6 +9,7 @@ export interface DocusignIntegrationDocument extends Document {
   rsaPrivateKey: string;
   expiresAt: Date;
   redirectUri: string;
+  type: DOCUSIGN_INTEGRATION_TYPE;
   createdAt: string;
 }
 
@@ -19,5 +21,6 @@ export const DocusignIntegrationSchema = new Schema<DocusignIntegrationDocument>
   rsa_private_key: String,
   expires_at: Date,
   redirect_uri: String,
+  type: String,
   created_at: { type: Date, default: Date.now },
 });

@@ -87,4 +87,8 @@ export class ApplicationException extends HttpException {
       HttpStatus.BAD_REQUEST,
     );
   }
+
+  static InvalidDocusignIntegrationType(): ApplicationException {
+    return new ApplicationException('Docusign Integration Type is invalid.', HttpStatus.UNPROCESSABLE_ENTITY);
+  }
 }

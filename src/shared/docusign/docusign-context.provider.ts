@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'async_hooks';
+import { DOCUSIGN_INTEGRATION_TYPE } from 'src/docusign-integration/constants';
 import { IDocusignContextStore } from '.';
 import { IContext, IIndexable } from './interfaces/IContext';
 
@@ -22,6 +23,7 @@ export class DocusignContextProvider implements IDocusignContextStore {
         currentPage: 0,
         totalPage: 0,
         serverTemplateIds: [],
+        docusignIntegrationType: DOCUSIGN_INTEGRATION_TYPE.DEFAULT,
       },
       cb,
     );
