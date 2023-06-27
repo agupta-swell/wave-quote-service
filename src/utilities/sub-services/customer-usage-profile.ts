@@ -1,6 +1,6 @@
-import { roundNumber } from 'src/utils/transformNumber';
+import { forwardRef, Inject } from '@nestjs/common';
 import { buildMonthlyAndAnnualDataFromHour8760 } from 'src/utils/transformData';
-import { Inject, forwardRef } from '@nestjs/common';
+import { roundNumber } from 'src/utils/transformNumber';
 import { IUtilityUsageDetails } from '../utility.schema';
 import { UtilityService } from '../utility.service';
 
@@ -11,13 +11,13 @@ export class UsageProfileProductionService {
   ) {}
 
   async calculateUsageProfile(utility: IUtilityUsageDetails) {
-    const hourlyEstimatedUsage = this.utilityService.getHourlyEstimatedUsage(utility);
-
     const existingSystemProduction = await this.utilityService.getExistingSystemProductionByOpportunityId(
       utility.opportunityId,
       true,
     );
     const hourlyExistingPVInKWh = existingSystemProduction.hourlyProduction.map(e => e / 1000);
+
+    const hourlyEstimatedUsage = this.utilityService.getHourlyEstimatedUsage(utility);
 
     // computedAdditions = hourlyEstimatedUsage - computedUsage
     // Because computedAdditions is the Planned Usage Increases so it's positive number
@@ -26,10 +26,17 @@ export class UsageProfileProductionService {
     const hourlyComputedAdditions = hourlyEstimatedUsage.map((v, i) =>
       Math.abs(roundNumber(v - utility.utilityData.computedUsage.hourlyUsage[i].v)),
     );
+
     // homeUsageProfile
-    const hourlyHomeUsageProfile = utility.utilityData.computedUsage.hourlyUsage?.map(
-      ({ v }, i) => v + (hourlyExistingPVInKWh[i] || 0),
-    );
+    const hourlyHomeUsageProfile = this.utilityService.calculate8760OnActualMonthlyUsage(
+      utility.utilityData.typicalBaselineUsage.typicalHourlyUsage.map(({ v }) => v),
+      utility.utilityData.computedUsage.monthlyUsage.map(({ v, i }) => {
+        const foundExistingPVMonthly = existingSystemProduction.monthlyProduction.find(item => item.i === i);
+
+        return (foundExistingPVMonthly?.v || 0) + v;
+      }),
+    ) as number[];
+
     // adjustedUsageProfile
     const hourlyAdjustedUsageProfile = hourlyHomeUsageProfile.map((v, i) => v + hourlyComputedAdditions[i]);
     // currentUsageProfile

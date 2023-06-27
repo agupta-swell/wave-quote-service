@@ -5,13 +5,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
-import { inRange, mean, sum, sumBy, cloneDeep } from 'lodash';
+import { cloneDeep, inRange, mean, sum, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContactService } from 'src/contacts/contact.service';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
-import { EGenabilityDetailLevel, EGenabilityGroupBy } from 'src/external-services/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
@@ -22,9 +21,8 @@ import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
-import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRange } from 'src/utils/datetime';
+import { firstSundayOfTheMonth, getMonthDatesOfYear } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
-import { buildMonthlyAndAnnualDataFromHour8760 } from 'src/utils/transformData';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
@@ -690,7 +688,8 @@ export class UtilityService implements OnModuleInit {
   getHourlyEstimatedUsage(utility: UtilityUsageDetailsModel | LeanDocument<UtilityUsageDetails>): number[] {
     const {
       utilityData: {
-        computedUsage: { annualConsumption, monthlyUsage, hourlyUsage },
+        computedUsage: { annualConsumption, monthlyUsage },
+        typicalBaselineUsage: { typicalHourlyUsage },
       },
       usageProfileSnapshot,
       increaseAmount,
@@ -700,11 +699,11 @@ export class UtilityService implements OnModuleInit {
 
     let poolUsageKwh = 0;
     if (poolValue) {
-      poolUsageKwh = poolValue / hourlyUsage.length;
+      poolUsageKwh = poolValue / typicalHourlyUsage.length;
     }
 
     const hourlyUsageLoadShapping = this.calculate8760OnActualMonthlyUsage(
-      hourlyUsage,
+      typicalHourlyUsage,
       monthlyUsage,
       usageProfileSnapshot,
     ) as IUsageValue[];
