@@ -1,4 +1,4 @@
-import { App, Stack, StackProps, Fn } from 'aws-cdk-lib';
+import { App, Stack, StackProps, Fn, Duration } from 'aws-cdk-lib';
 import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { Cluster, ContainerImage, Secret as sec  } from 'aws-cdk-lib/aws-ecs';
 import { ApplicationLoadBalancer } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
@@ -87,6 +87,7 @@ export class ECSStack extends Stack {
     memoryLimitMiB: parseInt(memory_spec ?? "512"),
     cpu: parseInt(cpu_spec ?? "256"),
     taskImageOptions: {
+      family: `${company}-${applicationId}-${processId}-${environment}-ecs-taskdef`,
       image: ContainerImage.fromRegistry(`${toolsAccountId}.dkr.ecr.${ecrRegion}.amazonaws.com/${company}-${applicationId}-${processId}-${environment}:${imagetag}`),
       containerPort: 3001,
       containerName: 'app',
