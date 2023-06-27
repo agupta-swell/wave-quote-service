@@ -128,10 +128,6 @@ export class ECSStack extends Stack {
   loadBalancedFargateService.targetGroup.configureHealthCheck({
       path: "/healthcheck",
       healthyHttpCodes: '200',
-      interval: Duration.seconds(15),
-      unhealthyThresholdCount: 5,
-      timeout: Duration.seconds(8),
-      healthyThresholdCount: 5,
       });
   }
 }
