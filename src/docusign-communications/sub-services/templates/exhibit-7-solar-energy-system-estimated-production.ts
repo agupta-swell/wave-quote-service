@@ -25,9 +25,9 @@ export class Exhibit7SolarEnergySystemEstimatedProductionTemplate {
       quote,
     });
 
-    EPV_YLD.forEach((e, i) => (result[`EPV_YLD_YR${i + 1}`] = e.toString()));
-    EPV_YLD_CUM.forEach((e, i) => (result[`EPV_YLD_CUM_YR${i + 1}`] = e.toString()));
-    GPV_YLD.forEach((e, i) => (result[`GPV_YLD_YR${i + 1}`] = e.toString()));
+    EPV_YLD.forEach((e, i) => (result[`EPV_YLD_YR${i + 1}`] = e.toFixed(2)));
+    EPV_YLD_CUM.forEach((e, i) => (result[`EPV_YLD_CUM_YR${i + 1}`] = e.toFixed(2)));
+    GPV_YLD.forEach((e, i) => (result[`GPV_YLD_YR${i + 1}`] = e.toFixed(2)));
     GUARANTEED_PV_PRICE_PER_KWH.forEach((e, i) => (result[`$/kWh_YR${i + 1}`] = e.toFixed(2)));
 
     result.PV_YLD_CUM = `${EPV_YLD_CUM[EPV_YLD_CUM.length - 1]}`;
