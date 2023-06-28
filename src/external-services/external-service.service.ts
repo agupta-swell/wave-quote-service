@@ -187,11 +187,25 @@ export class ExternalService {
 
     // decompose netDataSeries into import and export series
     // imported energy is only positive net load numbers
-    const importDataSeries = netDataSeries.map(kWh => (kWh > 0 ? kWh : 0));
+    let importDataSeries = netDataSeries.map(kWh => (kWh > 0 ? kWh : 0));
 
     // exported energy is only negative net load numbers
     // but Genability expects positive (absolute) values
-    const exportDataSeries = netDataSeries.map(kWh => (kWh < 0 ? Math.abs(kWh) : 0));
+    let exportDataSeries = netDataSeries.map(kWh => (kWh < 0 ? Math.abs(kWh) : 0));
+
+    //WAV-3230 Apply ~7% correction to adjustment for NEM3 tariffs
+    let totalTimesteps = netDataSeries.length;
+    let totalExport =  exportDataSeries.filter((kWh) => kWh > 0).length;
+    const CORRECTION_PERCENT = 0.068;
+    const delta = totalExport * CORRECTION_PERCENT;
+    const correction = delta/totalTimesteps;
+
+    const addCorrection = (dataSeries) => {
+      return dataSeries.map(kWh => kWh + correction);
+    }
+
+    importDataSeries = addCorrection(importDataSeries);
+    exportDataSeries = addCorrection(exportDataSeries);
 
     const payload: ICalculateCostPayload = {
       address: {
