@@ -639,10 +639,7 @@ export class UtilityService implements OnModuleInit {
       .lean();
 
     const [isUpdated] = await Promise.all([
-      this.systemDesignService.updateListSystemDesign(
-        utilityDto.opportunityId,
-        utilityDto.utilityData.computedUsage.annualConsumption,
-      ),
+      this.systemDesignService.updateListSystemDesign(utilityDto.opportunityId, annualPlannedProfile),
       this.quoteService.setOutdatedData(utilityDto.opportunityId, 'Utility & Usage'),
     ]);
 

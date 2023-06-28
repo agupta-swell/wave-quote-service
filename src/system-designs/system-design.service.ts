@@ -154,7 +154,9 @@ export class SystemDesignService {
       throw ApplicationException.EntityNotFound(systemDesign.opportunityId);
     }
 
-    const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
+    const annualUsageKWh =
+      utilityAndUsage?.plannedProfile.annualUsage ??
+      (utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0);
     const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
     const arrayGenerationKWh: number[] = [];
@@ -494,7 +496,9 @@ export class SystemDesignService {
       products,
     );
 
-    const annualUsageKWh = utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0;
+    const annualUsageKWh =
+      utilityAndUsage?.plannedProfile.annualUsage ??
+      (utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0);
     const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
     const adders = products.filter(item => item.type === PRODUCT_TYPE.ADDER) as LeanDocument<
