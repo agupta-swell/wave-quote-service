@@ -2633,13 +2633,13 @@ export class SystemDesignService {
   private async checkSentProposalOrGeneratedContract(
     systemDesign: SystemDesign,
   ): Promise<{ isSentProposalsExisted: boolean; isGeneratedContractExisted: boolean }> {
-    const { _id: systemDesignId, opportunityId } = systemDesign;
-    const [foundProposals, foundContract] = await Promise.all([
+    const { _id: systemDesignId } = systemDesign;
+    const [foundProposals, foundContracts] = await Promise.all([
       this.proposalService.getProposalsBySystemDesignId(systemDesignId.toString()),
-      this.contractService.getNotVoidedContractByOpportunityId(opportunityId),
+      this.contractService.getNotVoidedContractsBySystemDesignId(systemDesignId.toString()),
     ]);
 
-    const isGeneratedContractExisted = !!foundContract?.contractingSystemReferenceId;
+    const isGeneratedContractExisted = !!foundContracts.length;
 
     let isSentProposalsExisted = false;
     if (foundProposals.length) {
