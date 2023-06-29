@@ -277,7 +277,15 @@ export class UtilityService implements OnModuleInit {
   }
 
   async calculateActualUsageCostUtil(data: CalculateActualUsageCostDto): Promise<any> {
-    const { masterTariffId, utilityData, usageProfileId, opportunityId, hasMedicalBaseline, medicalBaselineAmount, isLowIncomeOrDac } = data;
+    const {
+      masterTariffId,
+      utilityData,
+      usageProfileId,
+      opportunityId,
+      hasMedicalBaseline,
+      medicalBaselineAmount,
+      isLowIncomeOrDac,
+    } = data;
     const utilityUsageDetailData = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
 
     let hourlyDataForTheYear: UsageValue[] = [];
@@ -298,7 +306,10 @@ export class UtilityService implements OnModuleInit {
       ) as UsageValue[];
     }
 
-    const medicalBaselineAmountPayloadData = typeof hasMedicalBaseline === 'boolean' && !hasMedicalBaseline ? undefined : medicalBaselineAmount ?? utilityUsageDetailData?.medicalBaselineAmount;
+    const medicalBaselineAmountPayloadData =
+      typeof hasMedicalBaseline === 'boolean' && !hasMedicalBaseline
+        ? undefined
+        : medicalBaselineAmount ?? utilityUsageDetailData?.medicalBaselineAmount;
 
     const usageCost = await this.calculateCost(
       hourlyDataForTheYear.map(item => item.v),
@@ -307,7 +318,7 @@ export class UtilityService implements OnModuleInit {
       data.utilityData.typicalBaselineUsage.zipCode,
       medicalBaselineAmountPayloadData,
       new Date().getFullYear(),
-      typeof isLowIncomeOrDac === 'boolean' ? isLowIncomeOrDac : utilityUsageDetailData?.isLowIncomeOrDac
+      typeof isLowIncomeOrDac === 'boolean' ? isLowIncomeOrDac : utilityUsageDetailData?.isLowIncomeOrDac,
     );
 
     const costData = {
@@ -379,7 +390,7 @@ export class UtilityService implements OnModuleInit {
       utilityModel.setComputedHourlyUsage(computedHourlyUsageInKWh);
     }
 
-    const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
+    const { hourlyEstimatedUsage } = this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
 
     const {
@@ -554,7 +565,7 @@ export class UtilityService implements OnModuleInit {
       utilityModel.setComputedHourlyUsage(hourlyUsage);
     }
 
-    const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
+    const { hourlyEstimatedUsage } = this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
 
     const {
@@ -682,7 +693,9 @@ export class UtilityService implements OnModuleInit {
     );
   }
 
-  getHourlyEstimatedUsage(utility: UtilityUsageDetailsModel | LeanDocument<UtilityUsageDetails>): number[] {
+  getHourlyEstimatedUsage(
+    utility: UtilityUsageDetailsModel | LeanDocument<UtilityUsageDetails>,
+  ): { hourlyEstimatedUsage: number[]; hourlyComputedAdditions: number[] } {
     const {
       utilityData: {
         computedUsage: { annualConsumption, monthlyUsage },
@@ -755,27 +768,31 @@ export class UtilityService implements OnModuleInit {
       }
     }
 
-    const result: number[] = [];
+    const hourlyComputedAdditions: number[] = [];
 
     for (let hourIndex = 0; hourIndex < hourlyUsageLoadShapping.length; ++hourIndex) {
+      let computedAdditions = 0;
       // calculate Planned Usage Increases Kwh
-      hourlyUsageLoadShapping[hourIndex].v +=
+      computedAdditions +=
         annualConsumption && (hourlyUsageLoadShapping[hourIndex].v * increaseAmount) / annualConsumption;
 
       // calculate Pool Usage Kwh
       if (poolUsageKwh) {
-        hourlyUsageLoadShapping[hourIndex].v += poolUsageKwh;
+        computedAdditions += poolUsageKwh;
       }
 
       // calculate Electric Vehicle
       if (electricVehicles.length) {
-        hourlyUsageLoadShapping[hourIndex].v += sumSingleElectricVehicleKwh[hourIndex % 24];
+        computedAdditions += sumSingleElectricVehicleKwh[hourIndex % 24];
       }
 
-      result.push(hourlyUsageLoadShapping[hourIndex].v);
+      hourlyComputedAdditions.push(computedAdditions);
     }
 
-    return result;
+    return {
+      hourlyEstimatedUsage: hourlyUsageLoadShapping.map(({ v }, i) => v + hourlyComputedAdditions[i]),
+      hourlyComputedAdditions,
+    };
   }
 
   private isHourInDay(hourInDay: number, fromHour: number, toHour: number): boolean {
@@ -1222,7 +1239,7 @@ export class UtilityService implements OnModuleInit {
         sqrtRoundTripEfficiency,
         chargingLogicType,
       );
-        
+
       const [
         { annualCost: costPostInstallationForNEM2 },
         { annualCost: costPostInstallationForNEM3 },

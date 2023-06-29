@@ -17,15 +17,7 @@ export class UsageProfileProductionService {
     );
     const hourlyExistingPVInKWh = existingSystemProduction.hourlyProduction.map(e => e / 1000);
 
-    const hourlyEstimatedUsage = this.utilityService.getHourlyEstimatedUsage(utility);
-
-    // computedAdditions = hourlyEstimatedUsage - computedUsage
-    // Because computedAdditions is the Planned Usage Increases so it's positive number
-    // In some cases, hourlyEstimatedUsage and computedUsage are equal but be different within a small margin (1.234567898765432 - 1.2345678987654323).
-    // The result of the minus will be -0 so Math.abs is used.
-    const hourlyComputedAdditions = hourlyEstimatedUsage.map((v, i) =>
-      Math.abs(roundNumber(v - utility.utilityData.computedUsage.hourlyUsage[i].v)),
-    );
+    const { hourlyComputedAdditions } = this.utilityService.getHourlyEstimatedUsage(utility);
 
     // homeUsageProfile
     const hourlyHomeUsageProfile = this.utilityService.calculate8760OnActualMonthlyUsage(

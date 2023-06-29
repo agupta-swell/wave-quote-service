@@ -1660,7 +1660,7 @@ export class SystemDesignService {
         medicalBaselineAmount,
         fromDateTime,
         toDateTime,
-        isLowIncomeOrDac
+        isLowIncomeOrDac,
       },
     };
     const unsetData: any = {};
@@ -2218,7 +2218,7 @@ export class SystemDesignService {
 
     const hourlyPostInstallLoadInKWh = utility.adjustedUsageProfile // handle backward compatibility
       ? utility.adjustedUsageProfile.hourlyUsage
-      : this.utilityService.getHourlyEstimatedUsage(utility);
+      : this.utilityService.getHourlyEstimatedUsage(utility).hourlyEstimatedUsage;
 
     const hourlySeriesForNewPVInWh: number[] = [];
     const hourlyPostInstallLoadInWh: number[] = [];
