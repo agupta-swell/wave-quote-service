@@ -78,7 +78,7 @@ export class SystemDesignDto {
   isSentProposalsExisted: boolean;
 
   @ExposeProp()
-  isGeneratedContractExisted: boolean;
+  isContractsExisted: boolean;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {

@@ -916,12 +916,12 @@ export class SystemDesignService {
 
     const { opportunityId } = foundSystemDesign;
 
-    const { isSentProposalsExisted, isGeneratedContractExisted } = await this.checkSentProposalOrGeneratedContract(
+    const { isSentProposalsExisted, isContractsExisted } = await this.checkSentProposalOrGeneratedContract(
       foundSystemDesign,
     );
 
-    if (isSentProposalsExisted || isGeneratedContractExisted) {
-      throw new BadRequestException('This system design has sent proposal or generated contract');
+    if (isSentProposalsExisted || isContractsExisted) {
+      throw new BadRequestException('This system design has sent proposal or contract');
     }
 
     const { isArchived } = body;
@@ -1094,7 +1094,7 @@ export class SystemDesignService {
           systemDesign.systemProductionData = systemProduction.data;
         }
 
-        const { isSentProposalsExisted, isGeneratedContractExisted } = await this.checkSentProposalOrGeneratedContract(
+        const { isSentProposalsExisted, isContractsExisted } = await this.checkSentProposalOrGeneratedContract(
           systemDesign,
         );
 
@@ -1105,7 +1105,7 @@ export class SystemDesignService {
           editable: !isInUsed,
           editableMessage: isInUsed || null,
           isSentProposalsExisted,
-          isGeneratedContractExisted,
+          isContractsExisted,
           imageURL,
         };
       }),
@@ -2632,14 +2632,14 @@ export class SystemDesignService {
 
   private async checkSentProposalOrGeneratedContract(
     systemDesign: SystemDesign,
-  ): Promise<{ isSentProposalsExisted: boolean; isGeneratedContractExisted: boolean }> {
+  ): Promise<{ isSentProposalsExisted: boolean; isContractsExisted: boolean }> {
     const { _id: systemDesignId } = systemDesign;
     const [foundProposals, foundContracts] = await Promise.all([
       this.proposalService.getProposalsBySystemDesignId(systemDesignId.toString()),
       this.contractService.getNotVoidedContractsBySystemDesignId(systemDesignId.toString()),
     ]);
 
-    const isGeneratedContractExisted = !!foundContracts.length;
+    const isContractsExisted = !!foundContracts.length;
 
     let isSentProposalsExisted = false;
     if (foundProposals.length) {
@@ -2657,7 +2657,7 @@ export class SystemDesignService {
 
     return {
       isSentProposalsExisted,
-      isGeneratedContractExisted,
+      isContractsExisted,
     };
   }
 }
