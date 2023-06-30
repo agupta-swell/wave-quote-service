@@ -187,7 +187,7 @@ export class QuoteService {
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
     const currentAnnualCost =
-      utilityData.costData.plannedCost.annualCost ??
+      utilityData.costData.plannedCost?.annualCost ??
       utilityData.costData.computedCost.annualCost ??
       sumBy(utilityData.costData.computedCost.cost, item => item.v);
     const postInstallAnnualCost = systemDesign.costPostInstallation
@@ -198,7 +198,7 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-          (utilityData.plannedProfile.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+          (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
@@ -459,7 +459,7 @@ export class QuoteService {
     }
 
     const currentAnnualCost =
-      utilityData.costData.plannedCost.annualCost ??
+      utilityData.costData.plannedCost?.annualCost ??
       utilityData.costData.computedCost.annualCost ??
       sumBy(utilityData.costData.computedCost.cost, item => item.v);
 
@@ -471,7 +471,7 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-          (utilityData.plannedProfile.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+          (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
@@ -830,7 +830,7 @@ export class QuoteService {
     const avgMonthlySavings = 0;
 
     const currentAnnualCost =
-      utilityData.costData.plannedCost.annualCost ??
+      utilityData.costData.plannedCost?.annualCost ??
       utilityData.costData.computedCost.annualCost ??
       sumBy(utilityData.costData.computedCost.cost, item => item.v);
 
@@ -842,7 +842,7 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-          (utilityData.plannedProfile.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+          (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;

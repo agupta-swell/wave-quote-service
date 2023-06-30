@@ -117,10 +117,10 @@ export class CalculationService {
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
     const actualUsage =
-      utilityUsage?.plannedProfile.annualUsage ??
+      utilityUsage?.plannedProfile?.annualUsage ??
       sumBy(utilityUsage?.utilityData.computedUsage.monthlyUsage, item => item.v);
     const currentBill =
-      utilityUsage?.costData.plannedCost.annualCost ??
+      utilityUsage?.costData.plannedCost?.annualCost ??
       utilityUsage?.costData.computedCost.annualCost ??
       sumBy(utilityUsage?.costData.computedCost.cost, item => item.v);
     productAttribute.currentPricePerKWh = currentBill / actualUsage;

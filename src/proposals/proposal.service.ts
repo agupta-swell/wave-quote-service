@@ -570,7 +570,7 @@ export class ProposalService {
     }
 
     const sumOfUtilityUsageCost =
-      utility?.costData.plannedCost.annualCost ??
+      utility?.costData.plannedCost?.annualCost ??
       utility?.costData.computedCost.annualCost ??
       (utility?.costData.computedCost.cost?.reduce(
         (previousValue, currentValue) => previousValue + currentValue.v,
@@ -579,7 +579,7 @@ export class ProposalService {
         0);
 
     const sumOfMonthlyUsageCost =
-      utility?.plannedProfile.annualUsage ??
+      utility?.plannedProfile?.annualUsage ??
       (utility?.utilityData?.computedUsage?.monthlyUsage?.reduce(
         (previousValue, currentValue) => previousValue + currentValue.v,
         0,

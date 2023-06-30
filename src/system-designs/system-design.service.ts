@@ -155,7 +155,7 @@ export class SystemDesignService {
     }
 
     const annualUsageKWh =
-      utilityAndUsage?.plannedProfile.annualUsage ??
+      utilityAndUsage?.plannedProfile?.annualUsage ??
       (utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0);
     const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
@@ -497,7 +497,7 @@ export class SystemDesignService {
     );
 
     const annualUsageKWh =
-      utilityAndUsage?.plannedProfile.annualUsage ??
+      utilityAndUsage?.plannedProfile?.annualUsage ??
       (utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0);
     const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
