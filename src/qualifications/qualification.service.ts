@@ -303,17 +303,17 @@ export class QualificationService {
     }
 
     const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
-    const email = await this.contactService.getEmailById(contactId || '');
+    const contact = await this.contactService.getContactById(contactId || '');
     const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER);
 
     const data = {
-      contactFullName: 'Customer',
-      qualificationValidityPeriod: '48h',
+      contactFullName: (`${contact?.firstName || ''}${(contact?.firstName && ' ') || ''}${contact?.lastName|| ''}`) || 'Customer',
+      qualificationValidityPeriod: '48 hours',
       recipientNotice: 'No Content',
       link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
     };
 
-    await this.emailService.sendMailByTemplate(email || '', 'Qualification Invitation', 'Qualification Email', data);
+    await this.emailService.sendMailByTemplate(contact?.email || '', 'Qualification Invitation', 'Qualification Email', data);
 
     const now = new Date();
     const qualificationCategory =
@@ -329,8 +329,10 @@ export class QualificationService {
     });
 
     qualificationCredit.customerNotifications.push({
+      label: 'Applicant',
+      type: 'Single Applicant',
       sentOn: now,
-      email: email || '',
+      email: contact?.email || '',
     });
 
     qualificationCredit.applicationSentOn = now;

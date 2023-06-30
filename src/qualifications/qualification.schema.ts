@@ -4,12 +4,16 @@ import { APPROVAL_MODE, MILESTONE_STATUS, PROCESS_STATUS, QUALIFICATION_STATUS, 
 export const QUALIFICATION_CREDIT = 'QUALIFICATION_CREDIT';
 
 export interface ICustomerNotification {
+  label: String,
+  type: String,
   sentOn: Date;
   email: string;
 }
 
 export const CustomerNotificationSchema = new Schema<Document<ICustomerNotification>>(
   {
+    label: String,
+    type: String,
     sent_on: Date,
     email: String,
   },
