@@ -19,15 +19,20 @@ export class UsageProfileProductionService {
 
     const { hourlyComputedAdditions } = this.utilityService.getHourlyEstimatedUsage(utility);
 
+    // TODO: fix uploaded csv for actualUsage that having 8761 lines for hourly
     // homeUsageProfile
-    const hourlyHomeUsageProfile = this.utilityService.calculate8760OnActualMonthlyUsage(
-      utility.utilityData.typicalBaselineUsage.typicalHourlyUsage.map(({ v }) => v),
-      utility.utilityData.computedUsage.monthlyUsage.map(({ v, i }) => {
-        const foundExistingPVMonthly = existingSystemProduction.monthlyProduction.find(item => item.i === i);
+    const hourlyHomeUsageProfile = utility.utilityData.actualUsage
+      ? utility.utilityData.computedUsage.hourlyUsage
+          .slice(0, 8759)
+          .map(({ v }, i) => v + (hourlyExistingPVInKWh[i] || 0))
+      : (this.utilityService.calculate8760OnActualMonthlyUsage(
+          utility.utilityData.typicalBaselineUsage.typicalHourlyUsage.map(({ v }) => v),
+          utility.utilityData.computedUsage.monthlyUsage.map(({ v, i }) => {
+            const foundExistingPVMonthly = existingSystemProduction.monthlyProduction.find(item => item.i === i);
 
-        return (foundExistingPVMonthly?.v || 0) + v;
-      }),
-    ) as number[];
+            return (foundExistingPVMonthly?.v || 0) + v;
+          }),
+        ) as number[]);
 
     // adjustedUsageProfile
     const hourlyAdjustedUsageProfile = hourlyHomeUsageProfile.map((v, i) => v + hourlyComputedAdditions[i]);
