@@ -1,6 +1,5 @@
 import { forwardRef, Inject } from '@nestjs/common';
 import { buildMonthlyAndAnnualDataFromHour8760 } from 'src/utils/transformData';
-import { roundNumber } from 'src/utils/transformNumber';
 import { IUtilityUsageDetails } from '../utility.schema';
 import { UtilityService } from '../utility.service';
 
@@ -21,8 +20,8 @@ export class UsageProfileProductionService {
 
     // TODO: fix uploaded csv for actualUsage that having 8761 lines for hourly
     // homeUsageProfile
-    const hourlyHomeUsageProfile = utility.utilityData.actualUsage
-      ? utility.utilityData.computedUsage.hourlyUsage
+    const hourlyHomeUsageProfile = utility.utilityData.actualUsage?.hourlyUsage
+      ? utility.utilityData.actualUsage?.hourlyUsage
           .slice(0, 8759)
           .map(({ v }, i) => v + (hourlyExistingPVInKWh[i] || 0))
       : (this.utilityService.calculate8760OnActualMonthlyUsage(
