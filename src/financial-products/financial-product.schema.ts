@@ -20,6 +20,15 @@ export interface FinancialProduct extends Document {
   isActive: boolean;
   name: string;
   fundId: string;
+  fundProductScoreCard: string;
+  financialSolverId: string[];
+  fmvAppraisalId: string;
+  nonAchFee: number;
+  lateFee: number;
+  defaultTurnkeyPriceEsPv: number;
+  earlyPurchaseDiscountOption: number;
+  maxInstallationAmount: number;
+  repaymentMethod: string[];
   allowDownPayment: boolean;
   minDownPayment: number;
   defaultDownPayment: number;
@@ -48,6 +57,7 @@ export interface FinancialProduct extends Document {
   minMarkup: number;
   maxMarkup: number;
   requiresHardCreditApproval: boolean;
+  requiresSoftCreditApproval: boolean;
   countersignerName: string;
   countersignerTitle: string;
   countersignerEmail: string;
@@ -67,6 +77,15 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   is_active: Boolean,
   name: String,
   fund_id: String,
+  fund_product_score_card: String,
+  financial_solver_id: [String],
+  fmv_appraisal_id: String,
+  non_ach_fee: Number,
+  late_fee: Number,
+  default_turnkey_price_es_pv: Number,
+  early_purchase_discount_option: Number,
+  max_installation_amount: Number,
+  repayment_method: [String],
   allow_down_payment: Boolean,
   min_down_payment: Number,
   default_down_payment: Number,
@@ -101,6 +120,7 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   countersigner_title: String,
   countersigner_email: String,
   requires_hard_credit_approval: Boolean,
+  requires_soft_credit_approval: Boolean,
   allows_wet_signed_contracts: Boolean,
   project_completion_date_offset: Number,
   processing_fee: Number,

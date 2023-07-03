@@ -266,6 +266,15 @@ export interface IFinancialProductDetails {
   isActive: boolean;
   name: string;
   fundId: string;
+  fundProductScoreCard: string;
+  financialSolverId: string[];
+  fmvAppraisalId: string;
+  nonAchFee: number;
+  lateFee: number;
+  defaultTurnkeyPriceEsPv: number;
+  earlyPurchaseDiscountOption: number;
+  maxInstallationAmount: number;
+  repaymentMethod: string[];
   allowDownPayment: boolean;
   minDownPayment: number;
   defaultDownPayment: number;
@@ -292,6 +301,7 @@ export interface IFinancialProductDetails {
   minMarkup: number;
   maxMarkup: number;
   requiresHardCreditApproval: boolean;
+  requiresSoftCreditApproval: boolean;
   countersignerName: string;
   countersignerTitle: string;
   countersignerEmail: string;

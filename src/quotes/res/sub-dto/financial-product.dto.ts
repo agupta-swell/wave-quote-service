@@ -29,6 +29,33 @@ export class FinanceProductDetailDto {
   fundId: string;
 
   @ExposeProp()
+  fundProductScoreCard: string;
+
+  @ExposeProp()
+  financialSolverId: string[];
+
+  @ExposeProp()
+  fmvAppraisalId: string;
+
+  @ExposeProp()
+  nonAchFee: number;
+
+  @ExposeProp()
+  lateFee: number;
+
+  @ExposeProp()
+  defaultTurnkeyPriceEsPv: number;
+
+  @ExposeProp()
+  earlyPurchaseDiscountOption: number;
+
+  @ExposeProp()
+  maxInstallationAmount: number;
+
+  @ExposeProp()
+  repaymentMethod: string[];
+
+  @ExposeProp()
   allowDownPayment: boolean;
 
   @ExposeProp()
@@ -109,6 +136,9 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   requiresHardCreditApproval: boolean;
+
+  @ExposeProp()
+  requiresSoftCreditApproval: boolean;
 
   @ExposeProp()
   countersignerName: string;
