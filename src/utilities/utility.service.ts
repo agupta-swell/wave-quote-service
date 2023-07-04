@@ -38,6 +38,7 @@ import {
   MedicalBaselineDataDto,
 } from './req';
 import { UsageValue } from './req/sub-dto';
+import { UpdateAccPlusLowIncomeIncentiveDto } from './req/update-acc-plus-low-income-incentive.dto';
 import {
   CostDataDto,
   ExistingSystemProductionDto,
@@ -65,7 +66,6 @@ import {
   UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
 } from './utility.schema';
-import { UpdateAccPlusLowIncomeIncentiveDto } from './req/update-acc-plus-low-income-incentive.dto';
 
 @Injectable()
 export class UtilityService implements OnModuleInit {
@@ -113,6 +113,10 @@ export class UtilityService implements OnModuleInit {
       this.logger.log('Ensure v2_genability_usage_data.zip_code index');
       await this.ensureGenabilityUsageDataIndex();
       this.logger.log('Done v2_genability_usage_data.zip_code index');
+
+      this.logger.log('Ensure v2_utility_usage_details index');
+      await this.ensureUtilityUsageDetailIndex();
+      this.logger.log('Done v2_utility_usage_details index');
     } catch (err) {
       this.logger.error(err);
     }
@@ -286,7 +290,9 @@ export class UtilityService implements OnModuleInit {
       medicalBaselineAmount,
       isLowIncomeOrDac,
     } = data;
-    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel
+      .findOne({ opportunityId }, { medicalBaselineAmount: 1, isLowIncomeOrDac: 1 })
+      .lean();
 
     let hourlyDataForTheYear: UsageValue[] = [];
 
@@ -473,7 +479,17 @@ export class UtilityService implements OnModuleInit {
     utilityId: ObjectId,
     medicalBaselineData: MedicalBaselineDataDto,
   ): Promise<OperationResult<UtilityDetailsDto>> {
-    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById({ _id: utilityId });
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById(
+      { _id: utilityId },
+      {
+        hasMedicalBaseline: 1,
+        medicalBaselineAmount: 1,
+        costData: 1,
+        utilityData: 1,
+        usageProfileId: 1,
+        opportunityId: 1,
+      },
+    );
     if (!utilityUsageDetailData) {
       throw ApplicationException.EntityNotFound(utilityId.toString());
     }
@@ -511,7 +527,18 @@ export class UtilityService implements OnModuleInit {
   ): Promise<OperationResult<UtilityDetailsDto>> {
     const { isLowIncomeOrDac } = accPlusLowIncomeIncentiveData;
 
-    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById({ _id: utilityId });
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById(
+      { _id: utilityId },
+      {
+        hasMedicalBaseline: 1,
+        medicalBaselineAmount: 1,
+        costData: 1,
+        utilityData: 1,
+        usageProfileId: 1,
+        opportunityId: 1,
+      },
+    );
+
     if (!utilityUsageDetailData) {
       throw ApplicationException.EntityNotFound(utilityId.toString());
     }
@@ -1600,6 +1627,12 @@ export class UtilityService implements OnModuleInit {
   private async ensureGenabilityUsageDataIndex(): Promise<string> {
     return this.genabilityUsageDataModel.collection.createIndex({
       zip_code: 1,
+    });
+  }
+
+  private async ensureUtilityUsageDetailIndex(): Promise<string> {
+    return this.utilityUsageDetailsModel.collection.createIndex({
+      opportunity_id: 1,
     });
   }
 
