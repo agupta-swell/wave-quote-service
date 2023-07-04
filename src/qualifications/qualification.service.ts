@@ -5,12 +5,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { PropertyService } from 'src/property/property.service';
+import { GetHomeownersByIdResultResDto } from 'src/property/res/get-homeowners-by-id';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
 import {
+  APPLICANT_TYPE,
   APPROVAL_MODE,
   CONSENT_STATUS,
   MILESTONE_STATUS,
@@ -22,7 +24,7 @@ import {
   TOKEN_STATUS,
   VENDOR_ID,
 } from './constants';
-import { QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
+import { IApplicant, QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
   ApplyCreditQualificationReqDto,
   CreateQualificationReqDto,
@@ -299,12 +301,20 @@ export class QualificationService {
   async sendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
-      throw ApplicationException.EntityNotFound(req.qualificationCreditId);
+      throw ApplicationException.EntityNotFound(`qualificationCreditId: ${req.qualificationCreditId}`);
     }
 
-    const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
+    const [opportunity, token] = await Promise.all([
+      this.opportunityService.getDetailById(qualificationCredit.opportunityId),
+      this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER),
+    ]);
+
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`opportunityId: ${qualificationCredit.opportunityId}`);
+    }
+
+    const contactId = opportunity.contactId;
     const contact = await this.contactService.getContactById(contactId || '');
-    const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER);
 
     const data = {
       contactFullName:
@@ -345,6 +355,49 @@ export class QualificationService {
 
     qualificationCredit.processStatus = PROCESS_STATUS.APPLICATION_EMAILED;
     qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_EMAILED;
+
+    if (qualificationCredit.hasApplicantConsent) {
+      const applicants = qualificationCredit.applicants;
+      // type set to applicant
+      let applicantIsExist = false;
+      let coApplicantIsExist = false;
+      applicants?.forEach(applicant => {
+        if (applicant?.type === APPLICANT_TYPE.APPLICANT) {
+          applicantIsExist = true;
+        }
+        if (applicant?.type === APPLICANT_TYPE.CO_APPLICANT) {
+          coApplicantIsExist = true;
+        }
+      });
+
+      let homeowners = null as GetHomeownersByIdResultResDto[] | null;
+      if (!applicantIsExist) {
+        homeowners = await this.propertyService.findHomeownersById(opportunity.propertyId);
+        const contactId = homeowners.find(homeowner => homeowner.isPrimary)?.contactId;
+        if (!contactId) {
+          throw ApplicationException.EntityNotFound(`Applicant contactId: ${contactId}`);
+        }
+
+        const applicant = {} as IApplicant;
+        applicant.type = APPLICANT_TYPE.APPLICANT;
+        applicant.contactId = contactId;
+        qualificationCredit.applicants.push(applicant);
+      }
+
+      // type set to coapplicant:
+      if (!coApplicantIsExist && qualificationCredit.hasCoApplicant && qualificationCredit.hasCoApplicantConsent) {
+        homeowners = homeowners || (await this.propertyService.findHomeownersById(opportunity.propertyId));
+        const contactId = homeowners.find(homeowner => !homeowner.isPrimary)?.contactId;
+        if (!contactId) {
+          throw ApplicationException.EntityNotFound(`Co applicant contactId: ${contactId}`);
+        }
+
+        const applicant = {} as IApplicant;
+        applicant.type = APPLICANT_TYPE.CO_APPLICANT;
+        applicant.contactId = contactId;
+        qualificationCredit.applicants.push(applicant);
+      }
+    }
 
     await qualificationCredit.save();
 

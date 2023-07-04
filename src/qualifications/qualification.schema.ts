@@ -1,11 +1,19 @@
 import { Document, Schema } from 'mongoose';
-import { APPROVAL_MODE, MILESTONE_STATUS, PROCESS_STATUS, QUALIFICATION_STATUS, QUALIFICATION_TYPE, VENDOR_ID } from './constants';
+import {
+  APPLICANT_TYPE,
+  APPROVAL_MODE,
+  MILESTONE_STATUS,
+  PROCESS_STATUS,
+  QUALIFICATION_STATUS,
+  QUALIFICATION_TYPE,
+  VENDOR_ID,
+} from './constants';
 
 export const QUALIFICATION_CREDIT = 'QUALIFICATION_CREDIT';
 
 export interface ICustomerNotification {
-  label: String,
-  type: String,
+  label: string;
+  type: string;
   sentOn: Date;
   email: string;
 }
@@ -45,6 +53,34 @@ export const EventHistorySchema = new Schema<Document<IEventHistory>>(
   { _id: false },
 );
 
+export interface IApplicant {
+  contactId: string;
+  type: APPLICANT_TYPE;
+  agreementTerm1CheckedAt?: Date;
+  jointIntentionDisclosureCheckedAt?: Date;
+  creditCheckAuthorizedAt?: Date;
+}
+
+export const ApplicantSchema = new Schema<Document<IApplicant>>(
+  {
+    contact_id: String,
+    type: String,
+    agreement_term_1_checked_at: {
+      type: Date,
+      required: false,
+    },
+    joint_intention_disclosure_checked_at: {
+      type: Date,
+      required: false,
+    },
+    credit_check_authorized_at: {
+      type: Date,
+      required: false,
+    },
+  },
+  { _id: false },
+);
+
 export interface QualificationCredit extends Document {
   opportunityId: string;
   type: QUALIFICATION_TYPE;
@@ -57,10 +93,11 @@ export interface QualificationCredit extends Document {
   approvalMode: APPROVAL_MODE;
   approvedBy: string;
   qualificationStatus: QUALIFICATION_STATUS;
-  hasApplicantConsent?: boolean,
-  hasCoApplicantConsent?: boolean,
-  hasCoApplicant?: boolean,
+  hasApplicantConsent?: boolean;
+  hasCoApplicantConsent?: boolean;
+  hasCoApplicant?: boolean;
   applicationSentOn: Date;
+  applicants: IApplicant[];
   createdBy: string;
   createdAt: Date;
   updatedBy: string;
@@ -83,6 +120,7 @@ export const QualificationCreditSchema = new Schema<QualificationCredit>({
   has_co_applicant_consent: Boolean,
   has_co_applicant: Boolean,
   application_sent_on: Date,
+  applicants: [ApplicantSchema],
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },
