@@ -70,9 +70,6 @@ export class ContractResDto {
   systemDesignId: string;
 
   @ExposeProp()
-  primaryOwnerContactId: string;
-
-  @ExposeProp()
   utilityProgramId: string;
 }
 

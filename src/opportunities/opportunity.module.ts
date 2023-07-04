@@ -7,6 +7,7 @@ import { ExistingSystemModule } from 'src/existing-systems/existing-system.modul
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { FinancierModule } from 'src/financiers/financier.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
+import { PropertyModule } from 'src/property/property.module';
 import { QuotePartnerConfigModule } from 'src/quote-partner-configs/quote-partner-config.module';
 import { QuoteModule } from 'src/quotes/quote.module';
 import { OpportunityController } from './opportunity.controller';
@@ -33,6 +34,7 @@ import { OpportunityService } from './opportunity.service';
     QuotePartnerConfigModule,
     QuoteModule,
     forwardRef(() => ExistingSystemModule),
+    PropertyModule,
   ],
   controllers: [OpportunityController],
   providers: [OpportunityService],

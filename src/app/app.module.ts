@@ -56,6 +56,7 @@ import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
 import { DocusignIntegrationModule } from 'src/docusign-integration/docusign-integration.module';
 import { PropertyModule } from 'src/property/property.module';
+import { GsOpportunityModule } from 'src/gs-opportunity/gs-opportunity.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()
@@ -141,6 +142,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     MountTypesModule,
     DocusignIntegrationModule,
     PropertyModule,
+    GsOpportunityModule,
   ],
 })
 export class AppModule {}

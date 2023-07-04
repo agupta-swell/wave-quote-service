@@ -6,6 +6,7 @@ import { EnergyProfileModule } from 'src/energy-profiles/energy-profile.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
+import { PropertyModule } from 'src/property/property.module';
 import { AwsModule } from 'src/shared/aws/aws.module';
 import { DocusignApiModule } from 'src/shared/docusign';
 import { SystemProductionModule } from 'src/system-productions/system-production.module';
@@ -40,6 +41,7 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
     DocusignApiModule.forContext(),
     SystemProductionModule,
     EnergyProfileModule,
+    PropertyModule,
   ],
   controllers: [ProposalController],
   providers: [ProposalService],

@@ -21,10 +21,12 @@ import { DocusignCommunicationService } from 'src/docusign-communications/docusi
 import { SYSTEM_TYPE } from 'src/docusign-templates-master/constants';
 import { DocusignTemplateMasterService } from 'src/docusign-templates-master/docusign-template-master.service';
 import { GenabilityUtilityMapService } from 'src/genability-utility-map/genability-utility-map.service';
+import { GsOpportunityService } from 'src/gs-opportunity/gs-opportunity.service';
 import { InstalledProductService } from 'src/installed-products/installed-product.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
 import { ProjectService } from 'src/projects/project.service';
+import { PropertyService } from 'src/property/property.service';
 import { REBATE_TYPE } from 'src/quotes/constants';
 import { IDetailedQuoteSchema, ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
@@ -74,6 +76,7 @@ export class ContractService {
     @InjectModel(CONTRACT) private readonly contractModel: Model<Contract>,
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
+    private readonly gsOpportunityService: GsOpportunityService,
     @Inject(forwardRef(() => QuoteService))
     private readonly quoteService: QuoteService,
     private readonly utilityService: UtilityService,
@@ -84,6 +87,7 @@ export class ContractService {
     private readonly userService: UserService,
     @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
+    private readonly propertyService: PropertyService,
     private readonly customerPaymentService: CustomerPaymentService,
     private readonly systemDesignService: SystemDesignService,
     private readonly jwtService: JwtService,
@@ -343,9 +347,10 @@ export class ContractService {
       throw ApplicationException.EntityNotFound(`Associated Quote Id: ${contract.associatedQuoteId}`);
     }
 
-    const [contact, recordOwner] = await Promise.all([
+    const [contact, recordOwner, property] = await Promise.all([
       this.contactService.getContactById(opportunity.contactId),
       this.userService.getUserById(opportunity.recordOwner),
+      this.propertyService.findPropertyById(opportunity.propertyId),
     ]);
 
     let status: string;
@@ -399,6 +404,7 @@ export class ContractService {
       quote: quote.detailedQuote,
       recordOwner: recordOwner || ({} as any),
       contact: contact || ({} as any),
+      property: property || ({} as any),
       customerPayment: customerPayment || ({} as any),
       utilityName: utilityName?.split(' - ')[1] || 'none',
       roofTopDesign: systemDesign?.roofTopDesignData || ({} as any),
@@ -974,7 +980,7 @@ export class ContractService {
       // update associated power settings
       await this.systemAttributeService.updateSystemAttributeByQuery(
         {
-          opportunityId: opportunityId,
+          opportunityId,
         },
         {
           $set: {
@@ -1186,6 +1192,12 @@ export class ContractService {
       throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
     }
 
+    const gsOpportunity = await this.gsOpportunityService.findGsOpportunityById(contract.gsOpportunityId);
+
+    if (!gsOpportunity) {
+      throw ApplicationException.EntityNotFound(`GsOpportunityId: ${contract.gsOpportunityId}`);
+    }
+
     const contractName = contract.name;
 
     if (contract.contractStatus === PROCESS_STATUS.VOIDED) {
@@ -1217,12 +1229,16 @@ export class ContractService {
       ? await this.utilityProgramMasterService.getLeanById(contract.utilityProgramId)
       : null;
 
-    const contact = await this.contactService.getContactById(contract.primaryOwnerContactId);
+    const [contact, property] = await Promise.all([
+      this.contactService.getContactById(gsOpportunity.homeownerId || ''),
+      this.propertyService.findPropertyById(gsOpportunity.propertyId),
+    ]);
 
     const genericObject: IGenericObjectForGSP = {
       signerDetails: contract.signerDetails,
       contract,
       contact: contact || ({} as any),
+      property: property || ({} as any),
       utilityProgramMaster,
     };
 
