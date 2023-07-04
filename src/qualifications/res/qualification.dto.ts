@@ -1,6 +1,14 @@
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ExposeAndMap, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
-import { APPROVAL_MODE, MILESTONE_STATUS, PROCESS_STATUS, QUALIFICATION_STATUS, QUALIFICATION_TYPE, VENDOR_ID } from '../constants';
+import {
+  APPROVAL_MODE,
+  MILESTONE_STATUS,
+  PROCESS_STATUS,
+  QUALIFICATION_STATUS,
+  QUALIFICATION_TYPE,
+  VENDOR_ID,
+} from '../constants';
+import { ApplicantDto } from './sub-dto/applicant.dto';
 import { CustomerNotificationDto } from './sub-dto/customer-notification.dto';
 import { EventDto } from './sub-dto/event.dto';
 
@@ -49,6 +57,9 @@ export class QualificationDetailDto {
 
   @ExposeProp()
   hasCoApplicant: boolean;
+
+  @ExposeProp({ isArray: true, type: ApplicantDto })
+  applicants: ApplicantDto[];
 }
 
 export class QualificationDto {

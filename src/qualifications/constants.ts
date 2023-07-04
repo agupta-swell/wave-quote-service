@@ -16,7 +16,7 @@ export enum MILESTONE_STATUS {
   INITIATED = 'Initiated',
   VERBAL_CONSENT = 'Verbal Consent',
   APPLICATION_EMAILED = 'Application Emailed',
-  APPLICATION_STATUS = 'Application Status'
+  APPLICATION_STATUS = 'Application Status',
 }
 
 export enum VENDOR_ID {
@@ -70,4 +70,9 @@ export enum CONSENT_STATUS {
   HAS_APPLICANT_CONSENT = 'HAS_APPLICANT_CONSENT',
   HAS_CO_APPLICANT = 'HAS_CO_APPLICANT',
   HAS_CO_APPLICANT_CONSENT = 'HAS_CO_APPLICANT_CONSENT',
+}
+
+export enum APPLICANT_TYPE {
+  APPLICANT = 'applicant',
+  CO_APPLICANT = 'coapplicant',
 }
