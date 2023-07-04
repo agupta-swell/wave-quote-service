@@ -4,6 +4,7 @@ import { Contract, ISignerDetailDataSchema } from 'src/contracts/contract.schema
 import { CustomerPayment } from 'src/customer-payments/customer-payment.schema';
 import { LeaseSolverConfig } from 'src/lease-solver-configs/lease-solver-config.schema';
 import { Opportunity } from 'src/opportunities/opportunity.schema';
+import { PropertyDocument } from 'src/property/property.schema';
 import { IDetailedQuoteSchema, IFinancialProductDetails, IGsProgramSnapshot } from 'src/quotes/quote.schema';
 import { IRoofTopSchema, SystemDesignWithManufacturerMeta } from 'src/system-designs/system-design.schema';
 import { User } from 'src/users/user.schema';
@@ -60,6 +61,7 @@ export interface IGenericObject {
   opportunity: LeanDocument<Opportunity>;
   quote: IDetailedQuoteSchema;
   contact: Contact;
+  property: LeanDocument<PropertyDocument> | PropertyDocument;
   recordOwner: User;
   customerPayment: CustomerPayment;
   utilityName: string;
@@ -81,6 +83,7 @@ export interface IGenericObjectForGSP {
   signerDetails: ISignerDetailDataSchema[];
   contract?: LeanDocument<Contract>;
   contact: Contact;
+  property: LeanDocument<PropertyDocument> | PropertyDocument;
   utilityProgramMaster: LeanDocument<UtilityProgramMaster> | null;
 }
 

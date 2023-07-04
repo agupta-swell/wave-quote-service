@@ -88,10 +88,5 @@ export class ContractReqDto {
   @ApiProperty()
   @IsOptional()
   @IsString()
-  primaryOwnerContactId: string;
-
-  @ApiProperty()
-  @IsOptional()
-  @IsString()
   utilityProgramId: string;
 }

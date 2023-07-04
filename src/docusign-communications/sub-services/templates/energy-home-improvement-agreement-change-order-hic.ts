@@ -31,10 +31,10 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   coOwnerFullName: string;
 
   @TabValue<IGenericObject>(
-    ({ contact }) =>
-      `${contact.address1 || ''}${contact.address2 ? `, ${contact.address2}` : ''}, ${contact.city || ''}, ${
-        contact.state || ''
-      } ${contact.zip || ''}`,
+    ({ property }) =>
+      `${property.address1 || ''}${property.address2 ? `, ${property.address2}` : ''}, ${property.city || ''}, ${
+        property.state || ''
+      } ${property.zip || ''}`,
   )
   homeAddress: string;
 

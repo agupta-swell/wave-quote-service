@@ -25,6 +25,7 @@ import { Manufacturer } from 'src/manufacturers/manufacturer.schema';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { ManufacturerDto } from 'src/manufacturers/res/manufacturer.dto';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
+import { PropertyService } from 'src/property/property.service';
 import { ProposalTemplateService } from 'src/proposal-templates/proposal-template.service';
 import { ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { S3Service } from 'src/shared/aws/services/s3.service';
@@ -83,6 +84,7 @@ export class ProposalService {
     private readonly userService: UserService,
     @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
+    private readonly propertyService: PropertyService,
     private readonly customerPaymentService: CustomerPaymentService,
     @Inject(forwardRef(() => UtilityService))
     private readonly utilityService: UtilityService,
@@ -770,9 +772,10 @@ export class ProposalService {
       throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunityId}`);
     }
 
-    const [contact, recordOwner] = await Promise.all([
+    const [contact, recordOwner, property] = await Promise.all([
       this.contactService.getContactById(opportunity.contactId),
       this.userService.getUserById(opportunity.recordOwner),
+      this.propertyService.findPropertyById(opportunity.propertyId),
     ]);
 
     const fundingSourceType = proposal.detailedProposal.quoteData.quoteFinanceProduct.financeProduct.productType;
@@ -817,6 +820,7 @@ export class ProposalService {
       quote,
       recordOwner: recordOwner || ({} as any),
       contact: sampleContact as any,
+      property: property as any,
       customerPayment: customerPayment || ({} as any),
       utilityName: utilityName?.split(' - ')[1] || 'none',
       roofTopDesign: roofTopDesign || ({} as any),

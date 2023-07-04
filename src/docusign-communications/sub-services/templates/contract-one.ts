@@ -8,7 +8,10 @@ import { DefaultTabType, DocusignTemplate, DOCUSIGN_TAB_TYPE, TabDynamic } from 
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class ContractOneTemplate {
   @TabDynamic<IGenericObject>(
-    ({ opportunity, customerPayment, contact, recordOwner, utilityName, roofTopDesign, isCash }, defaultContractor) => {
+    (
+      { opportunity, customerPayment, contact, recordOwner, utilityName, roofTopDesign, isCash, property },
+      defaultContractor,
+    ) => {
       const now = dayjs().format('MM/DD/YYYY');
       const next3Date = dayjs(new Date().getTime() + 3 * 24 * 60 * 60 * 1000);
 
@@ -78,20 +81,20 @@ export class ContractOneTemplate {
         ? defaultContractor.signer
         : opportunity.contractorSigner;
       obj['Text Net Agreement Price - 1'] = customerPayment.netAmount;
-      obj['Text Opp City - 1'] = contact.city;
-      obj['Text Opp City State Zip - 1'] = `${contact.city}, ${contact.state} ${contact.zip}`;
-      obj['Text Opp City State Zip - 7'] = `${contact.city}, ${contact.state} ${contact.zip}`;
+      obj['Text Opp City - 1'] = property.city;
+      obj['Text Opp City State Zip - 1'] = `${property.city}, ${property.state} ${property.zip}`;
+      obj['Text Opp City State Zip - 7'] = `${property.city}, ${property.state} ${property.zip}`;
       obj['Text Opp Id - 1'] = opportunity._id;
       obj['Text Opp Owner - 1'] = recordOwner ? `${recordOwner.profile.firstName} ${recordOwner.profile.lastName}` : '';
       obj['Text Opp Owner Email - 1'] = recordOwner ? recordOwner?.emails[0].address : '';
       obj['Text Opp Owner HIS - 1'] = recordOwner.hisNumber ?? '';
       obj['Text Opp Owner Phone - 1'] = recordOwner?.profile?.cellPhone ? recordOwner?.profile?.cellPhone : '';
-      obj['Text Opp State - 1'] = contact.state;
-      obj['Text Opp Street 1 - 1'] = contact.address1 || '';
-      obj['Text Opp Street 1 - 7'] = contact.address1 || '';
-      obj['Text Opp Street 2 - 1'] = contact.address2 || '';
-      obj['Text Opp Street 2 - 7'] = contact.address2 || '';
-      obj['Text Opp Zip - 1'] = contact.zip || '';
+      obj['Text Opp State - 1'] = property.state;
+      obj['Text Opp Street 1 - 1'] = property.address1 || '';
+      obj['Text Opp Street 1 - 7'] = property.address1 || '';
+      obj['Text Opp Street 2 - 1'] = property.address2 || '';
+      obj['Text Opp Street 2 - 7'] = property.address2 || '';
+      obj['Text Opp Zip - 1'] = property.zip || '';
       obj['Text Owner Name 1 - 1'] = contact.firstName;
       obj['Text Owner Name 1 - 7'] = contact.firstName;
       obj['Text Owner Name 2 - 1'] = contact.lastName;

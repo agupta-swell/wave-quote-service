@@ -9,7 +9,7 @@ import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class HomeEnergySubAgtESATemplate {
   @TabDynamic<IGenericObject>(genericObject => {
-    const { opportunity, quote, contact, signerDetails } = genericObject;
+    const { opportunity, quote, contact, signerDetails, property } = genericObject;
 
     const coOwner = signerDetails.find(e => e.role === 'Co Owner');
 
@@ -23,10 +23,10 @@ export class HomeEnergySubAgtESATemplate {
 
     result['FIRST_1 MI_1 LAST_1'] = `${contact.firstName} ${contact.lastName}`;
     result['FIRST_2 MI_2 LAST_2'] = coOwner ? `${coOwner.fullName}` : '';
-    result.HOME_ADDRESS_1 = contact.address1 || '';
-    result.HOME_ADDRESS_2 = contact?.address2 || '';
-    result['CITY, STATE'] = `${contact.city}, ${contact.state}`;
-    result.ZIP = contact.zip || '';
+    result.HOME_ADDRESS_1 = property.address1 || '';
+    result.HOME_ADDRESS_2 = property?.address2 || '';
+    result['CITY, STATE'] = `${property.city}, ${property.state}`;
+    result.ZIP = property.zip || '';
     result.EMAIL_1 = contact.email;
     result.EMAIL_2 = coOwner?.email || '';
 

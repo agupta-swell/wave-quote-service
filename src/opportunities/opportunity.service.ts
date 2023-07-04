@@ -12,6 +12,7 @@ import { ExistingSystemResDto } from 'src/existing-systems/res/existing-system.r
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FinancierService } from 'src/financiers/financier.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
+import { PropertyService } from 'src/property/property.service';
 import { QuotePartnerConfig } from 'src/quote-partner-configs/quote-partner-config.schema';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { QuoteService } from 'src/quotes/quote.service';
@@ -33,6 +34,7 @@ export class OpportunityService {
     private readonly quoteService: QuoteService,
     @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
+    private readonly propertyService: PropertyService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
     private readonly financierService: FinancierService,
     private readonly financialProductsService: FinancialProductsService,
@@ -49,21 +51,24 @@ export class OpportunityService {
       throw ApplicationException.EntityNotFound(opportunityId);
     }
 
-    const contact = await this.contactService.getContactById(foundOpportunity.contactId);
+    const [contact, property] = await Promise.all([
+      this.contactService.getContactById(foundOpportunity.contactId),
+      this.propertyService.findPropertyById(foundOpportunity.propertyId),
+    ]);
 
     const data = {
-      address: contact?.address1 || '',
-      city: contact?.city || '',
+      address: property?.address1 || '',
+      city: property?.city || '',
       firstName: contact?.firstName || '',
       lastName: contact?.lastName || '',
       email: contact?.email || '',
       opportunityId,
-      state: contact?.state || '',
-      latitude: contact?.lat || '',
-      longitude: contact?.lng || '',
+      state: property?.state || '',
+      latitude: property?.lat || '',
+      longitude: property?.lng || '',
       utilityProgramId: foundOpportunity.utilityProgramId ?? '',
       rebateProgramId: foundOpportunity.rebateProgramId ?? '',
-      zipCode: contact?.zip || '',
+      zipCode: property?.zip || '',
       partnerId: foundOpportunity.accountId,
       opportunityName: foundOpportunity.name,
       existingPV: !!foundOpportunity.existingPV,

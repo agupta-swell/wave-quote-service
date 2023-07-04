@@ -11,10 +11,12 @@ import { DocusignApiModule } from 'src/shared/docusign';
 import { SystemAttributeModule } from 'src/system-attributes/system-attribute.module';
 import { SystemProductionModule } from 'src/system-productions/system-production.module';
 import { USER, UserSchema } from 'src/users/user.schema';
+import { ProjectModule } from 'src/projects/project.module';
+import { PropertyModule } from 'src/property/property.module';
+import { GsOpportunityModule } from 'src/gs-opportunity/gs-opportunity.module';
 import { ContractController } from './contract.controller';
 import { CONTRACT, ContractSchema } from './contract.schema';
 import { ContractService } from './contract.service';
-import { ProjectModule } from 'src/projects/project.module';
 
 @Global()
 @Module({
@@ -39,6 +41,8 @@ import { ProjectModule } from 'src/projects/project.module';
     SystemAttributeModule,
     SystemProductionModule,
     ProjectModule,
+    PropertyModule,
+    GsOpportunityModule,
   ],
   controllers: [ContractController],
   providers: [ContractService],

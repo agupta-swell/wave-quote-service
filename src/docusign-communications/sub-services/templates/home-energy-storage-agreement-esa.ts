@@ -39,10 +39,10 @@ export class HomeEnergyStorageAgreementEsaTemplate {
   coOwnerFullName: string;
 
   @TabValue<IGenericObject>(
-    ({ contact }) =>
-      `${contact.address1 || ''}${contact.address2 ? `\n${contact.address2}\n` : '\n'}${contact.city || ''}, ${
-        contact.state || ''
-      } ${contact.zip || ''}`,
+    ({ property }) =>
+      `${property.address1 || ''}${property.address2 ? `\n${property.address2}\n` : '\n'}${property.city || ''}, ${
+        property.state || ''
+      } ${property.zip || ''}`,
   )
   homeAddress: string;
 
