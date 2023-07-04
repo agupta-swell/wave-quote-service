@@ -5,7 +5,7 @@ import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-base
 import { getNextYearDateRange } from 'src/utils/datetime';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
-import { IApplyRequest, IFniProcessReq } from '../qualifications/typing';
+import { IFniProcessReq } from '../qualifications/typing';
 import { GenabilityService } from './sub-services/genability.service';
 import {
   EGenabilityDetailLevel,
@@ -193,16 +193,14 @@ export class ExternalService {
     // but Genability expects positive (absolute) values
     let exportDataSeries = netDataSeries.map(kWh => (kWh < 0 ? Math.abs(kWh) : 0));
 
-    //WAV-3230 Apply ~7% correction to adjustment for NEM3 tariffs
-    let totalTimesteps = netDataSeries.length;
-    let totalExport =  exportDataSeries.filter((kWh) => kWh > 0).reduce((accum, curVal)=> accum+curVal,0);
+    // WAV-3230 Apply ~7% correction to adjustment for NEM3 tariffs
+    const totalTimesteps = netDataSeries.length;
+    const totalExport = exportDataSeries.filter(kWh => kWh > 0).reduce((accum, curVal) => accum + curVal, 0);
     const CORRECTION_PERCENT = 0.068;
     const delta = totalExport * CORRECTION_PERCENT;
-    const correction = delta/totalTimesteps;
+    const correction = delta / totalTimesteps;
 
-    const addCorrection = (dataSeries) => {
-      return dataSeries.map(kWh => kWh + correction);
-    }
+    const addCorrection = dataSeries => dataSeries.map(kWh => kWh + correction);
 
     importDataSeries = addCorrection(importDataSeries);
     exportDataSeries = addCorrection(exportDataSeries);
@@ -247,17 +245,17 @@ export class ExternalService {
     return this.genabilityService.calculateCostData(payload);
   }
 
-  getFniResponse = (data: IApplyRequest | IFniProcessReq, url?: string): Promise<any> =>
+  getFniResponse = (data: IFniProcessReq, url?: string): Promise<any> =>
     new Promise((resolve, reject) => {
       axios
-        .post(url || process.env.FNI_END_POINT as string, data)
+        .post(url || (process.env.FNI_END_POINT as string), data)
         .then(result => {
           resolve(result.data);
         })
         .catch(error => {
           if (error) {
             // Done this way so we do not accidentally expose private keys
-            const req: any = {}
+            const req: any = {};
             if ((data as IFniProcessReq)?.transaction?.refnum) {
               req.refnum = (data as IFniProcessReq)?.transaction?.refnum;
             }

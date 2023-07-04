@@ -92,4 +92,11 @@ export class ApplicationException extends HttpException {
   static InvalidDocusignIntegrationType(): ApplicationException {
     return new ApplicationException('Docusign Integration Type is invalid.', HttpStatus.UNPROCESSABLE_ENTITY);
   }
+
+  static FniProcessError(): ApplicationException {
+    return new ApplicationException(
+      'There was an error processing your request. Please try again. If you are still having issues, contact your sales agent.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
 }

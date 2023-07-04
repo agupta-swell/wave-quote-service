@@ -1,19 +1,27 @@
+import { HttpStatus } from '@nestjs/common';
+import { FNI_REQUEST_TYPE } from './constants';
+
 interface IApplicantData {
   firstName: string;
   middleName: string;
   lastName: string;
   email: string;
   phoneNumber: string;
+}
+
+interface IResidenceData {
   addressLine1: string;
   addressLine2: string;
   city: string;
   state: string;
-  zipcode: number;
+  zipcode: string;
 }
 
 interface IPersonalInformation {
   soc: number;
   dob: Date;
+  individualIncome: string;
+  incomeFrequency: string;
 }
 
 export interface IFniProcessReq {
@@ -26,82 +34,56 @@ export interface IFniProcessReq {
 }
 
 export interface IFniApplyReq {
-  qualificationCreditId: string;
   opportunityId: string;
-  primaryApplicantData: IApplicantData;
-  coApplicantData: IApplicantData | undefined;
-  primaryApplicantSecuredData: IPersonalInformation;
-  coApplicantSecuredData: IPersonalInformation | undefined;
+  productId: string;
+  applicant: IApplicantData;
+  applicantSecuredData: IPersonalInformation;
+  primaryResidence: IResidenceData;
+  installationAddress: IResidenceData;
 }
 
-export interface IFniUpdateReq {
-  vendorRefId: string;
-  fniCommunicationId: string;
-  code: string;
-  qualificationCreditId: string;
-  rawRequest: string;
-}
-
-export interface IFniUpdateRes {
-  refNum: string;
-  status: string;
-  errorMsgs: {
-    errorType: string;
-    fieldId: string;
-    message: string;
-  }[];
-}
-
-// ======================= SWAGGER =======================
-// https://sites.google.com/swellenergy.com/wave2/enhanced-quoting-process/creditcheck
-
-export interface IApplyRequest {
+export interface IFniSolarInitReqPayload {
   transaction: {
-    username: string;
-    password: string;
+    key: string;
+    hash: string;
     partnerId: string;
   };
   application: {
-    track: string;
-    waveId: string;
+    externalTrackingNum: string;
+    productId: string;
+    requestCrline: string;
   };
   applicant1: {
     first: string;
     mi?: string;
-    sightenId: string;
     last: string;
-    eMail: string;
-    phnum: string;
-    primSmsFlag?: string;
-    dob: string;
     soc: string;
-    primAddr: string;
-    primAttn?: string;
-    primCity: string;
-    primState: string;
-    primZip: string;
-  };
-  applicant2: {
-    first: string;
-    mi?: string;
-    sightenId: string;
-    last: string;
-    eMail: string;
-    phnum: string;
-    primSmsFlag?: string;
     dob: string;
-    soc: string;
-    coAddr: string;
-    coAttn?: string;
-    coCity: string;
-    coState: string;
-    coZip: string;
+    addr: string;
+    attn: string;
+    city: string;
+    state: string;
+    zip: string;
+    eMail: string;
+    phone: string;
+    addrLengthMos: string;
+    propAddr: string;
+    propAttn: string;
+    propCity: string;
+    propState: string;
+    propZip: string;
   };
+  employment: {
+    empChnum: string;
+    empPay: string;
+    empPayBasis: string;
+    empType: string;
+  }[];
 }
 
-export interface IApplyResponse {
+export interface IFniResponseData {
   transaction: {
-    refNum: string;
+    refnum: string;
     status: string;
     errorMsgs?: {
       errorType: string;
@@ -109,38 +91,17 @@ export interface IApplyResponse {
       message: string;
     }[];
   };
-  application: {
-    code: string;
-    track: string;
-  };
-  applicant1: {
-    sightenId: string;
-  };
-}
-
-export interface IUpdateSightenRequest {
-  transaction: {
-    username: string;
-    password: string;
-    refNum: string;
-  };
-  application: {
-    code: string;
-    track: string;
-  };
-  applicant1: {
-    sightenId: string;
-  };
-}
-
-export interface IUpdateSightenResponse {
-  transaction: {
-    refNum: string;
+  application?: Record<string, string>;
+  field_descriptions?: Record<string, string>;
+  stips?: {
+    description: string;
+    id: string;
     status: string;
-    errorMsgs?: {
-      errorType: string;
-      fieldId: string;
-      message: string;
-    }[];
-  };
+  }[];
+}
+
+export interface IFniResponse {
+  type: FNI_REQUEST_TYPE;
+  status: number;
+  data?: IFniResponseData;
 }

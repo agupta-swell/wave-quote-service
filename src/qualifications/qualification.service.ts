@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign */
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
@@ -23,8 +23,10 @@ import {
   ROLE,
   TOKEN_STATUS,
   VENDOR_ID,
+  FNI_RESPONSE_ERROR_MAP,
+  FNI_TRANSACTION_STATUS,
 } from './constants';
-import { IApplicant, QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
+import { IApplicant, QualificationCredit, QUALIFICATION_CREDIT, IFniApplicationResponse } from './qualification.schema';
 import {
   ApplyCreditQualificationReqDto,
   CreateQualificationReqDto,
@@ -41,17 +43,15 @@ import {
   QualificationDetailDto,
   SendMailDto,
 } from './res';
-import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import { FniEngineService } from './sub-services/fni-engine.service';
-import { IFniApplyReq } from './typing.d';
 import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
 import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
+import { IFniResponse, IFniApplyReq } from './typing.d';
 
 @Injectable()
 export class QualificationService {
   constructor(
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
-    @InjectModel(FNI_COMMUNICATION) private readonly fniCommunicationModel: Model<FNI_Communication>,
     private readonly jwtService: JwtService,
     private readonly opportunityService: OpportunityService,
     private readonly contactService: ContactService,
@@ -122,20 +122,12 @@ export class QualificationService {
           return {
             type,
             qualificationCreditData: null,
-            fniCommunicationData: [],
           };
         }
-
-        const fniCommunications = await this.fniCommunicationModel
-          .find({
-            qualificationCreditId: qualificationCredit._id,
-          })
-          .lean();
 
         return {
           type,
           qualificationCreditData: qualificationCredit,
-          fniCommunicationData: fniCommunications,
         };
       }),
     );
@@ -502,15 +494,16 @@ export class QualificationService {
       }),
     );
   }
+
   async processCreditQualification(
-    req: ProcessCreditQualificationReqDto
+    req: ProcessCreditQualificationReqDto,
   ): Promise<OperationResult<{ responseStatus: string }>> {
-    
     this.testTokenStatus(req.authenticationToken);
 
     const responseStatus = await this.fniEngineService.processFniSolarApplyRequest(req);
     return OperationResult.ok({ responseStatus });
   }
+
   async applyCreditQualification(
     req: ApplyCreditQualificationReqDto,
   ): Promise<OperationResult<{ responseStatus: string }>> {
@@ -529,46 +522,6 @@ export class QualificationService {
       return OperationResult.ok({ responseStatus: 'NO_ACTIVE_VALIDATION' });
     }
 
-    const fniApplyRequest = {
-      qualificationCreditId: req.qualificationCreditId,
-      opportunityId: req.opportunityId,
-      primaryApplicantData: {
-        firstName: req.primaryApplicantData.firstName,
-        middleName: req.primaryApplicantData.middleName,
-        lastName: req.primaryApplicantData.lastName,
-        email: req.primaryApplicantData.email,
-        phoneNumber: req.primaryApplicantData.phoneNumber.match(/\d+/g)?.join(''),
-        addressLine1: req.primaryApplicantData.addressLine1,
-        addressLine2: req.primaryApplicantData.addressLine2,
-        city: req.primaryApplicantData.city,
-        state: req.primaryApplicantData.state,
-        zipcode: req.primaryApplicantData.zipcode,
-      },
-      primaryApplicantSecuredData: {
-        soc: req.primaryApplicantSecuredData.soc,
-        dob: req.primaryApplicantSecuredData.dob,
-      },
-    } as IFniApplyReq;
-
-    if (req.coApplicantData && req.coApplicantSecuredData) {
-      fniApplyRequest.coApplicantData = {
-        firstName: req?.coApplicantData?.firstName || '',
-        middleName: req?.coApplicantData?.middleName || '',
-        lastName: req?.coApplicantData?.lastName || '',
-        email: req?.coApplicantData?.email || '',
-        phoneNumber: req?.coApplicantData?.phoneNumber.match(/\d+/g)!.join(''),
-        addressLine1: req?.coApplicantData?.addressLine1 || '',
-        addressLine2: req?.coApplicantData?.addressLine2 || '',
-        city: req?.coApplicantData?.city || '',
-        state: req?.coApplicantData?.state || '',
-        zipcode: req?.coApplicantData?.zipcode,
-      };
-      fniApplyRequest.coApplicantSecuredData = {
-        soc: req?.coApplicantSecuredData?.soc,
-        dob: req?.coApplicantSecuredData?.dob || '',
-      };
-    }
-
     const qualificationCategory =
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
         ? QUALIFICATION_CATEGORY.HARD_CREDIT
@@ -576,30 +529,39 @@ export class QualificationService {
     qualificationCredit.processStatus = PROCESS_STATUS.IN_PROGRESS;
     qualificationCredit.eventHistories.push({
       issueDate: new Date(),
-      by: `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
+      by: `${req.applicant.firstName} ${req.applicant.lastName}`,
       detail: 'Application sent for Credit Check',
       qualificationCategory,
     });
 
     await qualificationCredit.save();
-    fniApplyRequest.qualificationCreditId = qualificationCredit._id;
 
-    // ==== FOR DEMO PURPOSE ONLY ====
-    // const applyResponse = await this.fniEngineService.apply(fniApplyRequest);
-    // const responseStatus = await this.handleFNIResponse(
-    //   applyResponse,
-    //   `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
-    //   qualificationCredit,
-    // );
+    const { opportunityId, applicant, applicantSecuredData, primaryResidence, installationAddress } = req;
+
+    const fniInitApplyReq: IFniApplyReq = {
+      opportunityId,
+      productId: '1', // <To get productId use quoteService method created in this ticket: WAV-3308>
+      applicant,
+      applicantSecuredData,
+      primaryResidence,
+      installationAddress,
+    };
+
+    const fniResponse = await this.fniEngineService.applyPrimaryApplicant(fniInitApplyReq);
+
+    await this.handleFNIInitResponse({
+      applyRequestData: req,
+      fniResponse,
+      qualificationCreditRecordInst: qualificationCredit,
+    });
 
     const applyResponse = 'SUCCESS';
     const responseStatus = await this.handleFNIResponse(
       applyResponse,
-      `${req.primaryApplicantData.firstName} ${req.primaryApplicantData.lastName}`,
+      `${req.applicant.firstName} ${req.applicant.lastName}`,
       qualificationCredit,
     );
     // ==== FOR DEMO PURPOSE ONLY ====
-
     return OperationResult.ok({ responseStatus });
   }
 
@@ -693,7 +655,6 @@ export class QualificationService {
       qualificationCreditRecordInst.type === QUALIFICATION_TYPE.HARD
         ? QUALIFICATION_CATEGORY.HARD_CREDIT
         : QUALIFICATION_CATEGORY.SOFT_CREDIT;
-
     // eslint-disable-next-line default-case
     switch (fniResponse) {
       case 'SUCCESS': {
@@ -743,15 +704,85 @@ export class QualificationService {
         return applyCreditQualificationResponseStatus;
       }
     }
-
     qualificationCreditRecordInst.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
-
     await this.qualificationCreditModel.updateOne(
       { _id: qualificationCreditRecordInst.id },
       qualificationCreditRecordInst,
     );
-
     return applyCreditQualificationResponseStatus;
+  }
+
+  async handleFNIInitResponse(data: {
+    applyRequestData: ApplyCreditQualificationReqDto;
+    fniResponse: IFniResponse;
+    qualificationCreditRecordInst: LeanDocument<QualificationCredit>;
+  }): Promise<void> {
+    const { applyRequestData, fniResponse, qualificationCreditRecordInst } = data;
+    const { type, status, data: fniResponseData } = fniResponse;
+
+    let isError = true;
+    if (status === HttpStatus.OK) {
+      if (!fniResponseData || !fniResponseData.transaction) {
+        throw new NotFoundException(`FNI Response to ${type} is undefined or contains no transaction`);
+      }
+      const { transaction, application, field_descriptions, stips } = fniResponseData;
+
+      const activeFniApplicationIdx = qualificationCreditRecordInst.fniApplications.findIndex(
+        fniApplication => fniApplication.state === FNI_APPLICATION_STATE.ACTIVE,
+      );
+
+      if (activeFniApplicationIdx === -1) {
+        throw new NotFoundException('qualificationCredit record has no ACTIVE fniApplication');
+      }
+
+      const activeFniApplication = qualificationCreditRecordInst.fniApplications[activeFniApplicationIdx];
+
+      if (transaction.status === FNI_TRANSACTION_STATUS.SUCCESS) {
+        isError = false;
+
+        activeFniApplication.refnum = parseInt(transaction.refnum, 10);
+        activeFniApplication.fniCurrentDecisionReceivedAt = application?.timeReceived;
+        activeFniApplication.fniCurrentDecision = application?.currDecision;
+      }
+
+      const response: IFniApplicationResponse = {
+        type,
+        transactionStatus: isError ? FNI_TRANSACTION_STATUS.ERROR : FNI_TRANSACTION_STATUS.SUCCESS,
+        rawResponse: { transaction, application, field_descriptions, stips },
+        createdAt: new Date(),
+      };
+
+      activeFniApplication.responses.push(response);
+
+      qualificationCreditRecordInst.fniApplications[activeFniApplicationIdx] = activeFniApplication;
+
+      await this.qualificationCreditModel.updateOne(
+        { _id: qualificationCreditRecordInst.id },
+        qualificationCreditRecordInst,
+      );
+    }
+
+    if (isError) {
+      let subject;
+      let message;
+
+      if (status === HttpStatus.OK && fniResponseData!.transaction.status === FNI_TRANSACTION_STATUS.ERROR) {
+        subject = this.getFniErrorSubject({ type });
+        message = {
+          opportunityId: applyRequestData.opportunityId,
+          transaction: fniResponseData!.transaction,
+        };
+      } else {
+        subject = this.getFniErrorSubject({ type, status });
+        message = {
+          opportunityId: applyRequestData.opportunityId,
+        };
+      }
+
+      this.emailService.sendMail(process.env.SUPPORT_MAIL!, JSON.stringify(message), subject);
+
+      throw ApplicationException.FniProcessError();
+    }
   }
 
   async getOneById(id: string): Promise<LeanDocument<QualificationCredit> | null> {
@@ -765,4 +796,9 @@ export class QualificationService {
   }
 
   // ===================== INTERNAL =====================
+
+  private getFniErrorSubject(data: { type: string; status?: number }) {
+    const { type, status } = data;
+    return `FNI ${type} :: ${FNI_RESPONSE_ERROR_MAP[status || -1] || 'Error'}`;
+  }
 }

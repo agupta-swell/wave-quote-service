@@ -2,7 +2,6 @@ import { ExposeProp } from 'src/shared/decorators';
 import { Pagination, ServiceResponse } from '../../app/common';
 import { QUALIFICATION_TYPE } from '../constants';
 import { QualificationDetailDto } from './qualification.dto';
-import { FniCommunicationDto } from './sub-dto/fni-communication.dto';
 
 class QualificationDataDto {
   @ExposeProp()
@@ -10,9 +9,6 @@ class QualificationDataDto {
 
   @ExposeProp({ type: QualificationDetailDto })
   qualificationCreditData: QualificationDetailDto;
-
-  @ExposeProp({ type: FniCommunicationDto, isArray: true })
-  fniCommunicationData: FniCommunicationDto[];
 }
 
 export class GetQualificationDetailDto {

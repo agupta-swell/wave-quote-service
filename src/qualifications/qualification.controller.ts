@@ -55,7 +55,7 @@ export class QualificationController {
   @PreAuthenticate()
   @ApiParam({ name: 'qualificationId', type: String })
   @ApiOperation({ summary: 'Set applicant consent' })
-  @ApiOkResponse({ type: ApplicantConsentRes})
+  @ApiOkResponse({ type: ApplicantConsentRes })
   async applicationConsent(
     @Param('qualificationId', ParseObjectIdPipe) id: ObjectId,
     @Body() applicantConsentDto: SetApplicantConsentReqDto,
