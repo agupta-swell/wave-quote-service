@@ -195,7 +195,7 @@ export class ExternalService {
 
     //WAV-3230 Apply ~7% correction to adjustment for NEM3 tariffs
     let totalTimesteps = netDataSeries.length;
-    let totalExport =  exportDataSeries.filter((kWh) => kWh > 0).length;
+    let totalExport =  exportDataSeries.filter((kWh) => kWh > 0).reduce((accum, curVal)=> accum+curVal,0);
     const CORRECTION_PERCENT = 0.068;
     const delta = totalExport * CORRECTION_PERCENT;
     const correction = delta/totalTimesteps;
