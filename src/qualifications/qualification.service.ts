@@ -13,6 +13,7 @@ import { OpportunityService } from '../opportunities/opportunity.service';
 import {
   APPROVAL_MODE,
   CONSENT_STATUS,
+  MILESTONE_STATUS,
   PROCESS_STATUS,
   QUALIFICATION_CATEGORY,
   QUALIFICATION_STATUS,
