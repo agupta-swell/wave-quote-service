@@ -184,7 +184,7 @@ export class QuoteService {
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, maxInstallationAmount } = financialProduct;
 
     const currentAnnualCost =
       utilityData.costData.plannedCost?.annualCost ??
@@ -214,6 +214,9 @@ export class QuoteService {
       newAverageMonthlyBill,
       capacityKW: systemProduction.data?.capacityKW || 0,
     });
+    if (productAttribute.balance > maxInstallationAmount) {
+      throw ApplicationException.maxInstallationAmountExceeded();
+    }
 
     productAttribute.upfrontPayment = this.calculateUpfrontPayment(
       minDownPayment,
@@ -421,7 +424,7 @@ export class QuoteService {
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('Financial Product Type');
     }
-    const { dealerFee } = financialProductSnapshot;
+    const { dealerFee, maxInstallationAmount } = financialProductSnapshot;
     const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, dealerFee);
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
@@ -491,6 +494,10 @@ export class QuoteService {
       esaTerm: financeProductAttribute.esaTerm,
       rateEscalator: financeProductAttribute.rateEscalator,
     });
+
+    if (productAttribute.balance > maxInstallationAmount) {
+      throw ApplicationException.maxInstallationAmountExceeded();
+    }
 
     const { productAttribute: product_attribute } = financeProduct as any;
 
@@ -802,7 +809,13 @@ export class QuoteService {
     } = foundQuote.detailedQuote;
 
     const { financialProductSnapshot } = financeProduct;
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, dealerFee } = financialProductSnapshot;
+    const {
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      dealerFee,
+      maxInstallationAmount,
+    } = financialProductSnapshot;
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
@@ -862,6 +875,10 @@ export class QuoteService {
       esaTerm: product_attribute.esaTerm,
       rateEscalator: product_attribute.rateEscalator,
     });
+
+    if (productAttribute.balance > maxInstallationAmount) {
+      throw ApplicationException.maxInstallationAmountExceeded();
+    }
 
     switch (financeProduct.productType) {
       case FINANCE_PRODUCT_TYPE.LEASE: {
@@ -1134,7 +1151,13 @@ export class QuoteService {
     }
 
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, dealerFee } = financialProductSnapshot;
+    const {
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      dealerFee,
+      maxInstallationAmount,
+    } = financialProductSnapshot;
 
     const [quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),
@@ -1182,6 +1205,10 @@ export class QuoteService {
         incentives: detailedQuote.quoteFinanceProduct.incentiveDetails,
       },
     });
+
+    if (quoteCostBuildUp.projectGrandTotal.netCost > maxInstallationAmount) {
+      throw ApplicationException.maxInstallationAmountExceeded();
+    }
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildUp, systemDesign.existingSystem);
 
