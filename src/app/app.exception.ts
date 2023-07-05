@@ -80,4 +80,11 @@ export class ApplicationException extends HttpException {
   static InvalidDocusignIntegrationConfig(): ApplicationException {
     return new ApplicationException('Docusign Integration Config is missing.', HttpStatus.UNPROCESSABLE_ENTITY);
   }
+
+  static maxInstallationAmountExceeded(): ApplicationException {
+    return new ApplicationException(
+      'The cost of installing this system exceeds the allowed maximum installation amount.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
 }
