@@ -5,13 +5,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import * as dayjs from 'dayjs';
 import * as dayOfYear from 'dayjs/plugin/dayOfYear';
-import { inRange, mean, sum, sumBy, cloneDeep } from 'lodash';
+import { cloneDeep, inRange, mean, sum, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ContactService } from 'src/contacts/contact.service';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
-import { EGenabilityDetailLevel, EGenabilityGroupBy } from 'src/external-services/typing';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { QuoteService } from 'src/quotes/quote.service';
 import { S3Service } from 'src/shared/aws/services/s3.service';
@@ -22,7 +21,7 @@ import { IUsageProfile } from 'src/usage-profiles/interfaces';
 import { UsageProfileDocument } from 'src/usage-profiles/interfaces/usage-profile.interface';
 import { UsageProfileService } from 'src/usage-profiles/usage-profile.service';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
-import { firstSundayOfTheMonth, getMonthDatesOfYear, getNextYearDateRange } from 'src/utils/datetime';
+import { firstSundayOfTheMonth, getMonthDatesOfYear } from 'src/utils/datetime';
 import { roundNumber } from 'src/utils/transformNumber';
 import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
@@ -39,6 +38,7 @@ import {
   MedicalBaselineDataDto,
 } from './req';
 import { UsageValue } from './req/sub-dto';
+import { UpdateAccPlusLowIncomeIncentiveDto } from './req/update-acc-plus-low-income-incentive.dto';
 import {
   CostDataDto,
   ExistingSystemProductionDto,
@@ -51,7 +51,7 @@ import { PinballSimulatorAndCostPostInstallationDto, PinballSimulatorDto } from 
 import { UTILITIES, Utilities } from './schemas';
 import { GenabilityLseData, GENABILITY_LSE_DATA } from './schemas/genability-lse-caching.schema';
 import { GenabilityTeriffData, GENABILITY_TARIFF_DATA } from './schemas/genability-tariff-caching.schema';
-import { getTypicalUsage, IGetTypicalUsageKwh } from './sub-services';
+import { getTypicalUsage, IGetTypicalUsageKwh, UsageProfileProductionService } from './sub-services';
 import { IPinballRateAmount } from './utility.interface';
 import {
   GenabilityCostData,
@@ -59,7 +59,6 @@ import {
   GenabilityUsageData,
   GENABILITY_COST_DATA,
   GENABILITY_USAGE_DATA,
-  ICostDetailData,
   IMonthSeasonTariff,
   IUsageValue,
   IUtilityCostData,
@@ -101,6 +100,7 @@ export class UtilityService implements OnModuleInit {
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
     private readonly s3Service: S3Service,
+    private readonly usageProfileProductionService: UsageProfileProductionService,
   ) {
     dayjs.extend(dayOfYear);
     if (!this.AWS_S3_UTILITY_DATA) {
@@ -113,6 +113,10 @@ export class UtilityService implements OnModuleInit {
       this.logger.log('Ensure v2_genability_usage_data.zip_code index');
       await this.ensureGenabilityUsageDataIndex();
       this.logger.log('Done v2_genability_usage_data.zip_code index');
+
+      this.logger.log('Ensure v2_utility_usage_details index');
+      await this.ensureUtilityUsageDetailIndex();
+      this.logger.log('Done v2_utility_usage_details index');
     } catch (err) {
       this.logger.error(err);
     }
@@ -255,6 +259,7 @@ export class UtilityService implements OnModuleInit {
       this.utilityUsageDetailsModel.findOne({ opportunityId }).lean(),
     ]);
     const medicalBaselineAmount = utilityUsageDetailData?.medicalBaselineAmount;
+    const isLowIncomeOrDac = utilityUsageDetailData?.isLowIncomeOrDac;
 
     const usageCost = await this.calculateCost(
       typicalBaseLine.typicalBaseline.typicalHourlyUsage.map(item => item.v),
@@ -263,6 +268,7 @@ export class UtilityService implements OnModuleInit {
       typicalBaseLine.zipCode,
       medicalBaselineAmount,
       new Date().getFullYear(),
+      isLowIncomeOrDac,
     );
 
     const costData = {
@@ -275,8 +281,18 @@ export class UtilityService implements OnModuleInit {
   }
 
   async calculateActualUsageCostUtil(data: CalculateActualUsageCostDto): Promise<any> {
-    const { masterTariffId, utilityData, usageProfileId, opportunityId, medicalBaselineAmount } = data;
-    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findOne({ opportunityId }).lean();
+    const {
+      masterTariffId,
+      utilityData,
+      usageProfileId,
+      opportunityId,
+      hasMedicalBaseline,
+      medicalBaselineAmount,
+      isLowIncomeOrDac,
+    } = data;
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel
+      .findOne({ opportunityId }, { medicalBaselineAmount: 1, isLowIncomeOrDac: 1 })
+      .lean();
 
     let hourlyDataForTheYear: UsageValue[] = [];
 
@@ -296,13 +312,19 @@ export class UtilityService implements OnModuleInit {
       ) as UsageValue[];
     }
 
+    const medicalBaselineAmountPayloadData =
+      typeof hasMedicalBaseline === 'boolean' && !hasMedicalBaseline
+        ? undefined
+        : medicalBaselineAmount ?? utilityUsageDetailData?.medicalBaselineAmount;
+
     const usageCost = await this.calculateCost(
       hourlyDataForTheYear.map(item => item.v),
       masterTariffId,
       CALCULATION_MODE.ACTUAL,
       data.utilityData.typicalBaselineUsage.zipCode,
-      medicalBaselineAmount ?? utilityUsageDetailData?.medicalBaselineAmount,
+      medicalBaselineAmountPayloadData,
       new Date().getFullYear(),
+      typeof isLowIncomeOrDac === 'boolean' ? isLowIncomeOrDac : utilityUsageDetailData?.isLowIncomeOrDac,
     );
 
     const costData = {
@@ -338,14 +360,26 @@ export class UtilityService implements OnModuleInit {
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
     utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
 
+    let isCalculateActualUsage = false;
+    const calculateActualUsageCostUtilPayload: CalculateActualUsageCostDto = {
+      masterTariffId: utilityDto.costData.masterTariffId,
+      utilityData: utilityDto.utilityData,
+      usageProfileId: utilityDto.usageProfileId,
+      opportunityId: utilityDto.opportunityId,
+    };
+
     if (utilityDto.hasMedicalBaseline && utilityDto.medicalBaselineAmount !== undefined) {
-      const newCostData = await this.calculateActualUsageCostUtil({
-        masterTariffId: utilityDto.costData.masterTariffId,
-        utilityData: utilityDto.utilityData,
-        usageProfileId: utilityDto.usageProfileId,
-        opportunityId: utilityDto.opportunityId,
-        medicalBaselineAmount: utilityDto.medicalBaselineAmount,
-      });
+      isCalculateActualUsage = true;
+      calculateActualUsageCostUtilPayload.medicalBaselineAmount = utilityDto.medicalBaselineAmount;
+    }
+
+    if (utilityDto.isLowIncomeOrDac) {
+      isCalculateActualUsage = true;
+      calculateActualUsageCostUtilPayload.isLowIncomeOrDac = utilityDto.isLowIncomeOrDac;
+    }
+
+    if (isCalculateActualUsage) {
+      const newCostData = await this.calculateActualUsageCostUtil(calculateActualUsageCostUtilPayload);
 
       utilityDto.costData.actualUsageCost = newCostData.actualUsageCost;
       utilityDto.costData.computedCost = newCostData.computedCost;
@@ -354,16 +388,83 @@ export class UtilityService implements OnModuleInit {
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
     if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
-      const computedHourlyUsage = this.getHourlyUsageFromMonthlyUsage(
+      const computedHourlyUsageInKWh = this.getHourlyUsageFromMonthlyUsage(
         utilityDto.utilityData.computedUsage.monthlyUsage,
         typicalMonthlyUsage,
         typicalHourlyUsage,
-      );
-      utilityModel.setComputedHourlyUsage(computedHourlyUsage);
+      ); // kwh
+      utilityModel.setComputedHourlyUsage(computedHourlyUsageInKWh);
     }
 
-    const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
+    const { hourlyEstimatedUsage } = this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
+
+    const {
+      annualComputedAdditions,
+      monthlyComputedAdditions,
+      hourlyComputedAdditions,
+      annualHomeUsageProfile,
+      monthlyHomeUsageProfile,
+      hourlyHomeUsageProfile,
+      annualAdjustedUsageProfile,
+      monthlyAdjustedUsageProfile,
+      hourlyAdjustedUsageProfile,
+      annualCurrentUsageProfile,
+      monthlyCurrentUsageProfile,
+      hourlyCurrentUsageProfile,
+      annualPlannedProfile,
+      monthlyPlannedProfile,
+      hourlyPlannedProfile,
+    } = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
+
+    utilityModel.setComputedAdditions({
+      annualUsage: annualComputedAdditions,
+      monthlyUsage: monthlyComputedAdditions,
+      hourlyUsage: hourlyComputedAdditions,
+    });
+
+    utilityModel.setHomeUsageProfile({
+      annualUsage: annualHomeUsageProfile,
+      monthlyUsage: monthlyHomeUsageProfile,
+      hourlyUsage: hourlyHomeUsageProfile,
+    });
+
+    utilityModel.setAdjustedUsageProfile({
+      annualUsage: annualAdjustedUsageProfile,
+      monthlyUsage: monthlyAdjustedUsageProfile,
+      hourlyUsage: hourlyAdjustedUsageProfile,
+    });
+    utilityModel.setCurrentUsageProfile({
+      annualUsage: annualCurrentUsageProfile,
+      monthlyUsage: monthlyCurrentUsageProfile,
+      hourlyUsage: hourlyCurrentUsageProfile,
+    });
+    utilityModel.setPlannedProfile({
+      annualUsage: annualPlannedProfile,
+      monthlyUsage: monthlyPlannedProfile,
+      hourlyUsage: hourlyPlannedProfile,
+    });
+
+    const [currentUsageCost, plannedCost] = await Promise.all([
+      this.calculateCost(
+        hourlyCurrentUsageProfile,
+        utilityDto.costData.masterTariffId,
+        CALCULATION_MODE.ACTUAL,
+        utilityDto.utilityData.typicalBaselineUsage.zipCode,
+      ),
+      this.calculateCost(
+        hourlyPlannedProfile,
+        utilityDto.costData.masterTariffId,
+        CALCULATION_MODE.ACTUAL,
+        utilityDto.utilityData.typicalBaselineUsage.zipCode,
+      ),
+    ]);
+
+    utilityModel.setCostData({
+      ...utilityDto.costData,
+      currentUsageCost,
+      plannedCost,
+    });
 
     const createdUtility = new this.utilityUsageDetailsModel(utilityModel);
 
@@ -378,14 +479,26 @@ export class UtilityService implements OnModuleInit {
     utilityId: ObjectId,
     medicalBaselineData: MedicalBaselineDataDto,
   ): Promise<OperationResult<UtilityDetailsDto>> {
-    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById({ _id: utilityId });
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById(
+      { _id: utilityId },
+      {
+        hasMedicalBaseline: 1,
+        medicalBaselineAmount: 1,
+        costData: 1,
+        utilityData: 1,
+        usageProfileId: 1,
+        opportunityId: 1,
+      },
+    );
     if (!utilityUsageDetailData) {
       throw ApplicationException.EntityNotFound(utilityId.toString());
     }
 
-    utilityUsageDetailData.hasMedicalBaseline = medicalBaselineData.hasMedicalBaseline;
+    const { hasMedicalBaseline, medicalBaselineAmount } = medicalBaselineData;
+
+    utilityUsageDetailData.hasMedicalBaseline = hasMedicalBaseline;
     if (medicalBaselineData.hasMedicalBaseline) {
-      utilityUsageDetailData.medicalBaselineAmount = medicalBaselineData.medicalBaselineAmount;
+      utilityUsageDetailData.medicalBaselineAmount = medicalBaselineAmount;
     } else {
       utilityUsageDetailData.medicalBaselineAmount = undefined;
     }
@@ -396,7 +509,49 @@ export class UtilityService implements OnModuleInit {
       utilityData,
       usageProfileId,
       opportunityId,
-      medicalBaselineAmount: medicalBaselineData.medicalBaselineAmount,
+      hasMedicalBaseline: utilityUsageDetailData.hasMedicalBaseline,
+      medicalBaselineAmount: utilityUsageDetailData.medicalBaselineAmount,
+    });
+
+    utilityUsageDetailData.costData.actualUsageCost = newCostData.actualUsageCost;
+    utilityUsageDetailData.costData.computedCost = newCostData.computedCost;
+
+    await utilityUsageDetailData.save();
+
+    return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, utilityUsageDetailData));
+  }
+
+  async updateAccPlusLowIncomeIncentive(
+    utilityId: ObjectId,
+    accPlusLowIncomeIncentiveData: UpdateAccPlusLowIncomeIncentiveDto,
+  ): Promise<OperationResult<UtilityDetailsDto>> {
+    const { isLowIncomeOrDac } = accPlusLowIncomeIncentiveData;
+
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findById(
+      { _id: utilityId },
+      {
+        hasMedicalBaseline: 1,
+        medicalBaselineAmount: 1,
+        costData: 1,
+        utilityData: 1,
+        usageProfileId: 1,
+        opportunityId: 1,
+      },
+    );
+
+    if (!utilityUsageDetailData) {
+      throw ApplicationException.EntityNotFound(utilityId.toString());
+    }
+
+    utilityUsageDetailData.isLowIncomeOrDac = isLowIncomeOrDac;
+
+    const { costData, utilityData, usageProfileId, opportunityId } = utilityUsageDetailData;
+    const newCostData = await this.calculateActualUsageCostUtil({
+      masterTariffId: costData.masterTariffId,
+      utilityData,
+      usageProfileId,
+      opportunityId,
+      isLowIncomeOrDac,
     });
 
     utilityUsageDetailData.costData.actualUsageCost = newCostData.actualUsageCost;
@@ -437,8 +592,83 @@ export class UtilityService implements OnModuleInit {
       utilityModel.setComputedHourlyUsage(hourlyUsage);
     }
 
-    const hourlyEstimatedUsage = this.getHourlyEstimatedUsage(utilityModel);
+    const { hourlyEstimatedUsage } = this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
+
+    const {
+      annualComputedAdditions,
+      monthlyComputedAdditions,
+      hourlyComputedAdditions,
+      annualHomeUsageProfile,
+      monthlyHomeUsageProfile,
+      hourlyHomeUsageProfile,
+      annualAdjustedUsageProfile,
+      monthlyAdjustedUsageProfile,
+      hourlyAdjustedUsageProfile,
+      annualCurrentUsageProfile,
+      monthlyCurrentUsageProfile,
+      hourlyCurrentUsageProfile,
+      annualPlannedProfile,
+      monthlyPlannedProfile,
+      hourlyPlannedProfile,
+    } = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
+
+    utilityModel.setComputedAdditions({
+      annualUsage: annualComputedAdditions,
+      monthlyUsage: monthlyComputedAdditions,
+      hourlyUsage: hourlyComputedAdditions,
+    });
+
+    utilityModel.setHomeUsageProfile({
+      annualUsage: annualHomeUsageProfile,
+      monthlyUsage: monthlyHomeUsageProfile,
+      hourlyUsage: hourlyHomeUsageProfile,
+    });
+
+    utilityModel.setAdjustedUsageProfile({
+      annualUsage: annualAdjustedUsageProfile,
+      monthlyUsage: monthlyAdjustedUsageProfile,
+      hourlyUsage: hourlyAdjustedUsageProfile,
+    });
+    utilityModel.setCurrentUsageProfile({
+      annualUsage: annualCurrentUsageProfile,
+      monthlyUsage: monthlyCurrentUsageProfile,
+      hourlyUsage: hourlyCurrentUsageProfile,
+    });
+    utilityModel.setPlannedProfile({
+      annualUsage: annualPlannedProfile,
+      monthlyUsage: monthlyPlannedProfile,
+      hourlyUsage: hourlyPlannedProfile,
+    });
+
+    const utilityUsageDetailData = await this.utilityUsageDetailsModel.findOne({ _id: utilityId }).lean();
+
+    const [currentUsageCost, plannedCost] = await Promise.all([
+      this.calculateCost(
+        hourlyCurrentUsageProfile,
+        utilityDto.costData.masterTariffId,
+        CALCULATION_MODE.ACTUAL,
+        utilityDto.utilityData.typicalBaselineUsage.zipCode,
+        utilityUsageDetailData?.medicalBaselineAmount,
+        undefined,
+        utilityUsageDetailData?.isLowIncomeOrDac,
+      ),
+      this.calculateCost(
+        hourlyPlannedProfile,
+        utilityDto.costData.masterTariffId,
+        CALCULATION_MODE.ACTUAL,
+        utilityDto.utilityData.typicalBaselineUsage.zipCode,
+        utilityUsageDetailData?.medicalBaselineAmount,
+        undefined,
+        utilityUsageDetailData?.isLowIncomeOrDac,
+      ),
+    ]);
+
+    utilityModel.setCostData({
+      ...utilityDto.costData,
+      currentUsageCost,
+      plannedCost,
+    });
 
     const updatedUtility = await this.utilityUsageDetailsModel
       .findOneAndUpdate({ _id: utilityId }, utilityModel, {
@@ -447,10 +677,7 @@ export class UtilityService implements OnModuleInit {
       .lean();
 
     const [isUpdated] = await Promise.all([
-      this.systemDesignService.updateListSystemDesign(
-        utilityDto.opportunityId,
-        utilityDto.utilityData.computedUsage.annualConsumption,
-      ),
+      this.systemDesignService.updateListSystemDesign(utilityDto.opportunityId, annualPlannedProfile),
       this.quoteService.setOutdatedData(utilityDto.opportunityId, 'Utility & Usage'),
     ]);
 
@@ -493,10 +720,13 @@ export class UtilityService implements OnModuleInit {
     );
   }
 
-  getHourlyEstimatedUsage(utility: UtilityUsageDetailsModel | LeanDocument<UtilityUsageDetails>): number[] {
+  getHourlyEstimatedUsage(
+    utility: UtilityUsageDetailsModel | LeanDocument<UtilityUsageDetails>,
+  ): { hourlyEstimatedUsage: number[]; hourlyComputedAdditions: number[] } {
     const {
       utilityData: {
-        computedUsage: { annualConsumption, monthlyUsage, hourlyUsage },
+        computedUsage: { annualConsumption, monthlyUsage },
+        typicalBaselineUsage: { typicalHourlyUsage },
       },
       usageProfileSnapshot,
       increaseAmount,
@@ -506,11 +736,11 @@ export class UtilityService implements OnModuleInit {
 
     let poolUsageKwh = 0;
     if (poolValue) {
-      poolUsageKwh = poolValue / hourlyUsage.length;
+      poolUsageKwh = poolValue / typicalHourlyUsage.length;
     }
 
     const hourlyUsageLoadShapping = this.calculate8760OnActualMonthlyUsage(
-      hourlyUsage,
+      typicalHourlyUsage,
       monthlyUsage,
       usageProfileSnapshot,
     ) as IUsageValue[];
@@ -565,27 +795,31 @@ export class UtilityService implements OnModuleInit {
       }
     }
 
-    const result: number[] = [];
+    const hourlyComputedAdditions: number[] = [];
 
     for (let hourIndex = 0; hourIndex < hourlyUsageLoadShapping.length; ++hourIndex) {
+      let computedAdditions = 0;
       // calculate Planned Usage Increases Kwh
-      hourlyUsageLoadShapping[hourIndex].v +=
+      computedAdditions +=
         annualConsumption && (hourlyUsageLoadShapping[hourIndex].v * increaseAmount) / annualConsumption;
 
       // calculate Pool Usage Kwh
       if (poolUsageKwh) {
-        hourlyUsageLoadShapping[hourIndex].v += poolUsageKwh;
+        computedAdditions += poolUsageKwh;
       }
 
       // calculate Electric Vehicle
       if (electricVehicles.length) {
-        hourlyUsageLoadShapping[hourIndex].v += sumSingleElectricVehicleKwh[hourIndex % 24];
+        computedAdditions += sumSingleElectricVehicleKwh[hourIndex % 24];
       }
 
-      result.push(hourlyUsageLoadShapping[hourIndex].v);
+      hourlyComputedAdditions.push(computedAdditions);
     }
 
-    return result;
+    return {
+      hourlyEstimatedUsage: hourlyUsageLoadShapping.map(({ v }, i) => v + hourlyComputedAdditions[i]),
+      hourlyComputedAdditions,
+    };
   }
 
   private isHourInDay(hourInDay: number, fromHour: number, toHour: number): boolean {
@@ -649,8 +883,7 @@ export class UtilityService implements OnModuleInit {
 
   calculatePinballDataIn24Hours(
     hourlyPostInstallLoadIn24Hours: number[],
-    hourlySeriesForExistingPVIn24Hours: number[] | undefined,
-    hourlySeriesForNewPVIn24Hours: number[],
+    hourlySeriesForTotalPVIn24Hours: number[],
     rateAmountHourlyIn24Hours: IPinballRateAmount[],
     batterySystemSpecs: BatterySystemSpecsDto,
     ratingInKW: number,
@@ -677,15 +910,7 @@ export class UtilityService implements OnModuleInit {
     const batteryDischargingSeriesIn24Hours: number[] = [];
     const postInstallSiteDemandSeriesIn24Hours: number[] = [];
     for (let i = 0; i < 24; i += 1) {
-      // Temporary exclude existingPV from PINBALL calculation due to incorrect Net Load value. Ref wav-2640
-      //
-      // pvGenerationIn24Hours.push(
-      //   new BigNumber(hourlySeriesForExistingPVIn24Hours?.[i] || 0)
-      //     .plus(hourlySeriesForNewPVIn24Hours[i] || 0)
-      //     .toNumber(),
-      // );
-
-      pvGenerationIn24Hours.push(hourlySeriesForNewPVIn24Hours[i] || 0);
+      pvGenerationIn24Hours.push(hourlySeriesForTotalPVIn24Hours[i] || 0);
       netLoadIn24Hours.push(
         new BigNumber(hourlyPostInstallLoadIn24Hours[i] || 0).minus(pvGenerationIn24Hours[i]).toNumber(),
       );
@@ -880,7 +1105,7 @@ export class UtilityService implements OnModuleInit {
 
   buildNEM3ChargingLogic = (
     rateAmountHourlyForNEM2: IPinballRateAmount[],
-    hourlySeriesForNewPV: number[],
+    hourlySeriesForTotalPV: number[],
     hourlyPostInstallLoad: number[],
   ): IPinballRateAmount[] => {
     // NEM3 charging logic
@@ -888,7 +1113,7 @@ export class UtilityService implements OnModuleInit {
     const rateAmountHourlyForNEM3 = cloneDeep(rateAmountHourlyForNEM2);
 
     for (let i = 0; i < rateAmountHourlyForNEM3.length; i++) {
-      const excessPV = new BigNumber(hourlySeriesForNewPV[i] || 0).minus(hourlyPostInstallLoad[i]).toNumber();
+      const excessPV = new BigNumber(hourlySeriesForTotalPV[i] || 0).minus(hourlyPostInstallLoad[i]).toNumber();
 
       if (rateAmountHourlyForNEM3[i].shouldCharge) {
         // next period is more expensive than the current period
@@ -915,12 +1140,12 @@ export class UtilityService implements OnModuleInit {
   async simulatePinball(data: GetPinballSimulatorDto): Promise<PinballSimulatorDto> {
     const {
       hourlyPostInstallLoad,
-      hourlySeriesForExistingPV,
-      hourlySeriesForNewPV,
+      hourlySeriesForTotalPV,
       postInstallMasterTariffId,
       zipCode,
       batterySystemSpecs,
       medicalBaselineAmount,
+      isLowIncomeOrDac,
     } = data;
 
     let filterTariffs: any[] = [];
@@ -1015,8 +1240,7 @@ export class UtilityService implements OnModuleInit {
 
     const pinballDataForNEM2 = this.calculatePinballData(
       hourlyPostInstallLoad,
-      hourlySeriesForExistingPV,
-      hourlySeriesForNewPV,
+      hourlySeriesForTotalPV,
       rateAmountHourlyForNEM2,
       batterySystemSpecs,
       ratingInKW,
@@ -1028,14 +1252,13 @@ export class UtilityService implements OnModuleInit {
     if (chargingLogicType === CHARGING_LOGIC_TYPE.NEM3) {
       const rateAmountHourlyForNEM3 = this.buildNEM3ChargingLogic(
         rateAmountHourlyForNEM2,
-        hourlySeriesForNewPV,
+        hourlySeriesForTotalPV,
         hourlyPostInstallLoad,
       );
 
       const pinballDataForNEM3 = this.calculatePinballData(
         hourlyPostInstallLoad,
-        hourlySeriesForExistingPV,
-        hourlySeriesForNewPV,
+        hourlySeriesForTotalPV,
         rateAmountHourlyForNEM3,
         batterySystemSpecs,
         ratingInKW,
@@ -1053,12 +1276,14 @@ export class UtilityService implements OnModuleInit {
           masterTariffId: postInstallMasterTariffId,
           zipCode,
           medicalBaselineAmount,
+          isLowIncomeOrDac,
         }),
         this.externalService.calculateAnnualBill({
           hourlyDataForTheYear: pinballDataForNEM3.postInstallSiteDemandSeries.map(i => i / 1000),
           masterTariffId: postInstallMasterTariffId,
           zipCode,
           medicalBaselineAmount,
+          isLowIncomeOrDac,
         }),
       ]);
 
@@ -1100,8 +1325,7 @@ export class UtilityService implements OnModuleInit {
 
   calculatePinballData(
     hourlyPostInstallLoad: number[],
-    hourlySeriesForExistingPV: number[] | undefined,
-    hourlySeriesForNewPV: number[],
+    hourlySeriesForTotalPV: number[],
     rateAmountHourly: IPinballRateAmount[],
     batterySystemSpecs: BatterySystemSpecsDto,
     ratingInKW: number,
@@ -1125,11 +1349,7 @@ export class UtilityService implements OnModuleInit {
       const startIdx = i * 24;
       const endIdx = startIdx + 24;
       const hourlyPostInstallLoadIn24Hours: number[] = hourlyPostInstallLoad.slice(startIdx, endIdx);
-      const hourlySeriesForExistingPVIn24Hours: number[] | undefined = hourlySeriesForExistingPV?.slice(
-        startIdx,
-        endIdx,
-      );
-      const hourlySeriesForNewPVIn24Hours: number[] = hourlySeriesForNewPV.slice(startIdx, endIdx);
+      const hourlySeriesForTotalPVIn24Hours: number[] = hourlySeriesForTotalPV.slice(startIdx, endIdx);
       const rateAmountHourlyIn24Hours: IPinballRateAmount[] = rateAmountHourly.slice(startIdx, endIdx);
 
       const {
@@ -1139,8 +1359,7 @@ export class UtilityService implements OnModuleInit {
         postInstallSiteDemandSeriesIn24Hours,
       } = this.calculatePinballDataIn24Hours(
         hourlyPostInstallLoadIn24Hours,
-        hourlySeriesForExistingPVIn24Hours,
-        hourlySeriesForNewPVIn24Hours,
+        hourlySeriesForTotalPVIn24Hours,
         rateAmountHourlyIn24Hours,
         batterySystemSpecs,
         ratingInKW,
@@ -1219,6 +1438,7 @@ export class UtilityService implements OnModuleInit {
       ),
     );
 
+    // kWh
     const monthlyProduction = existingSystemProductions.reduce(
       (prev, current) =>
         current.monthly.map((value, monthIdx) => ({
@@ -1298,6 +1518,7 @@ export class UtilityService implements OnModuleInit {
     zipCode: number,
     medicalBaselineAmount?: number,
     year?: number,
+    isLowIncomeOrDac?: boolean,
   ): Promise<IUtilityCostData> {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -1324,6 +1545,7 @@ export class UtilityService implements OnModuleInit {
       masterTariffId,
       zipCode,
       medicalBaselineAmount,
+      isLowIncomeOrDac,
     });
 
     const { annualCost, fromDateTime, toDateTime } = data;
@@ -1405,6 +1627,12 @@ export class UtilityService implements OnModuleInit {
   private async ensureGenabilityUsageDataIndex(): Promise<string> {
     return this.genabilityUsageDataModel.collection.createIndex({
       zip_code: 1,
+    });
+  }
+
+  private async ensureUtilityUsageDetailIndex(): Promise<string> {
+    return this.utilityUsageDetailsModel.collection.createIndex({
+      opportunity_id: 1,
     });
   }
 

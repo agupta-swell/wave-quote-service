@@ -6,31 +6,17 @@ import { map } from 'rxjs/operators';
 import { PreAuthenticate } from 'src/app/securities';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { TransformTypicalUsage } from 'src/utilities/interceptors';
-import {
-  calculateElectricVehicle,
-  calculatePlannedUsageIncreasesKwh,
-  calculatePoolUsageKwh,
-  mapToResult,
-} from 'src/utilities/operators';
-import { UtilityService } from 'src/utilities/utility.service';
+import { mapToResult } from 'src/utilities/operators';
 import { EnergyProfileService } from './energy-profile.service';
 import { GetEnergyProfileResDto } from './res/energy-profile.dto';
 
 @Controller('/energy-profiles')
 @PreAuthenticate()
 export class EnergyProfileController {
-  constructor(
-    private readonly energyProfileService: EnergyProfileService,
-    private readonly utilityService: UtilityService,
-  ) {}
+  constructor(private readonly energyProfileService: EnergyProfileService) {}
 
   @Get(':opportunityId/:systemDesignId')
-  @TransformTypicalUsage(
-    calculatePlannedUsageIncreasesKwh,
-    calculatePoolUsageKwh,
-    calculateElectricVehicle,
-    mapToResult(GetEnergyProfileResDto),
-  )
+  @TransformTypicalUsage(mapToResult(GetEnergyProfileResDto))
   @ApiOperation({ summary: 'Get Energy Profile detail by systemDesignId' })
   @ApiOkResponse({ type: GetEnergyProfileResDto })
   get(
@@ -38,7 +24,7 @@ export class EnergyProfileController {
     @Param('opportunityId') opportunityId: string,
   ): Observable<any> {
     const result = zip(
-      this.utilityService.getTypicalUsage$(opportunityId),
+      this.energyProfileService.getExpectedUsage(opportunityId),
       this.energyProfileService.getSunroofHourlyProduction(systemDesignId),
       this.energyProfileService.getBatteryChargingSeries(systemDesignId),
       this.energyProfileService.getBatteryDischargingSeries(systemDesignId),
@@ -48,7 +34,7 @@ export class EnergyProfileController {
     ).pipe(
       map(
         ([
-          usage,
+          expectedUsage,
           solarProduction,
           batteryChargingSeries,
           batteryDischargingSeries,
@@ -56,7 +42,7 @@ export class EnergyProfileController {
           batteryDataSeriesForTypicalDay,
           netLoadAverage,
         ]) => ({
-          ...usage,
+          expectedUsage,
           solarProduction,
           batteryChargingSeries,
           batteryDischargingSeries,

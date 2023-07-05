@@ -1,15 +1,19 @@
 import { Document, Schema } from 'mongoose';
-import { APPROVAL_MODE, PROCESS_STATUS, QUALIFICATION_STATUS, QUALIFICATION_TYPE, VENDOR_ID } from './constants';
+import { APPROVAL_MODE, MILESTONE_STATUS, PROCESS_STATUS, QUALIFICATION_STATUS, QUALIFICATION_TYPE, VENDOR_ID } from './constants';
 
 export const QUALIFICATION_CREDIT = 'QUALIFICATION_CREDIT';
 
 export interface ICustomerNotification {
+  label: String,
+  type: String,
   sentOn: Date;
   email: string;
 }
 
 export const CustomerNotificationSchema = new Schema<Document<ICustomerNotification>>(
   {
+    label: String,
+    type: String,
     sent_on: Date,
     email: String,
   },
@@ -45,6 +49,7 @@ export interface QualificationCredit extends Document {
   opportunityId: string;
   type: QUALIFICATION_TYPE;
   startedOn: Date;
+  milestone: MILESTONE_STATUS;
   processStatus: PROCESS_STATUS;
   customerNotifications: ICustomerNotification[];
   eventHistories: IEventHistory[];
@@ -66,6 +71,7 @@ export const QualificationCreditSchema = new Schema<QualificationCredit>({
   opportunity_id: String,
   type: String,
   started_on: Date,
+  milestone: String,
   process_status: String,
   customer_notifications: [CustomerNotificationSchema],
   event_histories: [EventHistorySchema],

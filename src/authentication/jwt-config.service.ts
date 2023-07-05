@@ -13,7 +13,12 @@ export class JwtConfigService implements JwtOptionsFactory {
   }
 
   async createJwtOptions(): Promise<JwtModuleOptions> {
-    const appSecret = await this.getJWTSecretKey();
+    const appSecret = process.env.JWT_SECRET;
+
+    if (!appSecret) {
+      throw new Error('Missing JWT_SECRET env');
+    }
+
     JwtConfigService.appSecret = appSecret;
     return {
       secret: appSecret,
@@ -21,26 +26,5 @@ export class JwtConfigService implements JwtOptionsFactory {
         expiresIn: process.env.JWT_EXPIRE_TIME,
       },
     };
-  }
-
-  async getJWTSecretKey(): Promise<string> {
-    let secret = '';
-    let decodedBinarySecret = '';
-
-    try {
-      const data = await this.client
-        .getSecretValue({ SecretId: process.env.SOLAR_QUOTING_TOOL_INTEGRATION || '' })
-        .promise();
-      if ('SecretString' in data) {
-        secret = data.SecretString ?? '';
-      } else {
-        const buff = Buffer.from((data.SecretBinary ?? '').toString(), 'base64');
-        decodedBinarySecret = buff.toString('ascii');
-      }
-    } catch (error) {
-      console.error('>>>>>>>>>>>>>>>>>>>', 'JwtConfigService -> decode secret error', error);
-    }
-
-    return JSON.parse(secret || decodedBinarySecret)?.JWT_SECRET as string;
   }
 }

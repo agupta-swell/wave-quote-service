@@ -441,6 +441,7 @@ export interface ISunroofDriftCorrection {
 export interface ICostCalculationInput {
   masterTariffId?: string;
   medicalBaselineAmount?: number;
+  isLowIncomeOrDac?: boolean;
   fromDateTime?: string;
   toDateTime?: string;
 }
@@ -496,6 +497,7 @@ const CostCalculationInputSchema = new Schema<ICostCalculationInput>(
   {
     master_tariff_id: String,
     medical_baseline_amount: Number,
+    is_low_income_or_dac: Boolean,
     from_date_time: String,
     to_date_time: String,
   },

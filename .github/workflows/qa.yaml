@@ -1,0 +1,15 @@
+name: QA 
+on:
+  push:
+    branches:
+      - qa
+  workflow_dispatch:
+concurrency: qa 
+jobs: 
+  deploy_qa:
+    uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
+    with:
+      Environment:      QA
+    permissions:
+      id-token: write
+      contents: read

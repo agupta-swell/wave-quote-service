@@ -481,7 +481,7 @@ export class ProposalService {
     const [
       existingSystemProduction,
       utility,
-      historicalUsageRes,
+      expectedUsage,
       requiredData,
       manufacturersRes,
       systemProductionRes,
@@ -492,19 +492,7 @@ export class ProposalService {
     ] = await Promise.all([
       this.energyProfileService.getExistingSystemProductionSeries(proposal.opportunityId),
       this.utilityService.getUtilityByOpportunityId(proposal.opportunityId),
-      this.utilityService
-        .getTypicalUsage$(proposal.opportunityId)
-        .pipe(
-          mergeMap(res =>
-            of(res).pipe(
-              calculatePlannedUsageIncreasesKwh,
-              calculatePoolUsageKwh,
-              calculateElectricVehicle,
-              mapToResult(GetDataSeriesResDto),
-            ),
-          ),
-        )
-        .toPromise(),
+      this.energyProfileService.getExpectedUsage(proposal.opportunityId),
       this.getProposalRequiredData(proposal),
       this.manufacturerService.getList(),
       this.systemProductionService.findById(proposal.detailedProposal.systemDesignData.systemProductionId),
@@ -519,7 +507,7 @@ export class ProposalService {
     const netLoad: INetLoad = {
       average: netLoadAverage,
       typical: getNetLoadTypical(
-        historicalUsageRes?.data?.historicalUsage,
+        expectedUsage,
         solarProduction,
         batteryDataSeriesForTypicalDay.batteryChargingSeries,
         batteryDataSeriesForTypicalDay.batteryDischargingSeries,
@@ -582,6 +570,7 @@ export class ProposalService {
     }
 
     const sumOfUtilityUsageCost =
+      utility?.costData.plannedCost?.annualCost ??
       utility?.costData.computedCost.annualCost ??
       (utility?.costData.computedCost.cost?.reduce(
         (previousValue, currentValue) => previousValue + currentValue.v,
@@ -590,10 +579,12 @@ export class ProposalService {
         0);
 
     const sumOfMonthlyUsageCost =
-      utility?.utilityData?.computedUsage?.monthlyUsage?.reduce(
+      utility?.plannedProfile?.annualUsage ??
+      (utility?.utilityData?.computedUsage?.monthlyUsage?.reduce(
         (previousValue, currentValue) => previousValue + currentValue.v,
         0,
-      ) || 0;
+      ) ||
+        0);
     // TODO: remove end
 
     const isSent = await this.checkIsSent(proposal);
@@ -606,7 +597,7 @@ export class ProposalService {
     return OperationResult.ok({
       isAgent: !!tokenPayload.isAgent,
       utility,
-      historicalUsage: historicalUsageRes?.data?.historicalUsage,
+      expectedUsage,
       manufacturers: manufacturersRes?.data?.data,
       tariffDetails,
       proposalDetail,
@@ -977,5 +968,9 @@ export class ProposalService {
     }
 
     return false;
+  }
+
+  public async getProposalsBySystemDesignId(systemDesignId: string): Promise<Proposal[]> {
+    return this.proposalModel.find({ systemDesignId });
   }
 }

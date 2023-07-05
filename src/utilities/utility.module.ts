@@ -21,6 +21,7 @@ import {
   UTILITY_USAGE_DETAILS,
 } from './utility.schema';
 import { UtilityService } from './utility.service';
+import { UsageProfileProductionService } from './sub-services';
 
 @Global()
 @Module({
@@ -67,7 +68,7 @@ import { UtilityService } from './utility.service';
     AwsModule,
   ],
   controllers: [UtilityController],
-  providers: [UtilityService, PipeTypicalUsageInterceptor],
+  providers: [UtilityService, PipeTypicalUsageInterceptor, UsageProfileProductionService],
   exports: [UtilityService],
 })
 export class UtilityModule {}

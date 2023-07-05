@@ -1,10 +1,9 @@
 import { getNetLoadTypical } from 'src/energy-profiles/utils';
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
-import { IHistoricalUsage } from 'src/utilities/res';
 import { IBatteryDataSeries, IGetEnergyProfile, INetLoad } from '../energy-profile.interface';
 
 export class GetEnergyProfile {
-  public historicalUsage: IHistoricalUsage;
+  public expectedUsage: IEnergyProfileProduction;
 
   public solarProduction: IEnergyProfileProduction;
 
@@ -18,7 +17,7 @@ export class GetEnergyProfile {
 
   constructor(props: IGetEnergyProfile) {
     const {
-      usage,
+      expectedUsage,
       solarProduction,
       batteryChargingSeries,
       batteryDischargingSeries,
@@ -27,14 +26,9 @@ export class GetEnergyProfile {
       netLoadAverage,
     } = props;
 
-    const [annualUsage, ...monthlyUsage] = usage;
-
-    this.historicalUsage = {
-      annualUsage,
-      monthlyUsage,
-    };
-
+    this.expectedUsage = expectedUsage;
     this.solarProduction = solarProduction;
+
     this.batteryChargingSeries = {
       average: batteryChargingSeries,
       typical: batteryDataSeriesForTypicalDay.batteryChargingSeries,
@@ -50,7 +44,7 @@ export class GetEnergyProfile {
     this.netLoad = {
       average: netLoadAverage,
       typical: getNetLoadTypical(
-        { annualUsage, monthlyUsage },
+        expectedUsage,
         solarProduction,
         batteryDataSeriesForTypicalDay.batteryChargingSeries,
         batteryDataSeriesForTypicalDay.batteryDischargingSeries,

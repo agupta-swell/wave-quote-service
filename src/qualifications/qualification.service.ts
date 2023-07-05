@@ -41,6 +41,7 @@ import {
 import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communication.schema';
 import { FniEngineService } from './sub-services/fni-engine.service';
 import { IFniApplyReq } from './typing.d';
+import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
 
 @Injectable()
 export class QualificationService {
@@ -75,6 +76,7 @@ export class QualificationService {
       opportunityId: qualificationDto.opportunityId,
       type: qualificationDto.type,
       startedOn: now,
+      milestone: MILESTONE_STATUS.INITIATED,
       processStatus: PROCESS_STATUS.INITIATED,
       eventHistories: [
         {
@@ -154,6 +156,7 @@ export class QualificationService {
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
         ? QUALIFICATION_CATEGORY.HARD_CREDIT
         : QUALIFICATION_CATEGORY.SOFT_CREDIT;
+    qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
     qualificationCredit.processStatus = PROCESS_STATUS.COMPLETED;
     qualificationCredit.eventHistories.push({
       issueDate: now,
@@ -274,6 +277,11 @@ export class QualificationService {
         break;
     }
 
+    const { milestone, processStatus } = getQualificationMilestoneAndProcessStatusByVerbalConsent(qualificationCredit);
+
+    qualificationCredit.milestone = milestone;
+    qualificationCredit.processStatus = processStatus;
+
     const [_, newPropertyHomeowners] = await Promise.all([
       qualificationCredit.save(),
       this.propertyService.findHomeownersById(foundOpportunity.propertyId),
@@ -294,17 +302,23 @@ export class QualificationService {
     }
 
     const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
-    const email = await this.contactService.getEmailById(contactId || '');
+    const contact = await this.contactService.getContactById(contactId || '');
     const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER);
 
     const data = {
-      contactFullName: 'Customer',
-      qualificationValidityPeriod: '48h',
+      contactFullName:
+        `${contact?.firstName || ''}${(contact?.firstName && ' ') || ''}${contact?.lastName || ''}` || 'Customer',
+      qualificationValidityPeriod: '48 hours',
       recipientNotice: 'No Content',
       link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
     };
 
-    await this.emailService.sendMailByTemplate(email || '', 'Qualification Invitation', 'Qualification Email', data);
+    await this.emailService.sendMailByTemplate(
+      contact?.email || '',
+      'Qualification Invitation',
+      'Qualification Email',
+      data,
+    );
 
     const now = new Date();
     const qualificationCategory =
@@ -320,11 +334,16 @@ export class QualificationService {
     });
 
     qualificationCredit.customerNotifications.push({
+      label: 'Applicant',
+      type: 'Single Applicant',
       sentOn: now,
-      email: email || '',
+      email: contact?.email || '',
     });
 
     qualificationCredit.applicationSentOn = now;
+
+    qualificationCredit.processStatus = PROCESS_STATUS.APPLICATION_EMAILED;
+    qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_EMAILED;
 
     await qualificationCredit.save();
 
@@ -376,7 +395,11 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound('Qualification Credit');
     }
 
-    if (![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED].includes(qualificationCredit.processStatus)) {
+    if (
+      ![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED, PROCESS_STATUS.APPLICATION_EMAILED].includes(
+        qualificationCredit.processStatus,
+      )
+    ) {
       return OperationResult.ok(
         strictPlainToClass(GetApplicationDetailDto, {
           qualificationCreditId,
@@ -644,6 +667,8 @@ export class QualificationService {
         return applyCreditQualificationResponseStatus;
       }
     }
+
+    qualificationCreditRecordInst.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
 
     await this.qualificationCreditModel.updateOne(
       { _id: qualificationCreditRecordInst.id },

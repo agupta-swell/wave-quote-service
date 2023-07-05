@@ -73,6 +73,12 @@ export class SystemDesignDto {
 
   @ExposeProp()
   isArchived?: boolean;
+
+  @ExposeProp()
+  isSentProposalsExisted: boolean;
+
+  @ExposeProp()
+  isContractsExisted: boolean;
 }
 
 class SystemDesignPaginationRes implements Pagination<SystemDesignDto> {

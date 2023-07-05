@@ -39,6 +39,30 @@ export class FinanceProductDetailDto {
   fundId: string;
 
   @ApiProperty()
+  fundProductScoreCard: string;
+
+  @ApiProperty()
+  financialSolverId: string[];
+
+  @ApiProperty()
+  fmvAppraisalId: string;
+
+  @ApiProperty()
+  nonAchFee: number;
+
+  @ApiProperty()
+  lateFee: number;
+
+  @ApiProperty()
+  defaultTurnkeyPriceEsPv: number;
+
+  @ApiProperty()
+  maxInstallationAmount: number;
+
+  @ApiProperty()
+  repaymentMethod: string[];
+
+  @ApiProperty()
   @IsNotEmpty()
   @IsBoolean()
   allowDownPayment: boolean;
@@ -158,6 +182,9 @@ export class FinanceProductDetailDto {
 
   @ApiProperty()
   requiresHardCreditApproval: boolean;
+
+  @ApiProperty()
+  requiresSoftCreditApproval: boolean;
 
   @ApiProperty()
   countersignerName: string;

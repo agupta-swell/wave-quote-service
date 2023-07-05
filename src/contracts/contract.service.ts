@@ -990,6 +990,51 @@ export class ContractService {
       )
     }
 
+    const query = {
+      opportunity_id: opportunityId,
+      contract_type: {
+        $ne: CONTRACT_TYPE.GRID_SERVICES_PACKET,
+      },
+      contract_status: {
+        $eq: PROCESS_STATUS.COMPLETED,
+      },
+    };
+    const oppsContracts = await this.contractModel.find(query).sort({ createdAt: -1 });
+
+    // no finalized contract or Primary Contract associated with the opportunity
+    if (oppsContracts && oppsContracts.length === 0) {
+      // Update Opportuntity amount to 0
+      await this.opportunityService.updateExistingOppDataById(opportunityId, {
+        $set: {
+          amount: 0,
+        },
+      });
+
+      // Update Associated Project's amount to 0
+      await this.projectService.updateProjectAmountByQuery(
+        {
+          relatedOpportunityId: opportunityId,
+        },
+        {
+          amount: 0,
+        },
+      );
+
+      // update associated power settings
+      await this.systemAttributeService.updateSystemAttributeByQuery(
+        {
+          opportunityId: opportunityId,
+        },
+        {
+          $set: {
+            pvKw: 0,
+            batteryKw: 0,
+            batteryKwh: 0,
+          },
+        },
+      );
+    }
+
     if (isUpdateInstalledProduct && user && contractType === CONTRACT_TYPE.CHANGE_ORDER) {
       const primaryContract = await this.contractModel.findById(primaryContractId).lean();
 
@@ -1279,5 +1324,14 @@ export class ContractService {
     return OperationResult.ok(
       strictPlainToClass(SendContractDto, { status, statusDescription, newlyUpdatedContract: contract.toJSON() }),
     );
+  }
+
+  public async getNotVoidedContractsBySystemDesignId(systemDesignId: string): Promise<Contract[]> {
+    const foundQuotes = await this.quoteService.getQuotesByCondition({ systemDesignId, isArchived: false });
+    const foundQuoteIds = foundQuotes.map(({ _id }) => _id);
+    return this.contractModel.find({
+      associatedQuoteId: { $in: foundQuoteIds },
+      contractStatus: { $ne: PROCESS_STATUS.VOIDED },
+    });
   }
 }

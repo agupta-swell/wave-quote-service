@@ -1,12 +1,19 @@
 /* eslint-disable no-plusplus */
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ObjectId } from 'mongoose';
+import { of } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 import { ApplicationException } from 'src/app/app.exception';
 import { S3Service } from 'src/shared/aws/services/s3.service';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { PvWattProductionDto } from 'src/system-productions/res';
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
 import { CHARGING_LOGIC_TYPE } from 'src/utilities/constants';
+import {
+  calculateElectricVehicle,
+  calculatePlannedUsageIncreasesKwh,
+  calculatePoolUsageKwh,
+} from 'src/utilities/operators';
 import { GetPinballSimulatorDto } from 'src/utilities/req';
 import { IPinballRateAmount } from 'src/utilities/utility.interface';
 import { UtilityService } from 'src/utilities/utility.service';
@@ -22,8 +29,6 @@ import {
 export class EnergyProfileService {
   private PINBALL_SIMULATION_BUCKET = process.env.AWS_S3_PINBALL_SIMULATION as string;
 
-  private GOOGLE_SUNROOF_BUCKET = process.env.GOOGLE_SUNROOF_S3_BUCKET as string;
-
   constructor(
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
@@ -35,6 +40,31 @@ export class EnergyProfileService {
   async getPvWattProduction(systemDesignId: ObjectId): Promise<PvWattProductionDto | undefined> {
     const systemDesign = await this.systemDesignService.getDetails(systemDesignId);
     return systemDesign.data?.systemProductionData.pvWattProduction;
+  }
+
+  async getExpectedUsage(opportunityId: string): Promise<IEnergyProfileProduction> {
+    const utilityUsageDetailData = await this.utilityService.getUtilityByOpportunityId(opportunityId);
+
+    if (!utilityUsageDetailData) {
+      throw new NotFoundException(`Utility and Usage detail is not found with this opportunity id ${opportunityId}`);
+    }
+
+    if (utilityUsageDetailData.plannedProfile) {
+      return buildMonthlyAndAnnualDataFrom8760(utilityUsageDetailData.plannedProfile.hourlyUsage.map(v => v * 1000)); // convert to Wh
+    }
+
+    const { usage } = await this.utilityService
+      .getTypicalUsage$(opportunityId)
+      .pipe(
+        mergeMap(res =>
+          of(res).pipe(calculatePlannedUsageIncreasesKwh, calculatePoolUsageKwh, calculateElectricVehicle),
+        ),
+      )
+      .toPromise();
+
+    const [annualUsage, ...monthlyUsage] = usage;
+
+    return { annualAverage: annualUsage, monthlyAverage: monthlyUsage };
   }
 
   async getSunroofHourlyProduction(systemDesignId: ObjectId | string): Promise<IEnergyProfileProduction> {
@@ -125,7 +155,7 @@ export class EnergyProfileService {
     // all data is in Wh
     const {
       hourlyPostInstallLoad,
-      hourlySeriesForExistingPV,
+      hourlySeriesForTotalPV,
       hourlySeriesForNewPV,
       batterySystemSpecs,
     } = pinballInputData;
@@ -133,10 +163,11 @@ export class EnergyProfileService {
     const monthlyAndAnnualPostInstallLoadInWhIn24Hours = getMonthlyAndAnnualWeekdayAverageFrom8760(
       hourlyPostInstallLoad,
     );
-    const monthlyAndAnnualSeriesForExistingPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(
-      hourlySeriesForExistingPV,
+
+    // handle backward compatibility
+    const monthlyAndAnnualSeriesForTotalPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(
+      hourlySeriesForTotalPV || hourlySeriesForNewPV,
     );
-    const monthlyAndAnnualSeriesForNewPVInWhIn24Hours = getMonthlyAndAnnualAverageFrom8760(hourlySeriesForNewPV);
 
     let monthlyAndAnnualRateAmountIn24Hours;
 
@@ -155,14 +186,14 @@ export class EnergyProfileService {
       // annual
       monthlyAndAnnualRateAmountIn24Hours.annualRateAmount = this.utilityService.buildNEM3ChargingLogic(
         monthlyAndAnnualRateAmountIn24Hours.annualRateAmount,
-        monthlyAndAnnualSeriesForNewPVInWhIn24Hours.annualAverage,
+        monthlyAndAnnualSeriesForTotalPVInWhIn24Hours.annualAverage,
         monthlyAndAnnualPostInstallLoadInWhIn24Hours.annualAverage,
       );
       // monthly
       for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
         monthlyAndAnnualRateAmountIn24Hours.monthlyRateAmount[monthIndex] = this.utilityService.buildNEM3ChargingLogic(
           monthlyAndAnnualRateAmountIn24Hours.monthlyRateAmount[monthIndex],
-          monthlyAndAnnualSeriesForNewPVInWhIn24Hours.monthlyAverage[monthIndex],
+          monthlyAndAnnualSeriesForTotalPVInWhIn24Hours.monthlyAverage[monthIndex],
           monthlyAndAnnualPostInstallLoadInWhIn24Hours.monthlyAverage[monthIndex],
         );
       }
@@ -202,8 +233,7 @@ export class EnergyProfileService {
 
     const annualPinballData = this.utilityService.calculatePinballDataIn24Hours(
       monthlyAndAnnualPostInstallLoadInWhIn24Hours.annualAverage,
-      monthlyAndAnnualSeriesForExistingPVInWhIn24Hours.annualAverage,
-      monthlyAndAnnualSeriesForNewPVInWhIn24Hours.annualAverage,
+      monthlyAndAnnualSeriesForTotalPVInWhIn24Hours.annualAverage,
       monthlyAndAnnualRateAmountIn24Hours.annualRateAmount,
       batterySystemSpecs,
       ratingInKW,
@@ -219,8 +249,7 @@ export class EnergyProfileService {
     for (let i = 0; i < 12; i++) {
       const monthlyPinballData = this.utilityService.calculatePinballDataIn24Hours(
         monthlyAndAnnualPostInstallLoadInWhIn24Hours.monthlyAverage[i],
-        monthlyAndAnnualSeriesForExistingPVInWhIn24Hours.monthlyAverage[i],
-        monthlyAndAnnualSeriesForNewPVInWhIn24Hours.monthlyAverage[i],
+        monthlyAndAnnualSeriesForTotalPVInWhIn24Hours.monthlyAverage[i],
         monthlyAndAnnualRateAmountIn24Hours.monthlyRateAmount[i],
         batterySystemSpecs,
         ratingInKW,
@@ -259,7 +288,7 @@ export class EnergyProfileService {
     }
 
     // check if system design does not have panel array, so does not need SIMULATE PINBALL
-    if (!systemDesign.roofTopDesignData.panelArray.length) {
+    if (!systemDesign.roofTopDesignData?.panelArray.length) {
       return null;
     }
 

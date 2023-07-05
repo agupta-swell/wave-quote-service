@@ -35,6 +35,7 @@ import {
 import { PinballSimulatorDto, PinballSimulatorAndCostPostInstallationDto } from './res/pinball-simulator.dto';
 import { IGetTypicalUsageKwh } from './sub-services';
 import { UtilityService } from './utility.service';
+import { UpdateAccPlusLowIncomeIncentiveDto } from './req/update-acc-plus-low-income-incentive.dto';
 
 @ApiTags('Utilities')
 @ApiBearerAuth()
@@ -105,6 +106,17 @@ export class UtilityController {
     @Body() data: MedicalBaselineDataDto,
   ): Promise<ServiceResponse<UtilityDetailsDto>> {
     const res = await this.utilityService.updateMedicalBaseline(utilityId, data);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put('/:utilityId/acc-plus-low-income-incentive')
+  @ApiOperation({ summary: 'Update ACC Plus Low Income Incentive' })
+  @ApiOkResponse({ type: UtilityDetailsDto })
+  async updateAccPlusLowIncomeIncentive(
+    @Param('utilityId', ParseObjectIdPipe) utilityId: ObjectId,
+    @Body() data: UpdateAccPlusLowIncomeIncentiveDto,
+  ): Promise<ServiceResponse<UtilityDetailsDto>> {
+    const res = await this.utilityService.updateAccPlusLowIncomeIncentive(utilityId, data);
     return ServiceResponse.fromResult(res);
   }
 

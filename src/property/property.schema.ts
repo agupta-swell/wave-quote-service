@@ -26,16 +26,22 @@ export const PropertyHomeownersSchema = new Schema<PropertyHomeowners>(
   { _id: false },
 );
 
-export const PropertiesSchema = new Schema<PropertyDocument>({
-  _id: Schema.Types.Mixed,
-  address1: { type: String },
-  address2: { type: String, optional: true },
-  city: { type: String },
-  state: { type: String },
-  zip: { type: String },
-  lat: { type: Number, optional: true, decimal: true },
-  lng: { type: Number, optional: true, decimal: true },
-  homeowners: { type: [PropertyHomeownersSchema] },
-});
+export const PropertiesSchema = new Schema<PropertyDocument>(
+  {
+    _id: Schema.Types.Mixed,
+    address1: { type: String },
+    address2: { type: String, optional: true },
+    city: { type: String },
+    state: { type: String },
+    zip: { type: String },
+    lat: { type: Number, optional: true, decimal: true },
+    lng: { type: Number, optional: true, decimal: true },
+    homeowners: { type: [PropertyHomeownersSchema] },
+  },
+  {
+    timestamps: { createdAt: 'createdAt', updatedAt: 'modifiedAt' },
+    versionKey: false,
+  },
+);
 
 MongooseNamingStrategy.ExcludeOne(PropertiesSchema);

@@ -1,0 +1,22 @@
+name: Development
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+concurrency: development  
+jobs: 
+  deploy_dev:
+    uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
+    with:
+      Environment:      Development
+    permissions:
+      id-token: write
+      contents: read
+  deploy_auto:
+    uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
+    with:
+      Environment:      QA Automation
+    permissions:
+      id-token: write
+      contents: read

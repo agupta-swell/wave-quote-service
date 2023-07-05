@@ -1,5 +1,4 @@
 import { IEnergyProfileProduction } from 'src/system-productions/system-production.schema';
-import { IHistoricalUsage } from 'src/utilities/res';
 import { roundNumber } from 'src/utils/transformNumber';
 
 export const getNetLoadTypical24Hours = (
@@ -27,13 +26,13 @@ export const getNetLoadTypical24Hours = (
 };
 
 export const getNetLoadTypical = (
-  expectedUsage: IHistoricalUsage,
+  expectedUsage: IEnergyProfileProduction,
   newPV: IEnergyProfileProduction,
   batteryChargingSeriesTypical: IEnergyProfileProduction,
   batteryDischargingSeriesTypical: IEnergyProfileProduction,
 ): IEnergyProfileProduction => {
   const netLoadTypicalAnnual: number[] = getNetLoadTypical24Hours(
-    expectedUsage.annualUsage,
+    expectedUsage.annualAverage,
     newPV.annualAverage,
     batteryChargingSeriesTypical.annualAverage,
     batteryDischargingSeriesTypical.annualAverage,
@@ -41,7 +40,7 @@ export const getNetLoadTypical = (
   const netLoadTypicalMonthly: number[][] = [];
   for (let i = 0; i < 12; i += 1) {
     const netLoadTypical24Hours = getNetLoadTypical24Hours(
-      expectedUsage.monthlyUsage[i],
+      expectedUsage.monthlyAverage[i],
       newPV.monthlyAverage[i],
       batteryChargingSeriesTypical.monthlyAverage[i],
       batteryDischargingSeriesTypical.monthlyAverage[i],

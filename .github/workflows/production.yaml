@@ -1,0 +1,22 @@
+name: Production
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+concurrency: master  
+jobs: 
+  deploy_prod:
+    uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
+    with:
+      Environment:      Production
+    permissions:
+      id-token: write
+      contents: read
+  deploy_demo:
+    uses: SwellEnergy/actions/.github/workflows/backend.yaml@development
+    with:
+      Environment:      Demo
+    permissions:
+      id-token: write
+      contents: read

@@ -98,6 +98,7 @@ export interface IGenabilityCalculateUtilityCost {
   zipCode: string;
   startDate?: Date;
   medicalBaselineAmount?: number;
+  isLowIncomeOrDac?: boolean;
 }
 
 export interface ICalculateCostAddress {
@@ -153,4 +154,5 @@ export interface ICalculateAnnualBillPayload {
   zipCode: number;
   medicalBaselineAmount?: number;
   startDate?: Date;
+  isLowIncomeOrDac?: boolean;
 }

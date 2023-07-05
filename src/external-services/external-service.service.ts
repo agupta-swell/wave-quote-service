@@ -174,6 +174,7 @@ export class ExternalService {
     zipCode,
     startDate,
     medicalBaselineAmount,
+    isLowIncomeOrDac,
   }: IGenabilityCalculateUtilityCost): Promise<any> {
     const { fromDateTime, toDateTime } = getNextYearDateRange(startDate);
 
@@ -186,11 +187,25 @@ export class ExternalService {
 
     // decompose netDataSeries into import and export series
     // imported energy is only positive net load numbers
-    const importDataSeries = netDataSeries.map(kWh => (kWh > 0 ? kWh : 0));
+    let importDataSeries = netDataSeries.map(kWh => (kWh > 0 ? kWh : 0));
 
     // exported energy is only negative net load numbers
     // but Genability expects positive (absolute) values
-    const exportDataSeries = netDataSeries.map(kWh => (kWh < 0 ? Math.abs(kWh) : 0));
+    let exportDataSeries = netDataSeries.map(kWh => (kWh < 0 ? Math.abs(kWh) : 0));
+
+    //WAV-3230 Apply ~7% correction to adjustment for NEM3 tariffs
+    let totalTimesteps = netDataSeries.length;
+    let totalExport =  exportDataSeries.filter((kWh) => kWh > 0).length;
+    const CORRECTION_PERCENT = 0.068;
+    const delta = totalExport * CORRECTION_PERCENT;
+    const correction = delta/totalTimesteps;
+
+    const addCorrection = (dataSeries) => {
+      return dataSeries.map(kWh => kWh + correction);
+    }
+
+    importDataSeries = addCorrection(importDataSeries);
+    exportDataSeries = addCorrection(exportDataSeries);
 
     const payload: ICalculateCostPayload = {
       address: {
@@ -222,6 +237,13 @@ export class ExternalService {
       });
     }
 
+    if (isLowIncomeOrDac) {
+      payload.propertyInputs.push({
+        keyName: 'accPlusAdderCustomerType',
+        dataValue: 'lowIncome',
+      });
+    }
+
     return this.genabilityService.calculateCostData(payload);
   }
 
@@ -244,8 +266,7 @@ export class ExternalService {
    * Calculate annual bill from Genability response
    */
   async calculateAnnualBill(data: ICalculateAnnualBillPayload): Promise<IAnnualBillData> {
-    const { hourlyDataForTheYear, masterTariffId, zipCode, medicalBaselineAmount, startDate } = data;
-
+    const { hourlyDataForTheYear, masterTariffId, zipCode, medicalBaselineAmount, startDate, isLowIncomeOrDac } = data;
     // Call Genability
     const [result] = await this.calculateCost({
       hourlyDataForTheYear,
@@ -256,6 +277,7 @@ export class ExternalService {
       zipCode: zipCode.toString(),
       startDate,
       medicalBaselineAmount,
+      isLowIncomeOrDac,
     });
 
     const { fromDateTime, toDateTime } = result;
