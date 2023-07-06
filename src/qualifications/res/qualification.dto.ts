@@ -11,6 +11,7 @@ import {
 import { ApplicantDto } from './sub-dto/applicant.dto';
 import { CustomerNotificationDto } from './sub-dto/customer-notification.dto';
 import { EventDto } from './sub-dto/event.dto';
+import { FniApplicationDto } from './sub-dto/fni-applications.dto';
 
 export class QualificationDetailDto {
   @ExposeMongoId()
@@ -60,6 +61,9 @@ export class QualificationDetailDto {
 
   @ExposeProp({ isArray: true, type: ApplicantDto })
   applicants: ApplicantDto[];
+
+  @ExposeProp({ isArray: true, type: FniApplicationDto })
+  fniApplications: FniApplicationDto[];
 }
 
 export class QualificationDto {

@@ -2,6 +2,7 @@ import { Document, Schema } from 'mongoose';
 import {
   APPLICANT_TYPE,
   APPROVAL_MODE,
+  FNI_APPLICATION_STATE,
   MILESTONE_STATUS,
   PROCESS_STATUS,
   QUALIFICATION_STATUS,
@@ -35,6 +36,42 @@ export interface IEventHistory {
   userId?: string;
   qualificationCategory?: string;
 }
+
+export interface IFniApplication {
+  state: string;
+  refnum?: number;
+  fniProductId?: string;
+  fniCurrentDecision?: string;
+  fniCurrentQueueName?: string;
+  fniCurrentDecisionReceivedAt?: string;
+}
+
+export const FniApplicationSchema = new Schema<Document<IFniApplication>>(
+  {
+    state: { type: String, default: FNI_APPLICATION_STATE.ACTIVE },
+    refnum: {
+      type: Number,
+      required: false,
+    },
+    fni_product_id: {
+      type: String,
+      required: false,
+    },
+    fni_current_decision: {
+      type: String,
+      required: false,
+    },
+    fni_current_queue_name: {
+      type: String,
+      required: false,
+    },
+    fni_current_decision_received_at: {
+      type: String,
+      required: false,
+    },
+  },
+  { _id: false },
+);
 
 export const EventHistorySchema = new Schema<Document<IEventHistory>>(
   {
@@ -121,6 +158,7 @@ export const QualificationCreditSchema = new Schema<QualificationCredit>({
   has_co_applicant: Boolean,
   application_sent_on: Date,
   applicants: [ApplicantSchema],
+  fni_applications: [FniApplicationSchema],
   created_at: { type: Date, default: Date.now },
   created_by: String,
   updated_at: { type: Date, default: Date.now },

@@ -72,6 +72,10 @@ export enum CONSENT_STATUS {
   HAS_CO_APPLICANT_CONSENT = 'HAS_CO_APPLICANT_CONSENT',
 }
 
+export enum FNI_APPLICATION_STATE {
+  ACTIVE = 'ACTIVE',
+}
+
 export enum APPLICANT_TYPE {
   APPLICANT = 'applicant',
   CO_APPLICANT = 'coapplicant',
