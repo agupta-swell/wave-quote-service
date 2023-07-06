@@ -23,6 +23,7 @@ import {
   ROLE,
   TOKEN_STATUS,
   VENDOR_ID,
+  FNI_APPLICATION_STATE,
 } from './constants';
 import { IApplicant, QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
@@ -88,6 +89,11 @@ export class QualificationService {
           detail: 'Request Initiated',
           userId: qualificationDto.agentDetail.userId,
           qualificationCategory,
+        },
+      ],
+      fniApplications: [
+        {
+          state: FNI_APPLICATION_STATE.ACTIVE,
         },
       ],
       vendorId: VENDOR_ID.FNI,
