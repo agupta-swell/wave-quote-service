@@ -5,7 +5,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { PropertyService } from 'src/property/property.service';
-import { GetHomeownersByIdResultResDto } from 'src/property/res/get-homeowners-by-id';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
@@ -15,6 +14,7 @@ import {
   APPLICANT_TYPE,
   APPROVAL_MODE,
   CONSENT_STATUS,
+  FNI_APPLICATION_STATE,
   MILESTONE_STATUS,
   PROCESS_STATUS,
   QUALIFICATION_CATEGORY,
@@ -313,19 +313,27 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound(`opportunityId: ${qualificationCredit.opportunityId}`);
     }
 
-    const contactId = opportunity.contactId;
-    const contact = await this.contactService.getContactById(contactId || '');
+    const homeowners = await this.propertyService.findHomeownersById(opportunity.propertyId);
+    const primaryContactId = homeowners.find(homeowner => homeowner.isPrimary)?.contactId || '';
+
+    const primaryContact = await this.contactService.getContactById(primaryContactId);
+
+    if (!primaryContact) {
+      throw ApplicationException.EntityNotFound(`primaryContact: ${primaryContact}`);
+    }
 
     const data = {
       contactFullName:
-        `${contact?.firstName || ''}${(contact?.firstName && ' ') || ''}${contact?.lastName || ''}` || 'Customer',
+        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${
+          primaryContact?.lastName || ''
+        }` || 'Customer',
       qualificationValidityPeriod: '48 hours',
       recipientNotice: 'No Content',
       link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
     };
 
     await this.emailService.sendMailByTemplate(
-      contact?.email || '',
+      primaryContact?.email || '',
       'Qualification Invitation',
       'Qualification Email',
       data,
@@ -348,7 +356,7 @@ export class QualificationService {
       label: 'Applicant',
       type: 'Single Applicant',
       sentOn: now,
-      email: contact?.email || '',
+      email: primaryContact?.email || '',
     });
 
     qualificationCredit.applicationSentOn = now;
@@ -370,31 +378,27 @@ export class QualificationService {
         }
       });
 
-      let homeowners = null as GetHomeownersByIdResultResDto[] | null;
       if (!applicantIsExist) {
-        homeowners = await this.propertyService.findHomeownersById(opportunity.propertyId);
-        const contactId = homeowners.find(homeowner => homeowner.isPrimary)?.contactId;
-        if (!contactId) {
-          throw ApplicationException.EntityNotFound(`Applicant contactId: ${contactId}`);
+        if (!primaryContactId) {
+          throw ApplicationException.EntityNotFound(`Applicant contactId: ${primaryContactId}`);
         }
 
         const applicant = {} as IApplicant;
         applicant.type = APPLICANT_TYPE.APPLICANT;
-        applicant.contactId = contactId;
+        applicant.contactId = primaryContactId;
         qualificationCredit.applicants.push(applicant);
       }
 
       // type set to coapplicant:
       if (!coApplicantIsExist && qualificationCredit.hasCoApplicant && qualificationCredit.hasCoApplicantConsent) {
-        homeowners = homeowners || (await this.propertyService.findHomeownersById(opportunity.propertyId));
-        const contactId = homeowners.find(homeowner => !homeowner.isPrimary)?.contactId;
-        if (!contactId) {
-          throw ApplicationException.EntityNotFound(`Co applicant contactId: ${contactId}`);
+        const coContactId = homeowners.find(homeowner => !homeowner.isPrimary)?.contactId;
+        if (!coContactId) {
+          throw ApplicationException.EntityNotFound(`Co applicant contactId: ${coContactId}`);
         }
 
         const applicant = {} as IApplicant;
         applicant.type = APPLICANT_TYPE.CO_APPLICANT;
-        applicant.contactId = contactId;
+        applicant.contactId = coContactId;
         qualificationCredit.applicants.push(applicant);
       }
     }
