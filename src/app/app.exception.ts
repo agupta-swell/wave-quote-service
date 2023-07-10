@@ -99,4 +99,11 @@ export class ApplicationException extends HttpException {
       HttpStatus.BAD_REQUEST,
     );
   }
+
+  static ActiveFniApplicationNotFound(qualificationCreditId): ApplicationException {
+    return new ApplicationException(
+      `Qualification Credit ${qualificationCreditId} has no ACTIVE fniApplication`,
+      HttpStatus.BAD_REQUEST,
+    );
+  }
 }

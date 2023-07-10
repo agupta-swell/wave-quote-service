@@ -5,9 +5,17 @@ import { Model } from 'mongoose';
 import axios, { AxiosInstance } from 'axios';
 import { EHttpMethod, EVendor } from 'src/shared/api-metrics/api-metrics.schema';
 import { ApiMetricsService } from 'src/shared/api-metrics/api-metrics.service';
+import { ApplicationException } from 'src/app/app.exception';
 import { ExternalService } from '../../external-services/external-service.service';
 import { FNI_APPLICATION_STATE, FNI_REQUEST_TYPE, FNI_TRANSACTION_STATUS } from '../constants';
-import { IFniApplyReq, IFniProcessReq, IFniResponse, IFniResponseData, IFniSolarInitReqPayload } from '../typing.d';
+import {
+  IFniApplyReq,
+  IFniProcessReq,
+  IFniResponse,
+  IFniResponseData,
+  IFniSolarInitCoAppReqPayload,
+  IFniSolarInitReqPayload,
+} from '../typing.d';
 import { ProcessCreditQualificationReqDto } from '../req/process-credit-qualification.dto';
 import { IFniApplication, QUALIFICATION_CREDIT, QualificationCredit } from '../qualification.schema';
 
@@ -50,7 +58,7 @@ export class FniEngineService {
     }
     const activeFniApplication = this.findActiveFniApplication(qualificationCredit);
     if (!activeFniApplication) {
-      throw new NotFoundException('qualificationCredit record has no ACTIVE fniApplication');
+      throw ApplicationException.ActiveFniApplicationNotFound(qualificationCredit._id);
     }
 
     const fniKey: any = JSON.parse(await this.getSecretManager(process.env.FNI_SECRET_MANAGER_NAME as string));
@@ -162,6 +170,50 @@ export class FniEngineService {
 
     const fniResponse = await this.callFniAPI<any, IFniSolarInitReqPayload>({
       url: FNI_REQUEST_TYPE.SOLAR_INIT,
+      method: EHttpMethod.POST,
+      data: reqPayload,
+    });
+
+    return fniResponse;
+  }
+
+  async applyCoApplicant(req: IFniApplyReq): Promise<IFniResponse> {
+    const reqPayload: IFniSolarInitCoAppReqPayload = {
+      transaction: {
+        key: process.env.FNI_API_Key || '',
+        hash: process.env.FNI_API_HASH || '',
+        partnerId: process.env.FNI_PARTNER_ID || '',
+        refnum: String(req.refnum),
+      },
+      applicant2: {
+        first: req.applicant.firstName,
+        mi: req.applicant.middleName,
+        last: req.applicant.lastName,
+        soc: req.applicantSecuredData.soc.toString(),
+        dob: req.applicantSecuredData.dob.toString(),
+        addr: req.primaryResidence.addressLine1,
+        city: req.primaryResidence.city,
+        state: req.primaryResidence.state,
+        zip: req.primaryResidence.zipcode,
+        eMail: req.applicant.email,
+        phone: req.applicant.phoneNumber,
+        propAddr: req.installationAddress.addressLine1,
+        propCity: req.installationAddress.city,
+        propState: req.installationAddress.state,
+        propZip: req.installationAddress.zipcode,
+      },
+      employment: [
+        {
+          empChnum: '2',
+          empPay: req.applicantSecuredData.individualIncome,
+          empPayBasis: req.applicantSecuredData.incomeFrequency,
+          empType: 'CURRENT',
+        },
+      ],
+    };
+
+    const fniResponse = await this.callFniAPI<any, IFniSolarInitCoAppReqPayload>({
+      url: FNI_REQUEST_TYPE.SOLAR_INITCOAPP,
       method: EHttpMethod.POST,
       data: reqPayload,
     });

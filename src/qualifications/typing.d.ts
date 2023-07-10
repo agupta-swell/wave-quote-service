@@ -26,11 +26,11 @@ interface IPersonalInformation {
 
 export interface IFniProcessReq {
   transaction: {
-    key: string,
-    hash: string,
-    partnerId: string,
-    refnum: string
-  }
+    key: string;
+    hash: string;
+    partnerId: string;
+    refnum: string;
+  };
 }
 
 export interface IFniApplyReq {
@@ -40,6 +40,7 @@ export interface IFniApplyReq {
   applicantSecuredData: IPersonalInformation;
   primaryResidence: IResidenceData;
   installationAddress: IResidenceData;
+  refnum?: number;
 }
 
 export interface IFniSolarInitReqPayload {
@@ -69,6 +70,38 @@ export interface IFniSolarInitReqPayload {
     addrLengthMos: string;
     propAddr: string;
     propAttn: string;
+    propCity: string;
+    propState: string;
+    propZip: string;
+  };
+  employment: {
+    empChnum: string;
+    empPay: string;
+    empPayBasis: string;
+    empType: string;
+  }[];
+}
+
+export interface IFniSolarInitCoAppReqPayload {
+  transaction: {
+    key: string;
+    hash: string;
+    partnerId: string;
+    refnum: string;
+  };
+  applicant2: {
+    first: string;
+    mi?: string;
+    last: string;
+    soc: string;
+    dob: string;
+    addr: string;
+    city: string;
+    state: string;
+    zip: string;
+    eMail: string;
+    phone: string;
+    propAddr: string;
     propCity: string;
     propState: string;
     propZip: string;

@@ -15,6 +15,7 @@ import {
   APPROVAL_MODE,
   CONSENT_STATUS,
   FNI_APPLICATION_STATE,
+  FNI_REQUEST_TYPE,
   FNI_RESPONSE_ERROR_MAP,
   FNI_TRANSACTION_STATUS,
   MILESTONE_STATUS,
@@ -598,7 +599,24 @@ export class QualificationService {
       installationAddress,
     };
 
-    const fniResponse = await this.fniEngineService.applyPrimaryApplicant(fniInitApplyReq);
+    const { hasCoApplicant, applicants } = qualificationCredit;
+
+    let fniResponse;
+    if (hasCoApplicant && applicants[applicantIndex].type === APPLICANT_TYPE.CO_APPLICANT) {
+      const activeFniApplicationIdx = qualificationCredit.fniApplications.findIndex(
+        fniApplication => fniApplication.state === FNI_APPLICATION_STATE.ACTIVE,
+      );
+
+      if (activeFniApplicationIdx === -1) {
+        throw ApplicationException.ActiveFniApplicationNotFound(req.qualificationCreditId);
+      }
+
+      fniInitApplyReq.refnum = qualificationCredit.fniApplications[activeFniApplicationIdx].refnum;
+
+      fniResponse = await this.fniEngineService.applyCoApplicant(fniInitApplyReq);
+    } else {
+      fniResponse = await this.fniEngineService.applyPrimaryApplicant(fniInitApplyReq);
+    }
 
     await this.handleFNIInitResponse({
       applyRequestData: req,
@@ -783,7 +801,7 @@ export class QualificationService {
       );
 
       if (activeFniApplicationIdx === -1) {
-        throw new NotFoundException('qualificationCredit record has no ACTIVE fniApplication');
+        throw ApplicationException.ActiveFniApplicationNotFound(qualificationCreditRecordInst._id);
       }
 
       const activeFniApplication = qualificationCreditRecordInst.fniApplications[activeFniApplicationIdx];
@@ -791,7 +809,9 @@ export class QualificationService {
       if (transaction.status === FNI_TRANSACTION_STATUS.SUCCESS) {
         isError = false;
 
-        activeFniApplication.refnum = parseInt(transaction.refnum, 10);
+        if (type === FNI_REQUEST_TYPE.SOLAR_INIT) {
+          activeFniApplication.refnum = parseInt(transaction.refnum, 10);
+        }
         activeFniApplication.fniCurrentDecisionReceivedAt = application?.timeReceived;
         activeFniApplication.fniCurrentDecision = application?.currDecision;
       }
@@ -830,7 +850,11 @@ export class QualificationService {
         };
       }
 
-      this.emailService.sendMail(process.env.SUPPORT_MAIL!, JSON.stringify(message), subject);
+      // eslint-disable-next-line no-unused-expressions
+      process.env.SUPPORT_MAIL &&
+        this.emailService.sendMail(process.env.SUPPORT_MAIL!, JSON.stringify(message), subject).catch(err => {
+          console.error(`Send mail error`, err);
+        });
 
       throw ApplicationException.FniProcessError();
     }
