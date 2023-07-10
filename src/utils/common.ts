@@ -37,3 +37,8 @@ export function getBooleanString(str: string): boolean {
   if (str === 'false' || str === '0') return false;
   return false;
 }
+
+export const convertStringWithCommasToNumber = (str: string) => {
+  const value = Number(str.replace(/,/g, ''));
+  return Number.isNaN(value) ? 0 : value;
+};
