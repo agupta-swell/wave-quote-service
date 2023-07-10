@@ -63,6 +63,7 @@ export interface IFniApplication {
   fniCurrentDecision?: string;
   fniCurrentQueueName?: string;
   fniCurrentDecisionReceivedAt?: string;
+  reason: string[];
   responses: IFniApplicationResponse[];
 }
 

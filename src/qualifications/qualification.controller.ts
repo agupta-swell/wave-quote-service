@@ -85,6 +85,16 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
+  @Post('/resend-mails')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiOperation({ summary: 'Resend email to customers' })
+  @ApiOkResponse({ type: SendMailRes })
+  async resendMail(@Body() req: SendMailReqDto): Promise<ServiceResponse<SendMailDto>> {
+    const res = await this.qualificationService.resendMail(req);
+    return ServiceResponse.fromResult(res);
+  }
+
   @Put(':qualificationId/manual-approval')
   @ApiBearerAuth()
   @PreAuthenticate()

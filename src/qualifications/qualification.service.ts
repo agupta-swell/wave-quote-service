@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign */
-import { HttpStatus, Injectable, NotFoundException, UnauthorizedException, Logger } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
@@ -15,6 +15,8 @@ import {
   APPROVAL_MODE,
   CONSENT_STATUS,
   FNI_APPLICATION_STATE,
+  FNI_RESPONSE_ERROR_MAP,
+  FNI_TRANSACTION_STATUS,
   MILESTONE_STATUS,
   PROCESS_STATUS,
   QUALIFICATION_CATEGORY,
@@ -23,10 +25,8 @@ import {
   ROLE,
   TOKEN_STATUS,
   VENDOR_ID,
-  FNI_RESPONSE_ERROR_MAP,
-  FNI_TRANSACTION_STATUS,
 } from './constants';
-import { IApplicant, QualificationCredit, QUALIFICATION_CREDIT, IFniApplicationResponse } from './qualification.schema';
+import { IApplicant, IFniApplicationResponse, QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
   ApplyCreditQualificationReqDto,
   CreateQualificationReqDto,
@@ -35,6 +35,7 @@ import {
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
 } from './req';
+import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
 import {
   ApplicantConsentDto,
   GetApplicationDetailDto,
@@ -44,13 +45,12 @@ import {
   SendMailDto,
 } from './res';
 import { FniEngineService } from './sub-services/fni-engine.service';
+import { IFniApplyReq, IFniResponse } from './typing.d';
 import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
-import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
-import { IFniResponse, IFniApplyReq } from './typing.d';
 
 @Injectable()
 export class QualificationService {
-  private readonly logger = new Logger(QualificationService.name);  
+  private readonly logger = new Logger(QualificationService.name);
 
   constructor(
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
@@ -298,12 +298,36 @@ export class QualificationService {
     );
   }
 
+  async resendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
+    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+    if (!qualificationCredit) {
+      throw ApplicationException.EntityNotFound(`qualificationCreditId: ${req.qualificationCreditId}`);
+    }
+
+    qualificationCredit.fniApplications.forEach(item => {
+      item.state = FNI_APPLICATION_STATE.INACTIVE;
+    });
+    qualificationCredit.fniApplications.push({
+      state: FNI_APPLICATION_STATE.ACTIVE,
+      reason: [],
+      responses: [],
+    });
+    return this.qualificationMailHandler(req, qualificationCredit);
+  }
+
   async sendMail(req: SendMailReqDto): Promise<OperationResult<SendMailDto>> {
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound(`qualificationCreditId: ${req.qualificationCreditId}`);
     }
 
+    return this.qualificationMailHandler(req, qualificationCredit);
+  }
+
+  async qualificationMailHandler(
+    req: SendMailReqDto,
+    qualificationCredit: QualificationCredit,
+  ): Promise<OperationResult<SendMailDto>> {
     const [opportunity, token] = await Promise.all([
       this.opportunityService.getDetailById(qualificationCredit.opportunityId),
       this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER),
@@ -324,7 +348,9 @@ export class QualificationService {
 
     const data = {
       contactFullName:
-        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${primaryContact?.lastName || ''}` || 'Customer',
+        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${
+          primaryContact?.lastName || ''
+        }` || 'Customer',
       qualificationValidityPeriod: '48 hours',
       recipientNotice: 'No Content',
       link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
@@ -534,25 +560,27 @@ export class QualificationService {
       qualificationCategory,
     });
 
-    const applicantIndex = qualificationCredit.applicants.findIndex((applicant) => applicant.contactId === req.contactId);
+    const applicantIndex = qualificationCredit.applicants.findIndex(applicant => applicant.contactId === req.contactId);
     if (qualificationCredit.applicants[applicantIndex]) {
-      qualificationCredit.applicants[applicantIndex].agreementTerm1CheckedAt = req.acknowledgement.agreement_term_1_checked_at;
-      qualificationCredit.applicants[applicantIndex].creditCheckAuthorizedAt = req.acknowledgement.credit_check_authorized_at;
+      qualificationCredit.applicants[applicantIndex].agreementTerm1CheckedAt =
+        req.acknowledgement.agreement_term_1_checked_at;
+      qualificationCredit.applicants[applicantIndex].creditCheckAuthorizedAt =
+        req.acknowledgement.credit_check_authorized_at;
       if (req.acknowledgement.joint_intention_disclosure_accepted_at) {
-        qualificationCredit.applicants[applicantIndex].jointIntentionDisclosureCheckedAt = 
+        qualificationCredit.applicants[applicantIndex].jointIntentionDisclosureCheckedAt =
           req.acknowledgement.joint_intention_disclosure_accepted_at;
       }
     } else {
       const subject = 'There was a problem processing your request. Please contact your Sales Agent for Assistance.';
-      const body = 'Request body recieved to /appy-credit-qualification:\n' + req;
-      process.env.SUPPORT_MAIL && await this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
-      
-      let e = {
+      const body = `Request body recieved to /appy-credit-qualification:\n${req}`;
+      process.env.SUPPORT_MAIL && (await this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject));
+
+      const e = {
         name: 'No matching contact found in applicants[]',
         message: subject,
-        stack: 'wave-quote-service/src/qualifications/qualification.service.ts:applyCreditQualification'
-      }
-          
+        stack: 'wave-quote-service/src/qualifications/qualification.service.ts:applyCreditQualification',
+      };
+
       this.logger.error(e, e.stack);
       return OperationResult.error(e);
     }
