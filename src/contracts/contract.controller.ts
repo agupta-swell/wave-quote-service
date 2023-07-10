@@ -172,6 +172,7 @@ export class ContractController {
 
   @ResourceGuard(CONTRACT_SECRET_PREFIX)
   @Get('/download/:name')
+  @UseDocusignContext()
   @ApiParam({ name: 'contractId' })
   @ApiOperation({ summary: 'Download Contract envelope' })
   async downloadContract(
@@ -195,6 +196,7 @@ export class ContractController {
 
   @ResourceGuard(CONTRACT_SECRET_PREFIX)
   @Get('/GSPdownload/:name')
+  @UseDocusignContext()
   @ApiParam({ name: 'contractId' })
   @ApiOperation({ summary: 'Download Contract envelope' })
   async downloadGSPContract(
@@ -254,6 +256,7 @@ export class ContractController {
   }
 
   @Post('/:contractId/resend')
+  @UseDocusignContext()
   @ApiOperation({ summary: 'Resend Contract' })
   @ApiOkResponse({ type: SendContractRes })
   async resendContract(
@@ -264,6 +267,7 @@ export class ContractController {
   }
 
   @Put('/:contractId/wet-sign')
+  @UseDocusignContext()
   @ApiOperation({ summary: 'Upload wet signed contract' })
   @UseWetSignContract('contractId')
   async updateWetSignedContract(
@@ -275,8 +279,9 @@ export class ContractController {
   }
 
   @Post('/:contractId/void')
+  @UseDocusignContext()
   @VoidRelatedContracts()
-  @ApiOperation({ summary: 'Resend Contract' })
+  @ApiOperation({ summary: 'Void Contract' })
   @ApiOkResponse({ type: SaveContractRes })
   async voidContract(
     @CurrentUser() user: ILoggedInUser,
@@ -287,6 +292,7 @@ export class ContractController {
   }
 
   @Post('/:contractId/voidGSP')
+  @UseDocusignContext()
   @VoidRelatedContracts()
   @ApiOperation({ summary: 'Void Contract' })
   @ApiOkResponse({ type: SaveContractRes })
