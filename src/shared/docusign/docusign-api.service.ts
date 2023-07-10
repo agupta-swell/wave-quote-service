@@ -278,7 +278,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
       );
 
       if (!docusignIntegration?.accessToken) {
-        throw ApplicationException.InvalidDocusignIntegrationConfig();
+        throw ApplicationException.InvalidDocusignIntegrationConfig(docusignIntegrationType);
       }
       DocusignApiService._jwtAuthConfig.set(docusignIntegrationType, docusignIntegration);
       isInitAuthConfig = true;

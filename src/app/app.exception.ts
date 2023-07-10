@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { DOCUSIGN_INTEGRATION_TYPE } from 'src/docusign-integration/constants';
 
 export class ApplicationException extends HttpException {
   private constructor(
@@ -77,8 +78,8 @@ export class ApplicationException extends HttpException {
     return new ApplicationException('Contract is not invalid', HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  static InvalidDocusignIntegrationConfig(): ApplicationException {
-    return new ApplicationException('Docusign Integration Config is missing.', HttpStatus.UNPROCESSABLE_ENTITY);
+  static InvalidDocusignIntegrationConfig(type = DOCUSIGN_INTEGRATION_TYPE.DEFAULT): ApplicationException {
+    return new ApplicationException(`${type} Docusign Integration Config is missing.`, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
   static maxInstallationAmountExceeded(): ApplicationException {
