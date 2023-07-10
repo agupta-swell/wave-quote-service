@@ -74,9 +74,33 @@ export enum CONSENT_STATUS {
 
 export enum FNI_APPLICATION_STATE {
   ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
 }
 
 export enum APPLICANT_TYPE {
   APPLICANT = 'applicant',
   CO_APPLICANT = 'coapplicant',
+}
+
+export enum FNI_REQUEST_TYPE {
+  SOLAR_INIT = 'solar_init',
+  SOLAR_INITCOAPP = 'solar_initcoapp',
+  SOLAR_APPLY = 'solar_apply',
+  SOLAR_APPLY_INCOMING = 'solar_apply_incoming',
+}
+
+export enum FNI_TRANSACTION_STATUS {
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR',
+}
+
+export const FNI_RESPONSE_ERROR_MAP: Record<number, string> = {
+  400: 'Invalid Input Data',
+  401: 'Unauthorized Access',
+  500: 'Invalid Server Error',
+};
+
+export enum APPLICATION_PROCESS_STATUS {
+  APPLICATION_PROCESS_SUCCESS = 'APPLICATION_PROCESS_SUCCESS',
+  APPLICATION_PROCESS_ERROR = 'APPLICATION_PROCESS_ERROR',
 }

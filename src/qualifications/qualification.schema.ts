@@ -3,6 +3,8 @@ import {
   APPLICANT_TYPE,
   APPROVAL_MODE,
   FNI_APPLICATION_STATE,
+  FNI_REQUEST_TYPE,
+  FNI_TRANSACTION_STATUS,
   MILESTONE_STATUS,
   PROCESS_STATUS,
   QUALIFICATION_STATUS,
@@ -37,6 +39,23 @@ export interface IEventHistory {
   qualificationCategory?: string;
 }
 
+export interface IFniApplicationResponse {
+  type: FNI_REQUEST_TYPE;
+  transactionStatus: FNI_TRANSACTION_STATUS;
+  rawResponse: Record<string, unknown>;
+  createdAt: Date;
+}
+
+export const FniApplicationResponseSchema = new Schema<Document<IFniApplicationResponse>>(
+  {
+    type: String,
+    transaction_status: String,
+    raw_response: Object,
+    created_at: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 export interface IFniApplication {
   state: string;
   refnum?: number;
@@ -44,6 +63,7 @@ export interface IFniApplication {
   fniCurrentDecision?: string;
   fniCurrentQueueName?: string;
   fniCurrentDecisionReceivedAt?: string;
+  responses: IFniApplicationResponse[];
 }
 
 export const FniApplicationSchema = new Schema<Document<IFniApplication>>(
@@ -68,6 +88,14 @@ export const FniApplicationSchema = new Schema<Document<IFniApplication>>(
     fni_current_decision_received_at: {
       type: String,
       required: false,
+    },
+    reason: {
+      type: [String],
+      required: true,
+    },
+    responses: {
+      type: [FniApplicationResponseSchema],
+      default: [],
     },
   },
   { _id: false },
@@ -135,6 +163,7 @@ export interface QualificationCredit extends Document {
   hasCoApplicant?: boolean;
   applicationSentOn: Date;
   applicants: IApplicant[];
+  fniApplications: IFniApplication[];
   createdBy: string;
   createdAt: Date;
   updatedBy: string;

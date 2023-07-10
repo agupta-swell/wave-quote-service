@@ -16,6 +16,15 @@ interface IPersonalInformation {
   dob: Date;
 }
 
+export interface IFniProcessReq {
+  transaction: {
+    key: string,
+    hash: string,
+    partnerId: string,
+    refnum: string
+  }
+}
+
 export interface IFniApplyReq {
   qualificationCreditId: string;
   opportunityId: string;

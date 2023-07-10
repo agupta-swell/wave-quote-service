@@ -5,7 +5,7 @@ import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-base
 import { getNextYearDateRange } from 'src/utils/datetime';
 import { ApplicationException } from '../app/app.exception';
 import { MyLogger } from '../app/my-logger/my-logger.service';
-import { IApplyRequest } from '../qualifications/typing';
+import { IApplyRequest, IFniProcessReq } from '../qualifications/typing';
 import { GenabilityService } from './sub-services/genability.service';
 import {
   EGenabilityDetailLevel,
@@ -247,16 +247,21 @@ export class ExternalService {
     return this.genabilityService.calculateCostData(payload);
   }
 
-  getFniResponse = (data: IApplyRequest): Promise<any> =>
+  getFniResponse = (data: IApplyRequest | IFniProcessReq, url?: string): Promise<any> =>
     new Promise((resolve, reject) => {
       axios
-        .post(process.env.FNI_END_POINT as string, data)
+        .post(url || process.env.FNI_END_POINT as string, data)
         .then(result => {
           resolve(result.data);
         })
         .catch(error => {
           if (error) {
-            console.log('Error when call FNI API in line 232', error);
+            // Done this way so we do not accidentally expose private keys
+            const req: any = {}
+            if ((data as IFniProcessReq)?.transaction?.refnum) {
+              req.refnum = (data as IFniProcessReq)?.transaction?.refnum;
+            }
+            console.log('Error with getFniResponse', req, error);
             reject(error);
           }
         });

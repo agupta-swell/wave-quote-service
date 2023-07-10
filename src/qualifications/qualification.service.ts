@@ -45,6 +45,7 @@ import { FNI_COMMUNICATION, FNI_Communication } from './schemas/fni-communicatio
 import { FniEngineService } from './sub-services/fni-engine.service';
 import { IFniApplyReq } from './typing.d';
 import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
+import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
 
 @Injectable()
 export class QualificationService {
@@ -501,7 +502,15 @@ export class QualificationService {
       }),
     );
   }
+  async processCreditQualification(
+    req: ProcessCreditQualificationReqDto
+  ): Promise<OperationResult<{ responseStatus: string }>> {
+    
+    this.testTokenStatus(req.authenticationToken);
 
+    const responseStatus = await this.fniEngineService.processFniSolarApplyRequest(req);
+    return OperationResult.ok({ responseStatus });
+  }
   async applyCreditQualification(
     req: ApplyCreditQualificationReqDto,
   ): Promise<OperationResult<{ responseStatus: string }>> {
@@ -509,24 +518,7 @@ export class QualificationService {
     // NOTE: NEVER NEVER NEVER NEVER log the applyCreditQualificationRequestParam or fniApplyRequestInst
     // NOTE: Copy this warning and paste it in the code at the top and bottom of this method
 
-    const tokenStatus = await this.checkToken(req.authenticationToken);
-    // eslint-disable-next-line default-case
-    switch (tokenStatus) {
-      case TOKEN_STATUS.EXPIRED:
-        throw ApplicationException.ExpiredToken({ responseStatus: 'EXPIRED_TOKEN' });
-      case TOKEN_STATUS.INVALID:
-        throw new UnauthorizedException();
-      case TOKEN_STATUS.VALID: {
-        const tokenPayload = await this.jwtService.verifyAsync(req.authenticationToken, {
-          secret: process.env.QUALIFICATION_JWT_SECRET,
-          ignoreExpiration: true,
-        });
-
-        if (tokenPayload.role !== ROLE.SYSTEM) {
-          throw new UnauthorizedException();
-        }
-      }
-    }
+    this.testTokenStatus(req.authenticationToken);
 
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
@@ -612,6 +604,27 @@ export class QualificationService {
   }
 
   // ==============> INTERNAL <==============
+
+  async testTokenStatus(authenticationToken: string): Promise<void> {
+    const tokenStatus = await this.checkToken(authenticationToken);
+    // eslint-disable-next-line default-case
+    switch (tokenStatus) {
+      case TOKEN_STATUS.EXPIRED:
+        throw ApplicationException.ExpiredToken({ responseStatus: 'EXPIRED_TOKEN' });
+      case TOKEN_STATUS.INVALID:
+        throw new UnauthorizedException();
+      case TOKEN_STATUS.VALID: {
+        const tokenPayload = await this.jwtService.verifyAsync(authenticationToken, {
+          secret: process.env.QUALIFICATION_JWT_SECRET,
+          ignoreExpiration: true,
+        });
+
+        if (tokenPayload.role !== ROLE.SYSTEM) {
+          throw new UnauthorizedException();
+        }
+      }
+    }
+  }
 
   async generateToken(qualificationCreditId: string, opportunityId: string, role: ROLE): Promise<string> {
     let tokenExpiry: string;

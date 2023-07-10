@@ -1,12 +1,14 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as AWS from 'aws-sdk';
 import { Model } from 'mongoose';
 import { ExternalService } from '../../external-services/external-service.service';
-import { REQUEST_CATEGORY, REQUEST_TYPE } from '../constants';
+import { FNI_APPLICATION_STATE, FNI_REQUEST_TYPE, FNI_TRANSACTION_STATUS, REQUEST_CATEGORY, REQUEST_TYPE } from '../constants';
 import { QualificationService } from '../qualification.service';
 import { FNI_Communication, FNI_COMMUNICATION } from '../schemas/fni-communication.schema';
-import { IApplyRequest, IFniApplyReq, IFniUpdateReq, IFniUpdateRes } from '../typing.d';
+import { IApplyRequest, IFniApplyReq, IFniProcessReq, IFniUpdateReq, IFniUpdateRes } from '../typing.d';
+import { ProcessCreditQualificationReqDto } from '../req/process-credit-qualification.dto';
+import { IFniApplication, QUALIFICATION_CREDIT, QualificationCredit } from '../qualification.schema';
 
 @Injectable()
 export class FniEngineService {
@@ -17,14 +19,85 @@ export class FniEngineService {
   constructor(
     @InjectModel(FNI_COMMUNICATION) private readonly fniCommunicationModel: Model<FNI_Communication>,
     private readonly externalService: ExternalService,
-    @Inject(forwardRef(() => QualificationService))
-    private qualificationService: QualificationService,
+    @Inject(forwardRef(() => QualificationService)) private qualificationService: QualificationService,
+    @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
   ) {
     const { AWS_REGION } = process.env;
 
     this.client = new AWS.SecretsManager({
       region: AWS_REGION,
     });
+  }
+
+  async processFniSolarApplyRequest(req: ProcessCreditQualificationReqDto): Promise<string> {
+    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+    if (!qualificationCredit) {
+      throw new NotFoundException('qualificationCredit not found');
+    }
+    const activeFniApplication = this.findActiveFniApplication(qualificationCredit);
+    if (!activeFniApplication) {
+      throw new NotFoundException('qualificationCredit record has no ACTIVE fniApplication');
+    }
+
+    const fniKey: any = JSON.parse(await this.getSecretManager(process.env.FNI_SECRET_MANAGER_NAME as string));
+    const processReq: IFniProcessReq = {
+      transaction: {
+        key: fniKey.fni.key,
+        hash: fniKey.fni.hash,
+        partnerId: fniKey.fni.partnerId,
+        refnum: req.refnum
+      }
+    };
+
+    const applyResponse = await this.externalService.getFniResponse(processReq);
+    if(!applyResponse || !applyResponse.transaction) {
+      throw new NotFoundException('FNI Response to fni_apply is undefined or contains no transaction');
+    }
+
+    const transactionStatus = applyResponse.transaction.status;
+    if (transactionStatus === 'ERROR') {
+      activeFniApplication.responses ??= [];
+      activeFniApplication.responses.push({
+        type: FNI_REQUEST_TYPE.SOLAR_APPLY,
+        transactionStatus: FNI_TRANSACTION_STATUS.ERROR,
+        rawResponse: {
+          transaction: applyResponse.transaction,
+          stips: applyResponse.stips,
+          application: applyResponse.application,
+          approved_offers: applyResponse.approved_offers,
+          decision_offers: applyResponse.decision_offers,
+          disbursements: applyResponse.disbursements,
+          product_decisions: applyResponse.product_decisions,
+          field_descriptions: applyResponse.field_descriptions
+        },
+        createdAt: new Date()
+      });
+    }
+
+    if (transactionStatus === 'SUCCESS') {
+      activeFniApplication.fniCurrentDecisionReceivedAt = applyResponse.timeReceived;
+      activeFniApplication.fniCurrentDecision = applyResponse.currDecision;
+      activeFniApplication.responses ??= [];
+      activeFniApplication.responses.push({
+        type: FNI_REQUEST_TYPE.SOLAR_APPLY,
+        transactionStatus: FNI_TRANSACTION_STATUS.SUCCESS,
+        rawResponse: {
+          transaction: applyResponse.transaction,
+          stips: applyResponse.stips,
+          application: applyResponse.application,
+          approved_offers: applyResponse.approved_offers,
+          decision_offers: applyResponse.decision_offers,
+          disbursements: applyResponse.disbursements,
+          product_decisions: applyResponse.product_decisions,
+          field_descriptions: applyResponse.field_descriptions
+        },
+        createdAt: new Date()
+      });
+    }
+
+    qualificationCredit.save();
+
+    return transactionStatus;
   }
 
   // NOTE: NEVER NEVER NEVER NEVER store the fniApplyRequestParam or applyRequestInst in the database
@@ -227,6 +300,19 @@ export class FniEngineService {
         return 'FAILURE';
       default:
         return 'PENDING';
+    }
+  }
+
+  findActiveFniApplication(qualificationCredit: QualificationCredit): IFniApplication | undefined {
+    const fniApplications = qualificationCredit.fniApplications;
+    if (!qualificationCredit.fniApplications) {
+      throw new NotFoundException('qualificationCredit has no fniApplications');
+    }
+    
+    for(var i = 0; i < fniApplications.length; i++) {
+      if(fniApplications[i].state === FNI_APPLICATION_STATE.ACTIVE) {
+        return fniApplications[i];
+      }
     }
   }
 }
