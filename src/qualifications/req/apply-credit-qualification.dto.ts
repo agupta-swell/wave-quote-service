@@ -100,6 +100,11 @@ export class ApplyCreditQualificationReqDto {
   opportunityId: string;
 
   @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  contactId: string;
+
+  @ApiProperty()
   @IsJWT()
   authenticationToken: string;
 
