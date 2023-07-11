@@ -23,7 +23,6 @@ import {
   ROLE,
   TOKEN_STATUS,
   VENDOR_ID,
-  FNI_APPLICATION_STATE,
 } from './constants';
 import { IApplicant, QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
 import {
