@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign */
-import { HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { HttpStatus, Injectable, NotFoundException, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
@@ -50,6 +50,8 @@ import { IFniResponse, IFniApplyReq } from './typing.d';
 
 @Injectable()
 export class QualificationService {
+  private readonly logger = new Logger(QualificationService.name);  
+
   constructor(
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
     private readonly jwtService: JwtService,
@@ -322,9 +324,7 @@ export class QualificationService {
 
     const data = {
       contactFullName:
-        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${
-          primaryContact?.lastName || ''
-        }` || 'Customer',
+        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${primaryContact?.lastName || ''}` || 'Customer',
       qualificationValidityPeriod: '48 hours',
       recipientNotice: 'No Content',
       link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
@@ -533,6 +533,29 @@ export class QualificationService {
       detail: 'Application sent for Credit Check',
       qualificationCategory,
     });
+
+    const applicantIndex = qualificationCredit.applicants.findIndex((applicant) => applicant.contactId === req.contactId);
+    if (qualificationCredit.applicants[applicantIndex]) {
+      qualificationCredit.applicants[applicantIndex].agreementTerm1CheckedAt = req.acknowledgement.agreement_term_1_checked_at;
+      qualificationCredit.applicants[applicantIndex].creditCheckAuthorizedAt = req.acknowledgement.credit_check_authorized_at;
+      if (req.acknowledgement.joint_intention_disclosure_accepted_at) {
+        qualificationCredit.applicants[applicantIndex].jointIntentionDisclosureCheckedAt = 
+          req.acknowledgement.joint_intention_disclosure_accepted_at;
+      }
+    } else {
+      const subject = 'There was a problem processing your request. Please contact your Sales Agent for Assistance.';
+      const body = 'Request body recieved to /appy-credit-qualification:\n' + req;
+      process.env.SUPPORT_MAIL && await this.emailService.sendMail(process.env.SUPPORT_MAIL, body, subject);
+      
+      let e = {
+        name: 'No matching contact found in applicants[]',
+        message: subject,
+        stack: 'wave-quote-service/src/qualifications/qualification.service.ts:applyCreditQualification'
+      }
+          
+      this.logger.error(e, e.stack);
+      return OperationResult.error(e);
+    }
 
     await qualificationCredit.save();
 

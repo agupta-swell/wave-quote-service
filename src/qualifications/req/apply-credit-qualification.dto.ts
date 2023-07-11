@@ -88,6 +88,11 @@ class AcknowledgementDataDto {
   @IsNotEmpty()
   @IsDateString()
   credit_check_authorized_at: Date;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  joint_intention_disclosure_accepted_at: Date;
 }
 
 export class ApplyCreditQualificationReqDto {
