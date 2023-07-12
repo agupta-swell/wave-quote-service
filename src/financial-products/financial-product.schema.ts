@@ -1,4 +1,5 @@
 import { Document, Schema } from 'mongoose';
+import { FmvAppraisal } from './schemas/fmv-appraisal.schema';
 
 export const FINANCIAL_PRODUCT = Symbol('FINANCIAL_PRODUCT').toString();
 
@@ -23,6 +24,7 @@ export interface FinancialProduct extends Document {
   fundProductScoreCard: string;
   financialSolverId: string[];
   fmvAppraisalId: string;
+  fmvAppraisal?: FmvAppraisal;
   nonAchFee: number;
   lateFee: number;
   defaultTurnkeyPriceEsPv: number;
