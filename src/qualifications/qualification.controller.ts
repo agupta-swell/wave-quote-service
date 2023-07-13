@@ -131,11 +131,11 @@ export class QualificationController {
   @Put('/fni-applications')
   @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
   @ApiOkResponse({ type:  RecieveFniDecisionReqDto })
-  async recieveFniUpdate(
+  async receiveFniUpdate(
     @Req() req: Request,
     @Headers('x-swell-token') header: string
   ): Promise<RecieveFniDecisionResDto>{
-    const res = await this.qualificationService.recieveFniUpdate(req.body, header);
+    const res = await this.qualificationService.receiveFniUpdate(req.body, header);
     return res;
   }
 

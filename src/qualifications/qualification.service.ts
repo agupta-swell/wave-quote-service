@@ -526,7 +526,7 @@ export class QualificationService {
     );
   }
 
-  async recieveFniUpdate(
+  async receiveFniUpdate(
     req: RecieveFniDecisionReqDto,
     header: string
   ): Promise<RecieveFniDecisionResDto> {
