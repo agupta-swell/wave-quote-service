@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign */
-import { HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
@@ -56,7 +56,9 @@ export class QualificationService {
   constructor(
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
     private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
+    @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
     private readonly propertyService: PropertyService,
     private readonly emailService: EmailService,
@@ -868,6 +870,29 @@ export class QualificationService {
   async countByOpportunityId(opportunityId: string): Promise<number> {
     const counter = await this.qualificationCreditModel.countDocuments({ opportunityId });
     return counter;
+  }
+
+  async getSoftAndHardFNIQualificationByOpportunityId({
+    opportunityId,
+    condition,
+    projection,
+  }: {
+    opportunityId: string,
+    condition?,
+    projection?,
+  }
+  ): Promise<QualificationCredit[]> {
+    return this.qualificationCreditModel
+      .find(
+        {
+          opportunityId,
+          approvalMode: APPROVAL_MODE.CREDIT_VENDOR,
+          type: { $in: [QUALIFICATION_TYPE.SOFT, QUALIFICATION_TYPE.HARD] },
+          ...condition,
+        },
+        projection,
+      )
+      .lean();
   }
 
   // ===================== INTERNAL =====================
