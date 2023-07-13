@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Headers, Req, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
 import { OperationResult, ServiceResponse } from 'src/app/common';
@@ -15,6 +15,9 @@ import {
   SendMailReqDto,
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
+  RecieveFniDecisionReqDto,
+  /*  TODO: move location of below Dto class to ./res folder */
+  RecieveFniDecisionResDto
 } from './req';
 import {
   ApplicantConsentDto,
@@ -31,11 +34,12 @@ import {
   SendMailDto,
   SendMailRes,
 } from './res';
+import { Request } from 'express';
 
 @ApiTags('Qualification')
 @Controller('/qualifications')
 export class QualificationController {
-  constructor(private readonly qualificationService: QualificationService) {}
+  constructor(private readonly qualificationService: QualificationService) { }
 
   @Post()
   @ApiBearerAuth()
@@ -121,7 +125,19 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
+
   //  ================= specific token in body ==============
+
+  @Put('/fni-applications')
+  @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
+  @ApiOkResponse({ type:  RecieveFniDecisionReqDto })
+  async recieveFniUpdate(
+    @Req() req: Request,
+    @Headers('x-swell-token') header: string
+  ): Promise<RecieveFniDecisionResDto>{
+    const res = await this.qualificationService.recieveFniUpdate(req.body, header);
+    return res;
+  }
 
   @Post('/applications')
   @ApiOperation({ summary: 'Get Application Detail' })

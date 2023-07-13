@@ -10,6 +10,7 @@ import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
+import { TokenService } from '../tokens/token.service';
 import {
   APPLICANT_TYPE,
   APPROVAL_MODE,
@@ -35,6 +36,8 @@ import {
   SendMailReqDto,
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
+  RecieveFniDecisionReqDto,
+  RecieveFniDecisionResDto
 } from './req';
 import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
 import {
@@ -55,13 +58,15 @@ export class QualificationService {
 
   constructor(
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
+    // @InjectModel(TOKEN) private readonly qualificationCreditModel: Model<QualificationCredit>,
     private readonly jwtService: JwtService,
     private readonly opportunityService: OpportunityService,
     private readonly contactService: ContactService,
     private readonly propertyService: PropertyService,
     private readonly emailService: EmailService,
     private readonly fniEngineService: FniEngineService,
-  ) {}
+    private readonly tokenService: TokenService,
+  ) { }
 
   async createQualification(
     qualificationDto: CreateQualificationReqDto,
@@ -349,8 +354,7 @@ export class QualificationService {
 
     const data = {
       contactFullName:
-        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${
-          primaryContact?.lastName || ''
+        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${primaryContact?.lastName || ''
         }` || 'Customer',
       qualificationValidityPeriod: '48 hours',
       recipientNotice: 'No Content',
@@ -520,6 +524,52 @@ export class QualificationService {
         newJWTToken: newToken,
       }),
     );
+  }
+
+  async recieveFniUpdate(
+    req: RecieveFniDecisionReqDto,
+    header: string
+  ): Promise<RecieveFniDecisionResDto> {
+    //console.log('QUALIFICATION.SERVICE.TS: ', req);
+    //console.log('QUALIFICATION.SERVICE.TS header: ', header);
+    let res;
+
+    const tokenIsValid = await this.tokenService.isTokenValid(header);
+    /* refactor line below so i can just evalualte !tokenIsValid*/
+    if (!tokenIsValid?.data?.responseStatus) {
+      res = {
+        'transaction': {
+          'status': 'error',
+          'errorMsgs': [
+            'Method Not Allowed'
+          ]
+        }
+      }
+      return res;
+    }
+
+    //validate req.transaction.refnum, req.application.currDecision, req.application.productId
+    //   field_description[].currQueueName, application.timeReceived
+
+    const fieldValidation = await this.validateIncomingFniReqBody(req);
+    if (!fieldValidation) {
+      res = {
+        'transaction': {
+          'status': 'error',
+          'errorMsgs': [
+            'Bad Request'
+          ]
+        }
+      }
+      return res;
+    }
+    res = {
+      'transaction': {
+        'refnum': '',
+        'status': 'success'
+      }
+    }
+    return res;
   }
 
   async processCreditQualification(
@@ -876,4 +926,34 @@ export class QualificationService {
     const { type, status } = data;
     return `FNI ${type} :: ${FNI_RESPONSE_ERROR_MAP[status || -1] || 'Error'}`;
   }
+
+
+  private async validateIncomingFniReqBody(req: RecieveFniDecisionReqDto) {
+    const currDecRegex = new RegExp('[A-Za-z0-9 \\.\\-\\_]+\n');
+    const prodIdRegex = new RegExp('[0-9]+\n');
+
+    const stringsToValidate = [req.transaction?.refnum, req.application?.currDecision,
+    req.application?.productId, req.application?.timeReceived];
+
+    if (stringsToValidate.filter(s => !typeof String)) {
+      return false;
+    }
+
+    if (req.application.currDecision.length > 20 || !currDecRegex.test(req.application?.currDecision)) {
+      return false;
+    }
+
+    if (req.application?.productId.length > 2 || !prodIdRegex.test(req.application?.productId)) {
+      return false;
+    }
+
+    if (req.application?.timeReceived.toLocaleString().length > 10) {
+      return false;
+    }
+
+    return true;
+  }
+
+
+
 }

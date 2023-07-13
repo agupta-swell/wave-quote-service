@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { PropertyModule } from 'src/property/property.module';
+import { TokenModule } from 'src/tokens/token.module';
 import { ApiMetricsModule } from 'src/shared/api-metrics/api-metrics.module';
 import { QualificationController } from './qualification.controller';
 import { QualificationCreditSchema, QUALIFICATION_CREDIT } from './qualification.schema';
@@ -20,6 +21,8 @@ import { FniEngineService } from './sub-services/fni-engine.service';
     ]),
     PropertyModule,
     ApiMetricsModule,
+    /* Nest.js told me this import needs to be here...?*/
+    TokenModule,
   ],
   controllers: [QualificationController],
   providers: [QualificationService, FniEngineService],
