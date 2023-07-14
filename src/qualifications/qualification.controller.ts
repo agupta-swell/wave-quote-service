@@ -39,7 +39,7 @@ import { Request } from 'express';
 @ApiTags('Qualification')
 @Controller('/qualifications')
 export class QualificationController {
-  constructor(private readonly qualificationService: QualificationService) { }
+  constructor(private readonly qualificationService: QualificationService) {}
 
   @Post()
   @ApiBearerAuth()
@@ -126,8 +126,6 @@ export class QualificationController {
   }
 
 
-  //  ================= specific token in body ==============
-
   @Put('/fni-applications')
   @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
   @ApiOkResponse({ type:  RecieveFniDecisionReqDto })
@@ -138,6 +136,8 @@ export class QualificationController {
     const res = await this.qualificationService.receiveFniUpdate(req.body, header);
     return res;
   }
+ 
+  //  ================= specific token in body ==============
 
   @Post('/applications')
   @ApiOperation({ summary: 'Get Application Detail' })

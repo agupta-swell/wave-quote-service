@@ -87,7 +87,6 @@ export enum FNI_REQUEST_TYPE {
   SOLAR_INITCOAPP = 'solar_initcoapp',
   SOLAR_APPLY = 'solar_apply',
   SOLAR_APPLY_INCOMING = 'solar_apply_incoming',
-  //FNI_DECISION_INCOMING = 'fni_decision_incoming'
 }
 
 export enum FNI_TRANSACTION_STATUS {

@@ -934,23 +934,32 @@ export class QualificationService {
 
     const stringsToValidate = [req.transaction?.refnum, req.application?.currDecision,
     req.application?.productId, req.application?.timeReceived];
+    
 
-    if (stringsToValidate.filter(s => !typeof String)) {
+    if (stringsToValidate.filter(s => !typeof String).length) {
+      console.log(1);
+      //console.log(stringsToValidate.filter(s => !typeof String));
       return false;
     }
 
-    if (req.application.currDecision.length > 20 || !currDecRegex.test(req.application?.currDecision)) {
+    //if (req.application.currDecision.length > 20 || !currDecRegex.test(req.application?.currDecision)) {
+    if (req.application.currDecision.length > 20){
+      console.log(2);
+      console.log(currDecRegex.test(req.application?.currDecision));
       return false;
     }
 
-    if (req.application?.productId.length > 2 || !prodIdRegex.test(req.application?.productId)) {
+    //if (req.application?.productId.length > 2 || !prodIdRegex.test(req.application?.productId)) {
+    if (req.application?.productId.length > 2){
+      console.log(3);
       return false;
     }
-
+/*
     if (req.application?.timeReceived.toLocaleString().length > 10) {
+      console.log(4);
       return false;
     }
-
+*/
     return true;
   }
 
