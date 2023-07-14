@@ -146,6 +146,9 @@ export class FinancialProductDto {
 
   @ExposeProp()
   processingFee: number;
+
+  @ExposeProp()
+  proposalValidityPeriod: number;
 }
 
 class FinancialProductPaginationDto implements Pagination<FinancialProductDto> {

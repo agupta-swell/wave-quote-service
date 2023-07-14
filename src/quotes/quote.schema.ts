@@ -310,6 +310,7 @@ export interface IFinancialProductDetails {
   processingFee: number;
   payment1?: number;
   payment1PayPercent?: boolean;
+  proposalValidityPeriod: number;
 }
 
 export interface IQuoteFinanceProductSchema {
