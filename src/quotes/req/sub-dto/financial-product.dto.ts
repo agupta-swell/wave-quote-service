@@ -212,4 +212,7 @@ export class FinanceProductDetailDto {
 
   @ApiProperty()
   payment1PayPercent: boolean;
+
+  @ApiProperty()
+  proposalValidityPeriod: number;
 }

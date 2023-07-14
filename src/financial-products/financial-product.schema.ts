@@ -66,6 +66,7 @@ export interface FinancialProduct extends Document {
   processingFee: number;
   payment1?: number;
   payment1PayPercent?: boolean;
+  proposalValidityPeriod: number;
 }
 
 export const FinancialProductSchema = new Schema<FinancialProduct>({
@@ -126,4 +127,8 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   processing_fee: Number,
   payment1: Number,
   payment1_pay_percent: Boolean,
+  proposal_validity_period: {
+    type: Number,
+    default: 14,
+  },
 });

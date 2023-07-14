@@ -163,4 +163,7 @@ export class FinanceProductDetailDto {
 
   @ExposeProp()
   payment1PayPercent: boolean;
+
+  @ExposeProp()
+  proposalValidityPeriod: number;
 }

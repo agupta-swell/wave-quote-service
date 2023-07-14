@@ -29,6 +29,7 @@ export interface QuotePartnerConfig extends Document {
   solarMarkup: number;
   storageMarkup: number;
   defaultInverterId: Types.ObjectId;
+  proposalValidityPeriod: number;
 }
 
 export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
@@ -56,7 +57,11 @@ export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
   softCostMarkup: Number,
   solarMarkup: Number,
   storageMarkup: Number,
-  defaultInverterId: Types.ObjectId
+  defaultInverterId: Types.ObjectId,
+  proposalValidityPeriod: {
+    type: Number,
+    default: 14,
+  },
 });
 
 MongooseNamingStrategy.ExcludeOne(QuotePartnerConfigSchema);

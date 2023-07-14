@@ -55,6 +55,9 @@ export class QuotePartnerConfigDto {
 
   @ExposeObjectId({ fieldName: 'defaultInverterId' })
   defaultInverterId: string;
+
+  @ExposeProp()
+  proposalValidityPeriod: string;
 }
 
 export class QuotePartnerConfigResponse implements ServiceResponse<QuotePartnerConfigDto> {
