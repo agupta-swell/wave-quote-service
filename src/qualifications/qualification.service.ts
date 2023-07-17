@@ -511,7 +511,7 @@ export class QualificationService {
     await qualificationCredit.save();
 
     const newToken = await this.generateToken(qualificationCreditId, opportunityId, ROLE.SYSTEM);
-
+    const hasCoApplicant = qualificationCredit.hasCoApplicant;
     return OperationResult.ok(
       strictPlainToClass(GetApplicationDetailDto, {
         qualificationCreditId,
@@ -520,6 +520,8 @@ export class QualificationService {
         processStatus: qualificationCredit.processStatus,
         contact,
         newJWTToken: newToken,
+        hasCoApplicant,
+        contactId
       }),
     );
   }
