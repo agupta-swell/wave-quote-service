@@ -3,10 +3,11 @@ import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from 'src/app/common';
 import * as docusign from 'docusign-esign';
-import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, forwardRef, HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { IDocusignAwsSecretPayload } from 'src/shared/docusign/interfaces/IDocusignAwsSecretPayload';
 import { ApplicationException } from 'src/app/app.exception';
 import { DocusignApiService } from 'src/shared/docusign';
+import { DocusignException } from 'src/shared/docusign/docusign.exception';
 import { DOCUSIGN_INTEGRATION_NAME, SCOPES, JWT_EXPIRES_IN, DOCUSIGN_INTEGRATION_TYPE } from './constants';
 import { DocusignIntegrationDocument } from './docusign-integration.schema';
 import { DocusignIntegrationReqDto } from './req/docusign-integration';
@@ -99,8 +100,13 @@ export class DocusignIntegrationService implements OnModuleInit {
   }
 
   async addDocusignAccessTokenAfterConsent(type: DOCUSIGN_INTEGRATION_TYPE): Promise<void> {
-    const foundDocusignIntegration = await this.docusignIntegrationModel.findOne({ type });
-    if (foundDocusignIntegration) {
+    try {
+      const foundDocusignIntegration = await this.docusignIntegrationModel.findOne({ type });
+
+      if (!foundDocusignIntegration) {
+        throw ApplicationException.EntityNotFound(`with type ${type} `);
+      }
+
       const result = await this.apiClient.requestJWTUserToken(
         foundDocusignIntegration.clientId,
         foundDocusignIntegration.userId,
@@ -117,6 +123,11 @@ export class DocusignIntegrationService implements OnModuleInit {
         accessToken: result.body.access_token,
         expiresAt: new Date(Date.now() + (result.body.expires_in - 15 * 60) * 1000),
       });
+    } catch (error) {
+      throw new DocusignException(
+        error,
+        Object.assign(error.response?.body || {}, { statusCode: HttpStatus.BAD_REQUEST }),
+      );
     }
   }
 
