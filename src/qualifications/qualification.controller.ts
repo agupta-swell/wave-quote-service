@@ -133,7 +133,7 @@ export class QualificationController {
   @ApiResponse({ status: 405, type:  RecieveFniDecisionResDto})
   async receiveFniUpdate(
     @Req() req: Request,
-    @Headers('x-swell-token') header: string,
+    @Headers('fni-wave-communications') header: string,
     @Res() res:FastifyResponse
   ): Promise<RecieveFniDecisionResDto>{
     const response = await this.qualificationService.receiveFniUpdate(req.body, header);

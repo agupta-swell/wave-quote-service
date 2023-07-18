@@ -2,10 +2,9 @@
 import { HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { PropertyService } from 'src/property/property.service';
-import { ParseObjectIdPipe } from '../shared/pipes/parse-objectid.pipe';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
@@ -47,7 +46,6 @@ import {
   ManualApprovalDto,
   QualificationDetailDto,
   SendMailDto,
-  RecieveFniDecisionResDto
 } from './res';
 import { FniEngineService } from './sub-services/fni-engine.service';
 import { IFniApplyReq, IFniResponse } from './typing.d';
@@ -56,11 +54,10 @@ import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './util
 @Injectable()
 export class QualificationService {
   private readonly logger = new Logger(QualificationService.name);
-  private parseObjectId: ParseObjectIdPipe;
 
   constructor(
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
-    // @InjectModel(TOKEN) private readonly qualificationCreditModel: Model<QualificationCredit>,
+
     private readonly jwtService: JwtService,
     private readonly opportunityService: OpportunityService,
     private readonly contactService: ContactService,
@@ -68,9 +65,7 @@ export class QualificationService {
     private readonly emailService: EmailService,
     private readonly fniEngineService: FniEngineService,
     private readonly tokenService: TokenService,
-  ) {
-    this.parseObjectId = new ParseObjectIdPipe();
-  }
+  ) { }
 
   async createQualification(
     qualificationDto: CreateQualificationReqDto,
@@ -358,8 +353,7 @@ export class QualificationService {
 
     const data = {
       contactFullName:
-        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${primaryContact?.lastName || ''
-        }` || 'Customer',
+        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${primaryContact?.lastName || ''}` || 'Customer',
       qualificationValidityPeriod: '48 hours',
       recipientNotice: 'No Content',
       link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
@@ -538,7 +532,7 @@ export class QualificationService {
       responseBody: {},
       status: 200
     }
-    const tokenIsValid = await this.tokenService.isTokenValid('SwellEnergy.com API', header);
+    const tokenIsValid = await this.tokenService.isTokenValid('fni-wave-communications', header);
 
     if (!tokenIsValid?.data?.responseStatus) {
       res = {
@@ -948,7 +942,6 @@ export class QualificationService {
     const stringsToValidate = [req.transaction?.refnum, req.application?.currDecision,
     req.application?.productId, req.application?.timeReceived];
     
-
     if (stringsToValidate.filter(s => !typeof String).length || stringsToValidate.filter(s => s === undefined || s === '').length) {
       return false;
     }
@@ -972,7 +965,4 @@ export class QualificationService {
 
     return true;
   }
-
-
-
 }
