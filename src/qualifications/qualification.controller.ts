@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Body, Headers, Req, Res, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
+import { FastifyResponse } from 'src/shared/fastify';
 import { OperationResult, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
@@ -28,9 +29,11 @@ import {
   ManualApprovalRes,
   QualificationDetailDto,
   QualificationRes,
+  RecieveFniDecisionResDto,
   SendMailDto,
   SendMailRes,
 } from './res';
+import { Request, Response } from 'express';
 
 @ApiTags('Qualification')
 @Controller('/qualifications')
@@ -121,6 +124,23 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
+
+  @Put('/fni-applications')
+  @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
+  @ApiOkResponse({ type:  RecieveFniDecisionResDto })
+  @ApiResponse({ status: 400, type:  RecieveFniDecisionResDto})
+  @ApiResponse({ status: 401, type:  RecieveFniDecisionResDto})
+  @ApiResponse({ status: 405, type:  RecieveFniDecisionResDto})
+  async receiveFniUpdate(
+    @Req() req: Request,
+    @Headers('fni-wave-communications') header: string,
+    @Res() res:FastifyResponse
+  ): Promise<RecieveFniDecisionResDto>{
+    const response = await this.qualificationService.receiveFniUpdate(req.body, header);
+
+    return res.code(response.status).send(response.responseBody);
+  }
+ 
   //  ================= specific token in body ==============
 
   @Post('/applications')

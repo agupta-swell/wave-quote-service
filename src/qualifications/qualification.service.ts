@@ -19,6 +19,7 @@ import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
+import { TokenService } from '../tokens/token.service';
 import {
   APPLICANT_TYPE,
   APPLICATION_PROCESS_STATUS,
@@ -45,6 +46,7 @@ import {
   SendMailReqDto,
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
+  RecieveFniDecisionReqDto,
 } from './req';
 import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
 import {
@@ -66,6 +68,7 @@ export class QualificationService {
 
   constructor(
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
+
     private readonly jwtService: JwtService,
     @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
@@ -74,6 +77,7 @@ export class QualificationService {
     private readonly propertyService: PropertyService,
     private readonly emailService: EmailService,
     private readonly fniEngineService: FniEngineService,
+    private readonly tokenService: TokenService,
   ) { }
 
   async createQualification(
@@ -567,6 +571,72 @@ export class QualificationService {
     );
   }
 
+  async receiveFniUpdate(
+    req: RecieveFniDecisionReqDto,
+    header: string
+  ): Promise<any> {
+    let res;
+    
+    const tokenIsValid = await this.tokenService.isTokenValid('fni-wave-communications', header);
+
+    if (!tokenIsValid?.data?.responseStatus) {
+      res = {
+        responseBody: {
+          'transaction': {
+            'status': 'error',
+            'errorMsgs': [
+              'Method Not Allowed'
+            ]
+          }
+        },
+        status: 401
+      }
+      return res;
+    }
+
+    const fieldValidation = await this.validateIncomingFniReqBody(req);
+
+    if (!fieldValidation) {
+      res = {
+        responseBody: {
+          'transaction': {
+            'status': 'error',
+            'errorMsgs': [
+              'Bad Request'
+            ]
+          }
+        },
+        status: 400
+      }
+      return res;
+    }
+    /*
+    [WAV-2479] goes here. Save FNI Decision Details. If error, set res to fniDecisionDetailsError and return.
+    */
+    let fniDecisionDetailsError = {
+      responseBody:{
+        'transaction': {
+          'status': 'error',
+          'errorMsgs': [
+            'Method Not Allowed'
+          ]
+        }
+      },
+      status: 405
+    }
+
+    res = {
+      responseBody:{
+        'transaction': {
+          'refnum': req.transaction.refnum,
+          'status': 'success'
+        }
+      },
+      status: 200
+    }
+    return res;
+  }
+
   async processCreditQualification(
     req: ProcessCreditQualificationReqDto,
   ): Promise<OperationResult<{ responseStatus: string }>> {
@@ -974,5 +1044,36 @@ export class QualificationService {
   private getFniErrorSubject(data: { type: string; status?: number }) {
     const { type, status } = data;
     return `FNI ${type} :: ${FNI_RESPONSE_ERROR_MAP[status || -1] || 'Error'}`;
+  }
+
+
+  private async validateIncomingFniReqBody(req: RecieveFniDecisionReqDto) {
+    const prodIdRegex = new RegExp('[0-9]');
+
+    const stringsToValidate = [req.transaction?.refnum, req.application?.currDecision,
+    req.application?.productId, req.application?.timeReceived];
+    
+    if (stringsToValidate.filter(s => !typeof String).length || stringsToValidate.filter(s => s === undefined || s === '').length) {
+      return false;
+    }
+
+    const currDecisionHasValidValue = req.application?.currDecision === 'APPROVED' || 
+      req.application?.currDecision === 'DECLINED' ||
+      req.application?.currDecision ==='PENDING' ||
+      req.application?.currDecision === 'WITHDRAWN';
+
+    if (req.application.currDecision.length > 20 || !currDecisionHasValidValue) {
+      return false;
+    }
+
+    if (req.application?.productId.length > 2 || !prodIdRegex.test(req.application?.productId)) {
+      return false;
+    }
+
+    if (req.application?.timeReceived.length > 26) {
+      return false;
+    }
+
+    return true;
   }
 }
