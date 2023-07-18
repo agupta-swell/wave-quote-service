@@ -16,10 +16,6 @@ import {
   SendMailReqDto,
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
-  RecieveFniDecisionReqDto,
-  /*  TODO: move location of below Dto class to ./res folder */
-  RecieveFniDecisionResDto,
-  RecieveFniDecisionErrorResDto
 } from './req';
 import {
   ApplicantConsentDto,
@@ -33,6 +29,7 @@ import {
   ManualApprovalRes,
   QualificationDetailDto,
   QualificationRes,
+  RecieveFniDecisionResDto,
   SendMailDto,
   SendMailRes,
 } from './res';
@@ -131,17 +128,12 @@ export class QualificationController {
   @Put('/fni-applications')
   @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
   @ApiOkResponse({ type:  RecieveFniDecisionResDto })
-  //@ApiResponse({ status: 400, type:  RecieveFniDecisionErrorResDto})
-  //@ApiResponse({ status: 401, type:  RecieveFniDecisionErrorResDto})
-  //@ApiResponse({ status: 405, type:  RecieveFniDecisionErrorResDto})
   @ApiResponse({ status: 400, type:  RecieveFniDecisionResDto})
   @ApiResponse({ status: 401, type:  RecieveFniDecisionResDto})
   @ApiResponse({ status: 405, type:  RecieveFniDecisionResDto})
   async receiveFniUpdate(
     @Req() req: Request,
-    //@Headers('x-swell-token') header: ObjectId,
     @Headers('x-swell-token') header: string,
-    //@Res() res: any
     @Res() res:FastifyResponse
   ): Promise<RecieveFniDecisionResDto>{
     const response = await this.qualificationService.receiveFniUpdate(req.body, header);

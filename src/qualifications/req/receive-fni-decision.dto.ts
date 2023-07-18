@@ -1,16 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ExposeProp } from 'src/shared/decorators';
 import { Type } from 'class-transformer';
-import {
-    IsDateString,
-    IsJWT,
-    IsMongoId,
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsString,
-    ValidateNested,
-} from 'class-validator';
+import { IsNotEmpty, ValidateNested } from 'class-validator';
 
 class TransactionDto {
     @ApiProperty()
@@ -21,13 +12,6 @@ class TransactionDto {
     status: string;
 }
 
-class TransactionErrorDto {
-    @ApiProperty()
-    status: string;
-
-    @ApiProperty()
-    errorMsgs: [];
-}
 
 class StipsElementDto {
     @ApiProperty()
@@ -361,24 +345,6 @@ class EmploymentDTO {
     empName: string
 }
 
-
-class TransactionResDto {
-
-    @ExposeProp()
-    status: string;
-
-    @ExposeProp()
-    @IsOptional()
-    refnum: string;
-
-    @ExposeProp()
-    @IsOptional()
-    errorMsgs: string[];
-
-}
-
-
-
 export class RecieveFniDecisionReqDto {
 
     @ApiProperty({ type: TransactionDto })
@@ -440,20 +406,4 @@ export class RecieveFniDecisionReqDto {
     @Type(() => EmploymentDTO)
     @ValidateNested()
     employment: EmploymentDTO[];
-}
-
-export class RecieveFniDecisionResDto {
-
-    @ApiProperty({ type: TransactionResDto })
-    @Type(() => TransactionResDto)
-    //@ValidateNested()
-    transaction: TransactionResDto;
-}
-
-export class RecieveFniDecisionErrorResDto {
-
-    @ApiProperty({ type: TransactionErrorDto })
-    @Type(() => TransactionErrorDto)
-    //@ValidateNested()
-    transaction: TransactionErrorDto;
 }

@@ -38,7 +38,6 @@ import {
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
   RecieveFniDecisionReqDto,
-  RecieveFniDecisionResDto
 } from './req';
 import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
 import {
@@ -48,6 +47,7 @@ import {
   ManualApprovalDto,
   QualificationDetailDto,
   SendMailDto,
+  RecieveFniDecisionResDto
 } from './res';
 import { FniEngineService } from './sub-services/fni-engine.service';
 import { IFniApplyReq, IFniResponse } from './typing.d';
