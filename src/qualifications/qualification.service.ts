@@ -2,9 +2,10 @@
 import { HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import { LeanDocument, Model, ObjectId } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { PropertyService } from 'src/property/property.service';
+import { ParseObjectIdPipe } from '../shared/pipes/parse-objectid.pipe';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
@@ -55,6 +56,7 @@ import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './util
 @Injectable()
 export class QualificationService {
   private readonly logger = new Logger(QualificationService.name);
+  private parseObjectId: ParseObjectIdPipe;
 
   constructor(
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
@@ -66,7 +68,9 @@ export class QualificationService {
     private readonly emailService: EmailService,
     private readonly fniEngineService: FniEngineService,
     private readonly tokenService: TokenService,
-  ) { }
+  ) {
+    this.parseObjectId = new ParseObjectIdPipe();
+  }
 
   async createQualification(
     qualificationDto: CreateQualificationReqDto,
@@ -529,45 +533,55 @@ export class QualificationService {
   async receiveFniUpdate(
     req: RecieveFniDecisionReqDto,
     header: string
-  ): Promise<RecieveFniDecisionResDto> {
-    //console.log('QUALIFICATION.SERVICE.TS: ', req);
-    //console.log('QUALIFICATION.SERVICE.TS header: ', header);
-    let res;
+  ): Promise<any> {
+    let res = {
+      responseBody: {},
+      status: 200
+    }
+    const tokenIsValid = await this.tokenService.isTokenValid('SwellEnergy.com API', header);
 
-    const tokenIsValid = await this.tokenService.isTokenValid(header);
-    /* refactor line below so i can just evalualte !tokenIsValid*/
     if (!tokenIsValid?.data?.responseStatus) {
       res = {
-        'transaction': {
-          'status': 'error',
-          'errorMsgs': [
-            'Method Not Allowed'
-          ]
-        }
+        responseBody: {
+          'transaction': {
+            'status': 'error',
+            'errorMsgs': [
+              'Method Not Allowed'
+            ]
+          }
+        },
+        status: 401
       }
       return res;
     }
-
-    //validate req.transaction.refnum, req.application.currDecision, req.application.productId
-    //   field_description[].currQueueName, application.timeReceived
 
     const fieldValidation = await this.validateIncomingFniReqBody(req);
+
     if (!fieldValidation) {
       res = {
-        'transaction': {
-          'status': 'error',
-          'errorMsgs': [
-            'Bad Request'
-          ]
-        }
+        responseBody: {
+          'transaction': {
+            'status': 'error',
+            'errorMsgs': [
+              'Bad Request'
+            ]
+          }
+        },
+        status: 400
       }
       return res;
     }
+    /*
+    [WAV-2479] goes here
+    */
     res = {
-      'transaction': {
-        'refnum': '',
-        'status': 'success'
-      }
+      responseBody:{
+        'transaction': {
+          'refnum': req.transaction.refnum,
+          'status': 'success'
+        }
+      },
+      status: 200
     }
     return res;
   }
@@ -929,37 +943,33 @@ export class QualificationService {
 
 
   private async validateIncomingFniReqBody(req: RecieveFniDecisionReqDto) {
-    const currDecRegex = new RegExp('[A-Za-z0-9 \\.\\-\\_]+\n');
-    const prodIdRegex = new RegExp('[0-9]+\n');
+    const prodIdRegex = new RegExp('[0-9]');
 
     const stringsToValidate = [req.transaction?.refnum, req.application?.currDecision,
     req.application?.productId, req.application?.timeReceived];
     
 
-    if (stringsToValidate.filter(s => !typeof String).length) {
-      console.log(1);
-      //console.log(stringsToValidate.filter(s => !typeof String));
+    if (stringsToValidate.filter(s => !typeof String).length || stringsToValidate.filter(s => s === undefined || s === '').length) {
       return false;
     }
 
-    //if (req.application.currDecision.length > 20 || !currDecRegex.test(req.application?.currDecision)) {
-    if (req.application.currDecision.length > 20){
-      console.log(2);
-      console.log(currDecRegex.test(req.application?.currDecision));
+    const currDecisionHasValidValue = req.application?.currDecision === 'APPROVED' || 
+      req.application?.currDecision === 'DECLINED' ||
+      req.application?.currDecision ==='PENDING' ||
+      req.application?.currDecision === 'WITHDRAWN';
+
+    if (req.application.currDecision.length > 20 || !currDecisionHasValidValue) {
       return false;
     }
 
-    //if (req.application?.productId.length > 2 || !prodIdRegex.test(req.application?.productId)) {
-    if (req.application?.productId.length > 2){
-      console.log(3);
+    if (req.application?.productId.length > 2 || !prodIdRegex.test(req.application?.productId)) {
       return false;
     }
-/*
-    if (req.application?.timeReceived.toLocaleString().length > 10) {
-      console.log(4);
+
+    if (req.application?.timeReceived.length > 26) {
       return false;
     }
-*/
+
     return true;
   }
 

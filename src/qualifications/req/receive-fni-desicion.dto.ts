@@ -21,6 +21,14 @@ class TransactionDto {
     status: string;
 }
 
+class TransactionErrorDto {
+    @ApiProperty()
+    status: string;
+
+    @ApiProperty()
+    errorMsgs: [];
+}
+
 class StipsElementDto {
     @ApiProperty()
     description: string;
@@ -64,7 +72,7 @@ class ApplicationElementDTO {
     currDecision: string;
 
     @ApiProperty()
-    timeReceived: Date;
+    timeReceived: string;
 
     @ApiProperty()
     currQueueId: string;
@@ -440,4 +448,12 @@ export class RecieveFniDecisionResDto {
     @Type(() => TransactionResDto)
     //@ValidateNested()
     transaction: TransactionResDto;
+}
+
+export class RecieveFniDecisionErrorResDto {
+
+    @ApiProperty({ type: TransactionErrorDto })
+    @Type(() => TransactionErrorDto)
+    //@ValidateNested()
+    transaction: TransactionErrorDto;
 }

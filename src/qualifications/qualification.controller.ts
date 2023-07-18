@@ -1,6 +1,7 @@
-import { Body, Headers, Req, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Body, Headers, Req, Res, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
+import { FastifyResponse } from 'src/shared/fastify';
 import { OperationResult, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
@@ -17,7 +18,8 @@ import {
   SetManualApprovalReqDto,
   RecieveFniDecisionReqDto,
   /*  TODO: move location of below Dto class to ./res folder */
-  RecieveFniDecisionResDto
+  RecieveFniDecisionResDto,
+  RecieveFniDecisionErrorResDto
 } from './req';
 import {
   ApplicantConsentDto,
@@ -34,7 +36,7 @@ import {
   SendMailDto,
   SendMailRes,
 } from './res';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 @ApiTags('Qualification')
 @Controller('/qualifications')
@@ -128,13 +130,23 @@ export class QualificationController {
 
   @Put('/fni-applications')
   @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
-  @ApiOkResponse({ type:  RecieveFniDecisionReqDto })
+  @ApiOkResponse({ type:  RecieveFniDecisionResDto })
+  //@ApiResponse({ status: 400, type:  RecieveFniDecisionErrorResDto})
+  //@ApiResponse({ status: 401, type:  RecieveFniDecisionErrorResDto})
+  //@ApiResponse({ status: 405, type:  RecieveFniDecisionErrorResDto})
+  @ApiResponse({ status: 400, type:  RecieveFniDecisionResDto})
+  @ApiResponse({ status: 401, type:  RecieveFniDecisionResDto})
+  @ApiResponse({ status: 405, type:  RecieveFniDecisionResDto})
   async receiveFniUpdate(
     @Req() req: Request,
-    @Headers('x-swell-token') header: string
+    //@Headers('x-swell-token') header: ObjectId,
+    @Headers('x-swell-token') header: string,
+    //@Res() res: any
+    @Res() res:FastifyResponse
   ): Promise<RecieveFniDecisionResDto>{
-    const res = await this.qualificationService.receiveFniUpdate(req.body, header);
-    return res;
+    const response = await this.qualificationService.receiveFniUpdate(req.body, header);
+
+    return res.code(response.status).send(response.responseBody);
   }
  
   //  ================= specific token in body ==============

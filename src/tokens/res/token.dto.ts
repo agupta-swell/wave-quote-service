@@ -1,8 +1,9 @@
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class TokenDto {
-  @ExposeMongoId()
-  id: string;
+  //@ExposeMongoId()
+  @ExposeProp()
+  _id: string;
 
   @ExposeProp()
   createdAt: Date;
