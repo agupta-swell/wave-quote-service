@@ -130,5 +130,6 @@ export const FinancialProductSchema = new Schema<FinancialProduct>({
   proposal_validity_period: {
     type: Number,
     default: 14,
+    min: 1,
   },
 });

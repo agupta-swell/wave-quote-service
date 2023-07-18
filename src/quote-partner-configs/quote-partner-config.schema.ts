@@ -61,6 +61,7 @@ export const QuotePartnerConfigSchema = new Schema<QuotePartnerConfig>({
   proposalValidityPeriod: {
     type: Number,
     default: 14,
+    min: 1,
   },
 });
 
