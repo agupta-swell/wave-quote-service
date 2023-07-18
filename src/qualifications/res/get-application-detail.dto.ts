@@ -2,14 +2,6 @@ import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { ServiceResponse } from '../../app/common';
 
 class ApplicantDataDto {
-  @ExposeProp()
-  firstName: string;
-
-  @ExposeProp()
-  middleName: string;
-
-  @ExposeProp()
-  lastName: string;
 
   @ExposeProp()
   email: string;
@@ -54,6 +46,12 @@ export class GetApplicationDetailDto {
 
   @ExposeProp()
   newJWTToken: string;
+
+  @ExposeProp()
+  hasCoApplicant: boolean ;
+
+  @ExposeProp()
+  contactId: string ;
 }
 
 export class GetApplicationDetailRes implements ServiceResponse<GetApplicationDetailDto> {

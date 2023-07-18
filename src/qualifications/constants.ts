@@ -59,11 +59,15 @@ export enum TOKEN_STATUS {
 export enum QUALIFICATION_TYPE {
   SOFT = 'SOFT',
   HARD = 'HARD',
+  TITLE_VERIFICATION = 'TITLE_VERIFICATION',
+  DOCUMENT_LIBRARY = 'QUAL_DOCUMENT_LIBRARY',
 }
 
 export enum QUALIFICATION_CATEGORY {
   SOFT_CREDIT = 'Soft Credit',
   HARD_CREDIT = 'Hard Credit',
+  TITLE_VERIFICATION = 'Title Verification',
+  DOCUMENT_LIBRARY = 'Qualification Document Library',
 }
 
 export enum CONSENT_STATUS {

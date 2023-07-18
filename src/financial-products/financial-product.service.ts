@@ -12,11 +12,13 @@ import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { FinancialProduct, FINANCIAL_PRODUCT } from './financial-product.schema';
 import { FinancialProductDto } from './res/financial-product.dto';
+import { FmvAppraisal, FMV_APPRAISAL } from './schemas/fmv-appraisal.schema';
 
 @Injectable()
 export class FinancialProductsService {
   constructor(
     @InjectModel(FINANCIAL_PRODUCT) private financialProduct: Model<FinancialProduct>,
+    @InjectModel(FMV_APPRAISAL) private fmvAppraisal: Model<FmvAppraisal>,
     private readonly systemDesignService: SystemDesignService,
     private readonly fundingSourceService: FundingSourceService,
     private readonly systemProductionService: SystemProductionService,
@@ -74,6 +76,15 @@ export class FinancialProductsService {
   ): Promise<LeanDocument<FinancialProduct>[]> {
     return Promise.all(
       financialProducts.map(async financialProduct => {
+        let fmvAppraisal;
+        if (financialProduct.fmvAppraisalId) {
+          fmvAppraisal = await this.fmvAppraisal.findById(financialProduct.fmvAppraisalId);
+        }
+
+        if (fmvAppraisal) {
+          financialProduct.fmvAppraisal = fmvAppraisal;
+        }
+
         const foundFundingSource = fundingSources.find(fs => fs?._id.toString() === financialProduct.fundingSourceId)!;
         if (foundFundingSource?.type === 'lease') {
           const systemDesign: LeanDocument<SystemDesign> = data.systemDesign;

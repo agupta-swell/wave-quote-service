@@ -1,5 +1,14 @@
 /* eslint-disable no-param-reassign */
-import { HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
@@ -13,6 +22,7 @@ import { OpportunityService } from '../opportunities/opportunity.service';
 import { TokenService } from '../tokens/token.service';
 import {
   APPLICANT_TYPE,
+  APPLICATION_PROCESS_STATUS,
   APPROVAL_MODE,
   CONSENT_STATUS,
   FNI_APPLICATION_STATE,
@@ -28,7 +38,7 @@ import {
   TOKEN_STATUS,
   VENDOR_ID,
 } from './constants';
-import { IApplicant, IFniApplicationResponse, QualificationCredit, QUALIFICATION_CREDIT } from './qualification.schema';
+import { IApplicant, IFniApplicationResponse, QualificationCredit, QUALIFICATION_CREDIT, IEventHistory } from './qualification.schema';
 import {
   ApplyCreditQualificationReqDto,
   CreateQualificationReqDto,
@@ -48,8 +58,9 @@ import {
   SendMailDto,
 } from './res';
 import { FniEngineService } from './sub-services/fni-engine.service';
-import { IFniApplyReq, IFniResponse } from './typing.d';
+import { IFniApplyReq, IFniResponse, ITokenData } from './typing.d';
 import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
+import { sortByDescending } from 'src/utils/array';
 
 @Injectable()
 export class QualificationService {
@@ -59,7 +70,9 @@ export class QualificationService {
     @InjectModel(QUALIFICATION_CREDIT) private readonly qualificationCreditModel: Model<QualificationCredit>,
 
     private readonly jwtService: JwtService,
+    @Inject(forwardRef(() => OpportunityService))
     private readonly opportunityService: OpportunityService,
+    @Inject(forwardRef(() => ContactService))
     private readonly contactService: ContactService,
     private readonly propertyService: PropertyService,
     private readonly emailService: EmailService,
@@ -333,11 +346,7 @@ export class QualificationService {
     req: SendMailReqDto,
     qualificationCredit: QualificationCredit,
   ): Promise<OperationResult<SendMailDto>> {
-    const [opportunity, token] = await Promise.all([
-      this.opportunityService.getDetailById(qualificationCredit.opportunityId),
-      this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER),
-    ]);
-
+    const opportunity = await this.opportunityService.getDetailById(qualificationCredit.opportunityId);
     if (!opportunity) {
       throw ApplicationException.EntityNotFound(`opportunityId: ${qualificationCredit.opportunityId}`);
     }
@@ -351,46 +360,7 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound(`primaryContact: ${primaryContact}`);
     }
 
-    const data = {
-      contactFullName:
-        `${primaryContact?.firstName || ''}${(primaryContact?.firstName && ' ') || ''}${primaryContact?.lastName || ''}` || 'Customer',
-      qualificationValidityPeriod: '48 hours',
-      recipientNotice: 'No Content',
-      link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
-    };
-
-    await this.emailService.sendMailByTemplate(
-      primaryContact?.email || '',
-      'Qualification Invitation',
-      'Qualification Email',
-      data,
-    );
-
-    const now = new Date();
-    const qualificationCategory =
-      qualificationCredit.type === QUALIFICATION_TYPE.HARD
-        ? QUALIFICATION_CATEGORY.HARD_CREDIT
-        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
-    qualificationCredit.eventHistories.push({
-      issueDate: now,
-      by: req.agentDetail.name,
-      detail: 'Email Sent',
-      userId: req.agentDetail.userId,
-      qualificationCategory,
-    });
-
-    qualificationCredit.customerNotifications.push({
-      label: 'Applicant',
-      type: 'Single Applicant',
-      sentOn: now,
-      email: primaryContact?.email || '',
-    });
-
-    qualificationCredit.applicationSentOn = now;
-
-    qualificationCredit.processStatus = PROCESS_STATUS.APPLICATION_EMAILED;
-    qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_EMAILED;
-
+    //Applicants addition
     if (qualificationCredit.hasApplicantConsent) {
       const applicants = qualificationCredit.applicants;
       // type set to applicant
@@ -429,6 +399,80 @@ export class QualificationService {
         qualificationCredit.applicants.push(applicant);
       }
     }
+
+    //Use case identification
+    let isUseCase2: boolean = false;
+    let isUseCase1: boolean = false;
+    const applicant = qualificationCredit.applicants.find(applicant => applicant.type === APPLICANT_TYPE.APPLICANT);
+    const coApplicant = qualificationCredit.applicants.find(applicant => applicant.type === APPLICANT_TYPE.CO_APPLICANT);
+    if (applicant && coApplicant && applicant.creditCheckAuthorizedAt && coApplicant.creditCheckAuthorizedAt) {
+      throw ApplicationException.UnprocessableEntity(`Application has already been submitted.`);
+    } else if (applicant && applicant.creditCheckAuthorizedAt && !coApplicant) {
+      throw ApplicationException.UnprocessableEntity(`Application has been submitted.`);
+    } else if (applicant && applicant.creditCheckAuthorizedAt && coApplicant && !coApplicant.creditCheckAuthorizedAt) {
+      isUseCase2 = true;
+    } else if (applicant && !applicant.creditCheckAuthorizedAt) {
+      isUseCase1 = true;
+    } else {
+      throw ApplicationException.UnprocessableEntity(`Invalid use case.`);
+    }
+
+    //Contact finding
+    let contactId: string = '';
+    if (isUseCase2) {
+      //Use case 2
+      contactId = coApplicant?.contactId || '';
+    } else if (isUseCase1) {
+      //Use case 1
+      contactId = applicant.contactId;
+    } else {
+      //No email zone
+      throw ApplicationException.UnprocessableEntity(`Use case is invalid.`);
+    }
+    const contact = await this.contactService.getContactById(contactId);
+    const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER, contact?._id);
+
+    //Email sending
+    const data = {
+      contactFullName:
+        `${contact?.firstName || ''}${(contact?.firstName && ' ') || ''}${contact?.lastName || ''
+        }` || 'Customer',
+      qualificationValidityPeriod: '48 hours',
+      recipientNotice: 'No Content',
+      link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
+    };
+
+    await this.emailService.sendMailByTemplate(
+      contact?.email || '',
+      'Qualification Invitation',
+      'Qualification Email',
+      data,
+    );
+
+    const now = new Date();
+    const lastEvent = sortByDescending<IEventHistory>(qualificationCredit.eventHistories, 'issueDate').find(ev => ev.detail === 'Email Sent');
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
+    qualificationCredit.eventHistories.push({
+      issueDate: now,
+      by: req.agentDetail.name || lastEvent?.by || '',
+      detail: 'Email Sent',
+      userId: req.agentDetail.userId || lastEvent?.userId,
+      qualificationCategory,
+    });
+
+    qualificationCredit.customerNotifications.push({
+      label: 'Applicant',
+      type: (isUseCase2 && 'Dual Applicants') || 'Single Applicant',
+      sentOn: now,
+      email: contact?.email || '',
+    });
+
+    qualificationCredit.applicationSentOn = now;
+    qualificationCredit.processStatus = PROCESS_STATUS.APPLICATION_EMAILED;
+    qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_EMAILED;
 
     await qualificationCredit.save();
 
@@ -494,7 +538,7 @@ export class QualificationService {
       );
     }
 
-    const contactId = await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
+    const contactId = tokenPayload.contactId || await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
     const contact = await this.contactService.getContactById(contactId || '');
     const qualificationCategory =
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
@@ -510,8 +554,9 @@ export class QualificationService {
 
     await qualificationCredit.save();
 
-    const newToken = await this.generateToken(qualificationCreditId, opportunityId, ROLE.SYSTEM);
+    const newToken = await this.generateToken(qualificationCreditId, opportunityId, ROLE.SYSTEM, contactId);
 
+    const hasCoApplicant = qualificationCredit.hasCoApplicant;
     return OperationResult.ok(
       strictPlainToClass(GetApplicationDetailDto, {
         qualificationCreditId,
@@ -520,6 +565,8 @@ export class QualificationService {
         processStatus: qualificationCredit.processStatus,
         contact,
         newJWTToken: newToken,
+        hasCoApplicant,
+        contactId,
       }),
     );
   }
@@ -606,7 +653,7 @@ export class QualificationService {
     // NOTE: NEVER NEVER NEVER NEVER log the applyCreditQualificationRequestParam or fniApplyRequestInst
     // NOTE: Copy this warning and paste it in the code at the top and bottom of this method
 
-    this.testTokenStatus(req.authenticationToken);
+    await this.testTokenStatus(req.authenticationToken);
 
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
@@ -615,6 +662,16 @@ export class QualificationService {
 
     if (qualificationCredit.processStatus !== PROCESS_STATUS.STARTED) {
       return OperationResult.ok({ responseStatus: 'NO_ACTIVE_VALIDATION' });
+    }
+
+    if (req.opportunityId !== qualificationCredit.opportunityId) {
+      throw new HttpException('Invalid opportunityId.', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    const opportunity = await this.opportunityService.getDetailById(req.opportunityId);
+
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`opportunityId: ${req.opportunityId}`);
     }
 
     const qualificationCategory =
@@ -692,13 +749,32 @@ export class QualificationService {
       qualificationCreditRecordInst: qualificationCredit,
     });
 
-    const applyResponse = 'SUCCESS';
-    const responseStatus = await this.handleFNIResponse(
-      applyResponse,
-      `${req.applicant.firstName} ${req.applicant.lastName}`,
-      qualificationCredit,
-    );
-    // ==== FOR DEMO PURPOSE ONLY ====
+    let responseStatus: any;
+    if (!hasCoApplicant || applicants[applicantIndex].type === APPLICANT_TYPE.CO_APPLICANT) {
+      // TODO for WAV-488
+      const applyResponse = 'SUCCESS';
+      responseStatus = await this.handleFNIResponse(
+        applyResponse,
+        `${req.applicant.firstName} ${req.applicant.lastName}`,
+        qualificationCredit,
+      );
+    } else {
+      //Send email to Co-Applicant (Use Case 2)
+      try {
+        await this.qualificationMailHandler({
+          opportunityId: req.opportunityId,
+          qualificationCreditId: req.qualificationCreditId,
+          agentDetail: {
+            userId: '',
+            name: ''
+          }
+        }, qualificationCredit);
+      } catch (error) {
+        this.logger.error(error, error?.stack);
+      }
+      responseStatus = APPLICATION_PROCESS_STATUS.APPLICATION_PROCESS_SUCCESS;
+    }
+
     return OperationResult.ok({ responseStatus });
   }
 
@@ -725,7 +801,7 @@ export class QualificationService {
     }
   }
 
-  async generateToken(qualificationCreditId: string, opportunityId: string, role: ROLE): Promise<string> {
+  async generateToken(qualificationCreditId: string, opportunityId: string, role: ROLE, contactId?: string): Promise<string> {
     let tokenExpiry: string;
 
     switch (role) {
@@ -745,13 +821,16 @@ export class QualificationService {
     if (!found) {
       throw ApplicationException.EntityNotFound(qualificationCreditId);
     }
+    const tokenData: ITokenData = {
+      role,
+      opportunityId,
+      qualificationCreditId,
+      contactId
+    }
+    if (!contactId) delete tokenData.contactId;
 
     return this.jwtService.sign(
-      {
-        role,
-        opportunityId,
-        qualificationCreditId,
-      },
+      tokenData,
       { expiresIn: tokenExpiry, secret: process.env.QUALIFICATION_JWT_SECRET },
     );
   }
@@ -936,6 +1015,28 @@ export class QualificationService {
   async countByOpportunityId(opportunityId: string): Promise<number> {
     const counter = await this.qualificationCreditModel.countDocuments({ opportunityId });
     return counter;
+  }
+
+  async getSoftAndHardFNIQualificationByOpportunityId({
+    opportunityId,
+    condition,
+    projection,
+  }: {
+    opportunityId: string;
+    condition?;
+    projection?;
+  }): Promise<QualificationCredit[]> {
+    return this.qualificationCreditModel
+      .find(
+        {
+          opportunityId,
+          approvalMode: APPROVAL_MODE.CREDIT_VENDOR,
+          type: { $in: [QUALIFICATION_TYPE.SOFT, QUALIFICATION_TYPE.HARD] },
+          ...condition,
+        },
+        projection,
+      )
+      .lean();
   }
 
   // ===================== INTERNAL =====================

@@ -151,7 +151,6 @@ export class FniEngineService {
         zip: req.primaryResidence.zipcode,
         eMail: req.applicant.email,
         phone: req.applicant.phoneNumber,
-        addrLengthMos: '24', // hardcode for now, FNI will be removing the requirement for this field
         propAddr: req.installationAddress.addressLine1,
         propAttn: req.installationAddress.addressLine2,
         propCity: req.installationAddress.city,

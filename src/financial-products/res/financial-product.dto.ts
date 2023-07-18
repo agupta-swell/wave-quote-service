@@ -1,5 +1,6 @@
 import { Pagination, ServiceResponse } from 'src/app/common';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { FmvAppraisalDto } from './sub-dto/fmv-appraisal.dto';
 
 export class FinancialProductDto {
   @ExposeMongoId()
@@ -25,6 +26,9 @@ export class FinancialProductDto {
 
   @ExposeProp()
   fmvAppraisalId: string;
+
+  @ExposeProp({ type: FmvAppraisalDto })
+  fmvAppraisal: FmvAppraisalDto;
 
   @ExposeProp()
   nonAchFee: number;
@@ -142,6 +146,9 @@ export class FinancialProductDto {
 
   @ExposeProp()
   processingFee: number;
+
+  @ExposeProp()
+  proposalValidityPeriod: number;
 }
 
 class FinancialProductPaginationDto implements Pagination<FinancialProductDto> {

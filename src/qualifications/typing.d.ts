@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { FNI_REQUEST_TYPE } from './constants';
+import { FNI_REQUEST_TYPE, ROLE } from './constants';
 
 interface IApplicantData {
   firstName: string;
@@ -67,7 +67,6 @@ export interface IFniSolarInitReqPayload {
     zip: string;
     eMail: string;
     phone: string;
-    addrLengthMos: string;
     propAddr: string;
     propAttn: string;
     propCity: string;
@@ -137,4 +136,11 @@ export interface IFniResponse {
   type: FNI_REQUEST_TYPE;
   status: number;
   data?: IFniResponseData;
+}
+
+export interface ITokenData {
+  role: ROLE,
+  qualificationCreditId: string,
+  opportunityId: string,
+  contactId?: string
 }
