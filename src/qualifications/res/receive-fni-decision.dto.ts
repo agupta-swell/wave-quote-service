@@ -23,5 +23,5 @@ export class RecieveFniDecisionResDto {
     @ApiProperty({ type: TransactionResDto })
     @Type(() => TransactionResDto)
     transaction: TransactionResDto;
-    
+
 }
