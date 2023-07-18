@@ -67,7 +67,6 @@ export interface IFniSolarInitReqPayload {
     zip: string;
     eMail: string;
     phone: string;
-    addrLengthMos: string;
     propAddr: string;
     propAttn: string;
     propCity: string;

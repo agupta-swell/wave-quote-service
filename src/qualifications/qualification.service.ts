@@ -1,5 +1,14 @@
 /* eslint-disable no-param-reassign */
-import { forwardRef, HttpStatus, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
@@ -521,7 +530,7 @@ export class QualificationService {
         contact,
         newJWTToken: newToken,
         hasCoApplicant,
-        contactId
+        contactId,
       }),
     );
   }
@@ -542,7 +551,7 @@ export class QualificationService {
     // NOTE: NEVER NEVER NEVER NEVER log the applyCreditQualificationRequestParam or fniApplyRequestInst
     // NOTE: Copy this warning and paste it in the code at the top and bottom of this method
 
-    this.testTokenStatus(req.authenticationToken);
+    await this.testTokenStatus(req.authenticationToken);
 
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
@@ -551,6 +560,16 @@ export class QualificationService {
 
     if (qualificationCredit.processStatus !== PROCESS_STATUS.STARTED) {
       return OperationResult.ok({ responseStatus: 'NO_ACTIVE_VALIDATION' });
+    }
+
+    if (req.opportunityId !== qualificationCredit.opportunityId) {
+      throw new HttpException('Invalid opportunityId.', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    const opportunity = await this.opportunityService.getDetailById(req.opportunityId);
+
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`opportunityId: ${req.opportunityId}`);
     }
 
     const qualificationCategory =
@@ -879,11 +898,10 @@ export class QualificationService {
     condition,
     projection,
   }: {
-    opportunityId: string,
-    condition?,
-    projection?,
-  }
-  ): Promise<QualificationCredit[]> {
+    opportunityId: string;
+    condition?;
+    projection?;
+  }): Promise<QualificationCredit[]> {
     return this.qualificationCreditModel
       .find(
         {
