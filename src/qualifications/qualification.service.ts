@@ -528,10 +528,8 @@ export class QualificationService {
     req: RecieveFniDecisionReqDto,
     header: string
   ): Promise<any> {
-    let res = {
-      responseBody: {},
-      status: 200
-    }
+    let res;
+    
     const tokenIsValid = await this.tokenService.isTokenValid('fni-wave-communications', header);
 
     if (!tokenIsValid?.data?.responseStatus) {
@@ -566,8 +564,20 @@ export class QualificationService {
       return res;
     }
     /*
-    [WAV-2479] goes here
+    [WAV-2479] goes here. Save FNI Decision Details. If error, set res to fniDecisionDetailsError and return.
     */
+    let fniDecisionDetailsError = {
+      responseBody:{
+        'transaction': {
+          'status': 'error',
+          'errorMsgs': [
+            'Method Not Allowed'
+          ]
+        }
+      },
+      status: 405
+    }
+
     res = {
       responseBody:{
         'transaction': {
