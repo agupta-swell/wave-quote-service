@@ -33,3 +33,9 @@ export const sliceBySize = <T>(arr: T[], size: number): T[][] => {
   }
   return res;
 };
+
+export const sortByDescending = <T>(arr: T[], prop: string): T[] => {
+  return arr.sort((item1: T, item2: T) => {
+    return item2[prop] - item1[prop];
+  });
+}
