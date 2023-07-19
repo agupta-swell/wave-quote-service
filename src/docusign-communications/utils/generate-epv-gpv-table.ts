@@ -48,15 +48,13 @@ export const generateEPVAndGPVTableForESA = ({ systemProduction, quote }: IGener
   const EPV_YLD_CUM: number[] = [generationKWh];
 
   const GPV_YLD: number[] = [(generationKWh * guaranteedProduction) / 100];
-  const GUARANTEED_PV_PRICE_PER_KWH: number[] = GPV_YLD[0] ? [(grossFinancePayment * 12) / GPV_YLD[0]] : [0];
+  const GUARANTEED_PV_PRICE_PER_KWH: number[] = [grossFinancePayment / EPV_YLD[0]];
 
   for (let index = 1; index < esaTerm; index++) {
-    EPV_YLD[index] = EPV_YLD[index - 1] * (1 - annualDegradation / 100);
+    EPV_YLD[index] = EPV_YLD[index - 1] * (1 - annualDegradation / 100) ** (index - 1);
     EPV_YLD_CUM[index] = EPV_YLD_CUM[index - 1] + EPV_YLD[index];
     GPV_YLD[index] = (EPV_YLD[index] * guaranteedProduction) / 100;
-    GUARANTEED_PV_PRICE_PER_KWH[index] = GPV_YLD[index]
-      ? (12 * grossFinancePayment * (1 + rateEscalator / 100) ** index) / GPV_YLD[index]
-      : 0;
+    GUARANTEED_PV_PRICE_PER_KWH[index] = GUARANTEED_PV_PRICE_PER_KWH[0] * (1 + rateEscalator / 100) ** (index - 1);
   }
 
   return {
