@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { DiscountModule } from 'src/discounts/discount.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
+import { FmvAppraisalModule } from 'src/fmvAppraisal/fmvAppraisal.module';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { ManufacturerModule } from 'src/manufacturers/manufacturer.module';
 import { PromotionModule } from 'src/promotions/promotion.module';
@@ -32,6 +33,7 @@ import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService
     TaxCreditConfigModule,
     GsProgramsModule,
     SystemProductionModule,
+    FmvAppraisalModule,
   ],
   controllers: [QuoteController],
   providers: [QuoteService, CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService],

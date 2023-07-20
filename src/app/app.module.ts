@@ -59,6 +59,7 @@ import { EsaPricingSolverModule } from 'src/v2-esa-pricing-solver/v2-esa-pricing
 import { PropertyModule } from 'src/property/property.module';
 import { GsOpportunityModule } from 'src/gs-opportunity/gs-opportunity.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
+import { FmvAppraisalModule } from 'src/fmvAppraisal/fmvAppraisal.module';
 
 @Global()
 @Module({
@@ -144,7 +145,8 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     DocusignIntegrationModule,
     PropertyModule,
     GsOpportunityModule,
-    EsaPricingSolverModule
+    EsaPricingSolverModule,
+    FmvAppraisalModule,
   ],
 })
 export class AppModule {}

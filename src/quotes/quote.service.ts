@@ -3,7 +3,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
-import { isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
+import { forEach, isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { STATUS_QUERY } from 'src/contracts/constants';
@@ -66,6 +66,8 @@ import { I_T_C, ITC } from './schemas';
 import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
 import { ICreateProductAttribute } from './typing';
 import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
+import { FinancialProduct } from 'src/financial-products/financial-product.schema';
+import { FmvAppraisalService } from 'src/fmvAppraisal/fmvAppraisal.service';
 
 @Injectable()
 export class QuoteService {
@@ -74,6 +76,7 @@ export class QuoteService {
     @InjectModel(I_T_C) private readonly iTCModel: Model<ITC>,
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
+    private readonly fmvAppraisalService: FmvAppraisalService,
     private readonly utilityProgramService: UtilityProgramMasterService,
     private readonly fundingSourceService: FundingSourceService,
     @Inject(forwardRef(() => FinancialProductsService))
@@ -214,8 +217,10 @@ export class QuoteService {
       newAverageMonthlyBill,
       capacityKW: systemProduction.data?.capacityKW || 0,
     });
-    if (productAttribute.balance > maxInstallationAmount) {
-      throw ApplicationException.maxInstallationAmountExceeded();
+    
+    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(productAttribute, financialProduct);
+    if (responeMessage) {
+      throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
     }
 
     productAttribute.upfrontPayment = this.calculateUpfrontPayment(
@@ -495,8 +500,9 @@ export class QuoteService {
       rateEscalator: financeProductAttribute.rateEscalator,
     });
 
-    if (productAttribute.balance > maxInstallationAmount) {
-      throw ApplicationException.maxInstallationAmountExceeded();
+    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(productAttribute, financialProductSnapshot);
+    if (responeMessage) {
+      throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
     }
 
     const { productAttribute: product_attribute } = financeProduct as any;
@@ -876,8 +882,9 @@ export class QuoteService {
       rateEscalator: product_attribute.rateEscalator,
     });
 
-    if (productAttribute.balance > maxInstallationAmount) {
-      throw ApplicationException.maxInstallationAmountExceeded();
+    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(productAttribute, financialProductSnapshot);
+    if (responeMessage) {
+      throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
     }
 
     switch (financeProduct.productType) {
@@ -1206,8 +1213,12 @@ export class QuoteService {
       },
     });
 
-    if (quoteCostBuildUp.projectGrandTotal.netCost > maxInstallationAmount) {
-      throw ApplicationException.maxInstallationAmountExceeded();
+    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+      {balance: quoteCostBuildUp.projectGrandTotal.netCost} as IEsaProductAttributes, 
+      financialProductSnapshot
+    );
+    if (responeMessage) {
+      throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
     }
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildUp, systemDesign.existingSystem);
@@ -1778,5 +1789,63 @@ export class QuoteService {
 
   updateQuotesByCondition(condition, update) {
     return this.quoteModel.updateMany(condition, update);
+  }
+
+  async qualifyQuoteAgainstFinancialProductSettings(
+    productAttribute: IEsaProductAttributes, 
+    financialProduct:LeanDocument<FinancialProduct>, 
+    foundQuote?: LeanDocument<Quote>
+  ): Promise<string | undefined> {
+    let qualify = true;
+
+    const fmvAppraisalId = financialProduct.fmvAppraisalId;
+    const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(fmvAppraisalId);
+    if (!fmvAppraisal) {
+      throw ApplicationException.EntityNotFound('FMV Appraisal not found');
+    }
+    
+    // if fn() === false then add error message to message[]
+    const qualifier = {
+      maxInstallmentAmount: {
+        fn: (() => {
+          return !(productAttribute.balance > financialProduct.maxInstallationAmount);
+        }),
+        error: {
+          message: '\nMaxInstallmentAmount Error :: The cost of installing this system exceeds the allowed maximum installation amount.'
+        }
+      },
+      isQuoteSynced: {
+        fn: (() => {
+          if(foundQuote) {
+            return !foundQuote.isSync;
+          }
+          return true;
+        }),
+        error: {
+          message: '\n Quote Synce Error :: This quote is not in sync. Trigger a requote'
+        }
+      },
+      doesTodaysDateQualify: {
+        fn: (() => {
+          const date = new Date();
+          return (date > fmvAppraisal?.effectiveDate && date < fmvAppraisal?.endDate)
+        }),
+        error: {
+          message: '\nCheck the Effective Date to End Date Range'
+        }
+      }
+    }
+    const message: string[] = [];
+    forEach(qualifier, (item) => {
+      qualify = item.fn();
+      if(!qualify) {
+        message.push(item.error.message);
+      }
+    });
+
+    if (message.length === 0) {
+      return undefined;
+    }
+    return message.join('\n');;
   }
 }

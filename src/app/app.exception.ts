@@ -106,4 +106,11 @@ export class ApplicationException extends HttpException {
       HttpStatus.BAD_REQUEST,
     );
   }
+
+  static QualifyQuoteAgainstFinancialProductSettingsError(message: string): ApplicationException {
+      return new ApplicationException(
+        message,
+        HttpStatus.BAD_REQUEST
+      );
+  }
 }
