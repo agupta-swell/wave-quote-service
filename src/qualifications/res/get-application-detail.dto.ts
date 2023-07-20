@@ -6,7 +6,8 @@ class ApplicantDataDto {
   @ExposeProp()
   email: string;
 
-  @ExposeAndMap({}, ({ obj }) => obj.cellPhone)
+  // convert (333) 333-3333 -> 3333333333
+  @ExposeAndMap({}, ({ obj }) => obj.cellPhone?.match(/\d+/g).join(""))
   phoneNumber: string;
 
   @ExposeAndMap({}, ({ obj }) => obj.address1)
@@ -41,7 +42,7 @@ export class GetApplicationDetailDto {
   @ExposeAndMap({ type: ApplicantDataDto }, ({ obj }) => obj.contact)
   primaryApplicantData: ApplicantDataDto;
 
-  @ExposeProp({ type: ApplicantDataDto })
+  @ExposeProp({ type: ApplicantDataDto }) // TODO: remove later
   coApplicantData: ApplicantDataDto;
 
   @ExposeProp()
