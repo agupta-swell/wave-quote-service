@@ -51,75 +51,23 @@ export class FniEngineService {
     });
   }
 
-  async processFniSolarApplyRequest(req: ProcessCreditQualificationReqDto): Promise<string> {
-    const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
-    if (!qualificationCredit) {
-      throw new NotFoundException('qualificationCredit not found');
-    }
-    const activeFniApplication = this.findActiveFniApplication(qualificationCredit);
-    if (!activeFniApplication) {
-      throw ApplicationException.ActiveFniApplicationNotFound(qualificationCredit._id);
-    }
-
-    const fniKey: any = JSON.parse(await this.getSecretManager(process.env.FNI_SECRET_MANAGER_NAME as string));
-    const processReq: IFniProcessReq = {
+  async processFniSolarApplyRequest(req: ProcessCreditQualificationReqDto): Promise<IFniResponse> {
+    const { FNI_API_KEY, FNI_API_HASH, FNI_PARTNER_ID } = process.env;
+    const reqPayload: IFniProcessReq = {
       transaction: {
-        key: fniKey.fni.key,
-        hash: fniKey.fni.hash,
-        partnerId: fniKey.fni.partnerId,
+        key: FNI_API_KEY || '',
+        hash: FNI_API_HASH || '',
+        partnerId: FNI_PARTNER_ID || '',
         refnum: req.refnum,
       },
     };
+    const fniResponse = await this.callFniAPI<any, IFniProcessReq>({
+      url: FNI_REQUEST_TYPE.SOLAR_APPLY,
+      method: EHttpMethod.POST,
+      data: reqPayload,
+    });
 
-    const applyResponse = await this.externalService.getFniResponse(processReq);
-    if (!applyResponse || !applyResponse.transaction) {
-      throw new NotFoundException('FNI Response to fni_apply is undefined or contains no transaction');
-    }
-
-    const transactionStatus = applyResponse.transaction.status;
-    if (transactionStatus === 'ERROR') {
-      activeFniApplication.responses ??= [];
-      activeFniApplication.responses.push({
-        type: FNI_REQUEST_TYPE.SOLAR_APPLY,
-        transactionStatus: FNI_TRANSACTION_STATUS.ERROR,
-        rawResponse: {
-          transaction: applyResponse.transaction,
-          stips: applyResponse.stips,
-          application: applyResponse.application,
-          approved_offers: applyResponse.approved_offers,
-          decision_offers: applyResponse.decision_offers,
-          disbursements: applyResponse.disbursements,
-          product_decisions: applyResponse.product_decisions,
-          field_descriptions: applyResponse.field_descriptions,
-        },
-        createdAt: new Date(),
-      });
-    }
-
-    if (transactionStatus === 'SUCCESS') {
-      activeFniApplication.fniCurrentDecisionReceivedAt = applyResponse.timeReceived;
-      activeFniApplication.fniCurrentDecision = applyResponse.currDecision;
-      activeFniApplication.responses ??= [];
-      activeFniApplication.responses.push({
-        type: FNI_REQUEST_TYPE.SOLAR_APPLY,
-        transactionStatus: FNI_TRANSACTION_STATUS.SUCCESS,
-        rawResponse: {
-          transaction: applyResponse.transaction,
-          stips: applyResponse.stips,
-          application: applyResponse.application,
-          approved_offers: applyResponse.approved_offers,
-          decision_offers: applyResponse.decision_offers,
-          disbursements: applyResponse.disbursements,
-          product_decisions: applyResponse.product_decisions,
-          field_descriptions: applyResponse.field_descriptions,
-        },
-        createdAt: new Date(),
-      });
-    }
-
-    qualificationCredit.save();
-
-    return transactionStatus;
+    return fniResponse;
   }
 
   // NOTE: NEVER NEVER NEVER NEVER store the fniApplyRequestParam or applyRequestInst in the database
@@ -179,7 +127,7 @@ export class FniEngineService {
   async applyCoApplicant(req: IFniApplyReq): Promise<IFniResponse> {
     const reqPayload: IFniSolarInitCoAppReqPayload = {
       transaction: {
-        key: process.env.FNI_API_Key || '',
+        key: process.env.FNI_API_KEY || '',
         hash: process.env.FNI_API_HASH || '',
         partnerId: process.env.FNI_PARTNER_ID || '',
         refnum: String(req.refnum),
@@ -329,19 +277,6 @@ export class FniEngineService {
         return 'FAILURE';
       default:
         return 'PENDING';
-    }
-  }
-
-  findActiveFniApplication(qualificationCredit: QualificationCredit): IFniApplication | undefined {
-    const fniApplications = qualificationCredit.fniApplications;
-    if (!qualificationCredit.fniApplications) {
-      throw new NotFoundException('qualificationCredit has no fniApplications');
-    }
-
-    for (let i = 0; i < fniApplications.length; i++) {
-      if (fniApplications[i].state === FNI_APPLICATION_STATE.ACTIVE) {
-        return fniApplications[i];
-      }
     }
   }
 

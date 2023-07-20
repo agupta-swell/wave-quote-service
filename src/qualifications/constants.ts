@@ -32,6 +32,9 @@ export enum QUALIFICATION_STATUS {
   APPROVED = 'APPROVED',
   DECLINED = 'DECLINED',
   PENDING = 'PENDING',
+  REVIEW = 'REVIEW',
+  WITHDRAWN = 'WITHDRAWN',
+  ERROR = 'ERROR',
 }
 
 export enum REQUEST_CATEGORY {
@@ -107,4 +110,20 @@ export const FNI_RESPONSE_ERROR_MAP: Record<number, string> = {
 export enum APPLICATION_PROCESS_STATUS {
   APPLICATION_PROCESS_SUCCESS = 'APPLICATION_PROCESS_SUCCESS',
   APPLICATION_PROCESS_ERROR = 'APPLICATION_PROCESS_ERROR',
+}
+
+export enum EVENT_HISTORY_DETAIL {
+  REQUEST_INITIATED = 'Request Initiated',
+  CREDIT_CHECK_APPROVAL_BY_AGENT = 'Credit Check Approved By Agent',
+  COAPPLICANT_CONSENT_SET_TO_YES = 'Co-Applicant Consent set to Yes',
+  COAPPLICANT_CONSENT_SET_TO_NO = 'Co-Applicant Consent set to No',
+  HAS_COAPPLICANT_SET_TO_YES = 'Has Co-Applicant set to Yes',
+  HAS_COAPPLICANT_SET_TO_NO = 'Has Co-Applicant set to No',
+  APPLICANT_CONSENT_SET_TO_YES = 'Applicant consent set to Yes',
+  APPLICANT_CONSENT_SET_TO_NO = 'Applicant consent set to No',
+  EMAIL_SENT = 'Email Sent',
+  APPLICATION_SENT_FOR_CREDIT_CHECK = 'Application sent for Credit Check',
+  CREDIT_VALIDATION_IN_PROGRESS = 'Credit Validation In Progress',
+  CREDIT_VALIDATION_COMPLETED = 'Credit Validation Completed',
+  CREDIT_VALIDATION_ERROR = 'Credit Validation Error',
 }

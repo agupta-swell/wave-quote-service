@@ -25,6 +25,7 @@ import {
   APPLICATION_PROCESS_STATUS,
   APPROVAL_MODE,
   CONSENT_STATUS,
+  EVENT_HISTORY_DETAIL,
   FNI_APPLICATION_STATE,
   FNI_REQUEST_TYPE,
   FNI_RESPONSE_ERROR_MAP,
@@ -58,7 +59,7 @@ import {
   SendMailDto,
 } from './res';
 import { FniEngineService } from './sub-services/fni-engine.service';
-import { IFniApplyReq, IFniResponse, ITokenData } from './typing.d';
+import { IFniApplyReq, IFniResponse, IFniResponseData, ITokenData } from './typing.d';
 import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
 import { sortByDescending } from 'src/utils/array';
 
@@ -106,7 +107,7 @@ export class QualificationService {
         {
           issueDate: now,
           by: qualificationDto.agentDetail.name,
-          detail: 'Request Initiated',
+          detail: EVENT_HISTORY_DETAIL.REQUEST_INITIATED,
           userId: qualificationDto.agentDetail.userId,
           qualificationCategory,
         },
@@ -182,7 +183,7 @@ export class QualificationService {
     qualificationCredit.eventHistories.push({
       issueDate: now,
       by: manualApprovalDto.agentFullName,
-      detail: 'Credit Check Approved By Agent',
+      detail: EVENT_HISTORY_DETAIL.CREDIT_CHECK_APPROVAL_BY_AGENT,
       userId: manualApprovalDto.agentUserId,
       qualificationCategory,
     });
@@ -239,14 +240,14 @@ export class QualificationService {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
-            detail: 'Co-Applicant Consent set to Yes',
+            detail: EVENT_HISTORY_DETAIL.COAPPLICANT_CONSENT_SET_TO_YES,
             qualificationCategory,
           });
         } else {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
-            detail: 'Co-Applicant Consent set to No',
+            detail: EVENT_HISTORY_DETAIL.COAPPLICANT_CONSENT_SET_TO_NO,
             qualificationCategory,
           });
         }
@@ -263,14 +264,14 @@ export class QualificationService {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
-            detail: 'Has Co-Applicant set to Yes',
+            detail: EVENT_HISTORY_DETAIL.HAS_COAPPLICANT_SET_TO_YES,
             qualificationCategory,
           });
         } else {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
-            detail: 'Has Co-Applicant set to No',
+            detail: EVENT_HISTORY_DETAIL.HAS_COAPPLICANT_SET_TO_NO,
             qualificationCategory,
           });
           if (qualificationCredit.hasCoApplicantConsent !== undefined) {
@@ -284,14 +285,14 @@ export class QualificationService {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
-            detail: 'Applicant consent set to Yes',
+            detail: EVENT_HISTORY_DETAIL.APPLICANT_CONSENT_SET_TO_YES,
             qualificationCategory,
           });
         } else {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
-            detail: 'Applicant consent set to No',
+            detail:  EVENT_HISTORY_DETAIL.APPLICANT_CONSENT_SET_TO_NO,
             qualificationCategory,
           });
         }
@@ -458,7 +459,7 @@ export class QualificationService {
     qualificationCredit.eventHistories.push({
       issueDate: now,
       by: req.agentDetail.name || lastEvent?.by || '',
-      detail: 'Email Sent',
+      detail: EVENT_HISTORY_DETAIL.EMAIL_SENT,
       userId: req.agentDetail.userId || lastEvent?.userId,
       qualificationCategory,
     });
@@ -526,7 +527,7 @@ export class QualificationService {
 
     if (
       ![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED, PROCESS_STATUS.APPLICATION_EMAILED].includes(
-        qualificationCredit.processStatus,
+        qualificationCredit.processStatus as PROCESS_STATUS,
       )
     ) {
       return OperationResult.ok(
@@ -545,9 +546,13 @@ export class QualificationService {
         ? QUALIFICATION_CATEGORY.HARD_CREDIT
         : QUALIFICATION_CATEGORY.SOFT_CREDIT;
     qualificationCredit.processStatus = PROCESS_STATUS.STARTED;
+
+    const applicantIndex = qualificationCredit.applicants.findIndex(applicant => applicant.contactId === contactId);
+    const currentApplicant = qualificationCredit.applicants[applicantIndex];
+
     qualificationCredit.eventHistories.push({
       issueDate: new Date(),
-      by: `${contact?.firstName} ${contact?.lastName}`,
+      by: currentApplicant.type,
       detail: `Application Started by ${applicationInitatedBy}`,
       qualificationCategory,
     });
@@ -576,7 +581,7 @@ export class QualificationService {
     header: string
   ): Promise<any> {
     let res;
-    
+
     const tokenIsValid = await this.tokenService.isTokenValid('fni-wave-communications', header);
 
     if (!tokenIsValid?.data?.responseStatus) {
@@ -588,7 +593,7 @@ export class QualificationService {
               'Method Not Allowed'
             ]
           }
-        },
+          },
         status: 401
       }
       return res;
@@ -605,7 +610,7 @@ export class QualificationService {
               'Bad Request'
             ]
           }
-        },
+          },
         status: 400
       }
       return res;
@@ -621,7 +626,7 @@ export class QualificationService {
             'Method Not Allowed'
           ]
         }
-      },
+        },
       status: 405
     }
 
@@ -631,19 +636,27 @@ export class QualificationService {
           'refnum': req.transaction.refnum,
           'status': 'success'
         }
-      },
+        },
       status: 200
     }
     return res;
   }
 
   async processCreditQualification(
-    req: ProcessCreditQualificationReqDto,
-  ): Promise<OperationResult<{ responseStatus: string }>> {
-    this.testTokenStatus(req.authenticationToken);
+    processRequestData: ProcessCreditQualificationReqDto
+  ): Promise<APPLICATION_PROCESS_STATUS> {
+    const qualificationCredit = await this.qualificationCreditModel.findById(processRequestData.qualificationCreditId);
+    if (!qualificationCredit) {
+      throw ApplicationException.EntityNotFound('Qualification Credit');
+    }
 
-    const responseStatus = await this.fniEngineService.processFniSolarApplyRequest(req);
-    return OperationResult.ok({ responseStatus });
+    const fniResponse = await this.fniEngineService.processFniSolarApplyRequest(processRequestData);
+    const responseStatus = await this.handleProcessFniSolarApplyResponse({
+      processRequestData,
+      fniResponse,
+    });
+
+    return responseStatus as APPLICATION_PROCESS_STATUS;
   }
 
   async applyCreditQualification(
@@ -656,6 +669,7 @@ export class QualificationService {
     await this.testTokenStatus(req.authenticationToken);
 
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound('Qualification Credit');
     }
@@ -678,23 +692,25 @@ export class QualificationService {
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
         ? QUALIFICATION_CATEGORY.HARD_CREDIT
         : QUALIFICATION_CATEGORY.SOFT_CREDIT;
+
     qualificationCredit.processStatus = PROCESS_STATUS.IN_PROGRESS;
+    qualificationCredit.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
+    
+    const applicantIndex = qualificationCredit.applicants.findIndex(applicant => applicant.contactId === req.contactId);
+    const currentApplicant = qualificationCredit.applicants[applicantIndex];
+
     qualificationCredit.eventHistories.push({
       issueDate: new Date(),
-      by: `${req.applicant.firstName} ${req.applicant.lastName}`,
-      detail: 'Application sent for Credit Check',
+      by: currentApplicant.type,
+      detail: EVENT_HISTORY_DETAIL.APPLICATION_SENT_FOR_CREDIT_CHECK,
       qualificationCategory,
     });
 
-    const applicantIndex = qualificationCredit.applicants.findIndex(applicant => applicant.contactId === req.contactId);
-    if (qualificationCredit.applicants[applicantIndex]) {
-      qualificationCredit.applicants[applicantIndex].agreementTerm1CheckedAt =
-        req.acknowledgement.agreement_term_1_checked_at;
-      qualificationCredit.applicants[applicantIndex].creditCheckAuthorizedAt =
-        req.acknowledgement.credit_check_authorized_at;
+    if (currentApplicant) {
+      currentApplicant.agreementTerm1CheckedAt = req.acknowledgement.agreement_term_1_checked_at;
+      currentApplicant.creditCheckAuthorizedAt = req.acknowledgement.credit_check_authorized_at;
       if (req.acknowledgement.joint_intention_disclosure_accepted_at) {
-        qualificationCredit.applicants[applicantIndex].jointIntentionDisclosureCheckedAt =
-          req.acknowledgement.joint_intention_disclosure_accepted_at;
+        currentApplicant.jointIntentionDisclosureCheckedAt = req.acknowledgement.joint_intention_disclosure_accepted_at;
       }
     } else {
       const subject = 'There was a problem processing your request. Please contact your Sales Agent for Assistance.';
@@ -717,17 +733,18 @@ export class QualificationService {
 
     const fniInitApplyReq: IFniApplyReq = {
       opportunityId,
-      productId: '1', // <To get productId use quoteService method created in this ticket: WAV-3308>
+      productId: '2', // <To get productId use quoteService method created in this ticket: WAV-3308>
       applicant,
       applicantSecuredData,
       primaryResidence,
       installationAddress,
     };
 
-    const { hasCoApplicant, applicants } = qualificationCredit;
-
     let fniResponse;
-    if (hasCoApplicant && applicants[applicantIndex].type === APPLICANT_TYPE.CO_APPLICANT) {
+    const { hasCoApplicant } = qualificationCredit;
+
+    // solar_init || solar_initcoapp
+    if (hasCoApplicant && currentApplicant.type === APPLICANT_TYPE.CO_APPLICANT) {
       const activeFniApplicationIdx = qualificationCredit.fniApplications.findIndex(
         fniApplication => fniApplication.state === FNI_APPLICATION_STATE.ACTIVE,
       );
@@ -749,30 +766,37 @@ export class QualificationService {
       qualificationCreditRecordInst: qualificationCredit,
     });
 
-    let responseStatus: any;
-    if (!hasCoApplicant || applicants[applicantIndex].type === APPLICANT_TYPE.CO_APPLICANT) {
-      // TODO for WAV-488
-      const applyResponse = 'SUCCESS';
-      responseStatus = await this.handleFNIResponse(
-        applyResponse,
-        `${req.applicant.firstName} ${req.applicant.lastName}`,
-        qualificationCredit,
-      );
-    } else {
-      //Send email to Co-Applicant (Use Case 2)
+    // Send email to Co-Applicant (Use Case 2)
+    // -> currentApplicant should be the primary applicant
+    if (hasCoApplicant && currentApplicant.type === APPLICANT_TYPE.APPLICANT) {
       try {
-        await this.qualificationMailHandler({
+        await this.sendMail({
           opportunityId: req.opportunityId,
           qualificationCreditId: req.qualificationCreditId,
           agentDetail: {
             userId: '',
-            name: ''
-          }
-        }, qualificationCredit);
+            name: '',
+          },
+        });
       } catch (error) {
         this.logger.error(error, error?.stack);
       }
-      responseStatus = APPLICATION_PROCESS_STATUS.APPLICATION_PROCESS_SUCCESS;
+    }
+
+    // Make Call to solar_apply only if:
+    // for use case 1: currentApplicant === APPLICANT_TYPE.APPLICANT (always)
+    // for use case 2: currentApplicant === APPLICANT_TYPE.CO_APPLICANT
+    let responseStatus = APPLICATION_PROCESS_STATUS.APPLICATION_PROCESS_SUCCESS;
+    if (
+      !hasCoApplicant || // Primary Applicant only (Use Case 1)
+      currentApplicant.type === APPLICANT_TYPE.CO_APPLICANT // Co-Applicant within: Use case 2 or 3
+    ) {
+      responseStatus = await this.processCreditQualification({
+        qualificationCreditId: req.qualificationCreditId,
+        opportunityId: req.opportunityId,
+        refnum: fniResponse.data.transaction.refnum,
+        authenticationToken: req.authenticationToken,
+      });
     }
 
     return OperationResult.ok({ responseStatus });
@@ -861,73 +885,6 @@ export class QualificationService {
     }
   }
 
-  async handleFNIResponse(
-    fniResponse: string,
-    customerNameInst: string,
-    qualificationCreditRecordInst: LeanDocument<QualificationCredit>,
-  ): Promise<string> {
-    let applyCreditQualificationResponseStatus = '';
-    const qualificationCategory =
-      qualificationCreditRecordInst.type === QUALIFICATION_TYPE.HARD
-        ? QUALIFICATION_CATEGORY.HARD_CREDIT
-        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
-    // eslint-disable-next-line default-case
-    switch (fniResponse) {
-      case 'SUCCESS': {
-        applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
-        qualificationCreditRecordInst.processStatus = PROCESS_STATUS.COMPLETED;
-        qualificationCreditRecordInst.eventHistories.push({
-          issueDate: new Date(),
-          by: customerNameInst,
-          detail: 'Credit Validation Completed',
-          qualificationCategory,
-        });
-        qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
-        qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.APPROVED;
-        qualificationCreditRecordInst.approvedBy = 'SYSTEM';
-        break;
-      }
-      case 'FAILURE': {
-        applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
-        qualificationCreditRecordInst.processStatus = PROCESS_STATUS.COMPLETED;
-        qualificationCreditRecordInst.eventHistories.push({
-          issueDate: new Date(),
-          by: customerNameInst,
-          detail: 'Credit Validation Completed',
-          qualificationCategory,
-        });
-        qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
-        qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.DECLINED;
-        qualificationCreditRecordInst.approvedBy = 'SYSTEM';
-        break;
-      }
-      case 'PENDING': {
-        applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_SUCCESS';
-        qualificationCreditRecordInst.processStatus = PROCESS_STATUS.PENDING;
-        qualificationCreditRecordInst.eventHistories.push({
-          issueDate: new Date(),
-          by: customerNameInst,
-          detail: 'Credit Validation In Progress',
-          qualificationCategory,
-        });
-        qualificationCreditRecordInst.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
-        qualificationCreditRecordInst.qualificationStatus = QUALIFICATION_STATUS.PENDING;
-        qualificationCreditRecordInst.approvedBy = 'SYSTEM';
-        break;
-      }
-      case 'ERROR': {
-        applyCreditQualificationResponseStatus = 'APPLICATION_PROCESS_ERROR';
-        return applyCreditQualificationResponseStatus;
-      }
-    }
-    qualificationCreditRecordInst.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
-    await this.qualificationCreditModel.updateOne(
-      { _id: qualificationCreditRecordInst.id },
-      qualificationCreditRecordInst,
-    );
-    return applyCreditQualificationResponseStatus;
-  }
-
   async handleFNIInitResponse(data: {
     applyRequestData: ApplyCreditQualificationReqDto;
     fniResponse: IFniResponse;
@@ -941,6 +898,11 @@ export class QualificationService {
       if (!fniResponseData || !fniResponseData.transaction) {
         throw new NotFoundException(`FNI Response to ${type} is undefined or contains no transaction`);
       }
+
+      if (!fniResponseData.transaction.refnum) {
+        throw new NotFoundException(`FNI Response to ${type} is missing refnum`);
+      }
+
       const { transaction, application, field_descriptions, stips } = fniResponseData;
 
       const activeFniApplicationIdx = qualificationCreditRecordInst.fniApplications.findIndex(
@@ -981,30 +943,141 @@ export class QualificationService {
     }
 
     if (isError) {
-      let subject;
-      let message;
-
-      if (status === HttpStatus.OK && fniResponseData!.transaction.status === FNI_TRANSACTION_STATUS.ERROR) {
-        subject = this.getFniErrorSubject({ type });
-        message = {
-          opportunityId: applyRequestData.opportunityId,
-          transaction: fniResponseData!.transaction,
-        };
-      } else {
-        subject = this.getFniErrorSubject({ type, status });
-        message = {
-          opportunityId: applyRequestData.opportunityId,
-        };
-      }
-
-      // eslint-disable-next-line no-unused-expressions
-      process.env.SUPPORT_MAIL &&
-        this.emailService.sendMail(process.env.SUPPORT_MAIL!, JSON.stringify(message), subject).catch(err => {
-          console.error(`Send mail error`, err);
-        });
+      this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, applyRequestData);
 
       throw ApplicationException.FniProcessError();
     }
+  }
+
+  async handleProcessFniSolarApplyResponse(
+    data: {
+      processRequestData: ProcessCreditQualificationReqDto,
+      fniResponse: IFniResponse
+    }
+  ): Promise<string> {
+    const { processRequestData, fniResponse } = data;
+    const { type, status, data: fniResponseData } = fniResponse;
+
+    const qualificationCredit = await this.qualificationCreditModel.findById(processRequestData.qualificationCreditId);
+    if (!qualificationCredit) {
+      throw new NotFoundException('qualificationCredit not found');
+    }
+
+    const activeFniApplicationIdx = qualificationCredit.fniApplications.findIndex(
+      fniApplication => fniApplication.state === FNI_APPLICATION_STATE.ACTIVE,
+    );
+    if (activeFniApplicationIdx === -1) {
+      throw ApplicationException.ActiveFniApplicationNotFound(qualificationCredit._id);
+    }
+    const activeFniApplication = qualificationCredit.fniApplications[activeFniApplicationIdx];
+
+    let isError = true;
+    let responseStatus = APPLICATION_PROCESS_STATUS.APPLICATION_PROCESS_SUCCESS;
+    if (status === HttpStatus.OK) {
+      if (!fniResponseData || !fniResponseData.transaction) {
+        throw new NotFoundException(`FNI Response to ${type} is undefined or contains no transaction`);
+      }
+      const { transaction, application, field_descriptions, stips, product_decisions } = fniResponseData;
+
+      if (!application) {
+        throw new NotFoundException(`Application is undefined in FNI Response Data`);
+      }
+
+      const transactionStatus = transaction.status;
+      const rawResponse = {
+        transaction,
+        stips,
+        application,
+        product_decisions,
+        field_descriptions,
+      };
+      if (transactionStatus === FNI_TRANSACTION_STATUS.ERROR) {
+        if (application.currDecision) {
+          activeFniApplication.fniCurrentDecision = application.currDecision;
+        }
+        activeFniApplication.responses ??= [];
+        activeFniApplication.responses.push({
+          type: FNI_REQUEST_TYPE.SOLAR_APPLY,
+          transactionStatus: FNI_TRANSACTION_STATUS.ERROR,
+          rawResponse,
+          createdAt: new Date(),
+        });
+      }
+
+      let eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_ERROR;
+
+      if (transactionStatus === FNI_TRANSACTION_STATUS.SUCCESS) {
+        isError = false;
+        switch (application.currDecision) {
+          case QUALIFICATION_STATUS.APPROVED:
+          case QUALIFICATION_STATUS.DECLINED:
+          case QUALIFICATION_STATUS.WITHDRAWN:
+            qualificationCredit.qualificationStatus = application.currDecision;
+            qualificationCredit.processStatus = PROCESS_STATUS.COMPLETED;
+            eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_COMPLETED;
+            break;
+          case QUALIFICATION_STATUS.PENDING:
+          case QUALIFICATION_STATUS.REVIEW:
+            qualificationCredit.qualificationStatus = application.currDecision;
+            eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_IN_PROGRESS;
+            break;
+          default:
+            qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.ERROR;
+            qualificationCredit.processStatus = PROCESS_STATUS.ERROR;
+            eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_ERROR;
+            break;
+        }
+
+        if (qualificationCredit.qualificationStatus === QUALIFICATION_STATUS.PENDING && field_descriptions?.[0]) {
+          qualificationCredit.processReason.push(field_descriptions[0].currQueueName);
+        }
+        if (application.currDecision) {
+          qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
+        }
+        activeFniApplication.fniCurrentDecisionReceivedAt = application.timeReceived;
+        activeFniApplication.fniCurrentDecision = application.currDecision;
+        activeFniApplication.responses ??= [];
+        activeFniApplication.responses.push({
+          type: FNI_REQUEST_TYPE.SOLAR_APPLY,
+          transactionStatus: FNI_TRANSACTION_STATUS.SUCCESS,
+          rawResponse,
+          createdAt: new Date(),
+        });
+      }
+
+      const qualificationCategoryType =
+        qualificationCredit.type === QUALIFICATION_TYPE.HARD
+          ? QUALIFICATION_CATEGORY.HARD_CREDIT
+          : QUALIFICATION_CATEGORY.SOFT_CREDIT;
+
+      if (
+        !fniResponseData ||
+        !fniResponseData.application ||
+        fniResponseData.application.currDecision === QUALIFICATION_STATUS.ERROR
+      ) {
+        responseStatus = APPLICATION_PROCESS_STATUS.APPLICATION_PROCESS_ERROR;
+      }
+
+      const applicantTypeInst = qualificationCredit.hasCoApplicant ? 'Applicant and Co-Applicant' : 'Applicant';
+
+      qualificationCredit.eventHistories.push({
+        issueDate: new Date(),
+        by: applicantTypeInst,
+        detail: eventHistoryDetail,
+        qualificationCategory: qualificationCategoryType,
+      });
+
+      qualificationCredit.fniApplications[activeFniApplicationIdx] = activeFniApplication;
+
+      await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
+    }
+
+    if (isError) {
+      this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, processRequestData);
+
+      throw ApplicationException.FniProcessError();
+    }
+    return responseStatus;
   }
 
   async getOneById(id: string): Promise<LeanDocument<QualificationCredit> | null> {
@@ -1052,7 +1125,7 @@ export class QualificationService {
 
     const stringsToValidate = [req.transaction?.refnum, req.application?.currDecision,
     req.application?.productId, req.application?.timeReceived];
-    
+
     if (stringsToValidate.filter(s => !typeof String).length || stringsToValidate.filter(s => s === undefined || s === '').length) {
       return false;
     }
@@ -1075,5 +1148,34 @@ export class QualificationService {
     }
 
     return true;
+  }
+
+  private sendFniErrorEmail(
+    status: number,
+    fniResponseData: IFniResponseData,
+    type: FNI_REQUEST_TYPE,
+    applyRequestData: ApplyCreditQualificationReqDto | ProcessCreditQualificationReqDto
+  ): void {
+    let subject;
+    let message;
+
+    if (status === HttpStatus.OK && fniResponseData!.transaction.status === FNI_TRANSACTION_STATUS.ERROR) {
+      subject = this.getFniErrorSubject({ type });
+      message = {
+        opportunityId: applyRequestData.opportunityId,
+        transaction: fniResponseData!.transaction,
+      };
+    } else {
+      subject = this.getFniErrorSubject({ type, status });
+      message = {
+        opportunityId: applyRequestData.opportunityId,
+      };
+    }
+
+    // eslint-disable-next-line no-unused-expressions
+    process.env.SUPPORT_MAIL &&
+      this.emailService.sendMail(process.env.SUPPORT_MAIL!, JSON.stringify(message), subject).catch(err => {
+        console.error(`Send mail error`, err);
+      });
   }
 }

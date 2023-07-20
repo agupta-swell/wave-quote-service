@@ -74,7 +74,7 @@ export class QualificationController {
   @ApiOkResponse({ type: GenerateTokenRes })
   @CheckOpportunity()
   async generateToken(@Body() req: GenerateTokenReqDto): Promise<ServiceResponse<{ token: string }>> {
-    const res = await this.qualificationService.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.AGENT);
+    const res = await this.qualificationService.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.SYSTEM);
     return ServiceResponse.fromResult(OperationResult.ok({ token: res }));
   }
 

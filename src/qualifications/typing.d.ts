@@ -124,12 +124,21 @@ export interface IFniResponseData {
     }[];
   };
   application?: Record<string, string>;
-  field_descriptions?: Record<string, string>;
+  field_descriptions?: IFniFieldDescription[];
   stips?: {
     description: string;
     id: string;
     status: string;
   }[];
+  product_decisions?: Record<string, string>;
+  applicant1?: {
+    firstName: string,
+    lastName: string,
+  };
+  applicant2?: {
+    firstName: string,
+    lastName: string,
+  };
 }
 
 export interface IFniResponse {
@@ -143,4 +152,15 @@ export interface ITokenData {
   qualificationCreditId: string,
   opportunityId: string,
   contactId?: string
+}
+export interface IFniFieldDescription {
+  coBureauStatus: string,
+  currQueueName: string,
+  dealerLocationName: string,
+  facilityLocationName: string,
+  dealerGroupName: string,
+  facilityGroupName: string,
+  productName: string,
+  productType: string,
+  primBureauStatus: string
 }
