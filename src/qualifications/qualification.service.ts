@@ -615,10 +615,8 @@ export class QualificationService {
       }
       return res;
     }
-    /*
-    [WAV-2479] goes here. Save FNI Decision Details. If error, set res to fniDecisionDetailsError and return.
-    */
-    let fniDecisionDetailsError = {
+
+    const fniDecisionDetailsError = {
       responseBody:{
         'transaction': {
           'status': 'error',
@@ -630,15 +628,37 @@ export class QualificationService {
       status: 405
     }
 
-    res = {
-      responseBody:{
-        'transaction': {
-          'refnum': req.transaction.refnum,
-          'status': 'success'
-        }
-        },
-      status: 200
+    const qualificationCredit = await this.findQualificationCreditByRefnum(req.transaction.refnum);
+
+    if (!qualificationCredit) return fniDecisionDetailsError;
+
+    const handleData: IFniResponse = {
+      type: FNI_REQUEST_TYPE.SOLAR_APPLY_INCOMING,
+      status: HttpStatus.OK,
+      data: req as unknown as IFniResponseData,
     }
+
+    try {
+      await this.handleProcessFniSolarApplyResponse({
+        qualificationCreditId: qualificationCredit._id.toString(),
+        opportunityId: qualificationCredit.opportunityId,
+        fniResponse: handleData,
+      })
+
+      res = {
+        responseBody:{
+          'transaction': {
+            'refnum': req.transaction.refnum,
+            'status': 'success'
+          }
+          },
+        status: 200
+      }
+    } catch (error) {
+      res = fniDecisionDetailsError;
+      this.logger.error(error);
+    }
+
     return res;
   }
 
@@ -652,7 +672,8 @@ export class QualificationService {
 
     const fniResponse = await this.fniEngineService.processFniSolarApplyRequest(processRequestData);
     const responseStatus = await this.handleProcessFniSolarApplyResponse({
-      processRequestData,
+      qualificationCreditId: processRequestData.qualificationCreditId,
+      opportunityId: processRequestData.opportunityId,
       fniResponse,
     });
 
@@ -761,7 +782,6 @@ export class QualificationService {
     }
 
     await this.handleFNIInitResponse({
-      applyRequestData: req,
       fniResponse,
       qualificationCreditRecordInst: qualificationCredit,
     });
@@ -803,6 +823,12 @@ export class QualificationService {
   }
 
   // ==============> INTERNAL <==============
+
+  async findQualificationCreditByRefnum(refnum: string): Promise<LeanDocument<QualificationCredit>> {
+    return this.qualificationCreditModel.findOne({
+      "fniApplications.refnum": parseInt(refnum, 10)
+    }).lean();
+  }
 
   async testTokenStatus(authenticationToken: string): Promise<void> {
     const tokenStatus = await this.checkToken(authenticationToken);
@@ -886,11 +912,10 @@ export class QualificationService {
   }
 
   async handleFNIInitResponse(data: {
-    applyRequestData: ApplyCreditQualificationReqDto;
     fniResponse: IFniResponse;
     qualificationCreditRecordInst: LeanDocument<QualificationCredit>;
   }): Promise<void> {
-    const { applyRequestData, fniResponse, qualificationCreditRecordInst } = data;
+    const { fniResponse, qualificationCreditRecordInst } = data;
     const { type, status, data: fniResponseData } = fniResponse;
 
     let isError = true;
@@ -943,7 +968,7 @@ export class QualificationService {
     }
 
     if (isError) {
-      this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, applyRequestData);
+      this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, qualificationCreditRecordInst.opportunityId);
 
       throw ApplicationException.FniProcessError();
     }
@@ -951,14 +976,15 @@ export class QualificationService {
 
   async handleProcessFniSolarApplyResponse(
     data: {
-      processRequestData: ProcessCreditQualificationReqDto,
+      qualificationCreditId: string,
+      opportunityId: string,
       fniResponse: IFniResponse
     }
   ): Promise<string> {
-    const { processRequestData, fniResponse } = data;
+    const { qualificationCreditId, opportunityId, fniResponse } = data;
     const { type, status, data: fniResponseData } = fniResponse;
 
-    const qualificationCredit = await this.qualificationCreditModel.findById(processRequestData.qualificationCreditId);
+    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
     if (!qualificationCredit) {
       throw new NotFoundException('qualificationCredit not found');
     }
@@ -1073,7 +1099,7 @@ export class QualificationService {
     }
 
     if (isError) {
-      this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, processRequestData);
+      this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, opportunityId);
 
       throw ApplicationException.FniProcessError();
     }
@@ -1154,7 +1180,7 @@ export class QualificationService {
     status: number,
     fniResponseData: IFniResponseData,
     type: FNI_REQUEST_TYPE,
-    applyRequestData: ApplyCreditQualificationReqDto | ProcessCreditQualificationReqDto
+    opportunityId: string,
   ): void {
     let subject;
     let message;
@@ -1162,13 +1188,13 @@ export class QualificationService {
     if (status === HttpStatus.OK && fniResponseData!.transaction.status === FNI_TRANSACTION_STATUS.ERROR) {
       subject = this.getFniErrorSubject({ type });
       message = {
-        opportunityId: applyRequestData.opportunityId,
+        opportunityId,
         transaction: fniResponseData!.transaction,
       };
     } else {
       subject = this.getFniErrorSubject({ type, status });
       message = {
-        opportunityId: applyRequestData.opportunityId,
+        opportunityId,
       };
     }
 
