@@ -30,7 +30,7 @@ export class EsaPricingSolverService {
 
         const [manufacturer, utilities] = await Promise.all([
           this.manufacturerModel.findOne({ name: values[2] }).lean(),
-          this.utilitiesModel.find({ name: { $in: values[4]?.split(',') || [] } }).lean(),
+          this.utilitiesModel.find({ name: { $in: values[4]?.split(';') || [] } }).lean(),
         ]);
 
         const payload: V2EsaPricingSolver = {
