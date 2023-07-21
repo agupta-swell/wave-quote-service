@@ -3,8 +3,8 @@ import { Injectable, Req } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
-import { Utilities, UTILITIES } from 'src/utilities/schemas/utilities.schema';
 import { V2_MANUFACTURERS_COLL, Manufacturer } from 'src/manufacturers/manufacturer.schema';
+import { UtilityMaster, UTILITY_MASTER } from 'src/docusign-templates-master/schemas/utility-master.schema';
 import { convertStringWithCommasToNumber } from 'src/utils/common';
 import { FastifyRequest } from 'src/shared/fastify';
 import { OperationResult } from '../app/common/operation-result';
@@ -16,7 +16,7 @@ export class EsaPricingSolverService {
   constructor(
     @InjectModel(V2_ESA_PRICING_SOLVER_COLLECTION) private esaPricingSolverModel: Model<V2EsaPricingSolverDocument>,
     @InjectModel(V2_MANUFACTURERS_COLL) private manufacturerModel: Model<Manufacturer>,
-    @InjectModel(UTILITIES) private utilitiesModel: Model<Utilities>,
+    @InjectModel(UTILITY_MASTER) private utilitiesMasterModel: Model<UtilityMaster>,
   ) {}
 
   async createDataFromCSV(@Req() req: FastifyRequest): Promise<OperationResult<string>> {
@@ -30,7 +30,7 @@ export class EsaPricingSolverService {
 
         const [manufacturer, utilities] = await Promise.all([
           this.manufacturerModel.findOne({ name: values[2] }).lean(),
-          this.utilitiesModel.find({ name: { $in: values[4]?.split(';') || [] } }).lean(),
+          this.utilitiesMasterModel.find({ utilityName: { $in: values[4]?.split(';') || [] } }).lean(),
         ]);
 
         const payload: V2EsaPricingSolver = {

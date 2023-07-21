@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
-import { UtilitiesSchema, UTILITIES } from 'src/utilities/schemas/utilities.schema';
+import { UtilityMasterSchema, UTILITY_MASTER } from 'src/docusign-templates-master/schemas/utility-master.schema';
 import { V2_MANUFACTURERS_COLL, ManufacturerSchema } from 'src/manufacturers/manufacturer.schema';
 import { EsaPricingSolverController } from './v2-esa-pricing-solver.controller';
 import { V2EsaPricingSolverSchema } from './v2-esa-pricing-solver.schema';
@@ -21,9 +21,9 @@ import { V2_ESA_PRICING_SOLVER_COLLECTION } from './constants';
         schema: V2EsaPricingSolverSchema,
       },
       {
-        name: UTILITIES,
-        collection: 'utilities',
-        schema: UtilitiesSchema,
+        name: UTILITY_MASTER,
+        collection: 'v2_utilities_master',
+        schema: UtilityMasterSchema,
       },
       {
         name: V2_MANUFACTURERS_COLL,
