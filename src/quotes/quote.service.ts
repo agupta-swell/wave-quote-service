@@ -217,8 +217,12 @@ export class QuoteService {
       newAverageMonthlyBill,
       capacityKW: systemProduction.data?.capacityKW || 0,
     });
-    
-    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(productAttribute, financialProduct);
+
+    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+      productAttribute,
+      financialProduct,
+      fundingSource.type,
+    );
     if (responeMessage) {
       throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
     }
@@ -500,7 +504,11 @@ export class QuoteService {
       rateEscalator: financeProductAttribute.rateEscalator,
     });
 
-    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(productAttribute, financialProductSnapshot);
+    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+      productAttribute,
+      financialProductSnapshot,
+      financeProduct.productType,
+    );
     if (responeMessage) {
       throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
     }
@@ -882,7 +890,11 @@ export class QuoteService {
       rateEscalator: product_attribute.rateEscalator,
     });
 
-    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(productAttribute, financialProductSnapshot);
+    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+      productAttribute,
+      financialProductSnapshot,
+      financeProduct.productType,
+    );
     if (responeMessage) {
       throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
     }
@@ -1214,8 +1226,9 @@ export class QuoteService {
     });
 
     const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
-      {balance: quoteCostBuildUp.projectGrandTotal.netCost} as IEsaProductAttributes, 
-      financialProductSnapshot
+      { balance: quoteCostBuildUp.projectGrandTotal.netCost } as IEsaProductAttributes,
+      financialProductSnapshot,
+      detailedQuote.quoteFinanceProduct.financeProduct.productType,
     );
     if (responeMessage) {
       throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
@@ -1792,9 +1805,10 @@ export class QuoteService {
   }
 
   async qualifyQuoteAgainstFinancialProductSettings(
-    productAttribute: IEsaProductAttributes, 
-    financialProduct:LeanDocument<FinancialProduct>, 
-    foundQuote?: LeanDocument<Quote>
+    productAttribute: IEsaProductAttributes,
+    financialProduct: LeanDocument<FinancialProduct>,
+    type: string,
+    foundQuote?: LeanDocument<Quote>,
   ): Promise<string | undefined> {
     let qualify = true;
 
@@ -1803,42 +1817,42 @@ export class QuoteService {
     if (!fmvAppraisal) {
       throw ApplicationException.EntityNotFound('FMV Appraisal not found');
     }
-    
+
     // if fn() === false then add error message to message[]
     const qualifier = {
       maxInstallmentAmount: {
-        fn: (() => {
-          return !(productAttribute.balance > financialProduct.maxInstallationAmount);
-        }),
+        fn: () =>
+          !(productAttribute.balance > financialProduct.maxInstallationAmount && type === FINANCE_PRODUCT_TYPE.ESA),
         error: {
-          message: '\nMaxInstallmentAmount Error :: The cost of installing this system exceeds the allowed maximum installation amount.'
-        }
+          message:
+            '\nMaxInstallmentAmount Error :: The cost of installing this system exceeds the allowed maximum installation amount.',
+        },
       },
       isQuoteSynced: {
-        fn: (() => {
-          if(foundQuote) {
+        fn: () => {
+          if (foundQuote) {
             return !foundQuote.isSync;
           }
           return true;
-        }),
+        },
         error: {
-          message: '\n Quote Synce Error :: This quote is not in sync. Trigger a requote'
-        }
+          message: '\n Quote Synce Error :: This quote is not in sync. Trigger a requote',
+        },
       },
       doesTodaysDateQualify: {
-        fn: (() => {
+        fn: () => {
           const date = new Date();
-          return (date > fmvAppraisal?.effectiveDate && date < fmvAppraisal?.endDate)
-        }),
+          return date > fmvAppraisal?.effectiveDate && date < fmvAppraisal?.endDate;
+        },
         error: {
-          message: '\nCheck the Effective Date to End Date Range'
-        }
-      }
-    }
+          message: '\nCheck the Effective Date to End Date Range',
+        },
+      },
+    };
     const message: string[] = [];
-    forEach(qualifier, (item) => {
+    forEach(qualifier, item => {
       qualify = item.fn();
-      if(!qualify) {
+      if (!qualify) {
         message.push(item.error.message);
       }
     });
@@ -1846,6 +1860,6 @@ export class QuoteService {
     if (message.length === 0) {
       return undefined;
     }
-    return message.join('\n');;
+    return message.join('\n');
   }
 }
