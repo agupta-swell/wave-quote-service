@@ -331,6 +331,13 @@ export class QualificationService {
       reason: [],
       responses: [],
     });
+
+    qualificationCredit.applicants.forEach(item => {
+      delete item.creditCheckAuthorizedAt
+      delete item.agreementTerm1CheckedAt
+      delete item.jointIntentionDisclosureCheckedAt
+    })
+
     return this.qualificationMailHandler(req, qualificationCredit);
   }
 
@@ -361,51 +368,48 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound(`primaryContact: ${primaryContact}`);
     }
 
-    //Applicants addition
-    if (qualificationCredit.hasApplicantConsent) {
-      const applicants = qualificationCredit.applicants;
-      // type set to applicant
-      let applicantIsExist = false;
-      let coApplicantIsExist = false;
-      applicants?.forEach(applicant => {
-        if (applicant?.type === APPLICANT_TYPE.APPLICANT) {
-          applicantIsExist = true;
-        }
-        if (applicant?.type === APPLICANT_TYPE.CO_APPLICANT) {
-          coApplicantIsExist = true;
-        }
-      });
+    // Applicants addition
+    const applicants = qualificationCredit.applicants;
+    // type set to applicant
+    let applicantIsExist = false;
+    let coApplicantIsExist = false;
+    applicants?.forEach(applicant => {
+      if (applicant?.type === APPLICANT_TYPE.APPLICANT) {
+        applicantIsExist = true;
+      }
+      if (applicant?.type === APPLICANT_TYPE.CO_APPLICANT) {
+        coApplicantIsExist = true;
+      }
+    });
 
-      if (!applicantIsExist) {
-        if (!primaryContactId) {
-          throw ApplicationException.EntityNotFound(`Applicant contactId: ${primaryContactId}`);
-        }
+    if (!applicantIsExist) {
+      if (!primaryContactId) {
+        throw ApplicationException.EntityNotFound(`Applicant contactId: ${primaryContactId}`);
+      }
+      const applicant = {} as IApplicant;
+      applicant.type = APPLICANT_TYPE.APPLICANT;
+      applicant.contactId = primaryContactId;
+      applicants.push(applicant);
+    }
 
-        const applicant = {} as IApplicant;
-        applicant.type = APPLICANT_TYPE.APPLICANT;
-        applicant.contactId = primaryContactId;
-        qualificationCredit.applicants.push(applicant);
+    // type set to coapplicant:
+    if (!coApplicantIsExist && qualificationCredit.hasCoApplicant) {
+      const coContactId = homeowners.find(homeowner => !homeowner.isPrimary)?.contactId;
+      if (!coContactId) {
+        throw ApplicationException.EntityNotFound(`Co applicant contactId: ${coContactId}`);
       }
 
-      // type set to coapplicant:
-      if (!coApplicantIsExist && qualificationCredit.hasCoApplicant && qualificationCredit.hasCoApplicantConsent) {
-        const coContactId = homeowners.find(homeowner => !homeowner.isPrimary)?.contactId;
-        if (!coContactId) {
-          throw ApplicationException.EntityNotFound(`Co applicant contactId: ${coContactId}`);
-        }
-
-        const applicant = {} as IApplicant;
-        applicant.type = APPLICANT_TYPE.CO_APPLICANT;
-        applicant.contactId = coContactId;
-        qualificationCredit.applicants.push(applicant);
-      }
+      const applicant = {} as IApplicant;
+      applicant.type = APPLICANT_TYPE.CO_APPLICANT;
+      applicant.contactId = coContactId;
+      applicants.push(applicant);
     }
 
     //Use case identification
     let isUseCase2: boolean = false;
     let isUseCase1: boolean = false;
-    const applicant = qualificationCredit.applicants.find(applicant => applicant.type === APPLICANT_TYPE.APPLICANT);
-    const coApplicant = qualificationCredit.applicants.find(applicant => applicant.type === APPLICANT_TYPE.CO_APPLICANT);
+    const applicant = applicants.find(applicant => applicant.type === APPLICANT_TYPE.APPLICANT);
+    const coApplicant = applicants.find(applicant => applicant.type === APPLICANT_TYPE.CO_APPLICANT);
     if (applicant && coApplicant && applicant.creditCheckAuthorizedAt && coApplicant.creditCheckAuthorizedAt) {
       throw ApplicationException.UnprocessableEntity(`Application has already been submitted.`);
     } else if (applicant && applicant.creditCheckAuthorizedAt && !coApplicant) {
