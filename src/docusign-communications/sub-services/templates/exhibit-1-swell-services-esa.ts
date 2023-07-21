@@ -1,18 +1,5 @@
-import {
-  DocusignTemplate,
-  DefaultTabTransformation,
-  DOCUSIGN_TAB_TYPE,
-  DefaultTabType,
-  TabValue,
-} from 'src/shared/docusign';
-import { IGenericObject } from '../../typing';
+import { DocusignTemplate } from 'src/shared/docusign';
 
 @DocusignTemplate('demo', '60e693c1-1858-4aa2-9105-8dfa1f3d7562')
-@DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
-@DefaultTabTransformation('snake_case')
-export class Exhibit1SwellServicesEsaTemplate {
-  @TabValue<IGenericObject>(({ quote: { utilityProgram, rebateProgram } }) =>
-    [utilityProgram?.utilityProgramName, rebateProgram?.name].filter(p => !!p).join('+'),
-  )
-  utilityProgramAndRebateProgram: string;
-}
+@DocusignTemplate('live', '22f7e03f-0d8d-4157-af53-f79b294d9eb6')
+export class Exhibit1SwellServicesEsaTemplate {}
