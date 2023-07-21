@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import { FmvAppraisal } from './schemas/fmv-appraisal.schema';
+import { FmvAppraisal } from 'src/fmvAppraisal/fmvAppraisal.schema';
 
 export const FINANCIAL_PRODUCT = Symbol('FINANCIAL_PRODUCT').toString();
 

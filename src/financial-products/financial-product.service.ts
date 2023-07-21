@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { inRange } from 'lodash';
 import { FilterQuery, LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
+import { FmvAppraisal, FMV_APPRAISAL } from 'src/fmvAppraisal/fmvAppraisal.schema';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
@@ -12,7 +13,6 @@ import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { FinancialProduct, FINANCIAL_PRODUCT } from './financial-product.schema';
 import { FinancialProductDto } from './res/financial-product.dto';
-import { FmvAppraisal, FMV_APPRAISAL } from './schemas/fmv-appraisal.schema';
 
 @Injectable()
 export class FinancialProductsService {

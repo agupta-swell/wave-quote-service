@@ -1,6 +1,9 @@
-import { ExposeProp } from 'src/shared/decorators';
+import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class FmvAppraisalDto {
+  @ExposeMongoId()
+  id: string;
+
   @ExposeProp()
   name: string;
 
