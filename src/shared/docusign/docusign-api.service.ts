@@ -167,15 +167,15 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       const { accounts } = userInfo;
 
-      if (!accounts || !accounts.length) {
+      const defaultAccount = accounts?.find(account => account.isDefault === 'true');
+
+      if (!defaultAccount) {
         throw new Error('Could not login into docusign');
       }
 
-      const account = accounts[0];
+      DocusignApiService.accountId.set(docusignIntegrationType, defaultAccount.accountId);
 
-      DocusignApiService.accountId.set(docusignIntegrationType, account.accountId || '');
-
-      const baseUrl = account.baseUri || '';
+      const baseUrl = defaultAccount.baseUri;
 
       DocusignApiService._baseUrl.set(
         docusignIntegrationType,
