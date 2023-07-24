@@ -333,9 +333,9 @@ export class QualificationService {
     });
 
     qualificationCredit.applicants.forEach(item => {
-      delete item.creditCheckAuthorizedAt
-      delete item.agreementTerm1CheckedAt
-      delete item.jointIntentionDisclosureCheckedAt
+      item.creditCheckAuthorizedAt = undefined;
+      item.agreementTerm1CheckedAt = undefined;
+      item.jointIntentionDisclosureCheckedAt = undefined;
     })
 
     return this.qualificationMailHandler(req, qualificationCredit);
