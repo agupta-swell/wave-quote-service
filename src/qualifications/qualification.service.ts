@@ -20,6 +20,7 @@ import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
 import { TokenService } from '../tokens/token.service';
+import { QualificationException, QualificationExceptionData } from './qualification.exception';
 import {
   APPLICANT_TYPE,
   APPLICATION_PROCESS_STATUS,
@@ -80,7 +81,7 @@ export class QualificationService {
     private readonly emailService: EmailService,
     private readonly fniEngineService: FniEngineService,
     private readonly tokenService: TokenService,
-  ) { }
+  ) {}
 
   async createQualification(
     qualificationDto: CreateQualificationReqDto,
@@ -321,7 +322,7 @@ export class QualificationService {
           qualificationCredit.eventHistories.push({
             issueDate: now,
             by: applicantConsentDto.userFullName,
-            detail:  EVENT_HISTORY_DETAIL.APPLICANT_CONSENT_SET_TO_NO,
+            detail: EVENT_HISTORY_DETAIL.APPLICANT_CONSENT_SET_TO_NO,
             qualificationCategory,
           });
         }
@@ -352,16 +353,6 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound(`qualificationCreditId: ${req.qualificationCreditId}`);
     }
 
-    const { hasApplicantConsent, hasCoApplicant, hasCoApplicantConsent } = qualificationCredit;
-
-    if (
-      hasApplicantConsent === undefined ||
-      hasCoApplicant === undefined ||
-      (hasCoApplicant && hasCoApplicantConsent === undefined)
-    ) {
-      throw ApplicationException.UnprocessableEntity(`Invalid use case.`);
-    }
-
     qualificationCredit.fniApplications.forEach(item => {
       item.state = FNI_APPLICATION_STATE.INACTIVE;
     });
@@ -375,7 +366,7 @@ export class QualificationService {
       item.creditCheckAuthorizedAt = undefined;
       item.agreementTerm1CheckedAt = undefined;
       item.jointIntentionDisclosureCheckedAt = undefined;
-    })
+    });
 
     return this.qualificationMailHandler(req, qualificationCredit);
   }
@@ -386,6 +377,29 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound(`qualificationCreditId: ${req.qualificationCreditId}`);
     }
 
+    return this.qualificationMailHandler(req, qualificationCredit);
+  }
+
+  async qualificationMailHandler(
+    req: SendMailReqDto,
+    qualificationCredit: QualificationCredit,
+    useCase2: boolean = false,
+  ): Promise<OperationResult<SendMailDto>> {
+    const lastEvent = sortByDescending<IEventHistory>(qualificationCredit.eventHistories, 'issueDate').find(
+      ev => ev.detail === 'Email Sent',
+    );
+
+    const qualificationExceptionPayload: QualificationExceptionData = {
+      qualificationCreditId: qualificationCredit._id.toString(),
+      errorEvent: {
+        by: req.agentDetail.name || lastEvent?.by || '',
+        detail: useCase2
+          ? EVENT_HISTORY_DETAIL.UNABLE_TO_SEND_EMAIL_TO_CO_APPLICANT
+          : EVENT_HISTORY_DETAIL.UNABLE_TO_SEND_EMAIL,
+        userId: req.agentDetail.userId || lastEvent?.userId,
+      },
+    };
+
     const { hasApplicantConsent, hasCoApplicant, hasCoApplicantConsent } = qualificationCredit;
 
     if (
@@ -393,19 +407,18 @@ export class QualificationService {
       hasCoApplicant === undefined ||
       (hasCoApplicant && hasCoApplicantConsent === undefined)
     ) {
-      throw ApplicationException.UnprocessableEntity(`Invalid use case.`);
+      throw new QualificationException(
+        ApplicationException.UnprocessableEntity(`Invalid use case.`),
+        qualificationExceptionPayload,
+      );
     }
 
-    return this.qualificationMailHandler(req, qualificationCredit);
-  }
-
-  async qualificationMailHandler(
-    req: SendMailReqDto,
-    qualificationCredit: QualificationCredit,
-  ): Promise<OperationResult<SendMailDto>> {
     const opportunity = await this.opportunityService.getDetailById(qualificationCredit.opportunityId);
     if (!opportunity) {
-      throw ApplicationException.EntityNotFound(`opportunityId: ${qualificationCredit.opportunityId}`);
+      throw new QualificationException(
+        ApplicationException.EntityNotFound(`opportunityId: ${qualificationCredit.opportunityId}`),
+        qualificationExceptionPayload,
+      );
     }
 
     const homeowners = await this.propertyService.findHomeownersById(opportunity.propertyId);
@@ -414,7 +427,10 @@ export class QualificationService {
     const primaryContact = await this.contactService.getContactById(primaryContactId);
 
     if (!primaryContact) {
-      throw ApplicationException.EntityNotFound(`primaryContact: ${primaryContact}`);
+      throw new QualificationException(
+        ApplicationException.EntityNotFound(`primaryContact: ${primaryContact}`),
+        qualificationExceptionPayload,
+      );
     }
 
     // Applicants addition
@@ -433,7 +449,10 @@ export class QualificationService {
 
     if (!applicantIsExist) {
       if (!primaryContactId) {
-        throw ApplicationException.EntityNotFound(`Applicant contactId: ${primaryContactId}`);
+        throw new QualificationException(
+          ApplicationException.EntityNotFound(`Applicant contactId: ${primaryContactId}`),
+          qualificationExceptionPayload,
+        );
       }
       const applicant = {} as IApplicant;
       applicant.type = APPLICANT_TYPE.APPLICANT;
@@ -445,7 +464,10 @@ export class QualificationService {
     if (!coApplicantIsExist && qualificationCredit.hasCoApplicant) {
       const coContactId = homeowners.find(homeowner => !homeowner.isPrimary)?.contactId;
       if (!coContactId) {
-        throw ApplicationException.EntityNotFound(`Co applicant contactId: ${coContactId}`);
+        throw new QualificationException(
+          ApplicationException.EntityNotFound(`Co applicant contactId: ${coContactId}`),
+          qualificationExceptionPayload,
+        );
       }
 
       const applicant = {} as IApplicant;
@@ -455,20 +477,29 @@ export class QualificationService {
     }
 
     //Use case identification
-    let isUseCase2: boolean = false;
     let isUseCase1: boolean = false;
+    let isUseCase2: boolean = useCase2;
     const applicant = applicants.find(applicant => applicant.type === APPLICANT_TYPE.APPLICANT);
     const coApplicant = applicants.find(applicant => applicant.type === APPLICANT_TYPE.CO_APPLICANT);
     if (applicant && coApplicant && applicant.creditCheckAuthorizedAt && coApplicant.creditCheckAuthorizedAt) {
-      throw ApplicationException.UnprocessableEntity(`Application has already been submitted.`);
+      throw new QualificationException(
+        ApplicationException.UnprocessableEntity(`Application has already been submitted.`),
+        qualificationExceptionPayload,
+      );
     } else if (applicant && applicant.creditCheckAuthorizedAt && !coApplicant) {
-      throw ApplicationException.UnprocessableEntity(`Application has been submitted.`);
+      throw new QualificationException(
+        ApplicationException.UnprocessableEntity(`Application has been submitted.`),
+        qualificationExceptionPayload,
+      );
     } else if (applicant && applicant.creditCheckAuthorizedAt && coApplicant && !coApplicant.creditCheckAuthorizedAt) {
       isUseCase2 = true;
     } else if (applicant && !applicant.creditCheckAuthorizedAt) {
       isUseCase1 = true;
     } else {
-      throw ApplicationException.UnprocessableEntity(`Invalid use case.`);
+      throw new QualificationException(
+        ApplicationException.UnprocessableEntity(`Invalid use case.`),
+        qualificationExceptionPayload,
+      );
     }
 
     //Contact finding
@@ -481,30 +512,40 @@ export class QualificationService {
       contactId = applicant.contactId;
     } else {
       //No email zone
-      throw ApplicationException.UnprocessableEntity(`Use case is invalid.`);
+      throw new QualificationException(
+        ApplicationException.UnprocessableEntity(`Use case is invalid.`),
+        qualificationExceptionPayload,
+      );
     }
     const contact = await this.contactService.getContactById(contactId);
-    const token = await this.generateToken(qualificationCredit._id, qualificationCredit.opportunityId, ROLE.CUSTOMER, contact?._id);
+    const token = await this.generateToken(
+      qualificationCredit._id,
+      qualificationCredit.opportunityId,
+      ROLE.CUSTOMER,
+      contact?._id,
+    );
 
     //Email sending
     const data = {
       contactFullName:
-        `${contact?.firstName || ''}${(contact?.firstName && ' ') || ''}${contact?.lastName || ''
-        }` || 'Customer',
+        `${contact?.firstName || ''}${(contact?.firstName && ' ') || ''}${contact?.lastName || ''}` || 'Customer',
       qualificationValidityPeriod: '48 hours',
       recipientNotice: 'No Content',
       link: (process.env.QUALIFICATION_PAGE || '').concat(`/validation?s=${token}`),
     };
 
-    await this.emailService.sendMailByTemplate(
-      contact?.email || '',
-      'Qualification Invitation',
-      'Qualification Email',
-      data,
-    );
+    try {
+      await this.emailService.sendMailByTemplate(
+        contact?.email || '',
+        'Qualification Invitation',
+        'Qualification Email',
+        data,
+      );
+    } catch (error) {
+      throw new QualificationException(ApplicationException.ServiceError(), qualificationExceptionPayload);
+    }
 
     const now = new Date();
-    const lastEvent = sortByDescending<IEventHistory>(qualificationCredit.eventHistories, 'issueDate').find(ev => ev.detail === 'Email Sent');
     const qualificationCategory =
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
         ? QUALIFICATION_CATEGORY.HARD_CREDIT
@@ -592,7 +633,8 @@ export class QualificationService {
       );
     }
 
-    const contactId = tokenPayload.contactId || await this.opportunityService.getContactIdById(qualificationCredit.opportunityId);
+    const contactId =
+      tokenPayload.contactId || (await this.opportunityService.getContactIdById(qualificationCredit.opportunityId));
     const contact = await this.contactService.getContactById(contactId || '');
     const qualificationCategory =
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
@@ -629,10 +671,7 @@ export class QualificationService {
     );
   }
 
-  async receiveFniUpdate(
-    req: RecieveFniDecisionReqDto,
-    header: string
-  ): Promise<any> {
+  async receiveFniUpdate(req: RecieveFniDecisionReqDto, header: string): Promise<any> {
     let res;
 
     const tokenIsValid = await this.tokenService.isTokenValid('fni-wave-communications', header);
@@ -640,73 +679,76 @@ export class QualificationService {
     if (!tokenIsValid?.data?.responseStatus) {
       res = {
         responseBody: {
-          'transaction': {
-            'status': 'error',
-            'errorMsgs': [
-              'Method Not Allowed'
-            ]
-          }
+          transaction: {
+            status: 'error',
+            errorMsgs: ['Method Not Allowed'],
           },
-        status: 401
-      }
-      return res;
-    }
-
-    const fieldValidation = await this.validateIncomingFniReqBody(req);
-
-    if (!fieldValidation) {
-      res = {
-        responseBody: {
-          'transaction': {
-            'status': 'error',
-            'errorMsgs': [
-              'Bad Request'
-            ]
-          }
-          },
-        status: 400
-      }
+        },
+        status: 401,
+      };
       return res;
     }
 
     const fniDecisionDetailsError = {
-      responseBody:{
-        'transaction': {
-          'status': 'error',
-          'errorMsgs': [
-            'Method Not Allowed'
-          ]
-        }
+      responseBody: {
+        transaction: {
+          status: 'error',
+          errorMsgs: ['Method Not Allowed'],
         },
-      status: 405
-    }
+      },
+      status: 405,
+    };
 
     const qualificationCredit = await this.findQualificationCreditByRefnum(req.transaction.refnum);
 
     if (!qualificationCredit) return fniDecisionDetailsError;
 
+    const errorEvent: IEventHistory = {
+      issueDate: new Date(),
+      by: 'System',
+      detail: 'Unable to process incoming Application data',
+    };
+
+    const fieldValidation = await this.validateIncomingFniReqBody(req);
+
+    if (!fieldValidation) {
+      qualificationCredit.eventHistories.push(errorEvent);
+      await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
+
+      res = {
+        responseBody: {
+          transaction: {
+            status: 'error',
+            errorMsgs: ['Bad Request'],
+          },
+        },
+        status: 400,
+      };
+      return res;
+    }
+
     const handleData: IFniResponse = {
       type: FNI_REQUEST_TYPE.SOLAR_APPLY_INCOMING,
       status: HttpStatus.OK,
-      data: req as unknown as IFniResponseData,
-    }
+      data: (req as unknown) as IFniResponseData,
+    };
 
     try {
       await this.handleProcessFniSolarApplyResponse({
         qualificationCreditId: qualificationCredit._id.toString(),
         opportunityId: qualificationCredit.opportunityId,
         fniResponse: handleData,
-      })
+      });
 
       res = {
-        responseBody:{
-          'transaction': {
-            'refnum': req.transaction.refnum,
-            'status': 'success'
-          }
+        responseBody: {
+          transaction: {
+            refnum: req.transaction.refnum,
+            status: 'success',
           },
-        status: 200
-      }
+        },
+        status: 200,
+      };
     } catch (error) {
       res = fniDecisionDetailsError;
       this.logger.error(error);
@@ -716,7 +758,7 @@ export class QualificationService {
   }
 
   async processCreditQualification(
-    processRequestData: ProcessCreditQualificationReqDto
+    processRequestData: ProcessCreditQualificationReqDto,
   ): Promise<APPLICATION_PROCESS_STATUS> {
     const qualificationCredit = await this.qualificationCreditModel.findById(processRequestData.qualificationCreditId);
     if (!qualificationCredit) {
@@ -752,33 +794,32 @@ export class QualificationService {
       return OperationResult.ok({ responseStatus: 'NO_ACTIVE_VALIDATION' });
     }
 
+    const applicantIndex = qualificationCredit.applicants.findIndex(applicant => applicant.contactId === req.contactId);
+    const currentApplicant = qualificationCredit.applicants[applicantIndex];
+
+    const qualificationExceptionPayload: QualificationExceptionData = {
+      qualificationCreditId: qualificationCredit._id.toString(),
+      errorEvent: {
+        by: currentApplicant.type,
+        detail: EVENT_HISTORY_DETAIL.UNABLE_TO_PROCESS_APPLICATION,
+      },
+    };
+
     if (req.opportunityId !== qualificationCredit.opportunityId) {
-      throw new HttpException('Invalid opportunityId.', HttpStatus.UNPROCESSABLE_ENTITY);
+      throw new QualificationException(
+        new HttpException('Invalid opportunityId.', HttpStatus.UNPROCESSABLE_ENTITY),
+        qualificationExceptionPayload,
+      );
     }
 
     const opportunity = await this.opportunityService.getDetailById(req.opportunityId);
 
     if (!opportunity) {
-      throw ApplicationException.EntityNotFound(`opportunityId: ${req.opportunityId}`);
+      throw new QualificationException(
+        ApplicationException.EntityNotFound(`opportunityId: ${req.opportunityId}`),
+        qualificationExceptionPayload,
+      );
     }
-
-    const qualificationCategory =
-      qualificationCredit.type === QUALIFICATION_TYPE.HARD
-        ? QUALIFICATION_CATEGORY.HARD_CREDIT
-        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
-
-    qualificationCredit.processStatus = PROCESS_STATUS.IN_PROGRESS;
-    qualificationCredit.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
-    
-    const applicantIndex = qualificationCredit.applicants.findIndex(applicant => applicant.contactId === req.contactId);
-    const currentApplicant = qualificationCredit.applicants[applicantIndex];
-
-    qualificationCredit.eventHistories.push({
-      issueDate: new Date(),
-      by: currentApplicant.type,
-      detail: EVENT_HISTORY_DETAIL.APPLICATION_SENT_FOR_CREDIT_CHECK,
-      qualificationCategory,
-    });
 
     if (currentApplicant) {
       currentApplicant.agreementTerm1CheckedAt = req.acknowledgement.agreement_term_1_checked_at;
@@ -798,8 +839,23 @@ export class QualificationService {
       };
 
       this.logger.error(e, e.stack);
-      return OperationResult.error(e);
+      throw new QualificationException(ApplicationException.FniProcessError(), qualificationExceptionPayload);
     }
+
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
+
+    qualificationCredit.processStatus = PROCESS_STATUS.IN_PROGRESS;
+    qualificationCredit.approvalMode = APPROVAL_MODE.CREDIT_VENDOR;
+
+    qualificationCredit.eventHistories.push({
+      issueDate: new Date(),
+      by: currentApplicant.type,
+      detail: EVENT_HISTORY_DETAIL.APPLICATION_SENT_FOR_CREDIT_CHECK,
+      qualificationCategory,
+    });
 
     await qualificationCredit.save();
 
@@ -824,7 +880,10 @@ export class QualificationService {
       );
 
       if (activeFniApplicationIdx === -1) {
-        throw ApplicationException.ActiveFniApplicationNotFound(req.qualificationCreditId);
+        throw new QualificationException(
+          ApplicationException.ActiveFniApplicationNotFound(req.qualificationCreditId),
+          qualificationExceptionPayload,
+        );
       }
 
       fniInitApplyReq.refnum = qualificationCredit.fniApplications[activeFniApplicationIdx].refnum;
@@ -843,14 +902,20 @@ export class QualificationService {
     // -> currentApplicant should be the primary applicant
     if (hasCoApplicant && currentApplicant.type === APPLICANT_TYPE.APPLICANT) {
       try {
-        await this.sendMail({
-          opportunityId: req.opportunityId,
-          qualificationCreditId: req.qualificationCreditId,
-          agentDetail: {
-            userId: '',
-            name: '',
+        const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
+
+        await this.qualificationMailHandler(
+          {
+            opportunityId: req.opportunityId,
+            qualificationCreditId: req.qualificationCreditId,
+            agentDetail: {
+              userId: '',
+              name: '',
+            },
           },
-        });
+          qualificationCredit!,
+          true,
+        );
       } catch (error) {
         this.logger.error(error, error?.stack);
       }
@@ -878,9 +943,11 @@ export class QualificationService {
   // ==============> INTERNAL <==============
 
   async findQualificationCreditByRefnum(refnum: string): Promise<LeanDocument<QualificationCredit>> {
-    return this.qualificationCreditModel.findOne({
-      "fniApplications.refnum": parseInt(refnum, 10)
-    }).lean();
+    return this.qualificationCreditModel
+      .findOne({
+        'fniApplications.refnum': parseInt(refnum, 10),
+      })
+      .lean();
   }
 
   async testTokenStatus(authenticationToken: string): Promise<void> {
@@ -904,7 +971,12 @@ export class QualificationService {
     }
   }
 
-  async generateToken(qualificationCreditId: string, opportunityId: string, role: ROLE, contactId?: string): Promise<string> {
+  async generateToken(
+    qualificationCreditId: string,
+    opportunityId: string,
+    role: ROLE,
+    contactId?: string,
+  ): Promise<string> {
     let tokenExpiry: string;
 
     switch (role) {
@@ -928,14 +1000,11 @@ export class QualificationService {
       role,
       opportunityId,
       qualificationCreditId,
-      contactId
-    }
+      contactId,
+    };
     if (!contactId) delete tokenData.contactId;
 
-    return this.jwtService.sign(
-      tokenData,
-      { expiresIn: tokenExpiry, secret: process.env.QUALIFICATION_JWT_SECRET },
-    );
+    return this.jwtService.sign(tokenData, { expiresIn: tokenExpiry, secret: process.env.QUALIFICATION_JWT_SECRET });
   }
 
   // eslint-disable-next-line consistent-return
@@ -971,14 +1040,31 @@ export class QualificationService {
     const { fniResponse, qualificationCreditRecordInst } = data;
     const { type, status, data: fniResponseData } = fniResponse;
 
+    const isSolarInitType = type === FNI_REQUEST_TYPE.SOLAR_INIT;
+    const errorEventBy = isSolarInitType ? 'Applicant' : 'Co Applicant';
+
     let isError = true;
     if (status === HttpStatus.OK) {
+      const qualificationExceptionPayload: QualificationExceptionData = {
+        qualificationCreditId: qualificationCreditRecordInst._id.toString(),
+        errorEvent: {
+          by: errorEventBy,
+          detail: `Unable to process (${type})`,
+        },
+      };
+
       if (!fniResponseData || !fniResponseData.transaction) {
-        throw new NotFoundException(`FNI Response to ${type} is undefined or contains no transaction`);
+        throw new QualificationException(
+          new NotFoundException(`FNI Response to ${type} is undefined or contains no transaction`),
+          qualificationExceptionPayload,
+        );
       }
 
       if (!fniResponseData.transaction.refnum) {
-        throw new NotFoundException(`FNI Response to ${type} is missing refnum`);
+        throw new QualificationException(
+          new NotFoundException(`FNI Response to ${type} is missing refnum`),
+          qualificationExceptionPayload,
+        );
       }
 
       const { transaction, application, field_descriptions, stips } = fniResponseData;
@@ -988,7 +1074,10 @@ export class QualificationService {
       );
 
       if (activeFniApplicationIdx === -1) {
-        throw ApplicationException.ActiveFniApplicationNotFound(qualificationCreditRecordInst._id);
+        throw new QualificationException(
+          ApplicationException.ActiveFniApplicationNotFound(qualificationCreditRecordInst._id),
+          qualificationExceptionPayload,
+        );
       }
 
       const activeFniApplication = qualificationCreditRecordInst.fniApplications[activeFniApplicationIdx];
@@ -1021,46 +1110,84 @@ export class QualificationService {
     }
 
     if (isError) {
-      this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, qualificationCreditRecordInst.opportunityId);
+      const qualificationExceptionPayload: QualificationExceptionData = {
+        qualificationCreditId: qualificationCreditRecordInst._id.toString(),
+        errorEvent: {
+          by: errorEventBy,
+          detail: `Unable to send Application for Credit Check (${type})`,
+        },
+      };
 
-      throw ApplicationException.FniProcessError();
+      try {
+        this.sendFniErrorEmail(
+          status,
+          fniResponseData as IFniResponseData,
+          type,
+          qualificationCreditRecordInst.opportunityId,
+        );
+      } catch (error) {
+        throw new QualificationException(ApplicationException.FniProcessError(), qualificationExceptionPayload);
+      } finally {
+        throw new QualificationException(ApplicationException.FniProcessError(), qualificationExceptionPayload);
+      }
     }
   }
 
-  async handleProcessFniSolarApplyResponse(
-    data: {
-      qualificationCreditId: string,
-      opportunityId: string,
-      fniResponse: IFniResponse
-    }
-  ): Promise<string> {
+  async handleProcessFniSolarApplyResponse(data: {
+    qualificationCreditId: string;
+    opportunityId: string;
+    fniResponse: IFniResponse;
+  }): Promise<string> {
     const { qualificationCreditId, opportunityId, fniResponse } = data;
     const { type, status, data: fniResponseData } = fniResponse;
 
+    const isSolarApplyUpcomingType = type === FNI_REQUEST_TYPE.SOLAR_APPLY_INCOMING;
+
     const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
     if (!qualificationCredit) {
-      throw new NotFoundException('qualificationCredit not found');
+      throw new NotFoundException(`Qualification Credit not found with id ${qualificationCreditId}`);
     }
-
-    const activeFniApplicationIdx = qualificationCredit.fniApplications.findIndex(
-      fniApplication => fniApplication.state === FNI_APPLICATION_STATE.ACTIVE,
-    );
-    if (activeFniApplicationIdx === -1) {
-      throw ApplicationException.ActiveFniApplicationNotFound(qualificationCredit._id);
-    }
-    const activeFniApplication = qualificationCredit.fniApplications[activeFniApplicationIdx];
 
     let isError = true;
     let responseStatus = APPLICATION_PROCESS_STATUS.APPLICATION_PROCESS_SUCCESS;
     if (status === HttpStatus.OK) {
+      const qualificationExceptionPayload: QualificationExceptionData = {
+        qualificationCreditId,
+        errorEvent: {
+          by: 'System',
+          detail: isSolarApplyUpcomingType
+            ? 'Unable to process incoming Application data'
+            : `Unable to process (${type})`,
+        },
+      };
+
       if (!fniResponseData || !fniResponseData.transaction) {
-        throw new NotFoundException(`FNI Response to ${type} is undefined or contains no transaction`);
+        throw new QualificationException(
+          new NotFoundException(`FNI Response to ${type} is undefined or contains no transaction`),
+          qualificationExceptionPayload,
+        );
       }
       const { transaction, application, field_descriptions, stips, product_decisions } = fniResponseData;
 
       if (!application) {
-        throw new NotFoundException(`Application is undefined in FNI Response Data`);
+        throw new QualificationException(
+          new NotFoundException(`Application is undefined in FNI Response Data`),
+          qualificationExceptionPayload,
+        );
       }
+
+      const activeFniApplicationIdx = qualificationCredit.fniApplications.findIndex(
+        fniApplication => fniApplication.state === FNI_APPLICATION_STATE.ACTIVE,
+      );
+
+      if (activeFniApplicationIdx === -1) {
+        throw new QualificationException(
+          ApplicationException.ActiveFniApplicationNotFound(qualificationCredit._id),
+          qualificationExceptionPayload,
+        );
+      }
+
+      const activeFniApplication = qualificationCredit.fniApplications[activeFniApplicationIdx];
 
       const transactionStatus = transaction.status;
       const rawResponse = {
@@ -1152,10 +1279,25 @@ export class QualificationService {
     }
 
     if (isError) {
-      this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, opportunityId);
+      const qualificationExceptionPayload: QualificationExceptionData = {
+        qualificationCreditId,
+        errorEvent: {
+          by: 'System',
+          detail: isSolarApplyUpcomingType
+            ? 'Unable to process incoming Application data'
+            : `Unable to send Application for Credit Check (${type})`,
+        },
+      };
 
-      throw ApplicationException.FniProcessError();
+      try {
+        this.sendFniErrorEmail(status, fniResponseData as IFniResponseData, type, opportunityId);
+      } catch (error) {
+        throw new QualificationException(ApplicationException.FniProcessError(), qualificationExceptionPayload);
+      } finally {
+        throw new QualificationException(ApplicationException.FniProcessError(), qualificationExceptionPayload);
+      }
     }
+
     return responseStatus;
   }
 
@@ -1198,20 +1340,27 @@ export class QualificationService {
     return `FNI ${type} :: ${FNI_RESPONSE_ERROR_MAP[status || -1] || 'Error'}`;
   }
 
-
   private async validateIncomingFniReqBody(req: RecieveFniDecisionReqDto) {
     const prodIdRegex = new RegExp('[0-9]');
 
-    const stringsToValidate = [req.transaction?.refnum, req.application?.currDecision,
-    req.application?.productId, req.application?.timeReceived];
+    const stringsToValidate = [
+      req.transaction?.refnum,
+      req.application?.currDecision,
+      req.application?.productId,
+      req.application?.timeReceived,
+    ];
 
-    if (stringsToValidate.filter(s => !typeof String).length || stringsToValidate.filter(s => s === undefined || s === '').length) {
+    if (
+      stringsToValidate.filter(s => !typeof String).length ||
+      stringsToValidate.filter(s => s === undefined || s === '').length
+    ) {
       return false;
     }
 
-    const currDecisionHasValidValue = req.application?.currDecision === 'APPROVED' || 
+    const currDecisionHasValidValue =
+      req.application?.currDecision === 'APPROVED' ||
       req.application?.currDecision === 'DECLINED' ||
-      req.application?.currDecision ==='PENDING' ||
+      req.application?.currDecision === 'PENDING' ||
       req.application?.currDecision === 'WITHDRAWN';
 
     if (req.application.currDecision.length > 20 || !currDecisionHasValidValue) {

@@ -8,6 +8,7 @@ import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ROLE } from './constants';
 import { QualificationService } from './qualification.service';
+import { CatchQualificationException } from './filters';
 import {
   AgentDetailDto,
   ApplyCreditQualificationReqDto,
@@ -102,6 +103,7 @@ export class QualificationController {
   @PreAuthenticate()
   @ApiOperation({ summary: 'Send email to customers' })
   @ApiOkResponse({ type: SendMailRes })
+  @CatchQualificationException()
   async sendMail(@Body() req: SendMailReqDto): Promise<ServiceResponse<SendMailDto>> {
     const res = await this.qualificationService.sendMail(req);
     return ServiceResponse.fromResult(res);
@@ -145,10 +147,11 @@ export class QualificationController {
 
   @Put('/fni-applications')
   @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
-  @ApiOkResponse({ type: RecieveFniDecisionResDto })
-  @ApiResponse({ status: 400, type: RecieveFniDecisionResDto })
-  @ApiResponse({ status: 401, type: RecieveFniDecisionResDto })
-  @ApiResponse({ status: 405, type: RecieveFniDecisionResDto })
+  @ApiOkResponse({ type:  RecieveFniDecisionResDto })
+  @ApiResponse({ status: 400, type:  RecieveFniDecisionResDto})
+  @ApiResponse({ status: 401, type:  RecieveFniDecisionResDto})
+  @ApiResponse({ status: 405, type:  RecieveFniDecisionResDto})
+  @CatchQualificationException()
   async receiveFniUpdate(
     @Req() req: FastifyRequest,
     @Headers('fni-wave-communications') header: string,
@@ -164,6 +167,7 @@ export class QualificationController {
   @Post('/applications')
   @ApiOperation({ summary: 'Get Application Detail' })
   @ApiOkResponse({ type: GetApplicationDetailRes })
+  @CatchQualificationException()
   async getApplicationDetails(
     @Body() req: GetApplicationDetailReqDto,
   ): Promise<ServiceResponse<GetApplicationDetailDto>> {
@@ -174,6 +178,7 @@ export class QualificationController {
   @Post('/apply-credit-qualification')
   @ApiOperation({ summary: 'Apply Credit Qualification' })
   @ApiOkResponse({ type: String })
+  @CatchQualificationException()
   async applyCreditQualification(
     @Body() req: ApplyCreditQualificationReqDto,
   ): Promise<ServiceResponse<{ responseStatus: string }>> {
