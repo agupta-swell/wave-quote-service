@@ -323,6 +323,16 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound(`qualificationCreditId: ${req.qualificationCreditId}`);
     }
 
+    const { hasApplicantConsent, hasCoApplicant, hasCoApplicantConsent } = qualificationCredit;
+
+    if (
+      hasApplicantConsent === undefined ||
+      hasCoApplicant === undefined ||
+      (hasCoApplicant && hasCoApplicantConsent === undefined)
+    ) {
+      throw ApplicationException.UnprocessableEntity(`Invalid use case.`);
+    }
+
     qualificationCredit.fniApplications.forEach(item => {
       item.state = FNI_APPLICATION_STATE.INACTIVE;
     });
@@ -345,6 +355,16 @@ export class QualificationService {
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound(`qualificationCreditId: ${req.qualificationCreditId}`);
+    }
+
+    const { hasApplicantConsent, hasCoApplicant, hasCoApplicantConsent } = qualificationCredit;
+
+    if (
+      hasApplicantConsent === undefined ||
+      hasCoApplicant === undefined ||
+      (hasCoApplicant && hasCoApplicantConsent === undefined)
+    ) {
+      throw ApplicationException.UnprocessableEntity(`Invalid use case.`);
     }
 
     return this.qualificationMailHandler(req, qualificationCredit);
