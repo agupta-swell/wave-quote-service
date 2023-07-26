@@ -50,3 +50,4 @@ import './terms-and-conditions-hic';
 import './solar-disclosures-esa';
 import './home-energy-storage-agreement-esa';
 import './exhibit-8-insurance-esa';
+import './home-energy-storage-agreement-esa-es-only';
