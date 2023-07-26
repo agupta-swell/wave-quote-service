@@ -16,6 +16,7 @@ import './energy-home-improvement-agreement-hic';
 import './exhibit-1-swell-services-esa';
 import './exhibit-2-limited-warranties-and-manufacturer-warranties-esa';
 import './exhibit-3-customer-system-related-obligations-esa';
+import './exhibit-3-customer-system-related-obligations-esa-es-only';
 import './exhibit-4-arbitration-clause-esa';
 import './exhibit-5-notice-of-cancellation-california-esa';
 import './exhibit-6-state-disclosures-california-esa';
