@@ -5,6 +5,7 @@ import './change-order-esa';
 import './contract-one';
 import './disclosure-esa';
 import './disclosures-and-signatures-esa';
+import './disclosures-and-signatures-esa-es-only';
 import './dummy-aces-pa';
 import './dummy-change-order';
 import './dummy-gsa';
