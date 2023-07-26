@@ -14,6 +14,7 @@ export type WithMetaOfType<Document, OfType, Meta> = {
 export function attachMeta<Document, Meta>(document: Document, meta: Meta): WithMeta<Document, Meta> {
   Object.defineProperty(document, '$meta', {
     value: meta,
+    enumerable: true,
   });
 
   return (document as unknown) as WithMeta<Document, Meta>;
