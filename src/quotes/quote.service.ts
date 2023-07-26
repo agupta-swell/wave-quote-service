@@ -218,13 +218,15 @@ export class QuoteService {
       capacityKW: systemProduction.data?.capacityKW || 0,
     });
 
-    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
-      productAttribute,
-      financialProduct,
-      fundingSource.type,
-    );
-    if (responeMessage) {
-      throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
+    if (fundingSource.type === FINANCE_PRODUCT_TYPE.ESA) {
+      const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+        productAttribute,
+        financialProduct,
+        fundingSource.type,
+      );
+      if (responseMessage) {
+        throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
+      }
     }
 
     productAttribute.upfrontPayment = this.calculateUpfrontPayment(
@@ -504,13 +506,15 @@ export class QuoteService {
       rateEscalator: financeProductAttribute.rateEscalator,
     });
 
-    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
-      productAttribute,
-      financialProductSnapshot,
-      financeProduct.productType,
-    );
-    if (responeMessage) {
-      throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
+    if (financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+        productAttribute,
+        financialProductSnapshot,
+        financeProduct.productType,
+      );
+      if (responseMessage) {
+        throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
+      }
     }
 
     const { productAttribute: product_attribute } = financeProduct as any;
@@ -890,13 +894,15 @@ export class QuoteService {
       rateEscalator: product_attribute.rateEscalator,
     });
 
-    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
-      productAttribute,
-      financialProductSnapshot,
-      financeProduct.productType,
-    );
-    if (responeMessage) {
-      throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
+    if (financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+        productAttribute,
+        financialProductSnapshot,
+        financeProduct.productType,
+      );
+      if (responseMessage) {
+        throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
+      }
     }
 
     switch (financeProduct.productType) {
@@ -1225,13 +1231,15 @@ export class QuoteService {
       },
     });
 
-    const responeMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
-      { balance: quoteCostBuildUp.projectGrandTotal.netCost } as IEsaProductAttributes,
-      financialProductSnapshot,
-      detailedQuote.quoteFinanceProduct.financeProduct.productType,
-    );
-    if (responeMessage) {
-      throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responeMessage);
+    if (foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+        { balance: quoteCostBuildUp.projectGrandTotal.netCost } as IEsaProductAttributes,
+        financialProductSnapshot,
+        detailedQuote.quoteFinanceProduct.financeProduct.productType,
+      );
+      if (responseMessage) {
+        throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
+      }
     }
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildUp, systemDesign.existingSystem);
@@ -1825,18 +1833,7 @@ export class QuoteService {
           !(productAttribute.balance > financialProduct.maxInstallationAmount && type === FINANCE_PRODUCT_TYPE.ESA),
         error: {
           message:
-            '\nMaxInstallmentAmount Error :: The cost of installing this system exceeds the allowed maximum installation amount.',
-        },
-      },
-      isQuoteSynced: {
-        fn: () => {
-          if (foundQuote) {
-            return !foundQuote.isSync;
-          }
-          return true;
-        },
-        error: {
-          message: '\n Quote Synce Error :: This quote is not in sync. Trigger a requote',
+            '\nThe cost of installing this system exceeds the allowed maximum installation amount.',
         },
       },
       doesTodaysDateQualify: {
