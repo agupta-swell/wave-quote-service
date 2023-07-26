@@ -48,6 +48,7 @@ import {
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
   RecieveFniDecisionReqDto,
+  AgentDetailDto,
 } from './req';
 import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
 import {
@@ -122,6 +123,34 @@ export class QualificationService {
     await model.save();
 
     return OperationResult.ok(strictPlainToClass(QualificationDetailDto, model.toJSON()));
+  }
+
+  async reInitiateQualification(
+    qualificationCreditId: ObjectId,
+    agentDetail: AgentDetailDto
+  ): Promise<OperationResult<QualificationDetailDto>> {
+    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId)
+
+    if (!qualificationCredit) {
+      throw ApplicationException.EntityNotFound(`qualificationCreditId: ${qualificationCreditId}`);
+    }
+
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
+        
+    qualificationCredit.eventHistories.push({
+      issueDate:  new Date(),
+      by: agentDetail.name,
+      detail: EVENT_HISTORY_DETAIL.REQUEST_RE_INITIATED,
+      userId: agentDetail.userId,
+      qualificationCategory,
+    });
+
+    await qualificationCredit.save();
+
+    return OperationResult.ok(strictPlainToClass(QualificationDetailDto, qualificationCredit.toJSON()));
   }
 
   async getQualificationDetail(opportunityId: string): Promise<OperationResult<GetQualificationDetailDto>> {

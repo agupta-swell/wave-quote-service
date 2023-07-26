@@ -114,6 +114,7 @@ export enum APPLICATION_PROCESS_STATUS {
 
 export enum EVENT_HISTORY_DETAIL {
   REQUEST_INITIATED = 'Request Initiated',
+  REQUEST_RE_INITIATED = 'Request Re-Initiated',
   CREDIT_CHECK_APPROVAL_BY_AGENT = 'Credit Check Approved By Agent',
   COAPPLICANT_CONSENT_SET_TO_YES = 'Co-Applicant Consent set to Yes',
   COAPPLICANT_CONSENT_SET_TO_NO = 'Co-Applicant Consent set to No',

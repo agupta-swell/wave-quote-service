@@ -1,18 +1,20 @@
-import { Body, Headers, Req, Res, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Headers, Param, Post, Put, Req, Res } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ObjectId } from 'mongoose';
-import { FastifyResponse } from 'src/shared/fastify';
 import { OperationResult, ServiceResponse } from 'src/app/common';
 import { CheckOpportunity } from 'src/app/opportunity.pipe';
+import { FastifyRequest, FastifyResponse } from 'src/shared/fastify';
 import { ParseObjectIdPipe } from 'src/shared/pipes/parse-objectid.pipe';
 import { PreAuthenticate } from '../app/securities';
 import { ROLE } from './constants';
 import { QualificationService } from './qualification.service';
 import {
+  AgentDetailDto,
   ApplyCreditQualificationReqDto,
   CreateQualificationReqDto,
   GenerateTokenReqDto,
   GetApplicationDetailReqDto,
+  RecieveFniDecisionReqDto,
   SendMailReqDto,
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
@@ -33,7 +35,6 @@ import {
   SendMailDto,
   SendMailRes,
 } from './res';
-import { Request, Response } from 'express';
 
 @ApiTags('Qualification')
 @Controller('/qualifications')
@@ -50,6 +51,20 @@ export class QualificationController {
     @Body() qualificationDto: CreateQualificationReqDto,
   ): Promise<ServiceResponse<QualificationDetailDto>> {
     const res = await this.qualificationService.createQualification(qualificationDto);
+    return ServiceResponse.fromResult(res);
+  }
+
+  @Put(':id/re-initiate')
+  @ApiBearerAuth()
+  @PreAuthenticate()
+  @ApiParam({ name: 'id', type: String })
+  @ApiOperation({ summary: 'Re-initiate Qualification' })
+  @ApiOkResponse({ type: QualificationRes })
+  async reInitiateQualification(
+    @Param('id', ParseObjectIdPipe) id: ObjectId,
+    @Body() agentDetail: AgentDetailDto,
+  ): Promise<ServiceResponse<QualificationDetailDto>> {
+    const res = await this.qualificationService.reInitiateQualification(id, agentDetail);
     return ServiceResponse.fromResult(res);
   }
 
@@ -74,7 +89,11 @@ export class QualificationController {
   @ApiOkResponse({ type: GenerateTokenRes })
   @CheckOpportunity()
   async generateToken(@Body() req: GenerateTokenReqDto): Promise<ServiceResponse<{ token: string }>> {
-    const res = await this.qualificationService.generateToken(req.qualificationCreditId, req.opportunityId, ROLE.SYSTEM);
+    const res = await this.qualificationService.generateToken(
+      req.qualificationCreditId,
+      req.opportunityId,
+      ROLE.SYSTEM,
+    );
     return ServiceResponse.fromResult(OperationResult.ok({ token: res }));
   }
 
@@ -124,23 +143,22 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
-
   @Put('/fni-applications')
   @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
-  @ApiOkResponse({ type:  RecieveFniDecisionResDto })
-  @ApiResponse({ status: 400, type:  RecieveFniDecisionResDto})
-  @ApiResponse({ status: 401, type:  RecieveFniDecisionResDto})
-  @ApiResponse({ status: 405, type:  RecieveFniDecisionResDto})
+  @ApiOkResponse({ type: RecieveFniDecisionResDto })
+  @ApiResponse({ status: 400, type: RecieveFniDecisionResDto })
+  @ApiResponse({ status: 401, type: RecieveFniDecisionResDto })
+  @ApiResponse({ status: 405, type: RecieveFniDecisionResDto })
   async receiveFniUpdate(
-    @Req() req: Request,
+    @Req() req: FastifyRequest,
     @Headers('fni-wave-communications') header: string,
-    @Res() res:FastifyResponse
-  ): Promise<RecieveFniDecisionResDto>{
-    const response = await this.qualificationService.receiveFniUpdate(req.body, header);
+    @Res() res: FastifyResponse,
+  ): Promise<RecieveFniDecisionResDto> {
+    const response = await this.qualificationService.receiveFniUpdate(req.body as RecieveFniDecisionReqDto, header);
 
     return res.code(response.status).send(response.responseBody);
   }
- 
+
   //  ================= specific token in body ==============
 
   @Post('/applications')
