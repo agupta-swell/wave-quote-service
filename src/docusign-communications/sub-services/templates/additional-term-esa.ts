@@ -1,12 +1,13 @@
+import BigNumber from 'bignumber.js';
 import { IEsaProductAttributes, ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import {
   DefaultTabTransformation,
   DefaultTabType,
   DocusignTemplate,
   DOCUSIGN_TAB_TYPE,
-  TabLabel,
   TabValue,
 } from 'src/shared/docusign';
+import { Number2DecimalsFormatter } from 'src/utils/numberFormatter';
 import { IGenericObject } from '../../typing';
 
 @DocusignTemplate('demo', 'c40d9d52-08ba-4c12-9ad2-9f781fb354b4')
@@ -14,13 +15,25 @@ import { IGenericObject } from '../../typing';
 @DefaultTabTransformation('snake_case')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class AdditionalTermEsaDataTemplate {
-  @TabValue<IGenericObject>(({ quote }) => quote.quoteFinanceProduct.financeProduct.productAttribute.newPricePerKWh)
+  @TabValue<IGenericObject>(({ quote }) =>
+    Number2DecimalsFormatter.format(
+      new BigNumber(
+        quote.systemProduction.generationKWh
+          ? ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment *
+              12) /
+            quote.systemProduction.generationKWh
+          : 0,
+      )
+        .decimalPlaces(2)
+        .toNumber(),
+    ),
+  )
   pricePerKwh: number;
 
   @TabValue<IGenericObject>(
     ({ quote }) => (<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).rateEscalator,
   )
-  esaEsclator: number;
+  esaEscalator: number;
 
   @TabValue<IGenericObject>(
     ({ quote }) => (<ILeaseProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).rateEscalator,
