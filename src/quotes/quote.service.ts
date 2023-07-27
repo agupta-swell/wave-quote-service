@@ -2067,9 +2067,9 @@ export class QuoteService {
         fn: async (messages: string[]) => {
           const unqualifiedManufacturerIds: ObjectId[] = [];
 
-          systemDesign.roofTopDesignData.panelArray.forEach(storage => {
-            const manufacturerId = storage.panelModelDataSnapshot.manufacturerId;
-            if (!fmvAppraisal.energyStorageManufacturerIds.includes(manufacturerId.toString())) {
+          systemDesign.roofTopDesignData.panelArray.forEach(panel => {
+            const manufacturerId = panel.panelModelDataSnapshot.manufacturerId;
+            if (!fmvAppraisal.solarManufacturerIds.includes(manufacturerId.toString())) {
               unqualifiedManufacturerIds.push(manufacturerId);
             }
           });
@@ -2081,9 +2081,9 @@ export class QuoteService {
         fn: async (messages: string[]) => {
           const unqualifiedManufacturerIds: ObjectId[] = [];
 
-          systemDesign.roofTopDesignData.inverters.forEach(storage => {
-            const manufacturerId = storage.inverterModelDataSnapshot.manufacturerId;
-            if (!fmvAppraisal.energyStorageManufacturerIds.includes(manufacturerId.toString())) {
+          systemDesign.roofTopDesignData.inverters.forEach(inverter => {
+            const manufacturerId = inverter.inverterModelDataSnapshot.manufacturerId;
+            if (!fmvAppraisal.inverterManufacturerIds.includes(manufacturerId.toString())) {
               unqualifiedManufacturerIds.push(manufacturerId);
             }
           });
