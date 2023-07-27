@@ -89,7 +89,9 @@ import { FmvAppraisalModule } from 'src/fmvAppraisal/fmvAppraisal.module';
         .addCustomMapping('existingPVSize', 'existing_pv_size')
         .addCustomMapping('existing_pv_size', 'existingPVSize')
         .addCustomMapping('kwh_per_100_miles', 'kwhPer100Miles')
-        .addCustomMapping('kwhPer100Miles', 'kwh_per_100_miles'),
+        .addCustomMapping('kwhPer100Miles', 'kwh_per_100_miles')
+        .addCustomMapping('storageSizeKWh', 'storage_size_kWh')
+        .addCustomMapping('storage_size_kWh', 'storageSizeKWh'),
     ),
     AwsModule,
     GoogleSunroofModule,

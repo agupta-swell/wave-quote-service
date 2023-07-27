@@ -533,6 +533,7 @@ export interface Quote extends Document {
   createdAt: Date;
   updatedBy: string;
   updatedAt: Date;
+  solverId: string;
 }
 
 export const QuoteSchema = new Schema<Quote>({
@@ -547,6 +548,7 @@ export const QuoteSchema = new Schema<Quote>({
   created_by: String,
   updated_at: { type: Date, default: Date.now },
   updated_by: String,
+  solver_id: String,
 });
 
 export class QuoteModel {

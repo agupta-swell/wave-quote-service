@@ -73,4 +73,8 @@ export class CreateQuoteDto {
   @ValidateNested()
   @Type(() => QuotePriceOverride)
   quotePriceOverride: QuotePriceOverride;
+
+  @IsOptional()
+  @IsString()
+  solverId: string;
 }

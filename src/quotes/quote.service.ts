@@ -10,6 +10,7 @@ import { STATUS_QUERY } from 'src/contracts/constants';
 import { ContractService } from 'src/contracts/contract.service';
 import { DiscountService } from 'src/discounts/discount.service';
 import { IExistingSystem } from 'src/existing-systems/interfaces';
+import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
@@ -17,6 +18,8 @@ import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PromotionService } from 'src/promotions/promotion.service';
+import { PROPERTY_COLLECTION_NAME } from 'src/property/constants';
+import { PropertyDocument } from 'src/property/property.schema';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { RebateProgram } from 'src/rebate-programs/rebate-programs.schema';
@@ -31,6 +34,12 @@ import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
+import { CSV_PRIMARY_QUOTE } from 'src/v2-esa-pricing-solver/constants';
+import { EsaPricingSolverService } from 'src/v2-esa-pricing-solver/v2-esa-pricing-solver.service';
+import { FmvAppraisalService } from 'src/fmvAppraisal/fmvAppraisal.service';
+import { UTILITY_MASTER, UtilityMaster } from 'src/docusign-templates-master/schemas';
+import { Opportunity } from 'src/opportunities/opportunity.schema';
+import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -60,19 +69,20 @@ import {
   UpdateLatestQuoteDto,
   UpdateQuoteDto,
 } from './req';
+import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
 import { QuoteDto } from './res';
 import { QuoteCostBuildupUserInputDto } from './res/sub-dto';
 import { I_T_C, ITC } from './schemas';
 import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
 import { ICreateProductAttribute } from './typing';
-import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
-import { FinancialProduct } from 'src/financial-products/financial-product.schema';
-import { FmvAppraisalService } from 'src/fmvAppraisal/fmvAppraisal.service';
 
 @Injectable()
 export class QuoteService {
   constructor(
     @InjectModel(QUOTE) private readonly quoteModel: Model<Quote>,
+    // @ts-ignore
+    @InjectModel(PROPERTY_COLLECTION_NAME) private readonly propertyModel: Model<PropertyDocument>,
+    @InjectModel(UTILITY_MASTER) private readonly utilityMasterModel: Model<UtilityMaster>,
     @InjectModel(I_T_C) private readonly iTCModel: Model<ITC>,
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
@@ -103,6 +113,7 @@ export class QuoteService {
     private readonly taxCreditConfigService: TaxCreditConfigService,
     private readonly gsProgramsService: GsProgramsService,
     private readonly systemProductionService: SystemProductionService,
+    private readonly esaPricingSolverService: EsaPricingSolverService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -112,12 +123,14 @@ export class QuoteService {
       taxCreditData,
       opportunityRelatedInformation,
       utilityData,
+      opportunityDetail,
     ] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
       this.opportunityService.getRelatedInformation(data.opportunityId),
       this.utilityService.getUtilityByOpportunityId(data.opportunityId),
+      this.opportunityService.getDetailById(data.opportunityId),
     ]);
 
     if (!systemDesign) {
@@ -187,7 +200,7 @@ export class QuoteService {
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, maxInstallationAmount } = financialProduct;
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
 
     const currentAnnualCost =
       utilityData.costData.plannedCost?.annualCost ??
@@ -207,7 +220,13 @@ export class QuoteService {
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
-    const productAttribute = await this.createProductAttribute({
+    const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(financialProduct.fmvAppraisalId);
+
+    if (!fmvAppraisal) {
+      throw ApplicationException.EntityNotFound('FMV Appraisal not found');
+    }
+
+    const productAttribute: IEsaProductAttributes = await this.createProductAttribute({
       productType: fundingSource.type,
       netAmount: quoteCostBuildup.projectGrandTotal.netCost,
       financialProductSnapshot: financialProduct,
@@ -216,6 +235,8 @@ export class QuoteService {
       currentAverageMonthlyBill,
       newAverageMonthlyBill,
       capacityKW: systemProduction.data?.capacityKW || 0,
+      esaTerm: fmvAppraisal.termYears,
+      rateEscalator: fmvAppraisal.escalator,
     });
 
     if (fundingSource.type === FINANCE_PRODUCT_TYPE.ESA) {
@@ -316,8 +337,10 @@ export class QuoteService {
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
     );
 
-    await obj.save();
+    const rowId = await this.getEsaSolverRowId(systemDesign, opportunityDetail, productAttribute, primaryQuoteType);
 
+    obj.solverId = rowId;
+    await obj.save();
     return OperationResult.ok(strictPlainToClass(QuoteDto, obj.toJSON()));
   }
 
@@ -368,11 +391,18 @@ export class QuoteService {
       }
     }
 
-    const [markupConfig, taxCreditData, opportunityRelatedInformation, utilityData] = await Promise.all([
+    const [
+      markupConfig,
+      taxCreditData,
+      opportunityRelatedInformation,
+      utilityData,
+      opportunityDetail,
+    ] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
       this.opportunityService.getRelatedInformation(foundQuote.opportunityId),
       this.utilityService.getUtilityByOpportunityId(foundQuote.opportunityId),
+      this.opportunityService.getDetailById(foundQuote.opportunityId),
     ]);
 
     if (!utilityData) {
@@ -648,6 +678,14 @@ export class QuoteService {
       ];
     }
 
+    const rowId = await this.getEsaSolverRowId(
+      foundSystemDesign,
+      opportunityDetail,
+      productAttribute,
+      primaryQuoteType,
+    );
+
+    model.solverId = rowId;
     await model.save();
 
     return OperationResult.ok(strictPlainToClass(QuoteDto, model.toJSON()));
@@ -1164,6 +1202,7 @@ export class QuoteService {
     }
 
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
+    const opportunityDetail = await this.opportunityService.getDetailById(data.opportunityId);
 
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound('system Design');
@@ -1306,7 +1345,14 @@ export class QuoteService {
       }
     }
 
-    const model = new QuoteModel(data, detailedQuote);
+    const solverId = await this.getEsaSolverRowId(
+      systemDesign,
+      opportunityDetail,
+      detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes,
+      primaryQuoteType,
+    );
+
+    const model = new QuoteModel({ ...data, solverId }, detailedQuote);
 
     model.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildUp.projectGrossTotal.netCost),
@@ -1858,5 +1904,32 @@ export class QuoteService {
       return undefined;
     }
     return message.join('\n');
+  }
+
+  async getEsaSolverRowId(
+    systemDesign: LeanDocument<SystemDesign>,
+    opportunityDetail: LeanDocument<Opportunity> | null,
+    productAttribute: IEsaProductAttributes,
+    primaryQuoteType: PRIMARY_QUOTE_TYPE,
+  ): Promise<string> {
+    const property = await this.propertyModel.findById(opportunityDetail?.propertyId);
+
+    let utilityNameConcatUtilityProgramName;
+    if (opportunityDetail) {
+      utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunityDetail.utilityId);
+    }
+    const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
+    const utilityMaster = await this.utilityMasterModel.findOne({ utilityName }).lean();
+
+    const designParam = this.esaPricingSolverService.getStorageSizeAndManufacturer(systemDesign);
+
+    const opportunityParam = {
+      state: property?.state,
+      systemType: CSV_PRIMARY_QUOTE[primaryQuoteType],
+      applicableUtility: utilityMaster?._id,
+    };
+    const escAndTerms = { rateEscalator: productAttribute.rateEscalator, esaTerm: productAttribute.esaTerm };
+    const res = await this.esaPricingSolverService.extractRowFromCSV(designParam, opportunityParam, escAndTerms);
+    return res._id;
   }
 }
