@@ -25,6 +25,7 @@ import './exhibit-4-arbitration-clause-esa';
 import './exhibit-4-arbitration-clause-esa-es-only';
 import './exhibit-5-notice-of-cancellation-california-esa';
 import './exhibit-6-state-disclosures-california-esa';
+import './exhibit-6-state-disclosures-california-esa-es-only';
 import './exhibit-7-guaranteed-production-esa';
 import './exhibit-7-solar-energy-system-estimated-production';
 import './exhibit-8-system-design-notice-esa';
