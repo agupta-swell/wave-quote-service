@@ -28,6 +28,7 @@ import './exhibit-6-state-disclosures-california-esa';
 import './exhibit-6-state-disclosures-california-esa-es-only';
 import './exhibit-7-guaranteed-production-esa';
 import './exhibit-7-solar-energy-system-estimated-production';
+import './exhibit-7-system-design-notice-esa-es-only';
 import './exhibit-8-system-design-notice-esa';
 import './exhibit-9-insurance-esa';
 import './exhibit-10-payment-schedule-esa';
