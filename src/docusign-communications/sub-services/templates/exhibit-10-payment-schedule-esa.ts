@@ -25,7 +25,7 @@ export class Exhibit10PaymentScheduleEsaTemplate {
         : undefined;
 
     const escalatorRate = esaAttribute?.rateEscalator ?? 0;
-    result.esa_escalator = `${(escalatorRate * 100).toFixed(2)}`;
+    result.esa_escalator = `${escalatorRate}`;
 
     const term = esaAttribute?.esaTerm ?? 0;
 
@@ -60,7 +60,7 @@ export class Exhibit10PaymentScheduleEsaTemplate {
       }
 
       const estimatedProduction = yearOneProduction * Math.pow(1 - DEGRADATION_RATE, yearIdx - 1);
-      const pricePerkWhRate = basePricePerkWhRate * Math.pow(1 + escalatorRate, yearIdx - 1);
+      const pricePerkWhRate = basePricePerkWhRate * Math.pow(1 + new BigNumber(escalatorRate).dividedBy(100).toNumber(), yearIdx - 1);
 
       const estimatedMonthlyPayment = (estimatedProduction * pricePerkWhRate) / 12;
 
