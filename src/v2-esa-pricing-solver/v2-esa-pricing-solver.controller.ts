@@ -44,20 +44,8 @@ export class EsaPricingSolverController {
 
   @Get('/esc-and-term')
   @ApiOperation({ summary: 'get the latest data from the uploaded ESA solver' })
-  async getEcsAndTerm(
-    @Query('opportunityId') opportunityId,
-    @Query('systemDesignId') systemDesignId,
-    @Query('partnerId') partnerId,
-    @Query('fundingSourceId') fundingSourceId,
-    @Query('financialProductId') financialProductId,
-  ): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
-    return this.esaPricingSolverService.getEcsAndTerm(
-      opportunityId,
-      systemDesignId,
-      partnerId,
-      fundingSourceId,
-      financialProductId,
-    );
+  async getEcsAndTerm(@Query('quoteId') quoteId): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
+    return this.esaPricingSolverService.getEcsAndTerm(quoteId);
   }
 
   @Get('/calculate/:quoteId')

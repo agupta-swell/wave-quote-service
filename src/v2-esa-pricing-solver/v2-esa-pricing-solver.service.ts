@@ -57,30 +57,46 @@ export class EsaPricingSolverService {
   ) {}
 
   async getEcsAndTerm(
-    opportunityId: string,
-    systemDesignId: string,
-    partnerId: string,
-    fundingSourceId: string,
-    financialProductId: string,
+    quoteId: string,
   ): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
     const filter: FilterQuery<V2EsaPricingSolverDocument> = {};
-    const { designParam, opportunityParam } = await this.getSystemDesignAndOpportunityParam(
-      opportunityId,
-      systemDesignId,
-      partnerId,
-      fundingSourceId,
-      financialProductId,
-    );
+    const foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
 
-    if (opportunityParam?.state) filter.state = opportunityParam.state;
-    if (designParam.storageSize !== undefined) filter.storageSizeKWh = designParam.storageSize;
-    if (designParam.manufacturerId) filter.storageManufacturerId = designParam.manufacturerId;
-    if (opportunityParam.applicableUtility) filter.applicableUtilities = opportunityParam.applicableUtility;
-    if (opportunityParam.systemType) filter.projectTypes = opportunityParam.systemType;
+    if (foundQuote) {
+      const [opportunity, systemDesign] = await Promise.all([
+        this.opportunityModel.findById(foundQuote.opportunityId),
+        this.systemDesignService.getOneById(foundQuote.systemDesignId),
+      ]);
 
-    const result = await this.esaPricingSolverModel.find(filter, { _id: 1, termYears: 1, rateEscalator: 1 }).lean();
+      if (opportunity && systemDesign) {
+        const utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunity.utilityId);
+        const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
+        const utilityMaster = await this.utilitiesMasterModel.findOne({ utility_name: utilityName }).lean();
+        const property = await this.propertyModel.findById(opportunity?.propertyId);
 
-    return result;
+        const designParam = this.getStorageSizeAndManufacturer(systemDesign);
+        if (
+          property?.state &&
+          designParam.storageSize !== undefined &&
+          designParam.manufacturerId &&
+          utilityMaster?._id &&
+          foundQuote.detailedQuote.primaryQuoteType
+        ) {
+          filter.state = property.state;
+          filter.storageSizeKWh = designParam.storageSize;
+          filter.storageManufacturerId = designParam.manufacturerId;
+          filter.applicableUtilities = utilityMaster?._id;
+          filter.projectTypes = CSV_PRIMARY_QUOTE[foundQuote.detailedQuote.primaryQuoteType];
+
+          const result = await this.esaPricingSolverModel
+            .find(filter, { _id: 1, termYears: 1, rateEscalator: 1 })
+            .lean();
+
+          return result;
+        }
+      }
+    }
+    return [];
   }
 
   getStorageSizeAndManufacturer(systemDesign: LeanDocument<SystemDesign> | null) {
