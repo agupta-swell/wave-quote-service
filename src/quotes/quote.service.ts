@@ -2,16 +2,17 @@
 /* eslint-disable no-return-assign */
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { forEach, isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
+import * as dayjs from 'dayjs';
+import { isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { STATUS_QUERY } from 'src/contracts/constants';
 import { ContractService } from 'src/contracts/contract.service';
 import { DiscountService } from 'src/discounts/discount.service';
-import { UtilityMaster, UTILITY_MASTER } from 'src/docusign-templates-master/schemas';
 import { IExistingSystem } from 'src/existing-systems/interfaces';
 import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
+import { PROJECT_TYPES } from 'src/fmvAppraisal/constant';
 import { FmvAppraisalService } from 'src/fmvAppraisal/fmvAppraisal.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
@@ -22,6 +23,7 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PromotionService } from 'src/promotions/promotion.service';
 import { PROPERTY_COLLECTION_NAME } from 'src/property/constants';
 import { PropertyDocument } from 'src/property/property.schema';
+import { PropertyService } from 'src/property/property.service';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { RebateProgram } from 'src/rebate-programs/rebate-programs.schema';
@@ -33,6 +35,9 @@ import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
+import { UtilitiesMaster, UTILITIES_MASTER } from 'src/utilities-master/utilities-master.schema';
+import { UtilitiesMasterService } from 'src/utilities-master/utilities-master.service';
+import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
@@ -81,12 +86,13 @@ export class QuoteService {
     @InjectModel(QUOTE) private readonly quoteModel: Model<Quote>,
     // @ts-ignore
     @InjectModel(PROPERTY_COLLECTION_NAME) private readonly propertyModel: Model<PropertyDocument>,
-    @InjectModel(UTILITY_MASTER) private readonly utilityMasterModel: Model<UtilityMaster>,
+    @InjectModel(UTILITIES_MASTER) private readonly utilitiesMasterModel: Model<UtilitiesMaster>,
     @InjectModel(I_T_C) private readonly iTCModel: Model<ITC>,
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
     private readonly fmvAppraisalService: FmvAppraisalService,
     private readonly utilityProgramService: UtilityProgramMasterService,
+    private readonly utilitiesMasterService: UtilitiesMasterService,
     private readonly fundingSourceService: FundingSourceService,
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
@@ -107,6 +113,8 @@ export class QuoteService {
     private readonly manufacturerService: ManufacturerService,
     @Inject(forwardRef(() => QuoteCostBuildUpService))
     private readonly quoteCostBuildUpService: QuoteCostBuildUpService,
+    @Inject(forwardRef(() => PropertyService))
+    private readonly propertyService: PropertyService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
     private readonly gsProgramsService: GsProgramsService,
     private readonly systemProductionService: SystemProductionService,
@@ -240,7 +248,8 @@ export class QuoteService {
       const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
         productAttribute,
         financialProduct,
-        fundingSource.type,
+        systemDesign,
+        utilityData,
       );
       if (responseMessage) {
         throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
@@ -556,7 +565,8 @@ export class QuoteService {
       const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
         productAttribute,
         financialProductSnapshot,
-        financeProduct.productType,
+        foundSystemDesign,
+        utilityData,
       );
       if (responseMessage) {
         throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
@@ -957,7 +967,8 @@ export class QuoteService {
       const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
         productAttribute,
         financialProductSnapshot,
-        financeProduct.productType,
+        systemDesign,
+        utilityData,
       );
       if (responseMessage) {
         throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
@@ -1261,6 +1272,11 @@ export class QuoteService {
       throw ApplicationException.EntityNotFound('System Production');
     }
 
+    const utilityData = await this.utilityService.getUtilityByOpportunityId(data.opportunityId);
+    if (!utilityData) {
+      throw ApplicationException.EntityNotFound('Utility Data');
+    }
+
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, dealerFee } = financialProductSnapshot;
 
@@ -1315,7 +1331,8 @@ export class QuoteService {
       const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
         { balance: quoteCostBuildUp.projectGrandTotal.netCost } as IEsaProductAttributes,
         financialProductSnapshot,
-        detailedQuote.quoteFinanceProduct.financeProduct.productType,
+        systemDesign,
+        utilityData,
       );
       if (responseMessage) {
         throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
@@ -1919,47 +1936,184 @@ export class QuoteService {
   async qualifyQuoteAgainstFinancialProductSettings(
     productAttribute: IEsaProductAttributes,
     financialProduct: LeanDocument<FinancialProduct>,
-    type: string,
+    systemDesign: LeanDocument<SystemDesign>,
+    utilityData: LeanDocument<UtilityUsageDetails>,
   ): Promise<string | undefined> {
-    let qualify = true;
-
     const fmvAppraisalId = financialProduct.fmvAppraisalId;
     const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(fmvAppraisalId);
     if (!fmvAppraisal) {
-      throw ApplicationException.EntityNotFound('FMV Appraisal not found');
+      throw ApplicationException.EntityNotFound(`FMV Appraisal Id: ${fmvAppraisalId}`);
     }
 
-    // if fn() === false then add error message to message[]
+    const opportunity = await this.opportunityService.getDetailById(systemDesign.opportunityId);
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`Opportunity Id: ${systemDesign.opportunityId}`);
+    }
+
+    const property = await this.propertyService.findPropertyById(opportunity.propertyId);
+    if (!property) {
+      throw ApplicationException.EntityNotFound(`Property Id: ${opportunity.propertyId}`);
+    }
+
+    const buildMissingManufacturerDataMessages = async (unqualifiedManufacturerIds, productType, messages) => {
+      if (!unqualifiedManufacturerIds.length) return;
+
+      const unqualifiedManufacturers = await this.manufacturerService.getManufacturersByIds(unqualifiedManufacturerIds);
+
+      unqualifiedManufacturers.forEach(manufacturer => {
+        messages.push(
+          `\n<b>${messages.length + 1}.)</b> The selected ${productType} manufacturer (${
+            manufacturer.name
+          }) is not approved.`,
+        );
+      });
+    };
+
+    // if fn() === false then break;
+    // else if error, add error messages to messages[]
     const qualifier = {
-      maxInstallmentAmount: {
-        fn: () =>
-          !(productAttribute.balance > financialProduct.maxInstallationAmount && type === FINANCE_PRODUCT_TYPE.ESA),
-        error: {
-          message: '\nThe cost of installing this system exceeds the allowed maximum installation amount.',
+      initializeQualifier: {
+        fn: (messages: string[]) => {
+          if (!systemDesign) {
+            messages.push(`\n<b>${messages.length + 1}.)</b> The System Design is undefined`);
+            return false;
+          }
+          if (!utilityData) {
+            messages.push(`\n<b>${messages.length + 1}.)</b> The Utility Data is undefined`);
+            return false;
+          }
+        },
+      },
+      doesInstallmentAmountQualify: {
+        fn: (messages: string[]) => {
+          if (productAttribute.balance > financialProduct.maxInstallationAmount)
+            messages.push(
+              `\n<b>${
+                messages.length + 1
+              }.)</b> The cost of installing this system exceeds the allowed maximum installation amount.`,
+            );
         },
       },
       doesTodaysDateQualify: {
-        fn: () => {
-          const date = new Date();
-          return date > fmvAppraisal?.effectiveDate && date < fmvAppraisal?.endDate;
+        fn: (messages: string[]) => {
+          const now = dayjs().format('MM/DD/YYYY');
+
+          if (
+            dayjs(now).isBefore(dayjs(fmvAppraisal?.effectiveDate).format('MM/DD/YYYY')) ||
+            dayjs(now).isAfter(dayjs(fmvAppraisal?.endDate).format('MM/DD/YYYY'))
+          )
+            messages.push(`\n<b>${messages.length + 1}.)</b> Check the Effective Date to End Date Range`);
         },
-        error: {
-          message: '\nCheck the Effective Date to End Date Range',
+      },
+      doesSelectedProductTypeQualify: {
+        fn: (messages: string[]) => {
+          const projectTypes = fmvAppraisal?.projectTypes;
+          const hasStorage = !!systemDesign.roofTopDesignData.storage?.length;
+          const hasSolar = !!systemDesign.roofTopDesignData.panelArray?.length;
+
+          if (hasSolar && hasStorage && !projectTypes.includes(PROJECT_TYPES.SOLAR_AND_STORAGE)) {
+            // Solar + Storage
+            messages.push(
+              `\n<b>${messages.length + 1}.)</b> The Project Type you selected does not allow solar and storage.`,
+            );
+          } else if (!hasSolar && hasStorage && !projectTypes.includes(PROJECT_TYPES.STORAGE)) {
+            // Storage only
+            messages.push(
+              `\n<b>${messages.length + 1}.)</b> The Project Type you selected does not allow Storage only.`,
+            );
+          } else if (!projectTypes.includes(PROJECT_TYPES.SOLAR)) {
+            // Solar only
+            messages.push(`\n<b>${messages.length + 1}.)</b> The Project Type you selected does not allow Solar only.`);
+          }
+        },
+      },
+      doesSelectedStateQualify: {
+        fn: (messages: string[]) => {
+          const isAllowedState =
+            financialProduct.allowedStates?.includes(property.state) || fmvAppraisal.stateCode === property.state;
+
+          if (!isAllowedState) {
+            messages.push(`\n<b>${messages.length + 1}.)</b> The selected state (${property.state}) is not approved.`);
+          }
+        },
+      },
+      doesSelectedUtilityQualify: {
+        fn: async (messages: string[]) => {
+          const utilityId = utilityData?._id.toString();
+          const utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunity.utilityId);
+          const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
+          const utilityDetails = await this.utilitiesMasterService.getUtilitiesMasterDetailByName(utilityName);
+
+          if (utilityId && fmvAppraisal.utilityIds.indexOf(utilityDetails?._id.toString()) < 0) {
+            messages.push(`\n<b>${messages.length + 1}.)</b> The selected utility (${utilityName}) is not approved.`);
+          }
+        },
+      },
+      doesSelectedEnergyStorageVendorQualify: {
+        fn: async (messages: string[]) => {
+          const unqualifiedManufacturerIds: ObjectId[] = [];
+
+          systemDesign.roofTopDesignData.storage.forEach(storage => {
+            const manufacturerId = storage.storageModelDataSnapshot.manufacturerId;
+            if (!fmvAppraisal.energyStorageManufacturerIds.includes(manufacturerId.toString())) {
+              unqualifiedManufacturerIds.push(manufacturerId);
+            }
+          });
+
+          await buildMissingManufacturerDataMessages(unqualifiedManufacturerIds, 'storage', messages);
+        },
+      },
+      doesSelectedSolarVendorQualify: {
+        fn: async (messages: string[]) => {
+          const unqualifiedManufacturerIds: ObjectId[] = [];
+
+          systemDesign.roofTopDesignData.panelArray.forEach(storage => {
+            const manufacturerId = storage.panelModelDataSnapshot.manufacturerId;
+            if (!fmvAppraisal.energyStorageManufacturerIds.includes(manufacturerId.toString())) {
+              unqualifiedManufacturerIds.push(manufacturerId);
+            }
+          });
+
+          await buildMissingManufacturerDataMessages(unqualifiedManufacturerIds, 'solar panel', messages);
+        },
+      },
+      doesSelectedInverterVendorQualify: {
+        fn: async (messages: string[]) => {
+          const unqualifiedManufacturerIds: ObjectId[] = [];
+
+          systemDesign.roofTopDesignData.inverters.forEach(storage => {
+            const manufacturerId = storage.inverterModelDataSnapshot.manufacturerId;
+            if (!fmvAppraisal.energyStorageManufacturerIds.includes(manufacturerId.toString())) {
+              unqualifiedManufacturerIds.push(manufacturerId);
+            }
+          });
+
+          await buildMissingManufacturerDataMessages(unqualifiedManufacturerIds, 'inverter', messages);
         },
       },
     };
-    const message: string[] = [];
-    forEach(qualifier, item => {
-      qualify = item.fn();
-      if (!qualify) {
-        message.push(item.error.message);
-      }
-    });
 
-    if (message.length === 0) {
+    const messages: string[] = [];
+
+    try {
+      // eslint-disable-next-line no-restricted-syntax
+      for (const item in qualifier) {
+        // eslint-disable-next-line no-await-in-loop
+        if ((await qualifier[item].fn(messages)) === false) {
+          // missing dependency in the qualifier.initializeQualifier() above
+          // stop any further validation tests
+          break;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      throw new BadRequestException('Qualify ESA Quote Error');
+    }
+
+    if (messages.length === 0) {
       return undefined;
     }
-    return message.join('\n');
+    return messages.join(`<br />`);
   }
 
   async getEsaSolverRowId(
@@ -1975,14 +2129,14 @@ export class QuoteService {
       utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunityDetail.utilityId);
     }
     const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
-    const utilityMaster = await this.utilityMasterModel.findOne({ utilityName }).lean();
+    const utilitiesMaster = await this.utilitiesMasterModel.findOne({ utilityName }).lean();
 
     const designParam = this.esaPricingSolverService.getStorageSizeAndManufacturer(systemDesign);
 
     const opportunityParam = {
       state: property?.state,
       systemType: CSV_PRIMARY_QUOTE[primaryQuoteType],
-      applicableUtility: utilityMaster?._id,
+      applicableUtility: utilitiesMaster?._id,
     };
     const escAndTerms = { rateEscalator: productAttribute.rateEscalator, esaTerm: productAttribute.esaTerm };
     const res = await this.esaPricingSolverService.extractRowFromCSV(designParam, opportunityParam, escAndTerms);

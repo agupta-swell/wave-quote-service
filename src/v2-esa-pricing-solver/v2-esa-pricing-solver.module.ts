@@ -1,15 +1,15 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
-import { FMV_APPRAISAL, FmvAppraisalSchema } from 'src/fmvAppraisal/fmvAppraisal.schema';
+import { FmvAppraisalSchema, FMV_APPRAISAL } from 'src/fmvAppraisal/fmvAppraisal.schema';
 import { ManufacturerSchema, V2_MANUFACTURERS_COLL } from 'src/manufacturers/manufacturer.schema';
 import { OPPORTUNITY, OpportunitySchema } from 'src/opportunities/opportunity.schema';
 import { PROPERTY_COLLECTION_NAME } from 'src/property/constants';
 import { PropertiesSchema } from 'src/property/property.schema';
 import { QuoteModule } from 'src/quotes/quote.module';
-import { UtilityMasterSchema, UTILITY_MASTER } from 'src/docusign-templates-master/schemas/utility-master.schema';
+import { UtilitiesMasterSchema, UTILITIES_MASTER } from 'src/utilities-master/utilities-master.schema';
 import { V2_ESA_PRICING_SOLVER_COLLECTION } from './constants';
 import { EsaPricingSolverController } from './v2-esa-pricing-solver.controller';
 import { V2EsaPricingSolverSchema } from './v2-esa-pricing-solver.schema';
@@ -29,9 +29,9 @@ import { EsaPricingSolverService } from './v2-esa-pricing-solver.service';
         schema: V2EsaPricingSolverSchema,
       },
       {
-        name: UTILITY_MASTER,
+        name: UTILITIES_MASTER,
         collection: 'v2_utilities_master',
-        schema: UtilityMasterSchema,
+        schema: UtilitiesMasterSchema,
       },
       {
         name: V2_MANUFACTURERS_COLL,

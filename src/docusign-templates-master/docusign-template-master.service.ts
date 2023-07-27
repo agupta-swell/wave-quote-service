@@ -6,11 +6,12 @@ import { ApplicationException } from 'src/app/app.exception';
 import { OperationResult } from 'src/app/common';
 import { CONTRACT_TYPE } from 'src/contracts/constants';
 import { ITemplateDetailSchema } from 'src/contracts/contract.schema';
+import { FinancialProductsService } from 'src/financial-products/financial-product.service';
+import { FinancierService } from 'src/financiers/financier.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { UtilitiesMaster, UTILITIES_MASTER } from 'src/utilities-master/utilities-master.schema';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
-import { FinancierService } from 'src/financiers/financier.service';
-import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { SAVE_TEMPLATE_MODE, SYSTEM_TYPE } from './constants';
 import { DocusignTemplateMaster, DOCUSIGN_TEMPLATE_MASTER } from './docusign-template-master.schema';
 import { SaveContractCompositeTemplateReqDto, SaveTemplateReqDto } from './req';
@@ -28,8 +29,6 @@ import {
   DOCUSIGN_COMPOSITE_TEMPLATE_MASTER,
   SignerRoleMaster,
   SIGNER_ROLE_MASTER,
-  UtilityMaster,
-  UTILITY_MASTER,
 } from './schemas';
 
 @Injectable()
@@ -37,7 +36,7 @@ export class DocusignTemplateMasterService {
   constructor(
     @InjectModel(DOCUSIGN_TEMPLATE_MASTER) private readonly docusignTemplateMasterModel: Model<DocusignTemplateMaster>,
     @InjectModel(SIGNER_ROLE_MASTER) private readonly signerRoleMasterModel: Model<SignerRoleMaster>,
-    @InjectModel(UTILITY_MASTER) private readonly utilityMasterModel: Model<UtilityMaster>,
+    @InjectModel(UTILITIES_MASTER) private readonly utilityMasterModel: Model<UtilitiesMaster>,
     @InjectModel(DOCUSIGN_COMPOSITE_TEMPLATE_MASTER)
     private readonly docusignCompositeTemplateMasterModel: Model<DocusignCompositeTemplateMaster>,
     private readonly utilityProgramMasterService: UtilityProgramMasterService,
@@ -331,7 +330,7 @@ export class DocusignTemplateMasterService {
     return res;
   }
 
-  async getUtilityMaster(utilityName: string): Promise<LeanDocument<UtilityMaster> | null> {
+  async getUtilityMaster(utilityName: string): Promise<LeanDocument<UtilitiesMaster> | null> {
     const res = await this.utilityMasterModel.findOne({ utilityName }).lean();
     return res;
   }

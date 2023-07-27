@@ -5,7 +5,6 @@ import { FilterQuery, LeanDocument, Model } from 'mongoose';
 import { parse } from 'papaparse';
 import { ApplicationException } from 'src/app/app.exception';
 import { DevFeeService } from 'src/dev-fee/dev-fee.service';
-import { UtilityMaster, UTILITY_MASTER } from 'src/docusign-templates-master/schemas/utility-master.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { Manufacturer, V2_MANUFACTURERS_COLL } from 'src/manufacturers/manufacturer.schema';
@@ -19,6 +18,7 @@ import { QuoteCostBuildUpService } from 'src/quotes/sub-services';
 import { FastifyRequest } from 'src/shared/fastify';
 import { IStorageSchema, ISystemProductionSchema, SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
+import { UtilitiesMaster, UTILITIES_MASTER } from 'src/utilities-master/utilities-master.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { convertStringWithCommasToNumber } from 'src/utils/common';
 import { OperationResult } from '../app/common/operation-result';
@@ -32,12 +32,11 @@ export class EsaPricingSolverService {
     @InjectModel(V2_ESA_PRICING_SOLVER_COLLECTION) private esaPricingSolverModel: Model<V2EsaPricingSolverDocument>,
     // @ts-ignore
     @InjectModel(V2_MANUFACTURERS_COLL) private manufacturerModel: Model<Manufacturer>,
+    @InjectModel(UTILITIES_MASTER) private utilitiesMasterModel: Model<UtilitiesMaster>,
     // @ts-ignore
     @InjectModel(OPPORTUNITY) private opportunityModel: Model<Opportunity>,
     // @ts-ignore
     @InjectModel(PROPERTY_COLLECTION_NAME) private readonly propertyModel: Model<PropertyDocument>,
-    // @ts-ignore
-    @InjectModel(UTILITY_MASTER) private utilitiesMasterModel: Model<UtilityMaster>,
 
     // @ts-ignore
     @Inject(forwardRef(() => QuoteService))

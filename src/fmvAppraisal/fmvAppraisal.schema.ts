@@ -1,11 +1,12 @@
 import { Document, Schema } from 'mongoose';
+import { PROJECT_TYPES } from './constant';
 
 export const FMV_APPRAISAL = Symbol('FMV_APPRAISAL').toString();
 
 export interface FmvAppraisal extends Document {
   name: string;
   endDate: Date;
-  projectTypes: string[];
+  projectTypes: PROJECT_TYPES[];
   utilityIds: string[];
   regionIds: string[];
   taxCreditConfigIds: string[];

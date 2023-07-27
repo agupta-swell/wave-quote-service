@@ -1,19 +1,19 @@
 import { LeanDocument } from 'mongoose';
 import { ServiceResponse } from 'src/app/common';
+import { FinancialProductDto } from 'src/financial-products/res/financial-product.dto';
+import { FinancierDto } from 'src/financiers/res/financier.dto';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceDto } from 'src/funding-sources/res/funding-source.dto';
 import { ExposeProp } from 'src/shared/decorators';
+import { UtilitiesMasterResDto } from 'src/utilities-master/res/utilities-master.dto';
+import { UtilitiesMaster } from 'src/utilities-master/utilities-master.schema';
 import { UtilityProgramMasterDto } from 'src/utility-programs-master/res/utility-program-master.dto';
 import { UtilityProgramMaster } from 'src/utility-programs-master/utility-program-master.schema';
-import { FinancierDto } from 'src/financiers/res/financier.dto';
-import { FinancialProductDto } from 'src/financial-products/res/financial-product.dto';
-import { UtilityMaster } from '../schemas/utility-master.schema';
-import { UtilityMasterResDto } from './sub-dto';
 
 export interface IGetContractApplicabilityDataDto {
   applicableFundingSources: LeanDocument<FundingSource>[];
   applicableUtilityPrograms: LeanDocument<UtilityProgramMaster>[];
-  applicableUtilities: LeanDocument<UtilityMaster>[];
+  applicableUtilities: LeanDocument<UtilitiesMaster>[];
 }
 
 export class GetContractApplicabilityDataDto {
@@ -23,8 +23,8 @@ export class GetContractApplicabilityDataDto {
   @ExposeProp({ type: UtilityProgramMasterDto, isArray: true })
   applicableUtilityPrograms: UtilityProgramMasterDto[];
 
-  @ExposeProp({ type: UtilityMasterResDto, isArray: true })
-  applicableUtilities: UtilityMasterResDto[];
+  @ExposeProp({ type: UtilitiesMasterResDto, isArray: true })
+  applicableUtilities: UtilitiesMasterResDto[];
 
   @ExposeProp({ type: FinancierDto, isArray: true })
   applicableFinanciers: FinancierDto[];
