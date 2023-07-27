@@ -4,6 +4,7 @@ import BigNumber from 'bignumber.js';
 import { FilterQuery, LeanDocument, Model } from 'mongoose';
 import { parse } from 'papaparse';
 import { ApplicationException } from 'src/app/app.exception';
+import { DevFeeService } from 'src/dev-fee/dev-fee.service';
 import { UtilityMaster, UTILITY_MASTER } from 'src/docusign-templates-master/schemas/utility-master.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
@@ -12,17 +13,17 @@ import { OPPORTUNITY, Opportunity } from 'src/opportunities/opportunity.schema';
 import { PROPERTY_COLLECTION_NAME } from 'src/property/constants';
 import { PropertyDocument } from 'src/property/property.schema';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
-import { IEsaProductAttributes } from 'src/quotes/quote.schema';
+import { IEsaProductAttributes, IQuotePricePerWattSchema, Quote } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
 import { QuoteCostBuildUpService } from 'src/quotes/sub-services';
 import { FastifyRequest } from 'src/shared/fastify';
-import { IStorageSchema, SystemDesign } from 'src/system-designs/system-design.schema';
+import { IStorageSchema, ISystemProductionSchema, SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemDesignService } from 'src/system-designs/system-design.service';
 import { UtilityService } from 'src/utilities/utility.service';
 import { convertStringWithCommasToNumber } from 'src/utils/common';
 import { OperationResult } from '../app/common/operation-result';
 import { CSV_PRIMARY_QUOTE, V2_ESA_PRICING_SOLVER_COLLECTION } from './constants';
-import { V2EsaPricingSolver, V2EsaPricingSolverDocument } from './interfaces';
+import { V2EsaPricingCalculation, V2EsaPricingSolver, V2EsaPricingSolverDocument } from './interfaces';
 
 @Injectable()
 export class EsaPricingSolverService {
@@ -53,39 +54,34 @@ export class EsaPricingSolverService {
     private readonly quoteCostBuildUpService: QuoteCostBuildUpService,
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
     private readonly fundingSourceService: FundingSourceService,
+    private readonly devFeeService: DevFeeService,
   ) {}
 
-  async getEcsAndTerm(quoteId: string): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
+  async getEcsAndTerm(
+    opportunityId: string,
+    systemDesignId: string,
+    partnerId: string,
+    fundingSourceId: string,
+    financialProductId: string,
+  ): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
     const filter: FilterQuery<V2EsaPricingSolverDocument> = {};
-    const foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
+    const { designParam, opportunityParam } = await this.getSystemDesignAndOpportunityParam(
+      opportunityId,
+      systemDesignId,
+      partnerId,
+      fundingSourceId,
+      financialProductId,
+    );
 
-    if (foundQuote) {
-      const [opportunity, systemDesign] = await Promise.all([
-        this.opportunityModel.findById(foundQuote.opportunityId),
-        this.systemDesignService.getOneById(foundQuote.systemDesignId),
-      ]);
+    if (opportunityParam?.state) filter.state = opportunityParam.state;
+    if (designParam.storageSize !== undefined) filter.storageSizeKWh = designParam.storageSize;
+    if (designParam.manufacturerId) filter.storageManufacturerId = designParam.manufacturerId;
+    if (opportunityParam.applicableUtility) filter.applicableUtilities = opportunityParam.applicableUtility;
+    if (opportunityParam.systemType) filter.projectTypes = opportunityParam.systemType;
 
-      if (opportunity && systemDesign) {
-        const utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunity.utilityId);
-        const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
-        const utilityMaster = await this.utilitiesMasterModel.findOne({ utility_name: utilityName }).lean();
-        const property = await this.propertyModel.findById(opportunity?.propertyId);
+    const result = await this.esaPricingSolverModel.find(filter, { _id: 1, termYears: 1, rateEscalator: 1 }).lean();
 
-        const designParam = this.getStorageSizeAndManufacturer(systemDesign);
-
-        if (property?.state) filter.state = property.state;
-        if (designParam.storageSize !== undefined) filter.storageSizeKWh = designParam.storageSize;
-        if (designParam.manufacturerId) filter.storageManufacturerId = designParam.manufacturerId;
-        if (utilityMaster?._id) filter.applicableUtilities = utilityMaster?._id;
-        if (foundQuote.detailedQuote.primaryQuoteType)
-          filter.projectTypes = CSV_PRIMARY_QUOTE[foundQuote.detailedQuote.primaryQuoteType];
-
-        const result = await this.esaPricingSolverModel.find(filter, { _id: 1, termYears: 1, rateEscalator: 1 }).lean();
-
-        return result;
-      }
-    }
-    return [];
+    return result;
   }
 
   getStorageSizeAndManufacturer(systemDesign: LeanDocument<SystemDesign> | null) {
@@ -249,6 +245,116 @@ export class EsaPricingSolverService {
       return OperationResult.ok('Upload Success!');
     } catch (error) {
       throw ApplicationException.UnprocessableEntity('Upload Failed!');
+    }
+  }
+
+  async calculateEsaPricing(data: {
+    solverId: string;
+    fundId: string;
+    systemProduction: ISystemProductionSchema;
+    quotePricePerWatt: IQuotePricePerWattSchema;
+  }): Promise<V2EsaPricingCalculation> {
+    const { solverId, fundId, systemProduction, quotePricePerWatt } = data;
+    const solverRow = await this.getSolverRowById(solverId);
+    const devFee = await this.getModeledDevFee(fundId);
+
+    // If the db.v2_esa_pricing_solver.projectTypes array contains 'solar', then run the solar/solar+storage calculations.
+    // Otherwise, run the storage-only calculations.
+    const res = solverRow.projectTypes.some(item => ['solar', 'solar+storage'].includes(item))
+      ? await this.calculateSolarPlusStorage(systemProduction, quotePricePerWatt, solverRow, devFee)
+      : await this.calculateStorageOnly(quotePricePerWatt, solverRow, devFee);
+
+    return res;
+  }
+
+  async calculate(quoteId: string): Promise<OperationResult<V2EsaPricingCalculation>> {
+    const quote = await this.getQuoteById(quoteId);
+    const res = await this.calculateEsaPricing({
+      solverId: quote.solverId,
+      fundId: quote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+      systemProduction: quote.detailedQuote.systemProduction,
+      quotePricePerWatt: quote.detailedQuote.quotePricePerWatt,
+    });
+
+    return OperationResult.ok(res);
+  }
+
+  calculateSolarPlusStorage(
+    systemProduction: ISystemProductionSchema,
+    quotePricePerWatt: IQuotePricePerWattSchema,
+    solverRow: V2EsaPricingSolverDocument,
+    devFee: number,
+  ): V2EsaPricingCalculation {
+    if (!systemProduction) throw ApplicationException.EntityNotFound(`systemProduction data.`);
+
+    const annualPayment =
+      solverRow.coefficientA * (devFee * quotePricePerWatt.pricePerWatt * systemProduction.capacityKW) +
+      solverRow.coefficientB * (quotePricePerWatt.pricePerWatt * systemProduction.capacityKW) +
+      solverRow.coefficientC * systemProduction.capacityKW +
+      solverRow.coefficientD;
+
+    const pkWh = annualPayment / (systemProduction.capacityKW * systemProduction.productivity);
+
+    return {
+      payment: annualPayment / 12,
+      pkWh,
+      solverRow,
+      errors: !this.priceIsWithinBounds(pkWh, solverRow)
+        ? ['Adjust the Turnkey system price to be within bounds.']
+        : [],
+    };
+  }
+
+  private priceIsWithinBounds(price: number, solverRow: V2EsaPricingSolverDocument): boolean {
+    return price >= solverRow.minPricePerKwh && price <= solverRow.maxPricePerKwh;
+  }
+
+  calculateStorageOnly(
+    quotePricePerWatt: IQuotePricePerWattSchema,
+    solverRow: V2EsaPricingSolverDocument,
+    devFee: number,
+  ): V2EsaPricingCalculation {
+    const annualPayment =
+      solverRow.coefficientA * (devFee * quotePricePerWatt.pricePerWatt) +
+      solverRow.coefficientB * quotePricePerWatt.pricePerWatt +
+      solverRow.coefficientC;
+
+    return {
+      payment: annualPayment / 12,
+      pkWh: null,
+      solverRow,
+      errors: [],
+    };
+  }
+
+  async getQuoteById(id: string): Promise<LeanDocument<Quote>> {
+    try {
+      const res = await this.quoteService.getOneFullQuoteDataById(id);
+      if (!res) throw Error('Unable find a quote with the given id.');
+      return res;
+    } catch (error) {
+      throw ApplicationException.QuoteNotFound(error.message);
+    }
+  }
+
+  async getSolverRowById(id: string): Promise<V2EsaPricingSolverDocument> {
+    try {
+      const res = await this.esaPricingSolverModel.findById(id);
+      if (!res) throw Error('Unable find a solver row with the given id.');
+      return res;
+    } catch (error) {
+      throw ApplicationException.EsaSolverRowNotFound(error.message);
+    }
+  }
+
+  async getModeledDevFee(fundId: string): Promise<number> {
+    try {
+      // TODO: Implement this function.
+      const { devFee } = await this.devFeeService.getDevFeeByCondition({ fundId });
+
+      return devFee;
+    } catch (error) {
+      throw ApplicationException.UnprocessableEntity(error.message);
     }
   }
 }

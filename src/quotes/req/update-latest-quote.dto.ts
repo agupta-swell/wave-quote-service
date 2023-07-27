@@ -64,4 +64,8 @@ export class UpdateLatestQuoteDto {
   @IsBoolean()
   @IsOptional()
   isArchived: boolean;
+
+  @IsOptional()
+  @IsString()
+  solverId: string;
 }

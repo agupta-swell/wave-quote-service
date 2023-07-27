@@ -60,6 +60,7 @@ import { PropertyModule } from 'src/property/property.module';
 import { GsOpportunityModule } from 'src/gs-opportunity/gs-opportunity.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 import { FmvAppraisalModule } from 'src/fmvAppraisal/fmvAppraisal.module';
+import { DevFeeModule } from 'src/dev-fee/dev-fee.module';
 
 @Global()
 @Module({
@@ -149,6 +150,7 @@ import { FmvAppraisalModule } from 'src/fmvAppraisal/fmvAppraisal.module';
     GsOpportunityModule,
     EsaPricingSolverModule,
     FmvAppraisalModule,
+    DevFeeModule,
   ],
 })
 export class AppModule {}

@@ -178,6 +178,7 @@ export interface IEsaProductAttributes {
   esaTerm: number;
   rateEscalator: number;
   grossFinancePayment: number;
+  priceWithinBoundsErrors: string[];
 }
 
 export interface ICashQuoteConfigSnapshot {
@@ -562,6 +563,8 @@ export class QuoteModel {
 
   isArchived: boolean;
 
+  solverId: string;
+
   isSync: boolean;
 
   isSyncMessages: string[];
@@ -572,6 +575,7 @@ export class QuoteModel {
     this.quoteModelType = 'detailed';
     this.detailedQuote = this.transformDetailedQuote(detailedQuote);
     this.isArchived = (data as UpdateQuoteDto)?.isArchived || false;
+    this.solverId = data.solverId;
   }
 
   transformDetailedQuote(data: any): IDetailedQuoteSchema {

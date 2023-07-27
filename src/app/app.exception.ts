@@ -113,4 +113,18 @@ export class ApplicationException extends HttpException {
         HttpStatus.BAD_REQUEST
       );
   }
+
+  static EsaSolverRowNotFound(message: string): ApplicationException {
+    return new ApplicationException(
+      message,
+      HttpStatus.BAD_REQUEST
+    );
+  }
+
+  static QuoteNotFound(message: string): ApplicationException {
+    return new ApplicationException(
+      message,
+      HttpStatus.BAD_REQUEST
+    );
+  }
 }
