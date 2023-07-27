@@ -2021,7 +2021,7 @@ export class QuoteService {
             messages.push(
               `\n<b>${messages.length + 1}.)</b> The Project Type you selected does not allow Storage only.`,
             );
-          } else if (!projectTypes.includes(PROJECT_TYPES.SOLAR)) {
+          } else if (hasSolar && !hasStorage && !projectTypes.includes(PROJECT_TYPES.SOLAR)) {
             // Solar only
             messages.push(`\n<b>${messages.length + 1}.)</b> The Project Type you selected does not allow Solar only.`);
           }
