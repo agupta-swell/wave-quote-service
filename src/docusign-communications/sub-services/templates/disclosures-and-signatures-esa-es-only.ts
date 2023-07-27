@@ -25,4 +25,16 @@ export class DisclosuresAndSignaturesEsaESOnlyTemplate {
     return `${firstName || ''} ${lastName || ''}`.trim();
   })
   salesAgentFullName: string;
+
+  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerName)
+  financierFullName: string;
+
+  @TabValue<IGenericObject>(ctx => ctx.financialProduct?.countersignerTitle)
+  financierTitle: string;
+
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Primary Owner')?.fullName)
+  homeownerFullName: string;
+
+  @TabValue<IGenericObject>(({ signerDetails }) => signerDetails.find(e => e.role === 'Co Owner')?.fullName)
+  coOwnerFullName: string;
 }
