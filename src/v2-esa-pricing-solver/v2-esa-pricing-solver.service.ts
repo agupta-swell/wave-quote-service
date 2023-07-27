@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js';
 import { parse } from 'papaparse';
 import { Injectable, Req } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -40,7 +41,7 @@ export class EsaPricingSolverService {
           state: values[3],
           applicableUtilities: utilities.map(item => item._id) || [],
           projectTypes: values[5]?.split('_') || [],
-          rateEscalator: convertStringWithCommasToNumber(values[6]),
+          rateEscalator: new BigNumber(convertStringWithCommasToNumber(values[6])).multipliedBy(100).toNumber(),
           coefficientA: convertStringWithCommasToNumber(values[7]),
           coefficientB: convertStringWithCommasToNumber(values[8]),
           coefficientC: convertStringWithCommasToNumber(values[9]),
