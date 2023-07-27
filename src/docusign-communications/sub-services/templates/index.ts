@@ -31,6 +31,7 @@ import './exhibit-7-solar-energy-system-estimated-production';
 import './exhibit-7-system-design-notice-esa-es-only';
 import './exhibit-8-system-design-notice-esa';
 import './exhibit-9-insurance-esa';
+import './exhibit-9-payment-schedule-esa-es-only';
 import './exhibit-10-payment-schedule-esa';
 import './exhibit-11-automatic-payment-authorization-form-esa';
 import './exhibit-a-state-specific-provisions-california-hic';
