@@ -1326,7 +1326,7 @@ export class ContractService {
 
   public async getNotVoidedContractsBySystemDesignId(systemDesignId: string): Promise<Contract[]> {
     const foundQuotes = await this.quoteService.getQuotesByCondition({ systemDesignId, isArchived: false });
-    const foundQuoteIds = foundQuotes.map(({ _id }) => _id);
+    const foundQuoteIds = foundQuotes?.map(({ _id }) => _id);
     return this.contractModel.find({
       associatedQuoteId: { $in: foundQuoteIds },
       contractStatus: { $ne: PROCESS_STATUS.VOIDED },

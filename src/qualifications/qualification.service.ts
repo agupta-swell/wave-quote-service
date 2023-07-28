@@ -602,6 +602,11 @@ export class QualificationService {
       opportunityId = tokenPayload.opportunityId;
     }
 
+    const eligibleQuotes = await this.getEligibleQuotes(opportunityId);
+    if(eligibleQuotes.length == 0){
+      throw ApplicationException.EntityNotFound('Eligible Quote');
+    }
+
     let applicationInitatedBy: string;
 
     switch (tokenPayload.role) {
@@ -814,9 +819,9 @@ export class QualificationService {
       );
     }
 
-    const eligibleQuotes = await this.getEligibleQuotes(req.qualificationCreditId);
+    const eligibleQuotes = await this.getEligibleQuotes(req.opportunityId);
     if(eligibleQuotes.length == 0){
-    throw ApplicationException.EntityNotFound('Eligible Quote');
+      throw ApplicationException.EntityNotFound('Eligible Quote');
     }
 
     const opportunity = await this.opportunityService.getDetailById(req.opportunityId);
@@ -897,7 +902,6 @@ export class QualificationService {
       
       fniResponse = await this.fniEngineService.applyCoApplicant(fniInitApplyReq);
     } else {
-        const eligibleQuotes = await this.getEligibleQuotes(req.qualificationCreditId);
         if(eligibleQuotes.length == 0){
            throw new NotFoundException('Qualification has no Eligible Quote');
         } else{
@@ -1391,10 +1395,15 @@ export class QualificationService {
     return true;
   }
 
-  private async getEligibleQuotes(qualificationCreditId: string){
-    const foundQuotes = await this.quoteService.getQuotesByCondition({ qualificationCreditId, solver_id : {$ne : null} ,  is_sync: true });
-     return foundQuotes;
-    }
+  private async getEligibleQuotes(opportunityId: string){
+    const foundQuotes = await this.quoteService.getQuotesByCondition({ 
+      opportunityId, 
+      solver_id : {$ne : null} ,  
+      is_sync: true,
+      is_archived: false, 
+    });
+    return foundQuotes;
+  }
 
   private sendFniErrorEmail(
     status: number,
