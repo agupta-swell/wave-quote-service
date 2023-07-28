@@ -20,6 +20,7 @@ import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
 import { TokenService } from '../tokens/token.service';
+import { QuoteService } from 'src/quotes/quote.service';
 import { QualificationException, QualificationExceptionData } from './qualification.exception';
 import {
   APPLICANT_TYPE,
@@ -81,6 +82,7 @@ export class QualificationService {
     private readonly emailService: EmailService,
     private readonly fniEngineService: FniEngineService,
     private readonly tokenService: TokenService,
+    private readonly quoteService: QuoteService
   ) {}
 
   async createQualification(
@@ -812,6 +814,11 @@ export class QualificationService {
       );
     }
 
+    const eligibleQuotes = await this.getEligibleQuotes(req.qualificationCreditId);
+    if(eligibleQuotes.length == 0){
+    throw ApplicationException.EntityNotFound('Eligible Quote');
+    }
+
     const opportunity = await this.opportunityService.getDetailById(req.opportunityId);
 
     if (!opportunity) {
@@ -863,7 +870,7 @@ export class QualificationService {
 
     const fniInitApplyReq: IFniApplyReq = {
       opportunityId,
-      productId: '2', // <To get productId use quoteService method created in this ticket: WAV-3308>
+      productId: '', // will be populated from fundProductScoreCard when calling solar_init
       applicant,
       applicantSecuredData,
       primaryResidence,
@@ -887,9 +894,15 @@ export class QualificationService {
       }
 
       fniInitApplyReq.refnum = qualificationCredit.fniApplications[activeFniApplicationIdx].refnum;
-
+      
       fniResponse = await this.fniEngineService.applyCoApplicant(fniInitApplyReq);
     } else {
+        const eligibleQuotes = await this.getEligibleQuotes(req.qualificationCreditId);
+        if(eligibleQuotes.length == 0){
+           throw new NotFoundException('Qualification has no Eligible Quote');
+        } else{
+         fniInitApplyReq.productId =  eligibleQuotes[0].detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundProductScoreCard;
+        }
       fniResponse = await this.fniEngineService.applyPrimaryApplicant(fniInitApplyReq);
     }
 
@@ -1377,6 +1390,11 @@ export class QualificationService {
 
     return true;
   }
+
+  private async getEligibleQuotes(qualificationCreditId: string){
+    const foundQuotes = await this.quoteService.getQuotesByCondition({ qualificationCreditId, solver_id : {$ne : null} ,  is_sync: true });
+     return foundQuotes;
+    }
 
   private sendFniErrorEmail(
     status: number,
