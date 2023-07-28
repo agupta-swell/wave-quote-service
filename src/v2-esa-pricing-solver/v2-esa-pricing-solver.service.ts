@@ -56,9 +56,7 @@ export class EsaPricingSolverService {
     private readonly devFeeService: DevFeeService,
   ) {}
 
-  async getEcsAndTerm(
-    quoteId: string,
-  ): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
+  async getEcsAndTerm(quoteId: string): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
     const filter: FilterQuery<V2EsaPricingSolverDocument> = {};
     const foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
 
@@ -78,7 +76,6 @@ export class EsaPricingSolverService {
         if (
           property?.state &&
           designParam.storageSize !== undefined &&
-          designParam.manufacturerId &&
           utilityMaster?._id &&
           foundQuote.detailedQuote.primaryQuoteType
         ) {
@@ -111,7 +108,7 @@ export class EsaPricingSolverService {
       }, 0) || 0;
 
     const manufacturerId = systemDesign?.roofTopDesignData.storage[0]?.storageModelDataSnapshot.manufacturerId;
-    return { storageSize, manufacturerId: manufacturerId?.toString() };
+    return { storageSize, manufacturerId: manufacturerId?.toString() || 'N/A' };
   }
 
   async getEsaSolverRow(
@@ -154,7 +151,7 @@ export class EsaPricingSolverService {
       rateEscalator: escAndTerm?.rateEscalator,
       termYears: escAndTerm?.esaTerm,
       storageSizeKWh: systemDesign?.storageSize,
-      storageManufacturerId: systemDesign.manufacturerId,
+      storageManufacturerId: systemDesign.manufacturerId || 'N/A',
       applicableUtilities: { $in: [opportunity.applicableUtility] },
     });
 
@@ -276,8 +273,8 @@ export class EsaPricingSolverService {
     // If the db.v2_esa_pricing_solver.projectTypes array contains 'solar', then run the solar/solar+storage calculations.
     // Otherwise, run the storage-only calculations.
     const res = solverRow.projectTypes.some(item => ['solar', 'solar+storage'].includes(item))
-      ? await this.calculateSolarPlusStorage(systemProduction, quotePricePerWatt, solverRow, devFee)
-      : await this.calculateStorageOnly(quotePricePerWatt, solverRow, devFee);
+      ? this.calculateSolarPlusStorage(systemProduction, quotePricePerWatt, solverRow, devFee)
+      : this.calculateStorageOnly(quotePricePerWatt, solverRow, devFee);
 
     return res;
   }
