@@ -224,14 +224,8 @@ export class QuoteService {
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
-
-    const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(financialProduct.fmvAppraisalId);
-
-    if (!fmvAppraisal) {
-      throw ApplicationException.EntityNotFound('FMV Appraisal not found');
-    }
-
-    const productAttribute: IEsaProductAttributes = await this.createProductAttribute({
+    
+    const productAttribute = await this.createProductAttribute({
       productType: fundingSource.type,
       netAmount: quoteCostBuildup.projectGrandTotal.netCost,
       financialProductSnapshot: financialProduct,
@@ -240,14 +234,22 @@ export class QuoteService {
       currentAverageMonthlyBill,
       newAverageMonthlyBill,
       capacityKW: systemProduction.data?.capacityKW || 0,
-      esaTerm: fmvAppraisal.termYears,
-      rateEscalator: fmvAppraisal.escalator,
     });
-    if (productAttribute.balance > maxInstallationAmount) {
-      throw ApplicationException.maxInstallationAmountExceeded();
-    }
 
     if (fundingSource.type === FINANCE_PRODUCT_TYPE.ESA) {
+      const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(financialProduct.fmvAppraisalId);
+
+      if (!fmvAppraisal) {
+        throw ApplicationException.EntityNotFound('FMV Appraisal not found');
+      }
+
+      productAttribute.esaTerm = fmvAppraisal.termYears;
+      productAttribute.rateEscalator = fmvAppraisal.escalator;
+
+      if (productAttribute.balance > maxInstallationAmount) {
+        throw ApplicationException.maxInstallationAmountExceeded();
+      }
+
       const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
         productAttribute,
         financialProduct,
