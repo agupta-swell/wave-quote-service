@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
+import { FmvAppraisalModule } from 'src/fmvAppraisal/fmvAppraisal.module';
 import { FmvAppraisalSchema, FMV_APPRAISAL } from 'src/fmvAppraisal/fmvAppraisal.schema';
 import { ManufacturerSchema, V2_MANUFACTURERS_COLL } from 'src/manufacturers/manufacturer.schema';
 import { OPPORTUNITY, OpportunitySchema } from 'src/opportunities/opportunity.schema';
@@ -21,6 +22,7 @@ import { EsaPricingSolverService } from './v2-esa-pricing-solver.service';
       useClass: JwtConfigService,
     }),
     FinancialProductsModule,
+    FmvAppraisalModule,
     forwardRef(() => QuoteModule),
     MongooseModule.forFeature([
       {

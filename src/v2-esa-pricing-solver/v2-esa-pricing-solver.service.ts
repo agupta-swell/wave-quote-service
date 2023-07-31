@@ -6,6 +6,8 @@ import { parse } from 'papaparse';
 import { ApplicationException } from 'src/app/app.exception';
 import { DevFeeService } from 'src/dev-fee/dev-fee.service';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
+import { PROJECT_TYPES } from 'src/fmvAppraisal/constant';
+import { FmvAppraisalService } from 'src/fmvAppraisal/fmvAppraisal.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { Manufacturer, V2_MANUFACTURERS_COLL } from 'src/manufacturers/manufacturer.schema';
 import { OPPORTUNITY, Opportunity } from 'src/opportunities/opportunity.schema';
@@ -54,6 +56,7 @@ export class EsaPricingSolverService {
     private readonly quotePartnerConfigService: QuotePartnerConfigService,
     private readonly fundingSourceService: FundingSourceService,
     private readonly devFeeService: DevFeeService,
+    private readonly fmvAppraisalService: FmvAppraisalService,
   ) {}
 
   async getEcsAndTerm(quoteId: string): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
@@ -264,28 +267,35 @@ export class EsaPricingSolverService {
     solverId: string;
     fundId: string;
     systemProduction: ISystemProductionSchema;
-    quotePricePerWatt: IQuotePricePerWattSchema;
+    fmvAppraisalId: string;
   }): Promise<V2EsaPricingCalculation> {
-    const { solverId, fundId, systemProduction, quotePricePerWatt } = data;
+    const { solverId, fundId, systemProduction, fmvAppraisalId } = data;
     const solverRow = await this.getSolverRowById(solverId);
     const devFee = await this.getModeledDevFee(fundId);
+    const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(fmvAppraisalId);
+    if (!fmvAppraisal) throw ApplicationException.EntityNotFound(`fmvAppraisal data.`);
+
+    const isSolarOnly = solverRow.projectTypes.every(item => item === PROJECT_TYPES.SOLAR);
 
     // If the db.v2_esa_pricing_solver.projectTypes array contains 'solar', then run the solar/solar+storage calculations.
     // Otherwise, run the storage-only calculations.
     const res = solverRow.projectTypes.some(item => ['solar', 'solar+storage'].includes(item))
-      ? this.calculateSolarPlusStorage(systemProduction, quotePricePerWatt, solverRow, devFee)
-      : this.calculateStorageOnly(quotePricePerWatt, solverRow, devFee);
+      ? this.calculateSolarPlusStorage(systemProduction, solverRow, devFee, isSolarOnly, fmvAppraisal.storageRatePerKwh)
+      : this.calculateStorageOnly(solverRow, devFee, fmvAppraisal.storageRatePerKwh);
 
     return res;
   }
 
   async calculate(quoteId: string): Promise<OperationResult<V2EsaPricingCalculation>> {
     const quote = await this.getQuoteById(quoteId);
+    const fmvAppraisalId =
+      quote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fmvAppraisalId;
+
     const res = await this.calculateEsaPricing({
       solverId: quote.solverId,
       fundId: quote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
       systemProduction: quote.detailedQuote.systemProduction,
-      quotePricePerWatt: quote.detailedQuote.quotePricePerWatt,
+      fmvAppraisalId,
     });
 
     return OperationResult.ok(res);
@@ -293,15 +303,18 @@ export class EsaPricingSolverService {
 
   calculateSolarPlusStorage(
     systemProduction: ISystemProductionSchema,
-    quotePricePerWatt: IQuotePricePerWattSchema,
     solverRow: V2EsaPricingSolverDocument,
     devFee: number,
+    isSolarOnly: boolean,
+    storageRatePerKwh: number,
   ): V2EsaPricingCalculation {
     if (!systemProduction) throw ApplicationException.EntityNotFound(`systemProduction data.`);
 
+    const pricePerWatt = isSolarOnly ? storageRatePerKwh : 4;
+
     const annualPayment =
-      solverRow.coefficientA * (devFee * quotePricePerWatt.pricePerWatt * systemProduction.capacityKW) +
-      solverRow.coefficientB * (quotePricePerWatt.pricePerWatt * systemProduction.capacityKW) +
+      solverRow.coefficientA * (devFee * pricePerWatt * systemProduction.capacityKW) +
+      solverRow.coefficientB * (pricePerWatt * systemProduction.capacityKW) +
       solverRow.coefficientC * systemProduction.capacityKW +
       solverRow.coefficientD;
 
@@ -322,13 +335,13 @@ export class EsaPricingSolverService {
   }
 
   calculateStorageOnly(
-    quotePricePerWatt: IQuotePricePerWattSchema,
     solverRow: V2EsaPricingSolverDocument,
     devFee: number,
+    storageRatePerKwh: number,
   ): V2EsaPricingCalculation {
     const annualPayment =
-      solverRow.coefficientA * (devFee * quotePricePerWatt.pricePerWatt) +
-      solverRow.coefficientB * quotePricePerWatt.pricePerWatt +
+      solverRow.coefficientA * (devFee * storageRatePerKwh) +
+      solverRow.coefficientB * storageRatePerKwh +
       solverRow.coefficientC;
 
     return {

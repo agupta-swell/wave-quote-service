@@ -327,7 +327,7 @@ export class QuoteService {
         solverId: rowId,
         fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
         systemProduction: systemProduction.data!,
-        quotePricePerWatt: detailedQuote.quotePricePerWatt,
+        fmvAppraisalId: financialProduct.fmvAppraisalId,
       });
 
       (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
@@ -717,7 +717,7 @@ export class QuoteService {
         solverId: rowId,
         fundId: model.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
         systemProduction: systemProduction.data!,
-        quotePricePerWatt: model.detailedQuote.quotePricePerWatt,
+        fmvAppraisalId: financeProduct.financialProductSnapshot.fmvAppraisalId,
       });
 
       (model.detailedQuote.quoteFinanceProduct.financeProduct
@@ -1114,7 +1114,7 @@ export class QuoteService {
         solverId: rowId,
         fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
         systemProduction: systemProduction.data!,
-        quotePricePerWatt: detailedQuote.quotePricePerWatt,
+        fmvAppraisalId: financeProduct.financialProductSnapshot.fmvAppraisalId,
       });
 
       (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
@@ -1416,7 +1416,7 @@ export class QuoteService {
         solverId: rowId,
         fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
         systemProduction: systemProduction.data!,
-        quotePricePerWatt: detailedQuote.quotePricePerWatt,
+        fmvAppraisalId: financialProductSnapshot.fmvAppraisalId,
       });
 
       (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
