@@ -14,14 +14,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { PropertyService } from 'src/property/property.service';
+import { QuoteService } from 'src/quotes/quote.service';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { sortByDescending } from 'src/utils/array';
 import { OperationResult } from '../app/common';
 import { ContactService } from '../contacts/contact.service';
 import { EmailService } from '../emails/email.service';
 import { OpportunityService } from '../opportunities/opportunity.service';
 import { TokenService } from '../tokens/token.service';
-import { QuoteService } from 'src/quotes/quote.service';
-import { QualificationException, QualificationExceptionData } from './qualification.exception';
 import {
   APPLICANT_TYPE,
   APPLICATION_PROCESS_STATUS,
@@ -41,16 +41,17 @@ import {
   TOKEN_STATUS,
   VENDOR_ID,
 } from './constants';
-import { IApplicant, IFniApplicationResponse, QualificationCredit, QUALIFICATION_CREDIT, IEventHistory } from './qualification.schema';
+import { QualificationException, QualificationExceptionData } from './qualification.exception';
+import { IApplicant, IEventHistory, IFniApplicationResponse, QUALIFICATION_CREDIT, QualificationCredit } from './qualification.schema';
 import {
+  AgentDetailDto,
   ApplyCreditQualificationReqDto,
   CreateQualificationReqDto,
   GetApplicationDetailReqDto,
+  RecieveFniDecisionReqDto,
   SendMailReqDto,
   SetApplicantConsentReqDto,
   SetManualApprovalReqDto,
-  RecieveFniDecisionReqDto,
-  AgentDetailDto,
 } from './req';
 import { ProcessCreditQualificationReqDto } from './req/process-credit-qualification.dto';
 import {
@@ -64,7 +65,6 @@ import {
 import { FniEngineService } from './sub-services/fni-engine.service';
 import { IFniApplyReq, IFniResponse, IFniResponseData, ITokenData } from './typing.d';
 import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
-import { sortByDescending } from 'src/utils/array';
 
 @Injectable()
 export class QualificationService {
@@ -82,7 +82,7 @@ export class QualificationService {
     private readonly emailService: EmailService,
     private readonly fniEngineService: FniEngineService,
     private readonly tokenService: TokenService,
-    private readonly quoteService: QuoteService
+    private readonly quoteService: QuoteService,
   ) {}
 
   async createQualification(
@@ -130,9 +130,9 @@ export class QualificationService {
 
   async reInitiateQualification(
     qualificationCreditId: ObjectId,
-    agentDetail: AgentDetailDto
+    agentDetail: AgentDetailDto,
   ): Promise<OperationResult<QualificationDetailDto>> {
-    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId)
+    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
 
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound(`qualificationCreditId: ${qualificationCreditId}`);
@@ -142,9 +142,9 @@ export class QualificationService {
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
         ? QUALIFICATION_CATEGORY.HARD_CREDIT
         : QUALIFICATION_CATEGORY.SOFT_CREDIT;
-        
+
     qualificationCredit.eventHistories.push({
-      issueDate:  new Date(),
+      issueDate: new Date(),
       by: agentDetail.name,
       detail: EVENT_HISTORY_DETAIL.REQUEST_RE_INITIATED,
       userId: agentDetail.userId,
@@ -602,9 +602,36 @@ export class QualificationService {
       opportunityId = tokenPayload.opportunityId;
     }
 
+    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
+    if (!qualificationCredit) {
+      throw ApplicationException.EntityNotFound('Qualification Credit');
+    }
+
+    const contactId =
+      tokenPayload.contactId || (await this.opportunityService.getContactIdById(qualificationCredit.opportunityId));
+    const contact = await this.contactService.getContactById(contactId || '');
+    const qualificationCategory =
+      qualificationCredit.type === QUALIFICATION_TYPE.HARD
+        ? QUALIFICATION_CATEGORY.HARD_CREDIT
+        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
+    qualificationCredit.processStatus = PROCESS_STATUS.STARTED;
+
+    const applicantIndex = qualificationCredit.applicants.findIndex(applicant => applicant.contactId === contactId);
+    const currentApplicant = qualificationCredit.applicants[applicantIndex];
+
     const eligibleQuotes = await this.getEligibleQuotes(opportunityId);
-    if(eligibleQuotes.length == 0){
-      throw ApplicationException.EntityNotFound('Eligible Quote');
+    if (eligibleQuotes.length == 0) {
+      const qualificationExceptionPayload: QualificationExceptionData = {
+        qualificationCreditId: qualificationCredit._id.toString(),
+        errorEvent: {
+          by: currentApplicant.type,
+          detail: 'Unable to Show Application',
+        },
+      };
+      throw new QualificationException(
+        ApplicationException.EntityNotFound('Eligible Quote'),
+        qualificationExceptionPayload,
+      );
     }
 
     let applicationInitatedBy: string;
@@ -621,11 +648,6 @@ export class QualificationService {
         break;
     }
 
-    const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
-    if (!qualificationCredit) {
-      throw ApplicationException.EntityNotFound('Qualification Credit');
-    }
-
     if (
       ![PROCESS_STATUS.INITIATED, PROCESS_STATUS.STARTED, PROCESS_STATUS.APPLICATION_EMAILED].includes(
         qualificationCredit.processStatus as PROCESS_STATUS,
@@ -639,18 +661,6 @@ export class QualificationService {
         }),
       );
     }
-
-    const contactId =
-      tokenPayload.contactId || (await this.opportunityService.getContactIdById(qualificationCredit.opportunityId));
-    const contact = await this.contactService.getContactById(contactId || '');
-    const qualificationCategory =
-      qualificationCredit.type === QUALIFICATION_TYPE.HARD
-        ? QUALIFICATION_CATEGORY.HARD_CREDIT
-        : QUALIFICATION_CATEGORY.SOFT_CREDIT;
-    qualificationCredit.processStatus = PROCESS_STATUS.STARTED;
-
-    const applicantIndex = qualificationCredit.applicants.findIndex(applicant => applicant.contactId === contactId);
-    const currentApplicant = qualificationCredit.applicants[applicantIndex];
 
     qualificationCredit.eventHistories.push({
       issueDate: new Date(),
@@ -820,7 +830,7 @@ export class QualificationService {
     }
 
     const eligibleQuotes = await this.getEligibleQuotes(req.opportunityId);
-    if(eligibleQuotes.length == 0){
+    if (eligibleQuotes.length == 0) {
       throw ApplicationException.EntityNotFound('Eligible Quote');
     }
 
@@ -899,14 +909,15 @@ export class QualificationService {
       }
 
       fniInitApplyReq.refnum = qualificationCredit.fniApplications[activeFniApplicationIdx].refnum;
-      
+
       fniResponse = await this.fniEngineService.applyCoApplicant(fniInitApplyReq);
     } else {
-        if(eligibleQuotes.length == 0){
-           throw new NotFoundException('Qualification has no Eligible Quote');
-        } else{
-         fniInitApplyReq.productId =  eligibleQuotes[0].detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundProductScoreCard;
-        }
+      if (eligibleQuotes.length == 0) {
+        throw new NotFoundException('Qualification has no Eligible Quote');
+      } else {
+        fniInitApplyReq.productId =
+          eligibleQuotes[0].detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundProductScoreCard;
+      }
       fniResponse = await this.fniEngineService.applyPrimaryApplicant(fniInitApplyReq);
     }
 
@@ -1395,12 +1406,12 @@ export class QualificationService {
     return true;
   }
 
-  private async getEligibleQuotes(opportunityId: string){
-    const foundQuotes = await this.quoteService.getQuotesByCondition({ 
-      opportunityId, 
-      solver_id : {$ne : null} ,  
+  private async getEligibleQuotes(opportunityId: string) {
+    const foundQuotes = await this.quoteService.getQuotesByCondition({
+      opportunityId,
+      solver_id: { $ne: null },
       is_sync: true,
-      is_archived: false, 
+      is_archived: false,
     });
     return foundQuotes;
   }
