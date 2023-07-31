@@ -564,12 +564,51 @@ export class QualificationService {
       label: 'Applicant',
       type: (isUseCase2 && 'Dual Applicants') || 'Single Applicant',
       sentOn: now,
-      email: contact?.email || '',
+      email: primaryContact?.email || '',
     });
 
     qualificationCredit.applicationSentOn = now;
     qualificationCredit.processStatus = PROCESS_STATUS.APPLICATION_EMAILED;
     qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_EMAILED;
+
+    if (qualificationCredit.hasApplicantConsent) {
+      const applicants = qualificationCredit.applicants;
+      // type set to applicant
+      let applicantIsExist = false;
+      let coApplicantIsExist = false;
+      applicants?.forEach(applicant => {
+        if (applicant?.type === APPLICANT_TYPE.APPLICANT) {
+          applicantIsExist = true;
+        }
+        if (applicant?.type === APPLICANT_TYPE.CO_APPLICANT) {
+          coApplicantIsExist = true;
+        }
+      });
+
+      if (!applicantIsExist) {
+        if (!primaryContactId) {
+          throw ApplicationException.EntityNotFound(`Applicant contactId: ${primaryContactId}`);
+        }
+
+        const applicant = {} as IApplicant;
+        applicant.type = APPLICANT_TYPE.APPLICANT;
+        applicant.contactId = primaryContactId;
+        qualificationCredit.applicants.push(applicant);
+      }
+
+      // type set to coapplicant:
+      if (!coApplicantIsExist && qualificationCredit.hasCoApplicant && qualificationCredit.hasCoApplicantConsent) {
+        const coContactId = homeowners.find(homeowner => !homeowner.isPrimary)?.contactId;
+        if (!coContactId) {
+          throw ApplicationException.EntityNotFound(`Co applicant contactId: ${coContactId}`);
+        }
+
+        const applicant = {} as IApplicant;
+        applicant.type = APPLICANT_TYPE.CO_APPLICANT;
+        applicant.contactId = coContactId;
+        qualificationCredit.applicants.push(applicant);
+      }
+    }
 
     await qualificationCredit.save();
 

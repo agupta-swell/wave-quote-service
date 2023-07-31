@@ -205,7 +205,7 @@ export class QuoteService {
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financialProduct;
+    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, maxInstallationAmount } = financialProduct;
 
     const currentAnnualCost =
       utilityData.costData.plannedCost?.annualCost ??
@@ -243,6 +243,9 @@ export class QuoteService {
       esaTerm: fmvAppraisal.termYears,
       rateEscalator: fmvAppraisal.escalator,
     });
+    if (productAttribute.balance > maxInstallationAmount) {
+      throw ApplicationException.maxInstallationAmountExceeded();
+    }
 
     if (fundingSource.type === FINANCE_PRODUCT_TYPE.ESA) {
       const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
@@ -490,7 +493,7 @@ export class QuoteService {
     if (!fundingSource) {
       throw ApplicationException.EntityNotFound('Financial Product Type');
     }
-    const { dealerFee } = financialProductSnapshot;
+    const { dealerFee, maxInstallationAmount } = financialProductSnapshot;
     const dealerFeePercentage = await this.getDealerFeePercentage(fundingSource.type, dealerFee);
 
     const quoteCostBuildup = this.quoteCostBuildUpService.create({
@@ -902,7 +905,13 @@ export class QuoteService {
     } = foundQuote.detailedQuote;
 
     const { financialProductSnapshot } = financeProduct;
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, dealerFee } = financialProductSnapshot;
+    const {
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      dealerFee,
+      maxInstallationAmount,
+    } = financialProductSnapshot;
 
     const fundingSource = await this.fundingSourceService.getDetailById(financeProduct.fundingSourceId);
     if (!fundingSource) {
@@ -1278,7 +1287,13 @@ export class QuoteService {
     }
 
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
-    const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, dealerFee } = financialProductSnapshot;
+    const {
+      minDownPayment,
+      maxDownPayment,
+      maxDownPaymentPercentage,
+      dealerFee,
+      maxInstallationAmount,
+    } = financialProductSnapshot;
 
     const [quoteConfigData, taxCreditData, opportunityRelatedInformation] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(data.opportunityId),

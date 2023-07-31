@@ -127,4 +127,11 @@ export class ApplicationException extends HttpException {
       HttpStatus.BAD_REQUEST
     );
   }
+
+  static maxInstallationAmountExceeded(): ApplicationException {
+    return new ApplicationException(
+      'The cost of installing this system exceeds the allowed maximum installation amount.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
 }
