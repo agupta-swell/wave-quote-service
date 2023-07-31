@@ -167,6 +167,9 @@ export class QuoteDto {
   @ExposeProp()
   isSyncMessages: string[];
 
+  @ExposeProp()
+  solverId: string;
+
   @ExposeAndMap({ type: TaxCreditDto, isArray: true, root: 'detailedQuote', checkParent: true })
   taxCreditData: TaxCreditDto[];
 

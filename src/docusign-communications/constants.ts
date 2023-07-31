@@ -60,3 +60,13 @@ export const DOCUSIGN_TEMPLATE_IDS_BY_ENV: Record<DocuSignEnv, IDocusignTemplate
     DUMMY_NO_COST_CHANGE_ORDER: '1',
   },
 };
+
+export const DEFAULT_QUERY_CONTRACT_KEY_MAPPING = {
+  contractId: '_id',
+  envelopeId: 'contractingSystemReferenceId',
+};
+
+export const DOCUSIGN_API_TYPE = {
+  GSP: 'GSP',
+  DEFAULT: 'DEFAULT',
+};

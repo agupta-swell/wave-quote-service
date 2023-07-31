@@ -1,1 +1,11 @@
+import { PRIMARY_QUOTE_TYPE } from 'src/quotes/constants';
+
 export const V2_ESA_PRICING_SOLVER_COLLECTION = 'v2_esa_pricing_solver';
+
+export const CSV_PRIMARY_QUOTE = {
+  [PRIMARY_QUOTE_TYPE.BATTERY_ONLY]: 'storage',
+  [PRIMARY_QUOTE_TYPE.BATTERY_WITH_EXISTING_SOLAR]: 'storage',
+  [PRIMARY_QUOTE_TYPE.BATTERY_WITH_NEW_SOLAR]: 'solar+storage',
+  [PRIMARY_QUOTE_TYPE.SOLAR_ONLY]: 'solar',
+  [PRIMARY_QUOTE_TYPE.BATTERY_WITH_TPO_EXISTING_SOLAR]: 'storage',
+};

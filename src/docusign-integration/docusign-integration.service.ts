@@ -1,16 +1,18 @@
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId, Types } from 'mongoose';
+import { LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { OperationResult } from 'src/app/common';
 import * as docusign from 'docusign-esign';
-import { forwardRef, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, forwardRef, HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { IDocusignAwsSecretPayload } from 'src/shared/docusign/interfaces/IDocusignAwsSecretPayload';
 import { ApplicationException } from 'src/app/app.exception';
 import { DocusignApiService } from 'src/shared/docusign';
-import { DOCUSIGN_INTEGRATION_NAME, SCOPES, JWT_EXPIRES_IN } from './constants';
+import { DocusignException } from 'src/shared/docusign/docusign.exception';
+import { DOCUSIGN_INTEGRATION_NAME, SCOPES, JWT_EXPIRES_IN, DOCUSIGN_INTEGRATION_TYPE } from './constants';
 import { DocusignIntegrationDocument } from './docusign-integration.schema';
 import { DocusignIntegrationReqDto } from './req/docusign-integration';
 import { DocusignIntegrationResDto } from './res/docusign-integration';
+import { IUpdateAccessToken } from './interfaces';
 
 @Injectable()
 export class DocusignIntegrationService implements OnModuleInit {
@@ -24,7 +26,7 @@ export class DocusignIntegrationService implements OnModuleInit {
     private readonly docusignApiService: DocusignApiService<any>,
   ) {
     const docusignCredentialsEnv = process.env.DOCUSIGN_CREDENTIALS;
-    
+
     if (!docusignCredentialsEnv) {
       throw new Error('Missing DOCUSIGN_CREDENTIALS');
     }
@@ -45,22 +47,15 @@ export class DocusignIntegrationService implements OnModuleInit {
     });
   }
 
-  async getOneDocusignIntegration(): Promise<OperationResult<DocusignIntegrationResDto>> {
-    const res = await this.findOneDocusignIntegration();
-
-    return OperationResult.ok(strictPlainToClass(DocusignIntegrationResDto, res));
-  }
-
-  async findOneDocusignIntegration(): Promise<DocusignIntegrationDocument | null> {
-    const res = await this.docusignIntegrationModel.findOne();
+  async findOneDocusignIntegrationByType(
+    type: DOCUSIGN_INTEGRATION_TYPE,
+  ): Promise<LeanDocument<DocusignIntegrationDocument> | DocusignIntegrationDocument | null> {
+    const res = await this.docusignIntegrationModel.findOne({ type }).lean();
     return res;
   }
 
-  async updateAccessToken(
-    id: string | ObjectId,
-    accessToken: string,
-    expiresAt: Date,
-  ): Promise<DocusignIntegrationDocument> {
+  async updateAccessToken(data: IUpdateAccessToken): Promise<DocusignIntegrationDocument> {
+    const { id, accessToken, expiresAt } = data;
     const res = await this.docusignIntegrationModel.findById(id);
 
     if (!res) {
@@ -69,7 +64,9 @@ export class DocusignIntegrationService implements OnModuleInit {
     res.accessToken = accessToken;
     res.expiresAt = expiresAt;
 
-    await this.docusignApiService.updateJwtAuthConfig(res);
+    const docusignIntegrationType = res.type || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+
+    await this.docusignApiService.updateJwtAuthConfig(res, docusignIntegrationType);
 
     await res.save();
 
@@ -77,7 +74,10 @@ export class DocusignIntegrationService implements OnModuleInit {
   }
 
   async addDocusignIntegration(data: DocusignIntegrationReqDto): Promise<void> {
-    const foundDocusignIntegration = await this.docusignIntegrationModel.findOne();
+    if (!Object.values(DOCUSIGN_INTEGRATION_TYPE).includes(data.type)) {
+      throw ApplicationException.InvalidDocusignIntegrationType();
+    }
+    const foundDocusignIntegration = await this.docusignIntegrationModel.findOne({ type: data.type });
     if (!foundDocusignIntegration) {
       const newDocusignIntegration = new this.docusignIntegrationModel({
         ...data,
@@ -99,9 +99,14 @@ export class DocusignIntegrationService implements OnModuleInit {
     }
   }
 
-  async addDocusignAccessTokenAfterConsent(): Promise<void> {
-    const foundDocusignIntegration = await this.docusignIntegrationModel.findOne();
-    if (foundDocusignIntegration) {
+  async addDocusignAccessTokenAfterConsent(type: DOCUSIGN_INTEGRATION_TYPE): Promise<void> {
+    try {
+      const foundDocusignIntegration = await this.docusignIntegrationModel.findOne({ type });
+
+      if (!foundDocusignIntegration) {
+        throw ApplicationException.EntityNotFound(`with type ${type} `);
+      }
+
       const result = await this.apiClient.requestJWTUserToken(
         foundDocusignIntegration.clientId,
         foundDocusignIntegration.userId,
@@ -113,16 +118,21 @@ export class DocusignIntegrationService implements OnModuleInit {
       // see document: https://developers.docusign.com/platform/auth/jwt/jwt-get-token/,
       // section Token expiration and best practices
       // should get a new access token about 15 minutes before their existing one expires
-      await this.updateAccessToken(
-        foundDocusignIntegration._id,
-        result.body.access_token,
-        new Date(Date.now() + (result.body.expires_in - 15 * 60) * 1000),
+      await this.updateAccessToken({
+        id: foundDocusignIntegration._id,
+        accessToken: result.body.access_token,
+        expiresAt: new Date(Date.now() + (result.body.expires_in - 15 * 60) * 1000),
+      });
+    } catch (error) {
+      throw new DocusignException(
+        error,
+        Object.assign(error.response?.body || {}, { statusCode: HttpStatus.BAD_REQUEST }),
       );
     }
   }
 
-  async getJWTUri(): Promise<OperationResult<string>> {
-    const foundDocusignIntegration = await this.docusignIntegrationModel.findOne();
+  async getJWTUri(type: DOCUSIGN_INTEGRATION_TYPE): Promise<OperationResult<string>> {
+    const foundDocusignIntegration = await this.docusignIntegrationModel.findOne({ type });
 
     if (!foundDocusignIntegration) {
       throw ApplicationException.EntityNotFound(`Docusign Integration not found`);
@@ -134,5 +144,18 @@ export class DocusignIntegrationService implements OnModuleInit {
       this.apiClient.getOAuthBasePath(),
     );
     return OperationResult.ok(res);
+  }
+
+  async findAllDocusignIntegration(): Promise<
+    DocusignIntegrationDocument[] | LeanDocument<DocusignIntegrationDocument>[]
+  > {
+    const res = await this.docusignIntegrationModel.find().lean();
+    return res;
+  }
+
+  async getAllDocusignIntegration(): Promise<OperationResult<DocusignIntegrationResDto[]>> {
+    const res = await this.findAllDocusignIntegration();
+
+    return OperationResult.ok(strictPlainToClass(DocusignIntegrationResDto, res));
   }
 }

@@ -37,5 +37,5 @@ export const getQualificationMilestoneAndProcessStatusByVerbalConsent = (
     };
   }
 
-  return { milestone, processStatus };
+  return { milestone, processStatus: processStatus as PROCESS_STATUS};
 };

@@ -18,6 +18,7 @@ import { roundNumber } from 'src/utils/transformNumber';
 import { IEsaProductAttributes } from 'src/quotes/quote.schema';
 
 @DocusignTemplate('demo', '37646910-5d0f-47f4-85cb-b1bbf504e5c6')
+@DocusignTemplate('live', 'bad67031-c68a-423e-8b24-c3ffe1886006')
 @DefaultTabTransformation('snake_case')
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 export class HomeEnergyStorageAgreementEsaTemplate {

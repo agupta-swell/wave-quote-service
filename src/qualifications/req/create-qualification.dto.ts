@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty } from 'class-validator';
 import { QUALIFICATION_TYPE } from '../constants';
 
-class AgentDetailDto {
+export class AgentDetailDto {
   @ApiProperty()
   name: string;
 

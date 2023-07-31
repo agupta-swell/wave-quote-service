@@ -31,25 +31,33 @@ class ApplicantDataDto {
   @ApiProperty()
   @IsNotEmpty()
   phoneNumber: string;
+}
 
+class ResidenceDataDto {
   @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
   addressLine1: string;
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
   addressLine2: string;
 
   @ApiProperty()
   @IsNotEmpty()
+  @IsString()
   city: string;
 
   @ApiProperty()
   @IsNotEmpty()
+  @IsString()
   state: string;
 
   @ApiProperty()
   @IsNotEmpty()
-  zipcode: number;
+  @IsString()
+  zipcode: string;
 }
 
 class PersonalInformationDto {
@@ -60,6 +68,31 @@ class PersonalInformationDto {
   @ApiProperty()
   @IsDateString()
   dob: Date;
+
+  @ApiProperty()
+  @IsString()
+  individualIncome: string;
+
+  @ApiProperty()
+  @IsString()
+  incomeFrequency: string;
+}
+
+class AcknowledgementDataDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsDateString()
+  agreement_term_1_checked_at: Date;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsDateString()
+  credit_check_authorized_at: Date;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  joint_intention_disclosure_accepted_at: Date;
 }
 
 export class ApplyCreditQualificationReqDto {
@@ -72,6 +105,11 @@ export class ApplyCreditQualificationReqDto {
   opportunityId: string;
 
   @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  contactId: string;
+
+  @ApiProperty()
   @IsJWT()
   authenticationToken: string;
 
@@ -79,23 +117,29 @@ export class ApplyCreditQualificationReqDto {
   @IsNotEmpty()
   @Type(() => ApplicantDataDto)
   @ValidateNested()
-  primaryApplicantData: ApplicantDataDto;
-
-  @ApiPropertyOptional({ type: ApplicantDataDto })
-  @IsOptional({ always: true })
-  @Type(() => ApplicantDataDto)
-  @ValidateNested()
-  coApplicantData: ApplicantDataDto;
+  applicant: ApplicantDataDto;
 
   @ApiProperty({ type: PersonalInformationDto })
   @IsNotEmpty()
   @Type(() => PersonalInformationDto)
   @ValidateNested()
-  primaryApplicantSecuredData: PersonalInformationDto;
+  applicantSecuredData: PersonalInformationDto;
 
-  @ApiProperty({ type: PersonalInformationDto })
-  @IsOptional()
-  @Type(() => PersonalInformationDto)
+  @ApiProperty({ type: ResidenceDataDto })
+  @IsNotEmpty()
+  @Type(() => ResidenceDataDto)
   @ValidateNested()
-  coApplicantSecuredData: PersonalInformationDto;
+  primaryResidence: ResidenceDataDto;
+
+  @ApiProperty({ type: ResidenceDataDto })
+  @IsNotEmpty()
+  @Type(() => ResidenceDataDto)
+  @ValidateNested()
+  installationAddress: ResidenceDataDto;
+
+  @ApiProperty({ type: AcknowledgementDataDto })
+  @IsNotEmpty()
+  @Type(() => AcknowledgementDataDto)
+  @ValidateNested()
+  acknowledgement: AcknowledgementDataDto;
 }

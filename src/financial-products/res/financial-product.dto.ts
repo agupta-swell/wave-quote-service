@@ -1,4 +1,5 @@
 import { Pagination, ServiceResponse } from 'src/app/common';
+import { FmvAppraisalDto } from 'src/fmvAppraisal/res/fmv-appraisal.dto';
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 
 export class FinancialProductDto {
@@ -25,6 +26,9 @@ export class FinancialProductDto {
 
   @ExposeProp()
   fmvAppraisalId: string;
+
+  @ExposeProp({ type: FmvAppraisalDto })
+  fmvAppraisal: FmvAppraisalDto;
 
   @ExposeProp()
   nonAchFee: number;

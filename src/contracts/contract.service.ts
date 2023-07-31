@@ -40,6 +40,7 @@ import { UtilityProgramMasterService } from 'src/utility-programs-master/utility
 import { roundNumber } from 'src/utils/transformNumber';
 import { CustomerPayment } from '../customer-payments/customer-payment.schema';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
+import { QualificationService } from '../qualifications/qualification.service';
 import {
   CONTRACTING_SYSTEM_STATUS,
   IContractSignerDetails,
@@ -69,6 +70,7 @@ import {
   SaveContractDto,
   SendContractDto,
 } from './res';
+import { QUALIFICATION_STATUS, QUALIFICATION_TYPE } from 'src/qualifications/constants';
 
 @Injectable()
 export class ContractService {
@@ -96,6 +98,7 @@ export class ContractService {
     private readonly systemProductionService: SystemProductionService,
     private readonly installedProductService: InstalledProductService,
     private readonly projectService: ProjectService,
+    private readonly qualificationService: QualificationService,
   ) {}
 
   async getCurrentContracts(opportunityId: string): Promise<OperationResult<GetCurrentContractDto>> {
@@ -345,6 +348,33 @@ export class ContractService {
 
     if (!quote) {
       throw ApplicationException.EntityNotFound(`Associated Quote Id: ${contract.associatedQuoteId}`);
+    }
+
+    const approvalTypeRequired: QUALIFICATION_TYPE[] = [];
+
+    const { requiresHardCreditApproval, requiresSoftCreditApproval } =
+      quote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot || {};
+
+    if (requiresHardCreditApproval) {
+      approvalTypeRequired.push(QUALIFICATION_TYPE.HARD);
+    }
+
+    if (requiresSoftCreditApproval) {
+      approvalTypeRequired.push(QUALIFICATION_TYPE.SOFT);
+    }
+
+    const approvedQualifications = await this.qualificationService.getSoftAndHardFNIQualificationByOpportunityId({
+      opportunityId: opportunity._id,
+      condition: { qualificationStatus: QUALIFICATION_STATUS.APPROVED },
+      projection: { type: 1 },
+    });
+
+    const canGenerateContract = approvalTypeRequired.every(qualificationType =>
+      approvedQualifications.find(qualification => qualification.type === qualificationType),
+    );
+
+    if (!canGenerateContract) {
+      throw new BadRequestException("Quote's Financial Product Requires Credit Approval");
     }
 
     const [contact, recordOwner, property] = await Promise.all([
@@ -886,6 +916,7 @@ export class ContractService {
     const contact = await this.contactService.getContactById(opportunity.contactId);
 
     const envelope = await this.docusignCommunicationService.sendWetSingedContract(
+      contract.id,
       financier,
       carbonCopiesRecipient,
       file,
@@ -1295,10 +1326,20 @@ export class ContractService {
 
   public async getNotVoidedContractsBySystemDesignId(systemDesignId: string): Promise<Contract[]> {
     const foundQuotes = await this.quoteService.getQuotesByCondition({ systemDesignId, isArchived: false });
-    const foundQuoteIds = foundQuotes.map(({ _id }) => _id);
+    const foundQuoteIds = foundQuotes?.map(({ _id }) => _id);
     return this.contractModel.find({
       associatedQuoteId: { $in: foundQuoteIds },
       contractStatus: { $ne: PROCESS_STATUS.VOIDED },
     });
+  }
+
+  async getFinancialProductType(query = {}): Promise<string | undefined> {
+    const contract = await this.contractModel.findOne(query).lean();
+
+    if (contract?.associatedQuoteId) {
+      const quote = await this.quoteService.getOneById(contract.associatedQuoteId);
+      return quote?.quoteFinanceProduct.financeProduct.productType;
+    }
+    return undefined;
   }
 }

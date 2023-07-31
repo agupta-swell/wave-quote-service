@@ -6,6 +6,7 @@ export enum EVendor {
   GENABILITY = 'GENABILITY',
   PVWATTS = 'PVWATTS',
   GOOGLE_SUNROOF = 'GOOGLE_SUNROOF',
+  FNI = 'FNI',
 }
 
 export enum EHttpMethod {

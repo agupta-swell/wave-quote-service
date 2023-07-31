@@ -2,19 +2,12 @@ import { ExposeAndMap, ExposeProp } from 'src/shared/decorators';
 import { ServiceResponse } from '../../app/common';
 
 class ApplicantDataDto {
-  @ExposeProp()
-  firstName: string;
-
-  @ExposeProp()
-  middleName: string;
-
-  @ExposeProp()
-  lastName: string;
 
   @ExposeProp()
   email: string;
 
-  @ExposeAndMap({}, ({ obj }) => obj.cellPhone)
+  // convert (333) 333-3333 -> 3333333333
+  @ExposeAndMap({}, ({ obj }) => obj.cellPhone?.match(/\d+/g).join(""))
   phoneNumber: string;
 
   @ExposeAndMap({}, ({ obj }) => obj.address1)
@@ -49,11 +42,17 @@ export class GetApplicationDetailDto {
   @ExposeAndMap({ type: ApplicantDataDto }, ({ obj }) => obj.contact)
   primaryApplicantData: ApplicantDataDto;
 
-  @ExposeProp({ type: ApplicantDataDto })
+  @ExposeProp({ type: ApplicantDataDto }) // TODO: remove later
   coApplicantData: ApplicantDataDto;
 
   @ExposeProp()
   newJWTToken: string;
+
+  @ExposeProp()
+  hasCoApplicant: boolean ;
+
+  @ExposeProp()
+  contactId: string ;
 }
 
 export class GetApplicationDetailRes implements ServiceResponse<GetApplicationDetailDto> {

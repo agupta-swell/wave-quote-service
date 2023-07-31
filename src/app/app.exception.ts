@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { DOCUSIGN_INTEGRATION_TYPE } from 'src/docusign-integration/constants';
 
 export class ApplicationException extends HttpException {
   private constructor(
@@ -77,8 +78,54 @@ export class ApplicationException extends HttpException {
     return new ApplicationException('Contract is not invalid', HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  static InvalidDocusignIntegrationConfig(): ApplicationException {
-    return new ApplicationException('Docusign Integration Config is missing.', HttpStatus.UNPROCESSABLE_ENTITY);
+  static InvalidDocusignIntegrationConfig(type = DOCUSIGN_INTEGRATION_TYPE.DEFAULT): ApplicationException {
+    return new ApplicationException(`${type} Docusign Integration Config is missing.`, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+
+  static maxInstallationAmountExceeded(): ApplicationException {
+    return new ApplicationException(
+      'The cost of installing this system exceeds the allowed maximum installation amount.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  static InvalidDocusignIntegrationType(): ApplicationException {
+    return new ApplicationException('Docusign Integration Type is invalid.', HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+
+  static FniProcessError(): ApplicationException {
+    return new ApplicationException(
+      'There was an error processing your request. Please try again. If you are still having issues, contact your sales agent.',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  static ActiveFniApplicationNotFound(qualificationCreditId): ApplicationException {
+    return new ApplicationException(
+      `Qualification Credit ${qualificationCreditId} has no ACTIVE fniApplication`,
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  static QualifyQuoteAgainstFinancialProductSettingsError(message: string): ApplicationException {
+      return new ApplicationException(
+        message,
+        HttpStatus.BAD_REQUEST
+      );
+  }
+
+  static EsaSolverRowNotFound(message: string): ApplicationException {
+    return new ApplicationException(
+      message,
+      HttpStatus.BAD_REQUEST
+    );
+  }
+
+  static QuoteNotFound(message: string): ApplicationException {
+    return new ApplicationException(
+      message,
+      HttpStatus.BAD_REQUEST
+    );
   }
 
   static maxInstallationAmountExceeded(): ApplicationException {

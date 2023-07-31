@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { inRange } from 'lodash';
 import { FilterQuery, LeanDocument, Model, ObjectId, Types } from 'mongoose';
 import { OperationResult, Pagination } from 'src/app/common';
+import { FmvAppraisal, FMV_APPRAISAL } from 'src/fmvAppraisal/fmvAppraisal.schema';
 import { FundingSource } from 'src/funding-sources/funding-source.schema';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
@@ -17,6 +18,7 @@ import { FinancialProductDto } from './res/financial-product.dto';
 export class FinancialProductsService {
   constructor(
     @InjectModel(FINANCIAL_PRODUCT) private financialProduct: Model<FinancialProduct>,
+    @InjectModel(FMV_APPRAISAL) private fmvAppraisal: Model<FmvAppraisal>,
     private readonly systemDesignService: SystemDesignService,
     private readonly fundingSourceService: FundingSourceService,
     private readonly systemProductionService: SystemProductionService,
@@ -74,6 +76,15 @@ export class FinancialProductsService {
   ): Promise<LeanDocument<FinancialProduct>[]> {
     return Promise.all(
       financialProducts.map(async financialProduct => {
+        let fmvAppraisal;
+        if (financialProduct.fmvAppraisalId) {
+          fmvAppraisal = await this.fmvAppraisal.findById(financialProduct.fmvAppraisalId);
+        }
+
+        if (fmvAppraisal) {
+          financialProduct.fmvAppraisal = fmvAppraisal;
+        }
+
         const foundFundingSource = fundingSources.find(fs => fs?._id.toString() === financialProduct.fundingSourceId)!;
         if (foundFundingSource?.type === 'lease') {
           const systemDesign: LeanDocument<SystemDesign> = data.systemDesign;

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
+import { DOCUSIGN_INTEGRATION_TYPE } from '../constants';
 
 export class DocusignIntegrationReqDto {
   @ApiProperty()
@@ -17,4 +18,8 @@ export class DocusignIntegrationReqDto {
   @ApiProperty()
   @IsString()
   redirectUri: string;
+
+  @ApiProperty()
+  @IsString()
+  type: DOCUSIGN_INTEGRATION_TYPE;
 }

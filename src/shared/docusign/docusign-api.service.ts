@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable no-use-before-define */
 /* eslint-disable no-plusplus */
 import * as https from 'https';
@@ -11,13 +12,12 @@ import { EnvelopeSummary } from 'docusign-esign';
 import { cloneDeep } from 'lodash';
 import { DocusignIntegrationService } from 'src/docusign-integration/docusign-integration.service';
 import { DocusignIntegrationDocument } from 'src/docusign-integration/docusign-integration.schema';
-import { JWT_EXPIRES_IN, SCOPES } from 'src/docusign-integration/constants';
+import { DOCUSIGN_INTEGRATION_TYPE, JWT_EXPIRES_IN, SCOPES } from 'src/docusign-integration/constants';
 import { LeanDocument } from 'mongoose';
 import { InjectDocusignContext } from './decorators/inject-docusign-context';
 import { docusignMetaStorage } from './decorators/meta-storage';
 import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
 import { IDocusignContextStore, IRecipient, TResendEnvelopeStatus } from './interfaces';
-import { ILoginAccountWithMeta } from './interfaces/ILoginAccountWithMeta';
 import { DocusignException } from './docusign.exception';
 import { IDefaultContractor } from './interfaces/IDefaultContractor';
 import { IPageNumberFormatter } from './interfaces/IPageNumberFormatter';
@@ -25,40 +25,13 @@ import { IDocusignAwsSecretPayload } from './interfaces/IDocusignAwsSecretPayloa
 import { MultipartStreamBuilder } from '../multipart-builder';
 import { KEYS } from './constants';
 
-const PreCheckValidAuthConfig = (): MethodDecorator => (
-  target: any,
-  propertyKey: string,
-  descriptor: PropertyDescriptor,
-) => {
-  const originalMethod = descriptor.value;
-  descriptor.value = async function (...args: any[]) {
-    let isInitAuthConfig = false;
-    if (!DocusignApiService._jwtAuthConfig || !DocusignApiService._jwtAuthConfig.accessToken) {
-      const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegration();
-
-      if (!docusignIntegration || !docusignIntegration.accessToken) {
-        throw ApplicationException.InvalidDocusignIntegrationConfig();
-      }
-      DocusignApiService._jwtAuthConfig = docusignIntegration;
-      isInitAuthConfig = true;
-    }
-    await this.getNewAccessTokenIfExpired();
-
-    if (isInitAuthConfig) await this.setAuthConfig();
-
-    return originalMethod.apply(this, args);
-  };
-
-  return descriptor;
-};
-
 @Injectable()
 export class DocusignApiService<Context> implements OnModuleInit {
-  private static apiClient: docusign.ApiClient;
+  private static apiClient: Map<DOCUSIGN_INTEGRATION_TYPE, docusign.ApiClient> = new Map();
 
-  private static envelopeApi: docusign.EnvelopesApi;
+  private static envelopeApi: Map<DOCUSIGN_INTEGRATION_TYPE, docusign.EnvelopesApi> = new Map();
 
-  private static accountId: string;
+  private static accountId: Map<DOCUSIGN_INTEGRATION_TYPE, string> = new Map();
 
   private readonly docusignCredentials: IDocusignAwsSecretPayload;
 
@@ -66,11 +39,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
   private _docusignEmail: string;
 
-  private static _baseUrl: URL;
+  private static _baseUrl: Map<DOCUSIGN_INTEGRATION_TYPE, URL> = new Map();
 
-  private static _headers: Record<string, string>;
+  private static _headers: Map<DOCUSIGN_INTEGRATION_TYPE, Record<string, string>> = new Map();
 
-  static _jwtAuthConfig: LeanDocument<DocusignIntegrationDocument>;
+  static _jwtAuthConfig: Map<DOCUSIGN_INTEGRATION_TYPE, LeanDocument<DocusignIntegrationDocument>> = new Map();
 
   constructor(
     @InjectDocusignContext()
@@ -109,45 +82,54 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
     this._docusignEmail = this.docusignCredentials.docusign.email;
 
-    DocusignApiService.apiClient = new docusign.ApiClient({
-      basePath: this.docusignCredentials.docusign.baseUrl,
-      oAuthBasePath: null as any,
+    Object.values(DOCUSIGN_INTEGRATION_TYPE).forEach((docusignIntegrationType: DOCUSIGN_INTEGRATION_TYPE) => {
+      DocusignApiService.apiClient.set(
+        docusignIntegrationType,
+        new docusign.ApiClient({
+          basePath: this.docusignCredentials.docusign.baseUrl,
+          oAuthBasePath: null as any,
+        }),
+      );
     });
 
-    const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegration();
+    await Promise.all(
+      Object.values(DOCUSIGN_INTEGRATION_TYPE).map(async (docusignIntegrationType: DOCUSIGN_INTEGRATION_TYPE) => {
+        const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegrationByType(
+          docusignIntegrationType,
+        );
+        if (docusignIntegration?.accessToken) {
+          DocusignApiService._jwtAuthConfig.set(docusignIntegrationType, docusignIntegration);
+          try {
+            await this.getNewAccessTokenIfExpired(docusignIntegrationType);
 
-    if (docusignIntegration && docusignIntegration.accessToken) {
-      DocusignApiService._jwtAuthConfig = docusignIntegration;
-      try {
-        await this.getNewAccessTokenIfExpired();
-
-        // setAuthConfig on init
-        await this.setAuthConfig();
-      } catch (e) {
-        console.error('onModuleInit Docusign Integration Error: ', e.message);
-      }
-    }
+            // setAuthConfig on init
+            await this.setAuthConfig(docusignIntegrationType);
+          } catch (e) {
+            console.error('onModuleInit Docusign Integration Error: ', e.message);
+          }
+        }
+      }),
+    );
   }
 
-  public async updateJwtAuthConfig(newJwtAuthConfig: LeanDocument<DocusignIntegrationDocument>): Promise<void> {
-    DocusignApiService._jwtAuthConfig = newJwtAuthConfig;
-    await this.setAuthConfig();
+  public async updateJwtAuthConfig(
+    newJwtAuthConfig: LeanDocument<DocusignIntegrationDocument>,
+    docusignIntegrationType: DOCUSIGN_INTEGRATION_TYPE,
+  ): Promise<void> {
+    DocusignApiService._jwtAuthConfig.set(docusignIntegrationType, newJwtAuthConfig);
+    await this.setAuthConfig(docusignIntegrationType);
   }
 
-  async getNewAccessTokenIfExpired(): Promise<boolean> {
+  async getNewAccessTokenIfExpired(docusignIntegrationType: DOCUSIGN_INTEGRATION_TYPE): Promise<boolean> {
     const checkTime = new Date().getTime();
 
-    if (checkTime > DocusignApiService._jwtAuthConfig.expiresAt.getTime()) {
-      const { userId, clientId, rsaPrivateKey } = DocusignApiService._jwtAuthConfig;
+    if (checkTime > DocusignApiService._jwtAuthConfig.get(docusignIntegrationType)!.expiresAt.getTime()) {
+      const { userId, clientId, rsaPrivateKey } = DocusignApiService._jwtAuthConfig.get(docusignIntegrationType)!;
 
       try {
-        const results = await DocusignApiService.apiClient.requestJWTUserToken(
-          clientId,
-          userId,
-          SCOPES,
-          Buffer.from(rsaPrivateKey),
-          JWT_EXPIRES_IN,
-        );
+        const results = await DocusignApiService.apiClient
+          .get(docusignIntegrationType)!
+          .requestJWTUserToken(clientId, userId, SCOPES, Buffer.from(rsaPrivateKey), JWT_EXPIRES_IN);
 
         // The access token granted by JWT Grant expires after one hour,
         // see document: https://developers.docusign.com/platform/auth/jwt/jwt-get-token/,
@@ -155,11 +137,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
         // should get a new access token about 15 minutes before their existing one expires
         const expiresAt = new Date(Date.now() + (results.body.expires_in - 15 * 60) * 1000);
 
-        await this.docusignIntegrationService.updateAccessToken(
-          DocusignApiService._jwtAuthConfig._id,
-          results.body.access_token,
+        await this.docusignIntegrationService.updateAccessToken({
+          id: DocusignApiService._jwtAuthConfig.get(docusignIntegrationType)!._id,
+          accessToken: results.body.access_token,
           expiresAt,
-        );
+        });
 
         return true;
       } catch (error) {
@@ -170,48 +152,68 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return false;
   }
 
-  async setAuthConfig(): Promise<void> {
+  async setAuthConfig(docusignIntegrationType: DOCUSIGN_INTEGRATION_TYPE): Promise<void> {
     try {
-      DocusignApiService.apiClient.addDefaultHeader(
-        'Authorization',
-        `Bearer ${DocusignApiService._jwtAuthConfig.accessToken}`,
-      );
+      DocusignApiService.apiClient
+        .get(docusignIntegrationType)!
+        .addDefaultHeader(
+          'Authorization',
+          `Bearer ${DocusignApiService._jwtAuthConfig.get(docusignIntegrationType)!.accessToken}`,
+        );
       // get user info
-      const userInfo = await DocusignApiService.apiClient.getUserInfo(DocusignApiService._jwtAuthConfig.accessToken);
+      const userInfo = await DocusignApiService.apiClient
+        .get(docusignIntegrationType)!
+        .getUserInfo(DocusignApiService._jwtAuthConfig.get(docusignIntegrationType)!.accessToken);
 
       const { accounts } = userInfo;
 
-      if (!accounts || !accounts.length) {
+      let docusignAccount;
+      const defaultAccount = accounts?.find(account => account.isDefault === 'true');
+
+      if (docusignIntegrationType === DOCUSIGN_INTEGRATION_TYPE.ESA) {
+        const ESAAccountId = accounts?.find(account => account.accountId === process.env.DOCUSIGN_ESA_ACCOUNT_ID);
+        docusignAccount = ESAAccountId || defaultAccount;
+      } else {
+        docusignAccount = defaultAccount;
+      }
+      
+      console.log(JSON.stringify(docusignAccount));
+      if (!docusignAccount) {
         throw new Error('Could not login into docusign');
       }
 
-      const account = accounts[0];
+      DocusignApiService.accountId.set(docusignIntegrationType, docusignAccount.accountId);
 
-      DocusignApiService.accountId = account.accountId || '';
+      const baseUrl = docusignAccount.baseUri;
 
-      const baseUrl = account.baseUri || '';
+      DocusignApiService._baseUrl.set(
+        docusignIntegrationType,
+        new URL(`${baseUrl}/restapi/v2.1/accounts/${DocusignApiService.accountId.get(docusignIntegrationType)!}`),
+      );
 
-      DocusignApiService._baseUrl = new URL(`${baseUrl}/restapi/v2.1/accounts/${DocusignApiService.accountId}`);
+      DocusignApiService.apiClient.get(docusignIntegrationType)!.setBasePath(`${baseUrl}/restapi`);
 
-      DocusignApiService.apiClient.setBasePath(`${baseUrl}/restapi`);
+      DocusignApiService.envelopeApi.set(
+        docusignIntegrationType,
+        new docusign.EnvelopesApi(DocusignApiService.apiClient.get(docusignIntegrationType)!),
+      );
 
-      DocusignApiService.envelopeApi = new docusign.EnvelopesApi(DocusignApiService.apiClient);
-
-      DocusignApiService._headers = {
-        Authorization: `Bearer ${DocusignApiService._jwtAuthConfig.accessToken}`,
-      };
+      DocusignApiService._headers.set(docusignIntegrationType, {
+        Authorization: `Bearer ${DocusignApiService._jwtAuthConfig.get(docusignIntegrationType)!.accessToken}`,
+      });
     } catch (error) {
       throw new DocusignException(error, error.response?.text);
     }
   }
 
-  @PreCheckValidAuthConfig()
   public async sendContract(
     createContractPayload: IDocusignCompositeContract,
     pageFrom: string,
     isDraft = false,
   ): Promise<EnvelopeSummary> {
     const context = this.contextStore.get<Context>();
+
+    const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
 
     createContractPayload.compositeTemplates.forEach(e => {
       e.serverTemplates.forEach(e => context.serverTemplateIds.push(e.templateId));
@@ -237,7 +239,9 @@ export class DocusignApiService<Context> implements OnModuleInit {
     };
 
     try {
-      const result = await DocusignApiService.envelopeApi.createEnvelope(DocusignApiService.accountId, envelope);
+      const result = await DocusignApiService.envelopeApi
+        .get(docusignIntegrationType)!
+        .createEnvelope(DocusignApiService.accountId.get(docusignIntegrationType)!, envelope);
 
       if (!result.envelopeId) return result;
 
@@ -271,14 +275,41 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return this;
   }
 
-  @PreCheckValidAuthConfig()
+  public async preCheckValidAuthConfig(docusignIntegrationType: DOCUSIGN_INTEGRATION_TYPE) {
+    const curCtx = this.contextStore.get<Context>();
+
+    curCtx.docusignIntegrationType = docusignIntegrationType;
+
+    let isInitAuthConfig = false;
+    if (!DocusignApiService._jwtAuthConfig.get(docusignIntegrationType)?.accessToken) {
+      const docusignIntegration = await this.docusignIntegrationService.findOneDocusignIntegrationByType(
+        docusignIntegrationType,
+      );
+
+      if (!docusignIntegration?.accessToken) {
+        throw ApplicationException.InvalidDocusignIntegrationConfig(docusignIntegrationType);
+      }
+      DocusignApiService._jwtAuthConfig.set(docusignIntegrationType, docusignIntegration);
+      isInitAuthConfig = true;
+    }
+    await this.getNewAccessTokenIfExpired(docusignIntegrationType);
+
+    if (isInitAuthConfig) await this.setAuthConfig(docusignIntegrationType);
+  }
+
   public getEnvelopeDocumentById(envelopeId: string, showChanges: boolean): Promise<IncomingMessage> {
+    const context = this.contextStore.get<Context>();
+
+    const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+
     return new Promise((resolve, reject) => {
       https.get(
         {
-          hostname: DocusignApiService._baseUrl.host,
-          path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}/documents/combined?show_changes=${showChanges}`,
-          headers: DocusignApiService._headers,
+          hostname: DocusignApiService._baseUrl.get(docusignIntegrationType)!.host,
+          path: `${
+            DocusignApiService._baseUrl.get(docusignIntegrationType)!.pathname
+          }/envelopes/${envelopeId}/documents/combined?show_changes=${showChanges}`,
+          headers: DocusignApiService._headers.get(docusignIntegrationType)!,
         },
         res => {
           if (res.statusCode !== 200) {
@@ -295,12 +326,17 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return this.updateEnvelope(envelopeId, { status: 'sent' }, 'Send contract from draft');
   }
 
-  @PreCheckValidAuthConfig()
-  public async resendEnvelop(envelopedId: string): Promise<TResendEnvelopeStatus> {
+  public async resendEnvelop(envelopeId: string): Promise<TResendEnvelopeStatus> {
     try {
-      const res = await DocusignApiService.envelopeApi.update(DocusignApiService.accountId, envelopedId, {
-        resendEnvelope: true,
-      });
+      const context = this.contextStore.get<Context>();
+
+      const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+
+      const res = await DocusignApiService.envelopeApi
+        .get(docusignIntegrationType)!
+        .update(DocusignApiService.accountId.get(docusignIntegrationType)!, envelopeId, {
+          resendEnvelope: true,
+        });
 
       if (res.errorDetails) {
         return {
@@ -319,7 +355,6 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
-  @PreCheckValidAuthConfig()
   public sendWetSignedContract(
     document: NodeJS.ReadableStream,
     originFilename: string,
@@ -330,6 +365,10 @@ export class DocusignApiService<Context> implements OnModuleInit {
     carbonCopyRecipients?: IRecipient[],
   ): Promise<EnvelopeSummary> {
     return new Promise((resolve, reject) => {
+      const context = this.contextStore.get<Context>();
+
+      const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+
       const filename = `${encodeURIComponent(originFilename)}_${+Date.now()}_${randomBytes(4).toString('hex')}`;
       const payload = {
         emailSubject,
@@ -366,10 +405,10 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       const req = https.request(
         {
-          hostname: DocusignApiService._baseUrl.host,
-          path: `${DocusignApiService._baseUrl.pathname}/envelopes`,
+          hostname: DocusignApiService._baseUrl.get(docusignIntegrationType)!.host,
+          path: `${DocusignApiService._baseUrl.get(docusignIntegrationType)!.pathname}/envelopes`,
           headers: {
-            ...DocusignApiService._headers,
+            ...DocusignApiService._headers.get(docusignIntegrationType)!,
             'Content-Type': multipartStream.getType(),
           },
           method: 'post',
@@ -475,14 +514,19 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
-  @PreCheckValidAuthConfig()
   private getDocumentTabs(envelopeId: string, docId: string): Promise<ICompiledTemplate.DocTabs> {
     return new Promise((resolve, reject) => {
+      const context = this.contextStore.get<Context>();
+
+      const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+
       https.get(
         {
-          hostname: DocusignApiService._baseUrl.host,
-          path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}/documents/${docId}/tabs`,
-          headers: DocusignApiService._headers,
+          hostname: DocusignApiService._baseUrl.get(docusignIntegrationType)!.host,
+          path: `${
+            DocusignApiService._baseUrl.get(docusignIntegrationType)!.pathname
+          }/envelopes/${envelopeId}/documents/${docId}/tabs`,
+          headers: DocusignApiService._headers.get(docusignIntegrationType)!,
         },
         res => {
           const chunks: Buffer[] = [];
@@ -522,7 +566,6 @@ export class DocusignApiService<Context> implements OnModuleInit {
     return result;
   }
 
-  @PreCheckValidAuthConfig()
   private populatePrefillTabs(
     envelopeId: string,
     docId: string,
@@ -530,12 +573,18 @@ export class DocusignApiService<Context> implements OnModuleInit {
     mode: 'update' | 'create' = 'update',
   ): Promise<void> {
     return new Promise((resolve, reject) => {
+      const context = this.contextStore.get<Context>();
+
+      const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+
       https
         .request(
           {
-            hostname: DocusignApiService._baseUrl.host,
-            path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}/documents/${docId}/tabs`,
-            headers: DocusignApiService._headers,
+            hostname: DocusignApiService._baseUrl.get(docusignIntegrationType)!.host,
+            path: `${
+              DocusignApiService._baseUrl.get(docusignIntegrationType)!.pathname
+            }/envelopes/${envelopeId}/documents/${docId}/tabs`,
+            headers: DocusignApiService._headers.get(docusignIntegrationType)!,
             method: mode === 'update' ? 'put' : 'post',
           },
           res => {
@@ -626,10 +675,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
-  @PreCheckValidAuthConfig()
   private async getTemplatePagesCount(templateId: string): Promise<number> {
     return new Promise((resolve, reject) => {
       const ctx = this.contextStore.get<Context>();
+
+      const docusignIntegrationType = ctx.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
 
       const { envelopeId } = ctx;
 
@@ -653,9 +703,11 @@ export class DocusignApiService<Context> implements OnModuleInit {
 
       https.get(
         {
-          hostname: DocusignApiService._baseUrl.host,
-          path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}/documents`,
-          headers: DocusignApiService._headers,
+          hostname: DocusignApiService._baseUrl.get(docusignIntegrationType)!.host,
+          path: `${
+            DocusignApiService._baseUrl.get(docusignIntegrationType)!.pathname
+          }/envelopes/${envelopeId}/documents`,
+          headers: DocusignApiService._headers.get(docusignIntegrationType)!,
         },
         res => {
           if (res.statusCode !== 200) {
@@ -689,15 +741,18 @@ export class DocusignApiService<Context> implements OnModuleInit {
     });
   }
 
-  @PreCheckValidAuthConfig()
   private updateEnvelope(envelopeId: string, payload: Record<string, unknown>, errorTitle: string): Promise<any> {
     return new Promise((resolve, reject) => {
+      const context = this.contextStore.get<Context>();
+
+      const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
+
       https
         .request(
           {
-            hostname: DocusignApiService._baseUrl.host,
-            path: `${DocusignApiService._baseUrl.pathname}/envelopes/${envelopeId}`,
-            headers: DocusignApiService._headers,
+            hostname: DocusignApiService._baseUrl.get(docusignIntegrationType)!.host,
+            path: `${DocusignApiService._baseUrl.get(docusignIntegrationType)!.pathname}/envelopes/${envelopeId}`,
+            headers: DocusignApiService._headers.get(docusignIntegrationType)!,
             method: 'put',
           },
           res => {

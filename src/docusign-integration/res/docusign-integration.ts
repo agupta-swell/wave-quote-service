@@ -1,4 +1,5 @@
 import { ExposeMongoId, ExposeProp } from 'src/shared/decorators';
+import { DOCUSIGN_INTEGRATION_TYPE } from '../constants';
 
 export class DocusignIntegrationResDto {
   @ExposeMongoId()
@@ -21,6 +22,9 @@ export class DocusignIntegrationResDto {
 
   @ExposeProp()
   redirectUri: string;
+
+  @ExposeProp()
+  type: DOCUSIGN_INTEGRATION_TYPE;
 
   @ExposeProp()
   expiresAt: Date;

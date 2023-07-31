@@ -1,7 +1,5 @@
-import { LeanDocument } from 'mongoose';
-import { Manufacturer } from 'src/manufacturers/manufacturer.schema';
-import { ISnapshotProduct } from 'src/products-v2/interfaces';
-import { WithMetaOfType } from 'src/shared/mongo';
+import { cloneDeep } from 'lodash';
+import { DESIGN_MODE } from 'src/system-designs/constants';
 import { SystemDesignWithManufacturerMeta } from 'src/system-designs/system-design.schema';
 
 export interface ISystemDesignProducts {
@@ -12,9 +10,10 @@ export interface ISystemDesignProducts {
 }
 
 export const parseSystemDesignProducts = (systemDesign: SystemDesignWithManufacturerMeta): ISystemDesignProducts => {
-  const { designMode, roofTopDesignData, capacityProductionDesignData } = systemDesign;
+  const cloneSystemDesign = cloneDeep(systemDesign);
+  const { designMode, roofTopDesignData, capacityProductionDesignData } = cloneSystemDesign;
 
-  if (designMode === 'roofTop') {
+  if (designMode === DESIGN_MODE.ROOF_TOP) {
     return {
       systemDesignAdders: roofTopDesignData.adders,
       systemDesignBatteries: roofTopDesignData.storage,

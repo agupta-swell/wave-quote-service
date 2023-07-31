@@ -2,6 +2,7 @@
 /* eslint-disable no-return-assign */
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import * as dayjs from 'dayjs';
 import { isNil, omit, omitBy, pickBy, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
@@ -9,13 +10,20 @@ import { STATUS_QUERY } from 'src/contracts/constants';
 import { ContractService } from 'src/contracts/contract.service';
 import { DiscountService } from 'src/discounts/discount.service';
 import { IExistingSystem } from 'src/existing-systems/interfaces';
+import { FinancialProduct } from 'src/financial-products/financial-product.schema';
 import { FinancialProductsService } from 'src/financial-products/financial-product.service';
+import { PROJECT_TYPES } from 'src/fmvAppraisal/constant';
+import { FmvAppraisalService } from 'src/fmvAppraisal/fmvAppraisal.service';
 import { FundingSourceService } from 'src/funding-sources/funding-source.service';
 import { GsProgramsService } from 'src/gs-programs/gs-programs.service';
 import { IGetDetail } from 'src/lease-solver-configs/typing';
 import { ManufacturerService } from 'src/manufacturers/manufacturer.service';
+import { Opportunity } from 'src/opportunities/opportunity.schema';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { PromotionService } from 'src/promotions/promotion.service';
+import { PROPERTY_COLLECTION_NAME } from 'src/property/constants';
+import { PropertyDocument } from 'src/property/property.schema';
+import { PropertyService } from 'src/property/property.service';
 import { ProposalService } from 'src/proposals/proposal.service';
 import { QuotePartnerConfigService } from 'src/quote-partner-configs/quote-partner-config.service';
 import { RebateProgram } from 'src/rebate-programs/rebate-programs.schema';
@@ -23,13 +31,19 @@ import { RebateProgramService } from 'src/rebate-programs/rebate-programs.servic
 import { assignToModel } from 'src/shared/transform/assignToModel';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
 import { FINANCE_TYPE_EXISTING_SOLAR } from 'src/system-designs/constants';
+import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
+import { UtilitiesMaster, UTILITIES_MASTER } from 'src/utilities-master/utilities-master.schema';
+import { UtilitiesMasterService } from 'src/utilities-master/utilities-master.service';
+import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
 import { UtilityProgramMasterService } from 'src/utility-programs-master/utility-program-master.service';
 import { getBooleanString } from 'src/utils/common';
 import { roundNumber } from 'src/utils/transformNumber';
+import { CSV_PRIMARY_QUOTE } from 'src/v2-esa-pricing-solver/constants';
+import { EsaPricingSolverService } from 'src/v2-esa-pricing-solver/v2-esa-pricing-solver.service';
 import { OperationResult, Pagination } from '../app/common';
 import { CashPaymentConfigService } from '../cash-payment-configs/cash-payment-config.service';
 import { LeaseSolverConfigService } from '../lease-solver-configs/lease-solver-config.service';
@@ -70,10 +84,15 @@ import { ICreateProductAttribute } from './typing';
 export class QuoteService {
   constructor(
     @InjectModel(QUOTE) private readonly quoteModel: Model<Quote>,
+    // @ts-ignore
+    @InjectModel(PROPERTY_COLLECTION_NAME) private readonly propertyModel: Model<PropertyDocument>,
+    @InjectModel(UTILITIES_MASTER) private readonly utilitiesMasterModel: Model<UtilitiesMaster>,
     @InjectModel(I_T_C) private readonly iTCModel: Model<ITC>,
     @Inject(forwardRef(() => SystemDesignService))
     private readonly systemDesignService: SystemDesignService,
+    private readonly fmvAppraisalService: FmvAppraisalService,
     private readonly utilityProgramService: UtilityProgramMasterService,
+    private readonly utilitiesMasterService: UtilitiesMasterService,
     private readonly fundingSourceService: FundingSourceService,
     @Inject(forwardRef(() => FinancialProductsService))
     private readonly financialProductService: FinancialProductsService,
@@ -94,11 +113,12 @@ export class QuoteService {
     private readonly manufacturerService: ManufacturerService,
     @Inject(forwardRef(() => QuoteCostBuildUpService))
     private readonly quoteCostBuildUpService: QuoteCostBuildUpService,
-    @Inject(forwardRef(() => QuoteFinanceProductService))
-    private readonly quoteFinanceProductService: QuoteFinanceProductService,
+    @Inject(forwardRef(() => PropertyService))
+    private readonly propertyService: PropertyService,
     private readonly taxCreditConfigService: TaxCreditConfigService,
     private readonly gsProgramsService: GsProgramsService,
     private readonly systemProductionService: SystemProductionService,
+    private readonly esaPricingSolverService: EsaPricingSolverService,
   ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
@@ -108,12 +128,14 @@ export class QuoteService {
       taxCreditData,
       opportunityRelatedInformation,
       utilityData,
+      opportunityDetail,
     ] = await Promise.all([
       this.systemDesignService.getOneById(data.systemDesignId),
       this.quotePartnerConfigService.getDetailByPartnerId(data.partnerId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
       this.opportunityService.getRelatedInformation(data.opportunityId),
       this.utilityService.getUtilityByOpportunityId(data.opportunityId),
+      this.opportunityService.getDetailById(data.opportunityId),
     ]);
 
     if (!systemDesign) {
@@ -203,7 +225,13 @@ export class QuoteService {
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
-    const productAttribute = await this.createProductAttribute({
+    const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(financialProduct.fmvAppraisalId);
+
+    if (!fmvAppraisal) {
+      throw ApplicationException.EntityNotFound('FMV Appraisal not found');
+    }
+
+    const productAttribute: IEsaProductAttributes = await this.createProductAttribute({
       productType: fundingSource.type,
       netAmount: quoteCostBuildup.projectGrandTotal.netCost,
       financialProductSnapshot: financialProduct,
@@ -212,9 +240,23 @@ export class QuoteService {
       currentAverageMonthlyBill,
       newAverageMonthlyBill,
       capacityKW: systemProduction.data?.capacityKW || 0,
+      esaTerm: fmvAppraisal.termYears,
+      rateEscalator: fmvAppraisal.escalator,
     });
     if (productAttribute.balance > maxInstallationAmount) {
       throw ApplicationException.maxInstallationAmountExceeded();
+    }
+
+    if (fundingSource.type === FINANCE_PRODUCT_TYPE.ESA) {
+      const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+        productAttribute,
+        financialProduct,
+        systemDesign,
+        utilityData,
+      );
+      if (responseMessage) {
+        throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
+      }
     }
 
     productAttribute.upfrontPayment = this.calculateUpfrontPayment(
@@ -276,6 +318,27 @@ export class QuoteService {
       if (quoteConfigData.enablePriceOverride) {
         detailedQuote.allowedQuoteModes.push(QUOTE_MODE_TYPE.PRICE_OVERRIDE);
       }
+    }
+
+    if (detailedQuote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const rowId = await this.getEsaSolverRowId(systemDesign, opportunityDetail, productAttribute, primaryQuoteType);
+      data.solverId = rowId;
+
+      const systemProduction = await this.systemProductionService.findById(detailedQuote.systemProductionId);
+
+      const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
+        solverId: rowId,
+        fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+        systemProduction: systemProduction.data!,
+        fmvAppraisalId: financialProduct.fmvAppraisalId,
+      });
+
+      (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
+        esaPricingResult.payment;
+      (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).newPricePerKWh =
+        esaPricingResult.pkWh || 0;
+      (detailedQuote.quoteFinanceProduct.financeProduct
+        .productAttribute as IEsaProductAttributes).priceWithinBoundsErrors = esaPricingResult.errors;
     }
 
     const model = new QuoteModel(data, detailedQuote);
@@ -356,11 +419,18 @@ export class QuoteService {
       }
     }
 
-    const [markupConfig, taxCreditData, opportunityRelatedInformation, utilityData] = await Promise.all([
+    const [
+      markupConfig,
+      taxCreditData,
+      opportunityRelatedInformation,
+      utilityData,
+      opportunityDetail,
+    ] = await Promise.all([
       this.opportunityService.getPartnerConfigFromOppId(foundQuote.opportunityId),
       this.taxCreditConfigService.getActiveTaxCreditConfigs(),
       this.opportunityService.getRelatedInformation(foundQuote.opportunityId),
       this.utilityService.getUtilityByOpportunityId(foundQuote.opportunityId),
+      this.opportunityService.getDetailById(foundQuote.opportunityId),
     ]);
 
     if (!utilityData) {
@@ -494,8 +564,16 @@ export class QuoteService {
       rateEscalator: financeProductAttribute.rateEscalator,
     });
 
-    if (productAttribute.balance > maxInstallationAmount) {
-      throw ApplicationException.maxInstallationAmountExceeded();
+    if (financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+        productAttribute,
+        financialProductSnapshot,
+        foundSystemDesign,
+        utilityData,
+      );
+      if (responseMessage) {
+        throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
+      }
     }
 
     const { productAttribute: product_attribute } = financeProduct as any;
@@ -629,6 +707,30 @@ export class QuoteService {
       ];
     }
 
+    if (model.detailedQuote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const rowId = await this.getEsaSolverRowId(
+        foundSystemDesign,
+        opportunityDetail,
+        productAttribute,
+        primaryQuoteType,
+      );
+      model.solverId = rowId;
+
+      const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
+        solverId: rowId,
+        fundId: model.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+        systemProduction: systemProduction.data!,
+        fmvAppraisalId: financeProduct.financialProductSnapshot.fmvAppraisalId,
+      });
+
+      (model.detailedQuote.quoteFinanceProduct.financeProduct
+        .productAttribute as IEsaProductAttributes).grossFinancePayment = esaPricingResult.payment;
+      (model.detailedQuote.quoteFinanceProduct.financeProduct
+        .productAttribute as IEsaProductAttributes).newPricePerKWh = esaPricingResult.pkWh || 0;
+      (model.detailedQuote.quoteFinanceProduct.financeProduct
+        .productAttribute as IEsaProductAttributes).priceWithinBoundsErrors = esaPricingResult.errors;
+    }
+
     await model.save();
 
     return OperationResult.ok(strictPlainToClass(QuoteDto, model.toJSON()));
@@ -642,7 +744,6 @@ export class QuoteService {
     newPricePerKWh = 0,
     currentAverageMonthlyBill = 0,
     newAverageMonthlyBill = 0,
-    capacityKW,
     esaTerm = 20,
     rateEscalator = 0.9,
   }: ICreateProductAttribute): Promise<any> {
@@ -705,15 +806,11 @@ export class QuoteService {
           currentAverageMonthlyBill,
           newAverageMonthlyBill,
           currentPricePerKWh,
-          newPricePerKWh,
+          newPricePerKWh: 0,
           esaTerm,
           rateEscalator,
-          grossFinancePayment: this.calculationService.calculateGrossFinancePayment(
-            rateEscalator,
-            esaTerm,
-            capacityKW,
-            netAmount,
-          ),
+          grossFinancePayment: 0,
+          priceWithinBoundsErrors: [],
         } as IEsaProductAttributes;
         return template;
 
@@ -875,8 +972,16 @@ export class QuoteService {
       rateEscalator: product_attribute.rateEscalator,
     });
 
-    if (productAttribute.balance > maxInstallationAmount) {
-      throw ApplicationException.maxInstallationAmountExceeded();
+    if (financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+        productAttribute,
+        financialProductSnapshot,
+        systemDesign,
+        utilityData,
+      );
+      if (responseMessage) {
+        throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
+      }
     }
 
     switch (financeProduct.productType) {
@@ -1002,6 +1107,32 @@ export class QuoteService {
       fundingSource.rebateAssignment,
       rebateDetails,
     );
+
+    if (detailedQuote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const opportunityDetail = await this.opportunityService.getDetailById(data.opportunityId);
+
+      const rowId = await this.getEsaSolverRowId(
+        systemDesign,
+        opportunityDetail,
+        detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes,
+        primaryQuoteType,
+      );
+      data.solverId = rowId;
+
+      const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
+        solverId: rowId,
+        fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+        systemProduction: systemProduction.data!,
+        fmvAppraisalId: financeProduct.financialProductSnapshot.fmvAppraisalId,
+      });
+
+      (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
+        esaPricingResult.payment;
+      (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).newPricePerKWh =
+        esaPricingResult.pkWh || 0;
+      (detailedQuote.quoteFinanceProduct.financeProduct
+        .productAttribute as IEsaProductAttributes).priceWithinBoundsErrors = esaPricingResult.errors;
+    }
 
     const model = new QuoteModel(data, detailedQuote);
     model.setIsSync(true);
@@ -1138,6 +1269,7 @@ export class QuoteService {
     }
 
     const systemDesign = await this.systemDesignService.getOneById(data.systemDesignId);
+    const opportunityDetail = await this.opportunityService.getDetailById(data.opportunityId);
 
     if (!systemDesign) {
       throw ApplicationException.EntityNotFound('system Design');
@@ -1147,6 +1279,11 @@ export class QuoteService {
 
     if (!systemProduction) {
       throw ApplicationException.EntityNotFound('System Production');
+    }
+
+    const utilityData = await this.utilityService.getUtilityByOpportunityId(data.opportunityId);
+    if (!utilityData) {
+      throw ApplicationException.EntityNotFound('Utility Data');
     }
 
     const { financialProductSnapshot } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct;
@@ -1205,8 +1342,16 @@ export class QuoteService {
       },
     });
 
-    if (quoteCostBuildUp.projectGrandTotal.netCost > maxInstallationAmount) {
-      throw ApplicationException.maxInstallationAmountExceeded();
+    if (foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
+        { balance: quoteCostBuildUp.projectGrandTotal.netCost } as IEsaProductAttributes,
+        financialProductSnapshot,
+        systemDesign,
+        utilityData,
+      );
+      if (responseMessage) {
+        throw ApplicationException.QualifyQuoteAgainstFinancialProductSettingsError(responseMessage);
+      }
     }
 
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildUp, systemDesign.existingSystem);
@@ -1271,6 +1416,30 @@ export class QuoteService {
       default: {
         // do nothing
       }
+    }
+
+    if (detailedQuote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
+      const rowId = await this.getEsaSolverRowId(
+        systemDesign,
+        opportunityDetail,
+        detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes,
+        primaryQuoteType,
+      );
+      data.solverId = rowId;
+
+      const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
+        solverId: rowId,
+        fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+        systemProduction: systemProduction.data!,
+        fmvAppraisalId: financialProductSnapshot.fmvAppraisalId,
+      });
+
+      (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
+        esaPricingResult.payment;
+      (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).newPricePerKWh =
+        esaPricingResult.pkWh || 0;
+      (detailedQuote.quoteFinanceProduct.financeProduct
+        .productAttribute as IEsaProductAttributes).priceWithinBoundsErrors = esaPricingResult.errors;
     }
 
     const model = new QuoteModel(data, detailedQuote);
@@ -1777,5 +1946,215 @@ export class QuoteService {
 
   updateQuotesByCondition(condition, update) {
     return this.quoteModel.updateMany(condition, update);
+  }
+
+  async qualifyQuoteAgainstFinancialProductSettings(
+    productAttribute: IEsaProductAttributes,
+    financialProduct: LeanDocument<FinancialProduct>,
+    systemDesign: LeanDocument<SystemDesign>,
+    utilityData: LeanDocument<UtilityUsageDetails>,
+  ): Promise<string | undefined> {
+    const fmvAppraisalId = financialProduct.fmvAppraisalId;
+    const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(fmvAppraisalId);
+    if (!fmvAppraisal) {
+      throw ApplicationException.EntityNotFound(`FMV Appraisal Id: ${fmvAppraisalId}`);
+    }
+
+    const opportunity = await this.opportunityService.getDetailById(systemDesign.opportunityId);
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`Opportunity Id: ${systemDesign.opportunityId}`);
+    }
+
+    const property = await this.propertyService.findPropertyById(opportunity.propertyId);
+    if (!property) {
+      throw ApplicationException.EntityNotFound(`Property Id: ${opportunity.propertyId}`);
+    }
+
+    const buildMissingManufacturerDataMessages = async (unqualifiedManufacturerIds, productType, messages) => {
+      if (!unqualifiedManufacturerIds.length) return;
+
+      const unqualifiedManufacturers = await this.manufacturerService.getManufacturersByIds(unqualifiedManufacturerIds);
+
+      unqualifiedManufacturers.forEach(manufacturer => {
+        messages.push(
+          `\n<b>${messages.length + 1}.)</b> The selected ${productType} manufacturer (${
+            manufacturer.name
+          }) is not approved.`,
+        );
+      });
+    };
+
+    // if fn() === false then break;
+    // else if error, add error messages to messages[]
+    const qualifier = {
+      initializeQualifier: {
+        fn: (messages: string[]) => {
+          if (!systemDesign) {
+            messages.push(`\n<b>${messages.length + 1}.)</b> The System Design is undefined`);
+            return false;
+          }
+          if (!utilityData) {
+            messages.push(`\n<b>${messages.length + 1}.)</b> The Utility Data is undefined`);
+            return false;
+          }
+        },
+      },
+      doesInstallmentAmountQualify: {
+        fn: (messages: string[]) => {
+          if (productAttribute.balance > financialProduct.maxInstallationAmount)
+            messages.push(
+              `\n<b>${
+                messages.length + 1
+              }.)</b> The cost of installing this system exceeds the allowed maximum installation amount.`,
+            );
+        },
+      },
+      doesTodaysDateQualify: {
+        fn: (messages: string[]) => {
+          const now = dayjs().format('MM/DD/YYYY');
+
+          if (
+            dayjs(now).isBefore(dayjs(fmvAppraisal?.effectiveDate).format('MM/DD/YYYY')) ||
+            dayjs(now).isAfter(dayjs(fmvAppraisal?.endDate).format('MM/DD/YYYY'))
+          )
+            messages.push(`\n<b>${messages.length + 1}.)</b> Check the Effective Date to End Date Range`);
+        },
+      },
+      doesSelectedProductTypeQualify: {
+        fn: (messages: string[]) => {
+          const projectTypes = fmvAppraisal?.projectTypes;
+          const hasStorage = !!systemDesign.roofTopDesignData.storage?.length;
+          const hasSolar = !!systemDesign.roofTopDesignData.panelArray?.length;
+
+          if (hasSolar && hasStorage && !projectTypes.includes(PROJECT_TYPES.SOLAR_AND_STORAGE)) {
+            // Solar + Storage
+            messages.push(
+              `\n<b>${messages.length + 1}.)</b> The Project Type you selected does not allow solar and storage.`,
+            );
+          } else if (!hasSolar && hasStorage && !projectTypes.includes(PROJECT_TYPES.STORAGE)) {
+            // Storage only
+            messages.push(
+              `\n<b>${messages.length + 1}.)</b> The Project Type you selected does not allow Storage only.`,
+            );
+          } else if (hasSolar && !hasStorage && !projectTypes.includes(PROJECT_TYPES.SOLAR)) {
+            // Solar only
+            messages.push(`\n<b>${messages.length + 1}.)</b> The Project Type you selected does not allow Solar only.`);
+          }
+        },
+      },
+      doesSelectedStateQualify: {
+        fn: (messages: string[]) => {
+          const isAllowedState =
+            financialProduct.allowedStates?.includes(property.state) || fmvAppraisal.stateCode === property.state;
+
+          if (!isAllowedState) {
+            messages.push(`\n<b>${messages.length + 1}.)</b> The selected state (${property.state}) is not approved.`);
+          }
+        },
+      },
+      doesSelectedUtilityQualify: {
+        fn: async (messages: string[]) => {
+          const utilityId = utilityData?._id.toString();
+          const utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunity.utilityId);
+          const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
+          const utilityDetails = await this.utilitiesMasterService.getUtilitiesMasterDetailByName(utilityName);
+
+          if (utilityId && fmvAppraisal.utilityIds.indexOf(utilityDetails?._id.toString()) < 0) {
+            messages.push(`\n<b>${messages.length + 1}.)</b> The selected utility (${utilityName}) is not approved.`);
+          }
+        },
+      },
+      doesSelectedEnergyStorageVendorQualify: {
+        fn: async (messages: string[]) => {
+          const unqualifiedManufacturerIds: ObjectId[] = [];
+
+          systemDesign.roofTopDesignData.storage.forEach(storage => {
+            const manufacturerId = storage.storageModelDataSnapshot.manufacturerId;
+            if (!fmvAppraisal.energyStorageManufacturerIds.includes(manufacturerId.toString())) {
+              unqualifiedManufacturerIds.push(manufacturerId);
+            }
+          });
+
+          await buildMissingManufacturerDataMessages(unqualifiedManufacturerIds, 'storage', messages);
+        },
+      },
+      doesSelectedSolarVendorQualify: {
+        fn: async (messages: string[]) => {
+          const unqualifiedManufacturerIds: ObjectId[] = [];
+
+          systemDesign.roofTopDesignData.panelArray.forEach(panel => {
+            const manufacturerId = panel.panelModelDataSnapshot.manufacturerId;
+            if (!fmvAppraisal.solarManufacturerIds.includes(manufacturerId.toString())) {
+              unqualifiedManufacturerIds.push(manufacturerId);
+            }
+          });
+
+          await buildMissingManufacturerDataMessages(unqualifiedManufacturerIds, 'solar panel', messages);
+        },
+      },
+      doesSelectedInverterVendorQualify: {
+        fn: async (messages: string[]) => {
+          const unqualifiedManufacturerIds: ObjectId[] = [];
+
+          systemDesign.roofTopDesignData.inverters.forEach(inverter => {
+            const manufacturerId = inverter.inverterModelDataSnapshot.manufacturerId;
+            if (!fmvAppraisal.inverterManufacturerIds.includes(manufacturerId.toString())) {
+              unqualifiedManufacturerIds.push(manufacturerId);
+            }
+          });
+
+          await buildMissingManufacturerDataMessages(unqualifiedManufacturerIds, 'inverter', messages);
+        },
+      },
+    };
+
+    const messages: string[] = [];
+
+    try {
+      // eslint-disable-next-line no-restricted-syntax
+      for (const item in qualifier) {
+        // eslint-disable-next-line no-await-in-loop
+        if ((await qualifier[item].fn(messages)) === false) {
+          // missing dependency in the qualifier.initializeQualifier() above
+          // stop any further validation tests
+          break;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      throw new BadRequestException('Qualify ESA Quote Error');
+    }
+
+    if (messages.length === 0) {
+      return undefined;
+    }
+    return messages.join(`<br />`);
+  }
+
+  async getEsaSolverRowId(
+    systemDesign: LeanDocument<SystemDesign>,
+    opportunityDetail: LeanDocument<Opportunity> | null,
+    productAttribute: IEsaProductAttributes,
+    primaryQuoteType: PRIMARY_QUOTE_TYPE,
+  ): Promise<string> {
+    const property = await this.propertyModel.findById(opportunityDetail?.propertyId);
+
+    let utilityNameConcatUtilityProgramName;
+    if (opportunityDetail) {
+      utilityNameConcatUtilityProgramName = await this.utilityService.getUtilityName(opportunityDetail.utilityId);
+    }
+    const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
+    const utilitiesMaster = await this.utilitiesMasterModel.findOne({ utilityName }).lean();
+
+    const designParam = this.esaPricingSolverService.getStorageSizeAndManufacturer(systemDesign);
+
+    const opportunityParam = {
+      state: property?.state,
+      systemType: CSV_PRIMARY_QUOTE[primaryQuoteType],
+      applicableUtility: utilitiesMaster?._id,
+    };
+    const escAndTerms = { rateEscalator: productAttribute.rateEscalator, esaTerm: productAttribute.esaTerm };
+    const res = await this.esaPricingSolverService.extractRowFromCSV(designParam, opportunityParam, escAndTerms);
+    return res._id;
   }
 }

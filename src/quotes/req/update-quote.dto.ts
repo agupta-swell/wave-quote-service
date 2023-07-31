@@ -117,4 +117,8 @@ export class UpdateQuoteDto {
   @Type(() => NotesDto)
   @IsOptional()
   notes: NotesDto[];
+
+  @IsString()
+  @IsOptional()
+  solverId: string;
 }

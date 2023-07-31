@@ -8,8 +8,10 @@ import { CashPaymentConfigModule } from 'src/cash-payment-configs/cash-payment-c
 import { ContactModule } from 'src/contacts/contact.module';
 import { ContractModule } from 'src/contracts/contract.module';
 import { CustomerPaymentModule } from 'src/customer-payments/customer-payment.module';
+import { DevFeeModule } from 'src/dev-fee/dev-fee.module';
 import { DiscountModule } from 'src/discounts/discount.module';
 import { DocusignCommunicationModule } from 'src/docusign-communications/docusign-communication.module';
+import { DocusignIntegrationModule } from 'src/docusign-integration/docusign-integration.module';
 import { DocusignTemplateMasterModule } from 'src/docusign-templates-master/docusign-template-master.module';
 import { ECommerceModule } from 'src/e-commerces/e-commerce.module';
 import { ElectricVehicleModule } from 'src/electric-vehicles/electric-vehicle.module';
@@ -20,8 +22,10 @@ import { ExistingSystemModule } from 'src/existing-systems/existing-system.modul
 import { ExternalServiceModule } from 'src/external-services/external-service.module';
 import { FeatureFlagModule } from 'src/feature-flags/feature-flag.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
+import { FmvAppraisalModule } from 'src/fmvAppraisal/fmvAppraisal.module';
 import { FundingSourceModule } from 'src/funding-sources/funding-source.module';
 import { GenabilityUtilityMapModule } from 'src/genability-utility-map/genability-utility-map.module';
+import { GsOpportunityModule } from 'src/gs-opportunity/gs-opportunity.module';
 import { GsProgramsModule } from 'src/gs-programs/gs-programs.module';
 import { HealthcheckModule } from 'src/health-checks/health-check.module';
 import { InstalledProductModule } from 'src/installed-products/installed-products.module';
@@ -33,6 +37,7 @@ import { ProductionDeratesModule } from 'src/production-derates-v2/production-de
 import { ProductModuleV2 } from 'src/products-v2/product.module';
 import { ProgressModule } from 'src/progresses/progress.module';
 import { PromotionModule } from 'src/promotions/promotion.module';
+import { PropertyModule } from 'src/property/property.module';
 import { ProposalSectionMasterModule } from 'src/proposal-section-masters/proposal-section-master.module';
 import { ProposalTemplateModule } from 'src/proposal-templates/proposal-template.module';
 import { ProposalModule } from 'src/proposals/proposal.module';
@@ -52,12 +57,10 @@ import { SystemProductionModule } from 'src/system-productions/system-production
 import { ToolTipModule } from 'src/tool-tips/tool-tip.module';
 import { UsageProfileModule } from 'src/usage-profiles/usage-profile.module';
 import { UserModule } from 'src/users/user.module';
+import { UtilitiesMasterModule } from 'src/utilities-master/utilities-master.module';
 import { UtilityModule } from 'src/utilities/utility.module';
 import { UtilityProgramMasterModule } from 'src/utility-programs-master/utility-program-master.module';
-import { DocusignIntegrationModule } from 'src/docusign-integration/docusign-integration.module';
 import { EsaPricingSolverModule } from 'src/v2-esa-pricing-solver/v2-esa-pricing-solver.module';
-import { PropertyModule } from 'src/property/property.module';
-import { GsOpportunityModule } from 'src/gs-opportunity/gs-opportunity.module';
 import { MyLoggerModule } from './my-logger/my-logger.module';
 
 @Global()
@@ -88,7 +91,9 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
         .addCustomMapping('existingPVSize', 'existing_pv_size')
         .addCustomMapping('existing_pv_size', 'existingPVSize')
         .addCustomMapping('kwh_per_100_miles', 'kwhPer100Miles')
-        .addCustomMapping('kwhPer100Miles', 'kwh_per_100_miles'),
+        .addCustomMapping('kwhPer100Miles', 'kwh_per_100_miles')
+        .addCustomMapping('storageSizeKWh', 'storage_size_kWh')
+        .addCustomMapping('storage_size_kWh', 'storageSizeKWh'),
     ),
     AwsModule,
     GoogleSunroofModule,
@@ -123,6 +128,7 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     SystemProductionModule,
     UserModule,
     UtilityModule,
+    UtilitiesMasterModule,
     UtilityProgramMasterModule,
     GsProgramsModule,
     FinancialProductsModule,
@@ -144,7 +150,9 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
     DocusignIntegrationModule,
     PropertyModule,
     GsOpportunityModule,
-    EsaPricingSolverModule
+    EsaPricingSolverModule,
+    FmvAppraisalModule,
+    DevFeeModule,
   ],
 })
 export class AppModule {}
