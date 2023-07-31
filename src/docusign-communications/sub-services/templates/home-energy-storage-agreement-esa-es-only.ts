@@ -90,7 +90,7 @@ export class HomeEnergyStorageAgreementEsaESOnlyTemplate {
 
   @TabValue<IGenericObject>(
     ({ quote }) =>
-      (<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment,
+      (<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment.toFixed(2),
   )
   esaMonthlyPmt: number;
 
