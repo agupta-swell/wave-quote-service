@@ -620,34 +620,19 @@ export class QualificationService {
   }
 
   async getApplicationDetail(req: GetApplicationDetailReqDto): Promise<OperationResult<GetApplicationDetailDto>> {
-    const tokenStatus = await this.checkToken(req.token);
-    // eslint-disable-next-line default-case
-    switch (tokenStatus) {
-      case TOKEN_STATUS.EXPIRED:
-        throw ApplicationException.ExpiredToken({ responseStatus: false });
-      case TOKEN_STATUS.INVALID:
-        throw new UnauthorizedException();
-    }
+    
+    const decodedToken = await this.decodeCreditQualificationToken('getApplicationDetail', req, req.token);
 
-    let { qualificationCreditId, opportunityId } = req;
-
-    const tokenPayload = await this.jwtService.verifyAsync(req.token, {
-      secret: process.env.QUALIFICATION_JWT_SECRET,
-      ignoreExpiration: false,
-    });
-
-    if (!opportunityId || !qualificationCreditId) {
-      qualificationCreditId = tokenPayload.qualificationCreditId;
-      opportunityId = tokenPayload.opportunityId;
-    }
+    let qualificationCreditId = decodedToken.qualificationCreditId;
+    let opportunityId = decodedToken.opportunityId;
 
     const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound('Qualification Credit');
     }
-
+    
     const contactId =
-      tokenPayload.contactId || (await this.opportunityService.getContactIdById(qualificationCredit.opportunityId));
+    decodedToken.contactId || (await this.opportunityService.getContactIdById(qualificationCredit.opportunityId));
     const contact = await this.contactService.getContactById(contactId || '');
     const qualificationCategory =
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
@@ -675,7 +660,7 @@ export class QualificationService {
 
     let applicationInitatedBy: string;
 
-    switch (tokenPayload.role) {
+    switch (decodedToken.role) {
       case ROLE.AGENT:
         applicationInitatedBy = 'Agent';
         break;
@@ -838,8 +823,8 @@ export class QualificationService {
     // NOTE: NEVER NEVER NEVER NEVER log the applyCreditQualificationRequestParam or fniApplyRequestInst
     // NOTE: Copy this warning and paste it in the code at the top and bottom of this method
 
-    await this.testTokenStatus(req.authenticationToken);
-
+    await this.decodeCreditQualificationToken('applyCreditQualification', req, req.authenticationToken);
+    
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
 
     if (!qualificationCredit) {
@@ -1015,27 +1000,6 @@ export class QualificationService {
         'fniApplications.refnum': parseInt(refnum, 10),
       })
       .lean();
-  }
-
-  async testTokenStatus(authenticationToken: string): Promise<void> {
-    const tokenStatus = await this.checkToken(authenticationToken);
-    // eslint-disable-next-line default-case
-    switch (tokenStatus) {
-      case TOKEN_STATUS.EXPIRED:
-        throw ApplicationException.ExpiredToken({ responseStatus: 'EXPIRED_TOKEN' });
-      case TOKEN_STATUS.INVALID:
-        throw new UnauthorizedException();
-      case TOKEN_STATUS.VALID: {
-        const tokenPayload = await this.jwtService.verifyAsync(authenticationToken, {
-          secret: process.env.QUALIFICATION_JWT_SECRET,
-          ignoreExpiration: true,
-        });
-
-        if (tokenPayload.role !== ROLE.SYSTEM) {
-          throw new UnauthorizedException();
-        }
-      }
-    }
   }
 
   async generateToken(
@@ -1482,5 +1446,40 @@ export class QualificationService {
       this.emailService.sendMail(process.env.SUPPORT_MAIL!, JSON.stringify(message), subject).catch(err => {
         console.error(`Send mail error`, err);
       });
+  }
+
+  private async decodeCreditQualificationToken(reqMethod, reqBody, token): Promise<ITokenData> {
+    const decodedToken: ITokenData = await this.jwtService.decode(token) as ITokenData;
+    const tokenStatus = await this.checkToken(token);
+    // eslint-disable-next-line default-case
+    switch (tokenStatus) {
+      case TOKEN_STATUS.EXPIRED:
+        throw ApplicationException.ExpiredToken({ responseStatus: 'EXPIRED_TOKEN' });
+      case TOKEN_STATUS.INVALID:
+        throw new UnauthorizedException();
+      case TOKEN_STATUS.VALID: {
+        const tokenPayload = await this.jwtService.verifyAsync(token, {
+          secret: process.env.QUALIFICATION_JWT_SECRET,
+          ignoreExpiration: true,
+        });
+
+        if (reqMethod === 'applyCrediQualification') {
+          if (tokenPayload.role !== ROLE.SYSTEM || tokenPayload?.contactId !== reqBody?.contactId) {
+            throw new UnauthorizedException();
+          }
+
+          if (decodedToken.opportunityId !== reqBody?.opportunityId || decodedToken.qualificationCreditId !== reqBody?.qualificationCreditId || decodedToken?.contactId !== reqBody?.contactId) {            
+            throw new UnauthorizedException();
+          }
+        }
+
+        if (reqMethod === 'getApplicationDetail') {
+          if (tokenPayload.role !== ROLE.CUSTOMER) {
+            throw new UnauthorizedException();
+          }
+        }
+      }
+    }
+    return decodedToken;
   }
 }
