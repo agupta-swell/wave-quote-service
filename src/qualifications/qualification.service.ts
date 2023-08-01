@@ -358,7 +358,7 @@ export class QualificationService {
     });
     qualificationCredit.fniApplications.push({
       state: FNI_APPLICATION_STATE.ACTIVE,
-      reason: [],
+     fniCurrentDecisionReason: [],
       responses: [],
     });
 
@@ -1234,8 +1234,8 @@ export class QualificationService {
             break;
         }
 
-        if (qualificationCredit.qualificationStatus === QUALIFICATION_STATUS.PENDING && field_descriptions?.[0]) {
-          qualificationCredit.processReason.push(field_descriptions[0].currQueueName);
+        if (qualificationCredit.qualificationStatus === QUALIFICATION_STATUS.PENDING && field_descriptions) {
+          field_descriptions.map(field =>  activeFniApplication.fniCurrentDecisionReason.push(field.currQueueName));
         }
         if (application.currDecision) {
           qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_STATUS;

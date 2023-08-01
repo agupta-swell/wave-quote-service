@@ -63,7 +63,7 @@ export interface IFniApplication {
   fniCurrentDecision?: string;
   fniCurrentQueueName?: string; // Reason string for pending
   fniCurrentDecisionReceivedAt?: string;
-  reason: string[];
+  fniCurrentDecisionReason: string[];
   responses: IFniApplicationResponse[];
 }
 
@@ -90,7 +90,7 @@ export const FniApplicationSchema = new Schema<Document<IFniApplication>>(
       type: String,
       required: false,
     },
-    reason: {
+    fni_current_decision_reason: {
       type: [String],
       required: true,
     },
@@ -169,7 +169,6 @@ export interface QualificationCredit extends Document {
   createdAt: Date;
   updatedBy: string;
   updatedAt: Date;
-  processReason: string[];
 }
 
 export const QualificationCreditSchema = new Schema<QualificationCredit>({
@@ -178,7 +177,6 @@ export const QualificationCreditSchema = new Schema<QualificationCredit>({
   started_on: Date,
   milestone: String,
   process_status: String,
-  process_reason: [String],
   customer_notifications: [CustomerNotificationSchema],
   event_histories: [EventHistorySchema],
   vendor_id: String,
