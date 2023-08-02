@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import * as moment from 'moment'
+import * as moment from 'moment';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { PropertyService } from 'src/property/property.service';
@@ -43,7 +43,13 @@ import {
   VENDOR_ID,
 } from './constants';
 import { QualificationException, QualificationExceptionData } from './qualification.exception';
-import { IApplicant, IEventHistory, IFniApplicationResponse, QUALIFICATION_CREDIT, QualificationCredit } from './qualification.schema';
+import {
+  IApplicant,
+  IEventHistory,
+  IFniApplicationResponse,
+  QUALIFICATION_CREDIT,
+  QualificationCredit,
+} from './qualification.schema';
 import {
   AgentDetailDto,
   ApplyCreditQualificationReqDto,
@@ -386,7 +392,7 @@ export class QualificationService {
   async qualificationMailHandler(
     req: SendMailReqDto,
     qualificationCredit: QualificationCredit,
-    useCase2: boolean = false,
+    useCase2 = false,
   ): Promise<OperationResult<SendMailDto>> {
     const lastEvent = sortByDescending<IEventHistory>(qualificationCredit.eventHistories, 'issueDate').find(
       ev => ev.detail === 'Email Sent',
@@ -479,8 +485,8 @@ export class QualificationService {
       applicants.push(applicant);
     }
 
-    //Use case identification
-    let isUseCase1: boolean = false;
+    // Use case identification
+    let isUseCase1 = false;
     let isUseCase2: boolean = useCase2;
     const applicant = applicants.find(applicant => applicant.type === APPLICANT_TYPE.APPLICANT);
     const coApplicant = applicants.find(applicant => applicant.type === APPLICANT_TYPE.CO_APPLICANT);
@@ -505,16 +511,16 @@ export class QualificationService {
       );
     }
 
-    //Contact finding
-    let contactId: string = '';
+    // Contact finding
+    let contactId = '';
     if (isUseCase2) {
-      //Use case 2
+      // Use case 2
       contactId = coApplicant?.contactId || '';
     } else if (isUseCase1) {
-      //Use case 1
+      // Use case 1
       contactId = applicant.contactId;
     } else {
-      //No email zone
+      // No email zone
       throw new QualificationException(
         ApplicationException.UnprocessableEntity(`Use case is invalid.`),
         qualificationExceptionPayload,
@@ -528,7 +534,7 @@ export class QualificationService {
       contact?._id,
     );
 
-    //Email sending
+    // Email sending
     const data = {
       contactFullName:
         `${contact?.firstName || ''}${(contact?.firstName && ' ') || ''}${contact?.lastName || ''}` || 'Customer',
@@ -621,19 +627,18 @@ export class QualificationService {
   }
 
   async getApplicationDetail(req: GetApplicationDetailReqDto): Promise<OperationResult<GetApplicationDetailDto>> {
-    
     const decodedToken = await this.decodeCreditQualificationToken('getApplicationDetail', req, req.token);
 
-    let qualificationCreditId = decodedToken.qualificationCreditId;
-    let opportunityId = decodedToken.opportunityId;
+    const qualificationCreditId = decodedToken.qualificationCreditId;
+    const opportunityId = decodedToken.opportunityId;
 
     const qualificationCredit = await this.qualificationCreditModel.findById(qualificationCreditId);
     if (!qualificationCredit) {
       throw ApplicationException.EntityNotFound('Qualification Credit');
     }
-    
+
     const contactId =
-    decodedToken.contactId || (await this.opportunityService.getContactIdById(qualificationCredit.opportunityId));
+      decodedToken.contactId || (await this.opportunityService.getContactIdById(qualificationCredit.opportunityId));
     const contact = await this.contactService.getContactById(contactId || '');
     const qualificationCategory =
       qualificationCredit.type === QUALIFICATION_TYPE.HARD
@@ -718,7 +723,7 @@ export class QualificationService {
 
     const tokenIsValid = await this.tokenService.isTokenValid('fni-wave-communications', header);
 
-    let fniDecisionDetailsError = {
+    const fniDecisionDetailsError = {
       responseBody: {
         transaction: {
           status: FNI_TRANSACTION_STATUS.ERROR,
@@ -726,11 +731,11 @@ export class QualificationService {
         },
       },
       status: 400,
-    }
+    };
 
     if (!tokenIsValid?.data?.responseStatus) {
-      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Invalid Token']
-      fniDecisionDetailsError.status = 401
+      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Invalid Token'];
+      fniDecisionDetailsError.status = 401;
 
       return fniDecisionDetailsError;
     }
@@ -738,9 +743,9 @@ export class QualificationService {
     const qualificationCredit = await this.findQualificationCreditByRefnum(req.transaction.refnum);
 
     if (!qualificationCredit) {
-      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Record not found']
-      fniDecisionDetailsError.status = 404
-      
+      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Record not found'];
+      fniDecisionDetailsError.status = 404;
+
       return fniDecisionDetailsError;
     }
 
@@ -782,9 +787,9 @@ export class QualificationService {
         status: 200,
       };
     } catch (error) {
-      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Internal Server Error']
-      fniDecisionDetailsError.status = 500
-      
+      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Internal Server Error'];
+      fniDecisionDetailsError.status = 500;
+
       res = fniDecisionDetailsError;
       this.logger.error(error);
     }
@@ -801,8 +806,8 @@ export class QualificationService {
     }
 
     const fniResponse = await this.fniEngineService.processFniSolarApplyRequest(processRequestData);
-    fniResponse.type = FNI_REQUEST_TYPE.SOLAR_APPLY
-    
+    fniResponse.type = FNI_REQUEST_TYPE.SOLAR_APPLY;
+
     const responseStatus = await this.handleProcessFniSolarApplyResponse({
       qualificationCreditId: processRequestData.qualificationCreditId,
       opportunityId: processRequestData.opportunityId,
@@ -820,7 +825,7 @@ export class QualificationService {
     // NOTE: Copy this warning and paste it in the code at the top and bottom of this method
 
     await this.decodeCreditQualificationToken('applyCreditQualification', req, req.authenticationToken);
-    
+
     const qualificationCredit = await this.qualificationCreditModel.findById(req.qualificationCreditId);
 
     if (!qualificationCredit) {
@@ -1262,15 +1267,17 @@ export class QualificationService {
         }
 
         if (qualificationCredit.qualificationStatus === QUALIFICATION_STATUS.PENDING && field_descriptions) {
-          field_descriptions.map(field =>  activeFniApplication.fniCurrentDecisionReasons.push(field.currQueueName));
+          field_descriptions.map(field => activeFniApplication.fniCurrentDecisionReasons.push(field.currQueueName));
         }
         if (application.currDecision) {
           qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
         }
         activeFniApplication.fniCurrentDecisionReceivedAt = application.timeReceived;
-        
-        if(!activeFniApplication.fniCurrentDecisionExpiresOn){
-          activeFniApplication.fniCurrentDecisionExpiresOn = moment(application.timeReceived).add('120', 'days').format('YYYY-MM-DD h:mm:ss');
+
+        if (!activeFniApplication.fniCurrentDecisionExpiresOn) {
+          activeFniApplication.fniCurrentDecisionExpiresOn = moment(application.timeReceived)
+            .add('120', 'days')
+            .format('YYYY-MM-DD h:mm:ss');
         }
 
         activeFniApplication.fniCurrentDecision = application.currDecision;
@@ -1450,7 +1457,7 @@ export class QualificationService {
   }
 
   private async decodeCreditQualificationToken(reqMethod, reqBody, token): Promise<ITokenData> {
-    const decodedToken: ITokenData = await this.jwtService.decode(token) as ITokenData;
+    const decodedToken: ITokenData = (await this.jwtService.decode(token)) as ITokenData;
     const tokenStatus = await this.checkToken(token);
     // eslint-disable-next-line default-case
     switch (tokenStatus) {
@@ -1469,7 +1476,11 @@ export class QualificationService {
             throw new UnauthorizedException();
           }
 
-          if (decodedToken.opportunityId !== reqBody?.opportunityId || decodedToken.qualificationCreditId !== reqBody?.qualificationCreditId || decodedToken?.contactId !== reqBody?.contactId) {            
+          if (
+            decodedToken.opportunityId !== reqBody?.opportunityId ||
+            decodedToken.qualificationCreditId !== reqBody?.qualificationCreditId ||
+            decodedToken?.contactId !== reqBody?.contactId
+          ) {
             throw new UnauthorizedException();
           }
         }

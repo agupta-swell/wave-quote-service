@@ -36,7 +36,7 @@ export class FniApplicationDto {
 
   @ExposeProp()
   fniCurrentDecisionExpiresOn?: Date;
-  
+
   @ExposeProp()
   fniCurrentDecisionReasons: string[];
 
