@@ -63,7 +63,7 @@ export interface IFniApplication {
   fniCurrentDecision?: string;
   fniCurrentQueueName?: string; // Reason string for pending
   fniCurrentDecisionReceivedAt?: string;
-  reason: string[];
+  fniCurrentDecisionReasons: string[];
   responses: IFniApplicationResponse[];
 }
 
@@ -90,7 +90,7 @@ export const FniApplicationSchema = new Schema<Document<IFniApplication>>(
       type: String,
       required: false,
     },
-    reason: {
+    fni_current_decision_reasons: {
       type: [String],
       required: true,
     },
