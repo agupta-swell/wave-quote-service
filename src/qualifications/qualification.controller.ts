@@ -145,7 +145,7 @@ export class QualificationController {
     return ServiceResponse.fromResult(res);
   }
 
-  @Put('/fni-applications')
+  @Post('/fni-applications')
   @ApiOperation({ summary: 'Recieve FNI Qualification Decision Details' })
   @ApiOkResponse({ type:  RecieveFniDecisionResDto })
   @ApiResponse({ status: 400, type:  RecieveFniDecisionResDto})
