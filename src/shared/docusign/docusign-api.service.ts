@@ -171,8 +171,8 @@ export class DocusignApiService<Context> implements OnModuleInit {
       const defaultAccount = accounts?.find(account => account.isDefault === 'true');
 
       if (docusignIntegrationType === DOCUSIGN_INTEGRATION_TYPE.ESA) {
-        const ESAAccountId = accounts?.find(account => account.accountId === process.env.DOCUSIGN_ESA_ACCOUNT_ID);
-        docusignAccount = ESAAccountId || defaultAccount;
+        const ESAAccount = accounts?.find(account => account.accountId === process.env.DOCUSIGN_ESA_ACCOUNT_ID);
+        docusignAccount = ESAAccount || defaultAccount;
       } else {
         docusignAccount = defaultAccount;
       }
