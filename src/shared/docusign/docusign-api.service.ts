@@ -176,8 +176,7 @@ export class DocusignApiService<Context> implements OnModuleInit {
       } else {
         docusignAccount = defaultAccount;
       }
-      
-      console.log(JSON.stringify(docusignAccount));
+
       if (!docusignAccount) {
         throw new Error('Could not login into docusign');
       }
@@ -233,6 +232,13 @@ export class DocusignApiService<Context> implements OnModuleInit {
       envelopeDefinition: {
         ...createContractPayload,
         status: 'created',
+        // According to the documentation, `authoritativeCopy` value should be set to `null`
+        // in order for Docusign to use the account default Authoritative Copy (AC) setting,
+        // but as of now, there is no final decision on AC Setting for ESA Account vs for Default Account,
+        // so this value will be temporarily set to `false`.
+        //
+        // Ref: https://developers.docusign.com/docs/esign-rest-api/esign101/concepts/documents/authoritative-copies/
+        authoritativeCopy: docusignIntegrationType === DOCUSIGN_INTEGRATION_TYPE.ESA ? false : null,
       },
       mergeRolesOnDraft: true,
       changeRoutingOrder: true,
