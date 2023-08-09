@@ -32,7 +32,7 @@ export class FmvAppraisalDto {
   energyStorageManufacturerIds: string[];
 
   @ExposeProp()
-  escalator: number;
+  escalator: number[];
 
   @ExposeProp()
   effectiveDate: Date;
@@ -53,7 +53,7 @@ export class FmvAppraisalDto {
   usedByTranches: boolean;
 
   @ExposeProp()
-  termYears: number;
+  termYears: number[];
 
   @ExposeProp()
   createdAt: Date;
