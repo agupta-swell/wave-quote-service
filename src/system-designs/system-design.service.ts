@@ -196,6 +196,7 @@ export class SystemDesignService {
               sunroofAzimuth,
               sunroofPitch,
               sunroofPrimaryOrientationSide,
+              monthlySolarAccessValue,
             } = item;
 
             systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop = [
@@ -208,14 +209,18 @@ export class SystemDesignService {
 
             const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
             // TODO: is this duplicated with systemProductionArray
-            const acAnnual = await this.systemProductService.pvWatCalculation({
-              lat: systemDesign.latitude,
-              lon: systemDesign.longitude,
-              azimuth: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofAzimuth! : azimuth,
-              systemCapacity: capacity,
-              tilt: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofPitch : pitch,
-              losses: item.losses,
-            });
+            const acAnnual = await this.systemProductService.pvWatCalculation(
+              {
+                lat: systemDesign.latitude,
+                lon: systemDesign.longitude,
+                azimuth: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofAzimuth! : azimuth,
+                systemCapacity: capacity,
+                tilt: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofPitch : pitch,
+                losses: item.losses,
+                monthlySolarAccessValue,
+              },
+              systemDesignDto.opportunityId,
+            );
 
             arrayGenerationKWh[index] = acAnnual;
             cumulativeGenerationKWh += acAnnual;
@@ -301,7 +306,7 @@ export class SystemDesignService {
       await Promise.all(
         flatten([
           systemDesign.capacityProductionDesignData.panelArray.map(async (item, index) => {
-            const { panelModelId, capacity, production, pitch, azimuth, losses } = item;
+            const { panelModelId, capacity, production, pitch, azimuth, losses, monthlySolarAccessValue } = item;
             const newObjectId = Types.ObjectId();
             let generation = 0;
 
@@ -323,14 +328,18 @@ export class SystemDesignService {
             if (production > 0) {
               generation = production;
             } else {
-              generation = await this.systemProductService.pvWatCalculation({
-                lat: systemDesign.latitude,
-                lon: systemDesign.longitude,
-                azimuth,
-                systemCapacity: capacity,
-                tilt: pitch,
-                losses,
-              });
+              generation = await this.systemProductService.pvWatCalculation(
+                {
+                  lat: systemDesign.latitude,
+                  lon: systemDesign.longitude,
+                  azimuth,
+                  systemCapacity: capacity,
+                  tilt: pitch,
+                  losses,
+                  monthlySolarAccessValue,
+                },
+                systemDesignDto.opportunityId
+              );
             }
 
             arrayGenerationKWh[index] = capacity;
@@ -581,6 +590,7 @@ export class SystemDesignService {
             sunroofPitch,
             sunroofAzimuth,
             sunroofPrimaryOrientationSide,
+            monthlySolarAccessValue,
           } = item;
 
           systemDesign.roofTopDesignData.panelArray[index].hasSunroofRooftop = [
@@ -593,14 +603,18 @@ export class SystemDesignService {
 
           const capacity = (numberOfPanels * (panelModelData.ratings.watts ?? 0)) / 1000;
 
-          const acAnnual = await this.systemProductService.pvWatCalculation({
-            lat: systemDesign.latitude,
-            lon: systemDesign.longitude,
-            azimuth: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofAzimuth! : azimuth,
-            systemCapacity: capacity,
-            tilt: !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
-            losses: item.losses,
-          });
+          const acAnnual = await this.systemProductService.pvWatCalculation(
+            {
+              lat: systemDesign.latitude,
+              lon: systemDesign.longitude,
+              azimuth: !overrideRooftopDetails && hasSunroofRooftop !== undefined ? sunroofAzimuth! : azimuth,
+              systemCapacity: capacity,
+              tilt: !overrideRooftopDetails && sunroofPitch !== undefined ? sunroofPitch : pitch,
+              losses: item.losses,
+              monthlySolarAccessValue,
+            },
+            systemDesignDto.opportunityId
+          );
 
           arrayGenerationKWh[index] = acAnnual;
           cumulativeGenerationKWh += acAnnual;
@@ -666,7 +680,7 @@ export class SystemDesignService {
 
       const handlers = [
         systemDesign.capacityProductionDesignData.panelArray.map(async (item, index) => {
-          const { panelModelId, capacity, production, pitch, azimuth, losses } = item;
+          const { panelModelId, capacity, production, pitch, azimuth, losses, monthlySolarAccessValue } = item;
           let generation = 0;
 
           const panelModelData = products.find(p => p._id?.toString() === panelModelId) as LeanDocument<
@@ -691,14 +705,18 @@ export class SystemDesignService {
           if (production > 0) {
             generation = production;
           } else {
-            generation = await this.systemProductService.pvWatCalculation({
-              lat: systemDesign.latitude,
-              lon: systemDesign.longitude,
-              azimuth,
-              systemCapacity: capacity,
-              tilt: pitch,
-              losses,
-            });
+            generation = await this.systemProductService.pvWatCalculation(
+                {
+                lat: systemDesign.latitude,
+                lon: systemDesign.longitude,
+                azimuth,
+                systemCapacity: capacity,
+                tilt: pitch,
+                losses,
+                monthlySolarAccessValue,
+              },
+              systemDesignDto.opportunityId
+            );
           }
 
           arrayGenerationKWh[index] = capacity;

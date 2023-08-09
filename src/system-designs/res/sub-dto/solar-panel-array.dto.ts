@@ -92,4 +92,7 @@ export class SolarPanelArrayDto {
 
   @ExposeProp()
   hasSunroofRooftop: boolean;
+
+  @ExposeProp()
+  monthlySolarAccessValue?: number[];
 }

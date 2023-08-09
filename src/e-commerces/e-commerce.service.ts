@@ -612,6 +612,7 @@ export class ECommerceService {
     const azimuth = 180; // "Assuming a perfect 180 degrees for module placement"
     const tilt = 23; // "Assuming a perfect 23 degrees for pitch"
     const losses = 14.08; // "Assuming a loss factor of 14.08" -- PVWatts default
+    const monthlySolarAccessValue = Array.from({length: 12}).fill(97) as number[]; // 97% performance as a default
 
     return this.systemProductService.pvWatCalculation({
       lat,
@@ -620,6 +621,7 @@ export class ECommerceService {
       azimuth,
       tilt,
       losses,
+      monthlySolarAccessValue,
     });
   }
 
