@@ -5,6 +5,7 @@ export interface ICalculateSystemProduction {
   azimuth: number;
   tilt?: number;
   losses?: number;
+  monthlySolarAccessValue?: number[];
 }
 
 export interface ILoadServingEntityResponse {
@@ -54,7 +55,7 @@ export interface ITypicalBaseLine extends ITypicalBaseLineBase {
   typicalMonthlyUsage: ITypicalUsage[];
 }
 
-export interface IPvWattV6Responses {
+export interface IPvWattV8Responses {
   poa_monthly: number[];
   dc_monthly: number[];
   ac_monthly: number[];

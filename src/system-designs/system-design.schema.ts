@@ -154,6 +154,7 @@ export interface ISolarPanelArraySchema {
   overrideRooftopDetails: boolean;
   mountTypeId: string;
   hasSunroofRooftop?: boolean;
+  monthlySolarAccessValue?: number[];
 }
 
 export interface ICapacityPanelArraySchema extends ISolarPanelArraySchema {
@@ -182,6 +183,10 @@ export const SolarPanelArraySchema = new Schema<Document<ISolarPanelArraySchema>
     sunroof_primary_orientation_side: Number,
     sunroof_pitch: Number,
     sunroof_azimuth: Number,
+    monthly_solar_access_value: {
+      type: [Number],
+      default: undefined
+    },
     use_sunroof: {
       type: Boolean,
       default: false,

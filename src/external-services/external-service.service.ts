@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import * as dayjs from 'dayjs';
+import { ECommerceService } from 'src/e-commerces/e-commerce.service';
+import { REGION_PURPOSE } from 'src/e-commerces/schemas';
 import { TypicalBaselineParamsDto } from 'src/utilities/req/sub-dto/typical-baseline-params.dto';
 import { getNextYearDateRange } from 'src/utils/datetime';
 import { ApplicationException } from '../app/app.exception';
@@ -16,40 +18,83 @@ import {
   ICalculateSystemProduction,
   IGenabilityCalculateUtilityCost,
   ILoadServingEntity,
-  IPvWattV6Responses,
+  IPvWattV8Responses,
   ITypicalBaseLine,
   ITypicalUsage,
 } from './typing';
 
 @Injectable()
 export class ExternalService {
-  constructor(private readonly logger: MyLogger, private readonly genabilityService: GenabilityService) {}
+  constructor(
+    private readonly logger: MyLogger,
+    private readonly genabilityService: GenabilityService,
+    @Inject(forwardRef(() => ECommerceService))
+    private readonly eCommerceService: ECommerceService,
+  ) {}
 
-  async calculateSystemProduction({
-    lat,
-    lon,
-    systemCapacity,
-    azimuth,
-    tilt = 0,
-    losses = 0,
-  }: ICalculateSystemProduction): Promise<IPvWattV6Responses> {
-    const url = 'https://developer.nrel.gov/api/pvwatts/v6.json';
+  async calculateSystemProduction(
+    {
+      lat,
+      lon,
+      systemCapacity,
+      azimuth,
+      tilt = 0,
+      losses = 0,
+      monthlySolarAccessValue,
+    }: ICalculateSystemProduction,
+    opportunityId?: string
+  ): Promise<IPvWattV8Responses> {
+    const url = 'https://developer.nrel.gov/api/pvwatts/v8.json';
     const apiKey = 'Jfd68KJSvs2xJCe2zrFz8muiVLKh9G25CayoZSND';
+    
+    let soiling, soilingLosses, snowLosses;
+    if(opportunityId) {
+      // acquire our known durate values and calculate agains the provided monthlySolarAccessValues
+      [soilingLosses, snowLosses] = await Promise.all([
+        this.eCommerceService.getEnvironmentalLosses(opportunityId, REGION_PURPOSE.SOILING),
+        this.eCommerceService.getEnvironmentalLosses(opportunityId, REGION_PURPOSE.SNOW),
+      ]);
+      soiling = monthlySolarAccessValue?.map((v, index) => {
+        const soilingLoss = soilingLosses?.amounts[index];
+        const snowLoss = snowLosses?.amounts[index];
+        const result = (
+          1 - parseFloat(
+            (
+              (
+                (100 - soilingLoss)/100
+                *
+                (100 - snowLoss)/100
+                *
+                v/100
+              )
+            ).toFixed(2) // factor to 2 decimal places
+          ) // subtract from 1 to get decimal pecentage of complete deration
+        ) * 100; // turn complete duration in a percentage value that PVWatt can use
+        return parseInt(result.toFixed(0));
+      });
+    } else {
+      // This area of the code is hit when evaluating worst case vs. best case
+      // solar solutions. Send default value of 3.
+      soiling = Array.from({length: 12}).fill(3) as number[] 
+    }
 
     let systemProduction: any;
+    const params = {
+      lat,
+      lon,
+      system_capacity: systemCapacity,
+      azimuth,
+      tilt,
+      losses,
+      module_type: 1,
+      array_type: 1,
+      timeframe: 'hourly',
+      soiling: soiling?.join('|'),
+    };
     try {
+      this.logger.log("Start call to PVWatt");
       systemProduction = await axios.get(url, {
-        params: {
-          lat,
-          lon,
-          system_capacity: systemCapacity,
-          azimuth,
-          tilt,
-          losses,
-          module_type: 1,
-          array_type: 1,
-          timeframe: 'hourly',
-        },
+        params,
         headers: {
           'X-Api-Key': apiKey,
         },
@@ -58,6 +103,7 @@ export class ExternalService {
       this.logger.errorAPICalling(url, error.message);
       throw ApplicationException.ServiceError();
     }
+    this.logger.log(`Completed call to PVWatts with params: ${JSON.stringify(params, undefined, 2)}` );
     return systemProduction.data.outputs;
   }
 
