@@ -153,11 +153,11 @@ export class QualificationController {
   @ApiResponse({ status: 405, type:  RecieveFniDecisionResDto})
   @CatchQualificationException()
   async receiveFniUpdate(
-    @Req() req: FastifyRequest,
+    @Body() req: RecieveFniDecisionReqDto,
     @Headers('fni-wave-communications') header: string,
     @Res() res: FastifyResponse,
   ): Promise<RecieveFniDecisionResDto> {
-    const response = await this.qualificationService.receiveFniUpdate(req.body as RecieveFniDecisionReqDto, header);
+    const response = await this.qualificationService.receiveFniUpdate(req, header);
 
     return res.code(response.status).send(response.responseBody);
   }

@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ExposeProp } from 'src/shared/decorators';
 import { Type } from 'class-transformer';
 import { IsNotEmpty, ValidateNested } from 'class-validator';
+import { FNI_TRANSACTION_STATUS } from '../constants';
 
 class TransactionDto {
     @ApiProperty()
@@ -9,7 +10,7 @@ class TransactionDto {
     refnum: string;
 
     @ApiProperty()
-    status: string;
+    status = FNI_TRANSACTION_STATUS.SUCCESS;
 }
 
 
