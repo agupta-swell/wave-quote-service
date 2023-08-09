@@ -119,7 +119,7 @@ export class QuoteService {
     private readonly gsProgramsService: GsProgramsService,
     private readonly systemProductionService: SystemProductionService,
     private readonly esaPricingSolverService: EsaPricingSolverService,
-  ) {}
+  ) { }
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const [
@@ -219,7 +219,7 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-          (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+        (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
@@ -243,8 +243,8 @@ export class QuoteService {
         throw ApplicationException.EntityNotFound('FMV Appraisal not found');
       }
 
-      productAttribute.esaTerm = fmvAppraisal.termYears;
-      productAttribute.rateEscalator = fmvAppraisal.escalator;
+      productAttribute.esaTerm = Math.max(...fmvAppraisal.termYears);
+      productAttribute.rateEscalator = Math.max(...fmvAppraisal.escalator);
 
       if (productAttribute.balance > maxInstallationAmount) {
         throw ApplicationException.maxInstallationAmountExceeded();
@@ -399,11 +399,11 @@ export class QuoteService {
     ) {
       gsPrograms = foundQuote.detailedQuote.utilityProgram?.utilityProgramId
         ? await this.gsProgramsService.getList(
-            100,
-            0,
-            foundQuote.detailedQuote.utilityProgram.utilityProgramId,
-            systemDesignId,
-          )
+          100,
+          0,
+          foundQuote.detailedQuote.utilityProgram.utilityProgramId,
+          systemDesignId,
+        )
         : [];
     }
 
@@ -464,9 +464,8 @@ export class QuoteService {
     });
 
     model.systemDesignId = systemDesignId;
-    model.detailedQuote.quoteName = `${originQuoteName} ${
-      totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
-    }`.trim();
+    model.detailedQuote.quoteName = `${originQuoteName} ${totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
+      }`.trim();
     model.detailedQuote.systemProductionId = foundSystemDesign.systemProductionId;
 
     const { selectedQuoteMode, quotePricePerWatt, quotePriceOverride } = foundQuote.detailedQuote;
@@ -547,7 +546,7 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-          (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+        (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
@@ -961,7 +960,7 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-          (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+        (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
@@ -1999,8 +1998,7 @@ export class QuoteService {
 
       unqualifiedManufacturers.forEach(manufacturer => {
         messages.push(
-          `\n<b>${messages.length + 1}.)</b> The selected ${productType} manufacturer (${
-            manufacturer.name
+          `\n<b>${messages.length + 1}.)</b> The selected ${productType} manufacturer (${manufacturer.name
           }) is not approved.`,
         );
       });
@@ -2025,8 +2023,7 @@ export class QuoteService {
         fn: (messages: string[]) => {
           if (productAttribute.balance > financialProduct.maxInstallationAmount)
             messages.push(
-              `\n<b>${
-                messages.length + 1
+              `\n<b>${messages.length + 1
               }.)</b> The cost of installing this system exceeds the allowed maximum installation amount.`,
             );
         },

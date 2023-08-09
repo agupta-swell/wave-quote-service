@@ -13,14 +13,14 @@ export interface FmvAppraisal extends Document {
   solarManufacturerIds: string[];
   inverterManufacturerIds: string[];
   energyStorageManufacturerIds: string[];
-  escalator: number;
+  escalator: number[];
   effectiveDate: Date;
   fundId: string;
   solarRatePerKw: number;
   stateCode: string;
   storageRatePerKwh: number;
   usedByTranches: boolean;
-  termYears: number;
+  termYears: number[];
   createdAt: Date;
   modifiedAt: Date;
 }
@@ -36,14 +36,14 @@ export const FmvAppraisalSchema = new Schema<FmvAppraisal>({
   solarManufacturerIds: [String],
   inverterManufacturerIds: [String],
   energyStorageManufacturerIds: [String],
-  escalator: Number,
+  escalator: [Number],
   effectiveDate: Date,
   fundId: String,
   solarRatePerKw: Number,
   stateCode: String,
   storageRatePerKwh: Number,
   usedByTranches: Boolean,
-  termYears: Number,
+  termYears: [Number],
   createdAt: Date,
   modifiedAt: Date,
 });
