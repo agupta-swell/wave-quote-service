@@ -224,7 +224,7 @@ export class QuoteService {
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
-    
+
     const productAttribute = await this.createProductAttribute({
       productType: fundingSource.type,
       netAmount: quoteCostBuildup.projectGrandTotal.netCost,
@@ -325,14 +325,16 @@ export class QuoteService {
     if (detailedQuote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
       const rowId = await this.getEsaSolverRowId(systemDesign, opportunityDetail, productAttribute, primaryQuoteType);
       data.solverId = rowId;
+      const { fundId, fmvAppraisalId, defaultTurnkeyPriceEsPv } = financialProduct;
 
       const systemProduction = await this.systemProductionService.findById(detailedQuote.systemProductionId);
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
-        fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+        fundId,
         systemProduction: systemProduction.data!,
-        fmvAppraisalId: financialProduct.fmvAppraisalId,
+        fmvAppraisalId,
+        defaultTurnkeyPriceEsPv,
       });
 
       (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
@@ -717,12 +719,18 @@ export class QuoteService {
         primaryQuoteType,
       );
       model.solverId = rowId;
+      const {
+        fundId,
+        fmvAppraisalId,
+        defaultTurnkeyPriceEsPv,
+      } = model.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
-        fundId: model.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+        fundId,
         systemProduction: systemProduction.data!,
-        fmvAppraisalId: financeProduct.financialProductSnapshot.fmvAppraisalId,
+        fmvAppraisalId,
+        defaultTurnkeyPriceEsPv,
       });
 
       (model.detailedQuote.quoteFinanceProduct.financeProduct
@@ -1120,12 +1128,18 @@ export class QuoteService {
         primaryQuoteType,
       );
       data.solverId = rowId;
+      const {
+        fundId,
+        fmvAppraisalId,
+        defaultTurnkeyPriceEsPv,
+      } = detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
-        fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+        fundId,
         systemProduction: systemProduction.data!,
-        fmvAppraisalId: financeProduct.financialProductSnapshot.fmvAppraisalId,
+        fmvAppraisalId,
+        defaultTurnkeyPriceEsPv,
       });
 
       (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
@@ -1428,12 +1442,18 @@ export class QuoteService {
         primaryQuoteType,
       );
       data.solverId = rowId;
+      const {
+        fundId,
+        fmvAppraisalId,
+        defaultTurnkeyPriceEsPv,
+      } = detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
-        fundId: detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot.fundId,
+        fundId,
         systemProduction: systemProduction.data!,
-        fmvAppraisalId: financialProductSnapshot.fmvAppraisalId,
+        fmvAppraisalId,
+        defaultTurnkeyPriceEsPv,
       });
 
       (detailedQuote.quoteFinanceProduct.financeProduct.productAttribute as IEsaProductAttributes).grossFinancePayment =
