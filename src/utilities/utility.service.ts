@@ -8,7 +8,7 @@ import * as dayOfYear from 'dayjs/plugin/dayOfYear';
 import { cloneDeep, inRange, mean, sum, sumBy } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { from, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, mergeMap } from 'rxjs/operators';
 import { ContactService } from 'src/contacts/contact.service';
 import { ExistingSystemService } from 'src/existing-systems/existing-system.service';
 import { OpportunityService } from 'src/opportunities/opportunity.service';
@@ -27,7 +27,7 @@ import { ApplicationException } from '../app/app.exception';
 import { OperationResult } from '../app/common';
 import { ExternalService } from '../external-services/external-service.service';
 import { SystemDesignService } from '../system-designs/system-design.service';
-import { CALCULATION_MODE, CHARGING_LOGIC_TYPE, ENTRY_MODE, INTERVAL_VALUE } from './constants';
+import { CALCULATION_MODE, CHARGING_LOGIC_TYPE, ENTRY_MODE, HOURLY_USAGE_PROFILE, INTERVAL_VALUE } from './constants';
 import { roundUpNumber } from './operators';
 import {
   BatterySystemSpecsDto,
@@ -65,6 +65,7 @@ import {
   UtilityUsageDetails,
   UtilityUsageDetailsModel,
   UTILITY_USAGE_DETAILS,
+  IUtilityUsageDetails,
 } from './utility.schema';
 
 @Injectable()
@@ -294,10 +295,21 @@ export class UtilityService implements OnModuleInit {
       .findOne({ opportunityId }, { medicalBaselineAmount: 1, isLowIncomeOrDac: 1 })
       .lean();
 
+    let cachedHourlyComputedUsage;
+
+    try {
+      cachedHourlyComputedUsage = await this.s3Service.getObject(
+        this.AWS_S3_UTILITY_DATA,
+        `${opportunityId}/hourlyComputedUsage`,
+      );
+    } catch (_) {
+      // Do not thing, any error, such as NoSuchKey (file not found)
+    }
+
     let hourlyDataForTheYear: UsageValue[] = [];
 
-    if (utilityData.computedUsage?.hourlyUsage?.length) {
-      hourlyDataForTheYear = utilityData.computedUsage.hourlyUsage;
+    if (cachedHourlyComputedUsage) {
+      hourlyDataForTheYear = JSON.parse(cachedHourlyComputedUsage);
     } else {
       const handlers: Promise<unknown>[] = [this.getTypicalBaselineData(data.opportunityId)];
       if (usageProfileId) handlers.push(this.usageProfileService.getOne(usageProfileId));
@@ -358,7 +370,6 @@ export class UtilityService implements OnModuleInit {
 
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.opportunityId);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
-    utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
 
     let isCalculateActualUsage = false;
     const calculateActualUsageCostUtilPayload: CalculateActualUsageCostDto = {
@@ -387,73 +398,81 @@ export class UtilityService implements OnModuleInit {
 
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
+    let hourlyComputedUsage = utilityDto.utilityData.computedUsage.hourlyUsage;
+
     if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
-      const computedHourlyUsageInKWh = this.getHourlyUsageFromMonthlyUsage(
+      hourlyComputedUsage = this.getHourlyUsageFromMonthlyUsage(
         utilityDto.utilityData.computedUsage.monthlyUsage,
         typicalMonthlyUsage,
         typicalHourlyUsage,
-      ); // kwh
-      utilityModel.setComputedHourlyUsage(computedHourlyUsageInKWh);
+      );
     }
 
-    const { hourlyEstimatedUsage } = this.getHourlyEstimatedUsage(utilityModel);
+    if (hourlyComputedUsage) {
+      await this.s3Service.putObject(
+        this.AWS_S3_UTILITY_DATA,
+        `${utilityDto.opportunityId}/hourlyComputedUsage`,
+        JSON.stringify(hourlyComputedUsage),
+        'application/json; charset=utf-8',
+      );
+      delete utilityDto.utilityData.computedUsage.hourlyUsage;
+    }
+
+    const { hourlyEstimatedUsage } = await this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
 
-    const {
-      annualComputedAdditions,
-      monthlyComputedAdditions,
-      hourlyComputedAdditions,
-      annualHomeUsageProfile,
-      monthlyHomeUsageProfile,
-      hourlyHomeUsageProfile,
-      annualAdjustedUsageProfile,
-      monthlyAdjustedUsageProfile,
-      hourlyAdjustedUsageProfile,
-      annualCurrentUsageProfile,
-      monthlyCurrentUsageProfile,
-      hourlyCurrentUsageProfile,
-      annualPlannedProfile,
-      monthlyPlannedProfile,
-      hourlyPlannedProfile,
-    } = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
+    const usageProfiles = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
 
     utilityModel.setComputedAdditions({
-      annualUsage: annualComputedAdditions,
-      monthlyUsage: monthlyComputedAdditions,
-      hourlyUsage: hourlyComputedAdditions,
+      annualUsage: usageProfiles.annualComputedAdditions,
+      monthlyUsage: usageProfiles.monthlyComputedAdditions,
     });
 
     utilityModel.setHomeUsageProfile({
-      annualUsage: annualHomeUsageProfile,
-      monthlyUsage: monthlyHomeUsageProfile,
-      hourlyUsage: hourlyHomeUsageProfile,
+      annualUsage: usageProfiles.annualHomeUsageProfile,
+      monthlyUsage: usageProfiles.monthlyHomeUsageProfile,
     });
 
     utilityModel.setAdjustedUsageProfile({
-      annualUsage: annualAdjustedUsageProfile,
-      monthlyUsage: monthlyAdjustedUsageProfile,
-      hourlyUsage: hourlyAdjustedUsageProfile,
+      annualUsage: usageProfiles.annualAdjustedUsageProfile,
+      monthlyUsage: usageProfiles.monthlyAdjustedUsageProfile,
     });
     utilityModel.setCurrentUsageProfile({
-      annualUsage: annualCurrentUsageProfile,
-      monthlyUsage: monthlyCurrentUsageProfile,
-      hourlyUsage: hourlyCurrentUsageProfile,
+      annualUsage: usageProfiles.annualCurrentUsageProfile,
+      monthlyUsage: usageProfiles.monthlyCurrentUsageProfile,
     });
     utilityModel.setPlannedProfile({
-      annualUsage: annualPlannedProfile,
-      monthlyUsage: monthlyPlannedProfile,
-      hourlyUsage: hourlyPlannedProfile,
+      annualUsage: usageProfiles.annualPlannedProfile,
+      monthlyUsage: usageProfiles.monthlyPlannedProfile,
     });
+
+    // save to S3
+    const saveHourlyDataToS3Requests = [
+      HOURLY_USAGE_PROFILE.COMPUTED_ADDITIONS,
+      HOURLY_USAGE_PROFILE.HOME_USAGE_PROFILE,
+      HOURLY_USAGE_PROFILE.ADJUSTED_USAGE_PROFILE,
+      HOURLY_USAGE_PROFILE.CURRENT_USAGE_PROFILE,
+      HOURLY_USAGE_PROFILE.PLANNED_PROFILE,
+    ].map(name =>
+      this.s3Service.putObject(
+        this.AWS_S3_UTILITY_DATA,
+        `${utilityDto.opportunityId}/${name}`,
+        JSON.stringify(usageProfiles[name]),
+        'application/json; charset=utf-8',
+      ),
+    );
+
+    await Promise.all(saveHourlyDataToS3Requests);
 
     const [currentUsageCost, plannedCost] = await Promise.all([
       this.calculateCost(
-        hourlyCurrentUsageProfile,
+        usageProfiles.hourlyCurrentUsageProfile,
         utilityDto.costData.masterTariffId,
         CALCULATION_MODE.ACTUAL,
         utilityDto.utilityData.typicalBaselineUsage.zipCode,
       ),
       this.calculateCost(
-        hourlyPlannedProfile,
+        usageProfiles.hourlyPlannedProfile,
         utilityDto.costData.masterTariffId,
         CALCULATION_MODE.ACTUAL,
         utilityDto.utilityData.typicalBaselineUsage.zipCode,
@@ -470,6 +489,11 @@ export class UtilityService implements OnModuleInit {
 
     await createdUtility.save();
     const createdUtilityObj = createdUtility.toObject();
+
+    createdUtilityObj.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
+
+    if (hourlyComputedUsage) createdUtilityObj.utilityData.computedUsage.hourlyUsage = hourlyComputedUsage;
+
     const monthlyTariffData = await this.calculateTariffInfoByOpportunityId(utilityDto.opportunityId);
     const result = { ...createdUtilityObj, monthlyTariffData };
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, result));
@@ -564,10 +588,25 @@ export class UtilityService implements OnModuleInit {
 
   async getUtilityUsageDetail(opportunityId: string): Promise<OperationResult<UtilityDetailsDto>> {
     const res = await this.getUtilityByOpportunityId(opportunityId);
+
     if (!res) {
       return OperationResult.ok(null as any);
     }
+
+    const [
+      {
+        typicalBaseline: { typicalHourlyUsage },
+      },
+      hourlyComputedUsage,
+    ] = await Promise.all([
+      this.getTypicalBaselineData(opportunityId),
+      this.getHourlyComputedUsageByOppotunityId(opportunityId),
+    ]);
+
     delete res.utilityData.typicalBaselineUsage._id;
+    res.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
+    res.utilityData.computedUsage.hourlyUsage = hourlyComputedUsage;
+
     const monthlyTariffData = await this.getTariffInfoByOpportunityId(opportunityId);
     const result = { ...res, monthlyTariffData };
     return OperationResult.ok(strictPlainToClass(UtilityDetailsDto, result));
@@ -579,73 +618,82 @@ export class UtilityService implements OnModuleInit {
   ): Promise<LeanDocument<UtilityUsageDetails> | null> {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.opportunityId);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
-    utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
 
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
+    let hourlyComputedUsage = utilityDto.utilityData.computedUsage.hourlyUsage;
+
     if (utilityDto.entryMode !== ENTRY_MODE.CSV_INTERVAL_DATA) {
-      const hourlyUsage = this.getHourlyUsageFromMonthlyUsage(
+      hourlyComputedUsage = this.getHourlyUsageFromMonthlyUsage(
         utilityDto.utilityData.computedUsage.monthlyUsage,
         typicalMonthlyUsage,
         typicalHourlyUsage,
       );
-      utilityModel.setComputedHourlyUsage(hourlyUsage);
+      ``;
     }
 
-    const { hourlyEstimatedUsage } = this.getHourlyEstimatedUsage(utilityModel);
+    if (hourlyComputedUsage) {
+      await this.s3Service.putObject(
+        this.AWS_S3_UTILITY_DATA,
+        `${utilityDto.opportunityId}/hourlyComputedUsage`,
+        JSON.stringify(hourlyComputedUsage),
+        'application/json; charset=utf-8',
+      );
+
+      delete utilityDto.utilityData.computedUsage.hourlyUsage;
+    }
+
+    const { hourlyEstimatedUsage } = await this.getHourlyEstimatedUsage(utilityModel);
     utilityModel.setTotalPlannedUsageIncreases(sum(hourlyEstimatedUsage));
 
-    const {
-      annualComputedAdditions,
-      monthlyComputedAdditions,
-      hourlyComputedAdditions,
-      annualHomeUsageProfile,
-      monthlyHomeUsageProfile,
-      hourlyHomeUsageProfile,
-      annualAdjustedUsageProfile,
-      monthlyAdjustedUsageProfile,
-      hourlyAdjustedUsageProfile,
-      annualCurrentUsageProfile,
-      monthlyCurrentUsageProfile,
-      hourlyCurrentUsageProfile,
-      annualPlannedProfile,
-      monthlyPlannedProfile,
-      hourlyPlannedProfile,
-    } = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
+    const usageProfiles = await this.usageProfileProductionService.calculateUsageProfile(utilityModel);
 
     utilityModel.setComputedAdditions({
-      annualUsage: annualComputedAdditions,
-      monthlyUsage: monthlyComputedAdditions,
-      hourlyUsage: hourlyComputedAdditions,
+      annualUsage: usageProfiles.annualComputedAdditions,
+      monthlyUsage: usageProfiles.monthlyComputedAdditions,
     });
 
     utilityModel.setHomeUsageProfile({
-      annualUsage: annualHomeUsageProfile,
-      monthlyUsage: monthlyHomeUsageProfile,
-      hourlyUsage: hourlyHomeUsageProfile,
+      annualUsage: usageProfiles.annualHomeUsageProfile,
+      monthlyUsage: usageProfiles.monthlyHomeUsageProfile,
     });
 
     utilityModel.setAdjustedUsageProfile({
-      annualUsage: annualAdjustedUsageProfile,
-      monthlyUsage: monthlyAdjustedUsageProfile,
-      hourlyUsage: hourlyAdjustedUsageProfile,
+      annualUsage: usageProfiles.annualAdjustedUsageProfile,
+      monthlyUsage: usageProfiles.monthlyAdjustedUsageProfile,
     });
     utilityModel.setCurrentUsageProfile({
-      annualUsage: annualCurrentUsageProfile,
-      monthlyUsage: monthlyCurrentUsageProfile,
-      hourlyUsage: hourlyCurrentUsageProfile,
+      annualUsage: usageProfiles.annualCurrentUsageProfile,
+      monthlyUsage: usageProfiles.monthlyCurrentUsageProfile,
     });
     utilityModel.setPlannedProfile({
-      annualUsage: annualPlannedProfile,
-      monthlyUsage: monthlyPlannedProfile,
-      hourlyUsage: hourlyPlannedProfile,
+      annualUsage: usageProfiles.annualPlannedProfile,
+      monthlyUsage: usageProfiles.monthlyPlannedProfile,
     });
+
+    // save to S3
+    const saveHourlyDataToS3Requests = [
+      HOURLY_USAGE_PROFILE.COMPUTED_ADDITIONS,
+      HOURLY_USAGE_PROFILE.HOME_USAGE_PROFILE,
+      HOURLY_USAGE_PROFILE.ADJUSTED_USAGE_PROFILE,
+      HOURLY_USAGE_PROFILE.CURRENT_USAGE_PROFILE,
+      HOURLY_USAGE_PROFILE.PLANNED_PROFILE,
+    ].map(name =>
+      this.s3Service.putObject(
+        this.AWS_S3_UTILITY_DATA,
+        `${utilityDto.opportunityId}/${name}`,
+        JSON.stringify(usageProfiles[name]),
+        'application/json; charset=utf-8',
+      ),
+    );
+
+    await Promise.all(saveHourlyDataToS3Requests);
 
     const utilityUsageDetailData = await this.utilityUsageDetailsModel.findOne({ _id: utilityId }).lean();
 
     const [currentUsageCost, plannedCost] = await Promise.all([
       this.calculateCost(
-        hourlyCurrentUsageProfile,
+        usageProfiles.hourlyCurrentUsageProfile,
         utilityDto.costData.masterTariffId,
         CALCULATION_MODE.ACTUAL,
         utilityDto.utilityData.typicalBaselineUsage.zipCode,
@@ -654,7 +702,7 @@ export class UtilityService implements OnModuleInit {
         utilityUsageDetailData?.isLowIncomeOrDac,
       ),
       this.calculateCost(
-        hourlyPlannedProfile,
+        usageProfiles.hourlyPlannedProfile,
         utilityDto.costData.masterTariffId,
         CALCULATION_MODE.ACTUAL,
         utilityDto.utilityData.typicalBaselineUsage.zipCode,
@@ -677,12 +725,17 @@ export class UtilityService implements OnModuleInit {
       .lean();
 
     const [isUpdated] = await Promise.all([
-      this.systemDesignService.updateListSystemDesign(utilityDto.opportunityId, annualPlannedProfile),
+      this.systemDesignService.updateListSystemDesign(utilityDto.opportunityId, usageProfiles.annualPlannedProfile),
       this.quoteService.setOutdatedData(utilityDto.opportunityId, 'Utility & Usage'),
     ]);
 
     if (!isUpdated) {
       throw ApplicationException.SyncSystemDesignFail(utilityDto.opportunityId);
+    }
+
+    if (updatedUtility) {
+      updatedUtility.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
+      if (hourlyComputedUsage) updatedUtility.utilityData.computedUsage.hourlyUsage = hourlyComputedUsage;
     }
 
     return updatedUtility;
@@ -710,29 +763,54 @@ export class UtilityService implements OnModuleInit {
   getTypicalUsage$(opportunityId: string): Observable<IGetTypicalUsageKwh> {
     const utility$ = from(this.getUtilityByOpportunityId(opportunityId));
 
+    const transformUtility = async (
+      utility: LeanDocument<UtilityUsageDetails> | null,
+    ): Promise<IUtilityUsageDetails> => {
+      if (!utility) {
+        throw new NotFoundException(`Utility not found`);
+      }
+      const [
+        {
+          typicalBaseline: { typicalHourlyUsage },
+        },
+        hourlyComputedUsage,
+      ] = await Promise.all([
+        this.getTypicalBaselineData(utility.opportunityId),
+        this.getHourlyComputedUsageByOppotunityId(utility.opportunityId),
+      ]);
+
+      utility.utilityData.typicalBaselineUsage.typicalHourlyUsage = typicalHourlyUsage;
+      utility.utilityData.computedUsage.hourlyUsage = hourlyComputedUsage;
+      return utility;
+    };
+
     return utility$.pipe(
-      map(v => {
-        if (!v) {
+      mergeMap(utility => transformUtility(utility)),
+      map(utility => {
+        if (!utility) {
           throw new NotFoundException(`Utility not found for opportunityId: ${opportunityId}`);
         }
-        return getTypicalUsage(v);
+        return getTypicalUsage(utility);
       }),
     );
   }
 
-  getHourlyEstimatedUsage(
+  async getHourlyEstimatedUsage(
     utility: UtilityUsageDetailsModel | LeanDocument<UtilityUsageDetails>,
-  ): { hourlyEstimatedUsage: number[]; hourlyComputedAdditions: number[] } {
+  ): Promise<{ hourlyEstimatedUsage: number[]; hourlyComputedAdditions: number[] }> {
     const {
       utilityData: {
         computedUsage: { annualConsumption, monthlyUsage },
-        typicalBaselineUsage: { typicalHourlyUsage },
       },
       usageProfileSnapshot,
       increaseAmount,
       poolValue,
       electricVehicles = [],
     } = utility;
+
+    const {
+      typicalBaseline: { typicalHourlyUsage },
+    } = await this.getTypicalBaselineData(utility.opportunityId);
 
     let poolUsageKwh = 0;
     if (poolValue) {
@@ -1465,6 +1543,88 @@ export class UtilityService implements OnModuleInit {
   async getExistingSystemProduction(opportunityId: string): Promise<OperationResult<ExistingSystemProductionDto>> {
     const res = await this.getExistingSystemProductionByOpportunityId(opportunityId, true);
     return OperationResult.ok(strictPlainToClass(ExistingSystemProductionDto, res));
+  }
+
+  async getHourlyDataByOpportunityId(opportunityId: string, names: string[]): Promise<number[][]> {
+    let hourlyUsageProfileData: number[][] = [];
+    let jsons;
+
+    try {
+      const keys = names.map(name => `${opportunityId}/${name}`);
+      jsons = await this.s3Service.getObjects(this.AWS_S3_UTILITY_DATA, keys);
+    } catch (_) {
+      // do nothing
+    }
+
+    if (jsons.length === names.length) {
+      hourlyUsageProfileData = jsons.map(json => JSON.parse(json));
+    } else {
+      const utility = await this.getUtilityByOpportunityId(opportunityId);
+      if (!utility) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
+      const usageProfiles = await this.usageProfileProductionService.calculateUsageProfile(utility);
+      hourlyUsageProfileData = names.map(name => usageProfiles[name]);
+
+      const saveHourlyDataToS3Requests = [
+        HOURLY_USAGE_PROFILE.COMPUTED_ADDITIONS,
+        HOURLY_USAGE_PROFILE.HOME_USAGE_PROFILE,
+        HOURLY_USAGE_PROFILE.ADJUSTED_USAGE_PROFILE,
+        HOURLY_USAGE_PROFILE.CURRENT_USAGE_PROFILE,
+        HOURLY_USAGE_PROFILE.PLANNED_PROFILE,
+      ].map(name =>
+        this.s3Service.putObject(
+          this.AWS_S3_UTILITY_DATA,
+          `${opportunityId}/${name}`,
+          JSON.stringify(usageProfiles[name]),
+          'application/json; charset=utf-8',
+        ),
+      );
+
+      await Promise.all(saveHourlyDataToS3Requests);
+    }
+
+    return hourlyUsageProfileData;
+  }
+
+  async getHourlyComputedUsageByOppotunityId(opportunityId: string): Promise<IUsageValue[]> {
+    let hourlyComputedUsageData: IUsageValue[] = [];
+    let json;
+
+    try {
+      json = await this.s3Service.getObject(this.AWS_S3_UTILITY_DATA, `${opportunityId}/hourlyComputedUsage`);
+    } catch (_) {
+      // do nothing
+    }
+
+    if (json) {
+      hourlyComputedUsageData = JSON.parse(json);
+    } else {
+      const [
+        utility,
+        {
+          typicalBaseline: { typicalMonthlyUsage, typicalHourlyUsage },
+        },
+      ] = await Promise.all([
+        this.getUtilityByOpportunityId(opportunityId),
+        this.getTypicalBaselineData(opportunityId),
+      ]);
+
+      if (!utility) throw ApplicationException.EntityNotFound(`opportunityId: ${opportunityId}`);
+
+      hourlyComputedUsageData = this.getHourlyUsageFromMonthlyUsage(
+        utility.utilityData.computedUsage.monthlyUsage,
+        typicalMonthlyUsage,
+        typicalHourlyUsage,
+      );
+    }
+
+    await this.s3Service.putObject(
+      this.AWS_S3_UTILITY_DATA,
+      `${opportunityId}/hourlyComputedUsage`,
+      JSON.stringify(hourlyComputedUsageData),
+      'application/json; charset=utf-8',
+    );
+
+    return hourlyComputedUsageData;
   }
 
   // -->>>>>>>>>>>>>>>>>>>>>> INTERNAL <<<<<<<<<<<<<<<<<<<<<----

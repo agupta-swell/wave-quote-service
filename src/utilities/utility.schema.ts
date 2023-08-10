@@ -164,12 +164,31 @@ export const LoadServingEntityDataSchema = new Schema<Document<ILoadServingEntit
   { _id: false },
 );
 
+export interface IUsageProfileProduction {
+  annualUsage: number;
+  monthlyUsage: number[];
+  hourlyUsage?: number[];
+}
+
 export interface IUtilityData {
   loadServingEntityData: ILoadServingEntityData;
   typicalBaselineUsage: IGenabilityTypicalBaseLine;
   actualUsage: IActualUsage;
   computedUsage: IComputedUsage;
+  computedAdditions: IUsageProfileProduction;
+  homeUsageProfile: IUsageProfileProduction;
+  adjustedUsageProfile: IUsageProfileProduction;
+  currentUsageProfile: IUsageProfileProduction;
+  plannedProfile: IUsageProfileProduction;
 }
+
+export const UsageProfileProductionSchema = new Schema<Document<IUsageProfileProduction>>(
+  {
+    annual_usage: Number,
+    monthly_usage: [Number],
+  },
+  { _id: false },
+);
 
 export const UtilityDataSchema = new Schema<Document<IUtilityData>>(
   {
@@ -177,6 +196,11 @@ export const UtilityDataSchema = new Schema<Document<IUtilityData>>(
     typical_baseline_usage: GenabilityTypicalBaseLineSchema,
     actual_usage: ActualUsageSchema,
     computed_usage: ComputedUsageSchema,
+    computed_additions: UsageProfileProductionSchema,
+    home_usage_profile: UsageProfileProductionSchema,
+    adjusted_usage_profile: UsageProfileProductionSchema,
+    current_usage_profile: UsageProfileProductionSchema,
+    planned_profile: UsageProfileProductionSchema,
   },
   { _id: false },
 );
@@ -240,21 +264,6 @@ export const CostDataSchema = new Schema<Document<ICostData>>(
   { _id: false },
 );
 
-export interface IUsageProfileProduction {
-  annualUsage: number;
-  monthlyUsage: number[];
-  hourlyUsage: number[];
-}
-
-export const UsageProfileProductionSchema = new Schema<Document<IUsageProfileProduction>>(
-  {
-    annual_usage: Number,
-    monthly_usage: [Number],
-    hourly_usage: [Number],
-  },
-  { _id: false },
-);
-
 export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   opportunityId: string;
   utilityData: IUtilityData;
@@ -266,12 +275,6 @@ export interface IUtilityUsageDetails extends Partial<IUsageProfileSnapshot> {
   totalPlannedUsageIncreases: number;
   hasMedicalBaseline?: boolean;
   medicalBaselineAmount?: number;
-  computedAdditions: IUsageProfileProduction;
-  homeUsageProfile: IUsageProfileProduction;
-  adjustedUsageProfile: IUsageProfileProduction;
-  currentUsageProfile: IUsageProfileProduction;
-  plannedProfile: IUsageProfileProduction;
-  plannedCost: number;
   isLowIncomeOrDac?: boolean;
 }
 
@@ -294,12 +297,6 @@ export const UtilityUsageDetailsSchema = new Schema<UtilityUsageDetails>({
   has_medical_baseline: Boolean,
   medical_baseline_amount: Number,
   is_low_income_or_dac: Boolean,
-  computed_additions: UsageProfileProductionSchema,
-  home_usage_profile: UsageProfileProductionSchema,
-  adjusted_usage_profile: UsageProfileProductionSchema,
-  current_usage_profile: UsageProfileProductionSchema,
-  planned_profile: UsageProfileProductionSchema,
-  planned_cost: { type: Number, default: 0 },
 });
 
 export interface GenabilityCostData extends Document {
@@ -341,18 +338,6 @@ export class UtilityUsageDetailsModel {
 
   medicalBaselineAmount: number | undefined;
 
-  computedAdditions: IUsageProfileProduction;
-
-  homeUsageProfile: IUsageProfileProduction;
-
-  adjustedUsageProfile: IUsageProfileProduction;
-
-  currentUsageProfile: IUsageProfileProduction;
-
-  plannedProfile: IUsageProfileProduction;
-
-  plannedCost: number;
-
   isLowIncomeOrDac?: boolean;
 
   constructor(props: CreateUtilityReqDto | any) {
@@ -375,32 +360,28 @@ export class UtilityUsageDetailsModel {
     this.utilityData.actualUsage.hourlyUsage = data;
   }
 
-  setComputedHourlyUsage(data: IUsageValue[]) {
-    this.utilityData.computedUsage.hourlyUsage = data;
-  }
-
   setTotalPlannedUsageIncreases(data: number) {
     this.totalPlannedUsageIncreases = data;
   }
 
   setComputedAdditions(data: IUsageProfileProduction) {
-    this.computedAdditions = data;
+    this.utilityData.computedAdditions = data;
   }
 
   setHomeUsageProfile(data: IUsageProfileProduction) {
-    this.homeUsageProfile = data;
+    this.utilityData.homeUsageProfile = data;
   }
 
   setAdjustedUsageProfile(data: IUsageProfileProduction) {
-    this.adjustedUsageProfile = data;
+    this.utilityData.adjustedUsageProfile = data;
   }
 
   setCurrentUsageProfile(data: IUsageProfileProduction) {
-    this.currentUsageProfile = data;
+    this.utilityData.currentUsageProfile = data;
   }
 
   setPlannedProfile(data: IUsageProfileProduction) {
-    this.plannedProfile = data;
+    this.utilityData.plannedProfile = data;
   }
 
   setCostData(data: ICostData) {

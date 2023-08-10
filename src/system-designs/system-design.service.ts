@@ -54,6 +54,7 @@ import { roundNumber } from 'src/utils/transformNumber';
 import { v4 as uuidv4 } from 'uuid';
 import { IAnnualBillData } from 'src/external-services/typing';
 import { IExistingSystemStorage } from 'src/existing-systems/interfaces';
+import { HOURLY_USAGE_PROFILE } from 'src/utilities/constants';
 import { UtilityService } from '../utilities/utility.service';
 import { BATTERY_PURPOSE, DESIGN_MODE, PRESIGNED_GET_URL_EXPIRE_IN } from './constants';
 import { SystemDesignHook } from './providers/system-design.hook';
@@ -155,7 +156,7 @@ export class SystemDesignService {
     }
 
     const annualUsageKWh =
-      utilityAndUsage?.plannedProfile?.annualUsage ??
+      utilityAndUsage?.utilityData.plannedProfile?.annualUsage ??
       (utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0);
     const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
@@ -338,7 +339,7 @@ export class SystemDesignService {
                   losses,
                   monthlySolarAccessValue,
                 },
-                systemDesignDto.opportunityId
+                systemDesignDto.opportunityId,
               );
             }
 
@@ -425,7 +426,7 @@ export class SystemDesignService {
     const annualExistingPVInKWh = existingSystemProduction.annualProduction;
     const monthlyExistingPVInKWh = existingSystemProduction.monthlyProduction.map(({ v }) => v);
 
-    const { adjustedUsageProfile } = utilityAndUsage;
+    const { adjustedUsageProfile } = utilityAndUsage.utilityData;
 
     let offsetPercentage = totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0;
 
@@ -506,7 +507,7 @@ export class SystemDesignService {
     );
 
     const annualUsageKWh =
-      utilityAndUsage?.plannedProfile?.annualUsage ??
+      utilityAndUsage?.utilityData.plannedProfile?.annualUsage ??
       (utilityAndUsage?.utilityData.computedUsage?.annualConsumption || 0);
     const totalPlannedUsageIncreases = utilityAndUsage?.totalPlannedUsageIncreases || 0;
 
@@ -613,7 +614,7 @@ export class SystemDesignService {
               losses: item.losses,
               monthlySolarAccessValue,
             },
-            systemDesignDto.opportunityId
+            systemDesignDto.opportunityId,
           );
 
           arrayGenerationKWh[index] = acAnnual;
@@ -642,7 +643,7 @@ export class SystemDesignService {
       const annualExistingPVInKWh = existingSystemProduction.annualProduction;
       const monthlyExistingPVInKWh = existingSystemProduction.monthlyProduction.map(({ v }) => v);
 
-      const { adjustedUsageProfile } = utilityAndUsage;
+      const { adjustedUsageProfile } = utilityAndUsage.utilityData;
 
       let offsetPercentage = totalPlannedUsageIncreases > 0 ? cumulativeGenerationKWh / totalPlannedUsageIncreases : 0;
 
@@ -706,7 +707,7 @@ export class SystemDesignService {
             generation = production;
           } else {
             generation = await this.systemProductService.pvWatCalculation(
-                {
+              {
                 lat: systemDesign.latitude,
                 lon: systemDesign.longitude,
                 azimuth,
@@ -715,7 +716,7 @@ export class SystemDesignService {
                 losses,
                 monthlySolarAccessValue,
               },
-              systemDesignDto.opportunityId
+              systemDesignDto.opportunityId,
             );
           }
 
@@ -1281,7 +1282,7 @@ export class SystemDesignService {
     );
     const annualExistingPVKWh = existingSystemProduction.annualProduction;
 
-    const { adjustedUsageProfile } = utilityAndUsage;
+    const { adjustedUsageProfile } = utilityAndUsage.utilityData;
 
     try {
       await Promise.all(
@@ -1722,7 +1723,27 @@ export class SystemDesignService {
     );
 
     const hourlyExistingPVInKWh = existingSystemProduction.hourlyProduction.map(v => v / 1000);
-    const { computedAdditions, homeUsageProfile, adjustedUsageProfile, currentUsageProfile, plannedProfile } = utility;
+
+    const utilityUsageProfileData: { [key: string]: number[] } = {};
+
+    if (utility.utilityData.plannedProfile) {
+      const utilityUsageProfileKeys = [
+        HOURLY_USAGE_PROFILE.COMPUTED_ADDITIONS,
+        HOURLY_USAGE_PROFILE.HOME_USAGE_PROFILE,
+        HOURLY_USAGE_PROFILE.ADJUSTED_USAGE_PROFILE,
+        HOURLY_USAGE_PROFILE.CURRENT_USAGE_PROFILE,
+        HOURLY_USAGE_PROFILE.PLANNED_PROFILE,
+      ];
+
+      const cachedUtilityUsageProfileData = await this.utilityService.getHourlyDataByOpportunityId(
+        systemDesign.opportunityId,
+        utilityUsageProfileKeys,
+      );
+
+      cachedUtilityUsageProfileData.forEach((series, idx) => {
+        utilityUsageProfileData[utilityUsageProfileKeys[idx]] = series;
+      });
+    }
 
     const hourlyTotalPV = systemActualProduction8760.map((v, i) => v + (hourlyExistingPVInKWh[i] || 0));
 
@@ -1752,7 +1773,7 @@ export class SystemDesignService {
       'hour',
       'typicalHourlyUsage',
       'actualUsage',
-      ...(plannedProfile ? [] : ['computedUsage']),
+      ...(utility.utilityData.plannedProfile ? [] : ['computedUsage']),
       'existingPV',
       'computedAdditions',
       'newPV',
@@ -1780,23 +1801,33 @@ export class SystemDesignService {
       shouldDischarge.push(hourly.shouldDischarge ?? !hourly.isCharge);
     });
 
+    const [
+      {
+        typicalBaseline: { typicalHourlyUsage },
+      },
+      hourlyComputedUsage,
+    ] = await Promise.all([
+      this.utilityService.getTypicalBaselineData(utility.opportunityId),
+      this.utilityService.getHourlyComputedUsageByOppotunityId(utility.opportunityId),
+    ]);
+
     const csvData: any = {
       hour: Array.from({ length: 8760 }, (_, i) => i + 1),
-      typicalHourlyUsage: utility.utilityData.typicalBaselineUsage?.typicalHourlyUsage?.map(hourly => hourly.v),
+      typicalHourlyUsage: typicalHourlyUsage?.map(hourly => hourly.v),
       actualUsage: utility.utilityData.actualUsage?.hourlyUsage?.map(hourly => hourly.v),
-      ...(plannedProfile
+      ...(utility.utilityData.plannedProfile
         ? {}
         : {
-            computedUsage: utility.utilityData.computedUsage?.hourlyUsage?.map(hourly => hourly.v),
+            computedUsage: hourlyComputedUsage.map(hourly => hourly.v),
           }),
       existingPV: hourlyExistingPVInKWh,
-      computedAdditions: computedAdditions?.hourlyUsage,
+      computedAdditions: utilityUsageProfileData.hourlyComputedAdditions,
       newPV: systemActualProduction8760,
       totalPV: hourlyTotalPV,
-      homeUsageProfile: homeUsageProfile?.hourlyUsage,
-      adjustedUsageProfile: adjustedUsageProfile?.hourlyUsage,
-      currentUsageProfile: currentUsageProfile?.hourlyUsage,
-      plannedProfile: plannedProfile?.hourlyUsage,
+      homeUsageProfile: utilityUsageProfileData.hourlyHomeUsageProfile,
+      adjustedUsageProfile: utilityUsageProfileData.hourlyAdjustedUsageProfile,
+      currentUsageProfile: utilityUsageProfileData.hourlyCurrentUsageProfile,
+      plannedProfile: utilityUsageProfileData.hourlyPlannedProfile,
       batteryChargingSeries: pinballData.batteryChargingSeries?.map(e => e / 1000), // convert to KWh
       batteryDischargingSeries: pinballData.batteryDischargingSeries?.map(e => e / 1000), // convert to KWh
       batteryStoredEnergySeries: pinballData.batteryStoredEnergySeries?.map(e => e / 1000), // convert to KWh
@@ -2142,7 +2173,7 @@ export class SystemDesignService {
         monthIndex => sum(monthlyProductionByArray.map(x => x[monthIndex])) + (monthlyExistingPVInKWh[monthIndex] || 0),
       ); // systemProductionArray (newPV) + existingPV
 
-      const { adjustedUsageProfile } = utilityAndUsage;
+      const { adjustedUsageProfile } = utilityAndUsage.utilityData;
 
       const { capacityKW } = systemProductionInKwh;
 
@@ -2234,9 +2265,13 @@ export class SystemDesignService {
 
     const existingSystem = await this.existingSystem.getAll({ opportunityId: systemDesign.opportunityId });
 
-    const hourlyPostInstallLoadInKWh = utility.adjustedUsageProfile // handle backward compatibility
-      ? utility.adjustedUsageProfile.hourlyUsage
-      : this.utilityService.getHourlyEstimatedUsage(utility).hourlyEstimatedUsage;
+    const hourlyPostInstallLoadInKWh = utility.utilityData.adjustedUsageProfile // handle backward compatibility
+      ? (
+          await this.utilityService.getHourlyDataByOpportunityId(systemDesign.opportunityId, [
+            HOURLY_USAGE_PROFILE.ADJUSTED_USAGE_PROFILE,
+          ])
+        )[0]
+      : (await this.utilityService.getHourlyEstimatedUsage(utility)).hourlyEstimatedUsage;
 
     const hourlySeriesForNewPVInWh: number[] = [];
     const hourlyPostInstallLoadInWh: number[] = [];
@@ -2258,13 +2293,13 @@ export class SystemDesignService {
       }
     }
 
-    const hourlySeriesForTotalPVInWh: number[] = utility.adjustedUsageProfile // adjustedUsageProfile ? newPV + existingPV : newPV
+    const hourlySeriesForTotalPVInWh: number[] = utility.utilityData.adjustedUsageProfile // adjustedUsageProfile ? newPV + existingPV : newPV
       ? hourlySeriesForNewPVInWh.map((v, i) => v + (hourlySeriesForExistingPVInWh[i] || 0))
       : hourlySeriesForNewPVInWh;
 
     const { storage } = systemDesign.roofTopDesignData;
     const existingSystemStorages: IExistingSystemStorage[] =
-      utility.adjustedUsageProfile && existingSystem.flatMap(item => item.storages);
+      utility.utilityData.adjustedUsageProfile && existingSystem.flatMap(item => item.storages);
     const pinballInputData = {
       hourlyPostInstallLoad: hourlyPostInstallLoadInWh,
       hourlySeriesForTotalPV: hourlySeriesForTotalPVInWh,

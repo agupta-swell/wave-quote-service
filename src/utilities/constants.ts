@@ -36,3 +36,11 @@ export enum CHARGING_LOGIC_TYPE {
   NEM3 = 'NEM3',
   NEM2 = 'NEM2',
 }
+
+export enum HOURLY_USAGE_PROFILE {
+  COMPUTED_ADDITIONS = 'hourlyComputedAdditions',
+  HOME_USAGE_PROFILE = 'hourlyHomeUsageProfile',
+  ADJUSTED_USAGE_PROFILE = 'hourlyAdjustedUsageProfile',
+  CURRENT_USAGE_PROFILE = 'hourlyCurrentUsageProfile',
+  PLANNED_PROFILE = 'hourlyPlannedProfile',
+}

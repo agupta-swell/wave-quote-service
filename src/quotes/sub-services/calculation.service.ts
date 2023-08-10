@@ -117,7 +117,7 @@ export class CalculationService {
     detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
     const actualUsage =
-      utilityUsage?.plannedProfile?.annualUsage ??
+      utilityUsage?.utilityData.plannedProfile?.annualUsage ??
       sumBy(utilityUsage?.utilityData.computedUsage.monthlyUsage, item => item.v);
     const currentBill =
       utilityUsage?.costData.plannedCost?.annualCost ??
