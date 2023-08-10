@@ -10,13 +10,19 @@ export class UsageProfileProductionService {
   ) {}
 
   async calculateUsageProfile(utility: IUtilityUsageDetails) {
-    const existingSystemProduction = await this.utilityService.getExistingSystemProductionByOpportunityId(
-      utility.opportunityId,
-      true,
-    );
-    const hourlyExistingPVInKWh = existingSystemProduction.hourlyProduction.map(e => e / 1000);
+    const [
+      existingSystemProduction,
+      { hourlyComputedAdditions },
+      {
+        typicalBaseline: { typicalHourlyUsage },
+      },
+    ] = await Promise.all([
+      this.utilityService.getExistingSystemProductionByOpportunityId(utility.opportunityId, true),
+      this.utilityService.getHourlyEstimatedUsage(utility),
+      this.utilityService.getTypicalBaselineData(utility.opportunityId),
+    ]);
 
-    const { hourlyComputedAdditions } = this.utilityService.getHourlyEstimatedUsage(utility);
+    const hourlyExistingPVInKWh = existingSystemProduction.hourlyProduction.map(e => e / 1000);
 
     // TODO: fix uploaded csv for actualUsage that having 8761 lines for hourly
     // homeUsageProfile
@@ -25,7 +31,7 @@ export class UsageProfileProductionService {
           .slice(0, 8759)
           .map(({ v }, i) => v + (hourlyExistingPVInKWh[i] || 0))
       : (this.utilityService.calculate8760OnActualMonthlyUsage(
-          utility.utilityData.typicalBaselineUsage.typicalHourlyUsage.map(({ v }) => v),
+          typicalHourlyUsage.map(({ v }) => v),
           utility.utilityData.computedUsage.monthlyUsage.map(({ v, i }) => {
             const foundExistingPVMonthly = existingSystemProduction.monthlyProduction.find(item => item.i === i);
 

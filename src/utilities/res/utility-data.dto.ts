@@ -1,5 +1,6 @@
 import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { strictPlainToClass } from 'src/shared/transform/strict-plain-to-class';
+import { IsOptional } from 'class-validator';
 import { IExistingSystemProduction } from '../utility.schema';
 
 export class LoadServingEntity {
@@ -98,6 +99,18 @@ export class ExistingSystemProductionDto implements IExistingSystemProduction {
   hourlyProduction: number[];
 }
 
+export class UsageProfileProductionDto {
+  @ExposeProp()
+  annualUsage: number;
+
+  @ExposeProp()
+  monthlyUsage: number[];
+
+  @ExposeProp()
+  @IsOptional()
+  hourlyUsage: number[];
+}
+
 export class UtilityDataDto {
   @ExposeProp({ type: LoadServingEntity })
   loadServingEntityData: LoadServingEntity;
@@ -112,6 +125,21 @@ export class UtilityDataDto {
   @ExposeProp({ type: ComputedUsageDto })
   computedUsage: ComputedUsageDto;
 
+  @ExposeProp({ type: UsageProfileProductionDto })
+  computedAdditions: UsageProfileProductionDto;
+
+  @ExposeProp({ type: UsageProfileProductionDto })
+  homeUsageProfile: UsageProfileProductionDto;
+
+  @ExposeProp({ type: UsageProfileProductionDto })
+  adjustedUsageProfile: UsageProfileProductionDto;
+
+  @ExposeProp({ type: UsageProfileProductionDto })
+  currentUsageProfile: UsageProfileProductionDto;
+
+  @ExposeProp({ type: UsageProfileProductionDto })
+  plannedProfile: UsageProfileProductionDto;
+
   static actualUsages(props: any): UtilityDataDto {
     return strictPlainToClass(UtilityDataDto, props);
   }
@@ -123,15 +151,4 @@ export class MonthSeasonTariffDto {
 
   @ExposeProp()
   hourlyTariffRate: number[];
-}
-
-export class UsageProfileProductionDto {
-  @ExposeProp()
-  annualUsage: number;
-
-  @ExposeProp()
-  monthlyUsage: number[];
-
-  @ExposeProp()
-  hourlyUsage: number[];
 }

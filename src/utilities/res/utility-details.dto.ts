@@ -3,7 +3,7 @@ import { Default, ExposeMongoId, ExposeProp } from 'src/shared/decorators';
 import { UsageProfileResDto } from 'src/usage-profiles/res';
 import { ENTRY_MODE } from '../constants';
 import { CostDataDto } from './cost-data.dto';
-import { MonthSeasonTariffDto, UsageProfileProductionDto, UtilityDataDto } from './utility-data.dto';
+import { MonthSeasonTariffDto, UtilityDataDto } from './utility-data.dto';
 
 export class UtilityDetailsDto {
   @ExposeMongoId()
@@ -52,21 +52,6 @@ export class UtilityDetailsDto {
 
   @ExposeProp()
   medicalBaselineAmount?: number;
-
-  @ExposeProp({ type: UsageProfileProductionDto })
-  computedAdditions: UsageProfileProductionDto;
-
-  @ExposeProp({ type: UsageProfileProductionDto })
-  homeUsageProfile: UsageProfileProductionDto;
-
-  @ExposeProp({ type: UsageProfileProductionDto })
-  adjustedUsageProfile: UsageProfileProductionDto;
-
-  @ExposeProp({ type: UsageProfileProductionDto })
-  currentUsageProfile: UsageProfileProductionDto;
-
-  @ExposeProp({ type: UsageProfileProductionDto })
-  plannedProfile: UsageProfileProductionDto;
 
   @ExposeProp()
   isLowIncomeOrDac?: boolean;

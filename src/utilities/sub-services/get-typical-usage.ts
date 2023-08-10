@@ -86,7 +86,7 @@ export const getTypicalUsage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
 
   const {
     utilityData: {
-      computedUsage: { monthlyUsage, annualConsumption, hourlyUsage: _hourlyUsage },
+      computedUsage: { monthlyUsage, annualConsumption, hourlyUsage: hourlyComputedUsage },
       typicalBaselineUsage: { typicalMonthlyUsage, typicalHourlyUsage },
     },
     usageProfileSnapshot,
@@ -101,7 +101,7 @@ export const getTypicalUsage = (doc: IUtilityUsageDetails): IGetTypicalUsageKwh 
       annualConsumption,
       usage: getCSVTypicalUsage(hourlyUsage, currentYear),
       increaseAmount,
-      poolUsageKwh: poolValue / _hourlyUsage.length,
+      poolUsageKwh: poolValue / hourlyComputedUsage.length,
       electricVehicles,
     };
   }

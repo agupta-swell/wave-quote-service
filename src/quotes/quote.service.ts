@@ -219,7 +219,8 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-        (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+          (utilityData.utilityData.plannedProfile?.annualUsage ??
+            utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
@@ -548,7 +549,8 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-        (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+          (utilityData.utilityData.plannedProfile?.annualUsage ??
+            utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
@@ -963,7 +965,8 @@ export class QuoteService {
     const currentPricePerKWh =
       roundNumber(
         currentAnnualCost /
-        (utilityData.plannedProfile?.annualUsage ?? utilityData.utilityData.computedUsage.annualConsumption),
+          (utilityData.utilityData.plannedProfile?.annualUsage ??
+            utilityData.utilityData.computedUsage.annualConsumption),
         2,
       ) || 0;
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;

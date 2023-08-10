@@ -49,8 +49,11 @@ export class EnergyProfileService {
       throw new NotFoundException(`Utility and Usage detail is not found with this opportunity id ${opportunityId}`);
     }
 
-    if (utilityUsageDetailData.plannedProfile) {
-      return buildMonthlyAndAnnualDataFrom8760(utilityUsageDetailData.plannedProfile.hourlyUsage.map(v => v * 1000)); // convert to Wh
+    if (utilityUsageDetailData.utilityData.plannedProfile) {
+      const [hourlyPlannedProfile] = await this.utilityService.getHourlyDataByOpportunityId(opportunityId, [
+        'hourlyPlannedProfile',
+      ]);
+      return buildMonthlyAndAnnualDataFrom8760(hourlyPlannedProfile.map(v => v * 1000)); // convert to Wh
     }
 
     const { usage } = await this.utilityService
