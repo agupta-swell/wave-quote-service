@@ -35,6 +35,9 @@ export class FniApplicationDto {
   fniCurrentDecisionRecievedAt?: Date;
 
   @ExposeProp()
+  fniCurrentDecisionExpiresOn?: Date;
+  
+  @ExposeProp()
   fniCurrentDecisionReasons: string[];
 
   @ExposeProp({ isArray: true, type: FniApplicationResponseDto })
