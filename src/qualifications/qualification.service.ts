@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import * as moment from 'moment'
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { ApplicationException } from 'src/app/app.exception';
 import { PropertyService } from 'src/property/property.service';
@@ -1272,6 +1273,11 @@ export class QualificationService {
           qualificationCredit.milestone = MILESTONE_STATUS.APPLICATION_STATUS;
         }
         activeFniApplication.fniCurrentDecisionReceivedAt = application.timeReceived;
+        
+        if(!activeFniApplication.fniCurrentDecisionExpiresOn){
+          activeFniApplication.fniCurrentDecisionExpiresOn = moment(application.timeReceived).add('120', 'days').format('YYYY-MM-DD h:mm:ss');
+        }
+
         activeFniApplication.fniCurrentDecision = application.currDecision;
         activeFniApplication.responses ??= [];
         activeFniApplication.responses.push({

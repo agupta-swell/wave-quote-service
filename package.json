@@ -53,6 +53,7 @@
     "lodash": "^4.17.21",
     "mailgun-js": "^0.22.0",
     "mime": "^2.5.2",
+    "moment": "^2.29.4",
     "mongoose": "^5.13.15",
     "morgan": "^1.10.0",
     "papaparse": "^5.4.1",
