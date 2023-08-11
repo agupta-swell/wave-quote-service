@@ -40,6 +40,11 @@ export class ProductResDto {
   )
   insertionRule?: string;
 
+  @ExposeIf<IUnknownProduct>(
+    obj => obj.type === PRODUCT_TYPE.INVERTER || obj.type === PRODUCT_TYPE.BATTERY || obj.type === PRODUCT_TYPE.MODULE,
+  )
+  manufacturerWarrantyPeriod?: number;
+
   @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.BATTERY)
   batteryType?: BATTERY_TYPE;
 
@@ -54,7 +59,7 @@ export class ProductResDto {
 
   @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.INVERTER)
   inverterEfficiency?: number;
-  
+
   @ExposeIf<IUnknownProduct>(obj => obj.type === PRODUCT_TYPE.INVERTER)
   isDefaultInverter?: boolean;
 

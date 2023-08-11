@@ -23,6 +23,7 @@ export const ProductSchema = new Schema<IUnknownProduct>({
   is_default_inverter: Boolean,
 
   manufacturer_id: Types.ObjectId,
+  manufacturer_warranty_period: Number,
 
   dimensions: DimensionSchema,
 
