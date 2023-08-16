@@ -5,9 +5,9 @@ import { ApiMetricsService } from '../api-metrics/api-metrics.service';
 import { GoogleSunroofGatewayAxiosException } from './exceptions';
 import type { GoogleSunroof } from './types';
 
-const GOOGLE_SUNROOF_BASE_URL = 'https://solar.googleapis.com/v1/';
-const BUILDINGS_FIND_CLOSEST = 'buildingInsights:findClosest';
-const SOLAR_INFO_GET = 'dataLayers:get';
+const GOOGLE_SUNROOF_BASE_URL = 'https://earthenginesolar.googleapis.com/v1';
+const BUILDINGS_FIND_CLOSEST = 'buildings:findClosest';
+const SOLAR_INFO_GET = 'solarInfo:get';
 
 /**
  * The Earth Engine Solar API allows users to read details about the solar potential of over 60 million buildings.
