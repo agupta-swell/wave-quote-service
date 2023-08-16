@@ -268,9 +268,9 @@ export class EsaPricingSolverService {
     fundId: string;
     systemProduction: ISystemProductionSchema;
     fmvAppraisalId: string;
-    defaultTurnkeyPriceEsPv: number;
+    projectNetAmount: number;
   }): Promise<V2EsaPricingCalculation> {
-    const { solverId, fundId, systemProduction, fmvAppraisalId, defaultTurnkeyPriceEsPv } = data;
+    const { solverId, fundId, systemProduction, fmvAppraisalId, projectNetAmount } = data;
     const [solverRow, devFee, fmvAppraisal] = await Promise.all([
       this.getSolverRowById(solverId),
       this.getModeledDevFee(fundId),
@@ -279,7 +279,6 @@ export class EsaPricingSolverService {
 
     if (!fmvAppraisal) throw ApplicationException.EntityNotFound(`fmvAppraisal data.`);
 
-    const isSolarOnly = solverRow.projectTypes.every(item => item === PROJECT_TYPES.SOLAR);
 
     // If the db.v2_esa_pricing_solver.projectTypes array contains 'solar', then run the solar/solar+storage calculations.
     // Otherwise, run the storage-only calculations.
@@ -288,9 +287,7 @@ export class EsaPricingSolverService {
           systemProduction,
           solverRow,
           devFee,
-          isSolarOnly,
-          fmvAppraisal.storageRatePerKwh,
-          defaultTurnkeyPriceEsPv,
+          projectNetAmount,
         )
       : this.calculateStorageOnly(solverRow, devFee, fmvAppraisal.storageRatePerKwh);
 
@@ -306,12 +303,14 @@ export class EsaPricingSolverService {
       fundId,
     } = quote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
+    const projectNetAmount = quote.detailedQuote.quoteCostBuildup.projectGrossTotal.netCost;
+
     const res = await this.calculateEsaPricing({
       solverId: quote.solverId,
       fundId,
       systemProduction: quote.detailedQuote.systemProduction,
       fmvAppraisalId,
-      defaultTurnkeyPriceEsPv,
+      projectNetAmount,
     });
 
     return OperationResult.ok(res);
@@ -321,17 +320,19 @@ export class EsaPricingSolverService {
     systemProduction: ISystemProductionSchema,
     solverRow: V2EsaPricingSolverDocument,
     devFee: number,
-    isSolarOnly: boolean,
-    storageRatePerKwh: number,
-    defaultTurnkeyPriceEsPv: number,
+    projectNetAmount: number,
   ): V2EsaPricingCalculation {
     if (!systemProduction) throw ApplicationException.EntityNotFound(`systemProduction data.`);
 
-    const pricePerWatt = isSolarOnly ? storageRatePerKwh / 1000 : defaultTurnkeyPriceEsPv;
+    /*
+    New calcuation:
+    A * (modeled dev fee * (Project Net Amount / Solar Size kW / 1000) * Solar Size kW) 
+      + B * ((Project Net Amount / Solar Size kW / 1000) * Solar Size kW) + C * Solar Size kW + D
+    */
 
-    const annualPayment =
-      solverRow.coefficientA * (devFee * pricePerWatt * systemProduction.capacityKW) +
-      solverRow.coefficientB * (pricePerWatt * systemProduction.capacityKW) +
+    const annualPayment = 
+      solverRow.coefficientA * (devFee * ( projectNetAmount / systemProduction.capacityKW / 1000 ) * systemProduction.capacityKW) +
+      solverRow.coefficientB * ((projectNetAmount / systemProduction.capacityKW / 1000) * systemProduction.capacityKW) +
       solverRow.coefficientC * systemProduction.capacityKW +
       solverRow.coefficientD;
 
