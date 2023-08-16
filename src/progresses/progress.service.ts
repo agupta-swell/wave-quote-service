@@ -23,12 +23,14 @@ export class ProgressService {
       utilityCounter,
       systemDesignCounter,
       quoteCounter,
+      quoteCounterForEnablingQualificationTab,
       proposalCounter,
       qualificationCounter,
     ] = await Promise.all([
       this.utilityService.countByOpportunityId(opportunityId),
       this.systemDesignService.countActiveDocumentsByOpportunityId(opportunityId),
       this.quoteService.countByOpportunityId(opportunityId),
+      this.quoteService.countForEnablingQualificationTabByOpportunityId(opportunityId),
       this.proposalService.countByOpportunityId(opportunityId),
       this.qualificationService.countByOpportunityId(opportunityId),
     ]);
@@ -38,6 +40,7 @@ export class ProgressService {
         utilityAndUsageCounter: utilityCounter,
         systemDesignCounter,
         quoteCounter,
+        quoteCounterForEnablingQualificationTab,
         proposalCounter,
         qualificationCounter,
       }),

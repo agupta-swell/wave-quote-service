@@ -1785,6 +1785,15 @@ export class QuoteService {
     }
   }
 
+  async countForEnablingQualificationTabByOpportunityId(opportunityId: string): Promise<number> {
+    const counter = await this.quoteModel.countDocuments({
+      opportunityId,
+      isArchived: false,
+      'detailedQuote.quoteFinanceProduct.financeProduct.productType': { $in: [FINANCE_PRODUCT_TYPE.ESA] },
+    });
+    return counter;
+  }
+
   async countByOpportunityId(opportunityId: string): Promise<number> {
     const counter = await this.quoteModel.countDocuments({ opportunityId });
     return counter;
