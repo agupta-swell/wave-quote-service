@@ -12,6 +12,9 @@ export class ProgressDto {
   quoteCounter: number;
 
   @ExposeProp()
+  quoteCounterForEnablingQualificationTab: number;
+
+  @ExposeProp()
   proposalCounter: number;
 
   @ExposeProp()
