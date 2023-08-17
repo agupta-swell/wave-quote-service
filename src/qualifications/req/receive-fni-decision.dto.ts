@@ -368,19 +368,16 @@ export class RecieveFniDecisionReqDto {
 
 
     @ApiProperty({ type: ApprovedOffersElementDTO })
-    @IsNotEmpty()
     @Type(() => ApprovedOffersElementDTO)
     @ValidateNested()
     approved_offers: ApprovedOffersElementDTO[];
 
     @ApiProperty({ type: DecisionOfferElementDTO })
-    @IsNotEmpty()
     @Type(() => DecisionOfferElementDTO)
     @ValidateNested()
     decision_offer: DecisionOfferElementDTO[];
 
     @ApiProperty({ type: DisbursementsDTO })
-    @IsNotEmpty()
     @Type(() => DisbursementsDTO)
     @ValidateNested()
     disbursements: DisbursementsDTO[];
