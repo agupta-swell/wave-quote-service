@@ -718,32 +718,31 @@ export class QualificationService {
 
     const tokenIsValid = await this.tokenService.isTokenValid('fni-wave-communications', header);
 
-    if (!tokenIsValid?.data?.responseStatus) {
-      res = {
-        responseBody: {
-          transaction: {
-            status: 'error',
-            errorMsgs: ['Method Not Allowed'],
-          },
-        },
-        status: 401,
-      };
-      return res;
-    }
-
-    const fniDecisionDetailsError = {
+    let fniDecisionDetailsError = {
       responseBody: {
         transaction: {
-          status: 'error',
-          errorMsgs: ['Method Not Allowed'],
+          status: FNI_TRANSACTION_STATUS.ERROR,
+          errorMsgs: ['Bad Request'],
         },
       },
-      status: 405,
-    };
+      status: 400,
+    }
+
+    if (!tokenIsValid?.data?.responseStatus) {
+      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Invalid Token']
+      fniDecisionDetailsError.status = 401
+
+      return fniDecisionDetailsError;
+    }
 
     const qualificationCredit = await this.findQualificationCreditByRefnum(req.transaction.refnum);
 
-    if (!qualificationCredit) return fniDecisionDetailsError;
+    if (!qualificationCredit) {
+      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Record not found']
+      fniDecisionDetailsError.status = 404
+      
+      return fniDecisionDetailsError;
+    }
 
     const errorEvent: IEventHistory = {
       issueDate: new Date(),
@@ -757,16 +756,7 @@ export class QualificationService {
       qualificationCredit.eventHistories.push(errorEvent);
       await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
 
-      res = {
-        responseBody: {
-          transaction: {
-            status: 'error',
-            errorMsgs: ['Bad Request'],
-          },
-        },
-        status: 400,
-      };
-      return res;
+      return fniDecisionDetailsError;
     }
 
     const handleData: IFniResponse = {
@@ -786,12 +776,15 @@ export class QualificationService {
         responseBody: {
           transaction: {
             refnum: req.transaction.refnum,
-            status: 'success',
+            status: FNI_TRANSACTION_STATUS.SUCCESS,
           },
         },
         status: 200,
       };
     } catch (error) {
+      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Internal Server Error']
+      fniDecisionDetailsError.status = 500
+      
       res = fniDecisionDetailsError;
       this.logger.error(error);
     }
@@ -808,6 +801,8 @@ export class QualificationService {
     }
 
     const fniResponse = await this.fniEngineService.processFniSolarApplyRequest(processRequestData);
+    fniResponse.type = FNI_REQUEST_TYPE.SOLAR_APPLY
+    
     const responseStatus = await this.handleProcessFniSolarApplyResponse({
       qualificationCreditId: processRequestData.qualificationCreditId,
       opportunityId: processRequestData.opportunityId,
@@ -1235,7 +1230,7 @@ export class QualificationService {
         }
         activeFniApplication.responses ??= [];
         activeFniApplication.responses.push({
-          type: FNI_REQUEST_TYPE.SOLAR_APPLY,
+          type: type || FNI_REQUEST_TYPE.SOLAR_APPLY,
           transactionStatus: FNI_TRANSACTION_STATUS.ERROR,
           rawResponse,
           createdAt: new Date(),
@@ -1281,7 +1276,7 @@ export class QualificationService {
         activeFniApplication.fniCurrentDecision = application.currDecision;
         activeFniApplication.responses ??= [];
         activeFniApplication.responses.push({
-          type: FNI_REQUEST_TYPE.SOLAR_APPLY,
+          type: type || FNI_REQUEST_TYPE.SOLAR_APPLY,
           transactionStatus: FNI_TRANSACTION_STATUS.SUCCESS,
           rawResponse,
           createdAt: new Date(),
@@ -1374,7 +1369,7 @@ export class QualificationService {
 
   private getFniErrorSubject(data: { type: string; status?: number }) {
     const { type, status } = data;
-    return `FNI ${type} :: ${FNI_RESPONSE_ERROR_MAP[status || -1] || 'Error'}`;
+    return `FNI ${type} :: ${FNI_RESPONSE_ERROR_MAP[status || -1] || FNI_TRANSACTION_STATUS.ERROR}`;
   }
 
   private async validateIncomingFniReqBody(req: RecieveFniDecisionReqDto) {
