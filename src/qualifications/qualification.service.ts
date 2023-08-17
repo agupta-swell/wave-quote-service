@@ -1241,6 +1241,7 @@ export class QualificationService {
 
       if (transactionStatus === FNI_TRANSACTION_STATUS.SUCCESS) {
         isError = false;
+        activeFniApplication.fniCurrentDecisionReasons = [];
         switch (application.currDecision) {
           case QUALIFICATION_STATUS.APPROVED:
           case QUALIFICATION_STATUS.DECLINED:
@@ -1260,7 +1261,6 @@ export class QualificationService {
             eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_ERROR;
             break;
         }
-
         if (qualificationCredit.qualificationStatus === QUALIFICATION_STATUS.PENDING && field_descriptions) {
           field_descriptions.map(field =>  activeFniApplication.fniCurrentDecisionReasons.push(field.currQueueName));
         }
