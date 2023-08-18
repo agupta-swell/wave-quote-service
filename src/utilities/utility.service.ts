@@ -1556,7 +1556,7 @@ export class UtilityService implements OnModuleInit {
       // do nothing
     }
 
-    if (jsons.length === names.length) {
+    if (jsons.filter(json => json !== undefined).length === names.length) {
       hourlyUsageProfileData = jsons.map(json => JSON.parse(json));
     } else {
       const utility = await this.getUtilityByOpportunityId(opportunityId);
