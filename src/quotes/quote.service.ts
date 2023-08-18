@@ -329,7 +329,7 @@ export class QuoteService {
 
       const systemProduction = await this.systemProductionService.findById(detailedQuote.systemProductionId);
 
-      const projectNetAmount = detailedQuote.quoteCostBuildup.projectGrossTotal.netCost;
+      const projectNetAmount =  detailedQuote.quoteCostBuildup.projectGrandTotal.netCost;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
@@ -725,7 +725,7 @@ export class QuoteService {
         fmvAppraisalId,
       } = model.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
-      const projectNetAmount = model.detailedQuote.quoteCostBuildup.projectGrossTotal.netCost;
+      const projectNetAmount = model.detailedQuote.quoteCostBuildup.projectGrandTotal.netCost;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
@@ -1135,7 +1135,7 @@ export class QuoteService {
         fmvAppraisalId,
       } = detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
-      const projectNetAmount = detailedQuote.quoteCostBuildup.projectGrossTotal.netCost;
+      const projectNetAmount = detailedQuote.quoteCostBuildup.projectGrandTotal.netCost;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
@@ -1450,7 +1450,7 @@ export class QuoteService {
         fmvAppraisalId,
       } = detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
-      const projectNetAmount =  detailedQuote.quoteCostBuildup.projectGrossTotal.netCost;
+      const projectNetAmount = detailedQuote.quoteCostBuildup.projectGrandTotal.netCost;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,

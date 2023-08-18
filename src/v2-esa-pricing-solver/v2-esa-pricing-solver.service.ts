@@ -329,9 +329,10 @@ export class EsaPricingSolverService {
     A * (modeled dev fee * (Project Net Amount / Solar Size kW / 1000) * Solar Size kW) 
       + B * ((Project Net Amount / Solar Size kW / 1000) * Solar Size kW) + C * Solar Size kW + D
     */
+    const devFeePercent= (devFee/100);
 
     const annualPayment = 
-      solverRow.coefficientA * (devFee * ( projectNetAmount / systemProduction.capacityKW / 1000 ) * systemProduction.capacityKW) +
+      solverRow.coefficientA * (devFeePercent * ( projectNetAmount / systemProduction.capacityKW / 1000 ) * systemProduction.capacityKW) +
       solverRow.coefficientB * ((projectNetAmount / systemProduction.capacityKW / 1000) * systemProduction.capacityKW) +
       solverRow.coefficientC * systemProduction.capacityKW +
       solverRow.coefficientD;
