@@ -18,7 +18,6 @@ interface IPvWatCalculation {
   azimuth: number;
   tilt?: number;
   losses?: number;
-  monthlySolarAccessValue?: number[];
 }
 
 interface ICalculatePVProduction {
@@ -61,7 +60,7 @@ export class SystemProductService implements OnModuleInit {
     }
   }
 
-  async pvWatCalculation(data: IPvWatCalculation, opportunityId?: string): Promise<number> {
+  async pvWatCalculation(data: IPvWatCalculation): Promise<number> {
     const { systemCapacity, ...p } = data;
     const pvWattSystemProduction = await this.pvWattSystemProduction
       .findOne({
@@ -75,7 +74,7 @@ export class SystemProductService implements OnModuleInit {
       return pvWattSystemProduction.acAnnualProduction;
     }
 
-    const res = await this.externalService.calculateSystemProduction(data, opportunityId);
+    const res = await this.externalService.calculateSystemProduction(data);
 
     // save hourly to s3 then save only id to pvWattSystemProduction
     const hourlyProductionId = uuidv4();
