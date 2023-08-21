@@ -1,16 +1,20 @@
 import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { EnvelopeSummary, EnvelopeUpdateSummary } from 'docusign-esign';
+import { IncomingMessage } from 'http';
 import { LeanDocument, Model } from 'mongoose';
 import { ContractService } from 'src/contracts/contract.service';
-import { IncomingMessage } from 'http';
+import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
+import { DOCUSIGN_INTEGRATION_TYPE } from 'src/docusign-integration/constants';
 import { DocusignTemplateMaster } from 'src/docusign-templates-master/docusign-template-master.schema';
 import { SignerRoleMaster } from 'src/docusign-templates-master/schemas';
-import { SignerDetailDto } from 'src/contracts/req/sub-dto/signer-detail.dto';
-import { compareIds, transformToValidId } from 'src/utils/common';
-import { DocusignApiService, TResendEnvelopeStatus } from 'src/shared/docusign';
-import { EnvelopeSummary, EnvelopeUpdateSummary } from 'docusign-esign';
 import { FINANCE_PRODUCT_TYPE } from 'src/quotes/constants';
-import { DOCUSIGN_INTEGRATION_TYPE } from 'src/docusign-integration/constants';
+import { DocusignApiService, TResendEnvelopeStatus } from 'src/shared/docusign';
+import { compareIds, transformToValidId } from 'src/utils/common';
+import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
+import { FastifyFile } from '../shared/fastify';
+import { DEFAULT_QUERY_CONTRACT_KEY_MAPPING, DOCUSIGN_API_TYPE } from './constants';
+import { DOCUSIGN_COMMUNICATION, DocusignCommunication } from './docusign-communication.schema';
 import {
   ICompositeTemplate,
   IGenericObject,
@@ -21,11 +25,7 @@ import {
   ISignerData,
   REQUEST_TYPE,
 } from './typing';
-import { DocusignCommunication, DOCUSIGN_COMMUNICATION } from './docusign-communication.schema';
-import { ISignerDetailDataSchema, ITemplateDetailSchema } from '../contracts/contract.schema';
-import { FastifyFile } from '../shared/fastify';
 import { getFunctionParams } from './utils';
-import { DEFAULT_QUERY_CONTRACT_KEY_MAPPING, DOCUSIGN_API_TYPE } from './constants';
 
 function GetDocusignIntegrationInstance(
   docusignApiType = DOCUSIGN_API_TYPE.DEFAULT,
@@ -149,13 +149,12 @@ export class DocusignCommunicationService {
       docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
     });
 
-    const resDocusign = await this.docusignApiService
-      .useContext(genericObject)
-      .sendContract(
-        docusignPayload,
-        templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '',
-        isDraft,
-      );
+    const resDocusign = await this.docusignApiService.useContext(genericObject).sendContract({
+      contractId,
+      createContractPayload: docusignPayload,
+      pageFrom: templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '',
+      isDraft,
+    });
 
     const model = new this.docusignCommunicationModel({
       dateTime: new Date(),
@@ -203,13 +202,12 @@ export class DocusignCommunicationService {
       docusignPayload.compositeTemplates.push(compositeTemplateDataPayload);
     });
 
-    const resDocusign = await this.docusignGSPApiService
-      .useContext(genericObject)
-      .sendContract(
-        docusignPayload,
-        templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '',
-        isDraft,
-      );
+    const resDocusign = await this.docusignGSPApiService.useContext(genericObject).sendContract({
+      contractId,
+      createContractPayload: docusignPayload,
+      pageFrom: templateDetails.find(e => e.id === pageFromTemplateId)?.docusignTemplateId ?? '',
+      isDraft,
+    });
 
     const model = new this.docusignCommunicationModel({
       dateTime: new Date(),

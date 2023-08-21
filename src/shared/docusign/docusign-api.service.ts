@@ -1,29 +1,31 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable no-use-before-define */
 /* eslint-disable no-plusplus */
-import * as https from 'https';
-import { IncomingMessage } from 'http';
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import * as docusign from 'docusign-esign';
-import { IDocusignCompositeContract } from 'src/docusign-communications/typing';
-import { ApplicationException } from 'src/app/app.exception';
+import { Inject, Injectable, OnModuleInit, forwardRef } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import * as docusign from 'docusign-esign';
 import { EnvelopeSummary } from 'docusign-esign';
+import { IncomingMessage } from 'http';
+import * as https from 'https';
 import { cloneDeep } from 'lodash';
-import { DocusignIntegrationService } from 'src/docusign-integration/docusign-integration.service';
-import { DocusignIntegrationDocument } from 'src/docusign-integration/docusign-integration.schema';
+import { LeanDocument, ObjectId, Types } from 'mongoose';
+import { ApplicationException } from 'src/app/app.exception';
+import { IContractMetrics } from 'src/contracts/contract.schema';
+import { ContractService } from 'src/contracts/contract.service';
 import { DOCUSIGN_INTEGRATION_TYPE, JWT_EXPIRES_IN, SCOPES } from 'src/docusign-integration/constants';
-import { LeanDocument } from 'mongoose';
-import { InjectDocusignContext } from './decorators/inject-docusign-context';
-import { docusignMetaStorage } from './decorators/meta-storage';
-import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
-import { IDocusignContextStore, IRecipient, TResendEnvelopeStatus } from './interfaces';
-import { DocusignException } from './docusign.exception';
-import { IDefaultContractor } from './interfaces/IDefaultContractor';
-import { IPageNumberFormatter } from './interfaces/IPageNumberFormatter';
-import { IDocusignAwsSecretPayload } from './interfaces/IDocusignAwsSecretPayload';
+import { DocusignIntegrationDocument } from 'src/docusign-integration/docusign-integration.schema';
+import { DocusignIntegrationService } from 'src/docusign-integration/docusign-integration.service';
 import { MultipartStreamBuilder } from '../multipart-builder';
 import { KEYS } from './constants';
+import { InjectDocusignContext } from './decorators/inject-docusign-context';
+import { docusignMetaStorage } from './decorators/meta-storage';
+import { DocusignException } from './docusign.exception';
+import { IDocusignContextStore, IRecipient, TResendEnvelopeStatus } from './interfaces';
+import { ICompiledTemplate } from './interfaces/ICompiledTemplate';
+import { IDefaultContractor } from './interfaces/IDefaultContractor';
+import { IDocusignAwsSecretPayload } from './interfaces/IDocusignAwsSecretPayload';
+import { IPageNumberFormatter } from './interfaces/IPageNumberFormatter';
+import { ISendContractProps } from './typing';
 
 @Injectable()
 export class DocusignApiService<Context> implements OnModuleInit {
@@ -51,6 +53,8 @@ export class DocusignApiService<Context> implements OnModuleInit {
     @Inject(KEYS.PAGE_NUMBER_FORMATTER)
     private readonly pageNumberFormatter: IPageNumberFormatter,
     private readonly docusignIntegrationService: DocusignIntegrationService,
+    @Inject(forwardRef(() => ContractService))
+    private readonly contractService: ContractService,
   ) {
     const docusignCredentialsEnv = process.env.DOCUSIGN_CREDENTIALS;
 
@@ -205,11 +209,12 @@ export class DocusignApiService<Context> implements OnModuleInit {
     }
   }
 
-  public async sendContract(
-    createContractPayload: IDocusignCompositeContract,
-    pageFrom: string,
+  public async sendContract({
+    contractId,
+    pageFrom,
     isDraft = false,
-  ): Promise<EnvelopeSummary> {
+    createContractPayload,
+  }: ISendContractProps): Promise<EnvelopeSummary> {
     const context = this.contextStore.get<Context>();
 
     const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
@@ -258,7 +263,10 @@ export class DocusignApiService<Context> implements OnModuleInit {
       }
 
       if (context.docWithPrefillTabIds.length) {
-        await this.updatePrefillTabs(result.envelopeId);
+        const contractMetrics = await this.updatePrefillTabs(result.envelopeId, contractId);
+        if (docusignIntegrationType === DOCUSIGN_INTEGRATION_TYPE.ESA) {
+          await this.contractService.saveContractMetrics(contractId, contractMetrics);
+        }
       }
 
       if (!isDraft) {
@@ -445,13 +453,18 @@ export class DocusignApiService<Context> implements OnModuleInit {
     });
   }
 
-  private async updatePrefillTabs(envelopeId: string): Promise<void> {
+  private async updatePrefillTabs(envelopeId: string, contractId: string): Promise<IContractMetrics[]> {
     const context = this.contextStore.get<Context>();
 
     if (!context.genericObject) {
       throw new Error('Missing docusign context generic object');
     }
 
+    const foundContract = await this.contractService.getOneByContractId(
+      (Types.ObjectId(contractId) as unknown) as ObjectId,
+    );
+
+    const contractMetrics: IContractMetrics[] = [];
     const { docWithPrefillTabIds, templateIds } = context;
 
     /**
@@ -485,9 +498,34 @@ export class DocusignApiService<Context> implements OnModuleInit {
       // eslint-disable-next-line no-continue
       if (!prefillTabs || !prefillTabs.prefillTabs.textTabs.length) continue;
 
+      if (context.docusignIntegrationType === DOCUSIGN_INTEGRATION_TYPE.ESA) {
+        const foundContractTemplate = foundContract.contractTemplateDetail.templateDetails.find(
+          item => item.docusignTemplateId === templateId,
+        );
+
+        if (!foundContractTemplate) {
+          throw new DocusignException(undefined, `No template found with id ${templateIds[idx]}`);
+        }
+
+        const templateFields: Record<string, string> = {};
+        prefillTabs.prefillTabs.textTabs.forEach(item => {
+          if (item.tabLabel) {
+            templateFields[item.tabLabel] = item.value === undefined ? '' : item.value;
+          }
+        });
+
+        contractMetrics.push({
+          templateId: foundContractTemplate.id,
+          templateName: foundContractTemplate.templateName,
+          templateFields,
+        });
+      }
+
       // eslint-disable-next-line no-await-in-loop
       await this.populatePrefillTabs(envelopeId, `${docId}`, prefillTabs);
     }
+
+    return contractMetrics;
   }
 
   private buildTextTab(templateId: string): ICompiledTemplate.TextTab[] {

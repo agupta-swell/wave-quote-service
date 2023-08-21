@@ -27,6 +27,7 @@ import { OpportunityService } from 'src/opportunities/opportunity.service';
 import { GetRelatedInformationDto } from 'src/opportunities/res/get-related-information.dto';
 import { ProjectService } from 'src/projects/project.service';
 import { PropertyService } from 'src/property/property.service';
+import { QUALIFICATION_STATUS, QUALIFICATION_TYPE } from 'src/qualifications/constants';
 import { REBATE_TYPE } from 'src/quotes/constants';
 import { IDetailedQuoteSchema, ILeaseProductAttributes } from 'src/quotes/quote.schema';
 import { QuoteService } from 'src/quotes/quote.service';
@@ -40,13 +41,13 @@ import { UtilityProgramMasterService } from 'src/utility-programs-master/utility
 import { roundNumber } from 'src/utils/transformNumber';
 import { CustomerPayment } from '../customer-payments/customer-payment.schema';
 import { CustomerPaymentService } from '../customer-payments/customer-payment.service';
-import { QualificationService } from '../qualifications/qualification.service';
 import {
   CONTRACTING_SYSTEM_STATUS,
   IContractSignerDetails,
   IGenericObject,
   IGenericObjectForGSP,
 } from '../docusign-communications/typing';
+import { QualificationService } from '../qualifications/qualification.service';
 import { FastifyFile } from '../shared/fastify';
 import {
   CONTRACT_ROLE,
@@ -58,7 +59,7 @@ import {
   SIGN_STATUS,
   STATUS,
 } from './constants';
-import { Contract, CONTRACT } from './contract.schema';
+import { Contract, CONTRACT, IContractMetrics } from './contract.schema';
 import { SaveChangeOrderReqDto, SaveContractReqDto } from './req';
 import { ContractReqDto } from './req/contract-req.dto';
 import {
@@ -70,7 +71,6 @@ import {
   SaveContractDto,
   SendContractDto,
 } from './res';
-import { QUALIFICATION_STATUS, QUALIFICATION_TYPE } from 'src/qualifications/constants';
 
 @Injectable()
 export class ContractService {
@@ -1383,5 +1383,14 @@ export class ContractService {
     }
 
     return fileName;
+  }
+
+  public async saveContractMetrics(contractId: string, contractMetrics: IContractMetrics[]) {
+    const contract = await this.contractModel.findById(contractId);
+    if (!contract) {
+      throw ApplicationException.EntityNotFound(`ContractId: ${contractId}`);
+    }
+    contract.contractMetrics = contractMetrics;
+    await contract.save();
   }
 }

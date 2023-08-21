@@ -21,6 +21,12 @@ export interface ISignerDetailDataSchema {
   phoneNumber: string;
 }
 
+export interface IContractMetrics {
+  templateId: string;
+  templateName: string;
+  templateFields: Record<string, string>;
+}
+
 const SignerDetailDataSchema = new Schema<Document<any>>(
   {
     role_id: String,
@@ -31,6 +37,15 @@ const SignerDetailDataSchema = new Schema<Document<any>>(
     sent_on: Date,
     signed_on: Date,
     phone_number: String,
+  },
+  { _id: false },
+);
+
+const ContractMetricsSchema = new Schema<Document<IContractMetrics>>(
+  {
+    template_id: String,
+    template_name: String,
+    template_fields: Object,
   },
   { _id: false },
 );
@@ -99,6 +114,7 @@ export interface Contract extends Document {
   updatedAt: Date;
   projectCompletionDate: Date;
   utilityProgramId: string;
+  contractMetrics?: IContractMetrics[];
 }
 
 export const ContractSchema = new Schema<Contract>({
@@ -119,6 +135,7 @@ export const ContractSchema = new Schema<Contract>({
   contracting_system_reference_id: String,
   system_design_id: String,
   utility_program_id: String,
+  contract_metrics: { type: [ContractMetricsSchema], optional: true },
 
   created_at: { type: Date, default: Date.now },
   created_by: String,

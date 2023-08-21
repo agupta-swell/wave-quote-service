@@ -211,12 +211,12 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
     if (!prefillTabs || !Object.keys(prefillTabs).length || !prefillTabs.textTabs.length) return;
 
-    let tabs = [] as docusign.Text[];
+    const tabs = [] as docusign.Text[];
 
     // check case use only the list of TabValue
     if (this._rawTabs[0].tabLabel !== 'dynamicTabs') {
-      tabs = prefillTabs.textTabs
-        .map(tab => {
+      prefillTabs.textTabs
+        .forEach(tab => {
           const { tabId, tabLabel, required } = tab;
 
           const isTabRequired = required === 'true';
@@ -255,10 +255,8 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
             value: tabValue,
           } as docusign.Text;
 
-          // eslint-disable-next-line consistent-return
-          return value;
+         tabs.push(value);
         })
-        .filter((e): e is docusign.Text => !!e);
     } else {
       // handle dynamic tab value
       this._rawTabs
@@ -299,6 +297,7 @@ export class TemplateCompiler<T, Context> implements ICompiledTemplate<T, Contex
 
             tabs.push({
               tabId,
+              tabLabel,
               value: rawTab.tabValue?.toString() ?? '',
             });
           });
