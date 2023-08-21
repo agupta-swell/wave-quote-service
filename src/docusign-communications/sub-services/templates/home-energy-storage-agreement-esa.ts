@@ -165,10 +165,10 @@ export class HomeEnergyStorageAgreementEsaTemplate {
   @TabValue<IGenericObject>(({ quote }) =>
     quote.systemProduction.generationKWh
       ? roundNumber(
-          ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment *
-            12) /
-            quote.systemProduction.generationKWh,
-        )
+        ((<IEsaProductAttributes>quote.quoteFinanceProduct.financeProduct.productAttribute).grossFinancePayment *
+          12) /
+        quote.systemProduction.generationKWh,
+      )
       : 0,
   )
   pricePerKwh: number;
@@ -197,6 +197,17 @@ export class HomeEnergyStorageAgreementEsaTemplate {
     return roundNumber(GPV_YLD[0]);
   })
   productionYr1: number;
+
+  @TabLabel('production_yr2')
+  @TabValue<IGenericObject>(({ quote }) => {
+    const { GPV_YLD } = generateEPVAndGPVTableForESA({
+      systemProduction: quote.systemProduction,
+      quote,
+    });
+
+    return roundNumber(GPV_YLD[1]);
+  })
+  productionYr2: number;
 
   @TabValue<IGenericObject>(({ quote }) => {
     const { GPV_YLD } = generateEPVAndGPVTableForESA({
