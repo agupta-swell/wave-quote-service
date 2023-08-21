@@ -619,6 +619,8 @@ export class UtilityService implements OnModuleInit {
     const typicalBaseLine = await this.getTypicalBaselineData(utilityDto.opportunityId);
     const { typicalHourlyUsage = [], typicalMonthlyUsage } = typicalBaseLine.typicalBaseline;
 
+    delete utilityDto.utilityData.typicalBaselineUsage.typicalHourlyUsage; // remove typicalHourlyUsage of utilityData in payload to prevent saving to db
+
     const utilityModel = new UtilityUsageDetailsModel(utilityDto);
 
     let hourlyComputedUsage = utilityDto.utilityData.computedUsage.hourlyUsage;
@@ -629,7 +631,6 @@ export class UtilityService implements OnModuleInit {
         typicalMonthlyUsage,
         typicalHourlyUsage,
       );
-      ``;
     }
 
     if (hourlyComputedUsage) {
