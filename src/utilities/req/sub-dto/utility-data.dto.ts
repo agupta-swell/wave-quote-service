@@ -15,7 +15,7 @@ class TypicalUsage {
 export class TypicalBaselineUsageExtendDto extends TypicalBaselineUsageDto {
   @ApiProperty({ type: TypicalUsage, isArray: true })
   @Type(() => TypicalUsage)
-  typicalHourlyUsage: TypicalUsage[];
+  typicalHourlyUsage?: TypicalUsage[];
 }
 
 export class UtilityDataReqDto {
