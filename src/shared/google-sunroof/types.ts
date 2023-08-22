@@ -71,12 +71,14 @@ export namespace GoogleSunroof {
   export interface IFindClosestBuildingParams {
     'location.latitude': number;
     'location.longitude': number;
+    key: string;
   }
 
   export interface IGetSolarInfoParams {
     'location.latitude': number;
     'location.longitude': number;
     radiusMeters: number;
+    key: string;
   }
 }
 
