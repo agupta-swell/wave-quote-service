@@ -9,11 +9,13 @@ class ApplicantDataDto {
   // convert (333) 333-3333 -> 3333333333
   @ExposeAndMap({}, ({ obj }) => obj.cellPhone?.match(/\d+/g).join(""))
   phoneNumber: string;
+}
 
-  @ExposeAndMap({}, ({ obj }) => obj.address1)
+export class InstallationAddressDto {
+  @ExposeProp()
   addressLine1: string;
 
-  @ExposeAndMap({}, ({ obj }) => obj.address2)
+  @ExposeProp()
   addressLine2: string;
 
   @ExposeProp()
@@ -22,8 +24,8 @@ class ApplicantDataDto {
   @ExposeProp()
   state: string;
 
-  @ExposeAndMap({}, ({ obj }) => obj.zip)
-  zipcode: number;
+  @ExposeProp()
+  zipcode: string;
 }
 
 export class GetApplicationDetailDto {
@@ -42,9 +44,6 @@ export class GetApplicationDetailDto {
   @ExposeAndMap({ type: ApplicantDataDto }, ({ obj }) => obj.contact)
   primaryApplicantData: ApplicantDataDto;
 
-  @ExposeProp({ type: ApplicantDataDto }) // TODO: remove later
-  coApplicantData: ApplicantDataDto;
-
   @ExposeProp()
   newJWTToken: string;
 
@@ -53,6 +52,9 @@ export class GetApplicationDetailDto {
 
   @ExposeProp()
   contactId: string ;
+
+  @ExposeProp({type: InstallationAddressDto})
+  installationAddress: InstallationAddressDto;
 }
 
 export class GetApplicationDetailRes implements ServiceResponse<GetApplicationDetailDto> {
