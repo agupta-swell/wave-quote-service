@@ -9,7 +9,7 @@ interface IApplicantData {
   phoneNumber: string;
 }
 
-interface IResidenceData {
+interface IAddress {
   addressLine1: string;
   addressLine2: string;
   city: string;
@@ -38,8 +38,8 @@ export interface IFniApplyReq {
   productId: string;
   applicant: IApplicantData;
   applicantSecuredData: IPersonalInformation;
-  primaryResidence: IResidenceData;
-  installationAddress: IResidenceData;
+  primaryResidence: IAddress;
+  installationAddress: IAddress;
   refnum?: number;
 }
 

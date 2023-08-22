@@ -70,7 +70,7 @@ import {
   SendMailDto,
 } from './res';
 import { FniEngineService } from './sub-services/fni-engine.service';
-import { IFniApplyReq, IFniResponse, IFniResponseData, ITokenData } from './typing.d';
+import { IFniApplyReq, IFniResponse, IFniResponseData, ITokenData, IAddress } from './typing.d';
 import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
 
 @Injectable()
@@ -637,6 +637,11 @@ export class QualificationService {
       throw ApplicationException.EntityNotFound('Qualification Credit');
     }
 
+    const opportunityDetail = await this.opportunityService.getDetailById(opportunityId);
+    if (!opportunityDetail) {
+      throw ApplicationException.EntityNotFound('Opportunity');
+    }
+
     const contactId =
       decodedToken.contactId || (await this.opportunityService.getContactIdById(qualificationCredit.opportunityId));
     const contact = await this.contactService.getContactById(contactId || '');
@@ -663,6 +668,20 @@ export class QualificationService {
         qualificationExceptionPayload,
       );
     }
+
+    const installationProperty = await this.propertyService.findPropertyById(opportunityDetail.propertyId);
+
+    if (!installationProperty) {
+      throw ApplicationException.EntityNotFound('Installation Property');
+    }
+
+    const installationAddress: IAddress = {
+      addressLine1: installationProperty.address1,
+      addressLine2: installationProperty.address2 || '',
+      city: installationProperty.city,
+      state: installationProperty.state,
+      zipcode: installationProperty.zip,
+    };
 
     let applicationInitatedBy: string;
 
@@ -714,6 +733,7 @@ export class QualificationService {
         newJWTToken: newToken,
         hasCoApplicant,
         contactId,
+        installationAddress,
       }),
     );
   }
