@@ -374,8 +374,10 @@ export class DocusignApiService<Context> implements OnModuleInit {
       const context = this.contextStore.get<Context>();
 
       const docusignIntegrationType = context.docusignIntegrationType || DOCUSIGN_INTEGRATION_TYPE.DEFAULT;
-
-      const filename = `${encodeURIComponent(originFilename)}_${+Date.now()}_${randomBytes(4).toString('hex')}`;
+      let filename = `${encodeURIComponent(originFilename)}_${+Date.now()}_${randomBytes(4).toString('hex')}`;
+      if(filename.length >= 100){
+        filename = `${encodeURIComponent(originFilename.slice(0,40))}_${+Date.now()}_${randomBytes(4).toString('hex')}`;
+      }
       const payload = {
         emailSubject,
         documents: [
