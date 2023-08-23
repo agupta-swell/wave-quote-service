@@ -794,16 +794,16 @@ export class ContractService {
   private getPrimaryContractDownloadName(
     contract: Contract | LeanDocument<Contract>,
     oppData: OperationResult<GetRelatedInformationDto>,
-  ): string {
+  ):string {
     let fileName: string;
 
     const { firstName, lastName } = oppData.data!;
     switch (contract.contractStatus) {
       case PROCESS_STATUS.COMPLETED:
-        fileName = `${lastName}, ${firstName} - ${contract.name} - Signed.pdf`;
+        fileName = this.getSlicedContractName(true, firstName, lastName, contract.name, ' - Signed');
         break;
       default:
-        fileName = `${lastName}, ${firstName} - ${contract.name}.pdf`;
+        fileName = this.getSlicedContractName(true, firstName, lastName, contract.name);
     }
 
     return fileName;
@@ -814,10 +814,10 @@ export class ContractService {
 
     switch (contract.contractStatus) {
       case PROCESS_STATUS.COMPLETED:
-        fileName = `${fullName || ''} - ${contract.name} - Signed.pdf`;
+        fileName =  this.getSlicedGSPPrimaryContractName(true, fullName, contract.name, ' - Signed');
         break;
       default:
-        fileName = `${fullName || ''} - ${contract.name}.pdf`;
+        fileName =  this.getSlicedGSPPrimaryContractName(true, fullName, contract.name);
     }
 
     return fileName;
@@ -832,10 +832,10 @@ export class ContractService {
     const { firstName, lastName } = oppData.data!;
     switch (contract.contractStatus) {
       case PROCESS_STATUS.COMPLETED:
-        fileName = `${lastName}, ${firstName} - ${contract.name} - Signed.pdf`;
+        fileName = this.getSlicedContractName(true, firstName, lastName, contract.name, ' - Signed');
         break;
       default:
-        fileName = `${lastName}, ${firstName} - ${contract.name}.pdf`;
+        fileName = this.getSlicedContractName(true, firstName, lastName, contract.name);
     }
 
     return fileName;
@@ -850,10 +850,10 @@ export class ContractService {
     const { firstName, lastName } = oppData.data!;
     switch (contract.contractStatus) {
       case PROCESS_STATUS.COMPLETED:
-        fileName = `${lastName}, ${firstName} - ${contract.name} - No Cost - Signed.pdf`;
+        fileName = this.getSlicedContractName(true, firstName, lastName, contract.name, ' - No Cost - Signed');
         break;
       default:
-        fileName = `${lastName}, ${firstName} - ${contract.name} - No Cost.pdf`;
+        fileName = this.getSlicedContractName(true, firstName, lastName, contract.name, ' - No Cost');
     }
 
     return fileName;
@@ -915,12 +915,17 @@ export class ContractService {
 
     const contact = await this.contactService.getContactById(opportunity.contactId);
 
+    if (!contact) {
+      throw new BadRequestException('Contact not found');
+    }
+
+    let emailSubject = this.getSlicedContractName(false, contact.firstName, contact.lastName, contract.name);
     const envelope = await this.docusignCommunicationService.sendWetSingedContract(
       contract.id,
       financier,
       carbonCopiesRecipient,
       file,
-      `${contact?.lastName}, ${contact?.firstName} - ${contract?.name}`,
+      emailSubject
     );
 
     if (envelope.status !== 'sent' || !envelope.envelopeId) {
@@ -1341,5 +1346,42 @@ export class ContractService {
       return quote?.quoteFinanceProduct.financeProduct.productType;
     }
     return undefined;
+  }
+
+  private buildContractName = (isPdf:boolean, firstName: string, lastName:string, contractName:string, appendString?:string): string => {
+    
+    let fileName = appendString ? 
+    `${lastName}, ${firstName} - ${contractName.concat(appendString)}` :
+    `${lastName}, ${firstName} - ${contractName}`;
+ 
+    return isPdf ? fileName.concat('.pdf') : fileName;
+  }
+
+  public getSlicedContractName = (isPdf:boolean, lastName:string, firstName: string, contractName:string, appendString?:string): string => {
+   
+    let fileName = this.buildContractName(isPdf, firstName, lastName, contractName, appendString);
+    
+    if(encodeURIComponent(fileName).length >= 100){
+      fileName = this.buildContractName(isPdf, firstName.slice(0,1), lastName.slice(0,20), contractName.slice(0,25), appendString);
+    }
+    return fileName;
+  }
+
+  private buildSlicedGSPPrimaryContractName = (isPdf:boolean, fullName:string, contractName:string, appendString?: string): string => {
+    let fileName = appendString ? 
+    `${fullName} - ${contractName.concat(appendString)}` :
+    `${fullName} - ${contractName}`;
+
+    return isPdf ? fileName.concat('.pdf') : fileName;
+  }
+  
+  private getSlicedGSPPrimaryContractName = (isPdf:boolean, fullName:string, contractName:string, appendString?: string): string => {
+    let fileName = this.buildSlicedGSPPrimaryContractName(isPdf, fullName, contractName, appendString);
+
+    if(encodeURIComponent(fileName).length >= 100){
+      fileName = this.buildSlicedGSPPrimaryContractName(isPdf, fullName.slice(0,20), contractName.slice(0,40), appendString);
+    }
+
+    return fileName;
   }
 }

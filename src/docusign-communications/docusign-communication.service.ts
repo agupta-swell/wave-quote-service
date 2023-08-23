@@ -128,8 +128,12 @@ export class DocusignCommunicationService {
     pageFromTemplateId: string,
     isDraft = false,
   ): Promise<ISendDocusignToContractResponse> {
+    if (!genericObject.contract?.name) {
+      return { status: 'FAILURE' };
+    }
+
     const docusignPayload: any = {
-      emailSubject: `${genericObject.contact.lastName}, ${genericObject.contact.firstName} - ${genericObject.contract?.name}`,
+      emailSubject: this.contractService.getSlicedContractName(false, genericObject.contact.firstName, genericObject.contact.lastName, genericObject.contract.name),
       emailBlurb: 'Please review and sign the contract for your energy project!',
       compositeTemplates: [],
     };
