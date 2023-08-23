@@ -22,7 +22,6 @@ import {
 import { S3Service } from '../aws/services/s3.service';
 import { DAY_COUNT_BY_MONTH_INDEX } from './constants';
 import { GoogleSunroofGateway } from './google-sunroof.gateway';
-import {GoogleSunroofDownloadTiffException} from './exceptions';
 import { PngGenerator } from './png.generator';
 import { ProductionCalculator } from './production.calculator';
 import type {
@@ -34,10 +33,6 @@ import type {
 
 const DEBUG = ['yes', 'true', 'on', '1'].includes(process.env.GOOGLE_SUNROOF_DEBUG?.toLowerCase() || 'false');
 const DEBUG_FOLDER = path.join(__dirname, 'debug');
-
-const useGoogleSolar = process.env.USE_GOOGLE_SOLAR === 'true' || false;
-const GOOGLE_SOLAR_API_KEY = (useGoogleSolar) ? process.env.GOOGLE_SOLAR_API_KEY :
-  process.env.GOOGLE_SUNROOF_API_KEY;
 
 @Injectable()
 export class GoogleSunroofService {
@@ -244,10 +239,10 @@ export class GoogleSunroofService {
 
     const { rgbUrl, maskUrl, annualFluxUrl, monthlyFluxUrl } = solarInfo;
 
-    const downloadingRgbTiffBuffer = downloadFileAsBuffer(rgbUrl);
-    const downloadingMaskTiffBuffer = downloadFileAsBuffer(maskUrl);
-    const downloadingAnnualFluxTiffBuffer = downloadFileAsBuffer(annualFluxUrl);
-    const downloadingMonthlyFluxTiffBuffer = downloadFileAsBuffer(monthlyFluxUrl);
+    const downloadingRgbTiffBuffer = this.googleSunroofGateway.downloadFileAsBuffer(rgbUrl);
+    const downloadingMaskTiffBuffer = this.googleSunroofGateway.downloadFileAsBuffer(maskUrl);
+    const downloadingAnnualFluxTiffBuffer = this.googleSunroofGateway.downloadFileAsBuffer(annualFluxUrl);
+    const downloadingMonthlyFluxTiffBuffer = this.googleSunroofGateway.downloadFileAsBuffer(monthlyFluxUrl);
 
     const savingRgbTiffToS3 = downloadingRgbTiffBuffer.then(async rgbTiffBuffer => {
       await this.saveTiffToS3(rgbTiffBuffer, `${opportunityId}/${systemDesignId}/tiff/rgb.tiff`);
@@ -539,26 +534,6 @@ export class GoogleSunroofService {
       return false;
     }
     return true;
-  }
-}
-
-/**
- * Return the contents of the provided URL as a NodeJS Buffer.
- *
- * @param url
- */
-async function downloadFileAsBuffer(url: string): Promise<Buffer> {
-  try {
-    if(useGoogleSolar) {
-      url = `${url}&key=${GOOGLE_SOLAR_API_KEY}`;
-    }
-    const { data } = await axios.get<Buffer>(url, { responseType: 'arraybuffer' });
-    return data;
-  } catch (e) {
-    const message = `google-sunroof.service.ts::Failed to download file from ${url}`;
-    console.error(message);
-    console.error(e.message);
-    throw new GoogleSunroofDownloadTiffException(message);
   }
 }
 

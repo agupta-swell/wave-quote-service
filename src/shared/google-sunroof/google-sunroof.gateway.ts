@@ -1,21 +1,22 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, ResponseType } from 'axios';
 import { EHttpMethod, EVendor } from '../api-metrics/api-metrics.schema';
 import { ApiMetricsService } from '../api-metrics/api-metrics.service';
-import { GoogleSunroofGatewayAxiosException } from './exceptions';
+import { GoogleSunroofDownloadTiffException, GoogleSunroofGatewayAxiosException } from './exceptions';
 import type { GoogleSunroof } from './types';
 
 // TODO: Remove this makeshift feature flag after the Google Solar migration is complete.
 // NOTE: To use the Google Solar API vs the legacy Google Sunroof API, make sure that the USE_GOOGLE_SOLAR and
 // GOOGLE_SOLAR_API keys are present in the .env.
-const useGoogleSolar = process.env.USE_GOOGLE_SOLAR === 'true' || false;
-const GOOGLE_SOLAR_BASE_URL = (useGoogleSolar) ? 'https://solar.googleapis.com/v1/' :
-  'https://earthenginesolar.googleapis.com/v1';
-const BUILDINGS_FIND_CLOSEST = (useGoogleSolar) ? 'buildingInsights:findClosest' :
-  'buildings:findClosest';
-const SOLAR_INFO_GET = (useGoogleSolar) ? 'dataLayers:get' :'solarInfo:get';
-const GOOGLE_SOLAR_API_KEY = (useGoogleSolar) ? process.env.GOOGLE_SOLAR_API_KEY :
-  process.env.GOOGLE_SUNROOF_API_KEY;
+export const useGoogleSolar = process.env.USE_GOOGLE_SOLAR === 'true' || false;
+const GOOGLE_SOLAR_BASE_URL = useGoogleSolar
+  ? 'https://solar.googleapis.com/v1'
+  : 'https://earthenginesolar.googleapis.com/v1';
+const BUILDINGS_FIND_CLOSEST = useGoogleSolar ? 'buildingInsights:findClosest' : 'buildings:findClosest';
+const SOLAR_INFO_GET = useGoogleSolar ? 'dataLayers:get' : 'solarInfo:get';
+export const GOOGLE_SOLAR_API_KEY = useGoogleSolar
+  ? process.env.GOOGLE_SOLAR_API_KEY
+  : process.env.GOOGLE_SUNROOF_API_KEY;
 
 /**
  * The Earth Engine Solar API allows users to read details about the solar potential of over 60 million buildings.
@@ -29,8 +30,8 @@ export class GoogleSunroofGateway {
   private readonly client: AxiosInstance;
 
   constructor(private readonly apiMetricsService: ApiMetricsService) {
-
-    if (!GOOGLE_SOLAR_API_KEY) throw new Error('Missing GOOGLE_SUNROOF_API_KEY or GOOGLE_SOLAR_API_KEY environment variable');
+    if (!GOOGLE_SOLAR_API_KEY)
+      throw new Error('Missing GOOGLE_SUNROOF_API_KEY or GOOGLE_SOLAR_API_KEY environment variable');
 
     this.client = axios.create({
       baseURL: GOOGLE_SOLAR_BASE_URL,
@@ -61,7 +62,8 @@ export class GoogleSunroofGateway {
    * @param {number} longitude
    */
   public async findClosestBuilding(latitude: number, longitude: number): Promise<GoogleSunroof.Building> {
-    if(!GOOGLE_SOLAR_API_KEY) throw new Error('Missing GOOGLE_SUNROOF_API_KEY or GOOGLE_SOLAR_API_KEY environment variable');
+    if (!GOOGLE_SOLAR_API_KEY)
+      throw new Error('Missing GOOGLE_SUNROOF_API_KEY or GOOGLE_SOLAR_API_KEY environment variable');
     const params: GoogleSunroof.IFindClosestBuildingParams = {
       'location.latitude': latitude,
       'location.longitude': longitude,
@@ -94,8 +96,9 @@ export class GoogleSunroofGateway {
     longitude: number,
     radiusMeters: number,
   ): Promise<GoogleSunroof.SolarInfo> {
-    if (!GOOGLE_SOLAR_API_KEY) throw new Error('Missing GOOGLE_SUNROOF_API_KEY or GOOGLE_SOLAR_API_KEY environment variable');
-    
+    if (!GOOGLE_SOLAR_API_KEY)
+      throw new Error('Missing GOOGLE_SUNROOF_API_KEY or GOOGLE_SOLAR_API_KEY environment variable');
+
     const params: GoogleSunroof.IGetSolarInfoParams = {
       'location.latitude': latitude,
       'location.longitude': longitude,
@@ -112,15 +115,44 @@ export class GoogleSunroofGateway {
     return data;
   }
 
+  /**
+   * Return the contents of the provided URL as a NodeJS Buffer.
+   *
+   * @param url
+   */
+  public async downloadFileAsBuffer(url: string): Promise<Buffer> {
+    try {
+      if (useGoogleSolar) {
+        url = `${url}&key=${GOOGLE_SOLAR_API_KEY}`;
+      }
+      const data = await this.callGoogleSunroofAPI<Buffer, any, any>({
+        url,
+        method: EHttpMethod.GET,
+        params: {
+          key: GOOGLE_SOLAR_API_KEY,
+        },
+        responseType: 'arraybuffer',
+      });
+      return data;
+    } catch (e) {
+      const message = `google-sunroof.service.ts::Failed to download file from ${url}`;
+      console.error(message);
+      console.error(e.message);
+      throw new GoogleSunroofDownloadTiffException(message);
+    }
+  }
+
   async callGoogleSunroofAPI<T, U, K>(requestData: {
     url: string;
     method: EHttpMethod;
     params?: U;
+    responseType?: ResponseType;
     data?: K;
   }): Promise<T> {
-    const { status, data } = await this.client.request<T>(requestData);
+    const { status, data, request, config } = await this.client.request<T>(requestData);
+    const { origin, pathname } = new URL(request.res.responseUrl);
 
-    const route = `${GOOGLE_SOLAR_BASE_URL}/${requestData.url}`;
+    const route = `${origin}${pathname}`;
 
     if (status === HttpStatus.OK) {
       await this.apiMetricsService.updateAPIMetrics({
