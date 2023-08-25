@@ -34,10 +34,10 @@ export class Exhibit10PaymentScheduleEsaTemplate {
       .decimalPlaces(2)
       .toNumber();
     result.price_per_kwh = Number2DecimalsFormatter.format(basePricePerkWhRate);
-
+    
     const NPV = (cashflow: number[], discountRate: number): number =>
       cashflow.reduce((acc, val, i) => acc + val / Math.pow(1 + discountRate, i), 0);
-
+    
     const getCashflow = (originalArray: number[]): number[] => {
       const cashflow: number[] = [];
 
@@ -49,6 +49,7 @@ export class Exhibit10PaymentScheduleEsaTemplate {
     };
 
     const estimatedMonthlyPaymentList: number[] = [];
+    const estimatedMonthlyPaymentYearOne = (yearOneProduction * basePricePerkWhRate) / 12;
 
     [...Array(DEFAULT_ESA_TERM)].forEach((_, idx) => {
       const yearIdx = idx + 1;
@@ -59,10 +60,9 @@ export class Exhibit10PaymentScheduleEsaTemplate {
         return;
       }
 
-      const estimatedProduction = yearOneProduction * Math.pow(1 - DEGRADATION_RATE, yearIdx - 1);
-      const pricePerkWhRate = basePricePerkWhRate * Math.pow(1 + new BigNumber(escalatorRate).dividedBy(100).toNumber(), yearIdx - 1);
-
-      const estimatedMonthlyPayment = (estimatedProduction * pricePerkWhRate) / 12;
+      const estimatedMonthlyPayment = 
+        estimatedMonthlyPaymentYearOne *
+        Math.pow(1 + new BigNumber(escalatorRate).dividedBy(100).toNumber(), yearIdx - 1);
 
       estimatedMonthlyPaymentList.push(estimatedMonthlyPayment);
 
