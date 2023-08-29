@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import * as Handlebars from 'handlebars';
-import * as mailgun from 'mailgun-js';
+import * as formData from 'form-data';
+import Mailgun = require('mailgun.js');
 import { ApplicationException } from 'src/app/app.exception';
 import { EmailTemplateService } from 'src/email-templates/email-template.service';
+import Client from 'mailgun.js/dist/lib/client';
+const mailgun = new Mailgun(formData);
 
 @Injectable()
 export class EmailService {
-  private mailgunInstance: mailgun.Mailgun;
+  private mailgunInstance: Client;
 
   private static _templates: Map<string | symbol, HandlebarsTemplateDelegate> = new Map();
 
@@ -15,9 +18,9 @@ export class EmailService {
   }
 
   constructor(private readonly emailTemplateService: EmailTemplateService) {
-    this.mailgunInstance = mailgun({
-      apiKey: process.env.MAILGUN_KEY || '',
-      domain: process.env.MAILGUN_DOMAIN || '',
+    this.mailgunInstance = mailgun.client({
+      username: 'api',
+      key: process.env.MAILGUN_KEY || '',
     });
   }
 
@@ -39,7 +42,7 @@ export class EmailService {
       fullName: string;
       email: string;
     },
-  ): Promise<mailgun.messages.SendResponse> {
+  ): Promise<any> {
     const html = (await this.getTemplate(eventType))(templatePayload);
 
     return this.sendMail(recipient, html, subject, replyTo);
@@ -53,7 +56,7 @@ export class EmailService {
       fullName: string;
       email: string;
     },
-  ): Promise<mailgun.messages.SendResponse> {
+  ): Promise<any> {
     const mailOptions = {
       from: `Swell Energy <${replyTo ? replyTo.email : process.env.MAILGUN_SENDER_EMAIL}>`,
       to: recipient,
@@ -62,10 +65,12 @@ export class EmailService {
       'h:Reply-To': replyTo && `${replyTo.fullName} <${replyTo.email}>`,
     };
 
-    return this.mailgunInstance.messages().send(mailOptions, (error, _) => {
-      if (error) {
-        throw Error(error.message);
-      }
-    });
+    return await this.mailgunInstance.messages
+      .create(process.env.MAILGUN_DOMAIN || '', mailOptions)
+      .catch((err) => {
+        if (err) {
+          throw Error(err.message || err);
+        }
+      });
   }
 }
