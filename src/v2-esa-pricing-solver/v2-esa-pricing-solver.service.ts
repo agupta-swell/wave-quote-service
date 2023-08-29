@@ -75,7 +75,7 @@ export class EsaPricingSolverService {
         const utilityMaster = await this.utilitiesMasterModel.findOne({ utility_name: utilityName }).lean();
         const property = await this.propertyModel.findById(opportunity?.propertyId);
 
-        const designParam = this.getStorageSizeAndManufacturer(systemDesign);
+        const designParam = await this.getStorageSizeAndManufacturer(systemDesign);
         if (
           property?.state &&
           designParam.storageSize !== undefined &&
@@ -99,9 +99,15 @@ export class EsaPricingSolverService {
     return [];
   }
 
-  getStorageSizeAndManufacturer(systemDesign: LeanDocument<SystemDesign> | null) {
+  async getStorageSizeAndManufacturer(
+    systemDesign: LeanDocument<SystemDesign> | null
+  ): Promise<{ storageSize: number; manufacturerId?: string }>  {
+    
+    //hotfix handle pass by reference error 
+    let rehydratedSystemDesign = await this.systemDesignService.getOneById(systemDesign?._id);
+    
     const storageSize =
-      systemDesign?.roofTopDesignData.storage?.reduce((acc: number, curr: IStorageSchema) => {
+    rehydratedSystemDesign?.roofTopDesignData.storage?.reduce((acc: number, curr: IStorageSchema) => {
         const kwh = curr.storageModelDataSnapshot.ratings.kilowattHours;
         const quantity = curr.quantity;
         if (kwh && quantity) {
@@ -110,7 +116,7 @@ export class EsaPricingSolverService {
         return acc;
       }, 0) || 0;
 
-    const manufacturerId = systemDesign?.roofTopDesignData.storage[0]?.storageModelDataSnapshot.manufacturerId;
+    const manufacturerId = rehydratedSystemDesign?.roofTopDesignData.storage[0]?.storageModelDataSnapshot.manufacturerId;
     return { storageSize, manufacturerId: manufacturerId?.toString() || 'N/A' };
   }
 
@@ -140,7 +146,7 @@ export class EsaPricingSolverService {
     const esaTerm = productAttribute.esaTerm;
     const escAndTerms = { rateEscalator, esaTerm };
 
-    return this.extractRowFromCSV(designParam, opportunityParam, escAndTerms);
+    return await this.extractRowFromCSV(designParam, opportunityParam, escAndTerms);
   }
 
   async extractRowFromCSV(
@@ -205,7 +211,7 @@ export class EsaPricingSolverService {
 
     const state = property?.state;
 
-    const designParam = this.getStorageSizeAndManufacturer(systemDesign);
+    const designParam = await this.getStorageSizeAndManufacturer(systemDesign);
     const opportunityParam = {
       state,
       systemType: CSV_PRIMARY_QUOTE[primaryQuoteType],

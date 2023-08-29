@@ -2182,7 +2182,7 @@ export class QuoteService {
     const utilityName = utilityNameConcatUtilityProgramName.split('-')[0].trim();
     const utilitiesMaster = await this.utilitiesMasterModel.findOne({ utilityName }).lean();
 
-    const designParam = this.esaPricingSolverService.getStorageSizeAndManufacturer(systemDesign);
+    const designParam = await this.esaPricingSolverService.getStorageSizeAndManufacturer(systemDesign);
 
     const opportunityParam = {
       state: property?.state,
