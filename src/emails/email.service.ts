@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import * as Handlebars from 'handlebars';
-import * as formData from 'form-data';
-import Mailgun = require('mailgun.js');
+import * as FormData from 'form-data';
+import Mailgun from 'mailgun.js';
 import { ApplicationException } from 'src/app/app.exception';
 import { EmailTemplateService } from 'src/email-templates/email-template.service';
-import Client from 'mailgun.js/dist/lib/client';
-const mailgun = new Mailgun(formData);
+const mailgun = new Mailgun(FormData);
 
 @Injectable()
 export class EmailService {
-  private mailgunInstance: Client;
+  private mailgunInstance;
 
   private static _templates: Map<string | symbol, HandlebarsTemplateDelegate> = new Map();
 
