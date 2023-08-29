@@ -807,11 +807,11 @@ export class QualificationService {
         status: 200,
       };
     } catch (error) {
-      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Internal Server Error'];
-      fniDecisionDetailsError.status = 500;
-
+      fniDecisionDetailsError.responseBody.transaction.errorMsgs = ['Internal Server Error']
+      fniDecisionDetailsError.status = 500
       res = fniDecisionDetailsError;
       this.logger.error(error);
+       throw error;
     }
 
     return res;
@@ -1270,21 +1270,40 @@ export class QualificationService {
         switch (application.currDecision) {
           case QUALIFICATION_STATUS.APPROVED:
           case QUALIFICATION_STATUS.DECLINED:
-          case QUALIFICATION_STATUS.WITHDRAWN:
+          case QUALIFICATION_STATUS.CANCELLED:
             qualificationCredit.qualificationStatus = application.currDecision;
             qualificationCredit.processStatus = PROCESS_STATUS.COMPLETED;
             eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_COMPLETED;
+            activeFniApplication.fniCurrentDecision = application.currDecision;
             break;
           case QUALIFICATION_STATUS.PENDING:
-          case QUALIFICATION_STATUS.REVIEW:
             qualificationCredit.qualificationStatus = application.currDecision;
             eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_IN_PROGRESS;
+            activeFniApplication.fniCurrentDecision = application.currDecision;
             break;
+          case QUALIFICATION_STATUS.CONDITIONED:
+          case QUALIFICATION_STATUS.FUNDED:
+          activeFniApplication.fniCurrentDecision = "ERROR";
+          qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.ERROR;
+          qualificationCredit.processStatus = PROCESS_STATUS.ERROR;
+          eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_ERROR;
+          break;
           default:
+            activeFniApplication.responses ??= [];
+            activeFniApplication.responses.push({
+              type: type || FNI_REQUEST_TYPE.SOLAR_APPLY,
+              transactionStatus: FNI_TRANSACTION_STATUS.ERROR,
+              rawResponse,
+              createdAt: new Date(),
+            }); 
             qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.ERROR;
+            activeFniApplication.fniCurrentDecision = "ERROR";
             qualificationCredit.processStatus = PROCESS_STATUS.ERROR;
             eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_ERROR;
-            break;
+           qualificationCredit.fniApplications[activeFniApplicationIdx] = activeFniApplication;
+            await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
+           throw new NotFoundException(`currDecision value not recognized ${application.currDecision}`);
+                       
         }
         if (qualificationCredit.qualificationStatus === QUALIFICATION_STATUS.PENDING && field_descriptions) {
           field_descriptions.map(field => activeFniApplication.fniCurrentDecisionReasons.push(field.currQueueName));
@@ -1299,8 +1318,6 @@ export class QualificationService {
             .add('120', 'days')
             .format('YYYY-MM-DD h:mm:ss');
         }
-
-        activeFniApplication.fniCurrentDecision = application.currDecision;
         activeFniApplication.responses ??= [];
         activeFniApplication.responses.push({
           type: type || FNI_REQUEST_TYPE.SOLAR_APPLY,
@@ -1416,13 +1433,8 @@ export class QualificationService {
       return false;
     }
 
-    const currDecisionHasValidValue =
-      req.application?.currDecision === 'APPROVED' ||
-      req.application?.currDecision === 'DECLINED' ||
-      req.application?.currDecision === 'PENDING' ||
-      req.application?.currDecision === 'WITHDRAWN';
 
-    if (req.application.currDecision.length > 20 || !currDecisionHasValidValue) {
+    if (!req.application.currDecision || req.application.currDecision.length > 20 ) {
       return false;
     }
 
