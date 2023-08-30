@@ -42,3 +42,32 @@ export const convertStringWithCommasToNumber = (str: string) => {
   const value = Number(str.replace(/,/g, ''));
   return Number.isNaN(value) ? 0 : value;
 };
+
+export const checkEmailsEqual = (email1, email2) => {
+  // Convert both email addresses to lowercase for case-insensitive comparison
+  const normalizedEmail1 = email1.toLowerCase();
+  const normalizedEmail2 = email2.toLowerCase();
+
+  // Split the email addresses into local and domain parts
+  const [localPart1, domain1] = normalizedEmail1.split('@');
+  const [localPart2, domain2] = normalizedEmail2.split('@');
+
+  // Remove everything after '+' in local part (for aliasing)
+  const [cleanLocalPart1, alias1] = localPart1.split('+');
+  const [cleanLocalPart2, alias2] = localPart2.split('+');
+
+  // Compare the cleaned local parts and domains
+  if (cleanLocalPart1 === cleanLocalPart2 && domain1 === domain2) {
+    if (alias1 === alias2) {
+      return {
+        areEmailsEqual: true,
+        message: 'Owner and Co-Owner cannot have the same email address',
+      };
+    }
+    return {
+      areEmailsEqual: true,
+      message: 'Owner and Co-Owner cannot have a matching email alias',
+    };
+  }
+  return { areEmailsEqual: false };
+};

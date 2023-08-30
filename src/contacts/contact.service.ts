@@ -9,6 +9,7 @@ import { CONTACT, Contact } from './contact.schema';
 import { AddNewContactReqDto } from './req/add-new-contact.req';
 import { UpdateGeoLocation } from './req/update-leo-location.req';
 import { COUNTER, Counter } from './sub-schemas/counter.schema';
+import { checkEmailsEqual } from 'src/utils/common';
 
 @Injectable()
 export class ContactService {
@@ -40,7 +41,21 @@ export class ContactService {
   }
 
   async addNewContact(addNewContactData: AddNewContactReqDto) {
-    const { data, propertyId } = addNewContactData;
+    const { data, propertyId, opportunityId } = addNewContactData;
+
+    const foundOpportunity = (await this.opportunityService.getRelatedInformation(opportunityId)).data;
+
+    if (!foundOpportunity) {
+      throw ApplicationException.EntityNotFound(opportunityId);
+    }
+
+    const { email: primaryEmail } = foundOpportunity;
+
+    const { areEmailsEqual, message } = checkEmailsEqual(primaryEmail, data.email);
+
+    if (areEmailsEqual) {
+      throw ApplicationException.ValidationFailed(message);
+    }
 
     const contactCounter = await this.countersModel.findOneAndUpdate(
       { _id: 'contactCounter' },

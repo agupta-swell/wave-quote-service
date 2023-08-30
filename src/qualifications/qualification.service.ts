@@ -296,6 +296,7 @@ export class QualificationService {
         if (applicantConsent.option) {
           if (applicantConsent.coApplicantContact && oldPropertyHomeowners?.length === 1) {
             await this.contactService.addNewContact({
+              opportunityId,
               propertyId: foundOpportunity.propertyId,
               data: applicantConsent.coApplicantContact,
             });
@@ -787,7 +788,7 @@ export class QualificationService {
     const handleData: IFniResponse = {
       type: FNI_REQUEST_TYPE.SOLAR_APPLY_INCOMING,
       status: HttpStatus.OK,
-      data: (req as unknown) as IFniResponseData,
+      data: req as unknown as IFniResponseData,
     };
 
     try {

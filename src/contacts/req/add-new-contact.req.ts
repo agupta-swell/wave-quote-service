@@ -10,4 +10,9 @@ export class AddNewContactReqDto {
   @IsString()
   @IsNotEmpty()
   propertyId: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  opportunityId: string;
 }
