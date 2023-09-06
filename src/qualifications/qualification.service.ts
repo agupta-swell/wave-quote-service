@@ -72,6 +72,7 @@ import {
 import { FniEngineService } from './sub-services/fni-engine.service';
 import { IFniApplyReq, IFniResponse, IFniResponseData, ITokenData, IAddress } from './typing.d';
 import { getQualificationMilestoneAndProcessStatusByVerbalConsent } from './utils';
+import { SalesAgentNotificationService } from './sub-services/sales-agent-notification.service';
 
 @Injectable()
 export class QualificationService {
@@ -90,7 +91,9 @@ export class QualificationService {
     private readonly fniEngineService: FniEngineService,
     private readonly tokenService: TokenService,
     private readonly quoteService: QuoteService,
-  ) {}
+    @Inject(forwardRef(() => SalesAgentNotificationService))
+    private readonly notificationService: SalesAgentNotificationService
+  ) { }
 
   async createQualification(
     qualificationDto: CreateQualificationReqDto,
@@ -812,7 +815,7 @@ export class QualificationService {
       fniDecisionDetailsError.status = 500
       res = fniDecisionDetailsError;
       this.logger.error(error);
-       throw error;
+      throw error;
     }
 
     return res;
@@ -1284,11 +1287,11 @@ export class QualificationService {
             break;
           case QUALIFICATION_STATUS.CONDITIONED:
           case QUALIFICATION_STATUS.FUNDED:
-          activeFniApplication.fniCurrentDecision = "ERROR";
-          qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.ERROR;
-          qualificationCredit.processStatus = PROCESS_STATUS.ERROR;
-          eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_ERROR;
-          break;
+            activeFniApplication.fniCurrentDecision = "ERROR";
+            qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.ERROR;
+            qualificationCredit.processStatus = PROCESS_STATUS.ERROR;
+            eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_ERROR;
+            break;
           default:
             activeFniApplication.responses ??= [];
             activeFniApplication.responses.push({
@@ -1296,15 +1299,15 @@ export class QualificationService {
               transactionStatus: FNI_TRANSACTION_STATUS.ERROR,
               rawResponse,
               createdAt: new Date(),
-            }); 
+            });
             qualificationCredit.qualificationStatus = QUALIFICATION_STATUS.ERROR;
             activeFniApplication.fniCurrentDecision = "ERROR";
             qualificationCredit.processStatus = PROCESS_STATUS.ERROR;
             eventHistoryDetail = EVENT_HISTORY_DETAIL.CREDIT_VALIDATION_ERROR;
-           qualificationCredit.fniApplications[activeFniApplicationIdx] = activeFniApplication;
+            qualificationCredit.fniApplications[activeFniApplicationIdx] = activeFniApplication;
             await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
-           throw new NotFoundException(`currDecision value not recognized ${application.currDecision}`);
-                       
+            throw new NotFoundException(`currDecision value not recognized ${application.currDecision}`);
+
         }
         if (qualificationCredit.qualificationStatus === QUALIFICATION_STATUS.PENDING && field_descriptions) {
           field_descriptions.map(field => activeFniApplication.fniCurrentDecisionReasons.push(field.currQueueName));
@@ -1353,6 +1356,7 @@ export class QualificationService {
       qualificationCredit.fniApplications[activeFniApplicationIdx] = activeFniApplication;
 
       await this.qualificationCreditModel.updateOne({ _id: qualificationCredit.id }, qualificationCredit);
+      qualificationCredit.qualificationStatus && await this.notificationService.sendDecisionEmail(qualificationCredit, activeFniApplication.fniCurrentDecisionReasons)
     }
 
     if (isError) {
@@ -1435,7 +1439,7 @@ export class QualificationService {
     }
 
 
-    if (!req.application.currDecision || req.application.currDecision.length > 20 ) {
+    if (!req.application.currDecision || req.application.currDecision.length > 20) {
       return false;
     }
 

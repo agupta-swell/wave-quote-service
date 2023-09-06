@@ -9,6 +9,7 @@ import { QualificationController } from './qualification.controller';
 import { QualificationCreditSchema, QUALIFICATION_CREDIT } from './qualification.schema';
 import { QualificationService } from './qualification.service';
 import { FniEngineService } from './sub-services/fni-engine.service';
+import { SalesAgentNotificationService } from './sub-services/sales-agent-notification.service';
 
 @Global()
 @Module({
@@ -24,7 +25,7 @@ import { FniEngineService } from './sub-services/fni-engine.service';
     TokenModule,
   ],
   controllers: [QualificationController],
-  providers: [QualificationService, FniEngineService],
+  providers: [QualificationService, FniEngineService, SalesAgentNotificationService],
   exports: [QualificationService],
 })
-export class QualificationModule {}
+export class QualificationModule { }
