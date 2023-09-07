@@ -1,9 +1,9 @@
 import { IGenericObject } from 'src/docusign-communications/typing';
 import {
+  DOCUSIGN_TAB_TYPE,
   DefaultTabTransformation,
   DefaultTabType,
   DocusignTemplate,
-  DOCUSIGN_TAB_TYPE,
   TabValue,
 } from 'src/shared/docusign';
 
@@ -12,6 +12,6 @@ import {
 @DefaultTabType(DOCUSIGN_TAB_TYPE.PRE_FILLED_TABS)
 @DefaultTabTransformation('snake_case')
 export class SolarEnergySystemDisclosureDocumentHicTemplate {
-  @TabValue<IGenericObject>(({ quote }) => quote.quoteCostBuildup.projectGrandTotal.netCost.toFixed(2))
+  @TabValue<IGenericObject>(({ quote }) => quote.quoteFinanceProduct.netAmount.toFixed(2))
   totalCost: number;
 }

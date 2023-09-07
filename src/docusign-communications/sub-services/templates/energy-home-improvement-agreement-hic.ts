@@ -228,7 +228,6 @@ export class EnergyHomeImprovementAgreementHicTemplate {
     const values: string[] = [];
 
     const {
-      projectGrandTotal,
       projectGrossTotal,
       totalPromotionsDiscountsAndSwellGridrewards,
       cashDiscount,
@@ -240,7 +239,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
 
     values.push(
       CurrencyFormatter.format(
-        new BigNumber(projectGrandTotal.netCost)
+        new BigNumber(quoteFinanceProduct.netAmount)
           .plus(totalPromotionsDiscountsAndSwellGridrewards.total)
           .plus(cashDiscountAmount)
           .toNumber(),
@@ -268,7 +267,7 @@ export class EnergyHomeImprovementAgreementHicTemplate {
         )})`,
       );
 
-    values.push(CurrencyFormatter.format(projectGrandTotal.netCost));
+    values.push(CurrencyFormatter.format(quoteFinanceProduct.netAmount));
 
     if (rebateDetails.length) {
       values.push(

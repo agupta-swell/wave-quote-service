@@ -2,12 +2,12 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { BigNumber } from 'bignumber.js';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
+import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
 import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { QuoteCostBuildUpService, QuoteFinanceProductService } from 'src/quotes/sub-services';
 import { BigNumberUtils } from 'src/utils';
 import { roundNumber } from 'src/utils/transformNumber';
-import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
-import { CustomerPayment, CUSTOMER_PAYMENT } from './customer-payment.schema';
+import { CUSTOMER_PAYMENT, CustomerPayment } from './customer-payment.schema';
 
 @Injectable()
 export class CustomerPaymentService {
@@ -64,7 +64,7 @@ export class CustomerPaymentService {
     customerPayment.opportunityId = opportunityId;
     customerPayment.wqtContractId = contractId.toString();
 
-    customerPayment.netAmount = quoteCostBuildup.projectGrandTotal.netCost;
+    customerPayment.netAmount = quoteFinanceProduct.netAmount;
 
     customerPayment.rebate = BigNumberUtils.sumBy(quoteFinanceProduct.rebateDetails, 'amount').toNumber();
 
@@ -98,7 +98,7 @@ export class CustomerPaymentService {
       let milestonePayment1Value = quoteFinanceProduct.financeProduct.financialProductSnapshot.payment1 ?? 0;
 
       if (quoteFinanceProduct.financeProduct.financialProductSnapshot.payment1PayPercent) {
-        milestonePayment1Value = new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
+        milestonePayment1Value = new BigNumber(quoteFinanceProduct.netAmount)
           .multipliedBy(milestonePayment1Value)
           .div(100)
           .toNumber();
@@ -112,14 +112,14 @@ export class CustomerPaymentService {
         actualPayment1Made ||
         roundNumber(
           Math.min(
-            new BigNumber(quoteCostBuildup.projectGrandTotal.netCost).minus(customerPayment.deposit).toNumber(),
+            new BigNumber(quoteFinanceProduct.netAmount).minus(customerPayment.deposit).toNumber(),
             milestonePayment1Value,
           ),
           2,
         );
 
       customerPayment.payment2 = roundNumber(
-        new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
+        new BigNumber(quoteFinanceProduct.netAmount)
           .minus(customerPayment.deposit)
           .minus(customerPayment.payment1)
           .toNumber(),
@@ -128,7 +128,7 @@ export class CustomerPaymentService {
     } else {
       customerPayment.deposit = 0;
       customerPayment.payment1 = 0;
-      customerPayment.payment2 = quoteCostBuildup.projectGrandTotal.netCost;
+      customerPayment.payment2 = quoteFinanceProduct.netAmount;
     }
 
     return customerPayment;

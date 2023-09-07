@@ -115,7 +115,7 @@ class QuotePricePerWatt {
 
 class QuotePriceOverride {
   @ExposeProp()
-  grossPrice: number;
+  netPrice: number;
 }
 
 export class QuoteDto {

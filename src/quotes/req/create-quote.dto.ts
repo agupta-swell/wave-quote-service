@@ -16,7 +16,7 @@ export class QuotePricePerWatt {
 export class QuotePriceOverride {
   @ApiProperty()
   @IsNumber()
-  grossPrice: number;
+  netPrice: number;
 }
 
 export class CreateQuoteDto {

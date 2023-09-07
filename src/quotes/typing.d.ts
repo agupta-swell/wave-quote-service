@@ -1,5 +1,6 @@
-import { ELaborCostType } from './constants';
-import { ILaborCostSchema } from './quote.schema';
+import { ELaborCostType, QUOTE_MODE_TYPE } from './constants';
+import { IQuoteCostBuildup } from './interfaces';
+import { ILaborCostSchema, IQuotePriceOverride, IQuotePricePerWattSchema } from './quote.schema';
 
 export interface IGetPaymentAmount {
   loanAmount: number;
@@ -49,4 +50,19 @@ export interface ICreateProductAttribute {
   capacityKW: number;
   esaTerm?: number;
   rateEscalator?: number;
+}
+
+export interface ICalculateUpfrontPaymentProps {
+  minDownPayment: number;
+  maxDownPayment: number;
+  maxDownPaymentPercentage: number;
+  projectNetAmount: number;
+  currentUpfrontPayment: number;
+}
+
+export interface IGetQuoteProjectNetAmountProps {
+  quoteCostBuildup: IQuoteCostBuildup;
+  quotePricePerWatt: IQuotePricePerWattSchema;
+  quotePriceOverride: IQuotePriceOverride;
+  quoteMode: QUOTE_MODE_TYPE;
 }

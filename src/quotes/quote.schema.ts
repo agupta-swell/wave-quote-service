@@ -438,12 +438,12 @@ const QuotePricePerWattSchema = new Schema<Document<IQuotePricePerWattSchema>>(
 );
 
 export interface IQuotePriceOverride {
-  grossPrice: number;
+  netPrice: number;
 }
 
 const QuotePriceOverride = new Schema<Document<IQuotePriceOverride>>(
   {
-    gross_price: Number,
+    net_price: Number,
   },
   { _id: false },
 );

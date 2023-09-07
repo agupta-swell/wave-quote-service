@@ -35,7 +35,7 @@ import { SystemDesign } from 'src/system-designs/system-design.schema';
 import { SystemProductionService } from 'src/system-productions/system-production.service';
 import { ITaxCreditConfigSnapshot } from 'src/tax-credit-configs/interfaces';
 import { TaxCreditConfigService } from 'src/tax-credit-configs/tax-credit-config.service';
-import { UtilitiesMaster, UTILITIES_MASTER } from 'src/utilities-master/utilities-master.schema';
+import { UTILITIES_MASTER, UtilitiesMaster } from 'src/utilities-master/utilities-master.schema';
 import { UtilitiesMasterService } from 'src/utilities-master/utilities-master.service';
 import { UtilityUsageDetails } from 'src/utilities/utility.schema';
 import { UtilityService } from 'src/utilities/utility.service';
@@ -76,9 +76,9 @@ import {
 import { EsaProductAttributesDto } from './req/sub-dto/esa-product-attributes.dto';
 import { QuoteDto } from './res';
 import { QuoteCostBuildupUserInputDto } from './res/sub-dto';
-import { ITC, I_T_C } from './schemas';
+import { I_T_C, ITC } from './schemas';
 import { CalculationService, QuoteCostBuildUpService, QuoteFinanceProductService } from './sub-services';
-import { ICreateProductAttribute } from './typing';
+import { ICalculateUpfrontPaymentProps, ICreateProductAttribute, IGetQuoteProjectNetAmountProps } from './typing';
 
 @Injectable()
 export class QuoteService {
@@ -119,7 +119,7 @@ export class QuoteService {
     private readonly gsProgramsService: GsProgramsService,
     private readonly systemProductionService: SystemProductionService,
     private readonly esaPricingSolverService: EsaPricingSolverService,
-  ) { }
+  ) {}
 
   async createQuote(data: CreateQuoteDto): Promise<OperationResult<QuoteDto>> {
     const [
@@ -195,14 +195,6 @@ export class QuoteService {
       dealerFeePercentage,
     });
 
-    if (data.selectedQuoteMode === QUOTE_MODE_TYPE.PRICE_PER_WATT) {
-      quoteCostBuildup.projectGrandTotal.netCost = data.quotePricePerWatt.grossPrice;
-      quoteCostBuildup.projectGrossTotal.netCost = data.quotePricePerWatt.grossPrice;
-    } else if (data.selectedQuoteMode === QUOTE_MODE_TYPE.PRICE_OVERRIDE) {
-      quoteCostBuildup.projectGrandTotal.netCost = data.quotePriceOverride.grossPrice;
-      quoteCostBuildup.projectGrossTotal.netCost = data.quotePriceOverride.grossPrice;
-    }
-
     const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage, maxInstallationAmount } = financialProduct;
@@ -226,9 +218,16 @@ export class QuoteService {
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
+    const projectNetAmount = this.getQuoteProjectNetAmount({
+      quoteMode: data.selectedQuoteMode,
+      quoteCostBuildup,
+      quotePriceOverride: data.quotePriceOverride,
+      quotePricePerWatt: data.quotePricePerWatt,
+    });
+
     const productAttribute = await this.createProductAttribute({
       productType: fundingSource.type,
-      netAmount: quoteCostBuildup.projectGrandTotal.netCost,
+      netAmount: projectNetAmount,
       financialProductSnapshot: financialProduct,
       currentPricePerKWh,
       newPricePerKWh,
@@ -262,13 +261,13 @@ export class QuoteService {
       }
     }
 
-    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment({
       minDownPayment,
       maxDownPayment,
       maxDownPaymentPercentage,
-      quoteCostBuildup.projectGrandTotal.netCost || 0,
-      productAttribute.upfrontPayment,
-    );
+      projectNetAmount,
+      currentUpfrontPayment: productAttribute.upfrontPayment,
+    });
 
     const detailedQuote = {
       systemProductionId: systemDesign.systemProductionId,
@@ -289,7 +288,7 @@ export class QuoteService {
           productAttribute,
           financialProductSnapshot: financialProduct,
         },
-        netAmount: quoteCostBuildup.projectGrandTotal.netCost,
+        netAmount: projectNetAmount,
         incentiveDetails: [],
         rebateDetails: await this.createRebateDetails(rebateProgram, fundingSource.rebateAssignment),
         projectDiscountDetails: [],
@@ -330,7 +329,7 @@ export class QuoteService {
 
       const systemProduction = await this.systemProductionService.findById(detailedQuote.systemProductionId);
 
-      const projectNetAmount =  detailedQuote.quoteCostBuildup.projectGrandTotal.netCost;
+      const projectNetAmount = detailedQuote.quoteFinanceProduct.netAmount;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
@@ -360,7 +359,7 @@ export class QuoteService {
           applicableQuoteTypes?.includes(primaryQuoteType) &&
           (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
       )
-      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0));
+      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, projectNetAmount));
 
     obj.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
@@ -402,11 +401,11 @@ export class QuoteService {
     ) {
       gsPrograms = foundQuote.detailedQuote.utilityProgram?.utilityProgramId
         ? await this.gsProgramsService.getList(
-          100,
-          0,
-          foundQuote.detailedQuote.utilityProgram.utilityProgramId,
-          systemDesignId,
-        )
+            100,
+            0,
+            foundQuote.detailedQuote.utilityProgram.utilityProgramId,
+            systemDesignId,
+          )
         : [];
     }
 
@@ -467,8 +466,9 @@ export class QuoteService {
     });
 
     model.systemDesignId = systemDesignId;
-    model.detailedQuote.quoteName = `${originQuoteName} ${totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
-      }`.trim();
+    model.detailedQuote.quoteName = `${originQuoteName} ${
+      totalSameNameQuotes ? `(${totalSameNameQuotes + 1})` : ''
+    }`.trim();
     model.detailedQuote.systemProductionId = foundSystemDesign.systemProductionId;
 
     const { selectedQuoteMode, quotePricePerWatt, quotePriceOverride } = foundQuote.detailedQuote;
@@ -486,7 +486,7 @@ export class QuoteService {
 
     if (quotePriceOverride) {
       model.detailedQuote.quotePriceOverride = {
-        grossPrice: quotePriceOverride.grossPrice,
+        netPrice: quotePriceOverride.netPrice,
       };
     }
 
@@ -520,21 +520,12 @@ export class QuoteService {
 
     model.detailedQuote.primaryQuoteType = primaryQuoteType;
 
-    let currentProjectPrice: number;
-
-    switch (selectedQuoteMode) {
-      case QUOTE_MODE_TYPE.COST_BUILD_UP:
-        currentProjectPrice = model.detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost || 0;
-        break;
-      case QUOTE_MODE_TYPE.PRICE_PER_WATT:
-        currentProjectPrice = model.detailedQuote.quotePricePerWatt?.grossPrice || 0;
-        break;
-      case QUOTE_MODE_TYPE.PRICE_OVERRIDE:
-        currentProjectPrice = model.detailedQuote.quotePriceOverride?.grossPrice || 0;
-        break;
-      default:
-        currentProjectPrice = 0;
-    }
+    const projectNetAmount = this.getQuoteProjectNetAmount({
+      quoteMode: selectedQuoteMode,
+      quoteCostBuildup,
+      quotePriceOverride: model.detailedQuote.quotePriceOverride,
+      quotePricePerWatt: model.detailedQuote.quotePricePerWatt,
+    });
 
     const currentAnnualCost =
       utilityData.costData.plannedCost?.annualCost ??
@@ -560,7 +551,7 @@ export class QuoteService {
 
     let productAttribute = await this.createProductAttribute({
       productType: financeProduct.productType,
-      netAmount: currentProjectPrice,
+      netAmount: projectNetAmount,
       financialProductSnapshot,
       currentPricePerKWh,
       newPricePerKWh,
@@ -628,13 +619,13 @@ export class QuoteService {
 
     const { minDownPayment, maxDownPayment, maxDownPaymentPercentage } = financeProduct.financialProductSnapshot;
 
-    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment({
       minDownPayment,
       maxDownPayment,
       maxDownPaymentPercentage,
-      quoteCostBuildup.projectGrandTotal.netCost || 0,
-      productAttribute.upfrontPayment,
-    );
+      projectNetAmount,
+      currentUpfrontPayment: productAttribute.upfrontPayment,
+    });
 
     model.detailedQuote.quoteFinanceProduct.financeProduct.productAttribute = productAttribute;
 
@@ -670,7 +661,7 @@ export class QuoteService {
           applicableQuoteTypes?.includes(primaryQuoteType) &&
           (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
       )
-      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0));
+      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, projectNetAmount));
 
     model.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
       QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
@@ -696,7 +687,7 @@ export class QuoteService {
           promotionDetails: quoteFinanceProduct.promotionDetails,
         } as any,
         model.detailedQuote.quoteCostBuildup,
-        currentProjectPrice,
+        projectNetAmount,
       ),
     );
 
@@ -727,7 +718,7 @@ export class QuoteService {
         fmvAppraisalId,
       } = model.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
-      const projectNetAmount = model.detailedQuote.quoteCostBuildup.projectGrandTotal.netCost;
+      const projectNetAmount = model.detailedQuote.quoteFinanceProduct.netAmount;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
@@ -972,11 +963,18 @@ export class QuoteService {
     const newAverageMonthlyBill = roundNumber(postInstallAnnualCost / 12, 2) || 0;
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
+    const projectNetAmount = this.getQuoteProjectNetAmount({
+      quoteMode: data.selectedQuoteMode as QUOTE_MODE_TYPE,
+      quoteCostBuildup,
+      quotePriceOverride: data.quotePriceOverride,
+      quotePricePerWatt: data.quotePricePerWatt,
+    });
+
     const { productAttribute: product_attribute } = financeProduct as any;
 
     let productAttribute = await this.createProductAttribute({
       productType: financeProduct.productType,
-      netAmount: quoteCostBuildup.projectGrandTotal.netCost,
+      netAmount: projectNetAmount,
       financialProductSnapshot,
       currentPricePerKWh,
       newPricePerKWh,
@@ -1036,13 +1034,13 @@ export class QuoteService {
       }
     }
 
-    productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+    productAttribute.upfrontPayment = this.calculateUpfrontPayment({
       minDownPayment,
       maxDownPayment,
       maxDownPaymentPercentage,
-      quoteCostBuildup.projectGrandTotal.netCost || 0,
-      productAttribute.upfrontPayment,
-    );
+      projectNetAmount,
+      currentUpfrontPayment: productAttribute.upfrontPayment,
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     // eslint-disable-next-line func-names
@@ -1083,7 +1081,7 @@ export class QuoteService {
           productAttribute,
           financialProductSnapshot: financeProduct.financialProductSnapshot,
         },
-        netAmount: quoteCostBuildup.projectGrandTotal.netCost,
+        netAmount: projectNetAmount,
         incentiveDetails: handledIncentiveDetails,
         rebateDetails,
         projectDiscountDetails:
@@ -1109,12 +1107,13 @@ export class QuoteService {
             applicableQuoteTypes?.includes(primaryQuoteType) &&
             (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
         )
-        .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, quoteCostBuildup.projectGrandTotal.netCost ?? 0)),
+        .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, projectNetAmount)),
     };
 
     detailedQuote.quoteFinanceProduct = this.handleUpdateQuoteFinanceProduct(
       detailedQuote.quoteFinanceProduct as any,
       detailedQuote.quoteCostBuildup,
+      projectNetAmount,
     ) as any;
 
     detailedQuote.quoteFinanceProduct.rebateDetails = await this.createRebateDetails(
@@ -1133,12 +1132,9 @@ export class QuoteService {
         primaryQuoteType,
       );
       data.solverId = rowId;
-      const {
-        fundId,
-        fmvAppraisalId,
-      } = detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
+      const { fundId, fmvAppraisalId } = detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
-      const projectNetAmount = detailedQuote.quoteCostBuildup.projectGrandTotal.netCost;
+      const projectNetAmount = detailedQuote.quoteFinanceProduct.netAmount;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
@@ -1352,7 +1348,7 @@ export class QuoteService {
       dealerFee,
     );
 
-    const quoteCostBuildUp = this.quoteCostBuildUpService.create({
+    const quoteCostBuildup = this.quoteCostBuildUpService.create({
       roofTopDesignData: systemDesign.roofTopDesignData,
       partnerMarkup: quoteConfigData,
       userInputs,
@@ -1364,9 +1360,16 @@ export class QuoteService {
       },
     });
 
+    const projectNetAmount = this.getQuoteProjectNetAmount({
+      quoteMode: data.selectedQuoteMode as QUOTE_MODE_TYPE,
+      quoteCostBuildup,
+      quotePriceOverride: data.quotePriceOverride,
+      quotePricePerWatt: data.quotePricePerWatt,
+    });
+
     if (foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA) {
       const responseMessage = await this.qualifyQuoteAgainstFinancialProductSettings(
-        { balance: quoteCostBuildUp.projectGrandTotal.netCost } as IEsaProductAttributes,
+        { balance: projectNetAmount } as IEsaProductAttributes,
         financialProductSnapshot,
         systemDesign,
         utilityData,
@@ -1376,20 +1379,20 @@ export class QuoteService {
       }
     }
 
-    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildUp, systemDesign.existingSystem);
+    const primaryQuoteType = this.getPrimaryQuoteType(quoteCostBuildup, systemDesign.existingSystem);
 
     detailedQuote.primaryQuoteType = primaryQuoteType;
 
-    detailedQuote.quoteCostBuildup = quoteCostBuildUp;
-    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = this.calculateUpfrontPayment(
+    detailedQuote.quoteCostBuildup = quoteCostBuildup;
+    detailedQuote.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment = this.calculateUpfrontPayment({
       minDownPayment,
       maxDownPayment,
       maxDownPaymentPercentage,
-      quoteCostBuildUp.projectGrandTotal.netCost || 0,
-      data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment || 0,
-    );
+      projectNetAmount,
+      currentUpfrontPayment: data.quoteFinanceProduct.financeProduct.productAttribute.upfrontPayment || 0,
+    });
 
-    detailedQuote.quoteFinanceProduct.netAmount = quoteCostBuildUp.projectGrandTotal.netCost;
+    detailedQuote.quoteFinanceProduct.netAmount = projectNetAmount;
 
     detailedQuote.taxCreditData = taxCreditData
       .filter(
@@ -1397,9 +1400,7 @@ export class QuoteService {
           applicableQuoteTypes?.includes(primaryQuoteType) &&
           (isFederal || (stateCode && opportunityState && stateCode === opportunityState)),
       )
-      .map(taxCredit =>
-        TaxCreditConfigService.snapshot(taxCredit, detailedQuote.quoteCostBuildup?.projectGrandTotal.netCost ?? 0),
-      );
+      .map(taxCredit => TaxCreditConfigService.snapshot(taxCredit, projectNetAmount));
 
     // const avgMonthlySavings = await this.calculateAvgMonthlySavings(data.opportunityId, systemDesign);
     const avgMonthlySavings = 0; // Commented because we work on battery-only system design for this release.
@@ -1414,7 +1415,7 @@ export class QuoteService {
           productAttribute.currentMonthlyAverageUtilityPayment - avgMonthlySavings;
 
         productAttribute.monthlyLoanPayment = this.calculationService.monthlyPaymentAmount(
-          quoteCostBuildUp.projectGrandTotal.netCost,
+          projectNetAmount,
           financialProductSnapshot.interestRate,
           financialProductSnapshot.termMonths,
         );
@@ -1448,12 +1449,9 @@ export class QuoteService {
         primaryQuoteType,
       );
       data.solverId = rowId;
-      const {
-        fundId,
-        fmvAppraisalId,
-      } = detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
+      const { fundId, fmvAppraisalId } = detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
 
-      const projectNetAmount = detailedQuote.quoteCostBuildup.projectGrandTotal.netCost;
+      const projectNetAmount = detailedQuote.quoteFinanceProduct.netAmount;
 
       const esaPricingResult = await this.esaPricingSolverService.calculateEsaPricing({
         solverId: rowId,
@@ -1474,15 +1472,15 @@ export class QuoteService {
     const model = new QuoteModel(data, detailedQuote);
 
     model.detailedQuote.quoteFinanceProduct.projectDiscountDetails?.map(e =>
-      QuoteFinanceProductService.attachImpact(e, quoteCostBuildUp.projectGrossTotal.netCost),
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
     );
 
     model.detailedQuote.quoteFinanceProduct.promotionDetails?.map(e =>
-      QuoteFinanceProductService.attachImpact(e, quoteCostBuildUp.projectGrossTotal.netCost),
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
     );
 
     model.detailedQuote.quoteFinanceProduct.incentiveDetails?.map(e =>
-      QuoteFinanceProductService.attachImpact(e, quoteCostBuildUp.projectGrossTotal.netCost),
+      QuoteFinanceProductService.attachImpact(e, quoteCostBuildup.projectGrossTotal.netCost),
     );
 
     model.setIsSync(data.isSync);
@@ -1933,16 +1931,16 @@ export class QuoteService {
     throw new Error('Invalid quote type');
   }
 
-  calculateUpfrontPayment(
-    minDownPayment: number,
-    maxDownPayment: number,
-    maxDownPaymentPercentage: number,
-    projectGrandTotal: number,
-    currentUpfrontPayment: number,
-  ): number {
+  calculateUpfrontPayment({
+    minDownPayment,
+    maxDownPayment,
+    maxDownPaymentPercentage,
+    projectNetAmount,
+    currentUpfrontPayment,
+  }: ICalculateUpfrontPaymentProps): number {
     let maxDownPaymentValue = maxDownPayment;
     if (maxDownPaymentPercentage) {
-      const maxDownPaymentWithPercentage = (maxDownPaymentPercentage / 100) * projectGrandTotal;
+      const maxDownPaymentWithPercentage = (maxDownPaymentPercentage / 100) * projectNetAmount;
       maxDownPaymentValue = Math.min(maxDownPayment, Number(maxDownPaymentWithPercentage.toFixed(2)));
     }
 
@@ -2015,7 +2013,8 @@ export class QuoteService {
 
       unqualifiedManufacturers.forEach(manufacturer => {
         messages.push(
-          `\n<b>${messages.length + 1}.)</b> The selected ${productType} manufacturer (${manufacturer.name
+          `\n<b>${messages.length + 1}.)</b> The selected ${productType} manufacturer (${
+            manufacturer.name
           }) is not approved.`,
         );
       });
@@ -2040,7 +2039,8 @@ export class QuoteService {
         fn: (messages: string[]) => {
           if (productAttribute.balance > financialProduct.maxInstallationAmount)
             messages.push(
-              `\n<b>${messages.length + 1
+              `\n<b>${
+                messages.length + 1
               }.)</b> The cost of installing this system exceeds the allowed maximum installation amount.`,
             );
         },
@@ -2192,5 +2192,19 @@ export class QuoteService {
     const escAndTerms = { rateEscalator: productAttribute.rateEscalator, esaTerm: productAttribute.esaTerm };
     const res = await this.esaPricingSolverService.extractRowFromCSV(designParam, opportunityParam, escAndTerms);
     return res._id;
+  }
+
+  getQuoteProjectNetAmount({
+    quoteMode,
+    quoteCostBuildup,
+    quotePricePerWatt,
+    quotePriceOverride,
+  }: IGetQuoteProjectNetAmountProps) {
+    const projectNetAmount = {
+      [QUOTE_MODE_TYPE.COST_BUILD_UP]: quoteCostBuildup?.projectGrandTotal?.netCost,
+      [QUOTE_MODE_TYPE.PRICE_PER_WATT]: quotePricePerWatt?.grossPrice,
+      [QUOTE_MODE_TYPE.PRICE_OVERRIDE]: quotePriceOverride?.netPrice,
+    };
+    return projectNetAmount[quoteMode] || 0;
   }
 }

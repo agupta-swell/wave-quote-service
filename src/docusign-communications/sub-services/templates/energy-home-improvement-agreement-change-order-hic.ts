@@ -4,10 +4,10 @@ import { IGenericObject } from 'src/docusign-communications/typing';
 import { ISystemDesignProducts, parseSystemDesignProducts } from 'src/docusign-communications/utils';
 import { QuoteFinanceProductService } from 'src/quotes/sub-services';
 import {
+  DOCUSIGN_TAB_TYPE,
   DefaultTabTransformation,
   DefaultTabType,
   DocusignTemplate,
-  DOCUSIGN_TAB_TYPE,
   TabValue,
 } from 'src/shared/docusign';
 import { CurrencyFormatter, NumberFormatter } from 'src/utils/numberFormatter';
@@ -141,15 +141,15 @@ export class EnergyHomeImprovementAgreementChangeOrderHicTemplate {
   )
   adderSummary: string;
 
-  @TabValue<IGenericObject>(({ quote: { quoteCostBuildup } }) =>
-    NumberFormatter.format(quoteCostBuildup.projectGrandTotal.netCost),
+  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct } }) =>
+    NumberFormatter.format(quoteFinanceProduct.netAmount),
   )
   newContractAmount: string;
 
-  @TabValue<IGenericObject>(({ quote: { quoteCostBuildup }, primaryContractQuote }) =>
+  @TabValue<IGenericObject>(({ quote: { quoteFinanceProduct }, primaryContractQuote }) =>
     NumberFormatter.format(
-      new BigNumber(quoteCostBuildup.projectGrandTotal.netCost)
-        .minus(primaryContractQuote?.quoteCostBuildup.projectGrandTotal.netCost ?? 0)
+      new BigNumber(quoteFinanceProduct.netAmount)
+        .minus(primaryContractQuote?.quoteFinanceProduct.netAmount ?? 0)
         .decimalPlaces(2)
         .toNumber(),
     ),
