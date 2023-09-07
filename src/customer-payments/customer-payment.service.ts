@@ -1,18 +1,22 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { BigNumber } from 'bignumber.js';
-import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { DISCOUNT_TYPE } from 'src/discounts/discount.constant';
+import { FilterQuery, LeanDocument, Model, ObjectId, Types } from 'mongoose';
+
 import { IDetailedQuoteSchema } from 'src/quotes/quote.schema';
 import { QuoteCostBuildUpService, QuoteFinanceProductService } from 'src/quotes/sub-services';
 import { BigNumberUtils } from 'src/utils';
 import { roundNumber } from 'src/utils/transformNumber';
+import { CONTRACT_TYPE, PROCESS_STATUS } from 'src/contracts/constants';
+import { Contract, CONTRACT } from 'src/contracts/contract.schema';
 import { CUSTOMER_PAYMENT, CustomerPayment } from './customer-payment.schema';
 
 @Injectable()
 export class CustomerPaymentService {
   constructor(
     @InjectModel(CUSTOMER_PAYMENT) private customerPaymentModel: Model<CustomerPayment>,
+    @InjectModel(CONTRACT) private contractModel: Model<Contract>,
     @Inject(forwardRef(() => QuoteFinanceProductService))
     private readonly quoteFinanceProductService: QuoteFinanceProductService,
     @Inject(forwardRef(() => QuoteCostBuildUpService))
@@ -31,33 +35,56 @@ export class CustomerPaymentService {
     return res;
   }
 
+  async getLatestCustomerPayment(contractId: string, opportunityId: string): Promise<LeanDocument<CustomerPayment>> {
+    const filter: FilterQuery<Contract> = {
+      opportunityId,
+      contractType: { $ne: CONTRACT_TYPE.GRID_SERVICES_PACKET },
+    };
+
+    if (contractId) {
+      filter._id = { $ne: Types.ObjectId(contractId) };
+    }
+
+    const previousContractList = await this.contractModel
+      .find(filter)
+      .select('_id')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const previousWqtContract =
+      previousContractList.find((item) => item.contractStatus === PROCESS_STATUS.COMPLETED) || previousContractList[0];
+
+    const customerPaymentList = await this.customerPaymentModel
+      .find({ opportunityId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return customerPaymentList.find((cp) => cp.wqtContractId === previousWqtContract?._id?.toString()) || customerPaymentList[0];
+  } 
+
   async calculateContractCustomPayment(
     contractId: string | ObjectId,
     opportunityId: string,
     detailedQuote: IDetailedQuoteSchema,
   ): Promise<CustomerPayment> {
-    const latestCustomerPayment = await this.customerPaymentModel
-      .find({ opportunityId })
-      .limit(1)
-      .sort({ modifiedAt: -1 })
-      .lean();
+    const latestCustomerPayment = await this.getLatestCustomerPayment(contractId.toString(), opportunityId) || {};
 
     const customerPayment = new this.customerPaymentModel();
 
-    const { actualDepositMade = 0, actualPayment1Made = 0 } = latestCustomerPayment[0] || {};
+    const { actualDepositMade = 0, actualPayment1Made = 0 } = latestCustomerPayment;
 
     const now = new Date();
 
-    if (latestCustomerPayment.length) {
-      delete latestCustomerPayment[0]._id;
-      delete latestCustomerPayment[0].__v;
-      latestCustomerPayment[0].createdAt = now;
-      latestCustomerPayment[0].updatedAt = now;
-      const latestCustomerPaymentKeys = Object.keys(latestCustomerPayment[0]);
-      latestCustomerPaymentKeys.forEach(key => {
-        customerPayment[key] = latestCustomerPayment[0][key];
-      });
-    }
+    delete latestCustomerPayment._id;
+    delete latestCustomerPayment.__v;
+    latestCustomerPayment.createdAt = now;
+    latestCustomerPayment.updatedAt = now;
+
+    const latestCustomerPaymentKeys = Object.keys(latestCustomerPayment);
+    
+    latestCustomerPaymentKeys.forEach(key => {
+      customerPayment[key] = latestCustomerPayment[key];
+    });
 
     const { quoteCostBuildup, quoteFinanceProduct } = detailedQuote;
 
