@@ -964,10 +964,10 @@ export class QuoteService {
     const newPricePerKWh = roundNumber(postInstallAnnualCost / utilityData.totalPlannedUsageIncreases, 2) || 0;
 
     const projectNetAmount = this.getQuoteProjectNetAmount({
-      quoteMode: data.selectedQuoteMode as QUOTE_MODE_TYPE,
+      quoteMode: foundQuote.detailedQuote.selectedQuoteMode as QUOTE_MODE_TYPE,
       quoteCostBuildup,
-      quotePriceOverride: data.quotePriceOverride,
-      quotePricePerWatt: data.quotePricePerWatt,
+      quotePriceOverride: foundQuote.detailedQuote.quotePriceOverride,
+      quotePricePerWatt: foundQuote.detailedQuote.quotePricePerWatt,
     });
 
     const { productAttribute: product_attribute } = financeProduct as any;
@@ -1084,10 +1084,8 @@ export class QuoteService {
         netAmount: projectNetAmount,
         incentiveDetails: handledIncentiveDetails,
         rebateDetails,
-        projectDiscountDetails:
-          data.quoteFinanceProduct?.projectDiscountDetails ?? projectDiscountDetails.filter(DiscountService.validate),
-        promotionDetails:
-          data.quoteFinanceProduct?.promotionDetails ?? promotionDetails.filter(PromotionService.validate),
+        projectDiscountDetails: projectDiscountDetails.filter(DiscountService.validate),
+        promotionDetails: promotionDetails.filter(PromotionService.validate),
       },
       taxCreditSelectedForReinvestment: foundQuote.detailedQuote.taxCreditSelectedForReinvestment,
       utilityProgramSelectedForReinvestment: foundQuote.detailedQuote.utilityProgramSelectedForReinvestment,
