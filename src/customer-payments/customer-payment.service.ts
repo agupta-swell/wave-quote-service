@@ -132,8 +132,7 @@ export class CustomerPaymentService {
       }
 
       customerPayment.actualDepositMade = actualDepositMade || 0;
-      // if customer paid the deposit
-      customerPayment.deposit = actualDepositMade || deposit;
+      customerPayment.deposit = deposit;
 
       customerPayment.payment1 =
         actualPayment1Made ||
