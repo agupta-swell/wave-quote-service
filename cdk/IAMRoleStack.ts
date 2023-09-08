@@ -19,12 +19,21 @@ export class IAMRoleStack extends Stack {
       assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
       roleName: `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`,
       managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy')],
-    }).addToPolicy(
+    });
+
+    execRole.addToPolicy(
       new PolicyStatement({
-        actions: ['secretsmanager:GetSecretValue', 's3:*'],
+        actions: ['secretsmanager:GetSecretValue'],
         resources: [
           `arn:aws:secretsmanager:${region}:${accountId}:secret:${company}-${applicationId}-${processId}-${environment}-env-vars:*`,
         ],
+      }),
+    );
+
+    execRole.addToPolicy(
+      new PolicyStatement({
+        actions: ['s3:*'],
+        resources: ['*'],
       }),
     );
   }
