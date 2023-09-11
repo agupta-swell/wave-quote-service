@@ -3,7 +3,7 @@ import { IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator';
 
 export class UpdateLatestQuoteDto {
   @ApiProperty()
-  @IsString()
+  @IsMongoId()
   quoteId: string;
 
   @ApiProperty()
@@ -17,16 +17,6 @@ export class UpdateLatestQuoteDto {
   @ApiProperty()
   @IsString()
   @IsOptional()
-  fundingSourceId: string;
-
-  @ApiProperty()
-  @IsMongoId()
-  @IsOptional()
-  utilityProgramId: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsOptional()
   partnerId: string;
 
   @ApiProperty()
@@ -35,6 +25,6 @@ export class UpdateLatestQuoteDto {
   isArchived: boolean;
 
   @IsOptional()
-  @IsString()
+  @IsMongoId()
   solverId: string;
 }
