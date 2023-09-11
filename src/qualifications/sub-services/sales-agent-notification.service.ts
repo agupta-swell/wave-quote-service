@@ -42,7 +42,7 @@ export class SalesAgentNotificationService {
       salesRepFullName: `${agent?.profile.firstName} ${agent?.profile.lastName}`,
       applicantFullName: `${applicant.firstName} ${applicant.lastName}`,
       applicationCurrentDecision: qualification.qualificationStatus || '',
-      applicationPendingReasons: reasons?.join(',') || ''
+      applicationPendingReasons: reasons?.join(', ') || ''
     };
 
     return this.emailService.sendMailByTemplate(agent?.emails[0].address || '', emailSubject, eventType, data)
