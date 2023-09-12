@@ -88,8 +88,11 @@ export class ECSStack extends Stack {
       domainZone: zone,
       certificate: mycertificate,
       redirectHTTP: true,
-      memoryLimitMiB: parseInt(memory_spec ?? '512'),
-      cpu: parseInt(cpu_spec ?? '256'),
+      // Cpu: default: 256
+      // memoryLimitMiB: default: 512
+      // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ecs.FargateTaskDefinition.html
+      memoryLimitMiB: memory_spec ? Number(memory_spec) : undefined,
+      cpu: cpu_spec ? Number(cpu_spec) : undefined,
       taskImageOptions: {
         family: `${company}-${applicationId}-${processId}-${environment}-ecs-taskdef`,
         image: ContainerImage.fromRegistry(
