@@ -119,6 +119,11 @@ export class ProposalDto {
 
   @ExposeProp()
   isSent: boolean;
+
+  @ExposeProp()
+  partnerAccount: {
+    imgUrl: string;
+  }
 }
 
 class ProposalPaginationRes implements Pagination<ProposalDto> {

@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AccountPhotoModule } from 'src/account-photos/account-photo.module';
+import { AccountModule } from 'src/accounts/account.module';
 import { JwtConfigService } from 'src/authentication/jwt-config.service';
 import { EnergyProfileModule } from 'src/energy-profiles/energy-profile.module';
 import { FinancialProductsModule } from 'src/financial-products/financial-product.module';
@@ -42,6 +44,8 @@ import { ProposalAnalyticSchema, PROPOSAL_ANALYTIC } from './schemas/proposal-an
     SystemProductionModule,
     EnergyProfileModule,
     PropertyModule,
+    AccountPhotoModule,
+    AccountModule,
   ],
   controllers: [ProposalController],
   providers: [ProposalService],

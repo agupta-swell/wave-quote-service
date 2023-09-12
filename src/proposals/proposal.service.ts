@@ -9,6 +9,8 @@ import { isNil, omitBy, pickBy, uniq } from 'lodash';
 import { LeanDocument, Model, ObjectId } from 'mongoose';
 import { of } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
+import { AccountService } from 'src/accounts/account.service';
+import { AccountPhotoService } from 'src/account-photos/account-photo.service';
 import { ILoggedInUser } from 'src/app/securities';
 import { ContactService } from 'src/contacts/contact.service';
 import { CustomerPaymentService } from 'src/customer-payments/customer-payment.service';
@@ -100,6 +102,8 @@ export class ProposalService {
     private readonly manufacturerService: ManufacturerService,
     private readonly systemProductionService: SystemProductionService,
     private readonly energyProfileService: EnergyProfileService,
+    private readonly accountPhotoService: AccountPhotoService,
+    private readonly accountService: AccountService,
   ) {}
 
   async create(proposalDto: CreateProposalDto): Promise<OperationResult<ProposalDto>> {
@@ -506,6 +510,20 @@ export class ProposalService {
     const foundAnalytic = await foundAnalyticTemp;
     const netLoadAverage = await getNetLoadAverageTemp;
 
+    const opportunity = await this.opportunityService.getDetailById(proposal.opportunityId);
+    if (!opportunity) {
+      throw ApplicationException.EntityNotFound(`OpportunityId: ${proposal.opportunityId}`);
+    }
+    const partnerAccountPhoto = await this.accountPhotoService.getAccountPhotoByQuery({
+      accountId: opportunity.accountId, 
+      type: 'logo',
+    }, {
+      _id: opportunity.accountId, 
+      name: {
+        $not: /swell/i
+      }
+    });
+
     const netLoad: INetLoad = {
       average: netLoadAverage,
       typical: getNetLoadTypical(
@@ -590,8 +608,9 @@ export class ProposalService {
     // TODO: remove end
 
     const isSent = await this.checkIsSent(proposal);
-
-    const proposalDetail = strictPlainToClass(ProposalDto, { ...proposal, ...requiredData, isSent });
+    
+    const proposalDetail = strictPlainToClass(ProposalDto, { ...proposal, ...requiredData, partnerAccount: {imgUrl: partnerAccountPhoto?.imgUrl}, isSent });
+    
     // add props systemProductionData to systemDesignData
     if (systemProductionRes?.data) {
       proposalDetail.systemDesignData.systemProductionData = systemProductionRes?.data;
