@@ -1,14 +1,16 @@
-import { App, Stack, StackProps, Fn, Duration } from 'aws-cdk-lib';
+import { App, Stack, StackProps, Fn, RemovalPolicy } from 'aws-cdk-lib';
 import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { Cluster, ContainerImage, Secret as sec } from 'aws-cdk-lib/aws-ecs';
 import { ApplicationLoadBalancer } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import { ApplicationLoadBalancedFargateService } from 'aws-cdk-lib/aws-ecs-patterns';
 import { Certificate, CertificateValidation } from 'aws-cdk-lib/aws-certificatemanager';
-import { Role } from 'aws-cdk-lib/aws-iam';
+import { ArnPrincipal, Effect, PolicyStatement, Role } from 'aws-cdk-lib/aws-iam';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { Bucket, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
 
 const {
+  AWS_ACCOUNT_ID: accountId,
   AWS_VPC: vpcId,
   AWS_PRIVATE_SUBNETS: privateSubnetsIds,
   AWS_PUBLIC_SUBNETS: publicSubnetsIds,
@@ -28,6 +30,32 @@ const {
 export class ECSStack extends Stack {
   constructor(scope: App, id: string, props: StackProps) {
     super(scope, id, props);
+
+    // 👇 S3 Bucket creation
+    ['system-design-images', 'array-hourly-production', 'pinball-simulation', 'utility-data']
+      .map(
+        bucket =>
+          new Bucket(this, bucket, {
+            bucketName: `${bucket}-${environment}`,
+            blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+            enforceSSL: true,
+            removalPolicy: RemovalPolicy.RETAIN,
+          }),
+      )
+      .forEach(bucket =>
+        bucket.addToResourcePolicy(
+          new PolicyStatement({
+            effect: Effect.ALLOW,
+            principals: [
+              new ArnPrincipal(
+                `arn:aws:iam::${accountId}:role/${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`,
+              ),
+            ],
+            actions: ['s3:DeleteObject', 's3:GetObject', 's3:PutObject'],
+            resources: [`${bucket.bucketArn}/*`],
+          }),
+        ),
+      );
 
     // 👇 Importing AWS Secret using Name
     const secret = Secret.fromSecretNameV2(

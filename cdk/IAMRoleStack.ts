@@ -29,12 +29,5 @@ export class IAMRoleStack extends Stack {
         ],
       }),
     );
-
-    execRole.addToPolicy(
-      new PolicyStatement({
-        actions: ['s3:*'],
-        resources: ['*'],
-      }),
-    );
   }
 }
