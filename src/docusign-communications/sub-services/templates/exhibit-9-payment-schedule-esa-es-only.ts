@@ -13,11 +13,8 @@ export class Exhibit9PaymentScheduleEsaTemplate {
   @TabDynamic<IGenericObject>(genericObject => {
     const { quote } = genericObject;
     const result: Record<string, string> = {};
-    const DEGRADATION_RATE = 0.005;
     const BUYOUT_DISCOUNT = 0.03;
     const DEFAULT_ESA_TERM = 25;
-
-    const yearOneProduction = quote.systemProduction.generationKWh;
 
     const esaAttribute =
       quote.quoteFinanceProduct.financeProduct.productType === FINANCE_PRODUCT_TYPE.ESA
@@ -28,13 +25,6 @@ export class Exhibit9PaymentScheduleEsaTemplate {
     result.esa_escalator = `${escalatorRate}`;
 
     const term = esaAttribute?.esaTerm ?? 0;
-
-    const monthlyPayment = esaAttribute?.grossFinancePayment ?? 0;
-
-    const basePricePerkWhRate = new BigNumber(yearOneProduction ? (monthlyPayment * 12) / yearOneProduction : 0)
-      .decimalPlaces(2)
-      .toNumber();
-    result.price_per_kwh = Number2DecimalsFormatter.format(basePricePerkWhRate);
 
     const NPV = (cashflow: number[], discountRate: number): number =>
       cashflow.reduce((acc, val, i) => acc + val / Math.pow(1 + discountRate, i), 0);
@@ -50,6 +40,7 @@ export class Exhibit9PaymentScheduleEsaTemplate {
     };
 
     const estimatedMonthlyPaymentList: number[] = [];
+    const estimatedMonthlyPaymentYearOne = esaAttribute?.grossFinancePayment ?? 0;
 
     [...Array(DEFAULT_ESA_TERM)].forEach((_, idx) => {
       const yearIdx = idx + 1;
@@ -60,10 +51,9 @@ export class Exhibit9PaymentScheduleEsaTemplate {
         return;
       }
 
-      const estimatedProduction = yearOneProduction * Math.pow(1 - DEGRADATION_RATE, yearIdx - 1);
-      const pricePerkWhRate = basePricePerkWhRate * Math.pow(1 + new BigNumber(escalatorRate).dividedBy(100).toNumber(), yearIdx - 1);
-
-      const estimatedMonthlyPayment = (estimatedProduction * pricePerkWhRate) / 12;
+      const estimatedMonthlyPayment =
+        estimatedMonthlyPaymentYearOne *
+        Math.pow(1 + new BigNumber(escalatorRate).dividedBy(100).toNumber(), yearIdx - 1);
 
       estimatedMonthlyPaymentList.push(estimatedMonthlyPayment);
 
@@ -85,8 +75,6 @@ export class Exhibit9PaymentScheduleEsaTemplate {
       result[`payoff_year_${yearIdx}`] = `$${Number2DecimalsFormatter.format(
         NPV(getCashflow(estimatedMonthlyPaymentList.slice(index, term)), BUYOUT_DISCOUNT / 12),
       )}`;
-
-      
     });
     return result;
   })
