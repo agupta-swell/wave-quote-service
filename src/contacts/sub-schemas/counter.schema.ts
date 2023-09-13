@@ -6,10 +6,7 @@ export interface Counter extends Document {
   nextVal: number;
 }
 
-export const CounterSchema = new Schema<Counter>(
-  {
-    _id: Schema.Types.Mixed,
-    next_val: Number,
-  },
-  { versionKey: false },
-);
+export const CounterSchema = new Schema<Counter>({
+  _id: Schema.Types.Mixed,
+  next_val: Number,
+});

@@ -23,6 +23,5 @@ export const V2EsaPricingSolverSchema = new Schema<V2EsaPricingSolverDocument>(
   },
   {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
-    versionKey: false,
   },
 );

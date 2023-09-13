@@ -40,7 +40,6 @@ export const PropertiesSchema = new Schema<PropertyDocument>(
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: 'modifiedAt' },
-    versionKey: false,
   },
 );
 

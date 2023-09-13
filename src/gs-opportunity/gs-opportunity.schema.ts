@@ -449,7 +449,6 @@ export const GsOpportunitySchema = new Schema<IGsOpportunity>(
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: 'modifiedAt' },
-    versionKey: false,
   },
 );
 

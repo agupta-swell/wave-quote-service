@@ -29,7 +29,6 @@ export const DevFeeSchema = new Schema<DevFee>(
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
-    versionKey: false,
   },
 );
 

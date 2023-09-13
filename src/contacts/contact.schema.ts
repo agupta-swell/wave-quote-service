@@ -51,7 +51,6 @@ export const ContactSchema = new Schema<Contact>(
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: 'modifiedAt' },
-    versionKey: false,
   },
 );
 

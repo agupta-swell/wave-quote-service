@@ -411,14 +411,14 @@ export class DocusignTemplateMasterService {
         return {
           ...templateObj,
           id: template._id.toString(),
-          recipientRoles: roles.map(role => role.toJSON({ versionKey: false })),
+          recipientRoles: roles.map(role => role.toJSON()),
         };
       }),
     );
 
     return {
       templateDetails: docusignTemplates,
-      compositeTemplateData: compositeTemplate?.toJSON({ versionKey: false }) || null,
+      compositeTemplateData: compositeTemplate?.toJSON() || null,
     };
   }
 
@@ -458,7 +458,7 @@ export class DocusignTemplateMasterService {
         return {
           ...templateObj,
           id: template._id.toString(),
-          recipientRoles: roles.map(role => role.toJSON({ versionKey: false })),
+          recipientRoles: roles.map(role => role.toJSON()),
         };
       }),
     );

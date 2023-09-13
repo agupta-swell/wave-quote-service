@@ -68,7 +68,15 @@ import { MyLoggerModule } from './my-logger/my-logger.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     AsyncContextModule,
-    MongooseModule.forRoot(process.env.MONGO_URL || 'mongodb://localhost:27017', { useFindAndModify: false }),
+    MongooseModule.forRoot(process.env.MONGO_URL || 'mongodb://localhost:27017', {
+      useFindAndModify: false,
+      connectionFactory: connection => {
+        connection.plugin(schema => {
+          schema.options.versionKey = false;
+        });
+        return connection;
+      },
+    }),
     MongooseNamingStrategyLoader.forRoot(
       new MongooseNamingStrategy({ autoload: true, schemaType: ENaming.SNAKE_CASE, logger: true })
         .useLeanSignature(false)
