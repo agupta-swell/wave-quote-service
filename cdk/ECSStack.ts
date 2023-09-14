@@ -36,7 +36,7 @@ export class ECSStack extends Stack {
       .map(
         bucket =>
           new Bucket(this, bucket, {
-            bucketName: `${bucket}-${environment}`,
+            bucketName: `${company}-${applicationId}-${bucket}-${environment}`,
             blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
             enforceSSL: true,
             removalPolicy: RemovalPolicy.RETAIN,
