@@ -15,18 +15,31 @@ export class IAMRoleStack extends Stack {
     super(scope, id, props);
 
     // 👇 Task execution role creation
-    const execRole = new Role(this, 'TaskExecutionRole', {
+    const taskExecutionRole = new Role(this, 'TaskExecutionRole', {
       assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
       roleName: `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`,
       managedPolicies: [ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonECSTaskExecutionRolePolicy')],
     });
 
-    execRole.addToPolicy(
+    taskExecutionRole.addToPolicy(
       new PolicyStatement({
         actions: ['secretsmanager:GetSecretValue'],
         resources: [
           `arn:aws:secretsmanager:${region}:${accountId}:secret:${company}-${applicationId}-${processId}-${environment}-env-vars:*`,
         ],
+      }),
+    );
+
+    // 👇 Task role creation
+    const taskRole = new Role(this, 'TaskRole', {
+      assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com'),
+      roleName: `${company}-${applicationId}-${processId}-${environment}-ecs-task-role`,
+    });
+
+    taskRole.addToPolicy(
+      new PolicyStatement({
+        actions: ['s3:*'],
+        resources: [`arn:aws:s3:::${company}-${applicationId}-*`],
       }),
     );
   }

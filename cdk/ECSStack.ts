@@ -4,19 +4,17 @@ import { Cluster, ContainerImage, Secret as sec } from 'aws-cdk-lib/aws-ecs';
 import { ApplicationLoadBalancer } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import { ApplicationLoadBalancedFargateService } from 'aws-cdk-lib/aws-ecs-patterns';
 import { Certificate, CertificateValidation } from 'aws-cdk-lib/aws-certificatemanager';
-import { ArnPrincipal, Effect, PolicyStatement, Role } from 'aws-cdk-lib/aws-iam';
+import { Role } from 'aws-cdk-lib/aws-iam';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Bucket, BlockPublicAccess } from 'aws-cdk-lib/aws-s3';
 
 const {
-  AWS_ACCOUNT_ID: accountId,
   AWS_VPC: vpcId,
   AWS_PRIVATE_SUBNETS: privateSubnetsIds,
   AWS_PUBLIC_SUBNETS: publicSubnetsIds,
   AWS_DOMAIN_NAME: domainName,
   AWS_TOOLS_ACCOUNT_ID: toolsAccountId,
-  AWS_NETWORKING_STACK: awsNetworkingStack,
   AWS_ECR_REGION: ecrRegion,
   SWL_APPLICATION_ID: applicationId,
   SWL_COMPANY: company,
@@ -32,30 +30,15 @@ export class ECSStack extends Stack {
     super(scope, id, props);
 
     // 👇 S3 Bucket creation
-    ['system-design-images', 'array-hourly-production', 'pinball-simulation', 'utility-data']
-      .map(
-        bucket =>
-          new Bucket(this, bucket, {
-            bucketName: `${company}-${applicationId}-${bucket}-${environment}`,
-            blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
-            enforceSSL: true,
-            removalPolicy: RemovalPolicy.RETAIN,
-          }),
-      )
-      .forEach(bucket =>
-        bucket.addToResourcePolicy(
-          new PolicyStatement({
-            effect: Effect.ALLOW,
-            principals: [
-              new ArnPrincipal(
-                `arn:aws:iam::${accountId}:role/${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`,
-              ),
-            ],
-            actions: ['s3:DeleteObject', 's3:GetObject', 's3:PutObject'],
-            resources: [`${bucket.bucketArn}/*`],
-          }),
-        ),
-      );
+    ['system-design-images', 'array-hourly-production', 'pinball-simulation', 'utility-data', 'sunroof-data'].forEach(
+      bucket =>
+        new Bucket(this, bucket, {
+          bucketName: `${company}-${applicationId}-${environment}-${bucket}`,
+          blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+          enforceSSL: true,
+          removalPolicy: RemovalPolicy.RETAIN,
+        }),
+    );
 
     // 👇 Importing AWS Secret using Name
     const secret = Secret.fromSecretNameV2(
@@ -132,6 +115,11 @@ export class ECSStack extends Stack {
           this,
           'exec-role',
           `${company}-${applicationId}-${processId}-${environment}-ecs-task-execution`,
+        ),
+        taskRole: Role.fromRoleName(
+          this,
+          'task-role',
+          `${company}-${applicationId}-${processId}-${environment}-ecs-task-role`,
         ),
         secrets: {
           AWS_REGION: sec.fromSecretsManager(secret, 'AWS_REGION'),
