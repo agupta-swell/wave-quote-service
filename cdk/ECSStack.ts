@@ -33,7 +33,7 @@ export class ECSStack extends Stack {
     ['system-design-images', 'array-hourly-production', 'pinball-simulation', 'utility-data', 'sunroof-data'].forEach(
       bucket =>
         new Bucket(this, bucket, {
-          bucketName: `${company}-${applicationId}-${environment}-${bucket}`,
+          bucketName: `${company}-${applicationId}-${bucket}-${environment}`,
           blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
           enforceSSL: true,
           removalPolicy: RemovalPolicy.RETAIN,
