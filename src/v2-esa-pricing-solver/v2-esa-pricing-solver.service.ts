@@ -26,6 +26,7 @@ import { convertStringWithCommasToNumber } from 'src/utils/common';
 import { OperationResult } from '../app/common/operation-result';
 import { CSV_PRIMARY_QUOTE, V2_ESA_PRICING_SOLVER_COLLECTION } from './constants';
 import { V2EsaPricingCalculation, V2EsaPricingSolver, V2EsaPricingSolverDocument } from './interfaces';
+import { FMV_APPRAISAL, FmvAppraisal } from 'src/fmvAppraisal/fmvAppraisal.schema';
 
 @Injectable()
 export class EsaPricingSolverService {
@@ -37,6 +38,8 @@ export class EsaPricingSolverService {
     @InjectModel(UTILITIES_MASTER) private utilitiesMasterModel: Model<UtilitiesMaster>,
     // @ts-ignore
     @InjectModel(OPPORTUNITY) private opportunityModel: Model<Opportunity>,
+    // @ts-ignore
+    @InjectModel(FMV_APPRAISAL) private fmvAppraisalModel: Model<FmvAppraisal>,
     // @ts-ignore
     @InjectModel(PROPERTY_COLLECTION_NAME) private readonly propertyModel: Model<PropertyDocument>,
 
@@ -62,7 +65,6 @@ export class EsaPricingSolverService {
   async getEcsAndTerm(quoteId: string): Promise<LeanDocument<V2EsaPricingSolverDocument>[]> {
     const filter: FilterQuery<V2EsaPricingSolverDocument> = {};
     const foundQuote = await this.quoteService.getOneFullQuoteDataById(quoteId);
-
     if (foundQuote) {
       const [opportunity, systemDesign] = await Promise.all([
         this.opportunityModel.findById(foundQuote.opportunityId),
@@ -76,38 +78,45 @@ export class EsaPricingSolverService {
         const property = await this.propertyModel.findById(opportunity?.propertyId);
 
         const designParam = await this.getStorageSizeAndManufacturer(systemDesign);
+        const { fmvAppraisalId } = foundQuote.detailedQuote.quoteFinanceProduct.financeProduct.financialProductSnapshot;
+        const fmvAppraisal = await this.fmvAppraisalService.findFmvAppraisalById(fmvAppraisalId);
         if (
           property?.state &&
           designParam.storageSize !== undefined &&
           utilityMaster?._id &&
-          foundQuote.detailedQuote.primaryQuoteType
+          foundQuote.detailedQuote.primaryQuoteType &&
+          fmvAppraisal
         ) {
           filter.state = property.state;
           filter.storageSizeKWh = designParam.storageSize;
           filter.storageManufacturerId = designParam.manufacturerId;
           filter.applicableUtilities = utilityMaster?._id;
           filter.projectTypes = CSV_PRIMARY_QUOTE[foundQuote.detailedQuote.primaryQuoteType];
-
-          const result = await this.esaPricingSolverModel
-            .find(filter, { _id: 1, termYears: 1, rateEscalator: 1 })
+          const priceSolverResult = await this.esaPricingSolverModel
+            .find(<any>{
+              state: property.state,
+              storageSizeKWh: designParam.storageSize,
+              storageManufacturerId: designParam.manufacturerId,
+              applicableUtilities: utilityMaster?._id,
+              projectTypes: CSV_PRIMARY_QUOTE[foundQuote.detailedQuote.primaryQuoteType],
+              rateEscalator: { $in: fmvAppraisal.escalator },
+              termYears: { $in: fmvAppraisal.termYears },
+            })
             .lean();
-
-          return result;
+          return priceSolverResult;
         }
       }
     }
     return [];
   }
-
   async getStorageSizeAndManufacturer(
-    systemDesign: LeanDocument<SystemDesign> | null
-  ): Promise<{ storageSize: number; manufacturerId?: string }>  {
-    
-    //hotfix handle pass by reference error 
+    systemDesign: LeanDocument<SystemDesign> | null,
+  ): Promise<{ storageSize: number; manufacturerId?: string }> {
+    //hotfix handle pass by reference error
     let rehydratedSystemDesign = await this.systemDesignService.getOneById(systemDesign?._id);
-    
+
     const storageSize =
-    rehydratedSystemDesign?.roofTopDesignData.storage?.reduce((acc: number, curr: IStorageSchema) => {
+      rehydratedSystemDesign?.roofTopDesignData.storage?.reduce((acc: number, curr: IStorageSchema) => {
         const kwh = curr.storageModelDataSnapshot.ratings.kilowattHours;
         const quantity = curr.quantity;
         if (kwh && quantity) {
@@ -116,7 +125,8 @@ export class EsaPricingSolverService {
         return acc;
       }, 0) || 0;
 
-    const manufacturerId = rehydratedSystemDesign?.roofTopDesignData.storage[0]?.storageModelDataSnapshot.manufacturerId;
+    const manufacturerId =
+      rehydratedSystemDesign?.roofTopDesignData.storage[0]?.storageModelDataSnapshot.manufacturerId;
     return { storageSize, manufacturerId: manufacturerId?.toString() || 'N/A' };
   }
 
@@ -285,16 +295,10 @@ export class EsaPricingSolverService {
 
     if (!fmvAppraisal) throw ApplicationException.EntityNotFound(`fmvAppraisal data.`);
 
-
     // If the db.v2_esa_pricing_solver.projectTypes array contains 'solar', then run the solar/solar+storage calculations.
     // Otherwise, run the storage-only calculations.
     const res = solverRow.projectTypes.some(item => ['solar', 'solar+storage'].includes(item))
-      ? this.calculateSolarPlusStorage(
-          systemProduction,
-          solverRow,
-          devFee,
-          projectNetAmount,
-        )
+      ? this.calculateSolarPlusStorage(systemProduction, solverRow, devFee, projectNetAmount)
       : this.calculateStorageOnly(solverRow, devFee, fmvAppraisal.storageRatePerKwh);
 
     return res;
@@ -335,10 +339,11 @@ export class EsaPricingSolverService {
     A * (modeled dev fee * (Project Net Amount / Solar Size kW / 1000) * Solar Size kW) 
       + B * ((Project Net Amount / Solar Size kW / 1000) * Solar Size kW) + C * Solar Size kW + D
     */
-    const devFeePercent= (devFee/100);
+    const devFeePercent = devFee / 100;
 
-    const annualPayment = 
-      solverRow.coefficientA * (devFeePercent * ( projectNetAmount / systemProduction.capacityKW / 1000 ) * systemProduction.capacityKW) +
+    const annualPayment =
+      solverRow.coefficientA *
+        (devFeePercent * (projectNetAmount / systemProduction.capacityKW / 1000) * systemProduction.capacityKW) +
       solverRow.coefficientB * ((projectNetAmount / systemProduction.capacityKW / 1000) * systemProduction.capacityKW) +
       solverRow.coefficientC * systemProduction.capacityKW +
       solverRow.coefficientD;
